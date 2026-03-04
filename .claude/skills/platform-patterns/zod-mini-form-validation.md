@@ -1,17 +1,17 @@
 # Pattern: Zod Mini Form Validation
 
-Form components define a module-level `@zod/mini` schema, manage per-field state with `useState`, validate via `safeParse()` + `extractFieldErrors()`, and submit through `authClient` with `isSubmitting` gating.
+Form components define a module-level `zod/mini` schema, manage per-field state with `useState`, validate via `safeParse()` + `extractFieldErrors()`, and submit through `authClient` with `isSubmitting` gating.
 
 ## Rationale
 
-`@zod/mini` is used in `apps/web` (instead of full Zod) to keep bundle size down. The schema lives at module level (not inside the component) to avoid re-creation on each render. Validation and submission are split into separate `useCallback` functions to keep each concern testable. Field errors and server errors are tracked separately — field errors come from Zod issues, server errors come from the API response.
+`zod/mini` is used in `apps/web` (instead of full Zod) to keep bundle size down. The schema lives at module level (not inside the component) to avoid re-creation on each render. Validation and submission are split into separate `useCallback` functions to keep each concern testable. Field errors and server errors are tracked separately — field errors come from Zod issues, server errors come from the API response.
 
 ## Examples
 
 ### Example 1: LoginForm — schema + state setup
 **File**: `apps/web/src/components/auth/login-form.tsx:13`
 ```typescript
-import { z, email as zodEmail, minLength, safeParse } from "@zod/mini";
+import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 
 const LOGIN_SCHEMA = z.object({
@@ -130,7 +130,7 @@ export function extractFieldErrors<K extends string>(
 ## When to Use
 
 - Any form in `apps/web` that validates and submits user input
-- Import `@zod/mini` (not full `zod`) in web app forms for bundle size
+- Import `zod/mini` (not full `zod`) in web app forms for bundle size
 - Always split validation into a `validate()` callback separate from `handleSubmit`
 
 ## When NOT to Use
@@ -143,5 +143,5 @@ export function extractFieldErrors<K extends string>(
 
 - Defining the schema inside the component function — recreated on every render
 - Calling `validate()` inside the `useCallback` dep array — use `validate` as a dependency, not inline
-- Using full `zod` in `apps/web` instead of `@zod/mini` — increases bundle size
+- Using full `zod` in `apps/web` instead of `zod/mini` — increases bundle size
 - Displaying raw Zod error messages to users — always provide human-readable messages in the schema

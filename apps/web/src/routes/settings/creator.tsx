@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type React from "react";
-import { z, safeParse, regex } from "@zod/mini";
+import { z, safeParse, regex } from "zod/mini";
 
 import { BANDCAMP_URL_REGEX, BANDCAMP_EMBED_REGEX } from "@snc/shared";
 

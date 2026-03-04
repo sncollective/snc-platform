@@ -14,7 +14,7 @@ Built as an alternative to extractive platforms.
 | **Auth** | [Better Auth](https://www.better-auth.com) (email/password, multi-role) |
 | **Payments** | [Stripe](https://stripe.com) (subscriptions, checkout, webhooks) |
 | **Merch** | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) (headless) |
-| **Validation** | [Zod 4](https://zod.dev) (API + shared), [@zod/mini](https://zod.dev) (frontend) |
+| **Validation** | [Zod 4](https://zod.dev) (API + shared), [zod/mini](https://zod.dev) (frontend) |
 | **Testing** | [Vitest](https://vitest.dev), Testing Library (1,298 tests across 3 packages) |
 | **Styling** | CSS Modules + CSS custom properties (design tokens) |
 | **Package Manager** | pnpm 10+ with workspaces |
@@ -284,7 +284,7 @@ Without Shopify credentials, the merch endpoints return 503 "MERCH_NOT_CONFIGURE
 - **File naming** — `kebab-case.ts` (e.g., `booking-form.tsx`, `content.routes.ts`)
 - **Error handling** — Typed `AppError` subclasses, `Result<T, E>` for service functions
 - **CSS** — CSS Modules with design tokens from `:root` custom properties in `global.css`
-- **Validation** — Zod schemas on every route handler via `zValidator`; `@zod/mini` on the frontend
+- **Validation** — Zod schemas on every route handler via `zValidator`; `zod/mini` on the frontend
 - **Testing** — Vitest with fixture factories (`makeMock*` pattern), mocked external services
 
 See [CLAUDE.md](./CLAUDE.md) for the full coding conventions reference.

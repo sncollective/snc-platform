@@ -1,6 +1,6 @@
 # Pattern: Shared Validation Constants
 
-Validation predicates (regex patterns) exported from `@snc/shared` and imported by both server-side Zod schemas and client-side `@zod/mini` schemas, ensuring the same rules run on both layers without duplication.
+Validation predicates (regex patterns) exported from `@snc/shared` and imported by both server-side Zod schemas and client-side `zod/mini` schemas, ensuring the same rules run on both layers without duplication.
 
 ## Rationale
 
@@ -27,7 +27,7 @@ export const UpdateCreatorProfileSchema = z.object({
 });
 ```
 
-### Example 2: BANDCAMP_URL_REGEX imported by frontend @zod/mini schema
+### Example 2: BANDCAMP_URL_REGEX imported by frontend zod/mini schema
 **File**: `apps/web/src/routes/settings/creator.tsx:7-29`
 ```typescript
 // Imported from shared — same regex, not a local copy
@@ -59,7 +59,7 @@ bandcampEmbeds: z
 
 **File**: `apps/web/src/routes/settings/creator.tsx:31-35`
 ```typescript
-// Same constant used in @zod/mini schema for frontend validation
+// Same constant used in zod/mini schema for frontend validation
 const EMBED_URL_SCHEMA = z.object({
   embedUrl: z.string().check(
     regex(BANDCAMP_EMBED_REGEX, "Must be a valid Bandcamp embed URL"),

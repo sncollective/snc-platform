@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
-import { z, minLength, maxLength, safeParse } from "@zod/mini";
+import { z, minLength, maxLength, safeParse } from "zod/mini";
 
 import { createBooking } from "../../lib/booking.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";

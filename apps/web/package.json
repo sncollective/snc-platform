@@ -16,8 +16,8 @@
     "@snc/shared": "workspace:*",
     "@tanstack/react-router": "^1.163.2",
     "@tanstack/react-start": "^1.162.2",
-    "@zod/mini": "4.0.0-beta.20250505T195954",
     "better-auth": "^1.4.19",
+    "zod": "^4.3.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

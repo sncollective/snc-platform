@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { FormEvent } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
-import { z, email as zodEmail, minLength, safeParse } from "@zod/mini";
+import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";

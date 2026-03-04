@@ -19,7 +19,7 @@ One line per pattern. Read the linked file for full details and code examples.
 
 ## Frontend / Auth UI
 - **tanstack-file-route**: Every route exports `Route = createFileRoute(path)(options)`; `beforeLoad` throws `redirect()` for auth/role guards; `loader` fetches data and `Route.useLoaderData()` accesses it type-safely → [tanstack-file-route.md]
-- **zod-mini-form-validation**: Module-level `@zod/mini` schema + `useState` per field + `validate()` callback + `extractFieldErrors()` + `isSubmitting` gate → [zod-mini-form-validation.md]
+- **zod-mini-form-validation**: Module-level `zod/mini` schema + `useState` per field + `validate()` callback + `extractFieldErrors()` + `isSubmitting` gate → [zod-mini-form-validation.md]
 - **css-modules-design-tokens**: `:root` CSS custom properties in `global.css`; all component `.module.css` files consume via `var(--token-name)` → [css-modules-design-tokens.md]
 - **vi-hoisted-module-mock**: `vi.hoisted()` lifts mock fns before `vi.mock()` factories; component imported after all mocks; `beforeEach` sets defaults, `afterEach` restores → [vi-hoisted-module-mock.md]
 
@@ -51,7 +51,7 @@ One line per pattern. Read the linked file for full details and code examples.
 - **fake-timers-deterministic-testing**: `vi.useFakeTimers()` + `vi.setSystemTime(date)` per test freezes clock for date formatting, range calculations, polling; always restore with `vi.useRealTimers()` → [fake-timers-deterministic-testing.md]
 
 ## Bandcamp Integration
-- **shared-validation-constants**: Regex constants exported from `@snc/shared` used in both server Zod schemas and client `@zod/mini` schemas; prevents drift by defining validation rules once → [shared-validation-constants.md]
+- **shared-validation-constants**: Regex constants exported from `@snc/shared` used in both server Zod schemas and client `zod/mini` schemas; prevents drift by defining validation rules once → [shared-validation-constants.md]
 
 ## Landing Page Polish
 - **use-section-data**: `useSectionData<T>(fetcher)` generic hook; module-scope stable fetcher; `SectionDataState<T>` with "idle"|"loading"|"success"|"error"; returns null on error/empty (silent hide) → [use-section-data.md]

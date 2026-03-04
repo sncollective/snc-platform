@@ -31,7 +31,7 @@ Available patterns:
 
 ### Frontend / Auth UI
 - [tanstack-file-route.md](tanstack-file-route.md) — Every route exports Route = createFileRoute(path)(options); beforeLoad throws redirect() for auth/role guards; loader + Route.useLoaderData() for async data fetching
-- [zod-mini-form-validation.md](zod-mini-form-validation.md) — Module-level @zod/mini schema + useState per field + validate() + extractFieldErrors() + isSubmitting gate
+- [zod-mini-form-validation.md](zod-mini-form-validation.md) — Module-level zod/mini schema + useState per field + validate() + extractFieldErrors() + isSubmitting gate
 - [css-modules-design-tokens.md](css-modules-design-tokens.md) — :root CSS custom properties in global.css; all component .module.css files consume via var(--token-name)
 - [vi-hoisted-module-mock.md](vi-hoisted-module-mock.md) — vi.hoisted() lifts mock fns before vi.mock() factories; component imported after mocks; beforeEach sets defaults
 
@@ -65,7 +65,7 @@ Available patterns:
 - [fake-timers-deterministic-testing.md](fake-timers-deterministic-testing.md) — vi.useFakeTimers() + vi.setSystemTime(date) freezes system clock per test for date formatting, range calculations, and polling; restore with vi.useRealTimers()
 
 ### Bandcamp Integration
-- [shared-validation-constants.md](shared-validation-constants.md) — Regex constants exported from @snc/shared used in both server Zod schemas and client @zod/mini schemas; prevents drift by defining validation predicates once
+- [shared-validation-constants.md](shared-validation-constants.md) — Regex constants exported from @snc/shared used in both server Zod schemas and client zod/mini schemas; prevents drift by defining validation predicates once
 
 ### Landing Page Polish
 - [use-section-data.md](use-section-data.md) — useSectionData<T>(fetcher) generic hook; module-scope stable fetcher; SectionDataState<T> discriminated union; returns null on error/empty for silent section hide

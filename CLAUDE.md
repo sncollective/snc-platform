@@ -20,7 +20,7 @@
 - Use `node:` protocol for built-in modules (`node:fs`, `node:path`, `node:crypto`)
 - Group imports: node builtins → external packages → internal workspace packages →
   relative imports; blank line between groups
-- Import Zod as `import { z } from "zod"` in `packages/shared`; use `@zod/mini` in
+- Import Zod as `import { z } from "zod"` in `packages/shared`; use `zod/mini` in
   `apps/web` for bundle size
 - Reference shared types via the workspace alias `@snc/shared`, never via relative
   `../../packages/shared` paths
