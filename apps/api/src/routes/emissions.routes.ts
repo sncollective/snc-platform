@@ -180,6 +180,7 @@ emissionsRoutes.get(
       .select({
         scope: emissions.scope,
         co2Kg: sum(emissions.co2Kg),
+        entryCount: count(),
       })
       .from(emissions)
       .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)))
@@ -189,6 +190,7 @@ emissionsRoutes.get(
       .select({
         category: emissions.category,
         co2Kg: sum(emissions.co2Kg),
+        entryCount: count(),
       })
       .from(emissions)
       .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)))
@@ -294,7 +296,7 @@ emissionsRoutes.post(
       })
       .returning();
 
-    return c.json(toEntryResponse(row));
+    return c.json(toEntryResponse(row!));
   },
 );
 
@@ -343,6 +345,6 @@ emissionsRoutes.post(
       })
       .returning();
 
-    return c.json(toEntryResponse(row));
+    return c.json(toEntryResponse(row!));
   },
 );
