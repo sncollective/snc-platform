@@ -300,4 +300,6 @@ See [CLAUDE.md](./CLAUDE.md) for the full coding conventions reference.
 
 ## License
 
-Private — all rights reserved.
+Code and scripts are licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-or-later).
+
+Documentation (README, CLAUDE.md, and other written materials) is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](LICENSE-DOCS) (CC BY-SA 4.0).
