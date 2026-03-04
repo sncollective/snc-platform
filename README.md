@@ -2,7 +2,7 @@
 
 A worker-cooperative content publishing platform. Creators publish video, audio, and written content behind a subscription gate, sell merchandise via a headless Shopify storefront, embed Bandcamp players, and offer bookable creative services — all governed democratically by cooperative members.
 
-Built as an alternative to extractive platforms like Patreon and Substack.
+Built as an alternative to extractive platforms.
 
 ## Tech Stack
 
