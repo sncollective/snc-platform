@@ -32,8 +32,13 @@ export const createLocalStorage = (
 ): StorageProvider => {
   const baseDir = node_path.resolve(options.baseDir);
 
-  const resolvePath = (key: string): string =>
-    node_path.join(baseDir, key);
+  const resolvePath = (key: string): string => {
+    const resolved = node_path.resolve(node_path.join(baseDir, key));
+    if (!resolved.startsWith(baseDir + node_path.sep) && resolved !== baseDir) {
+      throw new AppError("STORAGE_ERROR", "Invalid storage key", 400);
+    }
+    return resolved;
+  };
 
   const upload = async (
     key: string,
@@ -50,6 +55,9 @@ export const createLocalStorage = (
       const statResult = await stat(filePath);
       return ok({ key, size: statResult.size });
     } catch (error) {
+      if (error instanceof AppError) {
+        return err(error);
+      }
       return toStorageError(error);
     }
   };
@@ -86,6 +94,9 @@ export const createLocalStorage = (
       await unlink(filePath);
       return ok(undefined);
     } catch (error) {
+      if (error instanceof AppError) {
+        return err(error);
+      }
       if (isEnoent(error)) {
         return ok(undefined);
       }

@@ -1,10 +1,12 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
+import { secureHeaders } from "hono/secure-headers";
 import { describeRoute, openAPIRouteHandler, resolver } from "hono-openapi";
 import { z } from "zod";
 
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { rateLimiter } from "./middleware/rate-limit.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
@@ -30,6 +32,8 @@ export const app = new Hono();
 // ── Middleware ──
 
 app.use("*", corsMiddleware);
+app.use("*", secureHeaders());
+app.use("/api/auth/*", rateLimiter({ windowMs: 60_000, max: 10 }));
 app.onError(errorHandler);
 
 // ── Routes ──
@@ -63,28 +67,30 @@ app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/emissions", emissionsRoutes);
 
-// ── OpenAPI ──
+// ── OpenAPI (non-production only) ──
 
-app.get(
-  "/api/openapi.json",
-  openAPIRouteHandler(app, {
-    documentation: {
-      info: {
-        title: "S/NC API",
-        version: "1.0.0",
-        description: "S/NC content platform API",
+if (process.env.NODE_ENV !== "production") {
+  app.get(
+    "/api/openapi.json",
+    openAPIRouteHandler(app, {
+      documentation: {
+        info: {
+          title: "S/NC API",
+          version: "1.0.0",
+          description: "S/NC content platform API",
+        },
+        servers: [
+          { url: "http://localhost:3000", description: "Local development" },
+        ],
       },
-      servers: [
-        { url: "http://localhost:3000", description: "Local development" },
-      ],
-    },
-  }),
-);
+    }),
+  );
 
-app.get(
-  "/api/docs",
-  Scalar({
-    url: "/api/openapi.json",
-    pageTitle: "S/NC API Reference",
-  }),
-);
+  app.get(
+    "/api/docs",
+    Scalar({
+      url: "/api/openapi.json",
+      pageTitle: "S/NC API Reference",
+    }),
+  );
+}

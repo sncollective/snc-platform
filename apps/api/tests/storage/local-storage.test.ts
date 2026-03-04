@@ -65,6 +65,55 @@ describe("createLocalStorage", () => {
     expect(relativeProvider.upload).toBeTypeOf("function");
   });
 
+  it("rejects path traversal via ../", async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("malicious"));
+        controller.close();
+      },
+    });
+
+    const result = await provider.upload("../../etc/passwd", stream);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("STORAGE_ERROR");
+      expect(result.error.statusCode).toBe(400);
+    }
+  });
+
+  it("rejects path traversal in download", async () => {
+    const result = await provider.download("../../../etc/shadow");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("STORAGE_ERROR");
+      expect(result.error.statusCode).toBe(400);
+    }
+  });
+
+  it("rejects path traversal in delete", async () => {
+    const result = await provider.delete("../../some/file");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("STORAGE_ERROR");
+      expect(result.error.statusCode).toBe(400);
+    }
+  });
+
+  it("allows normal nested keys", async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("ok"));
+        controller.close();
+      },
+    });
+
+    const result = await provider.upload("content/abc/media/file.mp4", stream);
+    expect(result.ok).toBe(true);
+  });
+
   it("getSignedUrl extracts content ID from key format", async () => {
     const stream = new ReadableStream({
       start(controller) {

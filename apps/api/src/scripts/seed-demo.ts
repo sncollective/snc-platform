@@ -1,6 +1,18 @@
 import node_path from "node:path";
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 
+// ── Production Guard ──
+
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.ALLOW_DEMO_SEED !== "true"
+) {
+  console.error(
+    "Error: seed-demo.ts cannot run in production. Set ALLOW_DEMO_SEED=true to override.",
+  );
+  process.exit(1);
+}
+
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";

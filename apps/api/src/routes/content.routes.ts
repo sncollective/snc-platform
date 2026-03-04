@@ -340,6 +340,7 @@ contentRoutes.get(
       );
       if (!gate.allowed) {
         response.mediaUrl = null;
+        response.body = null;
       }
     }
 

@@ -152,12 +152,18 @@ export const verifyWebhookSignature = (
   const configured = ensureConfigured();
   if (!configured.ok) return configured as Result<Stripe.Event, AppError>;
 
+  if (!config.STRIPE_WEBHOOK_SECRET) {
+    return err(
+      new AppError("BILLING_NOT_CONFIGURED", "Webhook secret not configured", 503),
+    );
+  }
+
   try {
     const stripe = getStripe();
     const event = stripe.webhooks.constructEvent(
       rawBody,
       signature,
-      config.STRIPE_WEBHOOK_SECRET!,
+      config.STRIPE_WEBHOOK_SECRET,
     );
 
     return ok(event);
