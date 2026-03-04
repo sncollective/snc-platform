@@ -174,8 +174,15 @@ function EmissionsPage(): React.ReactElement {
             <p>
               Different token types consume different amounts of energy. We
               apply per-token-type Wh rates with PUE baked in, then convert to
-              CO2 via grid carbon intensity (390 gCO2/kWh, EPA eGRID US
-              average).
+              CO2 via grid carbon intensity (390 gCO2/kWh,{" "}
+              <a
+                href="https://www.epa.gov/egrid"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                EPA eGRID
+              </a>{" "}
+              US average).
             </p>
             <table className={styles.rateTable}>
               <thead>
@@ -189,22 +196,22 @@ function EmissionsPage(): React.ReactElement {
                 <tr>
                   <td>Input</td>
                   <td>417</td>
-                  <td>Epoch AI (long-context upper bound)</td>
+                  <td><a href="https://epoch.ai/gradient-updates/how-much-energy-does-chatgpt-use" target="_blank" rel="noopener noreferrer">Epoch AI</a> (long-context upper bound)</td>
                 </tr>
                 <tr>
                   <td>Output</td>
                   <td>600</td>
-                  <td>Epoch AI (derived)</td>
+                  <td><a href="https://epoch.ai/gradient-updates/how-much-energy-does-chatgpt-use" target="_blank" rel="noopener noreferrer">Epoch AI</a> (derived)</td>
                 </tr>
                 <tr>
                   <td>Cache creation</td>
                   <td>490</td>
-                  <td>Simon Couch (2025)</td>
+                  <td><a href="https://www.simonpcouch.com/blog/2026-01-20-cc-impact/" target="_blank" rel="noopener noreferrer">Simon Couch</a> (2026)</td>
                 </tr>
                 <tr>
                   <td>Cache read</td>
                   <td>39</td>
-                  <td>Simon Couch (2025)</td>
+                  <td><a href="https://www.simonpcouch.com/blog/2026-01-20-cc-impact/" target="_blank" rel="noopener noreferrer">Simon Couch</a> (2026)</td>
                 </tr>
               </tbody>
             </table>
@@ -223,12 +230,26 @@ function EmissionsPage(): React.ReactElement {
           </summary>
           <div className={styles.methodologyContent}>
             <p>
-              Based on the VRMA/Vinyl Alliance Second Carbon Footprinting
-              Report (2025), which expanded data to five manufacturers and
+              Based on the{" "}
+              <a
+                href="https://www.vrmagroup.com/in-the-news/new-insights-from-the-second-report-of-the-vinyl-record-manufacturers-associations-carbon-footprinting-group"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                VRMA/Vinyl Alliance Second Carbon Footprinting Report
+              </a>{" "}
+              (2025), which expanded data to five manufacturers and
               corrected biogenic carbon accounting. Baseline:{" "}
               <strong>1.15 kg CO2e per 140g 12&quot; record</strong>{" "}
-              (cradle-to-factory-gate), originally established in the First
-              Report (2024) and confirmed in the Second. Both independently
+              (cradle-to-factory-gate), originally established in the{" "}
+              <a
+                href="https://vinylalliance.org/resources/vinyl-alliance-vrma-carbon-footprinting-report/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                First Report
+              </a>{" "}
+              (2024) and confirmed in the Second. Both independently
               verified.
             </p>
             <p>
@@ -245,15 +266,23 @@ function EmissionsPage(): React.ReactElement {
             </p>
             <p className={styles.methodologyNote}>
               The baseline is UK-sourced (VFM Ltd). AudioDrome&apos;s actual
-              manufacturing process may differ. See the full{" "}
+              manufacturing process may differ. See the{" "}
               <a
-                href="https://github.com/your-org/snc/blob/main/docs/research/carbon-calculation-methodology.md"
+                href="https://vinylalliance.org/resources/vinyl-alliance-vrma-carbon-footprinting-report/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                methodology research doc
+                First
               </a>{" "}
-              for compound comparison data and VRMA report details.
+              and{" "}
+              <a
+                href="https://www.vrmagroup.com/in-the-news/new-insights-from-the-second-report-of-the-vinyl-record-manufacturers-associations-carbon-footprinting-group"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Second
+              </a>{" "}
+              VRMA reports for compound comparison data and full methodology.
             </p>
           </div>
         </details>
@@ -264,8 +293,15 @@ function EmissionsPage(): React.ReactElement {
           </summary>
           <div className={styles.methodologyContent}>
             <p>
-              Ground freight: <strong>161 gCO2 per tonne-mile</strong> (EPA GHG
-              Emission Factors Hub).
+              Ground freight: <strong>161 gCO2 per tonne-mile</strong> ({" "}
+              <a
+                href="https://www.epa.gov/climateleadership/ghg-emission-factors-hub"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                EPA GHG Emission Factors Hub
+              </a>
+              ).
             </p>
             <p>
               Formula: weight (tonnes) &times; distance (miles) &times; 161
@@ -286,7 +322,15 @@ function EmissionsPage(): React.ReactElement {
             <p>
               Studio emissions are estimated from equipment load profiles
               (active wattage during sessions) converted to CO2 via grid carbon
-              intensity (<strong>390 gCO2/kWh</strong>, EPA eGRID US average).
+              intensity (<strong>390 gCO2/kWh</strong>,{" "}
+              <a
+                href="https://www.epa.gov/egrid"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                EPA eGRID
+              </a>{" "}
+              US average).
             </p>
             <table className={styles.rateTable}>
               <thead>
