@@ -98,7 +98,7 @@ const USER_IDS = {
   jordan: "seed_user_jordan",
   sam: "seed_user_sam",
   pat: "seed_user_pat",
-  animalfuture: "seed_user_animalfuture",
+  animalfuture: "animalfuture",
 } as const;
 
 try {
