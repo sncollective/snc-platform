@@ -3,19 +3,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FeedItem } from "@snc/shared";
 
 import { ContentDetail } from "../../components/content/content-detail.js";
-import { API_BASE_URL } from "../../lib/config.js";
+import { fetchApiServer } from "../../lib/api-server.js";
 
 // ── Route ──
 
 export const Route = createFileRoute("/content/$contentId")({
   loader: async ({ params }): Promise<FeedItem> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/content/${params.contentId}`,
-    );
-    if (!res.ok) {
-      throw new Error("Content not found");
-    }
-    return (await res.json()) as FeedItem;
+    return fetchApiServer({
+      data: `/api/content/${encodeURIComponent(params.contentId)}`,
+    }) as Promise<FeedItem>;
   },
   component: ContentDetailPage,
 });

@@ -16,6 +16,7 @@ import { CreatorHeader } from "../../components/creator/creator-header.js";
 import { ProductCard } from "../../components/merch/product-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { API_BASE_URL } from "../../lib/config.js";
+import { fetchApiServer } from "../../lib/api-server.js";
 import { useSession } from "../../lib/auth.js";
 import { fetchProducts } from "../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../lib/subscription.js";
@@ -25,13 +26,9 @@ import styles from "./creator-detail.module.css";
 
 export const Route = createFileRoute("/creators/$creatorId")({
   loader: async ({ params }): Promise<CreatorProfileResponse> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/creators/${params.creatorId}`,
-    );
-    if (!res.ok) {
-      throw new Error("Creator not found");
-    }
-    return (await res.json()) as CreatorProfileResponse;
+    return fetchApiServer({
+      data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
+    }) as Promise<CreatorProfileResponse>;
   },
   component: CreatorDetailPage,
 });
