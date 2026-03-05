@@ -10,7 +10,7 @@ import styles from "./pending-bookings-table.module.css";
 export interface PendingBookingsTableProps {
   readonly bookings: readonly PendingBookingItem[];
   readonly onReview: (id: string, data: ReviewBookingRequest) => Promise<void>;
-  readonly reviewingId?: string;
+  readonly reviewingId?: string | undefined;
 }
 
 // ── Private Helpers ──

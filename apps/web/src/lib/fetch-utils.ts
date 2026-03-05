@@ -35,16 +35,17 @@ export async function apiMutate<T>(
   endpoint: string,
   options: { method?: string; body?: unknown },
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const init: RequestInit = {
     method: options.method ?? "POST",
     credentials: "include",
     headers: options.body !== undefined
       ? { "Content-Type": "application/json" }
       : {},
-    body: options.body !== undefined
-      ? JSON.stringify(options.body)
-      : undefined,
-  });
+  };
+  if (options.body !== undefined) {
+    init.body = JSON.stringify(options.body);
+  }
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, init);
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }

@@ -2,17 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { Role } from "@snc/shared";
+
 import { makeMockAdminUser } from "../../../helpers/admin-fixtures.js";
 import { UserRoleManager } from "../../../../src/components/admin/user-role-manager.js";
 
 // ── Lifecycle ──
 
-let mockOnAssignRole: ReturnType<typeof vi.fn>;
-let mockOnRevokeRole: ReturnType<typeof vi.fn>;
+let mockOnAssignRole: ReturnType<typeof vi.fn<(userId: string, role: Role) => Promise<void>>>;
+let mockOnRevokeRole: ReturnType<typeof vi.fn<(userId: string, role: Role) => Promise<void>>>;
 
 beforeEach(() => {
-  mockOnAssignRole = vi.fn().mockResolvedValue(undefined);
-  mockOnRevokeRole = vi.fn().mockResolvedValue(undefined);
+  mockOnAssignRole = vi.fn<(userId: string, role: Role) => Promise<void>>().mockResolvedValue(undefined);
+  mockOnRevokeRole = vi.fn<(userId: string, role: Role) => Promise<void>>().mockResolvedValue(undefined);
 });
 
 afterEach(() => {

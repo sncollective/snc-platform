@@ -4,12 +4,13 @@ import userEvent from "@testing-library/user-event";
 
 // ── Hoisted Mocks ──
 
-const { mockPlayTrack, mockPause, mockResume, mockSeek, mockClearTrack } =
+const { mockPlayTrack, mockPause, mockResume, mockSeek, mockSetVolume, mockClearTrack } =
   vi.hoisted(() => ({
     mockPlayTrack: vi.fn(),
     mockPause: vi.fn(),
     mockResume: vi.fn(),
     mockSeek: vi.fn(),
+    mockSetVolume: vi.fn(),
     mockClearTrack: vi.fn(),
   }));
 
@@ -35,7 +36,7 @@ const DEFAULT_PROPS = {
   src: TEST_TRACK.mediaUrl,
   title: TEST_TRACK.title,
   creator: TEST_TRACK.creatorName,
-  coverArtUrl: TEST_TRACK.coverArtUrl ?? undefined,
+  ...(TEST_TRACK.coverArtUrl != null && { coverArtUrl: TEST_TRACK.coverArtUrl }),
   contentId: TEST_TRACK.id,
 };
 
@@ -44,6 +45,7 @@ const MOCK_ACTIONS = {
   pause: mockPause,
   resume: mockResume,
   seek: mockSeek,
+  setVolume: mockSetVolume,
   clearTrack: mockClearTrack,
 };
 

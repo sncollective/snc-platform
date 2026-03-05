@@ -230,7 +230,7 @@ describe("DashboardPage", () => {
     });
 
     // Table renders two Approve buttons (desktop + mobile); click the first
-    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
 
     await waitFor(() => {
       expect(mockReviewBooking).toHaveBeenCalledWith("bk_pending_001", {
@@ -252,7 +252,7 @@ describe("DashboardPage", () => {
     });
 
     // Table renders two Approve buttons (desktop + mobile); click the first
-    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
 
     await waitFor(() => {
       expect(screen.getByText("2")).toBeInTheDocument();
@@ -268,15 +268,15 @@ describe("DashboardPage", () => {
     });
 
     // Table renders two Deny buttons (desktop + mobile); click the first
-    await user.click(screen.getAllByRole("button", { name: "Deny" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Deny" })[0]!);
 
     await waitFor(() => {
       expect(screen.getAllByLabelText("Review note").length).toBeGreaterThanOrEqual(1);
     });
 
     // Table renders two deny inputs (desktop + mobile); type in the first
-    await user.type(screen.getAllByLabelText("Review note")[0], "Not available");
-    await user.click(screen.getAllByRole("button", { name: "Confirm" })[0]);
+    await user.type(screen.getAllByLabelText("Review note")[0]!, "Not available");
+    await user.click(screen.getAllByRole("button", { name: "Confirm" })[0]!);
 
     await waitFor(() => {
       expect(mockReviewBooking).toHaveBeenCalledWith("bk_pending_001", {
@@ -305,7 +305,7 @@ describe("DashboardPage", () => {
     });
 
     // Table renders two Approve buttons (desktop + mobile); click the first
-    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Approve" })[0]!);
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Already reviewed");

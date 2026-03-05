@@ -17,6 +17,8 @@ vi.mock("../../../../src/lib/format.js", async (importOriginal) => {
 
 // ── Import component under test (after mocks) ──
 
+import type { ReviewBookingRequest } from "@snc/shared";
+
 import { PendingBookingsTable } from "../../../../src/components/dashboard/pending-bookings-table.js";
 
 // ── Test fixtures ──
@@ -26,10 +28,10 @@ import { makeMockPendingBookingItem } from "../../../helpers/dashboard-fixtures.
 // ── Tests ──
 
 describe("PendingBookingsTable", () => {
-  let onReview: ReturnType<typeof vi.fn>;
+  let onReview: ReturnType<typeof vi.fn<(id: string, data: ReviewBookingRequest) => Promise<void>>>;
 
   beforeEach(() => {
-    onReview = vi.fn().mockResolvedValue(undefined);
+    onReview = vi.fn<(id: string, data: ReviewBookingRequest) => Promise<void>>().mockResolvedValue(undefined);
     mockFormatRelativeDate.mockReturnValue("2d ago");
   });
 
@@ -135,7 +137,7 @@ describe("PendingBookingsTable", () => {
     );
 
     const approveButtons = screen.getAllByRole("button", { name: "Approve" });
-    await user.click(approveButtons[0]);
+    await user.click(approveButtons[0]!);
 
     expect(onReview).toHaveBeenCalledWith("bk_pending_001", {
       status: "approved",
@@ -153,7 +155,7 @@ describe("PendingBookingsTable", () => {
     );
 
     const denyButtons = screen.getAllByRole("button", { name: "Deny" });
-    await user.click(denyButtons[0]);
+    await user.click(denyButtons[0]!);
 
     expect(screen.getAllByLabelText("Review note").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Confirm" }).length).toBeGreaterThan(0);
@@ -169,13 +171,13 @@ describe("PendingBookingsTable", () => {
     );
 
     const denyButtons = screen.getAllByRole("button", { name: "Deny" });
-    await user.click(denyButtons[0]);
+    await user.click(denyButtons[0]!);
 
     const noteInputs = screen.getAllByLabelText("Review note");
-    await user.type(noteInputs[0], "Not available");
+    await user.type(noteInputs[0]!, "Not available");
 
     const confirmButtons = screen.getAllByRole("button", { name: "Confirm" });
-    await user.click(confirmButtons[0]);
+    await user.click(confirmButtons[0]!);
 
     expect(onReview).toHaveBeenCalledWith("bk_pending_001", {
       status: "denied",
@@ -192,10 +194,10 @@ describe("PendingBookingsTable", () => {
     );
 
     const denyButtons = screen.getAllByRole("button", { name: "Deny" });
-    await user.click(denyButtons[0]);
+    await user.click(denyButtons[0]!);
 
     const confirmButtons = screen.getAllByRole("button", { name: "Confirm" });
-    await user.click(confirmButtons[0]);
+    await user.click(confirmButtons[0]!);
 
     expect(onReview).toHaveBeenCalledWith("bk_pending_001", {
       status: "denied",
@@ -215,12 +217,12 @@ describe("PendingBookingsTable", () => {
     );
 
     const denyButtons = screen.getAllByRole("button", { name: "Deny" });
-    await user.click(denyButtons[0]);
+    await user.click(denyButtons[0]!);
 
     expect(screen.getAllByLabelText("Review note").length).toBeGreaterThan(0);
 
     const cancelButtons = screen.getAllByRole("button", { name: "Cancel" });
-    await user.click(cancelButtons[0]);
+    await user.click(cancelButtons[0]!);
 
     expect(screen.queryAllByLabelText("Review note").length).toBe(0);
     expect(screen.getAllByRole("button", { name: "Approve" }).length).toBeGreaterThan(0);

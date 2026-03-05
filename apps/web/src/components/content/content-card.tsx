@@ -15,9 +15,9 @@ const TYPE_BADGE_LABELS: Record<FeedItem["type"], string> = {
 };
 
 const TYPE_BADGE_CLASSES: Record<FeedItem["type"], string> = {
-  video: styles.badgeVideo,
-  audio: styles.badgeAudio,
-  written: styles.badgeWritten,
+  video: styles.badgeVideo!,
+  audio: styles.badgeAudio!,
+  written: styles.badgeWritten!,
 };
 
 // ── Public Types ──

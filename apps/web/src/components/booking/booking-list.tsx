@@ -14,9 +14,9 @@ export interface BookingListProps {
 // ── Private Helpers ──
 
 function getStatusClass(status: string): string {
-  if (status === "approved") return styles.statusApproved;
-  if (status === "denied") return styles.statusDenied;
-  return styles.statusPending;
+  if (status === "approved") return styles.statusApproved!;
+  if (status === "denied") return styles.statusDenied!;
+  return styles.statusPending!;
 }
 
 // ── Public API ──

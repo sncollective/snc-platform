@@ -8,7 +8,7 @@ export interface KpiCardProps {
   readonly label: string;
   readonly value: string;
   readonly sublabel?: string;
-  readonly isLoading?: boolean;
+  readonly isLoading?: boolean | undefined;
   readonly valueClassName?: string;
 }
 

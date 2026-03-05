@@ -4,10 +4,11 @@ import userEvent from "@testing-library/user-event";
 
 // ── Hoisted Mocks ──
 
-const { mockPause, mockResume, mockSeek, mockClearTrack } = vi.hoisted(() => ({
+const { mockPause, mockResume, mockSeek, mockSetVolume, mockClearTrack } = vi.hoisted(() => ({
   mockPause: vi.fn(),
   mockResume: vi.fn(),
   mockSeek: vi.fn(),
+  mockSetVolume: vi.fn(),
   mockClearTrack: vi.fn(),
 }));
 
@@ -34,6 +35,7 @@ const MOCK_ACTIONS = {
   pause: mockPause,
   resume: mockResume,
   seek: mockSeek,
+  setVolume: mockSetVolume,
   clearTrack: mockClearTrack,
 };
 

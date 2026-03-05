@@ -38,21 +38,21 @@ function formatCo2Kg(kg: number): string {
 }
 
 function formatMonthLabel(month: string): string {
-  const [year, m] = month.split("-");
+  const [year = "", m = ""] = month.split("-");
   const MONTHS = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
-  return `${MONTHS[Number(m) - 1]} ${year}`;
+  return `${MONTHS[Number(m) - 1] ?? ""} ${year}`;
 }
 
 function formatMonthShort(month: string): string {
-  const [year, m] = month.split("-");
+  const [year = "", m = ""] = month.split("-");
   const MONTHS = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
-  return `${MONTHS[Number(m) - 1]} '${year.slice(2)}`;
+  return `${MONTHS[Number(m) - 1] ?? ""} '${year.slice(2)}`;
 }
 
 interface ChartLines {
@@ -195,7 +195,7 @@ export function EmissionsChart({
   // Find the last month with actual (non-projected) data
   let lastActualIndex = -1;
   for (let i = data.length - 1; i >= 0; i--) {
-    if (data[i].actualCo2Kg > 0) {
+    if (data[i]!.actualCo2Kg > 0) {
       lastActualIndex = i;
       break;
     }
@@ -204,22 +204,22 @@ export function EmissionsChart({
   // Net line segments — solid for actual months, dashed for projected months
   const netSegments: React.ReactElement[] = [];
   for (let i = 0; i < lines.net.length - 1; i++) {
-    const isPositive = lines.net[i + 1] > 0;
+    const isPositive = lines.net[i + 1]! > 0;
     const isProjected = i >= lastActualIndex;
     let className: string;
     if (isProjected) {
-      className = isPositive ? styles.projectedNetPositive : styles.projectedNetNegative;
+      className = isPositive ? styles.projectedNetPositive! : styles.projectedNetNegative!;
     } else {
-      className = isPositive ? styles.netLinePositive : styles.netLineNegative;
+      className = isPositive ? styles.netLinePositive! : styles.netLineNegative!;
     }
     netSegments.push(
       <line
         key={`net-${i}`}
         className={className}
         x1={xForIndex(i)}
-        y1={yForValue(lines.net[i])}
+        y1={yForValue(lines.net[i]!)}
         x2={xForIndex(i + 1)}
-        y2={yForValue(lines.net[i + 1])}
+        y2={yForValue(lines.net[i + 1]!)}
       />,
     );
   }
@@ -285,15 +285,15 @@ export function EmissionsChart({
         {lines.months.length > 1 &&
           data.map((_, i) => {
             if (i >= data.length - 1) return null;
-            if (data[i].projectedCo2Kg <= 0 && data[i + 1].projectedCo2Kg <= 0) return null;
+            if (data[i]!.projectedCo2Kg <= 0 && data[i + 1]!.projectedCo2Kg <= 0) return null;
             return (
               <line
                 key={`proj-${i}`}
                 className={styles.projectedLine}
                 x1={xForIndex(i)}
-                y1={yForValue(lines.projectedUse[i])}
+                y1={yForValue(lines.projectedUse[i]!)}
                 x2={xForIndex(i + 1)}
-                y2={yForValue(lines.projectedUse[i + 1])}
+                y2={yForValue(lines.projectedUse[i + 1]!)}
               />
             );
           })}
@@ -301,7 +301,7 @@ export function EmissionsChart({
         {/* Offsets — discrete dots + labels at months with offset data */}
         {data.map((d, i) => {
           if (d.offsetCo2Kg <= 0) return null;
-          const cy = yForValue(-lines.offsets[i]);
+          const cy = yForValue(-lines.offsets[i]!);
           return (
             <g key={`offset-${i}`}>
               <circle
@@ -316,7 +316,7 @@ export function EmissionsChart({
                 y={cy - 8}
                 textAnchor="middle"
               >
-                {formatCo2Kg(-lines.offsets[i])}
+                {formatCo2Kg(-lines.offsets[i]!)}
               </text>
             </g>
           );
@@ -328,7 +328,7 @@ export function EmissionsChart({
         {/* Hover targets (invisible circles along net line) */}
         {lines.net.map((v, i) => (
           <circle
-            key={lines.months[i]}
+            key={lines.months[i]!}
             className={styles.dot}
             cx={xForIndex(i)}
             cy={yForValue(v)}
@@ -361,7 +361,7 @@ export function EmissionsChart({
             <rect
               className={styles.tooltipBg}
               x={xForIndex(hoveredIndex) - 70}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]) - 70)}
+              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70)}
               width={140}
               height={60}
               rx={4}
@@ -369,34 +369,34 @@ export function EmissionsChart({
             <text
               className={styles.tooltipText}
               x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]) - 70) + 14}
+              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 14}
               textAnchor="middle"
             >
-              {formatMonthLabel(lines.months[hoveredIndex])}
+              {formatMonthLabel(lines.months[hoveredIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
               x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]) - 70) + 26}
+              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 26}
               textAnchor="middle"
             >
-              Actual: {formatCo2Kg(lines.actualUse[hoveredIndex])}
+              Actual: {formatCo2Kg(lines.actualUse[hoveredIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
               x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]) - 70) + 38}
+              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 38}
               textAnchor="middle"
             >
-              Projected: {formatCo2Kg(lines.projectedUse[hoveredIndex])}
+              Projected: {formatCo2Kg(lines.projectedUse[hoveredIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
               x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]) - 70) + 50}
+              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 50}
               textAnchor="middle"
             >
-              Offsets: {formatCo2Kg(lines.offsets[hoveredIndex])} | Net: {formatCo2Kg(lines.net[hoveredIndex])}
+              Offsets: {formatCo2Kg(lines.offsets[hoveredIndex]!)} | Net: {formatCo2Kg(lines.net[hoveredIndex]!)}
             </text>
           </g>
         )}
@@ -406,7 +406,7 @@ export function EmissionsChart({
       <div className={styles.legend}>
         {LEGEND_ITEMS.map((item) => (
           <div key={item.label} className={styles.legendItem}>
-            <span className={styles[item.className]} />
+            <span className={styles[item.className]!} />
             {item.label}
           </div>
         ))}

@@ -81,8 +81,8 @@ describe("EmissionsChart", () => {
   it("shows loading state with placeholder elements", () => {
     render(<EmissionsChart data={[]} isLoading />);
     expect(screen.queryByText("No emissions data yet")).toBeNull();
-    const container = document.querySelector("[class*='loadingArea']");
-    expect(container?.childElementCount).toBe(6);
+    const container = document.querySelector("[class*='loadingArea']")!;
+    expect(container.childElementCount).toBe(6);
   });
 
   it("renders actual polyline, projected segments, offset dots, and net segments", () => {
@@ -175,11 +175,11 @@ describe("EmissionsChart", () => {
     expect(svg.querySelectorAll("rect")).toHaveLength(0);
 
     // Hover first dot
-    fireEvent.mouseEnter(dots[0]);
+    fireEvent.mouseEnter(dots[0]!);
     expect(svg.querySelectorAll("rect")).toHaveLength(1);
 
     // Leave
-    fireEvent.mouseLeave(dots[0]);
+    fireEvent.mouseLeave(dots[0]!);
     expect(svg.querySelectorAll("rect")).toHaveLength(0);
   });
 });

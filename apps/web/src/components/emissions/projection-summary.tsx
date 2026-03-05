@@ -15,7 +15,7 @@ export interface ProjectionSummaryProps {
   readonly offsetCo2Kg: number;
   readonly doubleOffsetTargetCo2Kg: number;
   readonly additionalOffsetCo2Kg: number;
-  readonly isLoading?: boolean;
+  readonly isLoading?: boolean | undefined;
 }
 
 // ── Public API ──

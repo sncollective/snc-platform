@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-router", async () => {
             typeof params === "object" && params !== null
               ? (to as string).replace(
                   "$creatorId",
-                  (params as Record<string, string>).creatorId,
+                  (params as Record<string, string>).creatorId!,
                 )
               : (to as string),
           className,

@@ -32,9 +32,6 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-        media: "print",
-        // @ts-expect-error — onLoad swaps media to apply the font asynchronously
-        onLoad: "this.media='all'",
       },
       { rel: "stylesheet", href: globalCss },
     ],

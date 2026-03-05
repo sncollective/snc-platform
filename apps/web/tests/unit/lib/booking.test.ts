@@ -171,7 +171,7 @@ describe("fetchMyBookings", () => {
     const booking = makeMockBookingWithService();
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ bookings: [booking], nextCursor: null }),
+        JSON.stringify({ items: [booking], nextCursor: null }),
         { status: 200 },
       ),
     );
@@ -182,14 +182,14 @@ describe("fetchMyBookings", () => {
       "http://localhost:3000/api/bookings/mine",
       { credentials: "include" },
     );
-    expect(result.bookings).toEqual([booking]);
+    expect(result.items).toEqual([booking]);
     expect(result.nextCursor).toBeNull();
   });
 
   it("includes cursor and limit query params", async () => {
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ bookings: [], nextCursor: null }),
+        JSON.stringify({ items: [], nextCursor: null }),
         { status: 200 },
       ),
     );
@@ -204,7 +204,7 @@ describe("fetchMyBookings", () => {
   it("includes only provided params", async () => {
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ bookings: [], nextCursor: null }),
+        JSON.stringify({ items: [], nextCursor: null }),
         { status: 200 },
       ),
     );
@@ -219,7 +219,7 @@ describe("fetchMyBookings", () => {
   it("returns nextCursor when present", async () => {
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ bookings: [], nextCursor: "cursor_xyz" }),
+        JSON.stringify({ items: [], nextCursor: "cursor_xyz" }),
         { status: 200 },
       ),
     );
