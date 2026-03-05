@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --import ./src/env.ts src/index.ts",
-    "build": "tsc",
+    "build": "echo 'API runs via tsx — no build step needed'",
+    "start": "node --import tsx src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
