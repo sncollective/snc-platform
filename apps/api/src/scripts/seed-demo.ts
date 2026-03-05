@@ -15,8 +15,9 @@ if (
 
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
+
+import type { SocialLink } from "@snc/shared";
 
 import { users, accounts, userRoles } from "../db/schema/user.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -128,7 +129,10 @@ try {
         createdAt: now,
         updatedAt: now,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: users.id,
+        set: { name: u.name, email: u.email, updatedAt: now },
+      });
   }
 
   console.log(`  Users: ${userRows.length} seeded`);
@@ -145,7 +149,15 @@ try {
     updatedAt: now,
   }));
 
-  await db.insert(accounts).values(accountRows).onConflictDoNothing();
+  for (const a of accountRows) {
+    await db
+      .insert(accounts)
+      .values(a)
+      .onConflictDoUpdate({
+        target: accounts.id,
+        set: { password: a.password, updatedAt: now },
+      });
+  }
 
   console.log(`  Accounts: ${accountRows.length} seeded`);
 
@@ -162,13 +174,18 @@ try {
     { userId: USER_IDS.animalfuture, role: "creator" },
   ];
 
-  await db.insert(userRoles).values(roleRows).onConflictDoNothing();
+  for (const r of roleRows) {
+    await db
+      .insert(userRoles)
+      .values(r)
+      .onConflictDoNothing();
+  }
 
   console.log(`  Roles: ${roleRows.length} seeded`);
 
   // ── Creator Profiles ──
 
-  const creatorRows = [
+  const creatorRows: Array<{ userId: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
     {
       userId: USER_IDS.maya,
       displayName: "Maya Chen",
@@ -217,14 +234,21 @@ try {
     },
   ];
 
-  await db.insert(creatorProfiles).values(creatorRows).onConflictDoNothing();
-
-  // Update avatar/banner keys for existing rows (idempotent re-runs)
   for (const row of creatorRows) {
     await db
-      .update(creatorProfiles)
-      .set({ avatarKey: row.avatarKey, bannerKey: row.bannerKey, socialLinks: row.socialLinks ?? [] })
-      .where(eq(creatorProfiles.userId, row.userId));
+      .insert(creatorProfiles)
+      .values(row)
+      .onConflictDoUpdate({
+        target: creatorProfiles.userId,
+        set: {
+          displayName: row.displayName,
+          bio: row.bio,
+          socialLinks: row.socialLinks,
+          avatarKey: row.avatarKey,
+          bannerKey: row.bannerKey,
+          updatedAt: now,
+        },
+      });
   }
 
   console.log(`  Creator profiles: ${creatorRows.length} seeded`);
@@ -362,29 +386,26 @@ try {
     },
   ];
 
-  await db
-    .insert(content)
-    .values(
-      contentRows.map((c) => ({
+  for (const c of contentRows) {
+    await db
+      .insert(content)
+      .values({
         ...c,
         createdAt: c.publishedAt ?? now,
         updatedAt: c.publishedAt ?? now,
-      })),
-    )
-    .onConflictDoNothing();
-
-  // Update image keys for existing rows (idempotent re-runs)
-  for (const row of contentRows) {
-    const imageKey = row.thumbnailKey ?? row.coverArtKey;
-    if (imageKey) {
-      await db
-        .update(content)
-        .set({
-          thumbnailKey: row.thumbnailKey ?? null,
-          coverArtKey: row.coverArtKey ?? null,
-        })
-        .where(eq(content.id, row.id));
-    }
+      })
+      .onConflictDoUpdate({
+        target: content.id,
+        set: {
+          title: c.title,
+          description: c.description,
+          body: c.body ?? null,
+          visibility: c.visibility,
+          thumbnailKey: c.thumbnailKey ?? null,
+          coverArtKey: c.coverArtKey ?? null,
+          updatedAt: now,
+        },
+      });
   }
 
   console.log(`  Content: ${contentRows.length} seeded`);
@@ -428,7 +449,15 @@ try {
     },
   ];
 
-  await db.insert(subscriptionPlans).values(planRows).onConflictDoNothing();
+  for (const p of planRows) {
+    await db
+      .insert(subscriptionPlans)
+      .values(p)
+      .onConflictDoUpdate({
+        target: subscriptionPlans.id,
+        set: { name: p.name, price: p.price, interval: p.interval, updatedAt: now },
+      });
+  }
 
   console.log(`  Subscription plans: ${planRows.length} seeded`);
 
@@ -477,7 +506,15 @@ try {
     },
   ];
 
-  await db.insert(services).values(serviceRows).onConflictDoNothing();
+  for (const s of serviceRows) {
+    await db
+      .insert(services)
+      .values(s)
+      .onConflictDoUpdate({
+        target: services.id,
+        set: { name: s.name, description: s.description, pricingInfo: s.pricingInfo, sortOrder: s.sortOrder, updatedAt: now },
+      });
+  }
 
   console.log(`  Services: ${serviceRows.length} seeded`);
 
@@ -522,16 +559,19 @@ try {
     },
   ];
 
-  await db
-    .insert(bookingRequests)
-    .values(
-      bookingRows.map((b) => ({
+  for (const b of bookingRows) {
+    await db
+      .insert(bookingRequests)
+      .values({
         ...b,
         createdAt: daysAgo(7),
         updatedAt: now,
-      })),
-    )
-    .onConflictDoNothing();
+      })
+      .onConflictDoUpdate({
+        target: bookingRequests.id,
+        set: { notes: b.notes, status: b.status, reviewedBy: b.reviewedBy ?? null, reviewNote: b.reviewNote ?? null, updatedAt: now },
+      });
+  }
 
   console.log(`  Booking requests: ${bookingRows.length} seeded`);
 
@@ -787,8 +827,24 @@ try {
     },
   ]);
 
-  await db.insert(emissions).values(emissionRows).onConflictDoNothing();
-  await db.insert(emissions).values(projectedRows).onConflictDoNothing();
+  for (const e of emissionRows) {
+    await db
+      .insert(emissions)
+      .values(e)
+      .onConflictDoUpdate({
+        target: emissions.id,
+        set: { co2Kg: e.co2Kg, amount: e.amount, description: e.description, metadata: e.metadata, updatedAt: now },
+      });
+  }
+  for (const e of projectedRows) {
+    await db
+      .insert(emissions)
+      .values(e)
+      .onConflictDoUpdate({
+        target: emissions.id,
+        set: { co2Kg: e.co2Kg, amount: e.amount, description: e.description, metadata: e.metadata, updatedAt: now },
+      });
+  }
 
   console.log(`  Emissions: ${emissionRows.length} actual + ${projectedRows.length} projected seeded`);
 
@@ -797,7 +853,7 @@ try {
 
   console.log("\nDemo seed complete. All users share password: password123");
 } catch (e) {
-  console.error("Error:", e instanceof Error ? e.message : e);
+  console.error("Error:", e);
   process.exit(1);
 } finally {
   await sql.end();
