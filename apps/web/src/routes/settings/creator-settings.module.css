@@ -51,9 +51,26 @@
   color: var(--color-error);
 }
 
-/* ── Add Embed Row ── */
+/* ── Platform Select ── */
 
-.addEmbedRow {
+.select {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  transition: border-color 0.15s;
+}
+
+.select:focus {
+  border-color: var(--color-accent);
+}
+
+/* ── Add Link Row ── */
+
+.addLinkRow {
   display: flex;
   gap: var(--space-sm);
   align-items: stretch;
@@ -81,9 +98,9 @@
   cursor: not-allowed;
 }
 
-/* ── Embed List ── */
+/* ── Link List ── */
 
-.embedList {
+.linkList {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -92,7 +109,7 @@
   gap: var(--space-sm);
 }
 
-.embedItem {
+.linkItem {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -102,7 +119,14 @@
   border-radius: var(--radius-sm);
 }
 
-.embedUrl {
+.linkPlatform {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.linkUrl {
   flex: 1;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

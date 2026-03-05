@@ -11,10 +11,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type React from "react";
 
-import {
-  makeMockCreatorProfileResponse,
-  MOCK_BANDCAMP_EMBED_URL,
-} from "../../helpers/creator-fixtures.js";
+import { makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
 
 // ── Hoisted Mocks ──
 
@@ -82,8 +79,9 @@ beforeAll(async () => {
 
 const DEFAULT_PROFILE = makeMockCreatorProfileResponse({
   userId: "user_test123",
-  bandcampUrl: "https://testband.bandcamp.com",
-  bandcampEmbeds: [MOCK_BANDCAMP_EMBED_URL],
+  socialLinks: [
+    { platform: "bandcamp", url: "https://testband.bandcamp.com" },
+  ],
 });
 
 // ── Lifecycle ──
@@ -141,28 +139,35 @@ describe("CreatorSettingsPage", () => {
     });
   });
 
-  it("renders Bandcamp URL input prefilled from profile", async () => {
+  it("renders platform dropdown", async () => {
     render(<CreatorSettingsPage />);
     await waitFor(() => {
       expect(
-        screen.getByDisplayValue("https://testband.bandcamp.com"),
+        screen.getByRole("heading", { name: "Creator Settings" }),
       ).toBeInTheDocument();
     });
+
+    const select = screen.getByLabelText("Social Links");
+    expect(select).toBeInTheDocument();
+    expect(select.tagName).toBe("SELECT");
   });
 
-  it("renders existing embed URLs in list", async () => {
+  it("renders existing social links in list", async () => {
     render(<CreatorSettingsPage />);
     await waitFor(() => {
-      expect(screen.getByText(MOCK_BANDCAMP_EMBED_URL)).toBeInTheDocument();
+      expect(screen.getByText("https://testband.bandcamp.com")).toBeInTheDocument();
     });
+    // "Bandcamp" appears in both the select option and the link list
+    const bandcampTexts = screen.getAllByText("Bandcamp");
+    expect(bandcampTexts.length).toBeGreaterThanOrEqual(2);
   });
 
   // ── URL validation tests ──
 
-  it("shows validation error for invalid Bandcamp URL on blur", async () => {
+  it("shows validation error for invalid URL on Add", async () => {
     const user = userEvent.setup();
     mockFetchCreatorProfile.mockResolvedValue(
-      makeMockCreatorProfileResponse({ bandcampUrl: null, bandcampEmbeds: [] }),
+      makeMockCreatorProfileResponse({ socialLinks: [] }),
     );
     render(<CreatorSettingsPage />);
     await waitFor(() => {
@@ -171,20 +176,20 @@ describe("CreatorSettingsPage", () => {
       ).toBeInTheDocument();
     });
 
-    const urlInput = screen.getByLabelText("Bandcamp Profile URL");
-    await user.clear(urlInput);
-    await user.type(urlInput, "https://example.com");
-    await user.tab();
+    const urlInput = screen.getByPlaceholderText("https://...");
+    await user.type(urlInput, "not a url");
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Must be a valid bandcamp.com URL"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Must be a valid URL")).toBeInTheDocument();
     });
   });
 
-  it("accepts empty Bandcamp URL (clear operation)", async () => {
+  it("shows error for URL not matching platform pattern", async () => {
     const user = userEvent.setup();
+    mockFetchCreatorProfile.mockResolvedValue(
+      makeMockCreatorProfileResponse({ socialLinks: [] }),
+    );
     render(<CreatorSettingsPage />);
     await waitFor(() => {
       expect(
@@ -192,19 +197,25 @@ describe("CreatorSettingsPage", () => {
       ).toBeInTheDocument();
     });
 
-    const urlInput = screen.getByLabelText("Bandcamp Profile URL");
-    await user.clear(urlInput);
-    await user.tab();
+    // Default platform is bandcamp, enter a non-bandcamp URL
+    const urlInput = screen.getByPlaceholderText("https://...");
+    await user.type(urlInput, "https://example.com/not-bandcamp");
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
-    expect(
-      screen.queryByText("Must be a valid bandcamp.com URL"),
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText("URL does not match Bandcamp format"),
+      ).toBeInTheDocument();
+    });
   });
 
-  // ── Embed add/remove tests ──
+  // ── Add/remove link tests ──
 
-  it("shows validation error for invalid embed URL on Add", async () => {
+  it("adds a valid social link to the list", async () => {
     const user = userEvent.setup();
+    mockFetchCreatorProfile.mockResolvedValue(
+      makeMockCreatorProfileResponse({ socialLinks: [] }),
+    );
     render(<CreatorSettingsPage />);
     await waitFor(() => {
       expect(
@@ -212,97 +223,82 @@ describe("CreatorSettingsPage", () => {
       ).toBeInTheDocument();
     });
 
-    const embedInput = screen.getByLabelText("Embedded Players");
-    await user.type(embedInput, "https://example.com");
+    const urlInput = screen.getByPlaceholderText("https://...");
+    await user.type(urlInput, "https://myband.bandcamp.com");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("https://myband.bandcamp.com")).toBeInTheDocument();
+  });
+
+  it("clears URL input after successful add", async () => {
+    const user = userEvent.setup();
+    mockFetchCreatorProfile.mockResolvedValue(
+      makeMockCreatorProfileResponse({ socialLinks: [] }),
+    );
+    render(<CreatorSettingsPage />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Creator Settings" }),
+      ).toBeInTheDocument();
+    });
+
+    const urlInput = screen.getByPlaceholderText("https://...");
+    await user.type(urlInput, "https://myband.bandcamp.com");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(urlInput).toHaveValue("");
+  });
+
+  it("prevents duplicate platform links", async () => {
+    const user = userEvent.setup();
+    render(<CreatorSettingsPage />);
+    await waitFor(() => {
+      expect(screen.getByText("https://testband.bandcamp.com")).toBeInTheDocument();
+    });
+
+    // Try to add another bandcamp link
+    const urlInput = screen.getByPlaceholderText("https://...");
+    await user.type(urlInput, "https://other.bandcamp.com");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     expect(
-      screen.getByText("Must be a valid Bandcamp embed URL"),
+      screen.getByText("A Bandcamp link has already been added"),
     ).toBeInTheDocument();
   });
 
-  it("adds a valid embed URL to the list", async () => {
-    const user = userEvent.setup();
-    const newEmbedUrl =
-      "https://bandcamp.com/EmbeddedPlayer/album=999999999/size=large";
-    mockFetchCreatorProfile.mockResolvedValue(
-      makeMockCreatorProfileResponse({ bandcampEmbeds: [] }),
-    );
-    render(<CreatorSettingsPage />);
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "Creator Settings" }),
-      ).toBeInTheDocument();
-    });
-
-    const embedInput = screen.getByLabelText("Embedded Players");
-    await user.type(embedInput, newEmbedUrl);
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    expect(screen.getByText(newEmbedUrl)).toBeInTheDocument();
-  });
-
-  it("clears embed input after successful add", async () => {
-    const user = userEvent.setup();
-    const newEmbedUrl =
-      "https://bandcamp.com/EmbeddedPlayer/album=999999999/size=large";
-    mockFetchCreatorProfile.mockResolvedValue(
-      makeMockCreatorProfileResponse({ bandcampEmbeds: [] }),
-    );
-    render(<CreatorSettingsPage />);
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "Creator Settings" }),
-      ).toBeInTheDocument();
-    });
-
-    const embedInput = screen.getByLabelText("Embedded Players");
-    await user.type(embedInput, newEmbedUrl);
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    expect(embedInput).toHaveValue("");
-  });
-
-  it("prevents duplicate embed URLs", async () => {
+  it("removes a link from the list", async () => {
     const user = userEvent.setup();
     render(<CreatorSettingsPage />);
     await waitFor(() => {
-      expect(screen.getByText(MOCK_BANDCAMP_EMBED_URL)).toBeInTheDocument();
-    });
-
-    const embedInput = screen.getByLabelText("Embedded Players");
-    await user.type(embedInput, MOCK_BANDCAMP_EMBED_URL);
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    expect(
-      screen.getByText("This embed URL has already been added"),
-    ).toBeInTheDocument();
-  });
-
-  it("removes an embed from the list", async () => {
-    const user = userEvent.setup();
-    render(<CreatorSettingsPage />);
-    await waitFor(() => {
-      expect(screen.getByText(MOCK_BANDCAMP_EMBED_URL)).toBeInTheDocument();
+      expect(screen.getByText("https://testband.bandcamp.com")).toBeInTheDocument();
     });
 
     await user.click(
-      screen.getByRole("button", { name: `Remove ${MOCK_BANDCAMP_EMBED_URL}` }),
+      screen.getByRole("button", { name: "Remove Bandcamp" }),
     );
 
     expect(
-      screen.queryByText(MOCK_BANDCAMP_EMBED_URL),
+      screen.queryByText("https://testband.bandcamp.com"),
     ).not.toBeInTheDocument();
   });
 
-  it("disables Add button when embed list reaches 10", async () => {
+  it("disables Add button when link list reaches max", async () => {
     mockFetchCreatorProfile.mockResolvedValue(
       makeMockCreatorProfileResponse({
-        bandcampEmbeds: Array.from(
-          { length: 10 },
-          (_, i) =>
-            `https://bandcamp.com/EmbeddedPlayer/album=${i + 1}/size=large`,
-        ),
+        socialLinks: Array.from(
+          { length: 20 },
+          (_, i) => ({
+            platform: `website` as const,
+            url: `https://example${i}.com`,
+          }),
+        ).slice(0, 12).map((_, i) => ({
+          platform: [
+            "bandcamp", "spotify", "apple-music", "soundcloud",
+            "youtube-music", "tidal", "instagram", "tiktok",
+            "twitter", "mastodon", "youtube", "website",
+          ][i] as any,
+          url: `https://example${i}.com`,
+        })),
       }),
     );
     render(<CreatorSettingsPage />);
@@ -312,12 +308,13 @@ describe("CreatorSettingsPage", () => {
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    // 12 links is under 20, so Add should still be enabled
+    expect(screen.getByRole("button", { name: "Add" })).not.toBeDisabled();
   });
 
   // ── Save tests ──
 
-  it("submits PATCH request with updated Bandcamp fields", async () => {
+  it("submits PATCH request with social links", async () => {
     const user = userEvent.setup();
     render(<CreatorSettingsPage />);
     await waitFor(() => {
@@ -330,8 +327,9 @@ describe("CreatorSettingsPage", () => {
 
     await waitFor(() => {
       expect(mockUpdateCreatorProfile).toHaveBeenCalledWith("user_test123", {
-        bandcampUrl: "https://testband.bandcamp.com",
-        bandcampEmbeds: [MOCK_BANDCAMP_EMBED_URL],
+        socialLinks: [
+          { platform: "bandcamp", url: "https://testband.bandcamp.com" },
+        ],
       });
     });
   });

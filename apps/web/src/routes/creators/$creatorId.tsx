@@ -9,7 +9,7 @@ import type {
   SubscriptionPlan,
 } from "@snc/shared";
 
-import { BandcampSection } from "../../components/bandcamp/bandcamp-section.js";
+import { SocialLinksSection } from "../../components/social-links/social-links-section.js";
 import { ContentCard } from "../../components/content/content-card.js";
 import { FilterBar } from "../../components/content/filter-bar.js";
 import { CreatorHeader } from "../../components/creator/creator-header.js";
@@ -186,10 +186,7 @@ function CreatorDetailPage(): React.ReactElement {
         )}
       </section>
 
-      <BandcampSection
-        bandcampUrl={creator.bandcampUrl}
-        bandcampEmbeds={creator.bandcampEmbeds}
-      />
+      <SocialLinksSection socialLinks={creator.socialLinks} />
 
       {/* Merch Section */}
       {merchProducts.length > 0 && (

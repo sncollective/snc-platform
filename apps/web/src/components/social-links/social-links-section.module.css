@@ -1,0 +1,62 @@
+/* ── Section Layout ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.sectionHeading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  margin: 0;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Link List ── */
+
+.linkList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 400px;
+}
+
+/* ── Link Pill ── */
+
+.linkPill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.linkPill:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-hover);
+}
+
+/* ── Platform Icon ── */
+
+.platformIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+/* ── Link Label ── */
+
+.linkLabel {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-ui);
+}

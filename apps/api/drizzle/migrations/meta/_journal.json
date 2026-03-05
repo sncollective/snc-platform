@@ -50,6 +50,13 @@
       "when": 1772700000000,
       "tag": "0006_adorable_viper",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772800000000,
+      "tag": "0007_social_links",
+      "breakpoints": true
     }
   ]
 }

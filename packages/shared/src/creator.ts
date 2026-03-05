@@ -2,31 +2,111 @@ import { z } from "zod";
 
 // ── Public Constants ──
 
-export const BANDCAMP_URL_REGEX =
-  /^https?:\/\/[a-zA-Z0-9-]+\.bandcamp\.com(\/.*)?$/;
+export const SOCIAL_PLATFORMS = [
+  "bandcamp",
+  "spotify",
+  "apple-music",
+  "soundcloud",
+  "youtube-music",
+  "tidal",
+  "instagram",
+  "tiktok",
+  "twitter",
+  "mastodon",
+  "youtube",
+  "website",
+] as const;
 
-export const BANDCAMP_EMBED_REGEX =
-  /^https:\/\/bandcamp\.com\/EmbeddedPlayer\/.+$/;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+export const PLATFORM_CONFIG: Record<
+  SocialPlatform,
+  { displayName: string; urlPattern?: RegExp }
+> = {
+  bandcamp: {
+    displayName: "Bandcamp",
+    urlPattern: /^https?:\/\/[a-zA-Z0-9-]+\.bandcamp\.com(\/.*)?$/,
+  },
+  spotify: {
+    displayName: "Spotify",
+    urlPattern: /^https?:\/\/(open\.)?spotify\.com\/.+$/,
+  },
+  "apple-music": {
+    displayName: "Apple Music",
+    urlPattern: /^https?:\/\/music\.apple\.com\/.+$/,
+  },
+  soundcloud: {
+    displayName: "SoundCloud",
+    urlPattern: /^https?:\/\/(www\.)?soundcloud\.com\/.+$/,
+  },
+  "youtube-music": {
+    displayName: "YouTube Music",
+    urlPattern: /^https?:\/\/music\.youtube\.com\/.+$/,
+  },
+  tidal: {
+    displayName: "Tidal",
+    urlPattern: /^https?:\/\/(www\.|listen\.)?tidal\.com\/.+$/,
+  },
+  instagram: {
+    displayName: "Instagram",
+    urlPattern: /^https?:\/\/(www\.)?instagram\.com\/.+$/,
+  },
+  tiktok: {
+    displayName: "TikTok",
+    urlPattern: /^https?:\/\/(www\.)?tiktok\.com\/.+$/,
+  },
+  twitter: {
+    displayName: "Twitter / X",
+    urlPattern: /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/.+$/,
+  },
+  mastodon: { displayName: "Mastodon" },
+  youtube: {
+    displayName: "YouTube",
+    urlPattern: /^https?:\/\/(www\.)?youtube\.com\/.+$/,
+  },
+  website: { displayName: "Website" },
+};
+
+export const MAX_SOCIAL_LINKS = 20;
+
+export const SocialLinkSchema = z.object({
+  platform: z.enum(SOCIAL_PLATFORMS),
+  url: z.string().url(),
+  label: z.string().max(100).optional(),
+});
+
+export type SocialLink = z.infer<typeof SocialLinkSchema>;
 
 // ── Public Schemas ──
 
 export const UpdateCreatorProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   bio: z.string().max(2000).optional(),
-  bandcampUrl: z
-    .union([
-      z.string().regex(BANDCAMP_URL_REGEX, "Must be a valid bandcamp.com URL"),
-      z.literal(""),
-    ])
-    .optional(),
-  bandcampEmbeds: z
-    .array(
-      z
-        .string()
-        .regex(BANDCAMP_EMBED_REGEX, "Must be a valid Bandcamp embed URL"),
+  socialLinks: z
+    .array(SocialLinkSchema)
+    .max(MAX_SOCIAL_LINKS, `Maximum ${MAX_SOCIAL_LINKS} links allowed`)
+    .optional()
+    .refine(
+      (links) => {
+        if (!links) return true;
+        for (const link of links) {
+          const config = PLATFORM_CONFIG[link.platform];
+          if (config.urlPattern && !config.urlPattern.test(link.url)) {
+            return false;
+          }
+        }
+        return true;
+      },
+      { message: "One or more URLs do not match their platform's expected format" },
     )
-    .max(10, "Maximum 10 embeds allowed")
-    .optional(),
+    .refine(
+      (links) => {
+        if (!links) return true;
+        const platforms = links.map((l) => l.platform);
+        return new Set(platforms).size === platforms.length;
+      },
+      { message: "Duplicate platforms are not allowed" },
+    ),
 });
 
 export const CreatorProfileResponseSchema = z.object({
@@ -35,8 +115,7 @@ export const CreatorProfileResponseSchema = z.object({
   bio: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   bannerUrl: z.string().nullable(),
-  bandcampUrl: z.string().nullable(),
-  bandcampEmbeds: z.array(z.string()),
+  socialLinks: z.array(SocialLinkSchema),
   contentCount: z.number().int().min(0),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -309,15 +309,14 @@ describe("CreatorDetailPage", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
-  it("renders BandcampSection when creator has Bandcamp embeds", async () => {
+  it("renders social links section when creator has links", async () => {
     mockUseLoaderData.mockReturnValue(
       makeMockCreatorListItem({
         userId: "creator-1",
         displayName: "Alice Music",
-        bandcampUrl: "https://alice.bandcamp.com",
-        bandcampEmbeds: [
-          "https://bandcamp.com/EmbeddedPlayer/album=111/size=large/bgcol=333333",
-          "https://bandcamp.com/EmbeddedPlayer/track=222/size=small/bgcol=333333",
+        socialLinks: [
+          { platform: "bandcamp", url: "https://alice.bandcamp.com" },
+          { platform: "spotify", url: "https://open.spotify.com/artist/alice" },
         ],
       }),
     );
@@ -325,42 +324,34 @@ describe("CreatorDetailPage", () => {
     render(<CreatorDetailPage />);
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Bandcamp" }),
+      screen.getByRole("heading", { level: 2, name: "Links" }),
     ).toBeInTheDocument();
-    const iframes = document.querySelectorAll('iframe[title="Bandcamp Player"]');
-    expect(iframes).toHaveLength(2);
-    expect(iframes[0]).toHaveAttribute(
-      "src",
-      "https://bandcamp.com/EmbeddedPlayer/album=111/size=large/bgcol=333333",
+    const links = screen.getAllByRole("link");
+    const socialLinks = links.filter(
+      (l) =>
+        l.getAttribute("href") === "https://alice.bandcamp.com" ||
+        l.getAttribute("href") === "https://open.spotify.com/artist/alice",
     );
-    expect(iframes[1]).toHaveAttribute(
-      "src",
-      "https://bandcamp.com/EmbeddedPlayer/track=222/size=small/bgcol=333333",
-    );
-    expect(screen.getByText("View on Bandcamp")).toHaveAttribute(
-      "href",
-      "https://alice.bandcamp.com",
-    );
+    expect(socialLinks).toHaveLength(2);
   });
 
-  it("hides Bandcamp section when creator has no Bandcamp data", async () => {
+  it("hides social links section when creator has no links", async () => {
     mockUseLoaderData.mockReturnValue(
       makeMockCreatorListItem({
         userId: "creator-1",
         displayName: "Alice Music",
-        bandcampUrl: null,
-        bandcampEmbeds: [],
+        socialLinks: [],
       }),
     );
 
     render(<CreatorDetailPage />);
 
-    // Content heading renders but Bandcamp heading does not
+    // Content heading renders but Links heading does not
     await waitFor(() => {
       expect(screen.getByText("Content")).toBeInTheDocument();
     });
     expect(
-      screen.queryByRole("heading", { level: 2, name: "Bandcamp" }),
+      screen.queryByRole("heading", { level: 2, name: "Links" }),
     ).toBeNull();
   });
 

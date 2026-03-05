@@ -1,3 +1,5 @@
+import type { SocialLink } from "@snc/shared";
+
 // ── Private Types ──
 
 type DbCreatorProfileRow = {
@@ -6,8 +8,7 @@ type DbCreatorProfileRow = {
   bio: string | null;
   avatarKey: string | null;
   bannerKey: string | null;
-  bandcampUrl: string | null;
-  bandcampEmbeds: string[];
+  socialLinks: SocialLink[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -22,8 +23,7 @@ export const makeMockDbCreatorProfile = (
   bio: "A test creator bio",
   avatarKey: null,
   bannerKey: null,
-  bandcampUrl: null,
-  bandcampEmbeds: [],
+  socialLinks: [],
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   ...overrides,

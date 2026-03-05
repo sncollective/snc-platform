@@ -122,8 +122,7 @@ const toProfileResponse = (
     bio: profile.bio ?? null,
     avatarUrl: urls.avatarUrl,
     bannerUrl: urls.bannerUrl,
-    bandcampUrl: profile.bandcampUrl ?? null,
-    bandcampEmbeds: (profile.bandcampEmbeds as string[]) ?? [],
+    socialLinks: (profile.socialLinks as import("@snc/shared").SocialLink[]) ?? [],
     contentCount,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
@@ -513,10 +512,8 @@ creatorRoutes.patch(
     let profile = await findCreatorProfile(creatorId);
 
     if (profile) {
-      // Map empty bandcampUrl to null (clear operation)
       const updateData = {
         ...body,
-        ...(body.bandcampUrl === "" ? { bandcampUrl: null } : {}),
         updatedAt: new Date(),
       };
 
@@ -539,8 +536,7 @@ creatorRoutes.patch(
           userId: creatorId,
           displayName: body.displayName ?? user.name,
           bio: body.bio ?? null,
-          bandcampUrl: body.bandcampUrl === "" ? null : (body.bandcampUrl ?? null),
-          bandcampEmbeds: body.bandcampEmbeds ?? [],
+          socialLinks: body.socialLinks ?? [],
           createdAt: new Date(),
           updatedAt: new Date(),
         })

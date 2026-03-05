@@ -283,20 +283,20 @@ describe("creator routes", () => {
       expect(mockLimit).toHaveBeenCalled();
     });
 
-    it("returns bandcampEmbeds for each creator in list", async () => {
+    it("returns socialLinks for each creator in list", async () => {
       const profiles = [
         makeMockDbCreatorProfile({
           userId: "user_1",
           displayName: "Creator One",
-          bandcampEmbeds: [
-            "https://bandcamp.com/EmbeddedPlayer/album=111/size=large/",
+          socialLinks: [
+            { platform: "bandcamp", url: "https://creator1.bandcamp.com" },
           ],
           createdAt: new Date("2026-02-01T00:00:00.000Z"),
         }),
         makeMockDbCreatorProfile({
           userId: "user_2",
           displayName: "Creator Two",
-          bandcampEmbeds: [],
+          socialLinks: [],
           createdAt: new Date("2026-01-15T00:00:00.000Z"),
         }),
       ];
@@ -316,10 +316,10 @@ describe("creator routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.items).toHaveLength(2);
-      expect(body.items[0].bandcampEmbeds).toEqual([
-        "https://bandcamp.com/EmbeddedPlayer/album=111/size=large/",
+      expect(body.items[0].socialLinks).toEqual([
+        { platform: "bandcamp", url: "https://creator1.bandcamp.com" },
       ]);
-      expect(body.items[1].bandcampEmbeds).toEqual([]);
+      expect(body.items[1].socialLinks).toEqual([]);
     });
   });
 
@@ -401,15 +401,12 @@ describe("creator routes", () => {
       expect(body.error.code).toBe("NOT_FOUND");
     });
 
-    it("returns bandcampEmbeds in profile response", async () => {
-      const embedUrls = [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-        "https://bandcamp.com/EmbeddedPlayer/track=456",
+    it("returns socialLinks in profile response", async () => {
+      const socialLinks = [
+        { platform: "bandcamp" as const, url: "https://myband.bandcamp.com" },
+        { platform: "spotify" as const, url: "https://open.spotify.com/artist/123" },
       ];
-      const dbProfile = makeMockDbCreatorProfile({
-        bandcampUrl: "https://myband.bandcamp.com",
-        bandcampEmbeds: embedUrls,
-      });
+      const dbProfile = makeMockDbCreatorProfile({ socialLinks });
 
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
@@ -418,11 +415,10 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.bandcampUrl).toBe("https://myband.bandcamp.com");
-      expect(body.bandcampEmbeds).toEqual(embedUrls);
+      expect(body.socialLinks).toEqual(socialLinks);
     });
 
-    it("returns empty bandcampEmbeds when none configured", async () => {
+    it("returns empty socialLinks when none configured", async () => {
       const dbProfile = makeMockDbCreatorProfile();
 
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -432,7 +428,7 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.bandcampEmbeds).toEqual([]);
+      expect(body.socialLinks).toEqual([]);
     });
   });
 
@@ -542,84 +538,13 @@ describe("creator routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("updates bandcampUrl with a valid Bandcamp URL", async () => {
-      const dbProfile = makeMockDbCreatorProfile();
-      const updatedProfile = makeMockDbCreatorProfile({
-        bandcampUrl: "https://myband.bandcamp.com",
-      });
-
-      // findCreatorProfile → existing profile
-      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
-      // update returning
-      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
-      // getContentCount
-      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
-
-      const res = await app.request("/api/creators/user_test123", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bandcampUrl: "https://myband.bandcamp.com",
-        }),
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.bandcampUrl).toBe("https://myband.bandcamp.com");
-      expect(mockUpdateSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          bandcampUrl: "https://myband.bandcamp.com",
-        }),
-      );
-    });
-
-    it("maps empty string bandcampUrl to null in DB", async () => {
-      const dbProfile = makeMockDbCreatorProfile({
-        bandcampUrl: "https://myband.bandcamp.com",
-      });
-      const updatedProfile = makeMockDbCreatorProfile({
-        bandcampUrl: null,
-      });
-
-      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
-      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
-      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
-
-      const res = await app.request("/api/creators/user_test123", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bandcampUrl: "" }),
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.bandcampUrl).toBeNull();
-      expect(mockUpdateSet).toHaveBeenCalledWith(
-        expect.objectContaining({ bandcampUrl: null }),
-      );
-    });
-
-    it("rejects invalid bandcampUrl with 400", async () => {
-      const res = await app.request("/api/creators/user_test123", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bandcampUrl: "https://example.com",
-        }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it("updates bandcampEmbeds with valid embed URLs", async () => {
-      const embedUrls = [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-        "https://bandcamp.com/EmbeddedPlayer/track=456",
+    it("updates socialLinks with valid entries", async () => {
+      const socialLinks = [
+        { platform: "bandcamp", url: "https://myband.bandcamp.com" },
+        { platform: "spotify", url: "https://open.spotify.com/artist/123" },
       ];
       const dbProfile = makeMockDbCreatorProfile();
-      const updatedProfile = makeMockDbCreatorProfile({
-        bandcampEmbeds: embedUrls,
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ socialLinks });
 
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
@@ -628,26 +553,24 @@ describe("creator routes", () => {
       const res = await app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bandcampEmbeds: embedUrls }),
+        body: JSON.stringify({ socialLinks }),
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.bandcampEmbeds).toEqual(embedUrls);
+      expect(body.socialLinks).toEqual(socialLinks);
       expect(mockUpdateSet).toHaveBeenCalledWith(
-        expect.objectContaining({ bandcampEmbeds: embedUrls }),
+        expect.objectContaining({ socialLinks }),
       );
     });
 
-    it("clears bandcampEmbeds with empty array", async () => {
+    it("clears socialLinks with empty array", async () => {
       const dbProfile = makeMockDbCreatorProfile({
-        bandcampEmbeds: [
-          "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
+        socialLinks: [
+          { platform: "bandcamp", url: "https://myband.bandcamp.com" },
         ],
       });
-      const updatedProfile = makeMockDbCreatorProfile({
-        bandcampEmbeds: [],
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ socialLinks: [] });
 
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
@@ -656,68 +579,36 @@ describe("creator routes", () => {
       const res = await app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bandcampEmbeds: [] }),
+        body: JSON.stringify({ socialLinks: [] }),
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.bandcampEmbeds).toEqual([]);
+      expect(body.socialLinks).toEqual([]);
     });
 
-    it("rejects bandcampEmbeds exceeding 10 items", async () => {
-      const embeds = Array.from(
-        { length: 11 },
-        (_, i) => `https://bandcamp.com/EmbeddedPlayer/album=${i}`,
-      );
-
-      const res = await app.request("/api/creators/user_test123", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bandcampEmbeds: embeds }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it("rejects bandcampEmbeds with invalid embed URLs", async () => {
+    it("rejects socialLinks with invalid platform", async () => {
       const res = await app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bandcampEmbeds: ["https://example.com/not-an-embed"],
+          socialLinks: [{ platform: "myspace", url: "https://myspace.com/band" }],
         }),
       });
 
       expect(res.status).toBe(400);
     });
 
-    it("updates both bandcampUrl and bandcampEmbeds in a single request", async () => {
-      const embedUrls = [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-      ];
-      const dbProfile = makeMockDbCreatorProfile();
-      const updatedProfile = makeMockDbCreatorProfile({
-        bandcampUrl: "https://myband.bandcamp.com",
-        bandcampEmbeds: embedUrls,
-      });
-
-      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
-      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
-      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
-
+    it("rejects socialLinks with invalid URL", async () => {
       const res = await app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bandcampUrl: "https://myband.bandcamp.com",
-          bandcampEmbeds: embedUrls,
+          socialLinks: [{ platform: "bandcamp", url: "not a url" }],
         }),
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.bandcampUrl).toBe("https://myband.bandcamp.com");
-      expect(body.bandcampEmbeds).toEqual(embedUrls);
+      expect(res.status).toBe(400);
     });
   });
 

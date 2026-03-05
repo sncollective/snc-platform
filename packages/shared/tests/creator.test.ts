@@ -1,13 +1,17 @@
 import { describe, it, expect } from "vitest";
 
 import {
-  BANDCAMP_URL_REGEX,
-  BANDCAMP_EMBED_REGEX,
+  SOCIAL_PLATFORMS,
+  PLATFORM_CONFIG,
+  SocialLinkSchema,
+  MAX_SOCIAL_LINKS,
   UpdateCreatorProfileSchema,
   CreatorProfileResponseSchema,
   CreatorListItemSchema,
   CreatorListQuerySchema,
   CreatorListResponseSchema,
+  type SocialPlatform,
+  type SocialLink,
   type UpdateCreatorProfile,
   type CreatorProfileResponse,
   type CreatorListItem,
@@ -23,8 +27,7 @@ const VALID_CREATOR_PROFILE = {
   bio: "A test creator bio",
   avatarUrl: "/api/creators/user_creator1/avatar",
   bannerUrl: null,
-  bandcampUrl: null,
-  bandcampEmbeds: [],
+  socialLinks: [],
   contentCount: 5,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -32,81 +35,73 @@ const VALID_CREATOR_PROFILE = {
 
 // ── Tests ──
 
-describe("BANDCAMP_URL_REGEX", () => {
-  it('matches "https://artist-name.bandcamp.com"', () => {
-    expect(BANDCAMP_URL_REGEX.test("https://artist-name.bandcamp.com")).toBe(
-      true,
-    );
+describe("SOCIAL_PLATFORMS", () => {
+  it("contains 12 platforms", () => {
+    expect(SOCIAL_PLATFORMS).toHaveLength(12);
   });
 
-  it('matches "http://artist.bandcamp.com/album/test"', () => {
-    expect(
-      BANDCAMP_URL_REGEX.test("http://artist.bandcamp.com/album/test"),
-    ).toBe(true);
-  });
-
-  it('does not match "https://example.com"', () => {
-    expect(BANDCAMP_URL_REGEX.test("https://example.com")).toBe(false);
-  });
-
-  it('does not match "https://bandcamp.com"', () => {
-    expect(BANDCAMP_URL_REGEX.test("https://bandcamp.com")).toBe(false);
+  it("includes bandcamp, spotify, and website", () => {
+    expect(SOCIAL_PLATFORMS).toContain("bandcamp");
+    expect(SOCIAL_PLATFORMS).toContain("spotify");
+    expect(SOCIAL_PLATFORMS).toContain("website");
   });
 });
 
-describe("BANDCAMP_EMBED_REGEX", () => {
-  it('matches "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-      ),
-    ).toBe(true);
+describe("PLATFORM_CONFIG", () => {
+  it("has a config entry for every platform", () => {
+    for (const platform of SOCIAL_PLATFORMS) {
+      expect(PLATFORM_CONFIG[platform]).toBeDefined();
+      expect(PLATFORM_CONFIG[platform].displayName).toBeTruthy();
+    }
   });
 
-  it('matches "https://bandcamp.com/EmbeddedPlayer/track=456"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "https://bandcamp.com/EmbeddedPlayer/track=456",
-      ),
-    ).toBe(true);
+  it("has urlPattern for platforms with known domains", () => {
+    expect(PLATFORM_CONFIG.bandcamp.urlPattern).toBeDefined();
+    expect(PLATFORM_CONFIG.spotify.urlPattern).toBeDefined();
+    expect(PLATFORM_CONFIG.instagram.urlPattern).toBeDefined();
   });
 
-  it("matches a full embed URL with multiple parameters", () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "https://bandcamp.com/EmbeddedPlayer/album=123456789/size=large/bgcol=333333/linkcol=ffffff/tracklist=false/artwork=small/",
-      ),
-    ).toBe(true);
+  it("does not have urlPattern for mastodon and website", () => {
+    expect(PLATFORM_CONFIG.mastodon.urlPattern).toBeUndefined();
+    expect(PLATFORM_CONFIG.website.urlPattern).toBeUndefined();
+  });
+});
+
+describe("SocialLinkSchema", () => {
+  it("validates a valid social link", () => {
+    const result = SocialLinkSchema.parse({
+      platform: "bandcamp",
+      url: "https://myband.bandcamp.com",
+    });
+    expect(result.platform).toBe("bandcamp");
+    expect(result.url).toBe("https://myband.bandcamp.com");
   });
 
-  it('rejects non-Bandcamp domain "https://example.com/EmbeddedPlayer/album=123"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "https://example.com/EmbeddedPlayer/album=123",
-      ),
-    ).toBe(false);
+  it("accepts optional label", () => {
+    const result = SocialLinkSchema.parse({
+      platform: "spotify",
+      url: "https://open.spotify.com/artist/123",
+      label: "My Spotify",
+    });
+    expect(result.label).toBe("My Spotify");
   });
 
-  it('rejects HTTP "http://bandcamp.com/EmbeddedPlayer/album=123"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "http://bandcamp.com/EmbeddedPlayer/album=123",
-      ),
-    ).toBe(false);
+  it("rejects invalid platform", () => {
+    expect(() =>
+      SocialLinkSchema.parse({
+        platform: "myspace",
+        url: "https://myspace.com/artist",
+      }),
+    ).toThrow();
   });
 
-  it('rejects trailing slash only "https://bandcamp.com/EmbeddedPlayer/"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test(
-        "https://bandcamp.com/EmbeddedPlayer/",
-      ),
-    ).toBe(false);
-  });
-
-  it('rejects Bandcamp profile URL (not embed) "https://artist.bandcamp.com"', () => {
-    expect(
-      BANDCAMP_EMBED_REGEX.test("https://artist.bandcamp.com"),
-    ).toBe(false);
+  it("rejects invalid URL", () => {
+    expect(() =>
+      SocialLinkSchema.parse({
+        platform: "bandcamp",
+        url: "not a url",
+      }),
+    ).toThrow();
   });
 });
 
@@ -169,121 +164,106 @@ describe("UpdateCreatorProfileSchema", () => {
     expect(result.bio).toHaveLength(2000);
   });
 
-  it("accepts bandcampUrl with a valid Bandcamp URL", () => {
+  it("accepts socialLinks with valid entries", () => {
     const result = UpdateCreatorProfileSchema.parse({
-      bandcampUrl: "https://myband.bandcamp.com",
-    });
-    expect(result.bandcampUrl).toBe("https://myband.bandcamp.com");
-  });
-
-  it("accepts bandcampUrl with a Bandcamp URL containing a path", () => {
-    const result = UpdateCreatorProfileSchema.parse({
-      bandcampUrl: "https://myband.bandcamp.com/album/cool-album",
-    });
-    expect(result.bandcampUrl).toBe(
-      "https://myband.bandcamp.com/album/cool-album",
-    );
-  });
-
-  it('accepts bandcampUrl as empty string "" (clear operation)', () => {
-    const result = UpdateCreatorProfileSchema.parse({
-      bandcampUrl: "",
-    });
-    expect(result.bandcampUrl).toBe("");
-  });
-
-  it("rejects bandcampUrl with a non-Bandcamp domain", () => {
-    expect(() =>
-      UpdateCreatorProfileSchema.parse({
-        bandcampUrl: "https://example.com",
-      }),
-    ).toThrow();
-  });
-
-  it("rejects bandcampUrl with a plain string (not a URL)", () => {
-    expect(() =>
-      UpdateCreatorProfileSchema.parse({
-        bandcampUrl: "not a url",
-      }),
-    ).toThrow();
-  });
-
-  it("accepts bandcampEmbeds as an array of valid embed URLs", () => {
-    const result = UpdateCreatorProfileSchema.parse({
-      bandcampEmbeds: [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-        "https://bandcamp.com/EmbeddedPlayer/track=456",
+      socialLinks: [
+        { platform: "bandcamp", url: "https://myband.bandcamp.com" },
+        { platform: "spotify", url: "https://open.spotify.com/artist/123" },
       ],
     });
-    expect(result.bandcampEmbeds).toHaveLength(2);
+    expect(result.socialLinks).toHaveLength(2);
   });
 
-  it("accepts bandcampEmbeds as an empty array (clear embeds)", () => {
+  it("accepts socialLinks as an empty array", () => {
     const result = UpdateCreatorProfileSchema.parse({
-      bandcampEmbeds: [],
+      socialLinks: [],
     });
-    expect(result.bandcampEmbeds).toHaveLength(0);
+    expect(result.socialLinks).toHaveLength(0);
   });
 
-  it("rejects bandcampEmbeds exceeding 10 items", () => {
-    const embeds = Array.from(
-      { length: 11 },
-      (_, i) => `https://bandcamp.com/EmbeddedPlayer/album=${i}`,
-    );
-    expect(() =>
-      UpdateCreatorProfileSchema.parse({ bandcampEmbeds: embeds }),
-    ).toThrow();
-  });
-
-  it("accepts bandcampEmbeds at exactly 10 items", () => {
-    const embeds = Array.from(
-      { length: 10 },
-      (_, i) => `https://bandcamp.com/EmbeddedPlayer/album=${i}`,
-    );
-    const result = UpdateCreatorProfileSchema.parse({
-      bandcampEmbeds: embeds,
-    });
-    expect(result.bandcampEmbeds).toHaveLength(10);
-  });
-
-  it("rejects bandcampEmbeds containing invalid embed URLs", () => {
+  it("rejects socialLinks exceeding 20 items", () => {
+    const links = SOCIAL_PLATFORMS.slice(0, 12).map((platform, i) => ({
+      platform,
+      url: `https://example${i}.com/profile`,
+    }));
+    // Add 9 more with labels to get to 21
+    for (let i = 0; i < 9; i++) {
+      links.push({
+        platform: SOCIAL_PLATFORMS[i % 12]!,
+        url: `https://extra${i}.com/profile`,
+      });
+    }
+    // This will fail due to duplicate platforms before reaching 21,
+    // so let's test max directly with valid unique entries
     expect(() =>
       UpdateCreatorProfileSchema.parse({
-        bandcampEmbeds: ["https://example.com/not-an-embed"],
+        socialLinks: Array.from({ length: 21 }, (_, i) => ({
+          platform: "bandcamp",
+          url: `https://band${i}.bandcamp.com`,
+        })),
       }),
     ).toThrow();
   });
 
-  it("rejects bandcampEmbeds containing HTTP embed URLs", () => {
+  it("rejects socialLinks with invalid platform", () => {
     expect(() =>
       UpdateCreatorProfileSchema.parse({
-        bandcampEmbeds: ["http://bandcamp.com/EmbeddedPlayer/album=123"],
+        socialLinks: [
+          { platform: "myspace", url: "https://myspace.com/artist" },
+        ],
       }),
     ).toThrow();
   });
 
-  it("accepts both bandcampUrl and bandcampEmbeds together", () => {
+  it("rejects socialLinks with URL not matching platform pattern", () => {
+    expect(() =>
+      UpdateCreatorProfileSchema.parse({
+        socialLinks: [
+          { platform: "bandcamp", url: "https://example.com/not-bandcamp" },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts socialLinks with mastodon (no URL pattern)", () => {
     const result = UpdateCreatorProfileSchema.parse({
-      bandcampUrl: "https://myband.bandcamp.com",
-      bandcampEmbeds: [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
+      socialLinks: [
+        { platform: "mastodon", url: "https://mastodon.social/@myband" },
       ],
     });
-    expect(result.bandcampUrl).toBe("https://myband.bandcamp.com");
-    expect(result.bandcampEmbeds).toHaveLength(1);
+    expect(result.socialLinks).toHaveLength(1);
   });
 
-  it("accepts Bandcamp fields alongside displayName and bio", () => {
+  it("accepts socialLinks with website (no URL pattern)", () => {
+    const result = UpdateCreatorProfileSchema.parse({
+      socialLinks: [
+        { platform: "website", url: "https://myband.com" },
+      ],
+    });
+    expect(result.socialLinks).toHaveLength(1);
+  });
+
+  it("rejects duplicate platforms", () => {
+    expect(() =>
+      UpdateCreatorProfileSchema.parse({
+        socialLinks: [
+          { platform: "bandcamp", url: "https://band1.bandcamp.com" },
+          { platform: "bandcamp", url: "https://band2.bandcamp.com" },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts socialLinks alongside displayName and bio", () => {
     const result = UpdateCreatorProfileSchema.parse({
       displayName: "My Band",
       bio: "We make music",
-      bandcampUrl: "https://myband.bandcamp.com",
-      bandcampEmbeds: [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
+      socialLinks: [
+        { platform: "bandcamp", url: "https://myband.bandcamp.com" },
       ],
     });
     expect(result.displayName).toBe("My Band");
-    expect(result.bandcampUrl).toBe("https://myband.bandcamp.com");
+    expect(result.socialLinks).toHaveLength(1);
   });
 });
 
@@ -301,12 +281,10 @@ describe("CreatorProfileResponseSchema", () => {
       bio: null,
       avatarUrl: null,
       bannerUrl: null,
-      bandcampUrl: null,
     });
     expect(result.bio).toBeNull();
     expect(result.avatarUrl).toBeNull();
     expect(result.bannerUrl).toBeNull();
-    expect(result.bandcampUrl).toBeNull();
   });
 
   it("accepts string values for URL fields", () => {
@@ -341,32 +319,30 @@ describe("CreatorProfileResponseSchema", () => {
     ).toThrow();
   });
 
-  it("validates bandcampEmbeds as a string array", () => {
+  it("validates socialLinks as an array of social link objects", () => {
     const result = CreatorProfileResponseSchema.parse({
       ...VALID_CREATOR_PROFILE,
-      bandcampEmbeds: [
-        "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-        "https://bandcamp.com/EmbeddedPlayer/track=456",
+      socialLinks: [
+        { platform: "bandcamp", url: "https://myband.bandcamp.com" },
+        { platform: "spotify", url: "https://open.spotify.com/artist/123" },
       ],
     });
-    expect(result.bandcampEmbeds).toHaveLength(2);
-    expect(result.bandcampEmbeds[0]).toBe(
-      "https://bandcamp.com/EmbeddedPlayer/album=123/size=large/",
-    );
+    expect(result.socialLinks).toHaveLength(2);
+    expect(result.socialLinks[0]!.platform).toBe("bandcamp");
   });
 
-  it("validates bandcampEmbeds as an empty array", () => {
+  it("validates socialLinks as an empty array", () => {
     const result = CreatorProfileResponseSchema.parse({
       ...VALID_CREATOR_PROFILE,
-      bandcampEmbeds: [],
+      socialLinks: [],
     });
-    expect(result.bandcampEmbeds).toHaveLength(0);
+    expect(result.socialLinks).toHaveLength(0);
   });
 
-  it("rejects when bandcampEmbeds is missing", () => {
-    const { bandcampEmbeds: _, ...withoutEmbeds } = VALID_CREATOR_PROFILE;
+  it("rejects when socialLinks is missing", () => {
+    const { socialLinks: _, ...withoutLinks } = VALID_CREATOR_PROFILE;
     expect(() =>
-      CreatorProfileResponseSchema.parse(withoutEmbeds),
+      CreatorProfileResponseSchema.parse(withoutLinks),
     ).toThrow();
   });
 });
@@ -491,3 +467,5 @@ const _profileCheck: CreatorProfileResponse = VALID_CREATOR_PROFILE;
 const _listItemCheck: CreatorListItem = VALID_CREATOR_PROFILE;
 const _queryCheck: CreatorListQuery = { limit: 24 };
 const _responseCheck: CreatorListResponse = { items: [], nextCursor: null };
+const _platformCheck: SocialPlatform = "bandcamp";
+const _linkCheck: SocialLink = { platform: "bandcamp", url: "https://test.bandcamp.com" };

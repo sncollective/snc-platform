@@ -1,5 +1,7 @@
 import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 
+import type { SocialLink } from "@snc/shared";
+
 import { users } from "./user.schema.js";
 
 // ── Creator Profiles ──
@@ -12,9 +14,8 @@ export const creatorProfiles = pgTable("creator_profiles", {
   bio: text("bio"),
   avatarKey: text("avatar_key"),
   bannerKey: text("banner_key"),
-  bandcampUrl: text("bandcamp_url"),
-  bandcampEmbeds: jsonb("bandcamp_embeds")
-    .$type<string[]>()
+  socialLinks: jsonb("social_links")
+    .$type<SocialLink[]>()
     .notNull()
     .default([]),
   createdAt: timestamp("created_at", { withTimezone: true })

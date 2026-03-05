@@ -81,16 +81,15 @@ describe("fetchCreatorProfile", () => {
 
 describe("updateCreatorProfile", () => {
   it("sends PATCH to correct URL with body and credentials", async () => {
-    const updatedProfile = makeMockCreatorProfileResponse({
-      bandcampUrl: "https://myband.bandcamp.com",
-    });
+    const socialLinks = [
+      { platform: "bandcamp" as const, url: "https://myband.bandcamp.com" },
+    ];
+    const updatedProfile = makeMockCreatorProfileResponse({ socialLinks });
     mockFetch.mockResolvedValue(
       new Response(JSON.stringify(updatedProfile), { status: 200 }),
     );
 
-    const result = await updateCreatorProfile("user_test123", {
-      bandcampUrl: "https://myband.bandcamp.com",
-    });
+    const result = await updateCreatorProfile("user_test123", { socialLinks });
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost:3000/api/creators/user_test123",
@@ -100,7 +99,7 @@ describe("updateCreatorProfile", () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ bandcampUrl: "https://myband.bandcamp.com" }),
+        body: JSON.stringify({ socialLinks }),
       },
     );
     expect(result).toEqual(updatedProfile);
@@ -156,7 +155,7 @@ describe("updateCreatorProfile", () => {
 
     await expect(
       updateCreatorProfile("user_test123", {
-        bandcampUrl: "not-a-valid-url",
+        socialLinks: [{ platform: "bandcamp" as const, url: "not-a-valid-url" }],
       }),
     ).rejects.toThrow("Validation failed");
   });

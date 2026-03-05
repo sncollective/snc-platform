@@ -2,9 +2,14 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type React from "react";
-import { z, safeParse, regex } from "zod/mini";
+import { z, safeParse } from "zod/mini";
 
-import { BANDCAMP_URL_REGEX, BANDCAMP_EMBED_REGEX } from "@snc/shared";
+import {
+  SOCIAL_PLATFORMS,
+  PLATFORM_CONFIG,
+  MAX_SOCIAL_LINKS,
+} from "@snc/shared";
+import type { SocialLink, SocialPlatform } from "@snc/shared";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { fetchAuthState } from "../../lib/auth.js";
@@ -17,20 +22,9 @@ import styles from "./creator-settings.module.css";
 
 // ── Private Constants ──
 
-const MAX_EMBEDS = 10;
-
-const BANDCAMP_URL_SCHEMA = z.object({
-  bandcampUrl: z.string().check(
-    regex(
-      new RegExp(`^(?:${BANDCAMP_URL_REGEX.source})?$`),
-      "Must be a valid bandcamp.com URL",
-    ),
-  ),
-});
-
-const EMBED_URL_SCHEMA = z.object({
-  embedUrl: z.string().check(
-    regex(BANDCAMP_EMBED_REGEX, "Must be a valid Bandcamp embed URL"),
+const URL_SCHEMA = z.object({
+  url: z.string().check(
+    z.url("Must be a valid URL"),
   ),
 });
 
@@ -57,14 +51,12 @@ function CreatorSettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState("");
 
-  // ── Bandcamp URL State ──
-  const [bandcampUrl, setBandcampUrl] = useState("");
-  const [urlError, setUrlError] = useState("");
-
-  // ── Embed List State ──
-  const [embeds, setEmbeds] = useState<string[]>([]);
-  const [newEmbedUrl, setNewEmbedUrl] = useState("");
-  const [embedError, setEmbedError] = useState("");
+  // ── Social Links State ──
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const [newPlatform, setNewPlatform] = useState<SocialPlatform>("bandcamp");
+  const [newUrl, setNewUrl] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [linkError, setLinkError] = useState("");
 
   // ── Form State ──
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,8 +74,7 @@ function CreatorSettingsPage(): React.ReactElement {
         setUserId(user.id);
         const profile = await fetchCreatorProfile(user.id);
         if (cancelled) return;
-        setBandcampUrl(profile.bandcampUrl ?? "");
-        setEmbeds([...profile.bandcampEmbeds]);
+        setSocialLinks([...profile.socialLinks]);
       } catch {
         if (!cancelled) setServerError("Failed to load profile");
       } finally {
@@ -98,42 +89,53 @@ function CreatorSettingsPage(): React.ReactElement {
     };
   }, []);
 
-  // ── Bandcamp URL Validation ──
-  const validateUrl = useCallback((): boolean => {
-    const result = safeParse(BANDCAMP_URL_SCHEMA, { bandcampUrl });
-    if (result.success) {
-      setUrlError("");
-      return true;
-    }
-    const errs = extractFieldErrors(result.error.issues, ["bandcampUrl"]);
-    setUrlError(errs.bandcampUrl ?? "Must be a valid bandcamp.com URL");
-    return false;
-  }, [bandcampUrl]);
-
-  // ── Embed URL Handlers ──
-  const handleAddEmbed = useCallback((): void => {
-    const trimmed = newEmbedUrl.trim();
-    if (!trimmed) {
-      setEmbedError("Please enter an embed URL");
+  // ── Add Link Handler ──
+  const handleAddLink = useCallback((): void => {
+    const trimmedUrl = newUrl.trim();
+    if (!trimmedUrl) {
+      setLinkError("Please enter a URL");
       return;
     }
-    const result = safeParse(EMBED_URL_SCHEMA, { embedUrl: trimmed });
+
+    // Validate URL format
+    const result = safeParse(URL_SCHEMA, { url: trimmedUrl });
     if (!result.success) {
-      const errs = extractFieldErrors(result.error.issues, ["embedUrl"]);
-      setEmbedError(errs.embedUrl ?? "Must be a valid Bandcamp embed URL");
+      const errs = extractFieldErrors(result.error.issues, ["url"]);
+      setLinkError(errs.url ?? "Must be a valid URL");
       return;
     }
-    if (embeds.includes(trimmed)) {
-      setEmbedError("This embed URL has already been added");
-      return;
-    }
-    setEmbedError("");
-    setEmbeds((prev) => [...prev, trimmed]);
-    setNewEmbedUrl("");
-  }, [newEmbedUrl, embeds]);
 
-  const handleRemoveEmbed = useCallback((url: string): void => {
-    setEmbeds((prev) => prev.filter((e) => e !== url));
+    // Check platform-specific pattern
+    const config = PLATFORM_CONFIG[newPlatform];
+    if (config.urlPattern && !config.urlPattern.test(trimmedUrl)) {
+      setLinkError(
+        `URL does not match ${config.displayName} format`,
+      );
+      return;
+    }
+
+    // Check for duplicate platform
+    if (socialLinks.some((l) => l.platform === newPlatform)) {
+      setLinkError(
+        `A ${config.displayName} link has already been added`,
+      );
+      return;
+    }
+
+    setLinkError("");
+    const link: SocialLink = {
+      platform: newPlatform,
+      url: trimmedUrl,
+      ...(newLabel.trim() ? { label: newLabel.trim() } : {}),
+    };
+    setSocialLinks((prev) => [...prev, link]);
+    setNewUrl("");
+    setNewLabel("");
+  }, [newUrl, newLabel, newPlatform, socialLinks]);
+
+  // ── Remove Link Handler ──
+  const handleRemoveLink = useCallback((platform: SocialPlatform): void => {
+    setSocialLinks((prev) => prev.filter((l) => l.platform !== platform));
   }, []);
 
   // ── Save Handler ──
@@ -143,14 +145,9 @@ function CreatorSettingsPage(): React.ReactElement {
       setSuccessMessage("");
       setServerError("");
 
-      if (!validateUrl()) return;
-
       setIsSubmitting(true);
       try {
-        await updateCreatorProfile(userId, {
-          bandcampUrl: bandcampUrl || "",
-          bandcampEmbeds: embeds,
-        });
+        await updateCreatorProfile(userId, { socialLinks });
         setSuccessMessage("Changes saved successfully");
       } catch (err) {
         setServerError(
@@ -160,7 +157,7 @@ function CreatorSettingsPage(): React.ReactElement {
         setIsSubmitting(false);
       }
     },
-    [bandcampUrl, embeds, userId, validateUrl],
+    [socialLinks, userId],
   );
 
   if (isLoading) {
@@ -188,46 +185,35 @@ function CreatorSettingsPage(): React.ReactElement {
       )}
 
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
-        {/* Bandcamp Profile URL */}
+        {/* Add Social Link */}
         <div className={styles.fieldGroup}>
-          <label htmlFor="bandcamp-url" className={styles.label}>
-            Bandcamp Profile URL
+          <label htmlFor="link-platform" className={styles.label}>
+            Social Links
           </label>
-          <input
-            id="bandcamp-url"
-            type="url"
-            value={bandcampUrl}
-            onChange={(e) => setBandcampUrl(e.target.value)}
-            onBlur={() => { validateUrl(); }}
-            placeholder="https://yourband.bandcamp.com"
-            className={
-              urlError
-                ? `${styles.input} ${styles.inputError}`
-                : styles.input
-            }
-            disabled={isSubmitting}
-          />
-          {urlError && (
-            <span className={styles.fieldError} role="alert">
-              {urlError}
-            </span>
-          )}
-        </div>
-
-        {/* Embedded Players */}
-        <div className={styles.fieldGroup}>
-          <label htmlFor="embed-url" className={styles.label}>
-            Embedded Players
-          </label>
-          <div className={styles.addEmbedRow}>
+          <div className={styles.addLinkRow}>
+            <select
+              id="link-platform"
+              value={newPlatform}
+              onChange={(e) =>
+                setNewPlatform(e.target.value as SocialPlatform)
+              }
+              className={styles.select}
+              disabled={isSubmitting}
+            >
+              {SOCIAL_PLATFORMS.map((p) => (
+                <option key={p} value={p}>
+                  {PLATFORM_CONFIG[p].displayName}
+                </option>
+              ))}
+            </select>
             <input
-              id="embed-url"
+              id="link-url"
               type="url"
-              value={newEmbedUrl}
-              onChange={(e) => setNewEmbedUrl(e.target.value)}
-              placeholder="https://bandcamp.com/EmbeddedPlayer/..."
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              placeholder="https://..."
               className={
-                embedError
+                linkError
                   ? `${styles.input} ${styles.inputError}`
                   : styles.input
               }
@@ -235,34 +221,37 @@ function CreatorSettingsPage(): React.ReactElement {
             />
             <button
               type="button"
-              onClick={handleAddEmbed}
+              onClick={handleAddLink}
               className={styles.addButton}
-              disabled={isSubmitting || embeds.length >= MAX_EMBEDS}
+              disabled={isSubmitting || socialLinks.length >= MAX_SOCIAL_LINKS}
             >
               Add
             </button>
           </div>
-          {embedError && (
+          {linkError && (
             <span className={styles.fieldError} role="alert">
-              {embedError}
+              {linkError}
             </span>
           )}
         </div>
 
-        {/* Embed List */}
-        {embeds.length > 0 && (
-          <ul className={styles.embedList}>
-            {embeds.map((url) => (
-              <li key={url} className={styles.embedItem}>
-                <span className={styles.embedUrl} title={url}>
-                  {url}
+        {/* Link List */}
+        {socialLinks.length > 0 && (
+          <ul className={styles.linkList}>
+            {socialLinks.map((link) => (
+              <li key={link.platform} className={styles.linkItem}>
+                <span className={styles.linkPlatform}>
+                  {PLATFORM_CONFIG[link.platform].displayName}
+                </span>
+                <span className={styles.linkUrl} title={link.url}>
+                  {link.url}
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleRemoveEmbed(url)}
+                  onClick={() => handleRemoveLink(link.platform)}
                   className={styles.removeButton}
                   disabled={isSubmitting}
-                  aria-label={`Remove ${url}`}
+                  aria-label={`Remove ${PLATFORM_CONFIG[link.platform].displayName}`}
                 >
                   Remove
                 </button>

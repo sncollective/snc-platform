@@ -173,8 +173,11 @@ try {
       userId: USER_IDS.maya,
       displayName: "Maya Chen",
       bio: "Electronic and ambient music producer exploring the intersection of sound design and generative art. Co-op member since day one.",
-      bandcampUrl: "https://mayachen.bandcamp.com",
-      bandcampEmbeds: [],
+      socialLinks: [
+        { platform: "bandcamp", url: "https://mayachen.bandcamp.com" },
+        { platform: "spotify", url: "https://open.spotify.com/artist/mayachen" },
+        { platform: "instagram", url: "https://www.instagram.com/mayachen" },
+      ],
       avatarKey: `creators/${USER_IDS.maya}/avatar/photo.jpg`,
       bannerKey: `creators/${USER_IDS.maya}/banner/photo.jpg`,
     },
@@ -182,8 +185,10 @@ try {
       userId: USER_IDS.jordan,
       displayName: "Jordan Ellis",
       bio: "Indie rock songwriter and multi-instrumentalist. Writing honest songs about ordinary life.",
-      bandcampUrl: "https://jordanellis.bandcamp.com",
-      bandcampEmbeds: [],
+      socialLinks: [
+        { platform: "youtube", url: "https://www.youtube.com/@jordanellis" },
+        { platform: "twitter", url: "https://x.com/jordanellis" },
+      ],
       avatarKey: `creators/${USER_IDS.jordan}/avatar/photo.jpg`,
       bannerKey: `creators/${USER_IDS.jordan}/banner/photo.jpg`,
     },
@@ -191,7 +196,10 @@ try {
       userId: USER_IDS.sam,
       displayName: "Sam Okafor",
       bio: "Hip-hop artist and spoken word poet. Using rhythm and language to tell stories that matter.",
-      bandcampEmbeds: [],
+      socialLinks: [
+        { platform: "soundcloud", url: "https://soundcloud.com/samokafor" },
+        { platform: "website", url: "https://samokafor.com" },
+      ],
       avatarKey: `creators/${USER_IDS.sam}/avatar/photo.jpg`,
       bannerKey: `creators/${USER_IDS.sam}/banner/photo.jpg`,
     },
@@ -199,9 +207,10 @@ try {
       userId: USER_IDS.animalfuture,
       displayName: "Animal Future",
       bio: "Punk rock and raw energy. Making loud, honest music about the world we're stuck in.",
-      bandcampUrl: "https://animalfuture.bandcamp.com",
-      bandcampEmbeds: [
-        "https://bandcamp.com/EmbeddedPlayer/track=3628569666/size=small/bgcol=ffffff/linkcol=0687f5/transparent=true/",
+      socialLinks: [
+        { platform: "bandcamp", url: "https://animalfuture.bandcamp.com" },
+        { platform: "spotify", url: "https://open.spotify.com/artist/3Z65vDspGDjgs9MZzSrEOI?si=jkaH3Qd2T7udoDPwfUvzVw" },
+        { platform: "instagram", url: "https://www.instagram.com/animalfuturemusic" },
       ],
       avatarKey: `creators/${USER_IDS.animalfuture}/avatar/photo.jpg`,
       bannerKey: `creators/${USER_IDS.animalfuture}/banner/photo.jpg`,
@@ -214,7 +223,7 @@ try {
   for (const row of creatorRows) {
     await db
       .update(creatorProfiles)
-      .set({ avatarKey: row.avatarKey, bannerKey: row.bannerKey })
+      .set({ avatarKey: row.avatarKey, bannerKey: row.bannerKey, socialLinks: row.socialLinks ?? [] })
       .where(eq(creatorProfiles.userId, row.userId));
   }
 
