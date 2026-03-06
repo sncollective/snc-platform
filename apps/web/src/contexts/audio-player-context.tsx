@@ -152,9 +152,16 @@ export function AudioPlayerProvider({
           audio.volume = 1;
         }
 
+        // Resume AudioContext if suspended (some browsers require this even within a user gesture)
+        if (audioCtxRef.current?.state === "suspended") {
+          void audioCtxRef.current.resume();
+        }
+
         dispatch({ type: "SET_TRACK", track });
         audio.src = track.mediaUrl;
-        void audio.play();
+        audio.play().catch(() => {
+          dispatch({ type: "PAUSE" });
+        });
       },
       pause() {
         audioRef.current?.pause();

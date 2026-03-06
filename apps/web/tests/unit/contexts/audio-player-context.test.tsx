@@ -214,6 +214,16 @@ describe("AudioPlayerProvider + useAudioPlayer", () => {
     expect(result.current.state.duration).toBe(240);
   });
 
+  it("reverts isPlaying when play() rejects", async () => {
+    HTMLMediaElement.prototype.play = vi.fn().mockRejectedValue(new Error("NotAllowedError"));
+    const { result } = renderHook(() => useAudioPlayer(), { wrapper });
+    await act(async () => {
+      result.current.actions.playTrack(TEST_TRACK);
+    });
+    expect(result.current.state.track).toEqual(TEST_TRACK);
+    expect(result.current.state.isPlaying).toBe(false);
+  });
+
   it("sets isPlaying false on ended event", () => {
     const { result } = renderHook(() => useAudioPlayer(), { wrapper });
     act(() => {
