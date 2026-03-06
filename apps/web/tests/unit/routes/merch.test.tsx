@@ -114,6 +114,26 @@ describe("MerchPage", () => {
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
+  it("shows coming soon message when API returns error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: "MERCH_NOT_CONFIGURED", message: "Shopify is not configured" } }),
+            { status: 503 },
+          ),
+        ),
+      ),
+    );
+
+    render(<MerchPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Merch coming soon.")).toBeInTheDocument();
+    });
+  });
+
   it("shows empty state when no products returned", async () => {
     vi.stubGlobal(
       "fetch",
