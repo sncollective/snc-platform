@@ -8,10 +8,8 @@ vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
   return {
     createRootRoute: (options: Record<string, unknown>) => options,
-    HeadContent: () => null,
     Outlet: () =>
       React.createElement("div", { "data-testid": "outlet" }, "Page content"),
-    Scripts: () => null,
   };
 });
 
@@ -21,6 +19,10 @@ vi.mock("../../../src/components/layout/nav-bar.js", () => ({
 
 vi.mock("../../../src/components/layout/footer.js", () => ({
   Footer: () => null,
+}));
+
+vi.mock("../../../src/components/layout/demo-banner.js", () => ({
+  DemoBanner: () => null,
 }));
 
 vi.mock("../../../src/contexts/audio-player-context.js", async () => {
@@ -35,19 +37,21 @@ vi.mock("../../../src/components/media/mini-player.js", () => ({
   MiniPlayer: () => null,
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+}));
+
 vi.mock("../../../src/styles/global.css?url", () => ({
   default: "global.css",
 }));
 
 // ── Component Under Test ──
 
-let RootComponent: () => React.ReactElement;
+let RootLayout: () => React.ReactElement;
 
 beforeAll(async () => {
   const mod = await import("../../../src/routes/__root.js");
-  RootComponent = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
+  RootLayout = mod.RootLayout;
 });
 
 // ── Lifecycle ──
@@ -58,29 +62,29 @@ afterEach(() => {
 
 // ── Tests ──
 
-describe("RootComponent", () => {
+describe("RootLayout", () => {
   describe("skip-to-content link", () => {
     it("renders a skip-to-content link in the DOM", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const skipLink = screen.getByText("Skip to main content");
       expect(skipLink).toBeInTheDocument();
       expect(skipLink.tagName).toBe("A");
     });
 
     it("skip-to-content link has href targeting #main-content", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const skipLink = screen.getByText("Skip to main content");
       expect(skipLink).toHaveAttribute("href", "#main-content");
     });
 
     it("skip-to-content link has the skip-link CSS class", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const skipLink = screen.getByText("Skip to main content");
       expect(skipLink).toHaveClass("skip-link");
     });
 
     it("skip-to-content link is the first focusable element in the document", () => {
-      const { container } = render(<RootComponent />);
+      const { container } = render(<RootLayout />);
       const allFocusable = container.querySelectorAll(
         'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
@@ -91,19 +95,19 @@ describe("RootComponent", () => {
 
   describe("main content landmark", () => {
     it("main element has id='main-content'", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const main = screen.getByRole("main");
       expect(main).toHaveAttribute("id", "main-content");
     });
 
     it("main element retains the main-content CSS class", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const main = screen.getByRole("main");
       expect(main).toHaveClass("main-content");
     });
 
     it("outlet content renders inside main", () => {
-      render(<RootComponent />);
+      render(<RootLayout />);
       const main = screen.getByRole("main");
       expect(main).toHaveTextContent("Page content");
     });

@@ -43,21 +43,27 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <div style={DEMO_MODE ? { "--demo-banner-height": "32px" } as React.CSSProperties : undefined}>
-        <DemoBanner />
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
-        <AudioPlayerProvider>
-          <NavBar />
-          <main id="main-content" className="main-content">
-            <Outlet />
-          </main>
-          <MiniPlayer />
-          <Footer />
-        </AudioPlayerProvider>
-      </div>
+      <RootLayout />
     </RootDocument>
+  );
+}
+
+export function RootLayout() {
+  return (
+    <div style={DEMO_MODE ? { "--demo-banner-height": "32px" } as React.CSSProperties : undefined}>
+      <DemoBanner />
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <AudioPlayerProvider>
+        <NavBar />
+        <main id="main-content" className="main-content">
+          <Outlet />
+        </main>
+        <MiniPlayer />
+        <Footer />
+      </AudioPlayerProvider>
+    </div>
   );
 }
 
