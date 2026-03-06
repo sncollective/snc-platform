@@ -76,6 +76,35 @@
   cursor: pointer;
 }
 
+.fileInputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.fileInputRow .fileInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.clearButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.clearButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
 /* ── Submit Button ── */
 
 .submitButton {

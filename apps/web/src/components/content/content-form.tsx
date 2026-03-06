@@ -49,6 +49,10 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
   const coverArtRef = useRef<HTMLInputElement>(null);
   const thumbnailRef = useRef<HTMLInputElement>(null);
 
+  const [mediaFileName, setMediaFileName] = useState("");
+  const [coverArtFileName, setCoverArtFileName] = useState("");
+  const [thumbnailFileName, setThumbnailFileName] = useState("");
+
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -64,6 +68,9 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
     if (mediaRef.current) mediaRef.current.value = "";
     if (coverArtRef.current) coverArtRef.current.value = "";
     if (thumbnailRef.current) thumbnailRef.current.value = "";
+    setMediaFileName("");
+    setCoverArtFileName("");
+    setThumbnailFileName("");
   }, []);
 
   const handleSubmit = useCallback(
@@ -266,14 +273,29 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           <label htmlFor="content-media" className={styles.label}>
             Media File
           </label>
-          <input
-            id="content-media"
-            type="file"
-            ref={mediaRef}
-            accept={type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
-            className={styles.fileInput}
-            disabled={isSubmitting}
-          />
+          <div className={styles.fileInputRow}>
+            <input
+              id="content-media"
+              type="file"
+              ref={mediaRef}
+              accept={type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
+              className={styles.fileInput}
+              disabled={isSubmitting}
+              onChange={(e) => setMediaFileName(e.target.files?.[0]?.name ?? "")}
+            />
+            {mediaFileName && (
+              <button
+                type="button"
+                className={styles.clearButton}
+                onClick={() => {
+                  if (mediaRef.current) mediaRef.current.value = "";
+                  setMediaFileName("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -283,14 +305,29 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           <label htmlFor="content-cover-art" className={styles.label}>
             Cover Art (optional)
           </label>
-          <input
-            id="content-cover-art"
-            type="file"
-            ref={coverArtRef}
-            accept={IMAGE_ACCEPT}
-            className={styles.fileInput}
-            disabled={isSubmitting}
-          />
+          <div className={styles.fileInputRow}>
+            <input
+              id="content-cover-art"
+              type="file"
+              ref={coverArtRef}
+              accept={IMAGE_ACCEPT}
+              className={styles.fileInput}
+              disabled={isSubmitting}
+              onChange={(e) => setCoverArtFileName(e.target.files?.[0]?.name ?? "")}
+            />
+            {coverArtFileName && (
+              <button
+                type="button"
+                className={styles.clearButton}
+                onClick={() => {
+                  if (coverArtRef.current) coverArtRef.current.value = "";
+                  setCoverArtFileName("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -300,14 +337,29 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           <label htmlFor="content-thumbnail" className={styles.label}>
             Thumbnail (optional)
           </label>
-          <input
-            id="content-thumbnail"
-            type="file"
-            ref={thumbnailRef}
-            accept={IMAGE_ACCEPT}
-            className={styles.fileInput}
-            disabled={isSubmitting}
-          />
+          <div className={styles.fileInputRow}>
+            <input
+              id="content-thumbnail"
+              type="file"
+              ref={thumbnailRef}
+              accept={IMAGE_ACCEPT}
+              className={styles.fileInput}
+              disabled={isSubmitting}
+              onChange={(e) => setThumbnailFileName(e.target.files?.[0]?.name ?? "")}
+            />
+            {thumbnailFileName && (
+              <button
+                type="button"
+                className={styles.clearButton}
+                onClick={() => {
+                  if (thumbnailRef.current) thumbnailRef.current.value = "";
+                  setThumbnailFileName("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
 

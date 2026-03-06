@@ -31,6 +31,9 @@ routeTree.gen.ts
 .DS_Store
 Thumbs.db
 
+# Uploads (local dev storage)
+uploads/
+
 # Test & coverage
 coverage/
 

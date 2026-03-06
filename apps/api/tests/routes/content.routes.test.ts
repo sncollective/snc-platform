@@ -12,6 +12,7 @@ import type { User, Session } from "@snc/shared";
 let mockUser: User | null;
 let mockSession: Session | null;
 let mockRoles: string[];
+let mockGateRoles: string[];
 
 // Drizzle db mock — chainable method stubs
 const mockSelectWhere = vi.fn();
@@ -22,7 +23,15 @@ const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 // mockSubLimit is also reachable via mockFeedWhere().limit for the subscription
 // access query which uses: select → from → innerJoin → where → limit (no orderBy)
 const mockSubLimit = vi.fn();
-const mockFeedWhere = vi.fn(() => ({ orderBy: mockOrderBy, limit: mockSubLimit }));
+// buildContentAccessContext awaits the where() result directly (no .limit/.orderBy),
+// so mockFeedWhere must return a thenable that also has chainable properties
+const mockBatchAccessRows: unknown[] = [];
+const mockFeedWhere = vi.fn(() => {
+  const promise = Promise.resolve(mockBatchAccessRows);
+  (promise as any).orderBy = mockOrderBy;
+  (promise as any).limit = mockSubLimit;
+  return promise;
+});
 const mockInnerJoin = vi.fn(() => ({ where: mockFeedWhere }));
 
 const mockSelectFrom = vi.fn(() => ({
@@ -114,6 +123,10 @@ const setupContentApp = async (): Promise<Hono> => {
     auth: { api: { getSession: mockGetSession } },
   }));
 
+  vi.doMock("../../src/auth/user-roles.js", () => ({
+    getUserRoles: vi.fn().mockImplementation(() => Promise.resolve(mockGateRoles)),
+  }));
+
   vi.doMock("../../src/storage/index.js", () => ({
     storage: mockStorage,
     createStorageProvider: vi.fn(),
@@ -168,6 +181,9 @@ describe("content routes", () => {
     mockUser = makeMockUser();
     mockSession = makeMockSession();
     mockRoles = ["subscriber", "creator"];
+    // Content gate role check defaults to subscriber-only so subscription
+    // tests exercise the subscription path rather than the creator bypass
+    mockGateRoles = ["subscriber"];
 
     // Default db mock responses
     mockSelectWhere.mockResolvedValue([]);
@@ -382,6 +398,113 @@ describe("content routes", () => {
       const res = await app.request("/api/content?type=podcast");
 
       expect(res.status).toBe(400);
+    });
+
+    it("nulls mediaUrl and body for subscriber content when unauthenticated", async () => {
+      mockLimit.mockResolvedValue([
+        makeFeedRow({
+          visibility: "subscribers",
+          mediaKey: "content/c1/media/video.mp4",
+          body: "Secret content",
+          creatorId: "creator_other",
+        }),
+      ]);
+      // Default: mockGetSession returns null (unauthenticated)
+
+      const res = await app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items[0].mediaUrl).toBeNull();
+      expect(body.items[0].body).toBeNull();
+      expect(body.items[0].title).toBe("Test Post");
+    });
+
+    it("preserves mediaUrl and body for public content when unauthenticated", async () => {
+      mockLimit.mockResolvedValue([
+        makeFeedRow({
+          visibility: "public",
+          mediaKey: "content/c1/media/video.mp4",
+          body: "Public content",
+        }),
+      ]);
+
+      const res = await app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items[0].mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.items[0].body).toBe("Public content");
+    });
+
+    it("preserves mediaUrl and body for subscriber content when user has creator role", async () => {
+      mockGetSession.mockResolvedValue({
+        user: makeMockUser(),
+        session: makeMockSession(),
+      });
+      // getUserRoles inside buildContentAccessContext returns creator role
+      mockGateRoles = ["creator"];
+      mockLimit.mockResolvedValue([
+        makeFeedRow({
+          visibility: "subscribers",
+          mediaKey: "content/c1/media/video.mp4",
+          body: "Subscriber content",
+          creatorId: "creator_other",
+        }),
+      ]);
+
+      const res = await app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items[0].mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.items[0].body).toBe("Subscriber content");
+    });
+
+    it("gates mixed feed correctly — public preserved, subscriber gated", async () => {
+      mockLimit.mockResolvedValue([
+        makeFeedRow({
+          id: "public-1",
+          visibility: "public",
+          mediaKey: "content/public-1/media/video.mp4",
+          body: "Public body",
+        }),
+        makeFeedRow({
+          id: "sub-1",
+          visibility: "subscribers",
+          mediaKey: "content/sub-1/media/audio.mp3",
+          body: "Secret body",
+          creatorId: "creator_other",
+        }),
+      ]);
+
+      const res = await app.request("/api/content?limit=12");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items[0].mediaUrl).toBe("/api/content/public-1/media");
+      expect(body.items[0].body).toBe("Public body");
+      expect(body.items[1].mediaUrl).toBeNull();
+      expect(body.items[1].body).toBeNull();
+    });
+
+    it("treats session failure as unauthenticated and gates subscriber content", async () => {
+      mockGetSession.mockRejectedValue(new Error("Session error"));
+      mockLimit.mockResolvedValue([
+        makeFeedRow({
+          visibility: "subscribers",
+          mediaKey: "content/c1/media/video.mp4",
+          body: "Secret",
+          creatorId: "creator_other",
+        }),
+      ]);
+
+      const res = await app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items[0].mediaUrl).toBeNull();
+      expect(body.items[0].body).toBeNull();
     });
   });
 

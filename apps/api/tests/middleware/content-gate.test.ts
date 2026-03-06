@@ -15,6 +15,8 @@ const mockDb = {
   select: mockSelect,
 };
 
+const mockGetUserRoles = vi.fn();
+
 // ── Test App Factory ──
 
 const setupContentGate = async () => {
@@ -25,6 +27,10 @@ const setupContentGate = async () => {
   vi.doMock("../../src/db/connection.js", () => ({
     db: mockDb,
     sql: vi.fn(),
+  }));
+
+  vi.doMock("../../src/auth/user-roles.js", () => ({
+    getUserRoles: mockGetUserRoles,
   }));
 
   vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
@@ -56,10 +62,11 @@ describe("checkContentAccess", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // Default: no matching subscriptions found
+    // Default: no matching subscriptions found, no roles
     mockLimit.mockResolvedValue([]);
-    const module = await setupContentGate();
-    checkContentAccess = module.checkContentAccess;
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    const mod = await setupContentGate();
+    checkContentAccess = mod.checkContentAccess;
   });
 
   afterEach(() => {
@@ -95,6 +102,39 @@ describe("checkContentAccess", () => {
 
       expect(result).toEqual({ allowed: true });
       expect(mockSelect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("creator role bypass", () => {
+    it("returns allowed when user has creator role", async () => {
+      mockGetUserRoles.mockResolvedValue(["creator"]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
+
+      expect(result).toEqual({ allowed: true });
+      expect(mockSelect).not.toHaveBeenCalled();
+    });
+
+    it("skips subscription check when user has creator role", async () => {
+      mockGetUserRoles.mockResolvedValue(["subscriber", "creator"]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
+
+      expect(result).toEqual({ allowed: true });
+      expect(mockSelect).not.toHaveBeenCalled();
+    });
+
+    it("falls through to subscription check when user lacks creator role", async () => {
+      mockGetUserRoles.mockResolvedValue(["subscriber"]);
+      mockLimit.mockResolvedValue([]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
+
+      expect(result).toEqual({
+        allowed: false,
+        reason: "SUBSCRIPTION_REQUIRED",
+        creatorId: "creator_456",
+      });
     });
   });
 
@@ -183,5 +223,150 @@ describe("checkContentAccess", () => {
         creatorId: "creator_456",
       });
     });
+  });
+});
+
+describe("buildContentAccessContext", () => {
+  let buildContentAccessContext: (
+    userId: string | null,
+  ) => Promise<{
+    userId: string | null;
+    roles: string[];
+    subscribedCreatorIds: Set<string>;
+    hasPlatformSubscription: boolean;
+  }>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockLimit.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    const mod = await setupContentGate();
+    buildContentAccessContext = mod.buildContentAccessContext;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("returns empty context for null userId without any queries", async () => {
+    const ctx = await buildContentAccessContext(null);
+
+    expect(ctx.userId).toBeNull();
+    expect(ctx.roles).toEqual([]);
+    expect(ctx.hasPlatformSubscription).toBe(false);
+    expect(ctx.subscribedCreatorIds.size).toBe(0);
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("skips subscription query for creator role", async () => {
+    mockGetUserRoles.mockResolvedValue(["creator"]);
+
+    const ctx = await buildContentAccessContext("user_123");
+
+    expect(ctx.userId).toBe("user_123");
+    expect(ctx.roles).toContain("creator");
+    expect(ctx.hasPlatformSubscription).toBe(true);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("fetches subscriptions for subscriber role", async () => {
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    // The batch query has no .limit() — it uses the innerJoin → where chain directly
+    mockSelectWhere.mockResolvedValue([
+      { planType: "platform", planCreatorId: null },
+      { planType: "creator", planCreatorId: "creator_A" },
+    ]);
+
+    const ctx = await buildContentAccessContext("user_123");
+
+    expect(ctx.userId).toBe("user_123");
+    expect(ctx.hasPlatformSubscription).toBe(true);
+    expect(ctx.subscribedCreatorIds.has("creator_A")).toBe(true);
+    expect(mockSelect).toHaveBeenCalled();
+  });
+
+  it("returns no platform subscription when only creator subscriptions exist", async () => {
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockSelectWhere.mockResolvedValue([
+      { planType: "creator", planCreatorId: "creator_B" },
+    ]);
+
+    const ctx = await buildContentAccessContext("user_123");
+
+    expect(ctx.hasPlatformSubscription).toBe(false);
+    expect(ctx.subscribedCreatorIds.has("creator_B")).toBe(true);
+  });
+});
+
+describe("hasContentAccess", () => {
+  let hasContentAccess: (
+    ctx: {
+      userId: string | null;
+      roles: string[];
+      subscribedCreatorIds: Set<string>;
+      hasPlatformSubscription: boolean;
+    },
+    contentCreatorId: string,
+    contentVisibility: string,
+  ) => boolean;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockLimit.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    const mod = await setupContentGate();
+    hasContentAccess = mod.hasContentAccess;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  const baseCtx = {
+    userId: "user_123",
+    roles: ["subscriber"],
+    subscribedCreatorIds: new Set<string>(),
+    hasPlatformSubscription: false,
+  };
+
+  it("allows public content for any context", () => {
+    const ctx = { ...baseCtx, userId: null, roles: [] };
+    expect(hasContentAccess(ctx, "creator_456", "public")).toBe(true);
+  });
+
+  it("denies unauthenticated user for subscriber content", () => {
+    const ctx = { ...baseCtx, userId: null, roles: [] };
+    expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(false);
+  });
+
+  it("allows content creator (owner bypass)", () => {
+    expect(hasContentAccess(baseCtx, "user_123", "subscribers")).toBe(true);
+  });
+
+  it("allows user with creator role", () => {
+    const ctx = { ...baseCtx, roles: ["creator"] };
+    expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(true);
+  });
+
+  it("allows user with platform subscription", () => {
+    const ctx = { ...baseCtx, hasPlatformSubscription: true };
+    expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(true);
+  });
+
+  it("allows user with creator-specific subscription", () => {
+    const ctx = { ...baseCtx, subscribedCreatorIds: new Set(["creator_456"]) };
+    expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(true);
+  });
+
+  it("denies user with subscription for different creator", () => {
+    const ctx = { ...baseCtx, subscribedCreatorIds: new Set(["creator_other"]) };
+    expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(false);
+  });
+
+  it("denies subscriber with no subscriptions", () => {
+    expect(hasContentAccess(baseCtx, "creator_456", "subscribers")).toBe(false);
   });
 });

@@ -55,7 +55,7 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
         <span className={`${styles.badge} ${badgeClass}`}>
           {TYPE_BADGE_LABELS[item.type]}
         </span>
-        {item.visibility === "subscribers" && (
+        {item.visibility === "subscribers" && !item.mediaUrl && !item.body && (
           <span className={styles.lockOverlay} aria-label="Subscribers only">
             <svg
               xmlns="http://www.w3.org/2000/svg"

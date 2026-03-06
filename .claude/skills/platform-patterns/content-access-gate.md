@@ -4,7 +4,7 @@
 
 ## Rationale
 
-Content access rules are complex (public / unauthenticated / owner bypass / platform subscription / creator subscription) and must be applied consistently across multiple route handlers. Extracting the logic into a pure async function with an explicit discriminated union return type keeps each handler focused on its HTTP concerns while reusing the same rules everywhere. The discriminated type forces callers to handle both branches of `allowed`, and the `reason` field lets callers differentiate 401 (authentication required) from 403 (subscription required) without rechecking the same logic.
+Content access rules are complex (public / unauthenticated / owner bypass / creator role bypass / platform subscription / creator subscription) and must be applied consistently across multiple route handlers. Extracting the logic into a pure async function with an explicit discriminated union return type keeps each handler focused on its HTTP concerns while reusing the same rules everywhere. The discriminated type forces callers to handle both branches of `allowed`, and the `reason` field lets callers differentiate 401 (authentication required) from 403 (subscription required) without rechecking the same logic.
 
 ## Examples
 
@@ -16,8 +16,8 @@ export type ContentGateResult =
   | { allowed: false; reason: string; creatorId: string };
 ```
 
-### Example 2: 5-rule priority logic inside checkContentAccess
-**File**: `apps/api/src/middleware/content-gate.ts:33`
+### Example 2: 6-rule priority logic inside checkContentAccess
+**File**: `apps/api/src/middleware/content-gate.ts:34`
 ```typescript
 export const checkContentAccess = async (
   userId: string | null,
@@ -35,7 +35,11 @@ export const checkContentAccess = async (
   // Rule 3: Owner bypass — creator can always access their own content
   if (userId === contentCreatorId) return { allowed: true };
 
-  // Rule 4: Active subscription check (active OR canceled-but-not-expired,
+  // Rule 4: Creator role bypass — contributor members get free access
+  const roles = await getUserRoles(userId);
+  if (roles.includes("creator")) return { allowed: true };
+
+  // Rule 5: Active subscription check (active OR canceled-but-not-expired,
   //         platform-wide OR creator-specific matching this creator)
   const rows = await db
     .select({ id: userSubscriptions.id })
@@ -58,7 +62,7 @@ export const checkContentAccess = async (
 
   if (rows.length > 0) return { allowed: true };
 
-  // Rule 5: No matching subscription
+  // Rule 6: No matching subscription
   return { allowed: false, reason: "SUBSCRIPTION_REQUIRED", creatorId: contentCreatorId };
 };
 ```

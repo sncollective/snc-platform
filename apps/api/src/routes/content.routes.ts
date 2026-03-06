@@ -26,7 +26,7 @@ import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { users } from "../db/schema/user.schema.js";
 import { auth } from "../auth/auth.js";
-import { checkContentAccess } from "../middleware/content-gate.js";
+import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../middleware/content-gate.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";
@@ -177,6 +177,19 @@ contentRoutes.get(
       creatorId: creatorIdFilter,
     } = c.req.valid("query" as never) as FeedQuery;
 
+    // Resolve session (best-effort — feed is public, session enables gating)
+    let userId: string | null = null;
+    try {
+      const session = await auth.api.getSession({
+        headers: c.req.raw.headers,
+      });
+      userId = session?.user?.id ?? null;
+    } catch {
+      // No session — treat as unauthenticated
+    }
+
+    const accessCtx = await buildContentAccessContext(userId);
+
     // Build WHERE conditions
     const conditions = [
       isNull(content.deletedAt),
@@ -242,7 +255,14 @@ contentRoutes.get(
       }),
     );
 
-    const items = rawItems.map(resolveFeedItem);
+    const items = rawItems.map((row) => {
+      const item = resolveFeedItem(row);
+      if (!hasContentAccess(accessCtx, row.creatorId, row.visibility)) {
+        item.mediaUrl = null;
+        item.body = null;
+      }
+      return item;
+    });
 
     return c.json({ items, nextCursor });
   },
