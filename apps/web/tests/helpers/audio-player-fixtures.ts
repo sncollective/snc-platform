@@ -11,7 +11,7 @@ export const TEST_TRACK: AudioTrack = {
   id: "track-1",
   title: "Test Song",
   creatorName: "Test Artist",
-  mediaUrl: "http://localhost:3000/api/content/track-1/media",
+  mediaUrl: "/api/content/track-1/media",
   coverArtUrl: "/api/content/track-1/cover-art",
 };
 

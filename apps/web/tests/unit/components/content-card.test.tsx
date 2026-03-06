@@ -124,7 +124,7 @@ describe("ContentCard", () => {
     const img = screen.getByRole("img", { name: "Video Post" });
     expect(img).toHaveAttribute(
       "src",
-      "http://localhost:3000/api/content/1/thumbnail",
+      "/api/content/1/thumbnail",
     );
   });
 
@@ -142,7 +142,7 @@ describe("ContentCard", () => {
     const img = screen.getByRole("img", { name: "Audio Track" });
     expect(img).toHaveAttribute(
       "src",
-      "http://localhost:3000/api/content/1/cover-art",
+      "/api/content/1/cover-art",
     );
   });
 

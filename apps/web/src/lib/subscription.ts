@@ -3,7 +3,6 @@ import type {
   UserSubscriptionWithPlan,
 } from "@snc/shared";
 
-import { API_BASE_URL } from "./config.js";
 import { throwIfNotOk, apiGet, apiMutate } from "./fetch-utils.js";
 
 /**
@@ -62,7 +61,7 @@ export function hasPlatformSubscription(
 export async function cancelSubscription(
   subscriptionId: string,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/subscriptions/cancel`, {
+  const response = await fetch("/api/subscriptions/cancel", {
     method: "POST",
     credentials: "include",
     headers: {

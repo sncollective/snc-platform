@@ -109,6 +109,17 @@ export function UserMenu() {
             </Link>
           )}
 
+          {hasRole(roles, "creator") && (
+            <Link
+              to="/settings/content"
+              className={styles.menuItem}
+              role="menuitem"
+              onClick={handleClose}
+            >
+              My Content
+            </Link>
+          )}
+
           <Link
             to="/settings"
             className={styles.menuItem}

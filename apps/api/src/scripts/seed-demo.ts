@@ -1,5 +1,9 @@
 import node_path from "node:path";
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 // ── Production Guard ──
 
@@ -76,6 +80,86 @@ const copyAsset = async (
   const src = node_path.join(SEED_ASSETS_DIR, assetName);
   await mkdir(node_path.dirname(dest), { recursive: true });
   await copyFile(src, dest);
+};
+
+// ── Audio generation helper ──
+
+const generateWav = (frequency: number, durationSec: number): Buffer => {
+  const sampleRate = 44100;
+  const numSamples = sampleRate * durationSec;
+  const dataSize = numSamples * 2; // 16-bit mono
+  const fileSize = 44 + dataSize;
+
+  const buf = Buffer.alloc(fileSize);
+
+  // RIFF header
+  buf.write("RIFF", 0);
+  buf.writeUInt32LE(fileSize - 8, 4);
+  buf.write("WAVE", 8);
+
+  // fmt chunk
+  buf.write("fmt ", 12);
+  buf.writeUInt32LE(16, 16); // chunk size
+  buf.writeUInt16LE(1, 20); // PCM format
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28); // byte rate
+  buf.writeUInt16LE(2, 32); // block align
+  buf.writeUInt16LE(16, 34); // bits per sample
+
+  // data chunk
+  buf.write("data", 36);
+  buf.writeUInt32LE(dataSize, 40);
+
+  const fadeInSamples = Math.floor(sampleRate * 0.1);
+  const fadeOutSamples = Math.floor(sampleRate * 0.5);
+  const fadeOutStart = numSamples - fadeOutSamples;
+
+  for (let i = 0; i < numSamples; i++) {
+    let amplitude = 0.3;
+    if (i < fadeInSamples) {
+      amplitude *= i / fadeInSamples;
+    } else if (i >= fadeOutStart) {
+      amplitude *= (numSamples - i) / fadeOutSamples;
+    }
+    const sample = Math.sin((2 * Math.PI * frequency * i) / sampleRate) * amplitude;
+    const int16 = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+    buf.writeInt16LE(int16, 44 + i * 2);
+  }
+
+  return buf;
+};
+
+// ── Video generation helpers ──
+
+const isFfmpegAvailable = async (): Promise<boolean> => {
+  try {
+    await execFileAsync("ffmpeg", ["-version"]);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const generateVideo = async (
+  color: string,
+  durationSec: number,
+  label: string,
+  outputPath: string,
+): Promise<void> => {
+  await mkdir(node_path.dirname(outputPath), { recursive: true });
+  await execFileAsync("ffmpeg", [
+    "-y",
+    "-f", "lavfi",
+    "-i", `color=c=${color}:s=640x360:d=${durationSec}`,
+    "-vf", `drawtext=text='${label}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`,
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-crf", "28",
+    "-movflags", "+faststart",
+    "-pix_fmt", "yuv420p",
+    outputPath,
+  ], { timeout: 60_000 });
 };
 
 const databaseUrl = process.env["DATABASE_URL"];
@@ -268,6 +352,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(90),
       coverArtKey: "content/seed_content_01/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_01/media/midnight-frequencies.wav",
     },
     {
       id: "seed_content_02",
@@ -278,6 +363,7 @@ try {
       visibility: "subscribers",
       publishedAt: daysAgo(60),
       coverArtKey: "content/seed_content_02/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_02/media/synthesis-lab-ep3.wav",
     },
     {
       id: "seed_content_03",
@@ -288,6 +374,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(45),
       thumbnailKey: "content/seed_content_03/thumbnail/thumb.jpg",
+      mediaKey: "content/seed_content_03/media/studio-tour.mp4",
     },
     {
       id: "seed_content_04",
@@ -310,6 +397,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(85),
       coverArtKey: "content/seed_content_05/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_05/media/backyard-demo.wav",
     },
     {
       id: "seed_content_06",
@@ -320,6 +408,7 @@ try {
       visibility: "subscribers",
       publishedAt: daysAgo(40),
       coverArtKey: "content/seed_content_06/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_06/media/kitchen-floor.wav",
     },
     {
       id: "seed_content_07",
@@ -330,6 +419,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(15),
       thumbnailKey: "content/seed_content_07/thumbnail/thumb.jpg",
+      mediaKey: "content/seed_content_07/media/live-basement.mp4",
     },
     {
       id: "seed_content_08",
@@ -352,6 +442,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(70),
       coverArtKey: "content/seed_content_09/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_09/media/concrete-hymns.wav",
     },
     {
       id: "seed_content_10",
@@ -362,6 +453,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(30),
       thumbnailKey: "content/seed_content_10/thumbnail/thumb.jpg",
+      mediaKey: "content/seed_content_10/media/open-mic.mp4",
     },
     {
       id: "seed_content_11",
@@ -383,6 +475,7 @@ try {
       visibility: "public",
       publishedAt: daysAgo(3),
       coverArtKey: "content/seed_content_12/cover-art/cover.jpg",
+      mediaKey: "content/seed_content_12/media/brick-by-brick.wav",
     },
   ];
 
@@ -403,6 +496,7 @@ try {
           visibility: c.visibility,
           thumbnailKey: c.thumbnailKey ?? null,
           coverArtKey: c.coverArtKey ?? null,
+          mediaKey: c.mediaKey ?? null,
           updatedAt: now,
         },
       });
@@ -628,6 +722,78 @@ try {
   console.log(
     `  Images: ${downloaded} downloaded, ${skipped} already existed`,
   );
+
+  // ── Generate audio files ──
+
+  console.log("\n  Generating audio files (skipping existing)...");
+
+  const AUDIO_SPECS: Array<{
+    key: string;
+    frequency: number;
+    duration: number;
+  }> = [
+    { key: "content/seed_content_01/media/midnight-frequencies.wav", frequency: 220, duration: 10 },
+    { key: "content/seed_content_02/media/synthesis-lab-ep3.wav", frequency: 330, duration: 15 },
+    { key: "content/seed_content_05/media/backyard-demo.wav", frequency: 196, duration: 8 },
+    { key: "content/seed_content_06/media/kitchen-floor.wav", frequency: 261, duration: 12 },
+    { key: "content/seed_content_09/media/concrete-hymns.wav", frequency: 174, duration: 10 },
+    { key: "content/seed_content_12/media/brick-by-brick.wav", frequency: 293, duration: 15 },
+  ];
+
+  let audioGenerated = 0;
+  let audioSkipped = 0;
+
+  for (const spec of AUDIO_SPECS) {
+    const filePath = node_path.join(UPLOADS_DIR, spec.key);
+    if (await fileExists(filePath)) {
+      audioSkipped++;
+      continue;
+    }
+    const wavBuffer = generateWav(spec.frequency, spec.duration);
+    await mkdir(node_path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, wavBuffer);
+    audioGenerated++;
+  }
+
+  console.log(
+    `  Audio: ${audioGenerated} generated, ${audioSkipped} already existed`,
+  );
+
+  // ── Generate video files (requires ffmpeg) ──
+
+  const VIDEO_SPECS: Array<{
+    key: string;
+    color: string;
+    duration: number;
+    label: string;
+  }> = [
+    { key: "content/seed_content_03/media/studio-tour.mp4", color: "0x003366", duration: 10, label: "Studio Tour 2026" },
+    { key: "content/seed_content_07/media/live-basement.mp4", color: "0x8B0000", duration: 8, label: "Live at The Basement" },
+    { key: "content/seed_content_10/media/open-mic.mp4", color: "0x006400", duration: 12, label: "Open Mic Night" },
+  ];
+
+  if (await isFfmpegAvailable()) {
+    console.log("\n  Generating video files (skipping existing)...");
+
+    let videoGenerated = 0;
+    let videoSkipped = 0;
+
+    for (const spec of VIDEO_SPECS) {
+      const filePath = node_path.join(UPLOADS_DIR, spec.key);
+      if (await fileExists(filePath)) {
+        videoSkipped++;
+        continue;
+      }
+      await generateVideo(spec.color, spec.duration, spec.label, filePath);
+      videoGenerated++;
+    }
+
+    console.log(
+      `  Video: ${videoGenerated} generated, ${videoSkipped} already existed`,
+    );
+  } else {
+    console.log("\n  Skipping video generation (ffmpeg not found)");
+  }
 
   // ── Emissions ──
 

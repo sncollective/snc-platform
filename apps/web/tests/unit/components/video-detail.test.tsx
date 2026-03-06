@@ -28,10 +28,6 @@ vi.mock("../../../src/lib/format.js", () => ({
   formatDate: (s: string) => `FORMATTED:${s}`,
 }));
 
-vi.mock("../../../src/lib/config.js", () => ({
-  API_BASE_URL: "http://test-api",
-}));
-
 // ── Component Under Test ──
 
 import { VideoDetail } from "../../../src/components/content/video-detail.js";
@@ -55,8 +51,8 @@ describe("VideoDetail", () => {
 
     expect(mockVideoPlayer).toHaveBeenCalledWith(
       expect.objectContaining({
-        src: "http://test-api/api/content/c1/media",
-        poster: "http://test-api/api/content/c1/thumbnail",
+        src: "/api/content/c1/media",
+        poster: "/api/content/c1/thumbnail",
       }),
     );
   });
@@ -161,7 +157,7 @@ describe("VideoDetail", () => {
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute(
       "src",
-      "http://test-api/api/content/c1/thumbnail",
+      "/api/content/c1/thumbnail",
     );
   });
 

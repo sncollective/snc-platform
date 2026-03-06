@@ -5,7 +5,6 @@ import type { BookingWithService } from "@snc/shared";
 import { fetchAuthState } from "../../lib/auth.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { BookingList } from "../../components/booking/booking-list.js";
-import { API_BASE_URL } from "../../lib/config.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 
@@ -20,12 +19,12 @@ export const Route = createFileRoute("/settings/bookings")({
 });
 
 function buildMyBookingsUrl(cursor: string | null): string {
-  const url = new URL(`${API_BASE_URL}/api/bookings/mine`);
-  url.searchParams.set("limit", "20");
+  const params = new URLSearchParams();
+  params.set("limit", "20");
   if (cursor) {
-    url.searchParams.set("cursor", cursor);
+    params.set("cursor", cursor);
   }
-  return url.toString();
+  return `/api/bookings/mine?${params.toString()}`;
 }
 
 function BookingManagementPage(): React.ReactElement {

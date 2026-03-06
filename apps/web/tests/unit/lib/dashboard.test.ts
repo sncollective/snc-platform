@@ -41,7 +41,7 @@ describe("fetchRevenue", () => {
     const result = await fetchRevenue();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/dashboard/revenue",
+      "/api/dashboard/revenue",
       { credentials: "include" },
     );
     expect(result).toEqual(revenue);
@@ -71,7 +71,7 @@ describe("fetchSubscribers", () => {
     const result = await fetchSubscribers();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/dashboard/subscribers",
+      "/api/dashboard/subscribers",
       { credentials: "include" },
     );
     expect(result).toEqual(subscribers);
@@ -101,7 +101,7 @@ describe("fetchBookingSummary", () => {
     const result = await fetchBookingSummary();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/dashboard/bookings",
+      "/api/dashboard/bookings",
       { credentials: "include" },
     );
     expect(result).toEqual(summary);
@@ -134,7 +134,7 @@ describe("fetchPendingBookings", () => {
     const result = await fetchPendingBookings();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings/pending",
+      "/api/bookings/pending",
       { credentials: "include" },
     );
     expect(result.items).toEqual([item]);
@@ -198,7 +198,7 @@ describe("reviewBooking", () => {
     const result = await reviewBooking("bk_001", { status: "approved" });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings/bk_001/review",
+      "/api/bookings/bk_001/review",
       {
         method: "PATCH",
         credentials: "include",
@@ -225,7 +225,7 @@ describe("reviewBooking", () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings/bk_002/review",
+      "/api/bookings/bk_002/review",
       {
         method: "PATCH",
         credentials: "include",

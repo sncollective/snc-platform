@@ -38,7 +38,7 @@ describe("fetchServices", () => {
     const result = await fetchServices();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/services",
+      "/api/services",
       { credentials: "include" },
     );
     expect(result).toEqual([service]);
@@ -66,7 +66,7 @@ describe("fetchServiceById", () => {
     const result = await fetchServiceById("svc_123");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/services/svc_123",
+      "/api/services/svc_123",
       { credentials: "include" },
     );
     expect(result).toEqual(service);
@@ -81,7 +81,7 @@ describe("fetchServiceById", () => {
     await fetchServiceById("svc/special id");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/services/svc%2Fspecial%20id",
+      "/api/services/svc%2Fspecial%20id",
       { credentials: "include" },
     );
   });
@@ -114,7 +114,7 @@ describe("createBooking", () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings",
+      "/api/bookings",
       {
         method: "POST",
         credentials: "include",
@@ -179,7 +179,7 @@ describe("fetchMyBookings", () => {
     const result = await fetchMyBookings();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings/mine",
+      "/api/bookings/mine",
       { credentials: "include" },
     );
     expect(result.items).toEqual([booking]);
@@ -251,7 +251,7 @@ describe("fetchBookingById", () => {
     const result = await fetchBookingById("bk_abc");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/bookings/bk_abc",
+      "/api/bookings/bk_abc",
       { credentials: "include" },
     );
     expect(result).toEqual(booking);

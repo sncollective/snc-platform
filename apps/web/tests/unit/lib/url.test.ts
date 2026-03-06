@@ -1,12 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-
-// ── Hoisted Mocks ──
-
-vi.mock("../../../src/lib/config.js", () => ({
-  API_BASE_URL: "http://localhost:3000",
-}));
-
-// ── Import under test (after mocks) ──
+import { describe, it, expect } from "vitest";
 
 import { buildMediaUrl } from "../../../src/lib/url.js";
 
@@ -19,15 +11,15 @@ describe("buildMediaUrl", () => {
     expect(buildMediaUrl("")).toBeNull();
   });
 
-  it("prepends API_BASE_URL to a valid relative path", () => {
+  it("returns the relative path as-is", () => {
     expect(buildMediaUrl("/api/content/123/media")).toBe(
-      "http://localhost:3000/api/content/123/media",
+      "/api/content/123/media",
     );
   });
 
-  it("prepends API_BASE_URL to a thumbnail path", () => {
+  it("returns a thumbnail path as-is", () => {
     expect(buildMediaUrl("/api/content/123/thumbnail")).toBe(
-      "http://localhost:3000/api/content/123/thumbnail",
+      "/api/content/123/thumbnail",
     );
   });
 });

@@ -6,7 +6,6 @@ import type { ContentType, FeedItem } from "@snc/shared";
 import { ContentCard } from "../components/content/content-card.js";
 import { FilterBar } from "../components/content/filter-bar.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
-import { API_BASE_URL } from "../lib/config.js";
 import styles from "./feed.module.css";
 import listingStyles from "../styles/listing-page.module.css";
 
@@ -76,13 +75,13 @@ function buildFeedUrl({
   cursor: string | null;
   limit: number;
 }): string {
-  const url = new URL(`${API_BASE_URL}/api/content`);
-  url.searchParams.set("limit", String(limit));
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
   if (filter) {
-    url.searchParams.set("type", filter);
+    params.set("type", filter);
   }
   if (cursor) {
-    url.searchParams.set("cursor", cursor);
+    params.set("cursor", cursor);
   }
-  return url.toString();
+  return `/api/content?${params.toString()}`;
 }

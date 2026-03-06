@@ -14,7 +14,7 @@ Zod schemas serve double duty: runtime validation of env vars and TypeScript typ
 export const ENV_SCHEMA = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().default(3000),
-  CORS_ORIGIN: z.string().default("http://localhost:3001"),
+  CORS_ORIGIN: z.string().default("http://localhost:3080"),
 });
 
 export type Config = z.infer<typeof ENV_SCHEMA>;
@@ -49,7 +49,7 @@ it("returns a valid Config when all required vars are set", () => {
   expect(result).toStrictEqual({
     DATABASE_URL: TEST_DATABASE_URL,
     PORT: 3000,
-    CORS_ORIGIN: "http://localhost:3001",
+    CORS_ORIGIN: "http://localhost:3080",
   });
 });
 

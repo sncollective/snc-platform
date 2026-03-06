@@ -116,4 +116,16 @@ describe("formatTime", () => {
   it("formats longer durations correctly", () => {
     expect(formatTime(296)).toBe("4:56");
   });
+
+  it("returns '0:00' for Infinity", () => {
+    expect(formatTime(Infinity)).toBe("0:00");
+  });
+
+  it("returns '0:00' for NaN", () => {
+    expect(formatTime(NaN)).toBe("0:00");
+  });
+
+  it("returns '0:00' for negative values", () => {
+    expect(formatTime(-5)).toBe("0:00");
+  });
 });

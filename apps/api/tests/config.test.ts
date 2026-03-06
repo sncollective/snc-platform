@@ -24,9 +24,9 @@ describe("parseConfig", () => {
     expect(result).toStrictEqual({
       DATABASE_URL: TEST_DATABASE_URL,
       PORT: 3000,
-      CORS_ORIGIN: "http://localhost:3001",
+      CORS_ORIGIN: "http://localhost:3080",
       BETTER_AUTH_SECRET: TEST_BETTER_AUTH_SECRET,
-      BETTER_AUTH_URL: "http://localhost:3000",
+      BETTER_AUTH_URL: "http://localhost:3080",
       STORAGE_TYPE: "local",
       STORAGE_LOCAL_DIR: "./uploads",
       STRIPE_SECRET_KEY: TEST_STRIPE_SECRET_KEY,
@@ -65,7 +65,7 @@ describe("parseConfig", () => {
   it("applies default CORS_ORIGIN when omitted", () => {
     const result = parseConfig(BASE_ENV);
 
-    expect(result.CORS_ORIGIN).toBe("http://localhost:3001");
+    expect(result.CORS_ORIGIN).toBe("http://localhost:3080");
   });
 
   it("accepts custom CORS_ORIGIN", () => {
@@ -96,7 +96,7 @@ describe("parseConfig", () => {
   it("applies default BETTER_AUTH_URL when omitted", () => {
     const result = parseConfig(BASE_ENV);
 
-    expect(result.BETTER_AUTH_URL).toBe("http://localhost:3000");
+    expect(result.BETTER_AUTH_URL).toBe("http://localhost:3080");
   });
 
   it("accepts custom BETTER_AUTH_URL", () => {
