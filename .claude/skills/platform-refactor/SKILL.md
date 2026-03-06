@@ -35,7 +35,7 @@ When `$ARGUMENTS` contains a scope:
 
 ### Phase 1: Plan
 
-1. Check if a report already exists at `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+1. Check if a report already exists at `platform/docs/refactor/refactor-{scope}.md`.
    - If it exists, ask the user: **use existing report** or **regenerate**?
    - If regenerating, proceed below. If using existing, skip to Phase 2.
 2. Read `platform/.claude/skills/platform-refactor-plan/SKILL.md`.
@@ -44,14 +44,18 @@ When `$ARGUMENTS` contains a scope:
 
 ### Phase 2: Fix
 
-1. Read the report at `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+1. Read the report at `platform/docs/refactor/refactor-{scope}.md`.
 2. Extract the **Suggested Implementation Order** section to get the ordered list of findings.
 3. Read `platform/.claude/skills/platform-refactor-fix/SKILL.md` (read once, reuse for each finding).
-4. For each finding in order, present it to the user with three options:
-   - **Implement**: Launch an Agent with the fix skill content as prompt, passing `{scope} {finding-id}` as arguments.
-   - **Skip**: Move to the next finding.
-   - **Stop**: Halt the pipeline and tell the user where they left off (which finding, how many remain).
-5. After each implementation, briefly report the result before moving to the next finding.
+4. Auto-continue through findings sequentially — do NOT prompt the user for each finding. For each finding in order:
+   - Launch an Agent with the fix skill content as prompt, passing `{scope} {finding-id}` as arguments.
+   - After the agent completes, briefly report the result (finding ID, pass/fail, files changed).
+   - Continue immediately to the next finding.
+5. Only pause the pipeline when:
+   - A fix agent reports a **test failure** — show the failure and ask the user how to proceed.
+   - A fix agent uses **AskUserQuestion** — it needs a decision (e.g., Option A vs B).
+   - The agent itself hits an **error** — report it and ask whether to skip or stop.
+6. The user can always interrupt naturally (Ctrl+C or deny a tool call).
 
 ### Phase 3: Validate
 
@@ -62,7 +66,7 @@ When `$ARGUMENTS` contains a scope:
 ### Pipeline Summary
 
 After all phases complete, summarize:
-- Findings: total / implemented / skipped
+- Findings: total / implemented / failed
 - Test results from validation
 - Whether the report was archived
 
@@ -70,19 +74,26 @@ After all phases complete, summarize:
 
 When `$ARGUMENTS` is empty:
 
+### Context Window Warning
+
+A full sweep across all scopes will exhaust the orchestrator's context window. Each scope generates a Plan summary, N Fix summaries (one per finding), and a Validate summary — all of which accumulate here. Running more than **2-3 scopes** in a single conversation risks context compression losing details the orchestrator needs for tracking and the final summary.
+
+**Default behavior**: Present scopes, let the user pick **1-3** to run now. Suggest continuing remaining scopes in a new conversation.
+
 ### Step 1: Discover Scopes
 
 Read `platform/.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available scopes.
 
-Present the scope list to the user. Let them:
-- Select which scopes to include (default: all keyword scopes, not file paths or concepts)
+Present the scope list to the user with the recommendation to select **1-3 scopes per session**. Let them:
+- Select which scopes to include (recommend 1-3; warn if they select more)
 - Confirm or reorder
 
 ### Step 2: Iterate
 
 For each selected scope:
 1. Run the single-scope pipeline (Phase 1 → 2 → 3).
-2. After each scope completes, ask the user: **continue to next scope** or **stop here**?
+2. Briefly report the scope result, then continue immediately to the next scope.
+3. Only pause if a scope had test failures or errors — otherwise keep going.
 
 ### Step 3: Final Summary
 
@@ -94,7 +105,7 @@ After all scopes (or when the user stops), report:
 ## Anti-Patterns
 
 - **NEVER run phases out of order** — plan must complete before fix, fix before validate
-- **NEVER implement findings without user approval** — always present each finding and wait for implement/skip/stop
+- **NEVER pause for approval on passing findings** — auto-continue unless there is a test failure, an error, or the fix agent asks a question
 - **NEVER skip the validate phase** — if any findings were implemented, validation must run
 - **NEVER call sub-skills as `/skill` invocations** — use the Agent tool with the skill's SKILL.md content as the prompt
 - **NEVER combine the orchestrator with implementation** — this skill coordinates, it does not modify application code directly

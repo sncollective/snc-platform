@@ -169,7 +169,6 @@
   - `hooks/use-menu-toggle.ts` — Shared menu open/close/escape/click-outside hook
   - `hooks/use-guest-redirect.ts` — Redirect authenticated users away from auth pages
   - `hooks/use-cursor-pagination.ts` — Generic `useCursorPagination<T>` hook for cursor-based pagination (supports `fetchOptions` for auth + `error` state)
-  - `hooks/use-section-data.ts` — Generic `useSectionData<T>` hook for landing section data fetching (idle/loading/success/error states)
   - `hooks/use-subscriptions.ts` — `useSubscriptions()` hook returning current user's active subscriptions
   - `config/navigation.ts` — `NAV_LINKS` constant and `NavLink` type (includes Pricing link)
   - `styles/global.css` — CSS custom properties (design tokens), base styles, content-grid utility

@@ -15,14 +15,14 @@ You implement a specific finding from a `platform-refactor-plan` report. The ana
 $ARGUMENTS
 
 Format: `<scope> <finding-id>` where:
-- `<scope>` maps to `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`
+- `<scope>` maps to `platform/docs/refactor/refactor-{scope}.md`
 - `<finding-id>` is a priority tier + number, e.g., `P1.3`, `P0.1`, `P2.2`
 - Multiple coupled findings use `+` syntax: `P1.1+P1.2`
 
 ## Step 1: Parse & Load
 
 1. Parse `$ARGUMENTS` into scope and finding ID(s).
-2. Read `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+2. Read `platform/docs/refactor/refactor-{scope}.md`.
 3. Locate the finding(s) by matching the priority section header (e.g., `## P1`) and finding number within it. Findings are numbered sequentially within each priority tier — `P1.3` means the 3rd finding under `## P1 — High Value`.
 4. Extract the full finding block including all fields (Location, Affected files, Proposed consolidation/Fix, Estimated scope, Pattern reference, Tests affected, Verify checklist).
 

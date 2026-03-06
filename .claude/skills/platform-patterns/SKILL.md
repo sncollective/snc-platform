@@ -68,5 +68,4 @@ Available patterns:
 - [shared-validation-constants.md](shared-validation-constants.md) — Regex constants exported from @snc/shared used in both server Zod schemas and client zod/mini schemas; prevents drift by defining validation predicates once
 
 ### Landing Page Polish
-- [use-section-data.md](use-section-data.md) — useSectionData<T>(fetcher) generic hook; module-scope stable fetcher; SectionDataState<T> discriminated union; returns null on error/empty for silent section hide
 - [vi-import-original-partial-mock.md](vi-import-original-partial-mock.md) — vi.mock(m, async (importOriginal)) preserves real pure utility exports while replacing async functions; pair with vi.hoisted() for factory references

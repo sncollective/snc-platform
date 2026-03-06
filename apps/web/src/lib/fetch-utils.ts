@@ -16,6 +16,7 @@ export async function throwIfNotOk(response: Response): Promise<void> {
 export async function apiGet<T>(
   endpoint: string,
   params?: Record<string, string | number | undefined>,
+  signal?: AbortSignal,
 ): Promise<T> {
   let url = endpoint;
   if (params) {
@@ -28,7 +29,7 @@ export async function apiGet<T>(
       url = `${endpoint}?${qs}`;
     }
   }
-  const response = await fetch(url, { credentials: "include" });
+  const response = await fetch(url, { credentials: "include", signal });
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }

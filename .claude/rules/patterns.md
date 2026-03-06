@@ -54,5 +54,6 @@ One line per pattern. Read the linked file for full details and code examples.
 - **shared-validation-constants**: Regex constants exported from `@snc/shared` used in both server Zod schemas and client `zod/mini` schemas; prevents drift by defining validation rules once → [shared-validation-constants.md]
 
 ## Landing Page Polish
-- **use-section-data**: `useSectionData<T>(fetcher)` generic hook; module-scope stable fetcher; `SectionDataState<T>` with "idle"|"loading"|"success"|"error"; returns null on error/empty (silent hide) → [use-section-data.md]
 - **vi-import-original-partial-mock**: `vi.mock(m, async (importOriginal) => { const actual = await importOriginal<T>(); return { ...actual, mockFn } })` preserves pure utilities while replacing async functions; pair with `vi.hoisted()` → [vi-import-original-partial-mock.md]
+
+> Note: Landing section data (featured creators, recent content) is fetched server-side via the `loader` function in `routes/index.tsx` and passed as props to components. Do not use a client-side hook for new landing sections — use `loader` + `Route.useLoaderData()` instead (see `tanstack-file-route.md`).

@@ -20,16 +20,19 @@ export function useSubscriptions(): readonly UserSubscriptionWithPlan[] {
       setSubscriptions([]);
       return;
     }
-    let cancelled = false;
-    fetchMySubscriptions()
-      .then((result) => {
-        if (!cancelled) setSubscriptions(result);
-      })
-      .catch(() => {
+    const controller = new AbortController();
+    const run = async (): Promise<void> => {
+      try {
+        const result = await fetchMySubscriptions(controller.signal);
+        setSubscriptions(result);
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
         // Silently fail — subscription status is supplementary
-      });
+      }
+    };
+    void run();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [session.data]);
 

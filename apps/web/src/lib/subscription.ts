@@ -35,11 +35,13 @@ export async function createCheckout(planId: string): Promise<string> {
 /**
  * Fetch the current user's subscriptions with nested plan data.
  */
-export async function fetchMySubscriptions(): Promise<
-  UserSubscriptionWithPlan[]
-> {
+export async function fetchMySubscriptions(
+  signal?: AbortSignal,
+): Promise<UserSubscriptionWithPlan[]> {
   const data = await apiGet<{ subscriptions: UserSubscriptionWithPlan[] }>(
     "/api/subscriptions/mine",
+    undefined,
+    signal,
   );
   return data.subscriptions;
 }

@@ -97,6 +97,10 @@ function ContentDetailPage(): React.ReactElement {
 }
 ```
 
+## Guest-Only Routes
+
+Guest-only routes (login, register) use `useGuestRedirect()` instead of `beforeLoad` because these are intentionally public — a server-side session check in `beforeLoad` would add latency on every page load. The hook's boolean return value also suppresses the form during `session.isPending`, preventing a flash of form content before the auth state resolves.
+
 ## When to Use
 
 - Every page/route in the app — this is mandatory for TanStack Router

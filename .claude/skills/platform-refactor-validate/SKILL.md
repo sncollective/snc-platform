@@ -14,12 +14,12 @@ You run deep verification after all findings in a refactor report have been impl
 
 $ARGUMENTS
 
-Format: `<scope>` where scope maps to `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+Format: `<scope>` where scope maps to `platform/docs/refactor/refactor-{scope}.md`.
 
 ## Step 1: Load the Report
 
-1. Read `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
-2. If the file does not exist, check `reports/archive/` — if it's already archived, tell the user and stop.
+1. Read `platform/docs/refactor/refactor-{scope}.md`.
+2. If the file does not exist, check `platform/docs/refactor/archive/` — if it's already archived, tell the user and stop.
 3. If neither exists, tell the user no report was found and suggest running `/platform-refactor-plan {scope}`.
 
 ## Step 2: Check Completion Status
@@ -68,8 +68,8 @@ Read the report's "Pattern Compliance" table. For each entry with status `Drift`
 
 ## Step 6: Archive
 
-1. Ensure `platform/.claude/skills/platform-refactor-plan/reports/archive/` directory exists (create if needed).
-2. Move the report from `reports/refactor-{scope}.md` to `reports/archive/refactor-{scope}.md`.
+1. Ensure `platform/docs/refactor/archive/` directory exists (create if needed).
+2. Move the report from `platform/docs/refactor/refactor-{scope}.md` to `platform/docs/refactor/archive/refactor-{scope}.md`.
 3. Add an archive header to the top of the moved file:
 
 ```markdown

@@ -139,7 +139,7 @@ Classify every finding into one of these tiers:
 
 Determine a kebab-case filename from the scope (e.g., "routes" → `refactor-routes.md`, "booking" → `refactor-booking.md`).
 
-Save to `platform/.claude/skills/platform-refactor-plan/reports/[filename].md`.
+Save to `platform/docs/refactor/[filename].md`.
 
 Use this format:
 
