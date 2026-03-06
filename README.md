@@ -89,11 +89,11 @@ Edit `.env` and add the required secrets:
 # Required — copy these and fill in real values
 DATABASE_URL=postgres://snc:snc@localhost:5432/snc
 PORT=3000
-CORS_ORIGIN=http://localhost:3001
+CORS_ORIGIN=http://localhost:3080
 
 # Auth — generate a secret with: openssl rand -base64 32
 BETTER_AUTH_SECRET=<your-32+-char-secret>
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3080
 
 # Storage (defaults work for local dev)
 STORAGE_TYPE=local
@@ -125,26 +125,29 @@ pnpm --filter @snc/api db:migrate
 
 ### 5. Start development servers
 
-```bash
-# Start both API (port 3000) and web (port 3001)
-pnpm dev
-```
-
-Or start them individually:
+Start all three processes — API, web, and Caddy reverse proxy:
 
 ```bash
-pnpm --filter @snc/api dev    # API on http://localhost:3000
-pnpm --filter @snc/web dev    # Web on http://localhost:3001
+# Terminal 1: API server (port 3000)
+pnpm --filter @snc/api dev
+
+# Terminal 2: Web server (port 3001)
+pnpm --filter @snc/web dev
+
+# Terminal 3: Caddy reverse proxy (port 3080)
+caddy run --config Caddyfile.dev
 ```
 
-The API runs with `--watch` for automatic restarts. The web server uses Vite HMR.
+Or start API + web together with `pnpm dev`, plus Caddy in a separate terminal.
+
+The API runs with `--watch` for automatic restarts. The web server uses Vite HMR. Caddy routes `/api`, `/health`, and `/uploads` to the API and everything else to the web server.
 
 ### 6. Verify it's working
 
-- **API health**: http://localhost:3000/health
-- **API docs**: http://localhost:3000/api/docs (Scalar UI)
+- **App**: http://localhost:3080 (through Caddy — use this in the browser)
+- **API health**: http://localhost:3080/health (or directly at http://localhost:3000/health)
+- **API docs**: http://localhost:3000/api/docs (Scalar UI — direct access)
 - **OpenAPI spec**: http://localhost:3000/api/openapi.json
-- **Frontend**: http://localhost:3001
 
 ## Running Tests
 
@@ -189,8 +192,8 @@ Tests mock all external services (Stripe, Shopify, database). No running service
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | API server port |
-| `CORS_ORIGIN` | `http://localhost:3001` | Allowed CORS origin(s), comma-separated |
-| `BETTER_AUTH_URL` | `http://localhost:3000` | Auth service base URL |
+| `CORS_ORIGIN` | `http://localhost:3080` | Allowed CORS origin(s), comma-separated |
+| `BETTER_AUTH_URL` | `http://localhost:3080` | Auth service base URL |
 | `STORAGE_TYPE` | `local` | Storage backend (`local`) |
 | `STORAGE_LOCAL_DIR` | `./uploads` | Upload directory for local storage |
 | `STRIPE_SECRET_KEY` | — | Stripe API key (billing returns 503 without it) |

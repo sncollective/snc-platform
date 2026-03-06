@@ -32,7 +32,7 @@ describe("fetchCreatorProfile", () => {
     const result = await fetchCreatorProfile("user_test123");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/creators/user_test123",
+      "/api/creators/user_test123",
       { credentials: "include" },
     );
     expect(result).toEqual(profile);
@@ -47,7 +47,7 @@ describe("fetchCreatorProfile", () => {
     await fetchCreatorProfile("user/special id");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/creators/user%2Fspecial%20id",
+      "/api/creators/user%2Fspecial%20id",
       { credentials: "include" },
     );
   });
@@ -92,7 +92,7 @@ describe("updateCreatorProfile", () => {
     const result = await updateCreatorProfile("user_test123", { socialLinks });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:3000/api/creators/user_test123",
+      "/api/creators/user_test123",
       {
         method: "PATCH",
         credentials: "include",

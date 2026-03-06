@@ -19,7 +19,7 @@ const TEST_TRACK: AudioTrack = {
   id: "track-1",
   title: "Test Song",
   creatorName: "Test Artist",
-  mediaUrl: "http://localhost:3000/api/content/track-1/media",
+  mediaUrl: "/api/content/track-1/media",
   coverArtUrl: "/api/content/track-1/cover-art",
 };
 
@@ -150,6 +150,19 @@ describe("AudioPlayerProvider + useAudioPlayer", () => {
     });
     const audio = document.querySelector("audio")!;
     expect(audio.currentTime).toBe(30);
+  });
+
+  it("setVolume adjusts volume on the audio element", () => {
+    const { result } = renderHook(() => useAudioPlayer(), { wrapper });
+    act(() => {
+      result.current.actions.playTrack(TEST_TRACK);
+    });
+    act(() => {
+      result.current.actions.setVolume(0.5);
+    });
+    const audio = document.querySelector("audio")!;
+    // jsdom has no Web Audio API, so the fallback sets audio.volume directly
+    expect(audio.volume).toBe(0.5);
   });
 
   it("clearTrack resets all state", () => {

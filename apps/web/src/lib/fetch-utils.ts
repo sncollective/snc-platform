@@ -1,5 +1,3 @@
-import { API_BASE_URL } from "./config.js";
-
 /**
  * Throws an Error if the response is not OK.
  * Extracts the error message from the response body if possible.
@@ -19,13 +17,32 @@ export async function apiGet<T>(
   endpoint: string,
   params?: Record<string, string | number | undefined>,
 ): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  let url = endpoint;
   if (params) {
+    const searchParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) url.searchParams.set(key, String(value));
+      if (value !== undefined) searchParams.set(key, String(value));
+    }
+    const qs = searchParams.toString();
+    if (qs) {
+      url = `${endpoint}?${qs}`;
     }
   }
-  const response = await fetch(url.toString(), { credentials: "include" });
+  const response = await fetch(url, { credentials: "include" });
+  await throwIfNotOk(response);
+  return (await response.json()) as T;
+}
+
+/** POST with FormData body (multipart). Always sends session cookie. */
+export async function apiUpload<T>(
+  endpoint: string,
+  formData: FormData,
+): Promise<T> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }
@@ -45,7 +62,7 @@ export async function apiMutate<T>(
   if (options.body !== undefined) {
     init.body = JSON.stringify(options.body);
   }
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, init);
+  const response = await fetch(endpoint, init);
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }

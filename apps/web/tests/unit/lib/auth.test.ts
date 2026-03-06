@@ -41,10 +41,8 @@ afterEach(() => {
 // ── Tests ──
 
 describe("auth client configuration", () => {
-  it("configures auth client with correct base URL", () => {
-    expect(createAuthClient).toHaveBeenCalledWith({
-      baseURL: "http://localhost:3000",
-    });
+  it("configures auth client without explicit baseURL (uses window.location.origin)", () => {
+    expect(createAuthClient).toHaveBeenCalledWith({});
   });
 });
 
@@ -84,7 +82,7 @@ describe("useRoles", () => {
       expect(result.current).toEqual(["subscriber"]);
     });
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:3000/api/me", {
+    expect(fetch).toHaveBeenCalledWith("/api/me", {
       credentials: "include",
     });
   });

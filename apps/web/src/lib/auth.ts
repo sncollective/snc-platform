@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import type { Role, User, Session, AuthSession } from "@snc/shared";
 
 import { authClient } from "./auth-client.js";
-import { API_BASE_URL } from "./config.js";
 
 // ── Public API: Re-exports ──
 
@@ -21,7 +20,7 @@ interface AuthState {
 export async function fetchAuthState(): Promise<AuthState> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}/api/me`, { credentials: "include" });
+    res = await fetch("/api/me", { credentials: "include" });
   } catch {
     return { user: null, roles: [] };
   }

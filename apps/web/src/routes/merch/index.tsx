@@ -4,7 +4,6 @@ import type { MerchProduct } from "@snc/shared";
 
 import { ProductCard } from "../../components/merch/product-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { API_BASE_URL } from "../../lib/config.js";
 import styles from "./merch-index.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
@@ -88,13 +87,13 @@ function buildMerchUrl({
   cursor: string | null;
   limit: number;
 }): string {
-  const url = new URL(`${API_BASE_URL}/api/merch`);
-  url.searchParams.set("limit", String(limit));
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
   if (creatorId) {
-    url.searchParams.set("creatorId", creatorId);
+    params.set("creatorId", creatorId);
   }
   if (cursor) {
-    url.searchParams.set("cursor", cursor);
+    params.set("cursor", cursor);
   }
-  return url.toString();
+  return `/api/merch?${params.toString()}`;
 }

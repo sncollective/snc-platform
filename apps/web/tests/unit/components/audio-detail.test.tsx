@@ -28,10 +28,6 @@ vi.mock("../../../src/lib/format.js", () => ({
   formatDate: (s: string) => `FORMATTED:${s}`,
 }));
 
-vi.mock("../../../src/lib/config.js", () => ({
-  API_BASE_URL: "http://test-api",
-}));
-
 // ── Component Under Test ──
 
 import { AudioDetail } from "../../../src/components/content/audio-detail.js";
@@ -52,7 +48,7 @@ describe("AudioDetail", () => {
     });
     render(<AudioDetail item={item} />);
     const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("src", "http://test-api/api/content/c1/cover-art");
+    expect(img).toHaveAttribute("src", "/api/content/c1/cover-art");
     expect(img).toHaveAttribute("alt", expect.stringContaining(item.title));
   });
 
@@ -77,10 +73,10 @@ describe("AudioDetail", () => {
 
     expect(mockAudioPlayer).toHaveBeenCalledWith(
       expect.objectContaining({
-        src: "http://test-api/api/content/audio-1/media",
+        src: "/api/content/audio-1/media",
         title: "Track One",
         creator: "Artist A",
-        coverArtUrl: "http://test-api/api/content/audio-1/cover-art",
+        coverArtUrl: "/api/content/audio-1/cover-art",
         contentId: "audio-1",
       }),
     );
@@ -173,7 +169,7 @@ describe("AudioDetail", () => {
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute(
       "src",
-      "http://test-api/api/content/c1/cover-art",
+      "/api/content/c1/cover-art",
     );
   });
 

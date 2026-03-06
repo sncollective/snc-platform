@@ -1,0 +1,23 @@
+/* ── Page ── */
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-2xl);
+  margin: 0 0 var(--space-md) 0;
+}
+
+/* ── Sections ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sectionHeading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  margin: 0;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}

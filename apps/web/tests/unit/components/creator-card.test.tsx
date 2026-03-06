@@ -66,7 +66,7 @@ describe("CreatorCard", () => {
     const img = screen.getByRole("img", { name: "Alice Music avatar" });
     expect(img).toHaveAttribute(
       "src",
-      "http://localhost:3000/api/creators/user_test123/avatar",
+      "/api/creators/user_test123/avatar",
     );
   });
 

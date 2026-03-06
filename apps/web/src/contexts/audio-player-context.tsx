@@ -95,6 +95,8 @@ export function AudioPlayerProvider({
 }: Readonly<{ children: ReactNode }>): React.ReactElement {
   const [state, dispatch] = useReducer(audioReducer, INITIAL_STATE);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -136,6 +138,20 @@ export function AudioPlayerProvider({
       playTrack(track: AudioTrack) {
         const audio = audioRef.current;
         if (!audio) return;
+
+        // Lazily create AudioContext + GainNode on first play (requires user gesture)
+        if (!audioCtxRef.current && typeof AudioContext !== "undefined") {
+          const ctx = new AudioContext();
+          const source = ctx.createMediaElementSource(audio);
+          const gain = ctx.createGain();
+          source.connect(gain);
+          gain.connect(ctx.destination);
+          audioCtxRef.current = ctx;
+          gainRef.current = gain;
+          // Element volume stays at 1; GainNode controls output
+          audio.volume = 1;
+        }
+
         dispatch({ type: "SET_TRACK", track });
         audio.src = track.mediaUrl;
         void audio.play();
@@ -152,7 +168,13 @@ export function AudioPlayerProvider({
         }
       },
       setVolume(volume: number) {
-        if (audioRef.current) {
+        const ctx = audioCtxRef.current;
+        const gain = gainRef.current;
+        if (ctx && gain) {
+          gain.gain.cancelScheduledValues(ctx.currentTime);
+          gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.02);
+        } else if (audioRef.current) {
           audioRef.current.volume = volume;
         }
       },

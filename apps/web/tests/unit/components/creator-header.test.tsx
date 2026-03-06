@@ -69,7 +69,7 @@ describe("CreatorHeader", () => {
     });
     render(<CreatorHeader creator={creator} />);
     const banner = screen.getByRole("img", { name: "Alice Music banner" });
-    expect(banner).toHaveAttribute("src", "http://localhost:3000/api/creators/creator-1/banner");
+    expect(banner).toHaveAttribute("src", "/api/creators/creator-1/banner");
   });
 
   it("renders banner placeholder when bannerUrl is null", () => {
@@ -85,7 +85,7 @@ describe("CreatorHeader", () => {
     });
     render(<CreatorHeader creator={creator} />);
     const avatar = screen.getByRole("img", { name: "Alice Music avatar" });
-    expect(avatar).toHaveAttribute("src", "http://localhost:3000/api/creators/creator-1/avatar");
+    expect(avatar).toHaveAttribute("src", "/api/creators/creator-1/avatar");
   });
 
   it("renders avatar placeholder when avatarUrl is null", () => {

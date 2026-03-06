@@ -17,7 +17,6 @@ import {
   fetchBookingSummary,
   reviewBooking,
 } from "../lib/dashboard.js";
-import { API_BASE_URL } from "../lib/config.js";
 import { formatPrice, formatCo2 } from "../lib/format.js";
 import { fetchEmissionsSummary } from "../lib/emissions.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
@@ -59,10 +58,10 @@ function DashboardPage(): React.ReactElement {
     loadMore,
   } = useCursorPagination<PendingBookingItem>({
     buildUrl: (cursor) => {
-      const url = new URL(`${API_BASE_URL}/api/bookings/pending`);
-      if (cursor) url.searchParams.set("cursor", cursor);
-      url.searchParams.set("limit", "20");
-      return url.toString();
+      const params = new URLSearchParams();
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", "20");
+      return `/api/bookings/pending?${params.toString()}`;
     },
     fetchOptions: { credentials: "include" },
   });

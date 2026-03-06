@@ -4,7 +4,6 @@ import type { CreatorListItem } from "@snc/shared";
 
 import { CreatorCard } from "../../components/creator/creator-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { API_BASE_URL } from "../../lib/config.js";
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
@@ -61,10 +60,10 @@ function buildCreatorsUrl({
   cursor: string | null;
   limit: number;
 }): string {
-  const url = new URL(`${API_BASE_URL}/api/creators`);
-  url.searchParams.set("limit", String(limit));
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
   if (cursor) {
-    url.searchParams.set("cursor", cursor);
+    params.set("cursor", cursor);
   }
-  return url.toString();
+  return `/api/creators?${params.toString()}`;
 }

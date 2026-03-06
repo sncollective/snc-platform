@@ -30,13 +30,13 @@ describe("VideoPlayer", () => {
   });
 
   it("renders source with the provided src", () => {
-    render(<VideoPlayer src="http://localhost:3000/api/content/vid-1/media" />);
+    render(<VideoPlayer src="/api/content/vid-1/media" />);
     const source = document.querySelector("source")!;
     expect(source.src).toContain("/api/content/vid-1/media");
   });
 
   it("sets poster when provided", () => {
-    render(<VideoPlayer src="test.mp4" poster="http://localhost:3000/poster.jpg" />);
+    render(<VideoPlayer src="test.mp4" poster="/poster.jpg" />);
     const video = document.querySelector("video")!;
     expect(video.poster).toContain("poster.jpg");
   });

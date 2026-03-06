@@ -42,7 +42,7 @@ const setupCorsApp = async (corsOrigin: string): Promise<Hono> => {
 
 // Usage in describe block:
 beforeEach(async () => {
-  app = await setupCorsApp("http://localhost:3001");
+  app = await setupCorsApp("http://localhost:3080");
 });
 afterEach(() => {
   vi.restoreAllMocks();

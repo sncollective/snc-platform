@@ -5,9 +5,9 @@ import { z } from "zod";
 export const ENV_SCHEMA = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().default(3000),
-  CORS_ORIGIN: z.string().default("http://localhost:3001"),
+  CORS_ORIGIN: z.string().default("http://localhost:3080"),
   BETTER_AUTH_SECRET: z.string().min(32),
-  BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
+  BETTER_AUTH_URL: z.string().url().default("http://localhost:3080"),
   STORAGE_TYPE: z.enum(["local"]).default("local"),
   STORAGE_LOCAL_DIR: z.string().default("./uploads"),
   // Phase 7: Stripe (optional — API returns 503 BILLING_NOT_CONFIGURED when absent)

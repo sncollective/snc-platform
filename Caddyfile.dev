@@ -1,0 +1,14 @@
+http://localhost:3080 {
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+    handle /health {
+        reverse_proxy localhost:3000
+    }
+    handle /uploads/* {
+        reverse_proxy localhost:3000
+    }
+    handle {
+        reverse_proxy localhost:3001
+    }
+}

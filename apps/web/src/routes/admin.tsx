@@ -5,7 +5,6 @@ import type { AdminUser, Role } from "@snc/shared";
 
 import { fetchAuthState } from "../lib/auth.js";
 import { assignRole, revokeRole } from "../lib/admin.js";
-import { API_BASE_URL } from "../lib/config.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import { UserRoleManager } from "../components/admin/user-role-manager.js";
 import styles from "./admin.module.css";
@@ -34,10 +33,10 @@ function AdminPage(): React.ReactElement {
     loadMore,
   } = useCursorPagination<AdminUser>({
     buildUrl: (cursor) => {
-      const url = new URL(`${API_BASE_URL}/api/admin/users`);
-      if (cursor) url.searchParams.set("cursor", cursor);
-      url.searchParams.set("limit", "20");
-      return url.toString();
+      const params = new URLSearchParams();
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", "20");
+      return `/api/admin/users?${params.toString()}`;
     },
     fetchOptions: { credentials: "include" },
   });
