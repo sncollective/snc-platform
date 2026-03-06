@@ -69,11 +69,12 @@ describe("ContentDetail", () => {
     expect(container.querySelector("article")).not.toBeNull();
   });
 
-  it("passes locked=true to VideoDetail when content is subscribers-only with null mediaUrl", () => {
+  it("passes locked=true to VideoDetail when content is subscribers-only and gated", () => {
     const item = makeMockFeedItem({
       type: "video",
       visibility: "subscribers",
       mediaUrl: null,
+      body: null,
     });
     render(<ContentDetail item={item} />);
     expect(mockVideoDetail).toHaveBeenCalledWith(
@@ -101,11 +102,12 @@ describe("ContentDetail", () => {
     );
   });
 
-  it("passes locked=true to AudioDetail when subscribers-only with null mediaUrl", () => {
+  it("passes locked=true to AudioDetail when subscribers-only and gated", () => {
     const item = makeMockFeedItem({
       type: "audio",
       visibility: "subscribers",
       mediaUrl: null,
+      body: null,
     });
     render(<ContentDetail item={item} />);
     expect(mockAudioDetail).toHaveBeenCalledWith(
@@ -133,11 +135,12 @@ describe("ContentDetail", () => {
     );
   });
 
-  it("passes locked=true to WrittenDetail when subscribers-only with null mediaUrl", () => {
+  it("passes locked=true to WrittenDetail when subscribers-only and gated", () => {
     const item = makeMockFeedItem({
       type: "written",
       visibility: "subscribers",
       mediaUrl: null,
+      body: null,
     });
     render(<ContentDetail item={item} />);
     expect(mockWrittenDetail).toHaveBeenCalledWith(

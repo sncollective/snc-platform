@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ── Hoisted Mocks ──
@@ -210,6 +210,24 @@ describe("MiniPlayer", () => {
     expect(
       document.body.style.getPropertyValue("--mini-player-height"),
     ).toBe("0px");
+  });
+
+  it("renders volume slider when track is set", () => {
+    mockUseAudioPlayer.mockReturnValue(
+      makeMockContext(MOCK_ACTIONS, { track: TEST_TRACK, isPlaying: true }),
+    );
+    render(<MiniPlayer />);
+    expect(screen.getByRole("slider", { name: "Volume" })).toBeInTheDocument();
+  });
+
+  it("calls setVolume when volume slider changes", () => {
+    mockUseAudioPlayer.mockReturnValue(
+      makeMockContext(MOCK_ACTIONS, { track: TEST_TRACK, isPlaying: true }),
+    );
+    render(<MiniPlayer />);
+    const slider = screen.getByRole("slider", { name: "Volume" });
+    fireEvent.change(slider, { target: { value: "0.5" } });
+    expect(mockSetVolume).toHaveBeenCalledWith(0.5);
   });
 
   it("does not render an audio element", () => {

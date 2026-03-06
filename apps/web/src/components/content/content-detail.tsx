@@ -15,7 +15,7 @@ export interface ContentDetailProps {
 // ── Private Helpers ──
 
 function isContentLocked(item: FeedItem): boolean {
-  return item.visibility === "subscribers" && item.mediaUrl === null;
+  return item.visibility === "subscribers" && item.mediaUrl === null && item.body === null;
 }
 
 // ── Public API ──

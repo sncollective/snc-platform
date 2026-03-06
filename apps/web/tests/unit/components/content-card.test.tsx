@@ -94,9 +94,13 @@ describe("ContentCard", () => {
     expect(screen.getByText("POST")).toBeInTheDocument();
   });
 
-  it("renders lock icon when visibility is 'subscribers'", () => {
+  it("renders lock icon when visibility is 'subscribers' and content is gated", () => {
     mockFormatRelativeDate.mockReturnValue("1d ago");
-    const item = makeMockFeedItem({ visibility: "subscribers" });
+    const item = makeMockFeedItem({
+      visibility: "subscribers",
+      mediaUrl: null,
+      body: null,
+    });
 
     render(<ContentCard item={item} />);
 
@@ -106,6 +110,32 @@ describe("ContentCard", () => {
   it("does not render lock icon when visibility is 'public'", () => {
     mockFormatRelativeDate.mockReturnValue("1d ago");
     const item = makeMockFeedItem({ visibility: "public" });
+
+    render(<ContentCard item={item} />);
+
+    expect(screen.queryByLabelText("Subscribers only")).toBeNull();
+  });
+
+  it("does not render lock icon when subscriber content has mediaUrl (user has access)", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      visibility: "subscribers",
+      mediaUrl: "/api/content/1/media",
+      body: null,
+    });
+
+    render(<ContentCard item={item} />);
+
+    expect(screen.queryByLabelText("Subscribers only")).toBeNull();
+  });
+
+  it("does not render lock icon when subscriber written content has body (user has access)", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      visibility: "subscribers",
+      mediaUrl: null,
+      body: "Full article text",
+    });
 
     render(<ContentCard item={item} />);
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 
 import { useAudioPlayer } from "../../contexts/audio-player-context.js";
@@ -14,6 +14,7 @@ const MINI_PLAYER_HEIGHT = "56px";
 export function MiniPlayer(): React.ReactElement | null {
   const { state, actions } = useAudioPlayer();
   const { track, isPlaying, currentTime, duration } = state;
+  const [volume, setVolume] = useState(1);
 
   useEffect(() => {
     if (track) {
@@ -41,6 +42,12 @@ export function MiniPlayer(): React.ReactElement | null {
 
   function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
     actions.seek(Number(e.target.value));
+  }
+
+  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = Number(e.target.value);
+    setVolume(v);
+    actions.setVolume(v);
   }
 
   function handleClose() {
@@ -92,6 +99,23 @@ export function MiniPlayer(): React.ReactElement | null {
         <span className={styles.time}>
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
+      </div>
+      <div className={styles.volumeSection}>
+        <svg className={styles.volumeIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M11 5L6 9H2v6h4l5 4V5z" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg>
+        <input
+          type="range"
+          className={styles.volumeSlider}
+          aria-label="Volume"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={handleVolumeChange}
+        />
       </div>
       <button
         type="button"

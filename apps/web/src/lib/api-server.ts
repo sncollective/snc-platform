@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 
 /**
  * Server-side API fetch. Runs exclusively on the server — during SSR it
@@ -20,7 +21,17 @@ export const fetchApiServer = createServerFn({ method: "GET" })
       env?.env?.VITE_API_URL ??
       "http://localhost:3000";
 
-    const res = await fetch(`${baseUrl}${endpoint}`);
+    const headers: HeadersInit = {};
+    try {
+      const cookie = getRequestHeader("cookie");
+      if (cookie) {
+        headers.cookie = cookie;
+      }
+    } catch {
+      // getRequestHeader throws outside of SSR request context (e.g. client navigation)
+    }
+
+    const res = await fetch(`${baseUrl}${endpoint}`, { headers });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       const message =
