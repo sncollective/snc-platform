@@ -6,8 +6,9 @@ import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatRelativeDate } = vi.hoisted(() => ({
+const { mockFormatRelativeDate, mockUseLoaderData } = vi.hoisted(() => ({
   mockFormatRelativeDate: vi.fn(),
+  mockUseLoaderData: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", async () => {
@@ -15,6 +16,7 @@ vi.mock("@tanstack/react-router", async () => {
   return {
     createFileRoute: () => (options: Record<string, unknown>) => ({
       ...options,
+      useLoaderData: mockUseLoaderData,
     }),
     Link: ({
       to,
@@ -43,6 +45,10 @@ vi.mock("../../../src/lib/format.js", () => ({
   formatRelativeDate: mockFormatRelativeDate,
 }));
 
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchApiServer: vi.fn(),
+}));
+
 // ── Component Under Test ──
 
 let FeedPage: () => React.ReactElement;
@@ -56,6 +62,14 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockFormatRelativeDate.mockReturnValue("2h ago");
+  mockUseLoaderData.mockReturnValue({
+    items: [
+      makeMockFeedItem({ id: "c1", title: "Post One" }),
+      makeMockFeedItem({ id: "c2", title: "Post Two" }),
+    ],
+    nextCursor: null,
+  });
+
   vi.stubGlobal(
     "fetch",
     vi.fn().mockImplementation(() =>
@@ -83,53 +97,30 @@ afterEach(() => {
 // ── Tests ──
 
 describe("FeedPage", () => {
-  it("renders content cards after loading", async () => {
+  it("renders content cards from loader data without fetching", () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
     render(<FeedPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Post One")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Post One")).toBeInTheDocument();
     expect(screen.getByText("Post Two")).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("shows loading state initially", () => {
-    // Mock fetch to never resolve
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockReturnValue(new Promise(() => {})),
-    );
+  it("shows empty state when loader returns no content", () => {
+    mockUseLoaderData.mockReturnValue({ items: [], nextCursor: null });
+    vi.stubGlobal("fetch", vi.fn());
 
     render(<FeedPage />);
 
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getByText("No content found.")).toBeInTheDocument();
   });
 
-  it("shows empty state when no content returned", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockImplementation(() =>
-        Promise.resolve(
-          new Response(
-            JSON.stringify({ items: [], nextCursor: null }),
-            { status: 200 },
-          ),
-        ),
-      ),
-    );
-
+  it("renders filter bar with All / Video / Audio / Written buttons", () => {
     render(<FeedPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("No content found.")).toBeInTheDocument();
-    });
-  });
-
-  it("renders filter bar with All / Video / Audio / Written buttons", async () => {
-    render(<FeedPage />);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
-    });
+    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Video" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Audio" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Written" })).toBeInTheDocument();
@@ -152,33 +143,54 @@ describe("FeedPage", () => {
 
     render(<FeedPage />);
 
-    // Wait for initial fetch
+    // Initial render uses loader data, no fetch yet
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Click "Video" filter — triggers client-side fetch
+    await user.click(screen.getByRole("button", { name: "Video" }));
+
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    // Click "Video" filter
-    await user.click(screen.getByRole("button", { name: "Video" }));
-
-    await waitFor(() => {
-      // Filter change triggers a new fetch
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
-
-    // Verify the second call includes type=video
-    const secondCallUrl = mockFetch.mock.calls[1]![0] as string;
-    expect(secondCallUrl).toContain("type=video");
+    // Verify the call includes type=video
+    const callUrl = mockFetch.mock.calls[0]![0] as string;
+    expect(callUrl).toContain("type=video");
   });
 
-  it("shows 'Load more' button when nextCursor is present", async () => {
+  it("shows 'Load more' button when nextCursor is present", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: [makeMockFeedItem({ id: "c1" })],
+      nextCursor: "eyJjdXJzb3IiOiAiYWJjIn0",
+    });
+
+    render(<FeedPage />);
+
+    expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
+  });
+
+  it("hides 'Load more' button when nextCursor is null (last page)", () => {
+    render(<FeedPage />);
+
+    expect(screen.getByText("Post One")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("appends items when 'Load more' is clicked", async () => {
+    const user = userEvent.setup();
+    mockUseLoaderData.mockReturnValue({
+      items: [makeMockFeedItem({ id: "c1", title: "First" })],
+      nextCursor: "cursor-page-2",
+    });
+
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(() =>
         Promise.resolve(
           new Response(
             JSON.stringify({
-              items: [makeMockFeedItem({ id: "c1" })],
-              nextCursor: "eyJjdXJzb3IiOiAiYWJjIn0",
+              items: [makeMockFeedItem({ id: "c2", title: "Second" })],
+              nextCursor: null,
             }),
             { status: 200 },
           ),
@@ -188,54 +200,7 @@ describe("FeedPage", () => {
 
     render(<FeedPage />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
-    });
-  });
-
-  it("hides 'Load more' button when nextCursor is null (last page)", async () => {
-    render(<FeedPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Post One")).toBeInTheDocument();
-    });
-    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
-  });
-
-  it("appends items when 'Load more' is clicked", async () => {
-    const user = userEvent.setup();
-    let callCount = 0;
-    const mockFetch = vi.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              items: [makeMockFeedItem({ id: "c1", title: "First" })],
-              nextCursor: "cursor-page-2",
-            }),
-            { status: 200 },
-          ),
-        );
-      }
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            items: [makeMockFeedItem({ id: "c2", title: "Second" })],
-            nextCursor: null,
-          }),
-          { status: 200 },
-        ),
-      );
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    render(<FeedPage />);
-
-    // Wait for first page
-    await waitFor(() => {
-      expect(screen.getByText("First")).toBeInTheDocument();
-    });
+    expect(screen.getByText("First")).toBeInTheDocument();
 
     // Click load more
     await user.click(screen.getByRole("button", { name: "Load more" }));
@@ -252,36 +217,9 @@ describe("FeedPage", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
-  it("fetches from correct API URL with limit=12", async () => {
-    const mockFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ items: [], nextCursor: null }),
-          { status: 200 },
-        ),
-      ),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
+  it("content cards link to /content/:id", () => {
     render(<FeedPage />);
 
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    const url = mockFetch.mock.calls[0]![0] as string;
-    expect(url).toContain("/api/content");
-    expect(url).toContain("limit=12");
-  });
-
-  it("content cards link to /content/:id", async () => {
-    render(<FeedPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Post One")).toBeInTheDocument();
-    });
-
-    // ContentCard wraps in a Link which our mock renders as <a>
     const links = screen.getAllByRole("link");
     expect(links.some((link) => link.getAttribute("href") === "/content/c1")).toBe(true);
   });

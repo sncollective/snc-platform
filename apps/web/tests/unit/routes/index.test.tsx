@@ -1,14 +1,19 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type React from "react";
 
 // ── Hoisted Mocks ──
+
+const { mockUseLoaderData } = vi.hoisted(() => ({
+  mockUseLoaderData: vi.fn(),
+}));
 
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
   return {
     createFileRoute: () => (options: Record<string, unknown>) => ({
       ...options,
+      useLoaderData: mockUseLoaderData,
     }),
     Link: ({ to, children, className }: Record<string, unknown>) =>
       React.createElement(
@@ -19,6 +24,10 @@ vi.mock("@tanstack/react-router", async () => {
     useNavigate: () => vi.fn(),
   };
 });
+
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchApiServer: vi.fn(),
+}));
 
 vi.mock("../../../src/components/landing/hero-section.js", async () => {
   const React = await import("react");
@@ -78,6 +87,14 @@ beforeAll(async () => {
 
 // ── Lifecycle ──
 
+beforeEach(() => {
+  mockUseLoaderData.mockReturnValue({
+    creators: [],
+    recentContent: [],
+    plans: [],
+  });
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -128,8 +145,11 @@ describe("LandingPage", () => {
     ).toBeNull();
   });
 
-  it("is accessible without authentication (no loader or beforeLoad)", () => {
+  it("is accessible without authentication (no beforeLoad guard)", () => {
     expect(RouteObject).not.toHaveProperty("beforeLoad");
-    expect(RouteObject).not.toHaveProperty("loader");
+  });
+
+  it("has a loader that pre-fetches landing data", () => {
+    expect(RouteObject).toHaveProperty("loader");
   });
 });

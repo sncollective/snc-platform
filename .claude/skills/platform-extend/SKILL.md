@@ -1,6 +1,7 @@
 ---
 name: platform-extend
 description: "Plan and implement new platform features. Use when adding features, fixing bugs, or evolving the platform architecture."
+argument-hint: [feature or bug description]
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task
 model: sonnet
@@ -19,6 +20,8 @@ You help plan and implement new features for the S/NC platform. You work convers
 ## Workflow
 
 ### 1. Understand the Request
+
+The user wants: $ARGUMENTS
 
 Ask clarifying questions using **AskUserQuestion** if the request is vague. Understand:
 - What behavior should change or be added?
@@ -54,6 +57,13 @@ Explore the codebase to understand what exists and what needs to change.
 - NEVER introduce patterns that conflict with established ones
 - NEVER skip tests for new functionality
 - NEVER guess about the codebase — explore first
+
+### 5. Report
+
+Tell the user:
+- What was implemented (files created/modified)
+- What tests were added and their pass/fail status
+- Any follow-up work or edge cases to revisit
 
 ## Progress Tracking
 

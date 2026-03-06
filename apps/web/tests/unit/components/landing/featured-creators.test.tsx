@@ -1,13 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import { makeMockCreatorListItem } from "../../../helpers/creator-fixtures.js";
 
 // ── Hoisted Mocks ──
-
-const { mockApiGet } = vi.hoisted(() => ({
-  mockApiGet: vi.fn(),
-}));
 
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
@@ -21,19 +17,11 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-vi.mock("../../../../src/lib/fetch-utils.js", () => ({
-  apiGet: mockApiGet,
-}));
-
 // ── Import component under test (after mocks) ──
 
 import { FeaturedCreators } from "../../../../src/components/landing/featured-creators.js";
 
-// ── Test Lifecycle ──
-
-beforeEach(() => {
-  mockApiGet.mockReset();
-});
+// ── Lifecycle ──
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -42,107 +30,44 @@ afterEach(() => {
 // ── Tests ──
 
 describe("FeaturedCreators", () => {
-  describe("loading state", () => {
-    it("shows loading text while fetching", () => {
-      // Never-resolving promise keeps component in loading state
-      mockApiGet.mockReturnValue(new Promise(() => {}));
+  it("renders section heading 'Featured Creators'", () => {
+    render(
+      <FeaturedCreators creators={[makeMockCreatorListItem()]} />,
+    );
 
-      render(<FeaturedCreators />);
-
-      expect(screen.getByText("Loading creators...")).toBeInTheDocument();
-      expect(
-        screen.getByRole("heading", { level: 2, name: "Featured Creators" }),
-      ).toBeInTheDocument();
-    });
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Featured Creators" }),
+    ).toBeInTheDocument();
   });
 
-  describe("success state", () => {
-    it("renders section heading 'Featured Creators'", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockCreatorListItem()],
-        nextCursor: null,
-      });
+  it("renders creator cards from passed data", () => {
+    const creators = [
+      makeMockCreatorListItem({ userId: "u1", displayName: "Alice" }),
+      makeMockCreatorListItem({ userId: "u2", displayName: "Bob" }),
+      makeMockCreatorListItem({ userId: "u3", displayName: "Carol" }),
+    ];
 
-      render(<FeaturedCreators />);
+    render(<FeaturedCreators creators={creators} />);
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole("heading", { level: 2, name: "Featured Creators" }),
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("renders creator cards from fetched data", async () => {
-      const creators = [
-        makeMockCreatorListItem({ userId: "u1", displayName: "Alice" }),
-        makeMockCreatorListItem({ userId: "u2", displayName: "Bob" }),
-        makeMockCreatorListItem({ userId: "u3", displayName: "Carol" }),
-      ];
-      mockApiGet.mockResolvedValue({ items: creators, nextCursor: null });
-
-      render(<FeaturedCreators />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Alice")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Bob")).toBeInTheDocument();
-      expect(screen.getByText("Carol")).toBeInTheDocument();
-    });
-
-    it("calls apiGet with correct endpoint and limit", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockCreatorListItem()],
-        nextCursor: null,
-      });
-
-      render(<FeaturedCreators />);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalledWith("/api/creators", { limit: 8 });
-      });
-    });
-
-    it("scroll container has role='region' and aria-label", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockCreatorListItem()],
-        nextCursor: null,
-      });
-
-      render(<FeaturedCreators />);
-
-      await waitFor(() => {
-        const region = screen.getByRole("region", {
-          name: "Featured creators",
-        });
-        expect(region).toBeInTheDocument();
-      });
-    });
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+    expect(screen.getByText("Carol")).toBeInTheDocument();
   });
 
-  describe("error and empty states", () => {
-    it("shows empty message when API returns empty items array", async () => {
-      mockApiGet.mockResolvedValue({ items: [], nextCursor: null });
+  it("scroll container has role='region' and aria-label", () => {
+    render(
+      <FeaturedCreators creators={[makeMockCreatorListItem()]} />,
+    );
 
-      const { getByText } = render(<FeaturedCreators />);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalled();
-      });
-
-      expect(getByText(/No creators yet/)).toBeTruthy();
+    const region = screen.getByRole("region", {
+      name: "Featured creators",
     });
+    expect(region).toBeInTheDocument();
+  });
 
-    it("returns null on fetch error", async () => {
-      mockApiGet.mockRejectedValue(new Error("Network error"));
+  it("shows empty message when creators array is empty", () => {
+    render(<FeaturedCreators creators={[]} />);
 
-      const { container } = render(<FeaturedCreators />);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalled();
-      });
-
-      // Component returns null — nothing rendered
-      expect(container.innerHTML).toBe("");
-    });
+    expect(screen.getByText(/No creators yet/)).toBeInTheDocument();
   });
 });

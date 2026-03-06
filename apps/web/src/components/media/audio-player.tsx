@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 
 import type { AudioTrack } from "../../contexts/audio-player-context.js";
@@ -27,11 +27,25 @@ export function AudioPlayer({
 }: AudioPlayerProps): React.ReactElement {
   const { state, actions } = useAudioPlayer();
   const [volume, setVolume] = useState(1);
+  const [preloadedDuration, setPreloadedDuration] = useState(0);
+  const preloadRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = preloadRef.current;
+    if (!audio) return;
+    const onMeta = () => {
+      if (Number.isFinite(audio.duration)) {
+        setPreloadedDuration(audio.duration);
+      }
+    };
+    audio.addEventListener("loadedmetadata", onMeta);
+    return () => audio.removeEventListener("loadedmetadata", onMeta);
+  }, []);
 
   const isThisTrack = state.track?.id === contentId;
   const isPlaying = isThisTrack && state.isPlaying;
   const currentTime = isThisTrack ? state.currentTime : 0;
-  const duration = isThisTrack ? state.duration : 0;
+  const duration = isThisTrack ? state.duration : preloadedDuration;
 
   function handlePlayPause() {
     if (!isThisTrack) {
@@ -62,6 +76,8 @@ export function AudioPlayer({
 
   return (
     <div className={styles.player}>
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={preloadRef} src={src} preload="metadata" hidden />
       <div className={styles.controls}>
         <button
           type="button"

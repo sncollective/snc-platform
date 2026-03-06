@@ -4,6 +4,7 @@
   align-items: center;
   gap: var(--space-lg);
   padding: var(--space-xl) 0;
+  animation: fadeIn 0.3s ease-out both;
 }
 
 .heading {

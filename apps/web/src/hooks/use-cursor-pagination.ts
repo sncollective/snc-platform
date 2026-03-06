@@ -4,10 +4,12 @@ export function useCursorPagination<T>({
   buildUrl,
   deps = [],
   fetchOptions,
+  initialData,
 }: {
   buildUrl: (cursor: string | null) => string;
   deps?: readonly unknown[];
   fetchOptions?: RequestInit;
+  initialData?: { items: T[]; nextCursor: string | null };
 }): {
   items: T[];
   nextCursor: string | null;
@@ -15,10 +17,16 @@ export function useCursorPagination<T>({
   error: string | null;
   loadMore: () => void;
 } {
-  const [items, setItems] = useState<T[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<T[]>(initialData?.items ?? []);
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    initialData?.nextCursor ?? null,
+  );
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
+
+  // Track whether the initial seed has been consumed so we skip the first
+  // useEffect fetch when initialData was provided.
+  const initialConsumedRef = useRef(!!initialData);
 
   // Keep the latest buildUrl and fetchOptions in refs so fetchPage always
   // calls the current versions without needing them as useCallback dependencies
@@ -61,6 +69,10 @@ export function useCursorPagination<T>({
   );
 
   useEffect(() => {
+    if (initialConsumedRef.current) {
+      initialConsumedRef.current = false;
+      return;
+    }
     setItems([]);
     setNextCursor(null);
     void fetchPage(null, false);

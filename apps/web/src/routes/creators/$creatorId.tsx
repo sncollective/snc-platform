@@ -42,42 +42,31 @@ function CreatorDetailPage(): React.ReactElement {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [merchProducts, setMerchProducts] = useState<MerchProduct[]>([]);
 
-  // Fetch creator's subscription plans on mount
+  // Fetch supplementary data in parallel (all non-critical)
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
-      try {
-        const plans = await fetchPlans({ creatorId: creator.userId });
-        if (!cancelled) {
-          setCreatorPlans(plans);
-        }
-      } catch {
-        // Plans fetch failure is non-critical — subscribe button simply won't show
+    const loadSupplementary = async () => {
+      const [plansResult, subscriptionsResult, merchResult] =
+        await Promise.allSettled([
+          fetchPlans({ creatorId: creator.userId }),
+          session.data
+            ? fetchMySubscriptions()
+            : Promise.resolve(
+                [] as Awaited<ReturnType<typeof fetchMySubscriptions>>,
+              ),
+          fetchProducts({ creatorId: creator.userId, limit: 6 }),
+        ]);
+
+      if (cancelled) return;
+
+      if (plansResult.status === "fulfilled") {
+        setCreatorPlans(plansResult.value);
       }
-    };
 
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [creator.userId]);
-
-  // Determine if the current user is subscribed to this creator
-  useEffect(() => {
-    if (!session.data) {
-      setIsSubscribed(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const check = async () => {
-      try {
-        const subscriptions = await fetchMySubscriptions();
-        if (cancelled) return;
-        const subscribed = subscriptions.some(
+      if (subscriptionsResult.status === "fulfilled") {
+        const subs = subscriptionsResult.value;
+        const subscribed = subs.some(
           (sub) =>
             sub.status === "active" &&
             (sub.plan.type === "platform" ||
@@ -85,42 +74,19 @@ function CreatorDetailPage(): React.ReactElement {
                 sub.plan.creatorId === creator.userId)),
         );
         setIsSubscribed(subscribed);
-      } catch {
-        // Subscription check failure is non-critical
+      }
+
+      if (merchResult.status === "fulfilled") {
+        setMerchProducts(merchResult.value.items);
       }
     };
 
-    void check();
+    void loadSupplementary();
 
     return () => {
       cancelled = true;
     };
-  }, [session.data, creator.userId]);
-
-  // Fetch creator's merch products on mount
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadMerch = async () => {
-      try {
-        const response = await fetchProducts({
-          creatorId: creator.userId,
-          limit: 6,
-        });
-        if (!cancelled) {
-          setMerchProducts(response.items);
-        }
-      } catch {
-        // Merch fetch failure is non-critical — section stays hidden
-      }
-    };
-
-    void loadMerch();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [creator.userId]);
+  }, [creator.userId, session.data]);
 
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<FeedItem>({

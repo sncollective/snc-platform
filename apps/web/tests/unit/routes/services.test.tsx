@@ -16,13 +16,13 @@ import { makeMockService } from "../../helpers/booking-fixtures.js";
 // ── Hoisted Mocks ──
 
 const {
-  mockFetchServices,
-  mockFetchAuthState,
+  mockUseLoaderData,
+  mockUseSession,
   mockNavigate,
   mockCreateBooking,
 } = vi.hoisted(() => ({
-  mockFetchServices: vi.fn(),
-  mockFetchAuthState: vi.fn(),
+  mockUseLoaderData: vi.fn(),
+  mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
   mockCreateBooking: vi.fn(),
 }));
@@ -32,6 +32,7 @@ vi.mock("@tanstack/react-router", async () => {
   return {
     createFileRoute: () => (options: Record<string, unknown>) => ({
       ...options,
+      useLoaderData: mockUseLoaderData,
     }),
     useNavigate: () => mockNavigate,
     redirect: vi.fn(),
@@ -49,11 +50,15 @@ vi.mock("@tanstack/react-router", async () => {
 });
 
 vi.mock("../../../src/lib/auth.js", () => ({
-  fetchAuthState: mockFetchAuthState,
+  useSession: mockUseSession,
+}));
+
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchApiServer: vi.fn(),
 }));
 
 vi.mock("../../../src/lib/booking.js", () => ({
-  fetchServices: mockFetchServices,
+  fetchServices: vi.fn(),
   createBooking: mockCreateBooking,
 }));
 
@@ -71,11 +76,11 @@ beforeAll(async () => {
 // ── Test Lifecycle ──
 
 beforeEach(() => {
-  mockFetchServices.mockResolvedValue([
+  mockUseLoaderData.mockReturnValue([
     makeMockService({ id: "svc-1", name: "Recording Session", pricingInfo: "$50/hour" }),
     makeMockService({ id: "svc-2", name: "Label Services", pricingInfo: "Contact for pricing" }),
   ]);
-  mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: [] });
+  mockUseSession.mockReturnValue({ data: { user: { id: "u1" } } });
   mockCreateBooking.mockResolvedValue({});
   mockNavigate.mockReset();
 });
@@ -87,64 +92,35 @@ afterEach(() => {
 // ── Tests ──
 
 describe("ServicesPage", () => {
-  it("renders page heading 'Studio & Label Services'", async () => {
+  it("renders page heading 'Studio & Label Services'", () => {
     render(<ServicesPage />);
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "Studio & Label Services" }),
-      ).toBeDefined();
-    });
+    expect(
+      screen.getByRole("heading", { name: "Studio & Label Services" }),
+    ).toBeDefined();
   });
 
-  it("renders service cards after loading", async () => {
+  it("renders service cards from loader data", () => {
     render(<ServicesPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-      expect(screen.getByText("Label Services")).toBeDefined();
-    });
+    expect(screen.getByText("Recording Session")).toBeDefined();
+    expect(screen.getByText("Label Services")).toBeDefined();
   });
 
-  it("shows loading state initially", async () => {
-    mockFetchServices.mockReturnValue(new Promise(() => {}));
+  it("shows empty state when loader returns no services", () => {
+    mockUseLoaderData.mockReturnValue([]);
 
     render(<ServicesPage />);
 
-    expect(screen.getByText("Loading...")).toBeDefined();
-  });
-
-  it("shows error state when fetch fails", async () => {
-    mockFetchServices.mockRejectedValue(new Error("Network error"));
-
-    render(<ServicesPage />);
-
-    await waitFor(() => {
-      const alert = screen.getByRole("alert");
-      expect(alert.textContent).toContain("Failed to load services");
-    });
-  });
-
-  it("shows empty state when no services returned", async () => {
-    mockFetchServices.mockResolvedValue([]);
-
-    render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("No services are currently available."),
-      ).toBeDefined();
-    });
+    expect(
+      screen.getByText("No services are currently available."),
+    ).toBeDefined();
   });
 
   it("clicking 'Request Booking' expands booking form (authenticated)", async () => {
     const user = userEvent.setup();
 
     render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-    });
 
     const buttons = screen.getAllByRole("button", { name: "Request Booking" });
     await user.click(buttons[0]!);
@@ -156,13 +132,9 @@ describe("ServicesPage", () => {
 
   it("clicking 'Request Booking' redirects to /login (unauthenticated)", async () => {
     const user = userEvent.setup();
-    mockFetchAuthState.mockResolvedValue({ user: null, roles: [] });
+    mockUseSession.mockReturnValue({ data: null });
 
     render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-    });
 
     const buttons = screen.getAllByRole("button", { name: "Request Booking" });
     await user.click(buttons[0]!);
@@ -176,10 +148,6 @@ describe("ServicesPage", () => {
     const user = userEvent.setup();
 
     render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-    });
 
     const buttons = screen.getAllByRole("button", { name: "Request Booking" });
 
@@ -201,10 +169,6 @@ describe("ServicesPage", () => {
     const user = userEvent.setup();
 
     render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-    });
 
     // Expand form for svc-1
     const buttons = screen.getAllByRole("button", { name: "Request Booking" });
@@ -238,10 +202,6 @@ describe("ServicesPage", () => {
     const user = userEvent.setup();
 
     render(<ServicesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Recording Session")).toBeDefined();
-    });
 
     // Expand form
     const buttons = screen.getAllByRole("button", { name: "Request Booking" });

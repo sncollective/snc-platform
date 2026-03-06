@@ -162,8 +162,12 @@ describe("AudioPlayer", () => {
     expect(screen.getByRole("slider", { name: "Volume" })).toBeInTheDocument();
   });
 
-  it("does not render an audio element", () => {
+  it("renders a hidden audio element for metadata preloading", () => {
     render(<AudioPlayer {...DEFAULT_PROPS} />);
-    expect(document.querySelector("audio")).toBeNull();
+    const audio = document.querySelector("audio");
+    expect(audio).not.toBeNull();
+    expect(audio!.preload).toBe("metadata");
+    expect(audio!.hidden).toBe(true);
+    expect(audio!.src).toContain(TEST_TRACK.mediaUrl);
   });
 });

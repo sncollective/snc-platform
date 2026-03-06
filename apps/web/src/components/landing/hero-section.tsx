@@ -1,34 +1,22 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { useSession } from "../../lib/auth.js";
-import { fetchPlans, createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
+import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
 import { useSubscriptions } from "../../hooks/use-subscriptions.js";
 import styles from "./hero-section.module.css";
 
-export function HeroSection(): React.ReactElement {
+interface HeroSectionProps {
+  plans: SubscriptionPlan[];
+}
+
+export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
   const session = useSession();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const subscriptions = useSubscriptions();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch platform plans on mount
-  useEffect(() => {
-    let cancelled = false;
-    fetchPlans({ type: "platform" })
-      .then((result) => {
-        if (!cancelled) setPlans(result);
-      })
-      .catch(() => {
-        // Silently fail — hero still renders with fallback CTA behavior
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const isAuthenticated: boolean = session.data !== null && session.data !== undefined;
   const isSubscribed: boolean = hasPlatformSubscription(subscriptions);

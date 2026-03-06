@@ -4,25 +4,21 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { useSession } from "../../lib/auth.js";
-import { fetchPlans, createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
-import { useSectionData } from "../../hooks/use-section-data.js";
+import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
 import { useSubscriptions } from "../../hooks/use-subscriptions.js";
 import { PlanCard } from "../subscription/plan-card.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./landing-pricing.module.css";
 
-// ── Stable fetcher (defined at module scope to avoid re-renders) ──
-
-async function fetchPlatformPlans(): Promise<SubscriptionPlan[]> {
-  return fetchPlans({ type: "platform" });
-}
-
 // ── Public API ──
 
-export function LandingPricing(): React.ReactElement | null {
+interface LandingPricingProps {
+  plans: SubscriptionPlan[];
+}
+
+export function LandingPricing({ plans }: LandingPricingProps): React.ReactElement {
   const session = useSession();
   const navigate = useNavigate();
-  const { status: fetchStatus, items: plans } = useSectionData(fetchPlatformPlans);
   const subscriptions = useSubscriptions();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
@@ -45,19 +41,13 @@ export function LandingPricing(): React.ReactElement | null {
     }
   }
 
-  if (fetchStatus === "error") {
-    return null;
-  }
-
   return (
     <section className={`${sectionStyles.section} ${styles.sectionElevated}`}>
       <h2 className={`${sectionStyles.heading} ${styles.headingCenter}`}>Get Access to Everything</h2>
       <p className={styles.subheading}>
         Subscribe to the platform and access all content from every creator.
       </p>
-      {fetchStatus === "loading" ? (
-        <p className={`${sectionStyles.loading} ${styles.loading}`}>Loading plans...</p>
-      ) : plans.length === 0 ? (
+      {plans.length === 0 ? (
         <p className={`${sectionStyles.loading} ${styles.loading}`}>Plans coming soon!</p>
       ) : isSubscribedToPlatform ? (
         <div className={styles.subscribedBanner}>

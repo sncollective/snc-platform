@@ -1,44 +1,36 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { PlanCard } from "../components/subscription/plan-card.js";
 import { useSession } from "../lib/auth.js";
-import { fetchPlans, createCheckout, hasPlatformSubscription } from "../lib/subscription.js";
+import { fetchApiServer } from "../lib/api-server.js";
+import { createCheckout, hasPlatformSubscription } from "../lib/subscription.js";
 import { useSubscriptions } from "../hooks/use-subscriptions.js";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
+  loader: async (): Promise<SubscriptionPlan[]> => {
+    try {
+      const data = (await fetchApiServer({
+        data: "/api/subscriptions/plans?type=platform",
+      })) as { plans: SubscriptionPlan[] };
+      return data.plans;
+    } catch {
+      return [];
+    }
+  },
   component: PricingPage,
 });
 
 function PricingPage(): React.ReactElement {
   const session = useSession();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const plans = Route.useLoaderData();
   const subscriptions = useSubscriptions();
-  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch platform plans on mount
-  useEffect(() => {
-    let cancelled = false;
-    fetchPlans({ type: "platform" })
-      .then((result) => {
-        if (!cancelled) setPlans(result);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Failed to load plans");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPlans(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const isAuthenticated: boolean = session.data !== null && session.data !== undefined;
   const isSubscribedToPlatform: boolean = hasPlatformSubscription(subscriptions);
@@ -83,9 +75,7 @@ function PricingPage(): React.ReactElement {
         </div>
       ) : null}
 
-      {isLoadingPlans ? (
-        <p className={styles.status}>Loading plans...</p>
-      ) : plans.length === 0 ? (
+      {plans.length === 0 ? (
         <p className={styles.status}>No plans available.</p>
       ) : (
         <div className={styles.planGrid}>

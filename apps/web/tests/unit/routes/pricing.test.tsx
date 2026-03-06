@@ -9,13 +9,13 @@ import { makeMockPlan, makeMockUserSubscription } from "../../helpers/subscripti
 const {
   mockUseSession,
   mockNavigate,
-  mockFetchPlans,
+  mockUseLoaderData,
   mockCreateCheckout,
   mockFetchMySubscriptions,
 } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
-  mockFetchPlans: vi.fn(),
+  mockUseLoaderData: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
 }));
@@ -25,6 +25,7 @@ vi.mock("@tanstack/react-router", async () => {
   return {
     createFileRoute: () => (options: Record<string, unknown>) => ({
       ...options,
+      useLoaderData: mockUseLoaderData,
     }),
     Link: ({
       to,
@@ -44,11 +45,14 @@ vi.mock("../../../src/lib/auth.js", () => ({
   useSession: mockUseSession,
 }));
 
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchApiServer: vi.fn(),
+}));
+
 vi.mock("../../../src/lib/subscription.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/lib/subscription.js")>();
   return {
     ...actual,
-    fetchPlans: mockFetchPlans,
     createCheckout: mockCreateCheckout,
     fetchMySubscriptions: mockFetchMySubscriptions,
   };
@@ -69,7 +73,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
-  mockFetchPlans.mockResolvedValue([
+  mockUseLoaderData.mockReturnValue([
     makeMockPlan({ id: "plan-monthly", name: "Monthly", price: 999, interval: "month" }),
     makeMockPlan({ id: "plan-yearly", name: "Yearly", price: 9999, interval: "year" }),
   ]);
@@ -84,31 +88,19 @@ afterEach(() => {
 // ── Tests ──
 
 describe("PricingPage", () => {
-  it("renders plan cards after loading", async () => {
+  it("renders plan cards from loader data", () => {
     render(<PricingPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Monthly")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Monthly")).toBeInTheDocument();
     expect(screen.getByText("Yearly")).toBeInTheDocument();
   });
 
-  it("shows loading state initially", () => {
-    mockFetchPlans.mockReturnValue(new Promise(() => {}));
+  it("shows empty state when loader returns no plans", () => {
+    mockUseLoaderData.mockReturnValue([]);
 
     render(<PricingPage />);
 
-    expect(screen.getByText("Loading plans...")).toBeInTheDocument();
-  });
-
-  it("shows empty state when no plans available", async () => {
-    mockFetchPlans.mockResolvedValue([]);
-
-    render(<PricingPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("No plans available.")).toBeInTheDocument();
-    });
+    expect(screen.getByText("No plans available.")).toBeInTheDocument();
   });
 
   it("subscribe button calls createCheckout for authenticated users", async () => {
@@ -121,10 +113,6 @@ describe("PricingPage", () => {
     vi.stubGlobal("location", { ...window.location, set href(_: string) {} });
 
     render(<PricingPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Monthly")).toBeInTheDocument();
-    });
 
     const subscribeButtons = screen.getAllByRole("button", { name: /subscribe/i });
     await user.click(subscribeButtons[0]!);
@@ -139,10 +127,6 @@ describe("PricingPage", () => {
     mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
 
     render(<PricingPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Monthly")).toBeInTheDocument();
-    });
 
     const subscribeButtons = screen.getAllByRole("button", { name: /subscribe/i });
     await user.click(subscribeButtons[0]!);
@@ -187,32 +171,12 @@ describe("PricingPage", () => {
     });
   });
 
-  it("shows creator note footer text", async () => {
+  it("shows creator note footer text", () => {
     render(<PricingPage />);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Want to support a specific creator/),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("shows error message on fetch failure", async () => {
-    mockFetchPlans.mockRejectedValue(new Error("Network error"));
-
-    render(<PricingPage />);
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Failed to load plans");
-    });
-  });
-
-  it("fetches plans with type=platform", async () => {
-    render(<PricingPage />);
-
-    await waitFor(() => {
-      expect(mockFetchPlans).toHaveBeenCalledWith({ type: "platform" });
-    });
+    expect(
+      screen.getByText(/Want to support a specific creator/),
+    ).toBeInTheDocument();
   });
 
   it("does not show subscribed banner when user has no active platform subscription", async () => {
@@ -225,10 +189,7 @@ describe("PricingPage", () => {
 
     render(<PricingPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Monthly")).toBeInTheDocument();
-    });
-
+    expect(screen.getByText("Monthly")).toBeInTheDocument();
     expect(screen.queryByText("You're subscribed!")).toBeNull();
   });
 });

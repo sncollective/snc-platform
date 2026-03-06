@@ -1,13 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../../helpers/content-fixtures.js";
 
 // ── Hoisted Mocks ──
-
-const { mockApiGet } = vi.hoisted(() => ({
-  mockApiGet: vi.fn(),
-}));
 
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
@@ -21,19 +17,11 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-vi.mock("../../../../src/lib/fetch-utils.js", () => ({
-  apiGet: mockApiGet,
-}));
-
 // ── Import component under test (after mocks) ──
 
 import { RecentContent } from "../../../../src/components/landing/recent-content.js";
 
-// ── Test Lifecycle ──
-
-beforeEach(() => {
-  mockApiGet.mockReset();
-});
+// ── Lifecycle ──
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -42,106 +30,39 @@ afterEach(() => {
 // ── Tests ──
 
 describe("RecentContent", () => {
-  describe("loading state", () => {
-    it("shows loading text while fetching", () => {
-      // Never-resolving promise keeps component in loading state
-      mockApiGet.mockReturnValue(new Promise(() => {}));
+  it("renders section heading 'Recent Content'", () => {
+    render(<RecentContent items={[makeMockFeedItem()]} />);
 
-      render(<RecentContent />);
-
-      expect(screen.getByText("Loading content...")).toBeInTheDocument();
-      expect(
-        screen.getByRole("heading", { level: 2, name: "Recent Content" }),
-      ).toBeInTheDocument();
-    });
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Recent Content" }),
+    ).toBeInTheDocument();
   });
 
-  describe("success state", () => {
-    it("renders section heading 'Recent Content'", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockFeedItem()],
-        nextCursor: null,
-      });
+  it("renders content cards from passed data", () => {
+    const items = [
+      makeMockFeedItem({ id: "c1", title: "First Post" }),
+      makeMockFeedItem({ id: "c2", title: "Second Post" }),
+      makeMockFeedItem({ id: "c3", title: "Third Post" }),
+    ];
 
-      render(<RecentContent />);
+    render(<RecentContent items={items} />);
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole("heading", { level: 2, name: "Recent Content" }),
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("renders content cards from fetched data", async () => {
-      const items = [
-        makeMockFeedItem({ id: "c1", title: "First Post" }),
-        makeMockFeedItem({ id: "c2", title: "Second Post" }),
-        makeMockFeedItem({ id: "c3", title: "Third Post" }),
-      ];
-      mockApiGet.mockResolvedValue({ items, nextCursor: null });
-
-      render(<RecentContent />);
-
-      await waitFor(() => {
-        expect(screen.getByText("First Post")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Second Post")).toBeInTheDocument();
-      expect(screen.getByText("Third Post")).toBeInTheDocument();
-    });
-
-    it("calls apiGet with correct endpoint and limit", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockFeedItem()],
-        nextCursor: null,
-      });
-
-      render(<RecentContent />);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalledWith("/api/content", { limit: 6 });
-      });
-    });
-
-    it("renders 'View all content' link with href to /feed", async () => {
-      mockApiGet.mockResolvedValue({
-        items: [makeMockFeedItem()],
-        nextCursor: null,
-      });
-
-      render(<RecentContent />);
-
-      await waitFor(() => {
-        const link = screen.getByRole("link", { name: /view all content/i });
-        expect(link).toBeInTheDocument();
-        expect(link).toHaveAttribute("href", "/feed");
-      });
-    });
+    expect(screen.getByText("First Post")).toBeInTheDocument();
+    expect(screen.getByText("Second Post")).toBeInTheDocument();
+    expect(screen.getByText("Third Post")).toBeInTheDocument();
   });
 
-  describe("error and empty states", () => {
-    it("shows empty message when API returns empty items array", async () => {
-      mockApiGet.mockResolvedValue({ items: [], nextCursor: null });
+  it("renders 'View all content' link with href to /feed", () => {
+    render(<RecentContent items={[makeMockFeedItem()]} />);
 
-      const { getByText } = render(<RecentContent />);
+    const link = screen.getByRole("link", { name: /view all content/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/feed");
+  });
 
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalled();
-      });
+  it("shows empty message when items array is empty", () => {
+    render(<RecentContent items={[]} />);
 
-      expect(getByText(/No content yet/)).toBeTruthy();
-    });
-
-    it("returns null on fetch error", async () => {
-      mockApiGet.mockRejectedValue(new Error("Network error"));
-
-      const { container } = render(<RecentContent />);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalled();
-      });
-
-      // Component returns null — nothing rendered
-      expect(container.innerHTML).toBe("");
-    });
+    expect(screen.getByText(/No content yet/)).toBeInTheDocument();
   });
 });

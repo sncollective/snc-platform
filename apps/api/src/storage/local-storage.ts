@@ -6,7 +6,7 @@ import { pipeline } from "node:stream/promises";
 
 import { ok, err } from "@snc/shared";
 import { AppError, NotFoundError } from "@snc/shared";
-import type { StorageProvider, UploadMetadata, UploadResult } from "@snc/shared";
+import type { StorageProvider, UploadMetadata, UploadResult, DownloadResult } from "@snc/shared";
 import type { Result } from "@snc/shared";
 
 // ── Private Helpers ──
@@ -64,11 +64,13 @@ export const createLocalStorage = (
 
   const download = async (
     key: string,
-  ): Promise<Result<ReadableStream<Uint8Array>, AppError>> => {
+  ): Promise<Result<DownloadResult, AppError>> => {
     try {
       const filePath = resolvePath(key);
+      let fileSize: number;
       try {
-        await stat(filePath);
+        const fileStat = await stat(filePath);
+        fileSize = fileStat.size;
       } catch (statError) {
         if (isEnoent(statError)) {
           return err(new NotFoundError("File not found"));
@@ -77,7 +79,7 @@ export const createLocalStorage = (
       }
       const readStream = createReadStream(filePath);
       const webStream = Readable.toWeb(readStream) as ReadableStream<Uint8Array>;
-      return ok(webStream);
+      return ok({ stream: webStream, size: fileSize });
     } catch (error) {
       if (error instanceof AppError) {
         return err(error);

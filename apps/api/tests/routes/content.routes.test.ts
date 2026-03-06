@@ -72,6 +72,9 @@ const mockStorage = {
   getSignedUrl: mockStorageGetSignedUrl,
 };
 
+const mockDownloadResult = (text: string) =>
+  ok({ stream: textToStream(text), size: new TextEncoder().encode(text).byteLength });
+
 // Auth session mock — for GET /:id and GET /:id/media visibility checks
 const mockGetSession = vi.fn();
 
@@ -190,7 +193,7 @@ describe("content routes", () => {
     mockInsertReturning.mockResolvedValue([]);
     mockUpdateReturning.mockResolvedValue([]);
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
-    mockStorageDownload.mockResolvedValue(ok(new ReadableStream()));
+    mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
     mockGetSession.mockResolvedValue(null);
 
@@ -1033,7 +1036,7 @@ describe("content routes", () => {
           mediaKey: "content/content-test-1/media/video.mp4",
         }),
       ]);
-      mockStorageDownload.mockResolvedValue(ok(textToStream("file data")));
+      mockStorageDownload.mockResolvedValue(mockDownloadResult("file data"));
 
       const res = await app.request(
         "/api/content/content-test-1/media",
@@ -1041,6 +1044,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.headers.get("Content-Type")).toBe("video/mp4");
+      expect(res.headers.get("Content-Length")).toBe("9");
       expect(res.headers.get("Content-Disposition")).toContain("filename");
       expect(res.headers.get("Cache-Control")).toBe("private, max-age=3600");
       const text = await res.text();
@@ -1058,7 +1062,7 @@ describe("content routes", () => {
         user: makeMockUser(),
         session: makeMockSession(),
       });
-      mockStorageDownload.mockResolvedValue(ok(textToStream("audio data")));
+      mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
       const res = await app.request("/api/content/content-test-1/media", {
         headers: { Cookie: "better-auth.session_token=valid_token" },
@@ -1120,7 +1124,7 @@ describe("content routes", () => {
         session: makeMockSession(),
       });
       mockSubLimit.mockResolvedValue([{ id: "sub_123" }]);
-      mockStorageDownload.mockResolvedValue(ok(textToStream("audio data")));
+      mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
       const res = await app.request("/api/content/content-test-1/media");
 
@@ -1141,7 +1145,7 @@ describe("content routes", () => {
         user: makeMockUser({ id: "user_test123" }),
         session: makeMockSession(),
       });
-      mockStorageDownload.mockResolvedValue(ok(textToStream("audio data")));
+      mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
       const res = await app.request("/api/content/content-test-1/media");
 

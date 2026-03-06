@@ -13,6 +13,11 @@ export type UploadResult = {
   size: number;
 };
 
+export type DownloadResult = {
+  stream: ReadableStream<Uint8Array>;
+  size: number;
+};
+
 export type StorageProvider = {
   upload(
     key: string,
@@ -20,7 +25,7 @@ export type StorageProvider = {
     metadata?: UploadMetadata,
   ): Promise<Result<UploadResult, AppError>>;
 
-  download(key: string): Promise<Result<ReadableStream<Uint8Array>, AppError>>;
+  download(key: string): Promise<Result<DownloadResult, AppError>>;
 
   delete(key: string): Promise<Result<void, AppError>>;
 

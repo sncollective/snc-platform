@@ -4,6 +4,7 @@
   padding: var(--space-2xl) var(--space-md);
   max-width: var(--content-max-width);
   margin: 0 auto;
+  animation: fadeIn 0.3s ease-out 0.1s both;
 }
 
 .heading {

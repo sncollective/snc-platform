@@ -13,13 +13,11 @@ import { makeMockPlan, makeMockUserSubscription } from "../../../helpers/subscri
 const {
   mockUseSession,
   mockNavigate,
-  mockFetchPlans,
   mockCreateCheckout,
   mockFetchMySubscriptions,
 } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
-  mockFetchPlans: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
 }));
@@ -45,7 +43,6 @@ vi.mock("../../../../src/lib/subscription.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../../src/lib/subscription.js")>();
   return {
     ...actual,
-    fetchPlans: mockFetchPlans,
     createCheckout: mockCreateCheckout,
     fetchMySubscriptions: mockFetchMySubscriptions,
   };
@@ -78,11 +75,14 @@ vi.mock("../../../../src/components/subscription/plan-card.js", async () => {
 
 import { LandingPricing } from "../../../../src/components/landing/landing-pricing.js";
 
+// ── Shared fixtures ──
+
+const DEFAULT_PLANS = [makeMockPlan({ id: "plan-platform-monthly" })];
+
 // ── Test Lifecycle ──
 
 beforeEach(() => {
   mockUseSession.mockReturnValue(makeMockSessionResult());
-  mockFetchPlans.mockResolvedValue([makeMockPlan({ id: "plan-platform-monthly" })]);
   mockFetchMySubscriptions.mockResolvedValue([]);
   mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
 });
@@ -94,77 +94,40 @@ afterEach(() => {
 // ── Tests ──
 
 describe("LandingPricing", () => {
-  describe("loading state", () => {
-    it("shows loading text while fetching plans", () => {
-      // Never-resolving promise keeps component in loading state
-      mockFetchPlans.mockReturnValue(new Promise(() => {}));
-
-      render(<LandingPricing />);
-
-      expect(screen.getByText("Loading plans...")).toBeInTheDocument();
-    });
-
-    it("renders section heading during load", () => {
-      mockFetchPlans.mockReturnValue(new Promise(() => {}));
-
-      render(<LandingPricing />);
+  describe("success state", () => {
+    it("renders section heading 'Get Access to Everything'", () => {
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       expect(
         screen.getByRole("heading", { level: 2, name: "Get Access to Everything" }),
       ).toBeInTheDocument();
     });
-  });
 
-  describe("success state", () => {
-    it("renders section heading 'Get Access to Everything'", async () => {
-      render(<LandingPricing />);
+    it("renders subheading text", () => {
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole("heading", { level: 2, name: "Get Access to Everything" }),
-        ).toBeInTheDocument();
-      });
+      expect(
+        screen.getByText(/Subscribe to the platform and access all content/),
+      ).toBeInTheDocument();
     });
 
-    it("renders subheading text", async () => {
-      render(<LandingPricing />);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Subscribe to the platform and access all content/),
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("renders PlanCard for each platform plan", async () => {
-      mockFetchPlans.mockResolvedValue([
+    it("renders PlanCard for each platform plan", () => {
+      const plans = [
         makeMockPlan({ id: "plan-platform-monthly", name: "S/NC All Access" }),
-      ]);
+      ];
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={plans} />);
 
-      await waitFor(() => {
-        expect(screen.getByTestId("plan-card-plan-platform-monthly")).toBeInTheDocument();
-        expect(screen.getByText("S/NC All Access")).toBeInTheDocument();
-      });
+      expect(screen.getByTestId("plan-card-plan-platform-monthly")).toBeInTheDocument();
+      expect(screen.getByText("S/NC All Access")).toBeInTheDocument();
     });
 
-    it("calls fetchPlans with { type: 'platform' } on mount", async () => {
-      render(<LandingPricing />);
+    it("renders 'Learn more about pricing' link with href to /pricing", () => {
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
-      await waitFor(() => {
-        expect(mockFetchPlans).toHaveBeenCalledWith({ type: "platform" });
-      });
-    });
-
-    it("renders 'Learn more about pricing' link with href to /pricing", async () => {
-      render(<LandingPricing />);
-
-      await waitFor(() => {
-        const link = screen.getByRole("link", { name: /learn more about pricing/i });
-        expect(link).toBeInTheDocument();
-        expect(link).toHaveAttribute("href", "/pricing");
-      });
+      const link = screen.getByRole("link", { name: /learn more about pricing/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute("href", "/pricing");
     });
   });
 
@@ -175,7 +138,7 @@ describe("LandingPricing", () => {
         makeMockUserSubscription({ status: "active" }),
       ]);
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByText("You're subscribed!")).toBeInTheDocument();
@@ -188,7 +151,7 @@ describe("LandingPricing", () => {
         makeMockUserSubscription({ status: "active" }),
       ]);
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         const link = screen.getByRole("link", { name: "Explore content" });
@@ -200,7 +163,7 @@ describe("LandingPricing", () => {
     it("fetches subscriptions when session data exists", async () => {
       mockUseSession.mockReturnValue(makeLoggedInSessionResult());
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(mockFetchMySubscriptions).toHaveBeenCalled();
@@ -213,7 +176,7 @@ describe("LandingPricing", () => {
       const user = userEvent.setup();
       mockUseSession.mockReturnValue(makeMockSessionResult());
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -232,7 +195,7 @@ describe("LandingPricing", () => {
       mockFetchMySubscriptions.mockResolvedValue([]);
       vi.stubGlobal("location", { ...window.location, set href(_: string) {} });
 
-      render(<LandingPricing />);
+      render(<LandingPricing plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -246,29 +209,11 @@ describe("LandingPricing", () => {
     });
   });
 
-  describe("error and empty states", () => {
-    it("shows empty message when no plans available (empty array)", async () => {
-      mockFetchPlans.mockResolvedValue([]);
+  describe("empty state", () => {
+    it("shows empty message when no plans available (empty array)", () => {
+      render(<LandingPricing plans={[]} />);
 
-      const { getByText } = render(<LandingPricing />);
-
-      await waitFor(() => {
-        expect(mockFetchPlans).toHaveBeenCalled();
-      });
-
-      expect(getByText(/Plans coming soon/)).toBeTruthy();
-    });
-
-    it("returns null on fetch error", async () => {
-      mockFetchPlans.mockRejectedValue(new Error("Network error"));
-
-      const { container } = render(<LandingPricing />);
-
-      await waitFor(() => {
-        expect(mockFetchPlans).toHaveBeenCalled();
-      });
-
-      expect(container.innerHTML).toBe("");
+      expect(screen.getByText(/Plans coming soon/)).toBeInTheDocument();
     });
   });
 });

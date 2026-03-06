@@ -45,10 +45,12 @@ export const streamFile = async (
   if (!result.ok) {
     throw new NotFoundError(errorMsg);
   }
+  const { stream, size } = result.value;
   const contentType = inferContentType(key);
   const filename = key.split("/").pop() ?? "file";
   c.header("Content-Type", contentType);
+  c.header("Content-Length", size.toString());
   c.header("Content-Disposition", `inline; filename="${filename}"`);
   c.header("Cache-Control", cacheControl);
-  return c.body(result.value);
+  return c.body(stream);
 };

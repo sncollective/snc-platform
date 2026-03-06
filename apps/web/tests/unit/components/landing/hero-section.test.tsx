@@ -13,13 +13,11 @@ import { makeMockPlan, makeMockUserSubscription } from "../../../helpers/subscri
 const {
   mockUseSession,
   mockNavigate,
-  mockFetchPlans,
   mockCreateCheckout,
   mockFetchMySubscriptions,
 } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
-  mockFetchPlans: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
 }));
@@ -45,7 +43,6 @@ vi.mock("../../../../src/lib/subscription.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../../src/lib/subscription.js")>();
   return {
     ...actual,
-    fetchPlans: mockFetchPlans,
     createCheckout: mockCreateCheckout,
     fetchMySubscriptions: mockFetchMySubscriptions,
   };
@@ -55,13 +52,14 @@ vi.mock("../../../../src/lib/subscription.js", async (importOriginal) => {
 
 import { HeroSection } from "../../../../src/components/landing/hero-section.js";
 
+// ── Shared fixtures ──
+
+const DEFAULT_PLANS = [makeMockPlan({ id: "plan-platform-monthly" })];
+
 // ── Test Lifecycle ──
 
 beforeEach(() => {
   mockUseSession.mockReturnValue(makeMockSessionResult());
-  mockFetchPlans.mockResolvedValue([
-    makeMockPlan({ id: "plan-platform-monthly" }),
-  ]);
   mockFetchMySubscriptions.mockResolvedValue([]);
   mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
 });
@@ -75,7 +73,7 @@ afterEach(() => {
 describe("HeroSection", () => {
   describe("static content", () => {
     it("renders heading text", () => {
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       expect(
         screen.getByRole("heading", { level: 1, name: "Signal to Noise Collective" }),
@@ -83,7 +81,7 @@ describe("HeroSection", () => {
     });
 
     it("renders subheading paragraph", () => {
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       expect(
         screen.getByText(/We cut through the noise/),
@@ -91,7 +89,7 @@ describe("HeroSection", () => {
     });
 
     it("renders 'Browse Free Content' link with href to /feed", () => {
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       const link = screen.getByRole("link", { name: "Browse Free Content" });
       expect(link).toBeInTheDocument();
@@ -103,7 +101,7 @@ describe("HeroSection", () => {
     it("renders 'Subscribe' button", () => {
       mockUseSession.mockReturnValue(makeMockSessionResult());
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
     });
@@ -112,7 +110,7 @@ describe("HeroSection", () => {
       const user = userEvent.setup();
       mockUseSession.mockReturnValue(makeMockSessionResult());
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await user.click(screen.getByRole("button", { name: "Subscribe" }));
 
@@ -127,7 +125,7 @@ describe("HeroSection", () => {
       mockUseSession.mockReturnValue(makeLoggedInSessionResult());
       mockFetchMySubscriptions.mockResolvedValue([]);
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -140,7 +138,7 @@ describe("HeroSection", () => {
       mockFetchMySubscriptions.mockResolvedValue([]);
       vi.stubGlobal("location", { ...window.location, set href(_: string) {} });
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -165,7 +163,7 @@ describe("HeroSection", () => {
         },
       });
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -181,10 +179,9 @@ describe("HeroSection", () => {
     it("navigates to /pricing when no plans loaded", async () => {
       const user = userEvent.setup();
       mockUseSession.mockReturnValue(makeLoggedInSessionResult());
-      mockFetchPlans.mockResolvedValue([]);
       mockFetchMySubscriptions.mockResolvedValue([]);
 
-      render(<HeroSection />);
+      render(<HeroSection plans={[]} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -203,7 +200,7 @@ describe("HeroSection", () => {
       mockFetchMySubscriptions.mockResolvedValue([]);
       mockCreateCheckout.mockRejectedValue(new Error("Checkout failed"));
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
@@ -224,7 +221,7 @@ describe("HeroSection", () => {
         makeMockUserSubscription({ status: "active" }),
       ]);
 
-      render(<HeroSection />);
+      render(<HeroSection plans={DEFAULT_PLANS} />);
 
       await waitFor(() => {
         const link = screen.getByRole("link", { name: "Explore Content" });

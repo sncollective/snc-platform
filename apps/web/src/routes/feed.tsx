@@ -1,21 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
-import type { ContentType, FeedItem } from "@snc/shared";
+import type { ContentType, FeedItem, FeedResponse } from "@snc/shared";
 
 import { ContentCard } from "../components/content/content-card.js";
 import { FilterBar } from "../components/content/filter-bar.js";
+import { fetchApiServer } from "../lib/api-server.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import styles from "./feed.module.css";
 import listingStyles from "../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/feed")({
+  loader: async (): Promise<FeedResponse> => {
+    try {
+      return (await fetchApiServer({
+        data: "/api/content?limit=12",
+      })) as FeedResponse;
+    } catch {
+      return { items: [], nextCursor: null };
+    }
+  },
   component: FeedPage,
 });
 
 // ── Public API ──
 
 function FeedPage(): React.ReactElement {
+  const loaderData = Route.useLoaderData();
   const [activeFilter, setActiveFilter] = useState<ContentType | null>(null);
 
   const { items, nextCursor, isLoading, loadMore } =
@@ -23,6 +34,7 @@ function FeedPage(): React.ReactElement {
       buildUrl: (cursor) =>
         buildFeedUrl({ filter: activeFilter, cursor, limit: 12 }),
       deps: [activeFilter],
+      initialData: activeFilter === null ? loaderData : undefined,
     });
 
   const handleFilterChange = (filter: ContentType | null) => {

@@ -106,14 +106,13 @@ dashboardRoutes.get(
     },
   }),
   async (c) => {
-    const [totalRow] = await db
-      .select({ count: count() })
-      .from(bookingRequests);
-
-    const [pendingRow] = await db
-      .select({ count: count() })
-      .from(bookingRequests)
-      .where(eq(bookingRequests.status, "pending"));
+    const [[totalRow], [pendingRow]] = await Promise.all([
+      db.select({ count: count() }).from(bookingRequests),
+      db
+        .select({ count: count() })
+        .from(bookingRequests)
+        .where(eq(bookingRequests.status, "pending")),
+    ]);
 
     return c.json({
       pending: pendingRow?.count ?? 0,

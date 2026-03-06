@@ -1,20 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import type { CreatorListItem } from "@snc/shared";
+import type { CreatorListItem, CreatorListResponse } from "@snc/shared";
 
 import { CreatorCard } from "../../components/creator/creator-card.js";
+import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/creators/")({
+  loader: async (): Promise<CreatorListResponse> => {
+    try {
+      return (await fetchApiServer({
+        data: "/api/creators?limit=24",
+      })) as CreatorListResponse;
+    } catch {
+      return { items: [], nextCursor: null };
+    }
+  },
   component: CreatorsPage,
 });
 
 function CreatorsPage(): React.ReactElement {
+  const loaderData = Route.useLoaderData();
+
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<CreatorListItem>({
       buildUrl: (cursor) => buildCreatorsUrl({ cursor, limit: 24 }),
+      initialData: loaderData,
     });
 
   const handleLoadMore = loadMore;

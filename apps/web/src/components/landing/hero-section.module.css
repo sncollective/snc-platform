@@ -3,6 +3,7 @@
   background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-hero-gradient) 100%);
   padding: var(--space-2xl) var(--space-md);
   text-align: center;
+  animation: fadeIn 0.3s ease-out both;
 }
 
 .inner {

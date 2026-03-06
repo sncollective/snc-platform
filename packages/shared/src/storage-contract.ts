@@ -73,8 +73,11 @@ export const runStorageContractTests = (
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const text = await streamToText(result.value);
+        const text = await streamToText(result.value.stream);
         expect(text).toBe(content);
+        expect(result.value.size).toBe(
+          new TextEncoder().encode(content).byteLength,
+        );
       }
     });
 

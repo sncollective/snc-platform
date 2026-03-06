@@ -1,7 +1,6 @@
 ---
 name: platform-status
 description: "Report project state. Auto-loads when checking build health or phase progress."
-disable-model-invocation: false
 allowed-tools: Read, Glob, Grep, Bash(pnpm --filter @snc/api test), Bash(pnpm --filter @snc/shared test), Bash(pnpm --filter @snc/web test), Bash(pnpm --filter @snc/api build 2>&1), Bash(pnpm --filter @snc/shared build 2>&1), Bash(pnpm --filter @snc/web build 2>&1)
 model: haiku
 context: fork

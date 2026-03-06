@@ -25,6 +25,9 @@ const mockStorage = {
   getSignedUrl: vi.fn(),
 };
 
+const mockDownloadResult = (text: string) =>
+  ok({ stream: textToStream(text), size: new TextEncoder().encode(text).byteLength });
+
 // Drizzle db mock — chainable method stubs
 
 // Simple select queries: select → from → where (returns promise directly)
@@ -168,7 +171,7 @@ describe("creator routes", () => {
 
     // Default storage mock responses
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
-    mockStorageDownload.mockResolvedValue(ok(new ReadableStream()));
+    mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
 
     app = await setupCreatorApp();
@@ -860,7 +863,7 @@ describe("creator routes", () => {
 
       // findCreatorProfile → profile with avatarKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
-      mockStorageDownload.mockResolvedValueOnce(ok(textToStream("image data")));
+      mockStorageDownload.mockResolvedValueOnce(mockDownloadResult("image data"));
 
       const res = await app.request("/api/creators/user_test123/avatar");
 
@@ -907,7 +910,7 @@ describe("creator routes", () => {
 
       // findCreatorProfile → profile with bannerKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
-      mockStorageDownload.mockResolvedValueOnce(ok(textToStream("banner data")));
+      mockStorageDownload.mockResolvedValueOnce(mockDownloadResult("banner data"));
 
       const res = await app.request("/api/creators/user_test123/banner");
 
