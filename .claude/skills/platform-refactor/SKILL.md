@@ -6,6 +6,7 @@ disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion, Agent, Task
 model: sonnet
 ---
+
 # Refactor — Pipeline Orchestrator
 
 You run the full refactor pipeline for a scope (or all scopes): plan → fix → validate. You use the Agent tool to launch each phase as a subagent with its own context window.
@@ -21,11 +22,11 @@ $ARGUMENTS
 
 The pipeline has three phases, each defined by its own SKILL.md:
 
-| Phase | Skill file | Role |
-|-------|-----------|------|
-| Plan | `platform/.claude/skills/platform-refactor-plan/SKILL.md` | Generate analysis report |
-| Fix | `platform/.claude/skills/platform-refactor-fix/SKILL.md` | Implement one finding |
-| Validate | `platform/.claude/skills/platform-refactor-validate/SKILL.md` | Test, regression check, archive |
+| Phase    | Skill file                                           | Role                            |
+| -------- | ---------------------------------------------------- | ------------------------------- |
+| Plan     | `.claude/skills/platform-refactor-plan/SKILL.md`     | Generate analysis report        |
+| Fix      | `.claude/skills/platform-refactor-fix/SKILL.md`      | Implement one finding           |
+| Validate | `.claude/skills/platform-refactor-validate/SKILL.md` | Test, regression check, archive |
 
 To launch a phase, read the sub-skill's SKILL.md and pass its full content as the Agent tool's `prompt` parameter, with the specific arguments appended.
 
@@ -35,18 +36,20 @@ When `$ARGUMENTS` contains a scope:
 
 ### Phase 1: Plan
 
-1. Check if a report already exists at `platform/docs/refactor/refactor-{scope}.md`.
+1. Check if a report already exists at `docs/refactor/refactor-{scope}.md`.
    - If it exists, ask the user: **use existing report** or **regenerate**?
    - If regenerating, proceed below. If using existing, skip to Phase 2.
-2. Read `platform/.claude/skills/platform-refactor-plan/SKILL.md`.
-3. Launch an Agent with the skill content as prompt, appending the scope as `$ARGUMENTS`. Use `subagent_type: "general-purpose"`.
-4. Confirm the report was created.
+2. Check if an archived report exists at `docs/refactor/archive/refactor-{scope}.md`.
+   - If found, note it — the plan agent's Step 0 will read it and exclude already-implemented findings.
+3. Read `.claude/skills/platform-refactor-plan/SKILL.md`.
+4. Launch an Agent with the skill content as prompt, appending the scope as `$ARGUMENTS`. Use `subagent_type: "general-purpose"`.
+5. Confirm the report was created.
 
 ### Phase 2: Fix
 
-1. Read the report at `platform/docs/refactor/refactor-{scope}.md`.
+1. Read the report at `docs/refactor/refactor-{scope}.md`.
 2. Extract the **Suggested Implementation Order** section to get the ordered list of findings.
-3. Read `platform/.claude/skills/platform-refactor-fix/SKILL.md` (read once, reuse for each finding).
+3. Read `.claude/skills/platform-refactor-fix/SKILL.md` (read once, reuse for each finding).
 4. Auto-continue through findings sequentially — do NOT prompt the user for each finding. For each finding in order:
    - Launch an Agent with the fix skill content as prompt, passing `{scope} {finding-id}` as arguments.
    - After the agent completes, briefly report the result (finding ID, pass/fail, files changed).
@@ -59,13 +62,14 @@ When `$ARGUMENTS` contains a scope:
 
 ### Phase 3: Validate
 
-1. Read `platform/.claude/skills/platform-refactor-validate/SKILL.md`.
+1. Read `.claude/skills/platform-refactor-validate/SKILL.md`.
 2. Launch an Agent with the validate skill content as prompt, passing the scope as arguments.
 3. Report the validation results to the user.
 
 ### Pipeline Summary
 
 After all phases complete, summarize:
+
 - Findings: total / implemented / failed
 - Test results from validation
 - Whether the report was archived
@@ -82,15 +86,19 @@ A full sweep across all scopes will exhaust the orchestrator's context window. E
 
 ### Step 1: Discover Scopes
 
-Read `platform/.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available scopes.
+Read `.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available scopes.
+
+Check `docs/refactor/archive/` for archived reports. For each archived report, note the scope and `**Archived**` date. When presenting scopes, mark recently refactored ones (e.g., "middleware — last refactored 2026-03-01") so the user can deprioritize them.
 
 Present the scope list to the user with the recommendation to select **1-3 scopes per session**. Let them:
+
 - Select which scopes to include (recommend 1-3; warn if they select more)
 - Confirm or reorder
 
 ### Step 2: Iterate
 
 For each selected scope:
+
 1. Run the single-scope pipeline (Phase 1 → 2 → 3).
 2. Briefly report the scope result, then continue immediately to the next scope.
 3. Only pause if a scope had test failures or errors — otherwise keep going.
@@ -98,6 +106,7 @@ For each selected scope:
 ### Step 3: Final Summary
 
 After all scopes (or when the user stops), report:
+
 - Scopes completed vs. remaining
 - Total findings across all scopes: implemented / skipped
 - Any scopes that had test failures during validation

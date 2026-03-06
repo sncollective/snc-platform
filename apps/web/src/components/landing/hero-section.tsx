@@ -6,6 +6,7 @@ import type { SubscriptionPlan } from "@snc/shared";
 import { useSession } from "../../lib/auth.js";
 import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
 import { useSubscriptions } from "../../hooks/use-subscriptions.js";
+import { navigateExternal } from "../../lib/url.js";
 import styles from "./hero-section.module.css";
 
 interface HeroSectionProps {
@@ -43,7 +44,7 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
     setIsLoading(true);
     try {
       const checkoutUrl = await createCheckout(platformPlanId);
-      window.location.href = checkoutUrl;
+      navigateExternal(checkoutUrl);
     } catch {
       // On checkout failure, redirect to pricing page as fallback
       void navigate({ to: "/pricing" });

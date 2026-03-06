@@ -6,6 +6,7 @@ import type { SubscriptionPlan } from "@snc/shared";
 import { useSession } from "../../lib/auth.js";
 import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
 import { useSubscriptions } from "../../hooks/use-subscriptions.js";
+import { navigateExternal } from "../../lib/url.js";
 import { PlanCard } from "../subscription/plan-card.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./landing-pricing.module.css";
@@ -35,7 +36,7 @@ export function LandingPricing({ plans }: LandingPricingProps): React.ReactEleme
 
     try {
       const checkoutUrl = await createCheckout(planId);
-      window.location.href = checkoutUrl;
+      navigateExternal(checkoutUrl);
     } catch {
       setLoadingPlanId(null);
     }

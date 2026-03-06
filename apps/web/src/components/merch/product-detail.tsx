@@ -4,6 +4,7 @@ import type { MerchProductDetail as MerchProductDetailType } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
 
 import { formatPrice } from "../../lib/format.js";
+import { navigateExternal } from "../../lib/url.js";
 import { createMerchCheckout } from "../../lib/merch.js";
 import { VariantSelector } from "./variant-selector.js";
 import styles from "./product-detail.module.css";
@@ -45,7 +46,7 @@ export function ProductDetail({
     setIsCheckingOut(true);
     try {
       const checkoutUrl = await createMerchCheckout(selectedVariantId, 1);
-      window.location.href = checkoutUrl;
+      navigateExternal(checkoutUrl);
     } catch {
       setIsCheckingOut(false);
     }

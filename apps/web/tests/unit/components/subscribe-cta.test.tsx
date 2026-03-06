@@ -10,11 +10,12 @@ import {
 
 // ── Hoisted Mocks ──
 
-const { mockFetchPlans, mockCreateCheckout, mockUseSession } = vi.hoisted(
+const { mockFetchPlans, mockCreateCheckout, mockUseSession, mockNavigateExternal } = vi.hoisted(
   () => ({
     mockFetchPlans: vi.fn(),
     mockCreateCheckout: vi.fn(),
     mockUseSession: vi.fn(),
+    mockNavigateExternal: vi.fn(),
   }),
 );
 
@@ -25,6 +26,10 @@ vi.mock("../../../src/lib/subscription.js", () => ({
 
 vi.mock("../../../src/lib/auth.js", () => ({
   useSession: mockUseSession,
+}));
+
+vi.mock("../../../src/lib/url.js", () => ({
+  navigateExternal: mockNavigateExternal,
 }));
 
 vi.mock("@tanstack/react-router", async () => {

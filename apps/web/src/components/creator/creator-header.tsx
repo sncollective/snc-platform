@@ -3,7 +3,7 @@ import type React from "react";
 import type { CreatorProfileResponse, SubscriptionPlan } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
 
-import { buildMediaUrl } from "../../lib/url.js";
+import { buildMediaUrl, navigateExternal } from "../../lib/url.js";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { createCheckout } from "../../lib/subscription.js";
 import { useSession } from "../../lib/auth.js";
@@ -37,7 +37,7 @@ export function CreatorHeader({
     setCheckoutLoading(true);
     try {
       const checkoutUrl = await createCheckout(planId);
-      window.location.href = checkoutUrl;
+      navigateExternal(checkoutUrl);
     } catch {
       setCheckoutLoading(false);
     }

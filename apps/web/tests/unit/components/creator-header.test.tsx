@@ -7,9 +7,10 @@ import { makeMockPlan } from "../../helpers/subscription-fixtures.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseSession, mockCreateCheckout } = vi.hoisted(() => ({
+const { mockUseSession, mockCreateCheckout, mockNavigateExternal } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockCreateCheckout: vi.fn(),
+  mockNavigateExternal: vi.fn(),
 }));
 
 vi.mock("../../../src/lib/auth.js", () => ({
@@ -19,6 +20,11 @@ vi.mock("../../../src/lib/auth.js", () => ({
 vi.mock("../../../src/lib/subscription.js", () => ({
   createCheckout: mockCreateCheckout,
 }));
+
+vi.mock("../../../src/lib/url.js", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, navigateExternal: mockNavigateExternal };
+});
 
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");

@@ -14,12 +14,12 @@ You run deep verification after all findings in a refactor report have been impl
 
 $ARGUMENTS
 
-Format: `<scope>` where scope maps to `platform/docs/refactor/refactor-{scope}.md`.
+Format: `<scope>` where scope maps to `docs/refactor/refactor-{scope}.md`.
 
 ## Step 1: Load the Report
 
-1. Read `platform/docs/refactor/refactor-{scope}.md`.
-2. If the file does not exist, check `platform/docs/refactor/archive/` — if it's already archived, tell the user and stop.
+1. Read `docs/refactor/refactor-{scope}.md`.
+2. If the file does not exist, check `docs/refactor/archive/` — if it's already archived, tell the user and stop.
 3. If neither exists, tell the user no report was found and suggest running `/platform-refactor-plan {scope}`.
 
 ## Step 2: Check Completion Status
@@ -36,9 +36,9 @@ Scan all P0, P1, and P2 findings for unchecked verify items (`[ ]`).
 Run tests for every package that had files touched across **all** findings in the report. Collect the affected packages by scanning the "Affected files" and "Location" fields of every finding.
 
 ```
-cd platform && pnpm --filter @snc/api test      # if any apps/api/ files were touched
-cd platform && pnpm --filter @snc/shared test    # if any packages/shared/ files were touched
-cd platform && pnpm --filter @snc/web test       # if any apps/web/ files were touched
+pnpm --filter @snc/api test      # if any apps/api/ files were touched
+pnpm --filter @snc/shared test    # if any packages/shared/ files were touched
+pnpm --filter @snc/web test       # if any apps/web/ files were touched
 ```
 
 Report pass/fail counts for each package.
@@ -68,8 +68,8 @@ Read the report's "Pattern Compliance" table. For each entry with status `Drift`
 
 ## Step 6: Archive
 
-1. Ensure `platform/docs/refactor/archive/` directory exists (create if needed).
-2. Move the report from `platform/docs/refactor/refactor-{scope}.md` to `platform/docs/refactor/archive/refactor-{scope}.md`.
+1. Ensure `docs/refactor/archive/` directory exists (create if needed).
+2. Move the report from `docs/refactor/refactor-{scope}.md` to `docs/refactor/archive/refactor-{scope}.md`.
 3. Add an archive header to the top of the moved file:
 
 ```markdown

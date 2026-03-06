@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import type { MerchProduct } from "@snc/shared";
 
@@ -16,11 +16,26 @@ export interface ProductCardProps {
 export function ProductCard({
   product,
 }: ProductCardProps): React.ReactElement {
+  const navigate = useNavigate();
+
+  const handleCardClick = (): void => {
+    void navigate({ to: "/merch/$handle", params: { handle: product.handle } });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   return (
-    <Link
-      to="/merch/$handle"
-      params={{ handle: product.handle }}
+    <div
+      role="link"
+      tabIndex={0}
       className={styles.card}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
     >
       <div className={styles.imageWrapper}>
         {product.image ? (
@@ -54,6 +69,6 @@ export function ProductCard({
           </span>
         )}
       </div>
-    </Link>
+    </div>
   );
 }

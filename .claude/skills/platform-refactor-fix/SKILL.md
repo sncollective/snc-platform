@@ -15,14 +15,14 @@ You implement a specific finding from a `platform-refactor-plan` report. The ana
 $ARGUMENTS
 
 Format: `<scope> <finding-id>` where:
-- `<scope>` maps to `platform/docs/refactor/refactor-{scope}.md`
+- `<scope>` maps to `docs/refactor/refactor-{scope}.md`
 - `<finding-id>` is a priority tier + number, e.g., `P1.3`, `P0.1`, `P2.2`
 - Multiple coupled findings use `+` syntax: `P1.1+P1.2`
 
 ## Step 1: Parse & Load
 
 1. Parse `$ARGUMENTS` into scope and finding ID(s).
-2. Read `platform/docs/refactor/refactor-{scope}.md`.
+2. Read `docs/refactor/refactor-{scope}.md`.
 3. Locate the finding(s) by matching the priority section header (e.g., `## P1`) and finding number within it. Findings are numbered sequentially within each priority tier — `P1.3` means the 3rd finding under `## P1 — High Value`.
 4. Extract the full finding block including all fields (Location, Affected files, Proposed consolidation/Fix, Estimated scope, Pattern reference, Tests affected, Verify checklist).
 
@@ -32,9 +32,9 @@ If the finding is **P3** or **Skip** priority, use **AskUserQuestion** to confir
 
 ## Step 2: Load Conventions
 
-1. Read `platform/CLAUDE.md` for coding conventions.
-2. Read `platform/.claude/rules/patterns.md` for the pattern index.
-3. If the finding's "Pattern reference" field names a specific pattern, read its full file from `platform/.claude/skills/platform-patterns/`. This ensures the implementation follows established conventions exactly.
+1. Read `CLAUDE.md` for coding conventions.
+2. Read `.claude/rules/patterns.md` for the pattern index.
+3. If the finding's "Pattern reference" field names a specific pattern, read its full file from `.claude/skills/platform-patterns/`. This ensures the implementation follows established conventions exactly.
 
 ## Step 3: Implement
 
@@ -49,9 +49,9 @@ If the finding is **P3** or **Skip** priority, use **AskUserQuestion** to confir
 Run the verification checklist from the finding:
 
 1. Run tests for every package that was touched:
-   - `cd platform && pnpm --filter @snc/api test` (if API files changed)
-   - `cd platform && pnpm --filter @snc/shared test` (if shared package files changed)
-   - `cd platform && pnpm --filter @snc/web test` (if web files changed)
+   - `pnpm --filter @snc/api test` (if API files changed)
+   - `pnpm --filter @snc/shared test` (if shared package files changed)
+   - `pnpm --filter @snc/web test` (if web files changed)
 2. Confirm no new public APIs were introduced (unless the finding explicitly calls for one, like adding an error subclass to `@snc/shared`).
 3. Confirm behavior is unchanged — this is a structural refactor, not a feature.
 
@@ -89,6 +89,6 @@ Tell the user:
 
 ## Edge Cases
 
-- **Finding references a pattern that doesn't exist yet**: Create a stub pattern doc in `platform/.claude/skills/platform-patterns/` and note it in the report output.
+- **Finding references a pattern that doesn't exist yet**: Create a stub pattern doc in `.claude/skills/platform-patterns/` and note it in the report output.
 - **Tests fail after implementation**: Report the failure with full output. Do not attempt to fix tests beyond what the finding describes.
 - **Finding is stale** (code changed since the report was generated): Read the current code, compare with the report's "Current state" description. If the finding still applies, proceed. If the code already changed significantly, tell the user the report may need regeneration via `/platform-refactor-plan {scope}`.

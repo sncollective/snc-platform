@@ -8,11 +8,12 @@ import {
 
 // ── Hoisted Mocks ──
 
-const { mockFormatPrice, mockCreateMerchCheckout, mockVariantSelector } =
+const { mockFormatPrice, mockCreateMerchCheckout, mockVariantSelector, mockNavigateExternal } =
   vi.hoisted(() => ({
     mockFormatPrice: vi.fn(),
     mockCreateMerchCheckout: vi.fn(),
     mockVariantSelector: vi.fn(),
+    mockNavigateExternal: vi.fn(),
   }));
 
 vi.mock("@tanstack/react-router", async () => {
@@ -48,6 +49,10 @@ vi.mock("../../../src/lib/format.js", () => ({
 
 vi.mock("../../../src/lib/merch.js", () => ({
   createMerchCheckout: mockCreateMerchCheckout,
+}));
+
+vi.mock("../../../src/lib/url.js", () => ({
+  navigateExternal: mockNavigateExternal,
 }));
 
 vi.mock("../../../src/components/merch/variant-selector.js", () => ({

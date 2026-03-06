@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatPrice } = vi.hoisted(() => ({
+const { mockFormatPrice, mockNavigate } = vi.hoisted(() => ({
   mockFormatPrice: vi.fn(),
+  mockNavigate: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
   return {
+    useNavigate: () => mockNavigate,
     Link: ({
       to,
       params,
@@ -114,15 +117,18 @@ describe("ProductCard", () => {
     expect(screen.queryByRole("img")).toBeNull();
   });
 
-  it("links to product detail page", () => {
+  it("navigates to product detail page on click", async () => {
+    const user = userEvent.setup();
     mockFormatPrice.mockReturnValue("$25.00");
-    const product = makeMockMerchProduct({ handle: "cool-hoodie" });
+    const product = makeMockMerchProduct({ handle: "cool-hoodie", creatorName: null });
 
     render(<ProductCard product={product} />);
 
-    const links = screen.getAllByRole("link");
-    const cardLink = links[0];
-    expect(cardLink).toHaveAttribute("href", "/merch/cool-hoodie");
+    await user.click(screen.getByRole("link"));
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: "/merch/$handle",
+      params: { handle: "cool-hoodie" },
+    });
   });
 
   it("creator name links to creator page when creatorId is set", () => {

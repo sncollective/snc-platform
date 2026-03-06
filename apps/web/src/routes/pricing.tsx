@@ -8,6 +8,7 @@ import { useSession } from "../lib/auth.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { createCheckout, hasPlatformSubscription } from "../lib/subscription.js";
 import { useSubscriptions } from "../hooks/use-subscriptions.js";
+import { navigateExternal } from "../lib/url.js";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
@@ -46,7 +47,7 @@ function PricingPage(): React.ReactElement {
 
     try {
       const checkoutUrl = await createCheckout(planId);
-      window.location.href = checkoutUrl;
+      navigateExternal(checkoutUrl);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start checkout");
       setLoadingPlanId(null);

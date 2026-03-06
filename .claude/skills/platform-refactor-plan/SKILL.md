@@ -15,19 +15,23 @@ You analyze a specified area of the S/NC platform codebase to find duplication, 
 
 $ARGUMENTS
 
+## Step 0: Check Archive for Recent Refactors
+
+Before analyzing, check `docs/refactor/archive/` for any archived reports. Note which scopes have been recently refactored (by filename and `**Archived**` date). This context helps the orchestrator deprioritize scopes that were already addressed in a recent cycle.
+
 ## Step 1: Load Context
 
 Before analyzing code, load these foundational references:
 
-1. **Coding conventions**: Read `platform/CLAUDE.md` for naming, imports, error handling, testing, and file organization rules.
-2. **Pattern index**: Read `platform/.claude/rules/patterns.md` for the one-line index of all established patterns.
-3. **Relevant pattern details**: Based on the scope, read specific pattern files from `platform/.claude/skills/platform-patterns/` that apply:
+1. **Coding conventions**: Read `CLAUDE.md` for naming, imports, error handling, testing, and file organization rules.
+2. **Pattern index**: Read `.claude/rules/patterns.md` for the one-line index of all established patterns.
+3. **Relevant pattern details**: Based on the scope, read specific pattern files from `.claude/skills/platform-patterns/` that apply:
    - Routes → `row-to-response-transformer.md`, `route-private-helpers.md`, `upload-replace-workflow.md`, `cursor-encode-decode.md`, `hono-typed-env.md`
    - Components → `css-modules-design-tokens.md`, `content-type-dispatch.md`, `listing-page-shared-css.md`, `react-context-reducer-provider.md`
    - Tests → `vi-doMock-dynamic-import.md`, `hono-test-app-factory.md`, `drizzle-chainable-mock.md`, `dual-layer-fixtures.md`, `vi-hoisted-module-mock.md`
    - Lib → `web-fetch-client.md`, `stripe-service-layer.md`, `external-error-factory.md`
    - Shared → `result-type.md`, `app-error-hierarchy.md`, `shared-validation-constants.md`
-4. **Dependencies**: Read `platform/apps/api/package.json` and `platform/apps/web/package.json` for exact dependency versions.
+4. **Dependencies**: Read `apps/api/package.json` and `apps/web/package.json` for exact dependency versions.
 
 ## Step 2: Map the Scope
 
@@ -139,7 +143,7 @@ Classify every finding into one of these tiers:
 
 Determine a kebab-case filename from the scope (e.g., "routes" → `refactor-routes.md`, "booking" → `refactor-booking.md`).
 
-Save to `platform/docs/refactor/[filename].md`.
+Save to `docs/refactor/[filename].md`.
 
 Use this format:
 

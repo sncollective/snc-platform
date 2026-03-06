@@ -7,6 +7,7 @@ import { Link } from "@tanstack/react-router";
 import { useSession } from "../../lib/auth.js";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { createCheckout, fetchPlans } from "../../lib/subscription.js";
+import { navigateExternal } from "../../lib/url.js";
 import styles from "./subscribe-cta.module.css";
 
 // ── Public Types ──
@@ -80,7 +81,7 @@ export function SubscribeCta({
     setCheckoutLoading(true);
     try {
       const url = await createCheckout(planId);
-      window.location.href = url;
+      navigateExternal(url);
     } catch {
       setCheckoutLoading(false);
     }

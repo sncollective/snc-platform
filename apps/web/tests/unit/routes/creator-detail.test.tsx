@@ -32,6 +32,7 @@ vi.mock("@tanstack/react-router", async () => {
       ...options,
       useLoaderData: mockUseLoaderData,
     }),
+    useNavigate: () => vi.fn(),
     Link: ({
       to,
       params,

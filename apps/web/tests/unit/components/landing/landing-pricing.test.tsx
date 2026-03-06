@@ -15,11 +15,13 @@ const {
   mockNavigate,
   mockCreateCheckout,
   mockFetchMySubscriptions,
+  mockNavigateExternal,
 } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
+  mockNavigateExternal: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", async () => {
@@ -46,6 +48,11 @@ vi.mock("../../../../src/lib/subscription.js", async (importOriginal) => {
     createCheckout: mockCreateCheckout,
     fetchMySubscriptions: mockFetchMySubscriptions,
   };
+});
+
+vi.mock("../../../../src/lib/url.js", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, navigateExternal: mockNavigateExternal };
 });
 
 vi.mock("../../../../src/components/subscription/plan-card.js", async () => {
@@ -193,7 +200,6 @@ describe("LandingPricing", () => {
       const user = userEvent.setup();
       mockUseSession.mockReturnValue(makeLoggedInSessionResult());
       mockFetchMySubscriptions.mockResolvedValue([]);
-      vi.stubGlobal("location", { ...window.location, set href(_: string) {} });
 
       render(<LandingPricing plans={DEFAULT_PLANS} />);
 
