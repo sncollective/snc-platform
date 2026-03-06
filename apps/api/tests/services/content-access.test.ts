@@ -48,7 +48,7 @@ const setupContentGate = async () => {
     },
   }));
 
-  return await import("../../src/middleware/content-gate.js");
+  return await import("../../src/services/content-access.js");
 };
 
 // ── Tests ──
@@ -58,6 +58,7 @@ describe("checkContentAccess", () => {
     userId: string | null,
     contentCreatorId: string,
     contentVisibility: string,
+    prefetchedRoles?: string[],
   ) => Promise<{ allowed: boolean; reason?: string; creatorId?: string }>;
 
   beforeEach(async () => {
@@ -224,11 +225,44 @@ describe("checkContentAccess", () => {
       });
     });
   });
+
+  describe("pre-fetched roles", () => {
+    it("uses prefetchedRoles instead of querying getUserRoles", async () => {
+      mockLimit.mockResolvedValue([]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers", ["subscriber"]);
+
+      expect(result).toEqual({
+        allowed: false,
+        reason: "SUBSCRIPTION_REQUIRED",
+        creatorId: "creator_456",
+      });
+      expect(mockGetUserRoles).not.toHaveBeenCalled();
+    });
+
+    it("returns allowed when prefetchedRoles includes creator", async () => {
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers", ["creator"]);
+
+      expect(result).toEqual({ allowed: true });
+      expect(mockGetUserRoles).not.toHaveBeenCalled();
+      expect(mockSelect).not.toHaveBeenCalled();
+    });
+
+    it("falls back to getUserRoles when prefetchedRoles is undefined", async () => {
+      mockGetUserRoles.mockResolvedValue(["subscriber"]);
+      mockLimit.mockResolvedValue([]);
+
+      await checkContentAccess("user_123", "creator_456", "subscribers");
+
+      expect(mockGetUserRoles).toHaveBeenCalledWith("user_123");
+    });
+  });
 });
 
 describe("buildContentAccessContext", () => {
   let buildContentAccessContext: (
     userId: string | null,
+    prefetchedRoles?: string[],
   ) => Promise<{
     userId: string | null;
     roles: string[];
@@ -297,6 +331,33 @@ describe("buildContentAccessContext", () => {
 
     expect(ctx.hasPlatformSubscription).toBe(false);
     expect(ctx.subscribedCreatorIds.has("creator_B")).toBe(true);
+  });
+
+  it("uses prefetchedRoles instead of querying getUserRoles", async () => {
+    mockSelectWhere.mockResolvedValue([]);
+
+    const ctx = await buildContentAccessContext("user_123", ["subscriber"]);
+
+    expect(ctx.roles).toEqual(["subscriber"]);
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
+    expect(mockSelect).toHaveBeenCalled();
+  });
+
+  it("skips subscription query for prefetched creator role", async () => {
+    const ctx = await buildContentAccessContext("user_123", ["creator"]);
+
+    expect(ctx.roles).toContain("creator");
+    expect(ctx.hasPlatformSubscription).toBe(true);
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("ignores prefetchedRoles for null userId", async () => {
+    const ctx = await buildContentAccessContext(null, ["creator"]);
+
+    expect(ctx.userId).toBeNull();
+    expect(ctx.roles).toEqual([]);
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
   });
 });
 

@@ -20,6 +20,7 @@ const MOCK_SESSION = {
 // ── Mock Setup ──
 
 const mockGetSession = vi.fn();
+const mockGetUserRoles = vi.fn();
 
 const setupAuthApp = async (): Promise<Hono<AuthEnv>> => {
   vi.doMock("../../src/auth/auth.js", () => ({
@@ -28,6 +29,10 @@ const setupAuthApp = async (): Promise<Hono<AuthEnv>> => {
         getSession: mockGetSession,
       },
     },
+  }));
+
+  vi.doMock("../../src/auth/user-roles.js", () => ({
+    getUserRoles: mockGetUserRoles,
   }));
 
   const { requireAuth } = await import(
@@ -44,6 +49,7 @@ const setupAuthApp = async (): Promise<Hono<AuthEnv>> => {
     return c.json({
       user: c.get("user"),
       session: c.get("session"),
+      roles: c.get("roles"),
     });
   });
   return app;
@@ -56,6 +62,8 @@ describe("requireAuth middleware", () => {
 
   beforeEach(async () => {
     mockGetSession.mockReset();
+    mockGetUserRoles.mockReset();
+    mockGetUserRoles.mockResolvedValue(["subscriber"]);
     app = await setupAuthApp();
   });
 
@@ -141,5 +149,28 @@ describe("requireAuth middleware", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.user.image).toBe("https://example.com/avatar.png");
+  });
+
+  it("sets roles on context from getUserRoles after session validation", async () => {
+    mockGetSession.mockResolvedValue({
+      user: MOCK_USER,
+      session: MOCK_SESSION,
+    });
+    mockGetUserRoles.mockResolvedValue(["subscriber", "creator"]);
+
+    const res = await app.request("/protected", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.roles).toStrictEqual(["subscriber", "creator"]);
+    expect(mockGetUserRoles).toHaveBeenCalledWith(MOCK_USER.id);
+  });
+
+  it("does not call getUserRoles when session is invalid", async () => {
+    mockGetSession.mockResolvedValue(null);
+    const res = await app.request("/protected");
+    expect(res.status).toBe(401);
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,6 @@
+> **Archived**: 2026-03-06
+> **Validation**: All tests passing, no cross-finding regressions
+
 # Refactor Analysis: Middleware
 
 > **Generated**: 2026-03-06
@@ -31,7 +34,8 @@ None found.
 - **Estimated scope**: 2 files to change (`auth-env.ts`, `require-auth.ts`); if Option B, also update `require-role.ts` to read `c.get("roles")` instead of calling `getUserRoles` — 3 files total. No public API change.
 - **Pattern reference**: `hono-typed-env` — "Forgetting to type `MiddlewareHandler<AuthEnv>` on middleware — `c.set()` then accepts any key/value and loses type safety." Same principle applies in reverse: typing a key that is never set loses safety.
 - **Tests affected**: `require-auth.test.ts` (if Option B, assert `roles` is set on context); `require-role.test.ts` (if Option B, remove the DB mock — roles now come from context).
-- **Verify**: [ ] Tests pass without modification / [ ] No new public APIs / [ ] Behavior unchanged
+- **Verify**: [x] Tests pass without modification / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
 ---
 
@@ -44,11 +48,12 @@ None found.
 - **Estimated scope**: 3 files (`content-gate.ts`, `content.routes.ts`, `content-gate.test.ts`). Roughly +15 / -5 LOC.
 - **Pattern reference**: No existing pattern — "New pattern needed" (or document as an extension of `content-access-gate`).
 - **Tests affected**: `content-gate.test.ts` — new test cases for the pre-fetched-roles path.
-- **Verify**: [ ] Tests pass / [ ] No new public APIs / [ ] Behavior unchanged
+- **Verify**: [x] Tests pass / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
 ---
 
-### 3. `rateLimiter` throws bare `AppError` — violates `app-error-hierarchy` pattern
+### 3. ~~`rateLimiter` throws bare `AppError` — violates `app-error-hierarchy` pattern~~ ✅ Implemented
 
 - **Location**: `apps/api/src/middleware/rate-limit.ts:62`
 - **Affected files**: `middleware/rate-limit.ts`, `packages/shared/src/errors.ts`
@@ -69,29 +74,42 @@ None found.
 - **Estimated scope**: 3 files (`errors.ts`, `index.ts`, `rate-limit.ts`). ~8 LOC delta.
 - **Pattern reference**: `app-error-hierarchy` — "Add a new subclass per distinct error category (e.g., `ConflictError`, `RateLimitError`)".
 - **Tests affected**: `rate-limit.test.ts` — test already asserts `body.error.code === "RATE_LIMIT_EXCEEDED"`; behavior unchanged, but can now `instanceof`-check in future.
-- **Verify**: [ ] Tests pass without modification / [ ] No new public APIs / [ ] Behavior unchanged
+- **Verify**: [x] Tests pass without modification / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
 ---
 
 ## P2 — Medium Value
 
-### 4. `require-role.ts` has an implicit dependency ordering contract with no enforcement
+### 4. ~~`require-role.ts` has an implicit dependency ordering contract with no enforcement~~ ✅ Implemented
 
 - **Location**: `apps/api/src/middleware/require-role.ts:1-39`
+- **Affected files**: `middleware/require-role.ts`
 - **Issue**: The JSDoc says "Must be chained after `requireAuth`" but nothing in the type system or runtime enforces this. If `requireRole` is used without `requireAuth`, `c.get("user")` returns `undefined`, and `user.id` throws a TypeError that propagates as a 500 instead of a clear auth failure. The `hono-typed-env` pattern relies on the type generic, but since routes compose middleware manually, the ordering is invisible to TypeScript.
 - **Suggestion**: Add a runtime guard at the top of the `requireRole` handler: check if `c.get("user")` is defined and throw `UnauthorizedError` (401) if not. This converts the opaque 500 into a meaningful auth error and makes the middleware self-protecting. The type annotation alone is insufficient without a runtime check.
+- **Tests affected**: `require-role.test.ts` — add test case for missing user on context returning 401
+- **Verify**: [x] Tests pass / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
-### 5. `content-gate.ts` mixed concerns: it is named "middleware" but exports no `MiddlewareHandler`
+### 5. ~~`content-gate.ts` mixed concerns: it is named "middleware" but exports no `MiddlewareHandler`~~ ✅ Implemented
 
 - **Location**: `apps/api/src/middleware/content-gate.ts`
+- **Affected files**: `middleware/content-gate.ts`, `routes/content.routes.ts`, `tests/middleware/content-gate.test.ts`
 - **Issue**: The file lives in `middleware/` but exports only pure functions (`checkContentAccess`, `buildContentAccessContext`, `hasContentAccess`). There is no `MiddlewareHandler` export. It is really a service/utility module that happens to perform access control. Living in `middleware/` sets a misleading expectation about its interface.
 - **Suggestion**: Consider moving to `src/services/content-access.ts` or `src/lib/content-gate.ts`, which better describes its nature as a service function rather than a Hono middleware. Update all import paths (3 affected files). This is a rename/move with no behavioral change.
+- **Tests affected**: `tests/middleware/content-gate.test.ts` — move to `tests/services/` or `tests/lib/` to mirror new location; update import paths
+- **Verify**: [x] Tests pass / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
-### 6. `cors.ts` reads `config` at module load time — makes test isolation harder than necessary
+### 6. ~~`cors.ts` reads `config` at module load time — makes test isolation harder than necessary~~ ✅ Implemented
 
 - **Location**: `apps/api/src/middleware/cors.ts:13`
+- **Affected files**: `middleware/cors.ts`
 - **Issue**: `corsMiddleware` is initialized eagerly at module scope using `config.CORS_ORIGIN`. This is why `cors.test.ts` must use `vi.doMock` + `vi.resetModules()` for every test group, re-importing the module to get different CORS origins. The pattern is functional but adds test complexity.
 - **Suggestion**: Wrap in a factory: `export const createCorsMiddleware = (origin: string | string[]) => cors({ origin, ... })` and export a default `corsMiddleware = createCorsMiddleware(parseOrigins(config.CORS_ORIGIN))`. The factory removes the test isolation burden and aligns with how `rateLimiter` is already authored (a factory function). Tests can call `createCorsMiddleware(["http://localhost:3001"])` directly without module reloading.
+- **Tests affected**: `cors.test.ts` — simplify to call `createCorsMiddleware()` directly instead of `vi.doMock` + `vi.resetModules()` per test group
+- **Verify**: [x] Tests pass / [x] No new public APIs / [x] Behavior unchanged
+- **Implemented**: 2026-03-06
 
 ---
 
@@ -141,8 +159,8 @@ None found.
 
 | Pattern | Status | Notes |
 |---------|--------|-------|
-| `app-error-hierarchy` | Drift | `rate-limit.ts` uses bare `AppError` instead of a named subclass (P1.3) |
-| `hono-typed-env` | Drift | `AuthEnv.roles` is typed as guaranteed present but `requireAuth` never sets it (P1.1) |
+| `app-error-hierarchy` | Fixed | `rate-limit.ts` now uses `RateLimitError` subclass (P1.3 ✅) |
+| `hono-typed-env` | Fixed | `requireAuth` now sets `roles` on context after session validation (P1.1 + P1.2 ✅) |
 | `result-type` | Compliant | Middleware correctly throws `AppError` subclasses rather than returning `Result<T>` — appropriate for the middleware layer |
 | `vi-doMock-dynamic-import` | Compliant | All middleware tests use `vi.doMock` + `vi.resetModules()` pattern correctly |
 | `hono-test-app-factory` | Compliant | Each test file builds a local minimal Hono app using the established pattern |

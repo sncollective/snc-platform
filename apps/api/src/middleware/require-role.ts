@@ -1,9 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 
 import type { Role } from "@snc/shared";
-import { ForbiddenError } from "@snc/shared";
-
-import { getUserRoles } from "../auth/user-roles.js";
+import { ForbiddenError, UnauthorizedError } from "@snc/shared";
 
 import type { AuthEnv } from "./auth-env.js";
 
@@ -11,10 +9,11 @@ import type { AuthEnv } from "./auth-env.js";
 
 /**
  * Middleware factory that checks if the authenticated user holds at least
- * one of the specified roles. Queries the `userRoles` table and throws
- * `ForbiddenError` (403) if the user lacks all required roles.
+ * one of the specified roles. Reads `roles` from context (set by
+ * `requireAuth`) and throws `ForbiddenError` (403) if the user lacks
+ * all required roles.
  *
- * Must be chained after `requireAuth` (reads `user` from context).
+ * Must be chained after `requireAuth` (reads `user` and `roles` from context).
  *
  * Usage: `app.post("/path", requireAuth, requireRole("creator"), handler)`
  */
@@ -23,7 +22,10 @@ export const requireRole = (
 ): MiddlewareHandler<AuthEnv> => {
   return async (c, next) => {
     const user = c.get("user");
-    const userRoleValues = await getUserRoles(user.id);
+    if (!user) {
+      throw new UnauthorizedError();
+    }
+    const userRoleValues = c.get("roles");
 
     const hasRole = roles.some((required) =>
       userRoleValues.includes(required),
@@ -33,7 +35,6 @@ export const requireRole = (
       throw new ForbiddenError("Insufficient permissions");
     }
 
-    c.set("roles", userRoleValues);
     await next();
   };
 };

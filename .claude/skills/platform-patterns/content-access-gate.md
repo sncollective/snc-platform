@@ -9,7 +9,7 @@ Content access rules are complex (public / unauthenticated / owner bypass / crea
 ## Examples
 
 ### Example 1: ContentGateResult discriminated union type
-**File**: `apps/api/src/middleware/content-gate.ts:11`
+**File**: `apps/api/src/services/content-access.ts:11`
 ```typescript
 export type ContentGateResult =
   | { allowed: true }
@@ -17,12 +17,13 @@ export type ContentGateResult =
 ```
 
 ### Example 2: 6-rule priority logic inside checkContentAccess
-**File**: `apps/api/src/middleware/content-gate.ts:34`
+**File**: `apps/api/src/services/content-access.ts:34`
 ```typescript
 export const checkContentAccess = async (
   userId: string | null,
   contentCreatorId: string,
   contentVisibility: string,
+  prefetchedRoles?: string[],  // skip getUserRoles query when provided
 ): Promise<ContentGateResult> => {
   // Rule 1: Public content → always allowed (no DB query)
   if (contentVisibility === "public") return { allowed: true };
@@ -36,7 +37,7 @@ export const checkContentAccess = async (
   if (userId === contentCreatorId) return { allowed: true };
 
   // Rule 4: Creator role bypass — contributor members get free access
-  const roles = await getUserRoles(userId);
+  const roles = prefetchedRoles ?? (await getUserRoles(userId));
   if (roles.includes("creator")) return { allowed: true };
 
   // Rule 5: Active subscription check (active OR canceled-but-not-expired,

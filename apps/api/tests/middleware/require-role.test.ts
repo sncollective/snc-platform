@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { Hono } from "hono";
 
+import type { Role } from "@snc/shared";
 import type { AuthEnv } from "../../src/middleware/auth-env.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 
@@ -11,36 +12,17 @@ const MOCK_SESSION = makeMockSession();
 
 // ── Mock Setup ──
 
-const mockSelect = vi.fn();
-const mockFrom = vi.fn();
-const mockWhere = vi.fn();
-
 /**
  * Build a minimal Hono app with requireRole middleware.
  *
- * - Mocks `db` to control the userRoles query result.
- * - Mocks `auth` to prevent Better Auth initialization.
- * - Simulates `requireAuth` having already run by setting user/session
- *   on context via a preceding middleware.
+ * - Simulates `requireAuth` having already run by setting user, session,
+ *   and roles on context via a preceding middleware.
+ * - No DB mock needed — `requireRole` reads roles from context.
  */
 const setupRoleApp = async (
-  requiredRoles: string[],
-  userRoleValues: string[],
+  requiredRoles: Role[],
+  userRoleValues: Role[],
 ): Promise<Hono<AuthEnv>> => {
-  mockWhere.mockResolvedValue(
-    userRoleValues.map((role) => ({ role })),
-  );
-  mockFrom.mockReturnValue({ where: mockWhere });
-  mockSelect.mockReturnValue({ from: mockFrom });
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: { select: mockSelect },
-  }));
-
-  vi.doMock("../../src/auth/auth.js", () => ({
-    auth: { api: { getSession: vi.fn() } },
-  }));
-
   const { requireRole } = await import(
     "../../src/middleware/require-role.js"
   );
@@ -52,16 +34,17 @@ const setupRoleApp = async (
   const app = new Hono<AuthEnv>();
   app.onError(errorHandler);
 
-  // Simulate requireAuth having already run
+  // Simulate requireAuth having already run (sets user, session, and roles)
   app.use("*", async (c, next) => {
     c.set("user", MOCK_USER as any);
     c.set("session", MOCK_SESSION as any);
+    c.set("roles", userRoleValues);
     await next();
   });
 
   app.get(
     "/protected",
-    requireRole(...(requiredRoles as any)),
+    requireRole(...requiredRoles),
     (c) => {
       return c.json({ roles: c.get("roles") });
     },
@@ -70,15 +53,33 @@ const setupRoleApp = async (
   return app;
 };
 
+const setupRoleAppNoUser = async (
+  requiredRoles: Role[],
+): Promise<Hono<AuthEnv>> => {
+  const { requireRole } = await import(
+    "../../src/middleware/require-role.js"
+  );
+
+  const { errorHandler } = await import(
+    "../../src/middleware/error-handler.js"
+  );
+
+  const app = new Hono<AuthEnv>();
+  app.onError(errorHandler);
+
+  // No user-setting middleware — simulates requireAuth not having run
+  app.get(
+    "/protected",
+    requireRole(...requiredRoles),
+    (c) => c.json({ ok: true }),
+  );
+
+  return app;
+};
+
 // ── Tests ──
 
 describe("requireRole middleware", () => {
-  beforeEach(() => {
-    mockSelect.mockReset();
-    mockFrom.mockReset();
-    mockWhere.mockReset();
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
     vi.resetModules();
@@ -129,7 +130,7 @@ describe("requireRole middleware", () => {
     expect(body.error.code).toBe("FORBIDDEN");
   });
 
-  it("sets all user roles on context after passing", async () => {
+  it("preserves roles on context after passing", async () => {
     const app = await setupRoleApp(
       ["subscriber"],
       ["subscriber", "creator"],
@@ -140,14 +141,11 @@ describe("requireRole middleware", () => {
     expect(body.roles).toStrictEqual(["subscriber", "creator"]);
   });
 
-  it("queries userRoles table with the correct userId", async () => {
-    const app = await setupRoleApp(
-      ["subscriber"],
-      ["subscriber"],
-    );
-    await app.request("/protected");
-    expect(mockSelect).toHaveBeenCalledOnce();
-    expect(mockFrom).toHaveBeenCalledOnce();
-    expect(mockWhere).toHaveBeenCalledOnce();
+  it("returns 401 when user is not on context", async () => {
+    const app = await setupRoleAppNoUser(["creator"]);
+    const res = await app.request("/protected");
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 });

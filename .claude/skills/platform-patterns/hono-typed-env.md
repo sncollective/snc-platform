@@ -33,6 +33,8 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
   if (!session) throw new UnauthorizedError();
   c.set("user", { ...session.user, image: session.user.image ?? null });
   c.set("session", session.session);
+  const roles = await getUserRoles(session.user.id);
+  c.set("roles", roles);                // always populated alongside user
   await next();
 };
 ```
@@ -44,11 +46,10 @@ export const requireRole = (
 ): MiddlewareHandler<AuthEnv> => {
   return async (c, next) => {
     const user = c.get("user");          // typed as User
-    const userRoleValues = await getUserRoles(user.id);
+    const userRoleValues = c.get("roles"); // typed as Role[], set by requireAuth
     if (!roles.some((r) => userRoleValues.includes(r))) {
       throw new ForbiddenError("Insufficient permissions");
     }
-    c.set("roles", userRoleValues);      // typed as Role[]
     await next();
   };
 };
