@@ -3,8 +3,9 @@ module.exports = {
     {
       name: "api",
       cwd: "./apps/api",
-      script: "../../node_modules/.bin/tsx",
+      script: "./node_modules/.bin/tsx",
       args: "watch --ignore './uploads/**' --import ./src/env.ts src/index.ts",
+      interpreter: "bash",
       env: {
         NODE_ENV: "development",
       },
@@ -19,7 +20,8 @@ module.exports = {
     {
       name: "web",
       cwd: "./apps/web",
-      script: "../../node_modules/.bin/vite",
+      script: "./node_modules/.bin/vite",
+      interpreter: "bash",
       env: {
         NODE_ENV: "development",
       },

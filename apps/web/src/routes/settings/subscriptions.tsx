@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
-import { fetchAuthState } from "../../lib/auth.js";
+import { fetchAuthStateServer } from "../../lib/api-server.js";
 import {
   fetchMySubscriptions,
   cancelSubscription,
@@ -14,7 +14,7 @@ import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/subscriptions")({
   beforeLoad: async () => {
-    const { user } = await fetchAuthState();
+    const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });
     }

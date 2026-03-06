@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import type React from "react";
 import type { AdminUser, Role } from "@snc/shared";
 
-import { fetchAuthState } from "../lib/auth.js";
+import { fetchAuthStateServer } from "../lib/api-server.js";
 import { assignRole, revokeRole } from "../lib/admin.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import { UserRoleManager } from "../components/admin/user-role-manager.js";
@@ -11,7 +11,7 @@ import styles from "./admin.module.css";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
-    const { user, roles } = await fetchAuthState();
+    const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
       throw redirect({ to: "/login" });

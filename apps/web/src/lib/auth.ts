@@ -12,7 +12,7 @@ export const useSession = authClient.useSession;
 
 // ── Public API: fetchAuthState ──
 
-interface AuthState {
+export interface AuthState {
   readonly user: User | null;
   readonly roles: Role[];
 }

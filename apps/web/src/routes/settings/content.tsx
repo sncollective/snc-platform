@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import type React from "react";
 
-import { fetchAuthState } from "../../lib/auth.js";
+import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { ContentForm } from "../../components/content/content-form.js";
 import { MyContentList } from "../../components/content/my-content-list.js";
 import settingsStyles from "../../styles/settings-page.module.css";
@@ -12,7 +12,7 @@ import styles from "./content-settings.module.css";
 
 export const Route = createFileRoute("/settings/content")({
   beforeLoad: async () => {
-    const { user, roles } = await fetchAuthState();
+    const { user, roles } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });
     }

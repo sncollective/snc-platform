@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import type React from "react";
 import type { BookingWithService } from "@snc/shared";
 
-import { fetchAuthState } from "../../lib/auth.js";
+import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { BookingList } from "../../components/booking/booking-list.js";
 import listingStyles from "../../styles/listing-page.module.css";
@@ -10,7 +10,7 @@ import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/bookings")({
   beforeLoad: async () => {
-    const { user } = await fetchAuthState();
+    const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });
     }

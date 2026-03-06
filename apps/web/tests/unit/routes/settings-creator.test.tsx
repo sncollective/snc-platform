@@ -51,6 +51,10 @@ vi.mock("../../../src/lib/auth.js", () => ({
   fetchAuthState: mockFetchAuthState,
 }));
 
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchAuthStateServer: mockFetchAuthState,
+}));
+
 vi.mock("../../../src/lib/creator.js", () => ({
   fetchCreatorProfile: mockFetchCreatorProfile,
   updateCreatorProfile: mockUpdateCreatorProfile,

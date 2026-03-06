@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
-import { fetchAuthState } from "../../lib/auth.js";
+import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { fetchMySubscriptions } from "../../lib/subscription.js";
 import styles from "./success.module.css";
 
@@ -12,7 +12,7 @@ const POLL_INTERVAL_MS = 2000;
 
 export const Route = createFileRoute("/checkout/success")({
   beforeLoad: async () => {
-    const { user } = await fetchAuthState();
+    const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });
     }

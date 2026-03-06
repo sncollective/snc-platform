@@ -10,7 +10,7 @@ import type {
   ReviewBookingRequest,
 } from "@snc/shared";
 
-import { fetchAuthState } from "../lib/auth.js";
+import { fetchAuthStateServer } from "../lib/api-server.js";
 import {
   fetchRevenue,
   fetchSubscribers,
@@ -27,7 +27,7 @@ import styles from "./dashboard.module.css";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
-    const { user, roles } = await fetchAuthState();
+    const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
       throw redirect({ to: "/login" });

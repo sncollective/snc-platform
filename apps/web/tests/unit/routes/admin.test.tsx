@@ -52,8 +52,8 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  fetchAuthState: vi.fn().mockResolvedValue({
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchAuthStateServer: vi.fn().mockResolvedValue({
     user: { id: "u1" },
     roles: ["admin"],
   }),
