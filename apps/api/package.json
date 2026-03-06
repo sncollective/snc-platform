@@ -13,8 +13,8 @@
     "lint": "tsc --noEmit",
     "db:generate": "node --import tsx node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --import tsx node_modules/drizzle-kit/bin.cjs migrate",
-    "seed:admin": "tsx src/scripts/seed-admin.ts",
-    "seed:demo": "tsx src/scripts/seed-demo.ts"
+    "seed:admin": "tsx --import ./src/env.ts src/scripts/seed-admin.ts",
+    "seed:demo": "ALLOW_DEMO_SEED=true tsx --import ./src/env.ts src/scripts/seed-demo.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",

@@ -24,7 +24,7 @@ function MerchPage(): React.ReactElement {
   const creatorId = search.creatorId ?? null;
   const status = search.status ?? null;
 
-  const { items, nextCursor, isLoading, loadMore } =
+  const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<MerchProduct>({
       buildUrl: (cursor) =>
         buildMerchUrl({ creatorId, cursor, limit: 12 }),
@@ -49,6 +49,8 @@ function MerchPage(): React.ReactElement {
 
       {isLoading && items.length === 0 ? (
         <p className={listingStyles.status}>Loading...</p>
+      ) : error !== null && items.length === 0 ? (
+        <p className={listingStyles.status}>Merch coming soon.</p>
       ) : items.length === 0 ? (
         <p className={listingStyles.status}>No products found.</p>
       ) : (
