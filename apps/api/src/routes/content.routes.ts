@@ -26,7 +26,7 @@ import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { users } from "../db/schema/user.schema.js";
 import { auth } from "../auth/auth.js";
-import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../middleware/content-gate.js";
+import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";

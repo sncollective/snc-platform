@@ -85,7 +85,7 @@
   - `middleware/auth-env.ts` — `AuthEnv` typed Hono env with `user`, `session`, `roles`
   - `middleware/require-auth.ts` — session validation middleware (401 on failure)
   - `middleware/require-role.ts` — role authorization middleware factory (403 on failure)
-  - `middleware/content-gate.ts` — `checkContentAccess()` subscription-based content gating
+  - `services/content-access.ts` — `checkContentAccess()` subscription-based content gating
     (5 priority rules: public, unauth, owner bypass, active subscription, reject)
   - `middleware/error-handler.ts` — `AppError` → structured JSON error responses
   - `middleware/cors.ts` — CORS for configured origins

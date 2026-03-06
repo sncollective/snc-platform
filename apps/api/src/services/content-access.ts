@@ -44,9 +44,13 @@ export type ContentAccessContext = {
 /**
  * Pre-fetch everything needed to check access for multiple items.
  * Call once per request, then use `hasContentAccess()` per item.
+ *
+ * When `prefetchedRoles` is provided (e.g. from Hono context after
+ * `requireAuth`), the `getUserRoles` DB query is skipped.
  */
 export const buildContentAccessContext = async (
   userId: string | null,
+  prefetchedRoles?: string[],
 ): Promise<ContentAccessContext> => {
   if (userId === null) {
     return {
@@ -57,7 +61,7 @@ export const buildContentAccessContext = async (
     };
   }
 
-  const roles = await getUserRoles(userId);
+  const roles = prefetchedRoles ?? (await getUserRoles(userId));
 
   // Creators get free access to everything — skip subscription query
   if (roles.includes("creator")) {
@@ -128,10 +132,15 @@ export const hasContentAccess = (
 
 // ── Per-Item Access (for detail endpoints) ──
 
+/**
+ * When `prefetchedRoles` is provided (e.g. from Hono context after
+ * `requireAuth`), the `getUserRoles` DB query is skipped.
+ */
 export const checkContentAccess = async (
   userId: string | null,
   contentCreatorId: string,
   contentVisibility: string,
+  prefetchedRoles?: string[],
 ): Promise<ContentGateResult> => {
   // Rule 1: Public content is always accessible
   if (contentVisibility === "public") {
@@ -153,7 +162,7 @@ export const checkContentAccess = async (
   }
 
   // Rule 4: Creators (contributor members) get free access to all content
-  const roles = await getUserRoles(userId);
+  const roles = prefetchedRoles ?? (await getUserRoles(userId));
   if (roles.includes("creator")) {
     return { allowed: true };
   }

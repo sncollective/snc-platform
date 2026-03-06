@@ -3,6 +3,7 @@ import type { MiddlewareHandler } from "hono";
 import { UnauthorizedError } from "@snc/shared";
 
 import { auth } from "../auth/auth.js";
+import { getUserRoles } from "../auth/user-roles.js";
 
 import type { AuthEnv } from "./auth-env.js";
 
@@ -10,8 +11,8 @@ import type { AuthEnv } from "./auth-env.js";
 
 /**
  * Hono middleware that validates the session from the request headers
- * via Better Auth's session API. Sets `user` and `session` on the
- * Hono context if valid; throws `UnauthorizedError` (401) if not.
+ * via Better Auth's session API. Sets `user`, `session`, and `roles`
+ * on the Hono context if valid; throws `UnauthorizedError` (401) if not.
  *
  * Usage: `app.get("/protected", requireAuth, handler)`
  */
@@ -34,6 +35,9 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
     ...session.session,
     expiresAt: session.session.expiresAt.toISOString(),
   });
+
+  const roles = await getUserRoles(session.user.id);
+  c.set("roles", roles);
 
   await next();
 };

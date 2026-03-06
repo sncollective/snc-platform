@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import { AppError } from "@snc/shared";
+import { RateLimitError } from "@snc/shared";
 
 // ── Public Types ──
 
@@ -59,7 +59,7 @@ export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
     if (existing.count > max) {
       const retryAfter = Math.ceil((existing.resetAt - now) / 1000);
       c.header("Retry-After", String(retryAfter));
-      throw new AppError("RATE_LIMIT_EXCEEDED", "Too many requests", 429);
+      throw new RateLimitError();
     }
 
     await next();

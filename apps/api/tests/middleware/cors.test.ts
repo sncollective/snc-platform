@@ -1,44 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { createCorsMiddleware } from "../../src/middleware/cors.js";
 
-/**
- * CORS middleware tests must isolate `config.CORS_ORIGIN` from the environment.
- *
- * The `corsMiddleware` reads `config.CORS_ORIGIN` eagerly at module load time.
- * To test different CORS_ORIGIN values, we mock the `../src/config.js` module
- * and re-import `cors.ts` per test group.
- */
-
-const setupCorsApp = async (corsOrigin: string): Promise<Hono> => {
-  vi.doMock("../../src/config.js", () => ({
-    config: { ...TEST_CONFIG, CORS_ORIGIN: corsOrigin },
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
+const setupCorsApp = (origin: string | string[]): Hono => {
   const app = new Hono();
-  app.use("*", corsMiddleware);
+  app.use("*", createCorsMiddleware(origin));
   app.get("/test", (c) => c.json({ ok: true }));
   return app;
 };
 
 describe("corsMiddleware", () => {
-  describe("with single origin (default)", () => {
-    let app: Hono;
-
-    beforeEach(async () => {
-      app = await setupCorsApp("http://localhost:3001");
-    });
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-      vi.resetModules();
-    });
+  describe("with single origin", () => {
+    const app = setupCorsApp("http://localhost:3001");
 
     it("sets CORS headers for allowed origin", async () => {
       const res = await app.request("/test", {
@@ -85,19 +59,13 @@ describe("corsMiddleware", () => {
     });
   });
 
-  describe("with comma-separated origins", () => {
-    let app: Hono;
+  describe("with multiple origins", () => {
+    const app = setupCorsApp([
+      "http://localhost:3001",
+      "https://app.example.com",
+    ]);
 
-    beforeEach(async () => {
-      app = await setupCorsApp("http://localhost:3001, https://app.example.com");
-    });
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-      vi.resetModules();
-    });
-
-    it("allows the first origin in the comma-separated list", async () => {
+    it("allows the first origin in the list", async () => {
       const res = await app.request("/test", {
         headers: { Origin: "http://localhost:3001" },
       });
@@ -107,7 +75,7 @@ describe("corsMiddleware", () => {
       );
     });
 
-    it("allows the second origin in the comma-separated list", async () => {
+    it("allows the second origin in the list", async () => {
       const res = await app.request("/test", {
         headers: { Origin: "https://app.example.com" },
       });

@@ -1,272 +1,100 @@
 ---
 name: platform-refactor
-description: "Deep-dive codebase analysis to find duplication, consolidation opportunities, and modern best practices. Produces a prioritized refactoring report. Use when looking for duplication, pattern violations, or consolidation opportunities in a specific area."
-argument-hint: [scope — e.g., "routes", "components", "tests", "booking", "upload handlers"]
+description: "Full refactor pipeline: analyze a scope, implement findings interactively, then validate and archive. Use when you want to run the complete plan-fix-validate cycle for a codebase area."
+argument-hint: [scope — e.g., "middleware", "routes"] or omit for full sweep
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Task, Write
+allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion, Agent, Task
 model: sonnet
-context: fork
-agent: general-purpose
 ---
-# Refactor — Codebase Analysis & Consolidation Planner
+# Refactor — Pipeline Orchestrator
 
-You analyze a specified area of the S/NC platform codebase to find duplication, consolidation opportunities, pattern violations, and modern best practices. You produce a structured, actionable report — you do NOT implement changes.
+You run the full refactor pipeline for a scope (or all scopes): plan → fix → validate. You use the Agent tool to launch each phase as a subagent with its own context window.
 
-## Scope
+## Arguments
 
 $ARGUMENTS
 
-## Step 1: Load Context
-
-Before analyzing code, load these foundational references:
-
-1. **Coding conventions**: Read `platform/CLAUDE.md` for naming, imports, error handling, testing, and file organization rules.
-2. **Pattern index**: Read `platform/.claude/rules/patterns.md` for the one-line index of all established patterns.
-3. **Relevant pattern details**: Based on the scope, read specific pattern files from `platform/.claude/skills/platform-patterns/` that apply:
-   - Routes → `row-to-response-transformer.md`, `route-private-helpers.md`, `upload-replace-workflow.md`, `cursor-encode-decode.md`, `hono-typed-env.md`
-   - Components → `css-modules-design-tokens.md`, `content-type-dispatch.md`, `listing-page-shared-css.md`, `react-context-reducer-provider.md`
-   - Tests → `vi-doMock-dynamic-import.md`, `hono-test-app-factory.md`, `drizzle-chainable-mock.md`, `dual-layer-fixtures.md`, `vi-hoisted-module-mock.md`
-   - Lib → `web-fetch-client.md`, `stripe-service-layer.md`, `external-error-factory.md`
-   - Shared → `result-type.md`, `app-error-hierarchy.md`, `shared-validation-constants.md`
-4. **Dependencies**: Read `platform/apps/api/package.json` and `platform/apps/web/package.json` for exact dependency versions.
-
-## Step 2: Map the Scope
-
-Translate the scope argument into a concrete file list:
-
-| Scope keyword | Files to scan |
-|---------------|---------------|
-| `routes` | `apps/api/src/routes/*.routes.ts` + `apps/api/src/routes/*.ts` (utils) |
-| `components` | `apps/web/src/components/**/*.tsx` + their `.module.css` files |
-| `lib` | `apps/web/src/lib/*.ts` |
-| `hooks` | `apps/web/src/hooks/*.ts` |
-| `tests` | `apps/api/tests/**/*.test.ts` + `apps/web/tests/**/*.test.ts` + `tests/helpers/` |
-| `shared` | `packages/shared/src/*.ts` |
-| `middleware` | `apps/api/src/middleware/*.ts` |
-| `styles` | `apps/web/src/styles/*.css` + `apps/web/src/components/**/*.module.css` |
-| A specific file path | That file + its test file + files it imports |
-| A domain (e.g., `booking`) | Full vertical slice: route + test + web lib + components + shared schema + fixtures |
-| A concept (e.g., `upload handlers`) | Grep across the codebase, analyze all matching files |
-
-Use `Glob` to enumerate files, then `Read` each one. For large scopes, read all files — do not sample.
-
-If `$ARGUMENTS` is ambiguous (e.g., just "api" or "everything"), ask the user to narrow the scope using **AskUserQuestion**.
-
-## Step 3: Analyze
-
-For every file in scope, examine these categories:
+- **With scope** (e.g., `middleware`): Run the single-scope pipeline for that scope.
+- **Without arguments**: Full sweep — discover all scopes, let the user choose which to run.
 
-### 3a. Duplication & Consolidation
-- **Cross-file duplication**: Near-identical code blocks across 2+ files (transformers, validation sequences, query patterns, mock setup, fetch wrappers)
-- **Intra-file duplication**: Repeated logic within a single file that could be a helper
-- **Boilerplate**: Structural patterns that differ only in types or field names
-- **Fixture inconsistencies**: Naming variations or overlapping factories across test helpers
+## Sub-Skills
 
-**DRY distinction** — only flag as duplication when:
-- The same *business concept* is expressed in multiple places
-- A requirements change would need to update all instances together
-- The grouping logic is immediately obvious
+The pipeline has three phases, each defined by its own SKILL.md:
 
-**Keep separate** when:
-- Similar structure but different domain concepts
-- Independent evolution is expected
-- Coupling would create confusion or fragile shared state
+| Phase | Skill file | Role |
+|-------|-----------|------|
+| Plan | `platform/.claude/skills/platform-refactor-plan/SKILL.md` | Generate analysis report |
+| Fix | `platform/.claude/skills/platform-refactor-fix/SKILL.md` | Implement one finding |
+| Validate | `platform/.claude/skills/platform-refactor-validate/SKILL.md` | Test, regression check, archive |
 
-### 3b. Pattern Compliance
-- Deviations from patterns loaded in Step 1
-- Missing patterns: repeated code that should be documented but isn't
-- Stale patterns: documented examples that no longer match actual code
+To launch a phase, read the sub-skill's SKILL.md and pass its full content as the Agent tool's `prompt` parameter, with the specific arguments appended.
 
-### 3c. Complexity & Simplification
-- Functions over ~40 lines that could be decomposed
-- Nesting deeper than 3 levels
-- Type assertions (`as`) replaceable with narrowing
-- Magic numbers or string literals that should be named constants
-- Speculative code, unused abstractions, over-engineered flexibility (KISS/YAGNI)
+## Single-Scope Pipeline
 
-### 3d. Security & Best Practices
-- Missing input validation on user-facing endpoints
-- Authorization checks that depend on middleware ordering instead of explicit in-handler verification
-- Error messages that leak internal details (stack traces, DB column names, storage keys)
-- Missing null-coalescing on optional fields in API responses
-- Improper error propagation from external services (Stripe, Shopify)
+When `$ARGUMENTS` contains a scope:
 
-### 3e. Skip List
-Explicitly note patterns that *look like* duplication but are intentionally separate:
-- Private route-scoped transformers (per `row-to-response-transformer` pattern)
-- Domain-specific fixture factories that mirror API vs. web response shapes
-- Any other cases where the existing pattern documentation justifies the repetition
+### Phase 1: Plan
 
-This section reduces noise and demonstrates the analysis is informed by project conventions.
+1. Check if a report already exists at `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+   - If it exists, ask the user: **use existing report** or **regenerate**?
+   - If regenerating, proceed below. If using existing, skip to Phase 2.
+2. Read `platform/.claude/skills/platform-refactor-plan/SKILL.md`.
+3. Launch an Agent with the skill content as prompt, appending the scope as `$ARGUMENTS`. Use `subagent_type: "general-purpose"`.
+4. Confirm the report was created.
 
-## Step 4: Research
+### Phase 2: Fix
 
-For libraries used in the analyzed scope, do targeted web searches:
+1. Read the report at `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
+2. Extract the **Suggested Implementation Order** section to get the ordered list of findings.
+3. Read `platform/.claude/skills/platform-refactor-fix/SKILL.md` (read once, reuse for each finding).
+4. For each finding in order, present it to the user with three options:
+   - **Implement**: Launch an Agent with the fix skill content as prompt, passing `{scope} {finding-id}` as arguments.
+   - **Skip**: Move to the next finding.
+   - **Stop**: Halt the pipeline and tell the user where they left off (which finding, how many remain).
+5. After each implementation, briefly report the result before moving to the next finding.
 
-### Best Practices
-Search for current best practices and recent changes in the relevant libraries:
-- **Hono** (check version in package.json): middleware patterns, error handling, performance
-- **Drizzle ORM**: query builder patterns, type inference, migration improvements
-- **Vitest**: testing patterns, mock improvements, performance optimizations
-- **TanStack Start/Router**: loader patterns, SSR, data fetching
-- **React 19**: new hooks, concurrent features
-- **Zod 4 / zod-mini**: schema patterns, error formatting
-- **Better Auth**: session management, role-based access
+### Phase 3: Validate
 
-Only research libraries relevant to the scope. Search for: `"[library]" best practices 2025 2026`.
+1. Read `platform/.claude/skills/platform-refactor-validate/SKILL.md`.
+2. Launch an Agent with the validate skill content as prompt, passing the scope as arguments.
+3. Report the validation results to the user.
 
-### OSS Alternatives
-When hand-rolled code is found in scope, search for well-maintained packages that handle the same concern. For each candidate, note:
-- Package name and weekly downloads
-- Whether it integrates with the existing stack
-- Bundle size impact (especially for web packages)
-- Maintenance status (last publish date, open issues)
+### Pipeline Summary
 
-These are suggestions for evaluation, not recommendations to adopt. The report should note trade-offs.
+After all phases complete, summarize:
+- Findings: total / implemented / skipped
+- Test results from validation
+- Whether the report was archived
 
-## Step 5: Prioritize
+## Full Sweep (No Arguments)
 
-Classify every finding into one of these tiers:
+When `$ARGUMENTS` is empty:
 
-| Priority | Criteria | Action |
-|----------|----------|--------|
-| **P0 Fix Now** | Security risk, correctness bug, data leak | Immediate |
-| **P1 High Value** | Eliminates duplication across 3+ files, simplifies project-wide pattern, or adopts clearly superior library feature | Next sprint |
-| **P2 Medium Value** | Consolidates 2 files, improves readability, adopts better library pattern | When touching the area |
-| **P3 Nice-to-Have** | Style, naming, minor pattern alignment | Opportunistic |
-| **Skip** | Intentional duplication, patterns that should stay as-is | Document reasoning |
+### Step 1: Discover Scopes
 
-## Step 6: Write the Report
+Read `platform/.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available scopes.
 
-Determine a kebab-case filename from the scope (e.g., "routes" → `refactor-routes.md`, "booking" → `refactor-booking.md`).
+Present the scope list to the user. Let them:
+- Select which scopes to include (default: all keyword scopes, not file paths or concepts)
+- Confirm or reorder
 
-Save to `platform/.claude/skills/platform-refactor/reports/[filename].md`.
+### Step 2: Iterate
 
-Use this format:
+For each selected scope:
+1. Run the single-scope pipeline (Phase 1 → 2 → 3).
+2. After each scope completes, ask the user: **continue to next scope** or **stop here**?
 
-```markdown
-# Refactor Analysis: [Scope Description]
+### Step 3: Final Summary
 
-> **Generated**: [date]
-> **Scope**: [files analyzed — count and glob pattern]
-> **Libraries researched**: [list with versions]
-
----
-
-## Executive Summary
-
-[2-4 sentences: what was analyzed, how many findings, top takeaway]
-
----
-
-## P0 — Fix Now
-
-### [Finding title]
-- **Location**: `path/to/file.ts:line`
-- **Issue**: [what's wrong]
-- **Risk**: [security / correctness / data leak]
-- **Fix**: [specific approach]
-- **Verify**: [ ] Tests pass without modification / [ ] No new public APIs / [ ] Behavior unchanged
-
-[Repeat per finding, or "None found."]
-
----
-
-## P1 — High Value
-
-### [Finding title]
-- **Affected files**: [list]
-- **Current state**: [what the duplication looks like — brief code snippet if helpful]
-- **Proposed consolidation**: [specific approach — new helper, shared utility, pattern extraction]
-- **Estimated scope**: [files to change, rough LOC delta]
-- **Pattern reference**: [existing platform-pattern or "New pattern needed"]
-- **Tests affected**: [which test files need updating]
-- **Verify**: [ ] Tests pass / [ ] No new public APIs / [ ] Behavior unchanged
-
-[Repeat per finding]
-
----
-
-## P2 — Medium Value
-
-### [Finding title]
-- **Location**: [file(s)]
-- **Issue**: [description]
-- **Suggestion**: [specific approach]
-
-[Repeat per finding]
-
----
-
-## P3 — Nice-to-Have
-
-- [one-liner per finding with file location]
-
----
-
-## Skip — Intentional Patterns
-
-| Pattern | Location | Why it stays |
-|---------|----------|-------------|
-| [description] | [file(s)] | [reasoning, pattern reference] |
-
----
-
-## Best Practices Research
-
-### [Library] v[version]
-
-| Current Approach | Recommended | Migration Effort |
-|------------------|-------------|------------------|
-| [what we do] | [what's recommended] | Low / Medium / High |
-
-[Repeat per library]
-
----
-
-## OSS Alternatives
-
-| Hand-rolled Code | Package | Weekly DL | Stack Fit | Notes |
-|-----------------|---------|-----------|-----------|-------|
-| [description] | [package] | [count] | [yes/partial/no] | [trade-offs] |
-
-[Or "No candidates identified."]
-
----
-
-## Pattern Compliance
-
-| Pattern | Status | Notes |
-|---------|--------|-------|
-| [pattern-name] | Compliant / Drift / Missing | [brief] |
-
----
-
-## Suggested Implementation Order
-
-1. [First — reference P0/P1 finding]
-2. [Second]
-3. ...
-
-Order by: dependencies first → highest value → least risk.
-```
-
-## Step 7: Report Back
-
-Tell the user:
-- Where the report was saved
-- Finding counts per priority tier
-- Top 3 highest-impact findings (one sentence each)
-- Which `platform-patterns` are affected or need updating
-- Suggest: "Use `/platform-extend [finding]` to implement any of these"
+After all scopes (or when the user stops), report:
+- Scopes completed vs. remaining
+- Total findings across all scopes: implemented / skipped
+- Any scopes that had test failures during validation
 
 ## Anti-Patterns
 
-- **NEVER auto-implement changes** — analysis only
-- **NEVER ignore established patterns** — evaluate against `platform-patterns`, not general preferences
-- **NEVER suggest rewrites without justification** — every suggestion must cite duplication count, security risk, or a specific best-practice source
-- **NEVER research all libraries** — only those relevant to the scoped area
-- **NEVER suggest consolidation that violates pattern boundaries** without acknowledging the conflict and arguing the case
-- **NEVER mix refactoring with features** — findings describe structural improvements that preserve behavior
-- **NEVER flag intentional patterns as duplication** — code that represents independent concepts sharing structure belongs in Skip, not P1
-- **NEVER skip small files** — utilities, helpers, and constants often contain the highest-value consolidation targets
+- **NEVER run phases out of order** — plan must complete before fix, fix before validate
+- **NEVER implement findings without user approval** — always present each finding and wait for implement/skip/stop
+- **NEVER skip the validate phase** — if any findings were implemented, validation must run
+- **NEVER call sub-skills as `/skill` invocations** — use the Agent tool with the skill's SKILL.md content as the prompt
+- **NEVER combine the orchestrator with implementation** — this skill coordinates, it does not modify application code directly

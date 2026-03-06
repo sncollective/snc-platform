@@ -1,29 +1,28 @@
 ---
 name: platform-refactor-fix
-description: "Implement a specific finding from a platform-refactor report. Reads the report, extracts the finding, and makes the changes."
-argument-hint: [<scope> <finding-id> — e.g., "middleware P1.1", "routes P0.2"]
+description: "Implement a specific finding from a platform-refactor-plan report. Use when a refactor report exists and you want to apply a particular finding."
+argument-hint: [scope finding-id — e.g., "middleware P1.1", "routes P0.2"]
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task
 model: sonnet
-context: main
 ---
 # Refactor Fix — Implement a Finding from a Refactor Report
 
-You implement a specific finding from a `platform-refactor` report. The analysis is already done — your job is to read the finding, make the changes it describes, verify with tests, and report back.
+You implement a specific finding from a `platform-refactor-plan` report. The analysis is already done — your job is to read the finding, make the changes it describes, verify with tests, and report back.
 
 ## Arguments
 
 $ARGUMENTS
 
 Format: `<scope> <finding-id>` where:
-- `<scope>` maps to `platform/.claude/skills/platform-refactor/reports/refactor-{scope}.md`
+- `<scope>` maps to `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`
 - `<finding-id>` is a priority tier + number, e.g., `P1.3`, `P0.1`, `P2.2`
 - Multiple coupled findings use `+` syntax: `P1.1+P1.2`
 
 ## Step 1: Parse & Load
 
 1. Parse `$ARGUMENTS` into scope and finding ID(s).
-2. Read `platform/.claude/skills/platform-refactor/reports/refactor-{scope}.md`.
+2. Read `platform/.claude/skills/platform-refactor-plan/reports/refactor-{scope}.md`.
 3. Locate the finding(s) by matching the priority section header (e.g., `## P1`) and finding number within it. Findings are numbered sequentially within each priority tier — `P1.3` means the 3rd finding under `## P1 — High Value`.
 4. Extract the full finding block including all fields (Location, Affected files, Proposed consolidation/Fix, Estimated scope, Pattern reference, Tests affected, Verify checklist).
 
@@ -58,7 +57,18 @@ Run the verification checklist from the finding:
 
 If tests fail after implementation, report the failure. Do not attempt to fix tests beyond what the finding describes — the user decides next steps.
 
-## Step 5: Report
+## Step 5: Update the Report
+
+After successful verification, update the refactor report to mark the finding as implemented:
+
+1. Check off the verify items: replace `[ ]` with `[x]` in the finding's **Verify** line.
+2. Add an `- **Implemented**: [date]` line at the end of the finding block (before the `---` separator).
+
+If tests failed or verification was only partial, check off only the items that passed and add `- **Partially implemented**: [date] — [brief reason]` instead.
+
+After updating the finding, scan the report for remaining unchecked items (`[ ]`) across all P0, P1, and P2 findings. Tell the user how many are left (e.g., "2 of 5 P1/P2 findings remaining"). If all are done, suggest running `/platform-refactor-validate {scope}` to run cross-finding regression checks and archive the report.
+
+## Step 6: Report
 
 Tell the user:
 - What was changed (files modified, lines added/removed)
@@ -66,6 +76,7 @@ Tell the user:
 - Whether the finding's verification checklist is fully satisfied
 - Whether any pattern docs need updating (link to the relevant `platform-patterns` file)
 - If implementing this finding unblocks other findings from the same report, mention them with their IDs
+- Report completion status (remaining findings or archived)
 
 ## Anti-Patterns
 
@@ -80,4 +91,4 @@ Tell the user:
 
 - **Finding references a pattern that doesn't exist yet**: Create a stub pattern doc in `platform/.claude/skills/platform-patterns/` and note it in the report output.
 - **Tests fail after implementation**: Report the failure with full output. Do not attempt to fix tests beyond what the finding describes.
-- **Finding is stale** (code changed since the report was generated): Read the current code, compare with the report's "Current state" description. If the finding still applies, proceed. If the code already changed significantly, tell the user the report may need regeneration via `/platform-refactor {scope}`.
+- **Finding is stale** (code changed since the report was generated): Read the current code, compare with the report's "Current state" description. If the finding still applies, proceed. If the code already changed significantly, tell the user the report may need regeneration via `/platform-refactor-plan {scope}`.
