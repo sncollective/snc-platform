@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import {
   makeMockMerchProductDetail,
 } from "../../helpers/merch-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -16,36 +18,11 @@ const { mockFormatPrice, mockCreateMerchCheckout, mockVariantSelector, mockNavig
     mockNavigateExternal: vi.fn(),
   }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  /\$(\w+)/g,
-                  (_, key: string) =>
-                    (params as Record<string, string>)[key] ?? "",
-                )
-              : (to as string),
-          className,
-        },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
-vi.mock("../../../src/lib/format.js", () => ({
-  formatPrice: mockFormatPrice,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatPrice: mockFormatPrice }),
+);
 
 vi.mock("../../../src/lib/merch.js", () => ({
   createMerchCheckout: mockCreateMerchCheckout,

@@ -1,21 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
-import type { User, Session } from "@snc/shared";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
-import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
+import { makeMockUser } from "../helpers/auth-fixtures.js";
 import {
   makeMockService,
   makeMockBookingRequest,
-  makeMockUserRow,
   makeMockBookingWithUser,
 } from "../helpers/booking-fixtures.js";
-
-// ── Mock State ──
-
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
@@ -56,112 +48,60 @@ const mockDb = {
   update: mockUpdate,
 };
 
-// ── App Factory ──
+// ── Test Setup ──
 
-const setupBookingApp = async (): Promise<Hono> => {
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
-
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/booking.schema.js", () => ({
-    services: {
-      id: {},
-      name: {},
-      description: {},
-      pricingInfo: {},
-      active: {},
-      sortOrder: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    bookingRequests: {
-      id: {},
-      userId: {},
-      serviceId: {},
-      preferredDates: {},
-      notes: {},
-      status: {},
-      reviewedBy: {},
-      reviewNote: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-  }));
-
-  vi.doMock("../../src/db/schema/user.schema.js", () => ({
-    users: {
-      id: {},
-      name: {},
-      email: {},
-      emailVerified: {},
-      image: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    sessions: {},
-    accounts: {},
-    verifications: {},
-    userRoles: {},
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
+const ctx = setupRouteTest({
+  db: mockDb,
+  mocks: () => {
+    vi.doMock("../../src/db/schema/booking.schema.js", () => ({
+      services: {
+        id: {},
+        name: {},
+        description: {},
+        pricingInfo: {},
+        active: {},
+        sortOrder: {},
+        createdAt: {},
+        updatedAt: {},
       },
-  }));
+      bookingRequests: {
+        id: {},
+        userId: {},
+        serviceId: {},
+        preferredDates: {},
+        notes: {},
+        status: {},
+        reviewedBy: {},
+        reviewNote: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+    }));
 
-  const { bookingRoutes } = await import(
-    "../../src/routes/booking.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api", bookingRoutes);
-
-  return app;
-};
-
-// ── Tests ──
-
-describe("booking routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.resetAllMocks();
-
-    // Re-establish chain implementations after vi.resetAllMocks() cleared them
+    vi.doMock("../../src/db/schema/user.schema.js", () => ({
+      users: {
+        id: {},
+        name: {},
+        email: {},
+        emailVerified: {},
+        image: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+      sessions: {},
+      accounts: {},
+      verifications: {},
+      userRoles: {},
+    }));
+  },
+  mountRoute: async (app) => {
+    const { bookingRoutes } = await import(
+      "../../src/routes/booking.routes.js"
+    );
+    app.route("/api", bookingRoutes);
+  },
+  beforeEach: () => {
+    // Re-establish chain implementations after clearAllMocks() cleared them
 
     // SELECT chain: .select().from().where().orderBy()
     mockSelect.mockReturnValue({ from: mockSelectFrom });
@@ -193,25 +133,16 @@ describe("booking routes", () => {
     // UPDATE chain: .update().set().where().returning()
     mockUpdate.mockReturnValue({ set: mockUpdateSet });
     mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
-    mockUpdateWhere.mockImplementation(() => {
-      const result = Promise.resolve(undefined);
-      (result as any).returning = mockUpdateReturning;
-      return result;
-    });
+    mockUpdateWhere.mockImplementation(() =>
+      chainablePromise(undefined, { returning: mockUpdateReturning }),
+    );
     mockUpdateReturning.mockResolvedValue([]);
+  },
+});
 
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-    mockRoles = ["subscriber"]; // default: non-cooperative-member
+// ── Tests ──
 
-    app = await setupBookingApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("booking routes", () => {
   // ── GET /api/services ──
 
   describe("GET /api/services", () => {
@@ -219,7 +150,7 @@ describe("booking routes", () => {
       const service = makeMockService();
       mockOrderBy.mockResolvedValue([service]);
 
-      const res = await app.request("/api/services");
+      const res = await ctx.app.request("/api/services");
       const body = (await res.json()) as { services: unknown[] };
 
       expect(res.status).toBe(200);
@@ -234,7 +165,7 @@ describe("booking routes", () => {
     it("returns empty array when no active services", async () => {
       // mockOrderBy already defaults to [] from beforeEach
 
-      const res = await app.request("/api/services");
+      const res = await ctx.app.request("/api/services");
       const body = (await res.json()) as { services: unknown[] };
 
       expect(res.status).toBe(200);
@@ -245,7 +176,7 @@ describe("booking routes", () => {
       // Only active services are returned — the mock simulates DB-level filtering
       // mockOrderBy already defaults to [] from beforeEach
 
-      const res = await app.request("/api/services");
+      const res = await ctx.app.request("/api/services");
       const body = (await res.json()) as { services: unknown[] };
 
       expect(res.status).toBe(200);
@@ -261,7 +192,7 @@ describe("booking routes", () => {
       // GET /services/:id uses .where() without chaining — resolve directly
       mockSelectWhere.mockResolvedValue([service]);
 
-      const res = await app.request("/api/services/svc_test_recording");
+      const res = await ctx.app.request("/api/services/svc_test_recording");
       const body = (await res.json()) as { service: { id: string } };
 
       expect(res.status).toBe(200);
@@ -271,7 +202,7 @@ describe("booking routes", () => {
     it("returns 404 for non-existent or inactive service", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/services/nonexistent");
+      const res = await ctx.app.request("/api/services/nonexistent");
 
       expect(res.status).toBe(404);
     });
@@ -289,7 +220,7 @@ describe("booking routes", () => {
       // Insert: returns created booking
       mockInsertReturning.mockResolvedValue([booking]);
 
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -309,9 +240,9 @@ describe("booking routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -324,7 +255,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 for missing serviceId", async () => {
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -336,7 +267,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 for empty preferredDates array", async () => {
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -349,7 +280,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 for >5 preferred dates", async () => {
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -365,7 +296,7 @@ describe("booking routes", () => {
       // Service lookup returns empty
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/bookings", {
+      const res = await ctx.app.request("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -390,7 +321,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await app.request("/api/bookings/mine");
+      const res = await ctx.app.request("/api/bookings/mine");
       const body = (await res.json()) as {
         items: Array<{ id: string; service: { id: string } }>;
         nextCursor: string | null;
@@ -404,9 +335,9 @@ describe("booking routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/bookings/mine");
+      const res = await ctx.app.request("/api/bookings/mine");
 
       expect(res.status).toBe(401);
     });
@@ -426,7 +357,7 @@ describe("booking routes", () => {
         { booking_requests: booking2, services: service },
       ]);
 
-      const res = await app.request("/api/bookings/mine?limit=1");
+      const res = await ctx.app.request("/api/bookings/mine?limit=1");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -441,7 +372,7 @@ describe("booking routes", () => {
       // Mock returns empty because filter by userId applies
       // mockJoinLimit already defaults to [] from beforeEach
 
-      const res = await app.request("/api/bookings/mine");
+      const res = await ctx.app.request("/api/bookings/mine");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -455,7 +386,7 @@ describe("booking routes", () => {
     it("returns empty list with null cursor when no bookings", async () => {
       // mockJoinLimit already defaults to [] from beforeEach
 
-      const res = await app.request("/api/bookings/mine");
+      const res = await ctx.app.request("/api/bookings/mine");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -479,7 +410,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/bk_test_001");
       const body = (await res.json()) as {
         booking: { id: string; service: { id: string } };
       };
@@ -490,9 +421,9 @@ describe("booking routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/bk_test_001");
 
       expect(res.status).toBe(401);
     });
@@ -507,7 +438,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/bk_test_001");
 
       expect(res.status).toBe(403);
     });
@@ -515,7 +446,7 @@ describe("booking routes", () => {
     it("returns 404 for non-existent booking", async () => {
       mockJoinWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/bookings/nonexistent");
+      const res = await ctx.app.request("/api/bookings/nonexistent");
 
       expect(res.status).toBe(404);
     });
@@ -525,11 +456,11 @@ describe("booking routes", () => {
 
   describe("GET /api/bookings/pending", () => {
     it("returns pending bookings with requester info and service data", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const joinRow = makeMockBookingWithUser();
       mockDoubleJoinLimit.mockResolvedValue([joinRow]);
 
-      const res = await app.request("/api/bookings/pending");
+      const res = await ctx.app.request("/api/bookings/pending");
       const body = (await res.json()) as {
         items: Array<{
           id: string;
@@ -551,10 +482,10 @@ describe("booking routes", () => {
     });
 
     it("returns empty array when no pending bookings", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       // mockDoubleJoinLimit defaults to [] from beforeEach
 
-      const res = await app.request("/api/bookings/pending");
+      const res = await ctx.app.request("/api/bookings/pending");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -566,7 +497,7 @@ describe("booking routes", () => {
     });
 
     it("supports cursor-based pagination", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const row1 = makeMockBookingWithUser({
         booking: { id: "bk_older", createdAt: new Date("2026-02-01T10:00:00.000Z") },
       });
@@ -577,7 +508,7 @@ describe("booking routes", () => {
       // limit=1, returning 2 rows triggers cursor generation
       mockDoubleJoinLimit.mockResolvedValue([row1, row2]);
 
-      const res = await app.request("/api/bookings/pending?limit=1");
+      const res = await ctx.app.request("/api/bookings/pending?limit=1");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -589,7 +520,7 @@ describe("booking routes", () => {
     });
 
     it("returns items ordered by createdAt ASC (oldest first)", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const olderRow = makeMockBookingWithUser({
         booking: { id: "bk_older", createdAt: new Date("2026-01-01T10:00:00.000Z") },
       });
@@ -600,7 +531,7 @@ describe("booking routes", () => {
       // Mock returns older first (ASC order from DB)
       mockDoubleJoinLimit.mockResolvedValue([olderRow, newerRow]);
 
-      const res = await app.request("/api/bookings/pending");
+      const res = await ctx.app.request("/api/bookings/pending");
       const body = (await res.json()) as {
         items: Array<{ id: string; createdAt: string }>;
         nextCursor: string | null;
@@ -613,17 +544,17 @@ describe("booking routes", () => {
     });
 
     it("returns 403 for non-cooperative-member", async () => {
-      // mockRoles = ["subscriber"] (default from beforeEach)
+      // ctx.auth.roles = ["subscriber"] (default from factory)
 
-      const res = await app.request("/api/bookings/pending");
+      const res = await ctx.app.request("/api/bookings/pending");
 
       expect(res.status).toBe(403);
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/bookings/pending");
+      const res = await ctx.app.request("/api/bookings/pending");
 
       expect(res.status).toBe(401);
     });
@@ -633,7 +564,7 @@ describe("booking routes", () => {
 
   describe("PATCH /api/bookings/:id/review", () => {
     it("approves booking — updates status and sets reviewedBy", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "pending" });
       const updatedBooking = makeMockBookingRequest({
@@ -646,7 +577,7 @@ describe("booking routes", () => {
       ]);
       mockUpdateReturning.mockResolvedValue([updatedBooking]);
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -661,7 +592,7 @@ describe("booking routes", () => {
     });
 
     it("denies booking with note — saves reviewNote", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "pending" });
       const updatedBooking = makeMockBookingRequest({
@@ -675,7 +606,7 @@ describe("booking routes", () => {
       ]);
       mockUpdateReturning.mockResolvedValue([updatedBooking]);
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -697,10 +628,10 @@ describe("booking routes", () => {
     });
 
     it("returns 404 for non-existent booking", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       mockJoinWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/bookings/nonexistent/review", {
+      const res = await ctx.app.request("/api/bookings/nonexistent/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -710,7 +641,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 if booking is not pending (already reviewed)", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "approved" });
 
@@ -718,7 +649,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "denied" }),
@@ -728,9 +659,9 @@ describe("booking routes", () => {
     });
 
     it("returns 400 for invalid status value", async () => {
-      mockRoles = ["cooperative-member"];
+      ctx.auth.roles = ["cooperative-member"];
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "pending" }),
@@ -740,9 +671,9 @@ describe("booking routes", () => {
     });
 
     it("returns 403 for non-cooperative-member", async () => {
-      // mockRoles = ["subscriber"] (default from beforeEach)
+      // ctx.auth.roles = ["subscriber"] (default from factory)
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -752,9 +683,9 @@ describe("booking routes", () => {
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),

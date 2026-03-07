@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
+
 // ── Hoisted Mocks ──
 
 const { mockUseSession, mockNavigate } = vi.hoisted(() => ({
@@ -8,13 +11,13 @@ const { mockUseSession, mockNavigate } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mockNavigate,
-}));
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useNavigate: () => mockNavigate }),
+);
 
 // ── Import hook under test (after mocks) ──
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { makeTestConfig } from "../helpers/test-constants.js";
 
 // ── Tests ──
 
@@ -20,10 +21,9 @@ describe("createStorageProvider", () => {
       "../../src/storage/index.js"
     );
 
-    const provider = createStorageProvider({
-      STORAGE_TYPE: "local",
-      STORAGE_LOCAL_DIR: "/tmp/snc-test-factory",
-    } as any);
+    const provider = createStorageProvider(
+      makeTestConfig({ STORAGE_LOCAL_DIR: "/tmp/snc-test-factory" }),
+    );
 
     expect(provider).toBeDefined();
     expect(provider.upload).toBeTypeOf("function");

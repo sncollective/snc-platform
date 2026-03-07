@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 
 import { makeMockCreatorListItem } from "../../helpers/creator-fixtures.js";
 import { makeMockPlan } from "../../helpers/subscription-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -13,9 +15,9 @@ const { mockUseSession, mockCreateCheckout, mockNavigateExternal } = vi.hoisted(
   mockNavigateExternal: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../src/lib/subscription.js", () => ({
   createCheckout: mockCreateCheckout,
@@ -26,21 +28,7 @@ vi.mock("../../../src/lib/url.js", async (importOriginal) => {
   return { ...actual, navigateExternal: mockNavigateExternal };
 });
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 // ── Import component under test (after mocks) ──
 

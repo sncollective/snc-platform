@@ -7,6 +7,8 @@ import {
   makeLoggedInSessionResult,
   makeMockSessionResult,
 } from "../../helpers/auth-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -24,29 +26,15 @@ vi.mock("../../../src/lib/subscription.js", () => ({
   createCheckout: mockCreateCheckout,
 }));
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../src/lib/url.js", () => ({
   navigateExternal: mockNavigateExternal,
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 // ── Component Under Test ──
 

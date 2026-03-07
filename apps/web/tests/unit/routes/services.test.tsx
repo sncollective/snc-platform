@@ -3,15 +3,15 @@ import {
   it,
   expect,
   vi,
-  beforeAll,
   beforeEach,
   afterEach,
 } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type React from "react";
-
 import { makeMockService } from "../../helpers/booking-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -27,31 +27,17 @@ const {
   mockCreateBooking: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({
+    useLoaderData: mockUseLoaderData,
     useNavigate: () => mockNavigate,
     redirect: vi.fn(),
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+  }),
+);
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
@@ -64,14 +50,7 @@ vi.mock("../../../src/lib/booking.js", () => ({
 
 // ── Component Under Test ──
 
-let ServicesPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/services.js");
-  ServicesPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const ServicesPage = extractRouteComponent(() => import("../../../src/routes/services.js"));
 
 // ── Test Lifecycle ──
 

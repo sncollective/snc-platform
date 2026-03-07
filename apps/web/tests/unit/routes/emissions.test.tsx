@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 import {
   makeMockEmissionsBreakdown,
 } from "../../helpers/emissions-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -11,25 +15,22 @@ const { mockFormatCo2 } = vi.hoisted(() => ({
   mockFormatCo2: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ redirect: vi.fn() }),
+);
+
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({
+    fetchAuthState: vi.fn().mockResolvedValue({
+      user: { id: "u1", name: "Test" },
+      roles: ["subscriber"],
     }),
-    redirect: vi.fn(),
-  };
-});
-
-vi.mock("../../../src/lib/auth.js", () => ({
-  fetchAuthState: vi.fn().mockResolvedValue({
-    user: { id: "u1", name: "Test" },
-    roles: ["subscriber"],
   }),
-}));
+);
 
-vi.mock("../../../src/lib/format.js", () => ({
-  formatCo2: mockFormatCo2,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatCo2: mockFormatCo2 }),
+);
 
 vi.mock("../../../src/lib/emissions.js", () => ({
   fetchEmissionsBreakdown: vi.fn(),
@@ -89,14 +90,7 @@ vi.mock("../../../src/components/emissions/category-breakdown.js", async () => {
 
 // ── Component Under Test ──
 
-let EmissionsPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/emissions.js");
-  EmissionsPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const EmissionsPage = extractRouteComponent(() => import("../../../src/routes/emissions.js"));
 
 // ── Test Lifecycle ──
 

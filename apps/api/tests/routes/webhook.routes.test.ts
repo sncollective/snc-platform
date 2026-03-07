@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import {
   makeCheckoutSessionCompletedEvent,
   makeInvoicePaidEvent,
@@ -30,74 +29,66 @@ const mockDb = {
   update: mockUpdate,
 };
 
-// ── App Factory ──
+// ── Test Setup ──
 
-const setupWebhookApp = async (): Promise<Hono> => {
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
+const ctx = setupRouteTest({
+  db: mockDb,
+  mockAuth: false,
+  mockRole: false,
+  defaultAuth: { user: null, session: null, roles: [] },
+  mocks: () => {
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      subscriptionPlans: {
+        id: {},
+        name: {},
+        type: {},
+        creatorId: {},
+        stripePriceId: {},
+        price: {},
+        interval: {},
+        active: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+      userSubscriptions: {
+        id: {},
+        userId: {},
+        planId: {},
+        stripeSubscriptionId: {},
+        stripeCustomerId: {},
+        status: {},
+        currentPeriodEnd: {},
+        cancelAtPeriodEnd: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+      paymentEvents: {
+        id: {},
+        type: {},
+        processedAt: {},
+      },
+    }));
 
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
+    vi.doMock("../../src/services/stripe.js", () => ({
+      verifyWebhookSignature: mockVerifyWebhookSignature,
+    }));
+  },
+  mountRoute: async (app) => {
+    const { webhookRoutes } = await import("../../src/routes/webhook.routes.js");
+    app.route("/api/webhooks", webhookRoutes);
+  },
+  beforeEach: () => {
+    // Default: signature verification succeeds with a checkout event
+    mockVerifyWebhookSignature.mockReturnValue({
+      ok: true,
+      value: makeCheckoutSessionCompletedEvent(),
+    });
 
-  vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
-    subscriptionPlans: {
-      id: {},
-      name: {},
-      type: {},
-      creatorId: {},
-      stripePriceId: {},
-      price: {},
-      interval: {},
-      active: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    userSubscriptions: {
-      id: {},
-      userId: {},
-      planId: {},
-      stripeSubscriptionId: {},
-      stripeCustomerId: {},
-      status: {},
-      currentPeriodEnd: {},
-      cancelAtPeriodEnd: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    paymentEvents: {
-      id: {},
-      type: {},
-      processedAt: {},
-    },
-  }));
-
-  vi.doMock("../../src/services/stripe.js", () => ({
-    verifyWebhookSignature: mockVerifyWebhookSignature,
-  }));
-
-  const { webhookRoutes } = await import(
-    "../../src/routes/webhook.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/webhooks", webhookRoutes);
-
-  return app;
-};
+    // Default: DB operations succeed
+    mockInsertValues.mockResolvedValue(undefined);
+    mockUpdateWhere.mockResolvedValue(undefined);
+  },
+});
 
 // ── Helper ──
 
@@ -106,11 +97,10 @@ const setupWebhookApp = async (): Promise<Hono> => {
  * and stripe-signature header.
  */
 const postWebhook = (
-  app: Hono,
   body: string,
   signature: string = "sig_test",
 ) =>
-  app.request("/api/webhooks/stripe", {
+  ctx.app.request("/api/webhooks/stripe", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -122,29 +112,6 @@ const postWebhook = (
 // ── Tests ──
 
 describe("webhook routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    // Default: signature verification succeeds with a checkout event
-    mockVerifyWebhookSignature.mockReturnValue({
-      ok: true,
-      value: makeCheckoutSessionCompletedEvent(),
-    });
-
-    // Default: DB operations succeed
-    mockInsertValues.mockResolvedValue(undefined);
-    mockUpdateWhere.mockResolvedValue(undefined);
-
-    app = await setupWebhookApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
   describe("POST /api/webhooks/stripe", () => {
     describe("signature verification", () => {
       it("returns 400 when signature verification fails", async () => {
@@ -154,7 +121,7 @@ describe("webhook routes", () => {
           error: new AppError("WEBHOOK_SIGNATURE_ERROR", "Invalid signature", 400),
         });
 
-        const res = await postWebhook(app, '{"id":"evt_bad"}', "bad_sig");
+        const res = await postWebhook('{"id":"evt_bad"}', "bad_sig");
         const body = await res.json();
 
         expect(res.status).toBe(400);
@@ -164,7 +131,7 @@ describe("webhook routes", () => {
       it("reads raw body via text for signature verification", async () => {
         const rawBody = JSON.stringify(makeCheckoutSessionCompletedEvent());
 
-        await postWebhook(app, rawBody, "test_sig_123");
+        await postWebhook(rawBody, "test_sig_123");
 
         expect(mockVerifyWebhookSignature).toHaveBeenCalledWith(
           rawBody,
@@ -178,7 +145,7 @@ describe("webhook routes", () => {
       it("passes stripe-signature header to verification", async () => {
         const rawBody = JSON.stringify(makeCheckoutSessionCompletedEvent());
 
-        await postWebhook(app, rawBody, "test_sig_123");
+        await postWebhook(rawBody, "test_sig_123");
 
         const [, sigArg] = mockVerifyWebhookSignature.mock.calls[0] as [unknown, string];
         expect(sigArg).toBe("test_sig_123");
@@ -194,7 +161,6 @@ describe("webhook routes", () => {
         );
 
         const res = await postWebhook(
-          app,
           JSON.stringify(makeCheckoutSessionCompletedEvent()),
         );
         const body = await res.json();
@@ -206,7 +172,7 @@ describe("webhook routes", () => {
       it("inserts event into payment_events table on first processing", async () => {
         const event = makeCheckoutSessionCompletedEvent();
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         expect(mockInsert).toHaveBeenCalled();
@@ -224,7 +190,7 @@ describe("webhook routes", () => {
         const event = makeCheckoutSessionCompletedEvent();
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         // Two inserts: paymentEvents + userSubscriptions
@@ -253,7 +219,7 @@ describe("webhook routes", () => {
         });
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        await postWebhook(app, JSON.stringify(event));
+        await postWebhook(JSON.stringify(event));
 
         const secondInsertValues = mockInsertValues.mock.calls[1] as [Record<string, unknown>];
         expect(secondInsertValues[0]).toMatchObject({
@@ -276,7 +242,7 @@ describe("webhook routes", () => {
         });
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
         const body = await res.json();
 
         expect(res.status).toBe(200);
@@ -291,7 +257,7 @@ describe("webhook routes", () => {
         const event = makeInvoicePaidEvent();
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
@@ -312,7 +278,7 @@ describe("webhook routes", () => {
         });
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        await postWebhook(app, JSON.stringify(event));
+        await postWebhook(JSON.stringify(event));
 
         const setArgs = mockUpdateSet.mock.calls[0] as [{ currentPeriodEnd: Date }];
         const expectedDate = new Date(periodEndUnix * 1000);
@@ -325,7 +291,7 @@ describe("webhook routes", () => {
         const event = makeInvoicePaymentFailedEvent();
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
@@ -339,7 +305,7 @@ describe("webhook routes", () => {
         const event = makeSubscriptionUpdatedEvent();
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
@@ -365,7 +331,7 @@ describe("webhook routes", () => {
         });
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        await postWebhook(app, JSON.stringify(event));
+        await postWebhook(JSON.stringify(event));
 
         const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({
@@ -380,7 +346,7 @@ describe("webhook routes", () => {
         const event = makeSubscriptionDeletedEvent();
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
@@ -398,7 +364,7 @@ describe("webhook routes", () => {
         };
         mockVerifyWebhookSignature.mockReturnValue({ ok: true, value: event });
 
-        const res = await postWebhook(app, JSON.stringify(event));
+        const res = await postWebhook(JSON.stringify(event));
         const body = await res.json();
 
         expect(res.status).toBe(200);

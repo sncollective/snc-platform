@@ -1,16 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
-import type { User, Session } from "@snc/shared";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 import { makeMockDbUser } from "../helpers/admin-fixtures.js";
-
-// ── Mock State ──
-
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
@@ -21,7 +14,6 @@ const mockInsertOnConflictDoNothing = vi.fn();
 const mockInsertValues = vi.fn();
 const mockInsert = vi.fn();
 const mockDeleteWhere = vi.fn();
-const mockDeleteFrom = vi.fn();
 const mockDelete = vi.fn();
 
 const mockDb = {
@@ -30,99 +22,25 @@ const mockDb = {
   delete: mockDelete,
 };
 
-// ── App Factory ──
-
-const setupAdminApp = async (): Promise<Hono> => {
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
-
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/user.schema.js", () => ({
-    users: {
-      id: { name: "id" },
-      name: { name: "name" },
-      email: { name: "email" },
-      emailVerified: { name: "email_verified" },
-      image: { name: "image" },
-      createdAt: { name: "created_at" },
-      updatedAt: { name: "updated_at" },
-    },
-    userRoles: {
-      userId: { name: "user_id" },
-      role: { name: "role" },
-      createdAt: { name: "created_at" },
-    },
-    sessions: {},
-    accounts: {},
-    verifications: {},
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
-      },
-  }));
-
-  const { adminRoutes } = await import("../../src/routes/admin.routes.js");
-  const { errorHandler } = await import("../../src/middleware/error-handler.js");
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/admin", adminRoutes);
-
-  return app;
-};
-
 // ── Helpers ──
 
 function setupSelectChain(results: unknown[]) {
   mockSelect.mockReturnValue({ from: mockSelectFrom });
-  mockSelectFrom.mockImplementation(() => {
-    const result = Promise.resolve(results);
-    (result as any).where = mockSelectWhere;
-    (result as any).orderBy = vi.fn().mockImplementation(() => {
-      const orderResult = { limit: vi.fn().mockResolvedValue(results) };
-      return orderResult;
-    });
-    return result;
-  });
-  mockSelectWhere.mockImplementation(() => {
-    const result = Promise.resolve(results);
-    (result as any).orderBy = vi.fn().mockImplementation(() => {
-      const orderResult = { limit: vi.fn().mockResolvedValue(results) };
-      return orderResult;
-    });
-    return result;
-  });
+  mockSelectFrom.mockImplementation(() =>
+    chainablePromise(results, {
+      where: mockSelectWhere,
+      orderBy: vi.fn().mockImplementation(() => ({
+        limit: vi.fn().mockResolvedValue(results),
+      })),
+    }),
+  );
+  mockSelectWhere.mockImplementation(() =>
+    chainablePromise(results, {
+      orderBy: vi.fn().mockImplementation(() => ({
+        limit: vi.fn().mockResolvedValue(results),
+      })),
+    }),
+  );
 }
 
 function setupInsertChain() {
@@ -135,34 +53,52 @@ function setupInsertChain() {
 
 function setupDeleteChain() {
   mockDelete.mockReturnValue({ where: mockDeleteWhere });
-  // Needs to be called as mockDeleteFrom for the from() pattern
-  // but admin routes use db.delete(table).where(...) directly
   mockDeleteWhere.mockResolvedValue(undefined);
 }
+
+// ── Test Setup ──
+
+const ctx = setupRouteTest({
+  db: mockDb,
+  defaultAuth: {
+    user: makeMockUser({ id: "admin_user_001" }),
+    session: makeMockSession({ userId: "admin_user_001" }),
+    roles: ["admin"],
+  },
+  mocks: () => {
+    vi.doMock("../../src/db/schema/user.schema.js", () => ({
+      users: {
+        id: { name: "id" },
+        name: { name: "name" },
+        email: { name: "email" },
+        emailVerified: { name: "email_verified" },
+        image: { name: "image" },
+        createdAt: { name: "created_at" },
+        updatedAt: { name: "updated_at" },
+      },
+      userRoles: {
+        userId: { name: "user_id" },
+        role: { name: "role" },
+        createdAt: { name: "created_at" },
+      },
+      sessions: {},
+      accounts: {},
+      verifications: {},
+    }));
+  },
+  mountRoute: async (app) => {
+    const { adminRoutes } = await import("../../src/routes/admin.routes.js");
+    app.route("/api/admin", adminRoutes);
+  },
+  beforeEach: () => {
+    setupInsertChain();
+    setupDeleteChain();
+  },
+});
 
 // ── Tests ──
 
 describe("admin routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.resetAllMocks();
-
-    mockUser = makeMockUser({ id: "admin_user_001" });
-    mockSession = makeMockSession({ userId: "admin_user_001" });
-    mockRoles = ["admin"];
-
-    setupInsertChain();
-    setupDeleteChain();
-
-    app = await setupAdminApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
   // ── GET /api/admin/users ──
 
   describe("GET /api/admin/users", () => {
@@ -208,7 +144,7 @@ describe("admin routes", () => {
         };
       });
 
-      const res = await app.request("/api/admin/users?limit=20");
+      const res = await ctx.app.request("/api/admin/users?limit=20");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -231,7 +167,7 @@ describe("admin routes", () => {
         return chain;
       });
 
-      const res = await app.request("/api/admin/users");
+      const res = await ctx.app.request("/api/admin/users");
       const body = (await res.json()) as {
         items: unknown[];
         nextCursor: string | null;
@@ -243,17 +179,17 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/admin/users");
+      const res = await ctx.app.request("/api/admin/users");
 
       expect(res.status).toBe(403);
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/admin/users");
+      const res = await ctx.app.request("/api/admin/users");
 
       expect(res.status).toBe(401);
     });
@@ -287,7 +223,7 @@ describe("admin routes", () => {
         }),
       }));
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -304,7 +240,7 @@ describe("admin routes", () => {
         }),
       });
 
-      const res = await app.request("/api/admin/users/nonexistent/roles", {
+      const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -314,7 +250,7 @@ describe("admin routes", () => {
     });
 
     it("returns 400 for invalid role", async () => {
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "superadmin" }),
@@ -337,7 +273,7 @@ describe("admin routes", () => {
         }),
       }));
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "subscriber" }),
@@ -348,9 +284,9 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -360,9 +296,9 @@ describe("admin routes", () => {
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -389,7 +325,7 @@ describe("admin routes", () => {
         }),
       }));
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -400,7 +336,7 @@ describe("admin routes", () => {
     });
 
     it("prevents removing own admin role", async () => {
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/admin/users/admin_user_001/roles",
         {
           method: "DELETE",
@@ -421,7 +357,7 @@ describe("admin routes", () => {
         }),
       });
 
-      const res = await app.request("/api/admin/users/nonexistent/roles", {
+      const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -431,7 +367,7 @@ describe("admin routes", () => {
     });
 
     it("returns 400 for invalid role", async () => {
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "superadmin" }),
@@ -441,9 +377,9 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),
@@ -453,9 +389,9 @@ describe("admin routes", () => {
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "creator" }),

@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockMerchProductDetail } from "../../helpers/merch-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -10,36 +12,9 @@ const { mockUseLoaderData, mockProductDetail } = vi.hoisted(() => ({
   mockProductDetail: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  /\$(\w+)/g,
-                  (_, key: string) =>
-                    (params as Record<string, string>)[key] ?? "",
-                )
-              : (to as string),
-          className,
-        },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useLoaderData: mockUseLoaderData }),
+);
 
 vi.mock("../../../src/components/merch/product-detail.js", () => ({
   ProductDetail: (props: Record<string, unknown>) => {
@@ -51,14 +26,7 @@ vi.mock("../../../src/components/merch/product-detail.js", () => ({
 
 // ── Component Under Test ──
 
-let MerchDetailPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/merch/$handle.js");
-  MerchDetailPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const MerchDetailPage = extractRouteComponent(() => import("../../../src/routes/merch/$handle.js"));
 
 // ── Test Lifecycle ──
 

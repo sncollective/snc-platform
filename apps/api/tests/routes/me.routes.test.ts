@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 
 // ── Mock Helpers ──
@@ -9,64 +8,42 @@ import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 const mockGetSession = vi.fn();
 const mockGetUserRoles = vi.fn();
 
-const setupMeApp = async (): Promise<Hono> => {
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
+// ── Test Setup ──
 
-  vi.doMock("../../src/auth/auth.js", () => ({
-    auth: {
-      api: {
-        getSession: mockGetSession,
+const ctx = setupRouteTest({
+  mockAuth: false,
+  mockRole: false,
+  defaultAuth: { user: null, session: null, roles: [] },
+  mocks: () => {
+    vi.doMock("../../src/auth/auth.js", () => ({
+      auth: {
+        api: {
+          getSession: mockGetSession,
+        },
       },
-    },
-  }));
+    }));
 
-  vi.doMock("../../src/auth/user-roles.js", () => ({
-    getUserRoles: mockGetUserRoles,
-  }));
-
-  const { meRoutes } = await import("../../src/routes/me.routes.js");
-
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/me", meRoutes);
-
-  return app;
-};
+    vi.doMock("../../src/auth/user-roles.js", () => ({
+      getUserRoles: mockGetUserRoles,
+    }));
+  },
+  mountRoute: async (app) => {
+    const { meRoutes } = await import("../../src/routes/me.routes.js");
+    app.route("/api/me", meRoutes);
+  },
+  beforeEach: () => {
+    mockGetSession.mockReset();
+    mockGetUserRoles.mockReset();
+  },
+});
 
 // ── Tests ──
 
 describe("GET /api/me", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    mockGetSession.mockReset();
-    mockGetUserRoles.mockReset();
-    app = await setupMeApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
   it("returns { user: null } when no session exists", async () => {
     mockGetSession.mockResolvedValue(null);
 
-    const res = await app.request("/api/me");
+    const res = await ctx.app.request("/api/me");
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -80,7 +57,7 @@ describe("GET /api/me", () => {
     mockGetSession.mockResolvedValue({ user, session });
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
 
-    const res = await app.request("/api/me", {
+    const res = await ctx.app.request("/api/me", {
       headers: {
         Cookie: "better-auth.session_token=valid_token",
       },
@@ -101,7 +78,7 @@ describe("GET /api/me", () => {
     });
     mockGetUserRoles.mockResolvedValue(["subscriber", "cooperative-member"]);
 
-    const res = await app.request("/api/me", {
+    const res = await ctx.app.request("/api/me", {
       headers: {
         Cookie: "better-auth.session_token=valid_token",
       },
@@ -118,7 +95,7 @@ describe("GET /api/me", () => {
     mockGetSession.mockResolvedValue({ user, session });
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
 
-    await app.request("/api/me", {
+    await ctx.app.request("/api/me", {
       headers: {
         Cookie: "better-auth.session_token=valid_token",
       },
@@ -136,7 +113,7 @@ describe("GET /api/me", () => {
     });
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
 
-    const res = await app.request("/api/me", {
+    const res = await ctx.app.request("/api/me", {
       headers: {
         Cookie: "better-auth.session_token=valid_token",
       },
@@ -150,7 +127,7 @@ describe("GET /api/me", () => {
   it("passes raw request headers to auth.api.getSession", async () => {
     mockGetSession.mockResolvedValue(null);
 
-    await app.request("/api/me", {
+    await ctx.app.request("/api/me", {
       headers: {
         Cookie: "better-auth.session_token=some_token",
       },

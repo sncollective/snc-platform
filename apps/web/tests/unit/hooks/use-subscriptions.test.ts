@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
+import { createAuthMock } from "../../helpers/auth-mock.js";
+
 // ── Hoisted Mocks ──
 
 const { mockUseSession, mockFetchMySubscriptions } = vi.hoisted(() => ({
@@ -8,9 +10,9 @@ const { mockUseSession, mockFetchMySubscriptions } = vi.hoisted(() => ({
   mockFetchMySubscriptions: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../src/lib/subscription.js", () => ({
   fetchMySubscriptions: mockFetchMySubscriptions,

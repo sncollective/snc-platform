@@ -5,6 +5,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useRoles, hasRole } from "../../lib/auth.js";
+import type { AuthState } from "../../lib/auth.js";
 import styles from "./user-menu.module.css";
 
 // ── Private Helpers ──
@@ -21,7 +22,7 @@ function getInitials(name: string): string {
 
 // ── Public API ──
 
-export function UserMenu() {
+export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const session = useSession();
   const roles = useRoles();
   const navigate = useNavigate();
@@ -34,11 +35,21 @@ export function UserMenu() {
     void navigate({ to: "/" });
   }, [navigate, handleClose]);
 
-  if (session.isPending) {
-    return null;
+  // Resolve user: prefer live session, fall back to server-prefetched
+  const user = session.isPending
+    ? serverAuth?.user ?? null
+    : session.data?.user ?? null;
+  const effectiveRoles = session.isPending
+    ? serverAuth?.roles ?? []
+    : roles;
+
+  // Still loading and no server data at all — show skeleton
+  // (serverAuth undefined = genuinely unknown; serverAuth.user null = confirmed logged out)
+  if (!user && session.isPending && !serverAuth) {
+    return <div className={styles.avatarSkeleton} aria-hidden="true" />;
   }
 
-  if (!session.data) {
+  if (!user) {
     return (
       <div className={styles.loggedOut}>
         <Link to="/login" className={styles.loginLink}>
@@ -51,7 +62,6 @@ export function UserMenu() {
     );
   }
 
-  const user = session.data.user;
   const initials = getInitials(user.name);
 
   return (
@@ -76,7 +86,7 @@ export function UserMenu() {
 
           <div className={styles.divider} />
 
-          {hasRole(roles, "admin") && (
+          {hasRole(effectiveRoles, "admin") && (
             <Link
               to="/admin"
               className={styles.menuItem}
@@ -87,7 +97,7 @@ export function UserMenu() {
             </Link>
           )}
 
-          {hasRole(roles, "cooperative-member") && (
+          {hasRole(effectiveRoles, "cooperative-member") && (
             <Link
               to="/dashboard"
               className={styles.menuItem}
@@ -98,7 +108,7 @@ export function UserMenu() {
             </Link>
           )}
 
-          {hasRole(roles, "creator") && (
+          {hasRole(effectiveRoles, "creator") && (
             <Link
               to="/settings/creator"
               className={styles.menuItem}
@@ -109,7 +119,7 @@ export function UserMenu() {
             </Link>
           )}
 
-          {hasRole(roles, "creator") && (
+          {hasRole(effectiveRoles, "creator") && (
             <Link
               to="/settings/content"
               className={styles.menuItem}

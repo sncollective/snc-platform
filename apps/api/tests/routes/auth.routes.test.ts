@@ -1,70 +1,36 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 
 // ── Mock Helpers ──
 
 const mockHandler = vi.fn();
 
-/**
- * Build a Hono app with mocked auth routes.
- *
- * Mocks both `auth/auth.js` and `config.js` to prevent Better Auth
- * and database initialization. The `mockHandler` function is configurable
- * per-test to simulate different Better Auth responses.
- */
-const setupAuthRoutesApp = async (): Promise<Hono> => {
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
+// ── Test Setup ──
 
-  vi.doMock("../../src/auth/auth.js", () => ({
-    auth: {
-      handler: mockHandler,
-    },
-  }));
-
-  const { authRoutes } = await import(
-    "../../src/routes/auth.routes.js"
-  );
-
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-
-  const { corsMiddleware } = await import(
-    "../../src/middleware/cors.js"
-  );
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/auth", authRoutes);
-
-  return app;
-};
+const ctx = setupRouteTest({
+  mockAuth: false,
+  mockRole: false,
+  defaultAuth: { user: null, session: null, roles: [] },
+  mocks: () => {
+    vi.doMock("../../src/auth/auth.js", () => ({
+      auth: {
+        handler: mockHandler,
+      },
+    }));
+  },
+  mountRoute: async (app) => {
+    const { authRoutes } = await import("../../src/routes/auth.routes.js");
+    app.route("/api/auth", authRoutes);
+  },
+  beforeEach: () => {
+    mockHandler.mockReset();
+  },
+});
 
 // ── Tests ──
 
 describe("auth routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    mockHandler.mockReset();
-    app = await setupAuthRoutesApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
   describe("POST /api/auth/sign-up/email", () => {
     it("delegates to Better Auth handler and returns signup response", async () => {
       const signupBody = {
@@ -94,7 +60,7 @@ describe("auth routes", () => {
         }),
       );
 
-      const res = await app.request("/api/auth/sign-up/email", {
+      const res = await ctx.app.request("/api/auth/sign-up/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -124,7 +90,7 @@ describe("auth routes", () => {
         ),
       );
 
-      const res = await app.request("/api/auth/sign-up/email", {
+      const res = await ctx.app.request("/api/auth/sign-up/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +135,7 @@ describe("auth routes", () => {
         ),
       );
 
-      const res = await app.request("/api/auth/sign-in/email", {
+      const res = await ctx.app.request("/api/auth/sign-in/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,7 +163,7 @@ describe("auth routes", () => {
         ),
       );
 
-      const res = await app.request("/api/auth/sign-in/email", {
+      const res = await ctx.app.request("/api/auth/sign-in/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -229,7 +195,7 @@ describe("auth routes", () => {
         ),
       );
 
-      const res = await app.request("/api/auth/sign-out", {
+      const res = await ctx.app.request("/api/auth/sign-out", {
         method: "POST",
         headers: {
           Cookie: "better-auth.session_token=valid_token",
@@ -266,7 +232,7 @@ describe("auth routes", () => {
         }),
       );
 
-      const res = await app.request("/api/auth/get-session", {
+      const res = await ctx.app.request("/api/auth/get-session", {
         headers: {
           Cookie: "better-auth.session_token=valid_token",
         },
@@ -286,7 +252,7 @@ describe("auth routes", () => {
         }),
       );
 
-      const res = await app.request("/api/auth/get-session");
+      const res = await ctx.app.request("/api/auth/get-session");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -303,7 +269,7 @@ describe("auth routes", () => {
         }),
       );
 
-      await app.request("/api/auth/get-session");
+      await ctx.app.request("/api/auth/get-session");
 
       expect(mockHandler).toHaveBeenCalledOnce();
       const callArg = mockHandler.mock.calls[0][0];
@@ -318,7 +284,7 @@ describe("auth routes", () => {
         }),
       );
 
-      const res = await app.request("/api/auth/csrf");
+      const res = await ctx.app.request("/api/auth/csrf");
 
       expect(res.status).toBe(200);
       expect(mockHandler).toHaveBeenCalledOnce();

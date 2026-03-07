@@ -1,16 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
-import type { User, Session } from "@snc/shared";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
-import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockMonthlyRevenue } from "../helpers/dashboard-fixtures.js";
-
-// ── Mock State ──
-
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock Revenue Service ──
 
@@ -30,136 +22,76 @@ const mockDb = {
   select: mockSelect,
 };
 
-// ── App Factory ──
+// ── Test Setup ──
 
-const setupDashboardApp = async (): Promise<Hono> => {
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
-
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
-    userSubscriptions: {
-      id: {},
-      userId: {},
-      planId: {},
-      stripeSubscriptionId: {},
-      stripeCustomerId: {},
-      status: {},
-      currentPeriodEnd: {},
-      cancelAtPeriodEnd: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    subscriptionPlans: {},
-    paymentEvents: {},
-  }));
-
-  vi.doMock("../../src/db/schema/booking.schema.js", () => ({
-    services: {},
-    bookingRequests: {
-      id: {},
-      userId: {},
-      serviceId: {},
-      preferredDates: {},
-      notes: {},
-      status: {},
-      reviewedBy: {},
-      reviewNote: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-  }));
-
-  vi.doMock("../../src/services/revenue.js", () => ({
-    getMonthlyRevenue: mockGetMonthlyRevenue,
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
+const ctx = setupRouteTest({
+  db: mockDb,
+  defaultAuth: { roles: ["cooperative-member"] },
+  mocks: () => {
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      userSubscriptions: {
+        id: {},
+        userId: {},
+        planId: {},
+        stripeSubscriptionId: {},
+        stripeCustomerId: {},
+        status: {},
+        currentPeriodEnd: {},
+        cancelAtPeriodEnd: {},
+        createdAt: {},
+        updatedAt: {},
       },
-  }));
+      subscriptionPlans: {},
+      paymentEvents: {},
+    }));
 
-  const { dashboardRoutes } = await import(
-    "../../src/routes/dashboard.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
+    vi.doMock("../../src/db/schema/booking.schema.js", () => ({
+      services: {},
+      bookingRequests: {
+        id: {},
+        userId: {},
+        serviceId: {},
+        preferredDates: {},
+        notes: {},
+        status: {},
+        reviewedBy: {},
+        reviewNote: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+    }));
 
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/dashboard", dashboardRoutes);
-
-  return app;
-};
-
-// ── Tests ──
-
-describe("dashboard routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.resetAllMocks();
-
-    // Re-establish SELECT chain after resetAllMocks.
+    vi.doMock("../../src/services/revenue.js", () => ({
+      getMonthlyRevenue: mockGetMonthlyRevenue,
+    }));
+  },
+  mountRoute: async (app) => {
+    const { dashboardRoutes } = await import(
+      "../../src/routes/dashboard.routes.js"
+    );
+    app.route("/api/dashboard", dashboardRoutes);
+  },
+  beforeEach: () => {
+    // Re-establish SELECT chain after clearAllMocks.
     // .from() must be both terminal (await-able) AND have a .where method,
     // because some queries end at .from() (total count) and others chain .where() (pending/active).
     mockSelect.mockReturnValue({ from: mockSelectFrom });
-    mockSelectFrom.mockImplementation(() => {
-      const result = Promise.resolve([{ count: 0 }]);
-      (result as any).where = mockSelectWhere;
-      return result;
-    });
+    mockSelectFrom.mockImplementation(() =>
+      chainablePromise([{ count: 0 }], { where: mockSelectWhere }),
+    );
     mockSelectWhere.mockResolvedValue([{ count: 0 }]);
-
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-    mockRoles = ["cooperative-member"];
 
     // Default: revenue service returns empty 12-month array
     mockGetMonthlyRevenue.mockResolvedValue({
       ok: true,
       value: [],
     });
+  },
+});
 
-    app = await setupDashboardApp();
-  });
+// ── Tests ──
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("dashboard routes", () => {
   // ── GET /api/dashboard/revenue ──
 
   describe("GET /api/dashboard/revenue", () => {
@@ -185,7 +117,7 @@ describe("dashboard routes", () => {
 
       mockGetMonthlyRevenue.mockResolvedValue({ ok: true, value: monthly });
 
-      const res = await app.request("/api/dashboard/revenue");
+      const res = await ctx.app.request("/api/dashboard/revenue");
       const body = (await res.json()) as {
         currentMonth: number;
         monthly: unknown[];
@@ -206,7 +138,7 @@ describe("dashboard routes", () => {
 
       mockGetMonthlyRevenue.mockResolvedValue({ ok: true, value: monthly });
 
-      const res = await app.request("/api/dashboard/revenue");
+      const res = await ctx.app.request("/api/dashboard/revenue");
       const body = (await res.json()) as {
         currentMonth: number;
         monthly: unknown[];
@@ -224,7 +156,7 @@ describe("dashboard routes", () => {
         error: new AppError("REVENUE_ERROR", "Stripe API failure", 502),
       });
 
-      const res = await app.request("/api/dashboard/revenue");
+      const res = await ctx.app.request("/api/dashboard/revenue");
       const body = (await res.json()) as { error: { code: string } };
 
       expect(res.status).toBe(502);
@@ -232,17 +164,17 @@ describe("dashboard routes", () => {
     });
 
     it("returns 403 for non-cooperative-member", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/dashboard/revenue");
+      const res = await ctx.app.request("/api/dashboard/revenue");
 
       expect(res.status).toBe(403);
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/dashboard/revenue");
+      const res = await ctx.app.request("/api/dashboard/revenue");
 
       expect(res.status).toBe(401);
     });
@@ -254,7 +186,7 @@ describe("dashboard routes", () => {
     it("returns active subscriber count", async () => {
       mockSelectWhere.mockResolvedValue([{ count: 42 }]);
 
-      const res = await app.request("/api/dashboard/subscribers");
+      const res = await ctx.app.request("/api/dashboard/subscribers");
       const body = (await res.json()) as { active: number };
 
       expect(res.status).toBe(200);
@@ -263,7 +195,7 @@ describe("dashboard routes", () => {
 
     it("returns { active: 0 } when no active subscribers", async () => {
       // Default mock already returns [{ count: 0 }]
-      const res = await app.request("/api/dashboard/subscribers");
+      const res = await ctx.app.request("/api/dashboard/subscribers");
       const body = (await res.json()) as { active: number };
 
       expect(res.status).toBe(200);
@@ -271,17 +203,17 @@ describe("dashboard routes", () => {
     });
 
     it("returns 403 for non-cooperative-member", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/dashboard/subscribers");
+      const res = await ctx.app.request("/api/dashboard/subscribers");
 
       expect(res.status).toBe(403);
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/dashboard/subscribers");
+      const res = await ctx.app.request("/api/dashboard/subscribers");
 
       expect(res.status).toBe(401);
     });
@@ -304,7 +236,7 @@ describe("dashboard routes", () => {
         });
       mockSelectWhere.mockResolvedValue([{ count: 3 }]);
 
-      const res = await app.request("/api/dashboard/bookings");
+      const res = await ctx.app.request("/api/dashboard/bookings");
       const body = (await res.json()) as { pending: number; total: number };
 
       expect(res.status).toBe(200);
@@ -314,7 +246,7 @@ describe("dashboard routes", () => {
 
     it("returns { pending: 0, total: 0 } when no bookings", async () => {
       // Default mock returns [{ count: 0 }] for both paths
-      const res = await app.request("/api/dashboard/bookings");
+      const res = await ctx.app.request("/api/dashboard/bookings");
       const body = (await res.json()) as { pending: number; total: number };
 
       expect(res.status).toBe(200);
@@ -323,17 +255,17 @@ describe("dashboard routes", () => {
     });
 
     it("returns 403 for non-cooperative-member", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/dashboard/bookings");
+      const res = await ctx.app.request("/api/dashboard/bookings");
 
       expect(res.status).toBe(403);
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/dashboard/bookings");
+      const res = await ctx.app.request("/api/dashboard/bookings");
 
       expect(res.status).toBe(401);
     });

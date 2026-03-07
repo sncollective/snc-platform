@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 
 // ── Hoisted Mocks ──
 
+import { createFormatMock } from "../../../helpers/format-mock.js";
+
 const { mockFormatRelativeDate } = vi.hoisted(() => ({
   mockFormatRelativeDate: vi.fn(),
 }));
@@ -12,7 +14,7 @@ vi.mock("../../../../src/lib/format.js", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("../../../../src/lib/format.js")
   >();
-  return { ...actual, formatRelativeDate: mockFormatRelativeDate };
+  return createFormatMock({ formatRelativeDate: mockFormatRelativeDate }, actual);
 });
 
 // ── Import component under test (after mocks) ──

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 import {
   fetchServices,
@@ -11,33 +11,24 @@ import {
   makeMockService,
   makeMockBookingWithService,
 } from "../../helpers/booking-fixtures.js";
+import { setupFetchMock } from "../../helpers/fetch-mock.js";
 
 // ── Test Lifecycle ──
 
-let mockFetch: ReturnType<typeof vi.fn>;
-
-beforeEach(() => {
-  mockFetch = vi.fn();
-  vi.stubGlobal("fetch", mockFetch);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const { getMockFetch } = setupFetchMock();
 
 // ── Tests ──
 
 describe("fetchServices", () => {
   it("fetches from correct URL with credentials", async () => {
     const service = makeMockService();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ services: [service] }), { status: 200 }),
     );
 
     const result = await fetchServices();
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/services",
       { credentials: "include" },
     );
@@ -45,7 +36,7 @@ describe("fetchServices", () => {
   });
 
   it("throws on error response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Server error" } }),
         { status: 500 },
@@ -59,13 +50,13 @@ describe("fetchServices", () => {
 describe("fetchServiceById", () => {
   it("fetches from correct URL with service ID", async () => {
     const service = makeMockService({ id: "svc_123" });
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ service }), { status: 200 }),
     );
 
     const result = await fetchServiceById("svc_123");
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/services/svc_123",
       { credentials: "include" },
     );
@@ -74,20 +65,20 @@ describe("fetchServiceById", () => {
 
   it("encodes special characters in service ID", async () => {
     const service = makeMockService();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ service }), { status: 200 }),
     );
 
     await fetchServiceById("svc/special id");
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/services/svc%2Fspecial%20id",
       { credentials: "include" },
     );
   });
 
   it("throws on 404 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Service not found" } }),
         { status: 404 },
@@ -103,7 +94,7 @@ describe("fetchServiceById", () => {
 describe("createBooking", () => {
   it("posts to correct URL with body and credentials", async () => {
     const booking = makeMockBookingWithService();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ booking }), { status: 201 }),
     );
 
@@ -113,7 +104,7 @@ describe("createBooking", () => {
       notes: "Afternoon preferred",
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/bookings",
       {
         method: "POST",
@@ -132,7 +123,7 @@ describe("createBooking", () => {
   });
 
   it("throws on 401 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Unauthorized" } }),
         { status: 401 },
@@ -149,7 +140,7 @@ describe("createBooking", () => {
   });
 
   it("throws on 400 validation error", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Validation failed" } }),
         { status: 400 },
@@ -169,7 +160,7 @@ describe("createBooking", () => {
 describe("fetchMyBookings", () => {
   it("fetches from correct URL without params", async () => {
     const booking = makeMockBookingWithService();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ items: [booking], nextCursor: null }),
         { status: 200 },
@@ -178,7 +169,7 @@ describe("fetchMyBookings", () => {
 
     const result = await fetchMyBookings();
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/bookings/mine",
       { credentials: "include" },
     );
@@ -187,7 +178,7 @@ describe("fetchMyBookings", () => {
   });
 
   it("includes cursor and limit query params", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ items: [], nextCursor: null }),
         { status: 200 },
@@ -196,13 +187,13 @@ describe("fetchMyBookings", () => {
 
     await fetchMyBookings({ cursor: "abc123", limit: 10 });
 
-    const calledUrl = mockFetch.mock.calls[0]![0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("cursor=abc123");
     expect(calledUrl).toContain("limit=10");
   });
 
   it("includes only provided params", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ items: [], nextCursor: null }),
         { status: 200 },
@@ -211,13 +202,13 @@ describe("fetchMyBookings", () => {
 
     await fetchMyBookings({ limit: 5 });
 
-    const calledUrl = mockFetch.mock.calls[0]![0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("limit=5");
     expect(calledUrl).not.toContain("cursor");
   });
 
   it("returns nextCursor when present", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ items: [], nextCursor: "cursor_xyz" }),
         { status: 200 },
@@ -230,7 +221,7 @@ describe("fetchMyBookings", () => {
   });
 
   it("throws on 401 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Unauthorized" } }),
         { status: 401 },
@@ -244,13 +235,13 @@ describe("fetchMyBookings", () => {
 describe("fetchBookingById", () => {
   it("fetches from correct URL with booking ID", async () => {
     const booking = makeMockBookingWithService({ id: "bk_abc" });
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ booking }), { status: 200 }),
     );
 
     const result = await fetchBookingById("bk_abc");
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/bookings/bk_abc",
       { credentials: "include" },
     );
@@ -258,7 +249,7 @@ describe("fetchBookingById", () => {
   });
 
   it("throws on 404 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Booking not found" } }),
         { status: 404 },
@@ -271,7 +262,7 @@ describe("fetchBookingById", () => {
   });
 
   it("throws on 403 response for non-owner", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({
           error: { message: "Not the booking owner" },

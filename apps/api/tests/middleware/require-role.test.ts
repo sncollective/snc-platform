@@ -36,8 +36,8 @@ const setupRoleApp = async (
 
   // Simulate requireAuth having already run (sets user, session, and roles)
   app.use("*", async (c, next) => {
-    c.set("user", MOCK_USER as any);
-    c.set("session", MOCK_SESSION as any);
+    c.set("user", MOCK_USER);
+    c.set("session", MOCK_SESSION);
     c.set("roles", userRoleValues);
     await next();
   });

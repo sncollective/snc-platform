@@ -1,37 +1,30 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 import { makeMockDbContent } from "../helpers/content-fixtures.js";
 import { ok, textToStream } from "@snc/shared";
-import type { User, Session } from "@snc/shared";
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock State ──
 
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
 let mockGateRoles: string[];
 
 // Drizzle db mock — chainable method stubs
 const mockSelectWhere = vi.fn();
 
-// Feed query mock chain: select → from → innerJoin → where → orderBy → limit
+// Feed query mock chain: select -> from -> innerJoin -> where -> orderBy -> limit
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 // mockSubLimit is also reachable via mockFeedWhere().limit for the subscription
-// access query which uses: select → from → innerJoin → where → limit (no orderBy)
+// access query which uses: select -> from -> innerJoin -> where -> limit (no orderBy)
 const mockSubLimit = vi.fn();
 // buildContentAccessContext awaits the where() result directly (no .limit/.orderBy),
 // so mockFeedWhere must return a thenable that also has chainable properties
 const mockBatchAccessRows: unknown[] = [];
-const mockFeedWhere = vi.fn(() => {
-  const promise = Promise.resolve(mockBatchAccessRows);
-  (promise as any).orderBy = mockOrderBy;
-  (promise as any).limit = mockSubLimit;
-  return promise;
-});
+const mockFeedWhere = vi.fn(() =>
+  chainablePromise(mockBatchAccessRows, { orderBy: mockOrderBy, limit: mockSubLimit }),
+);
 const mockInnerJoin = vi.fn(() => ({ where: mockFeedWhere }));
 
 const mockSelectFrom = vi.fn(() => ({
@@ -45,11 +38,9 @@ const mockInsertValues = vi.fn(() => ({ returning: mockInsertReturning }));
 const mockInsert = vi.fn(() => ({ values: mockInsertValues }));
 
 const mockUpdateReturning = vi.fn();
-const mockUpdateWhere = vi.fn(() => {
-  const promise = Promise.resolve(undefined);
-  (promise as any).returning = mockUpdateReturning;
-  return promise;
-});
+const mockUpdateWhere = vi.fn(() =>
+  chainablePromise(undefined, { returning: mockUpdateReturning }),
+);
 const mockUpdateSet = vi.fn(() => ({ where: mockUpdateWhere }));
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
@@ -78,112 +69,55 @@ const mockDownloadResult = (text: string) =>
 // Auth session mock — for GET /:id and GET /:id/media visibility checks
 const mockGetSession = vi.fn();
 
-// ── Test App Factory ──
+// ── Test Setup ──
 
-const setupContentApp = async (): Promise<Hono> => {
-  // Import error classes first so they share the same module instance as
-  // errorHandler (after vi.resetModules() each test gets a fresh registry).
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
+const ctx = setupRouteTest({
+  db: mockDb,
+  defaultAuth: { roles: ["subscriber", "creator"] },
+  mocks: () => {
+    vi.doMock("../../src/db/schema/content.schema.js", () => ({
+      content: {},
+    }));
 
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
+    vi.doMock("../../src/db/schema/user.schema.js", () => ({
+      users: {},
+    }));
 
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/content.schema.js", () => ({
-    content: {},
-  }));
-
-  vi.doMock("../../src/db/schema/user.schema.js", () => ({
-    users: {},
-  }));
-
-  vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
-    subscriptionPlans: {
-      id: {},
-      type: {},
-      creatorId: {},
-    },
-    userSubscriptions: {
-      id: {},
-      userId: {},
-      planId: {},
-      status: {},
-      currentPeriodEnd: {},
-    },
-  }));
-
-  vi.doMock("../../src/auth/auth.js", () => ({
-    auth: { api: { getSession: mockGetSession } },
-  }));
-
-  vi.doMock("../../src/auth/user-roles.js", () => ({
-    getUserRoles: vi.fn().mockImplementation(() => Promise.resolve(mockGateRoles)),
-  }));
-
-  vi.doMock("../../src/storage/index.js", () => ({
-    storage: mockStorage,
-    createStorageProvider: vi.fn(),
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      subscriptionPlans: {
+        id: {},
+        type: {},
+        creatorId: {},
       },
-  }));
+      userSubscriptions: {
+        id: {},
+        userId: {},
+        planId: {},
+        status: {},
+        currentPeriodEnd: {},
+      },
+    }));
 
-  const { contentRoutes } = await import(
-    "../../src/routes/content.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
+    vi.doMock("../../src/auth/auth.js", () => ({
+      auth: { api: { getSession: mockGetSession } },
+    }));
 
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/content", contentRoutes);
+    vi.doMock("../../src/auth/user-roles.js", () => ({
+      getUserRoles: vi.fn().mockImplementation(() => Promise.resolve(mockGateRoles)),
+    }));
 
-  return app;
-};
-
-// ── Tests ──
-
-describe("content routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    // Default: authenticated creator
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-    mockRoles = ["subscriber", "creator"];
+    vi.doMock("../../src/storage/index.js", () => ({
+      storage: mockStorage,
+      createStorageProvider: vi.fn(),
+    }));
+  },
+  mountRoute: async (app) => {
+    const { contentRoutes } = await import(
+      "../../src/routes/content.routes.js"
+    );
+    app.route("/api/content", contentRoutes);
+  },
+  beforeEach: () => {
     // Content gate role check defaults to subscriber-only so subscription
     // tests exercise the subscription path rather than the creator bypass
     mockGateRoles = ["subscriber"];
@@ -201,15 +135,12 @@ describe("content routes", () => {
     mockLimit.mockResolvedValue([]);
     // Subscription access check default: no subscription (access denied)
     mockSubLimit.mockResolvedValue([]);
+  },
+});
 
-    app = await setupContentApp();
-  });
+// ── Tests ──
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("content routes", () => {
   // ── GET /api/content (feed) ──
 
   describe("GET /api/content", () => {
@@ -229,7 +160,7 @@ describe("content routes", () => {
       );
       mockLimit.mockResolvedValue(rows);
 
-      const res = await app.request("/api/content?limit=12");
+      const res = await ctx.app.request("/api/content?limit=12");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -241,7 +172,7 @@ describe("content routes", () => {
     it("returns empty feed with null nextCursor", async () => {
       mockLimit.mockResolvedValue([]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -252,7 +183,7 @@ describe("content routes", () => {
     it("returns null nextCursor on last page", async () => {
       mockLimit.mockResolvedValue([makeFeedRow()]);
 
-      const res = await app.request("/api/content?limit=12");
+      const res = await ctx.app.request("/api/content?limit=12");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -265,7 +196,7 @@ describe("content routes", () => {
         makeFeedRow({ type: "video", title: "My Video" }),
       ]);
 
-      const res = await app.request("/api/content?type=video");
+      const res = await ctx.app.request("/api/content?type=video");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -278,7 +209,7 @@ describe("content routes", () => {
         makeFeedRow({ creatorId: "creator-42", creatorName: "Alice" }),
       ]);
 
-      const res = await app.request("/api/content?creatorId=creator-42");
+      const res = await ctx.app.request("/api/content?creatorId=creator-42");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -297,7 +228,7 @@ describe("content routes", () => {
       );
       mockLimit.mockResolvedValue(firstPageRows);
 
-      const firstRes = await app.request("/api/content?limit=12");
+      const firstRes = await ctx.app.request("/api/content?limit=12");
       const firstBody = await firstRes.json();
       const { nextCursor } = firstBody;
       expect(nextCursor).not.toBeNull();
@@ -307,7 +238,7 @@ describe("content routes", () => {
         makeFeedRow({ id: "content-99", title: "Older Post" }),
       ]);
 
-      const secondRes = await app.request(
+      const secondRes = await ctx.app.request(
         `/api/content?limit=12&cursor=${nextCursor}`,
       );
 
@@ -318,7 +249,7 @@ describe("content routes", () => {
     });
 
     it("returns 400 for invalid cursor", async () => {
-      const res = await app.request("/api/content?cursor=not-valid-base64!!!");
+      const res = await ctx.app.request("/api/content?cursor=not-valid-base64!!!");
 
       expect(res.status).toBe(400);
       const body = await res.json();
@@ -326,13 +257,13 @@ describe("content routes", () => {
     });
 
     it("returns 400 for limit=0", async () => {
-      const res = await app.request("/api/content?limit=0");
+      const res = await ctx.app.request("/api/content?limit=0");
 
       expect(res.status).toBe(400);
     });
 
     it("returns 400 for limit=51", async () => {
-      const res = await app.request("/api/content?limit=51");
+      const res = await ctx.app.request("/api/content?limit=51");
 
       expect(res.status).toBe(400);
     });
@@ -342,7 +273,7 @@ describe("content routes", () => {
       // result set to prove the handler called the correct query conditions.
       mockLimit.mockResolvedValue([]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -356,7 +287,7 @@ describe("content routes", () => {
       // applied in the WHERE clause. Mock returns empty to confirm filtering.
       mockLimit.mockResolvedValue([]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       expect(mockFeedWhere).toHaveBeenCalledOnce();
@@ -367,7 +298,7 @@ describe("content routes", () => {
         makeFeedRow({ creatorName: "Jane Doe" }),
       ]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -384,7 +315,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -398,7 +329,7 @@ describe("content routes", () => {
     });
 
     it("returns 400 for invalid type filter", async () => {
-      const res = await app.request("/api/content?type=podcast");
+      const res = await ctx.app.request("/api/content?type=podcast");
 
       expect(res.status).toBe(400);
     });
@@ -414,7 +345,7 @@ describe("content routes", () => {
       ]);
       // Default: mockGetSession returns null (unauthenticated)
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -432,7 +363,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -456,7 +387,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -481,7 +412,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content?limit=12");
+      const res = await ctx.app.request("/api/content?limit=12");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -502,7 +433,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content");
+      const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -517,7 +448,7 @@ describe("content routes", () => {
     it("creates written content and returns 201 with metadata", async () => {
       const now = new Date("2026-01-01T00:00:00.000Z");
       const insertedRow = makeMockDbContent({
-        creatorId: mockUser!.id,
+        creatorId: ctx.auth.user!.id,
         type: "written",
         title: "My Post",
         body: "Content here",
@@ -527,7 +458,7 @@ describe("content routes", () => {
       });
       mockInsertReturning.mockResolvedValue([insertedRow]);
 
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -540,7 +471,7 @@ describe("content routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.id).toBeDefined();
-      expect(body.creatorId).toBe(mockUser!.id);
+      expect(body.creatorId).toBe(ctx.auth.user!.id);
       expect(body.type).toBe("written");
       expect(body.title).toBe("My Post");
       expect(body.body).toBe("Content here");
@@ -558,7 +489,7 @@ describe("content routes", () => {
       });
       mockInsertReturning.mockResolvedValue([insertedRow]);
 
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -574,7 +505,7 @@ describe("content routes", () => {
     });
 
     it("returns 400 when written content has no body", async () => {
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -589,7 +520,7 @@ describe("content routes", () => {
     });
 
     it("returns 400 when title is missing", async () => {
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -602,9 +533,9 @@ describe("content routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -618,9 +549,9 @@ describe("content routes", () => {
     });
 
     it("returns 403 when user lacks creator role", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/content", {
+      const res = await ctx.app.request("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -640,14 +571,14 @@ describe("content routes", () => {
     it("returns 200 with metadata for public content (no auth required)", async () => {
       mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.id).toBe("content-test-1");
       expect(body.type).toBe("written");
       expect(body.title).toBe("Test Post");
-      // Storage keys must not appear in response; null keys → null URLs
+      // Storage keys must not appear in response; null keys -> null URLs
       expect(body.thumbnailUrl).toBeNull();
       expect(body.mediaUrl).toBeNull();
       expect(body.coverArtUrl).toBeNull();
@@ -659,7 +590,7 @@ describe("content routes", () => {
         .mockResolvedValueOnce([makeMockDbContent({ creatorId: "user_test123" })])
         .mockResolvedValueOnce([{ name: "Test Creator" }]);
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -678,7 +609,7 @@ describe("content routes", () => {
         session: makeMockSession(),
       });
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         headers: { Cookie: "better-auth.session_token=valid_token" },
       });
 
@@ -696,7 +627,7 @@ describe("content routes", () => {
       ]);
       mockGetSession.mockResolvedValue(null);
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -718,7 +649,7 @@ describe("content routes", () => {
       });
       mockSubLimit.mockResolvedValue([{ id: "sub_123" }]);
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -739,7 +670,7 @@ describe("content routes", () => {
       });
       // mockSubLimit defaults to [] (no subscription)
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -759,7 +690,7 @@ describe("content routes", () => {
         session: makeMockSession(),
       });
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -770,7 +701,7 @@ describe("content routes", () => {
       // findActiveContent filters deleted rows; empty array means not found
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/content-test-1");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -780,7 +711,7 @@ describe("content routes", () => {
     it("returns 404 for non-existent content ID", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/content/does-not-exist");
+      const res = await ctx.app.request("/api/content/does-not-exist");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -797,7 +728,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated Title" }),
@@ -814,7 +745,7 @@ describe("content routes", () => {
         makeMockDbContent({ creatorId: "other-user" }),
       ]);
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Hack" }),
@@ -826,9 +757,9 @@ describe("content routes", () => {
     });
 
     it("returns 403 when user lacks creator role", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Attempt" }),
@@ -840,7 +771,7 @@ describe("content routes", () => {
     it("returns 404 when content does not exist", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/content/no-such-id", {
+      const res = await ctx.app.request("/api/content/no-such-id", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Update" }),
@@ -861,7 +792,7 @@ describe("content routes", () => {
         }),
       ]);
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         method: "DELETE",
       });
 
@@ -883,7 +814,7 @@ describe("content routes", () => {
         makeMockDbContent({ creatorId: "other-user" }),
       ]);
 
-      const res = await app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/content-test-1", {
         method: "DELETE",
       });
 
@@ -893,7 +824,7 @@ describe("content routes", () => {
     it("returns 404 when content does not exist (including already deleted)", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/content/does-not-exist", {
+      const res = await ctx.app.request("/api/content/does-not-exist", {
         method: "DELETE",
       });
 
@@ -922,7 +853,7 @@ describe("content routes", () => {
         new File(["file content"], "video.mp4", { type: "video/mp4" }),
       );
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/upload?field=media",
         {
           method: "POST",
@@ -949,7 +880,7 @@ describe("content routes", () => {
         new File(["data"], "video.mp4", { type: "video/mp4" }),
       );
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/upload?field=media",
         {
           method: "POST",
@@ -967,7 +898,7 @@ describe("content routes", () => {
         new File(["data"], "video.mp4", { type: "video/mp4" }),
       );
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/upload?field=invalid",
         {
           method: "POST",
@@ -988,7 +919,7 @@ describe("content routes", () => {
         new File(["data"], "video.mp4", { type: "video/mp4" }),
       );
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/upload?field=media",
         {
           method: "POST",
@@ -1013,7 +944,7 @@ describe("content routes", () => {
         new File(["data"], "file.txt", { type: "text/plain" }),
       );
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/upload?field=media",
         {
           method: "POST",
@@ -1038,7 +969,7 @@ describe("content routes", () => {
       ]);
       mockStorageDownload.mockResolvedValue(mockDownloadResult("file data"));
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/content/content-test-1/media",
       );
 
@@ -1064,7 +995,7 @@ describe("content routes", () => {
       });
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await app.request("/api/content/content-test-1/media", {
+      const res = await ctx.app.request("/api/content/content-test-1/media", {
         headers: { Cookie: "better-auth.session_token=valid_token" },
       });
 
@@ -1082,7 +1013,7 @@ describe("content routes", () => {
       ]);
       mockGetSession.mockResolvedValue(null);
 
-      const res = await app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/content-test-1/media");
 
       expect(res.status).toBe(401);
       const body = await res.json();
@@ -1103,7 +1034,7 @@ describe("content routes", () => {
       });
       // mockSubLimit defaults to [] (no subscription)
 
-      const res = await app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/content-test-1/media");
 
       expect(res.status).toBe(403);
       const body = await res.json();
@@ -1126,7 +1057,7 @@ describe("content routes", () => {
       mockSubLimit.mockResolvedValue([{ id: "sub_123" }]);
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/content-test-1/media");
 
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -1147,7 +1078,7 @@ describe("content routes", () => {
       });
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/content-test-1/media");
 
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -1159,7 +1090,7 @@ describe("content routes", () => {
         makeMockDbContent({ mediaKey: null }),
       ]);
 
-      const res = await app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/content-test-1/media");
 
       expect(res.status).toBe(404);
       const body = await res.json();
