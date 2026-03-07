@@ -3,15 +3,16 @@ import {
   it,
   expect,
   vi,
-  beforeAll,
   beforeEach,
   afterEach,
 } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type React from "react";
-
+import { SOCIAL_PLATFORMS } from "@snc/shared";
 import { makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
+import { extractRoute } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -27,29 +28,13 @@ const {
   mockRedirect: vi.fn((args: unknown) => args),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-    }),
-    redirect: mockRedirect,
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ redirect: mockRedirect }),
+);
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  fetchAuthState: mockFetchAuthState,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ fetchAuthState: mockFetchAuthState }),
+);
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchAuthStateServer: mockFetchAuthState,
@@ -62,22 +47,8 @@ vi.mock("../../../src/lib/creator.js", () => ({
 
 // ── Component Under Test ──
 
-let CreatorSettingsPage: () => React.ReactElement;
-let routeOptions: {
-  beforeLoad: () => Promise<{ userId: string }>;
-};
-
-beforeAll(async () => {
-  const mod = await import(
-    "../../../src/routes/settings/creator.js"
-  );
-  const route = mod.Route as unknown as {
-    component: () => React.ReactElement;
-    beforeLoad: () => Promise<{ userId: string }>;
-  };
-  CreatorSettingsPage = route.component;
-  routeOptions = { beforeLoad: route.beforeLoad };
-});
+const { component: CreatorSettingsPage, route: routeObject } = extractRoute(() => import("../../../src/routes/settings/creator.js"));
+const routeBeforeLoad = () => (routeObject.beforeLoad as () => Promise<{ userId: string }>)();
 
 // ── Default Test Data ──
 
@@ -111,7 +82,7 @@ describe("CreatorSettingsPage", () => {
   describe("beforeLoad", () => {
     it("redirects to /login when not authenticated", async () => {
       mockFetchAuthState.mockResolvedValue({ user: null, roles: [] });
-      await expect(routeOptions.beforeLoad()).rejects.toEqual({ to: "/login" });
+      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/login" });
     });
 
     it("redirects to /feed when user is not a creator", async () => {
@@ -119,7 +90,7 @@ describe("CreatorSettingsPage", () => {
         user: { id: "u1" },
         roles: ["subscriber"],
       });
-      await expect(routeOptions.beforeLoad()).rejects.toEqual({ to: "/feed" });
+      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/feed" });
     });
 
     it("returns userId when user is an authenticated creator", async () => {
@@ -127,7 +98,7 @@ describe("CreatorSettingsPage", () => {
         user: { id: "u1" },
         roles: ["creator"],
       });
-      const result = await routeOptions.beforeLoad();
+      const result = await routeBeforeLoad();
       expect(result).toEqual({ userId: "u1" });
     });
   });
@@ -289,18 +260,8 @@ describe("CreatorSettingsPage", () => {
   it("disables Add button when link list reaches max", async () => {
     mockFetchCreatorProfile.mockResolvedValue(
       makeMockCreatorProfileResponse({
-        socialLinks: Array.from(
-          { length: 20 },
-          (_, i) => ({
-            platform: `website` as const,
-            url: `https://example${i}.com`,
-          }),
-        ).slice(0, 12).map((_, i) => ({
-          platform: [
-            "bandcamp", "spotify", "apple-music", "soundcloud",
-            "youtube-music", "tidal", "instagram", "tiktok",
-            "twitter", "mastodon", "youtube", "website",
-          ][i] as any,
+        socialLinks: SOCIAL_PLATFORMS.slice(0, 12).map((platform, i) => ({
+          platform,
           url: `https://example${i}.com`,
         })),
       }),

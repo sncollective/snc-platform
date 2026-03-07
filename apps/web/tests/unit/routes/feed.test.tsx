@@ -1,8 +1,11 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -11,39 +14,13 @@ const { mockFormatRelativeDate, mockUseLoaderData } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  "$contentId",
-                  (params as Record<string, string>).contentId!,
-                )
-              : (to as string),
-          className,
-        },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useLoaderData: mockUseLoaderData }),
+);
 
-vi.mock("../../../src/lib/format.js", () => ({
-  formatRelativeDate: mockFormatRelativeDate,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatRelativeDate: mockFormatRelativeDate }),
+);
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
@@ -51,12 +28,7 @@ vi.mock("../../../src/lib/api-server.js", () => ({
 
 // ── Component Under Test ──
 
-let FeedPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/feed.js");
-  FeedPage = (mod.Route as unknown as { component: () => React.ReactElement }).component;
-});
+const FeedPage = extractRouteComponent(() => import("../../../src/routes/feed.js"));
 
 // ── Test Lifecycle ──
 

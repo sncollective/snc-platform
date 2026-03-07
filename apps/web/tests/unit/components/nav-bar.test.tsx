@@ -7,6 +7,8 @@ import {
   makeMockSessionResult,
   makeLoggedInSessionResult,
 } from "../../helpers/auth-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -24,31 +26,16 @@ const {
   mockSignOut: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      children,
-      className,
-      onClick,
-      role,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className, onClick, role },
-        children as React.ReactNode,
-      ),
-    useRouterState: mockUseRouterState,
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({
     useNavigate: () => mockNavigate,
-  };
-});
+    useRouterState: mockUseRouterState,
+  }),
+);
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-  useRoles: mockUseRoles,
-  hasRole: (roles: string[], role: string) => roles.includes(role),
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession, useRoles: mockUseRoles }),
+);
 
 vi.mock("../../../src/lib/auth-client.js", () => ({
   authClient: { signOut: mockSignOut },

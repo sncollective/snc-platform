@@ -1,18 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
-import type { User, Session } from "@snc/shared";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 import {
   makeMockPlan,
   makeMockSubscription,
 } from "../helpers/subscription-fixtures.js";
-
-// ── Mock State ──
-
-let mockUser: User | null;
-let mockSession: Session | null;
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
@@ -28,11 +22,9 @@ const mockSelect = vi.fn(() => ({ from: mockSelectFrom }));
 
 // UPDATE: db.update(table).set({...}).where(...).returning()
 const mockUpdateReturning = vi.fn();
-const mockUpdateWhere = vi.fn(() => {
-  const promise = Promise.resolve(undefined);
-  (promise as any).returning = mockUpdateReturning;
-  return promise;
-});
+const mockUpdateWhere = vi.fn(() =>
+  chainablePromise(undefined, { returning: mockUpdateReturning }),
+);
 const mockUpdateSet = vi.fn(() => ({ where: mockUpdateWhere }));
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
@@ -47,94 +39,52 @@ const mockGetOrCreateCustomer = vi.fn();
 const mockCreateCheckoutSession = vi.fn();
 const mockCancelSubscriptionAtPeriodEnd = vi.fn();
 
-// ── App Factory ──
+// ── Test Setup ──
 
-const setupSubscriptionApp = async (): Promise<Hono> => {
-  const { UnauthorizedError } = await import("@snc/shared");
+const ctx = setupRouteTest({
+  db: mockDb,
+  mockRole: false,
+  mocks: () => {
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      subscriptionPlans: {
+        id: {},
+        name: {},
+        type: {},
+        creatorId: {},
+        stripePriceId: {},
+        price: {},
+        interval: {},
+        active: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+      userSubscriptions: {
+        id: {},
+        userId: {},
+        planId: {},
+        stripeSubscriptionId: {},
+        stripeCustomerId: {},
+        status: {},
+        currentPeriodEnd: {},
+        cancelAtPeriodEnd: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+    }));
 
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
-    subscriptionPlans: {
-      id: {},
-      name: {},
-      type: {},
-      creatorId: {},
-      stripePriceId: {},
-      price: {},
-      interval: {},
-      active: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-    userSubscriptions: {
-      id: {},
-      userId: {},
-      planId: {},
-      stripeSubscriptionId: {},
-      stripeCustomerId: {},
-      status: {},
-      currentPeriodEnd: {},
-      cancelAtPeriodEnd: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-  }));
-
-  vi.doMock("../../src/services/stripe.js", () => ({
-    getOrCreateCustomer: mockGetOrCreateCustomer,
-    createCheckoutSession: mockCreateCheckoutSession,
-    cancelSubscriptionAtPeriodEnd: mockCancelSubscriptionAtPeriodEnd,
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  const { subscriptionRoutes } = await import(
-    "../../src/routes/subscription.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/subscriptions", subscriptionRoutes);
-
-  return app;
-};
-
-// ── Tests ──
-
-describe("subscription routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-
+    vi.doMock("../../src/services/stripe.js", () => ({
+      getOrCreateCustomer: mockGetOrCreateCustomer,
+      createCheckoutSession: mockCreateCheckoutSession,
+      cancelSubscriptionAtPeriodEnd: mockCancelSubscriptionAtPeriodEnd,
+    }));
+  },
+  mountRoute: async (app) => {
+    const { subscriptionRoutes } = await import(
+      "../../src/routes/subscription.routes.js"
+    );
+    app.route("/api/subscriptions", subscriptionRoutes);
+  },
+  beforeEach: () => {
     // Default DB responses
     mockSelectWhere.mockResolvedValue([]);
     mockJoinWhere.mockResolvedValue([]);
@@ -150,15 +100,12 @@ describe("subscription routes", () => {
       ok: true,
       value: undefined,
     });
+  },
+});
 
-    app = await setupSubscriptionApp();
-  });
+// ── Tests ──
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("subscription routes", () => {
   // ── GET /api/subscriptions/plans ──
 
   describe("GET /api/subscriptions/plans", () => {
@@ -166,7 +113,7 @@ describe("subscription routes", () => {
       const plan = makeMockPlan();
       mockSelectWhere.mockResolvedValue([plan]);
 
-      const res = await app.request("/api/subscriptions/plans");
+      const res = await ctx.app.request("/api/subscriptions/plans");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -179,7 +126,7 @@ describe("subscription routes", () => {
     it("returns empty array when no active plans", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/plans");
+      const res = await ctx.app.request("/api/subscriptions/plans");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -190,7 +137,7 @@ describe("subscription routes", () => {
       const plan = makeMockPlan({ type: "platform" });
       mockSelectWhere.mockResolvedValue([plan]);
 
-      const res = await app.request("/api/subscriptions/plans?type=platform");
+      const res = await ctx.app.request("/api/subscriptions/plans?type=platform");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -202,7 +149,7 @@ describe("subscription routes", () => {
       const plan = makeMockPlan({ type: "creator", creatorId: "user_c1" });
       mockSelectWhere.mockResolvedValue([plan]);
 
-      const res = await app.request(
+      const res = await ctx.app.request(
         "/api/subscriptions/plans?creatorId=user_c1",
       );
       const body = await res.json();
@@ -217,7 +164,7 @@ describe("subscription routes", () => {
       // The DB mock returns [] simulating no active plans.
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/plans");
+      const res = await ctx.app.request("/api/subscriptions/plans");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -228,7 +175,7 @@ describe("subscription routes", () => {
       const plan = makeMockPlan();
       mockSelectWhere.mockResolvedValue([plan]);
 
-      const res = await app.request("/api/subscriptions/plans");
+      const res = await ctx.app.request("/api/subscriptions/plans");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -244,7 +191,7 @@ describe("subscription routes", () => {
     it("creates checkout session and returns URL", async () => {
       mockSelectWhere.mockResolvedValue([makeMockPlan()]);
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_test_platform_monthly" }),
@@ -256,9 +203,9 @@ describe("subscription routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_test_platform_monthly" }),
@@ -270,7 +217,7 @@ describe("subscription routes", () => {
     it("returns 400 for non-existent plan", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_nonexistent" }),
@@ -285,7 +232,7 @@ describe("subscription routes", () => {
       // inactive plans are excluded by the query; the mock returns empty
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_inactive" }),
@@ -295,7 +242,7 @@ describe("subscription routes", () => {
     });
 
     it("returns 400 for empty planId", async () => {
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "" }),
@@ -306,10 +253,10 @@ describe("subscription routes", () => {
 
     it("passes correct parameters to getOrCreateCustomer", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([makeMockPlan()]);
 
-      await app.request("/api/subscriptions/checkout", {
+      await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_test_platform_monthly" }),
@@ -325,7 +272,7 @@ describe("subscription routes", () => {
       const plan = makeMockPlan();
       mockSelectWhere.mockResolvedValue([plan]);
 
-      await app.request("/api/subscriptions/checkout", {
+      await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: plan.id }),
@@ -335,7 +282,7 @@ describe("subscription routes", () => {
         expect.objectContaining({
           customerId: "cus_test",
           planStripePriceId: plan.stripePriceId,
-          userId: mockUser!.id,
+          userId: ctx.auth.user!.id,
           planId: plan.id,
           successUrl: expect.stringContaining("/checkout/success"),
           cancelUrl: expect.stringContaining("/checkout/cancel"),
@@ -351,7 +298,7 @@ describe("subscription routes", () => {
         error: new AppError("STRIPE_ERROR", "fail", 502),
       });
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_test_platform_monthly" }),
@@ -368,7 +315,7 @@ describe("subscription routes", () => {
         error: new AppError("STRIPE_ERROR", "fail", 502),
       });
 
-      const res = await app.request("/api/subscriptions/checkout", {
+      const res = await ctx.app.request("/api/subscriptions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: "plan_test_platform_monthly" }),
@@ -383,7 +330,7 @@ describe("subscription routes", () => {
   describe("POST /api/subscriptions/cancel", () => {
     it("cancels active subscription and returns subscription with plan", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       const plan = makeMockPlan();
       const sub = makeMockSubscription({ userId: user.id });
       const updatedSub = makeMockSubscription({
@@ -396,7 +343,7 @@ describe("subscription routes", () => {
         .mockResolvedValueOnce([plan]);
       mockUpdateReturning.mockResolvedValue([updatedSub]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: sub.id }),
@@ -410,9 +357,9 @@ describe("subscription routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -424,7 +371,7 @@ describe("subscription routes", () => {
     it("returns 404 for non-existent subscription", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_nonexistent" }),
@@ -437,12 +384,12 @@ describe("subscription routes", () => {
 
     it("returns 403 for non-owner", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([
         makeMockSubscription({ userId: "other_user" }),
       ]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -455,12 +402,12 @@ describe("subscription routes", () => {
 
     it("returns 400 for already-canceled subscription", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([
         makeMockSubscription({ userId: user.id, status: "canceled" }),
       ]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -473,12 +420,12 @@ describe("subscription routes", () => {
 
     it("returns 400 for subscription already set to cancel at period end", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([
         makeMockSubscription({ userId: user.id, cancelAtPeriodEnd: true }),
       ]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -491,12 +438,12 @@ describe("subscription routes", () => {
 
     it("returns 400 for past_due subscription", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([
         makeMockSubscription({ userId: user.id, status: "past_due" }),
       ]);
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -507,7 +454,7 @@ describe("subscription routes", () => {
 
     it("calls cancelSubscriptionAtPeriodEnd with Stripe subscription ID", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       const sub = makeMockSubscription({ userId: user.id });
       const plan = makeMockPlan();
 
@@ -518,7 +465,7 @@ describe("subscription routes", () => {
         makeMockSubscription({ userId: user.id, cancelAtPeriodEnd: true }),
       ]);
 
-      await app.request("/api/subscriptions/cancel", {
+      await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: sub.id }),
@@ -531,7 +478,7 @@ describe("subscription routes", () => {
 
     it("updates DB with cancelAtPeriodEnd = true", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       const sub = makeMockSubscription({ userId: user.id });
       const plan = makeMockPlan();
 
@@ -542,7 +489,7 @@ describe("subscription routes", () => {
         makeMockSubscription({ userId: user.id, cancelAtPeriodEnd: true }),
       ]);
 
-      await app.request("/api/subscriptions/cancel", {
+      await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: sub.id }),
@@ -556,7 +503,7 @@ describe("subscription routes", () => {
     it("returns error when Stripe cancel fails", async () => {
       const { AppError } = await import("@snc/shared");
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       mockSelectWhere.mockResolvedValue([
         makeMockSubscription({ userId: user.id }),
       ]);
@@ -565,7 +512,7 @@ describe("subscription routes", () => {
         error: new AppError("STRIPE_ERROR", "fail", 502),
       });
 
-      const res = await app.request("/api/subscriptions/cancel", {
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptionId: "sub_record_test_xxx" }),
@@ -580,7 +527,7 @@ describe("subscription routes", () => {
   describe("GET /api/subscriptions/mine", () => {
     it("returns subscriptions with plan details", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       const sub = makeMockSubscription({ userId: user.id });
       const plan = makeMockPlan();
 
@@ -588,7 +535,7 @@ describe("subscription routes", () => {
         { user_subscriptions: sub, subscription_plans: plan },
       ]);
 
-      const res = await app.request("/api/subscriptions/mine");
+      const res = await ctx.app.request("/api/subscriptions/mine");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -601,7 +548,7 @@ describe("subscription routes", () => {
     it("returns empty array for user with no subscriptions", async () => {
       mockJoinWhere.mockResolvedValue([]);
 
-      const res = await app.request("/api/subscriptions/mine");
+      const res = await ctx.app.request("/api/subscriptions/mine");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -609,16 +556,16 @@ describe("subscription routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/subscriptions/mine");
+      const res = await ctx.app.request("/api/subscriptions/mine");
 
       expect(res.status).toBe(401);
     });
 
     it("returns multiple subscriptions when user has several", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
 
       mockJoinWhere.mockResolvedValue([
         {
@@ -641,7 +588,7 @@ describe("subscription routes", () => {
         },
       ]);
 
-      const res = await app.request("/api/subscriptions/mine");
+      const res = await ctx.app.request("/api/subscriptions/mine");
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -652,7 +599,7 @@ describe("subscription routes", () => {
 
     it("converts Date timestamps to ISO strings in response", async () => {
       const user = makeMockUser();
-      mockUser = user;
+      ctx.auth.user = user;
       const sub = makeMockSubscription({ userId: user.id });
       const plan = makeMockPlan();
 
@@ -660,7 +607,7 @@ describe("subscription routes", () => {
         { user_subscriptions: sub, subscription_plans: plan },
       ]);
 
-      const res = await app.request("/api/subscriptions/mine");
+      const res = await ctx.app.request("/api/subscriptions/mine");
       const body = await res.json();
 
       expect(res.status).toBe(200);

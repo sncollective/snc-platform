@@ -3,9 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
+  makeMockUser,
   makeMockSessionResult,
   makeLoggedInSessionResult,
 } from "../../helpers/auth-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -21,30 +24,13 @@ const {
   mockSignOut: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      children,
-      className,
-      onClick,
-      role,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className, onClick, role },
-        children as React.ReactNode,
-      ),
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useNavigate: () => mockNavigate }),
+);
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-  useRoles: mockUseRoles,
-  hasRole: (roles: string[], role: string) => roles.includes(role),
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession, useRoles: mockUseRoles }),
+);
 
 vi.mock("../../../src/lib/auth-client.js", () => ({
   authClient: { signOut: mockSignOut },
@@ -201,7 +187,7 @@ describe("UserMenu", () => {
     ).toHaveAttribute("href", "/settings/bookings");
   });
 
-  it("returns null while session is pending", () => {
+  it("shows skeleton while session is pending and no serverAuth", () => {
     mockUseSession.mockReturnValue({
       data: null,
       isPending: true,
@@ -210,6 +196,74 @@ describe("UserMenu", () => {
 
     const { container } = render(<UserMenu />);
 
-    expect(container.innerHTML).toBe("");
+    const skeleton = container.querySelector("[aria-hidden='true']");
+    expect(skeleton).toBeInTheDocument();
+  });
+
+  it("shows logged-out links when serverAuth confirms no user and session pending", () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      isPending: true,
+      error: null,
+    });
+
+    const serverAuth = {
+      user: null,
+      roles: [] as string[],
+    };
+
+    render(<UserMenu serverAuth={serverAuth} />);
+
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+    expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      "/register",
+    );
+    expect(
+      document.querySelector("[aria-hidden='true']"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders avatar immediately when serverAuth provided and session pending", () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      isPending: true,
+      error: null,
+    });
+
+    const serverAuth = {
+      user: makeMockUser({ name: "Server User" }),
+      roles: [] as string[],
+    };
+
+    render(<UserMenu serverAuth={serverAuth} />);
+
+    const button = screen.getByRole("button", { name: "User menu" });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent("SU");
+  });
+
+  it("uses serverAuth roles for menu items when session pending", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue({
+      data: null,
+      isPending: true,
+      error: null,
+    });
+
+    const serverAuth = {
+      user: makeMockUser({ name: "Server User" }),
+      roles: ["cooperative-member"] as string[],
+    };
+
+    render(<UserMenu serverAuth={serverAuth} />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    const dashboardLink = screen.getByRole("menuitem", { name: "Dashboard" });
+    expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 });

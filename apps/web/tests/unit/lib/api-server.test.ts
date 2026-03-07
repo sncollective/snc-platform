@@ -8,23 +8,21 @@ vi.mock("@tanstack/react-start/server", () => ({
 
 // createServerFn is a chained builder. fetchApiServer uses
 // createServerFn().inputValidator().handler(fn), while fetchAuthStateServer
-// uses createServerFn().handler(fn). We capture both handlers by name.
+// uses createServerFn().handler(fn). We distinguish them structurally:
+// the one that calls inputValidator before handler is fetchApiServer.
 const capturedHandlers: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
-let callIndex = 0;
-const SERVER_FN_NAMES = ["fetchApiServer", "fetchAuthStateServer"];
 
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => {
-    const name = SERVER_FN_NAMES[callIndex++]!;
     const obj = {
       inputValidator: () => ({
         handler: (fn: (...args: unknown[]) => Promise<unknown>) => {
-          capturedHandlers[name] = fn;
+          capturedHandlers.fetchApiServer = fn;
           return fn;
         },
       }),
       handler: (fn: (...args: unknown[]) => Promise<unknown>) => {
-        capturedHandlers[name] = fn;
+        capturedHandlers.fetchAuthStateServer = fn;
         return fn;
       },
     };

@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 
 import { makeMockUserSubscription } from "../../helpers/subscription-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -9,25 +11,9 @@ const { mockFetchMySubscriptions } = vi.hoisted(() => ({
   mockFetchMySubscriptions: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-    }),
-    redirect: vi.fn(),
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ redirect: vi.fn() }),
+);
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchAuthStateServer: vi.fn().mockResolvedValue({ user: { id: "u1" }, roles: [] }),
@@ -39,14 +25,7 @@ vi.mock("../../../src/lib/subscription.js", () => ({
 
 // ── Component Under Test ──
 
-let CheckoutSuccessPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/checkout/success.js");
-  CheckoutSuccessPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const CheckoutSuccessPage = extractRouteComponent(() => import("../../../src/routes/checkout/success.js"));
 
 // ── Test Lifecycle ──
 

@@ -5,6 +5,8 @@ import { makeMockBookingWithService } from "../../helpers/booking-fixtures.js";
 
 // ── Hoisted Mocks ──
 
+import { createFormatMock } from "../../helpers/format-mock.js";
+
 const { mockFormatRelativeDate } = vi.hoisted(() => ({
   mockFormatRelativeDate: vi.fn(),
 }));
@@ -13,7 +15,7 @@ vi.mock("../../../src/lib/format.js", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("../../../src/lib/format.js")
   >();
-  return { ...actual, formatRelativeDate: mockFormatRelativeDate };
+  return createFormatMock({ formatRelativeDate: mockFormatRelativeDate }, actual);
 });
 
 // ── Component Import ──

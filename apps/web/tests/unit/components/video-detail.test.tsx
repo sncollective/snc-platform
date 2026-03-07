@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
+import { stubComponent } from "../../helpers/component-stubs.js";
+import { createFormatMock, DEFAULT_FORMAT_DATE } from "../../helpers/format-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -10,23 +12,16 @@ const { mockVideoPlayer, mockSubscribeCta } = vi.hoisted(() => ({
   mockSubscribeCta: vi.fn(),
 }));
 
-vi.mock("../../../src/components/media/video-player.js", () => ({
-  VideoPlayer: (props: Record<string, unknown>) => {
-    mockVideoPlayer(props);
-    return <div data-testid="video-player" />;
-  },
-}));
+vi.mock("../../../src/components/media/video-player.js", () =>
+  stubComponent("VideoPlayer", "video-player", mockVideoPlayer),
+);
+vi.mock("../../../src/components/content/subscribe-cta.js", () =>
+  stubComponent("SubscribeCta", "subscribe-cta", mockSubscribeCta),
+);
 
-vi.mock("../../../src/components/content/subscribe-cta.js", () => ({
-  SubscribeCta: (props: Record<string, unknown>) => {
-    mockSubscribeCta(props);
-    return <div data-testid="subscribe-cta" />;
-  },
-}));
-
-vi.mock("../../../src/lib/format.js", () => ({
-  formatDate: (s: string) => `FORMATTED:${s}`,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatDate: DEFAULT_FORMAT_DATE }),
+);
 
 // ── Component Under Test ──
 

@@ -1,16 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
-import type { User, Session } from "@snc/shared";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
-import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockEmissionRow } from "../helpers/emissions-fixtures.js";
-
-// ── Mock State ──
-
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
@@ -28,134 +20,68 @@ const mockDb = {
   insert: mockInsert,
 };
 
-// ── App Factory ──
+// ── Test Setup ──
 
-const setupEmissionsApp = async (): Promise<Hono> => {
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
-
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
-
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
-
-  vi.doMock("../../src/db/schema/emission.schema.js", () => ({
-    emissions: {
-      id: {},
-      date: {},
-      scope: {},
-      category: {},
-      subcategory: {},
-      source: {},
-      description: {},
-      amount: {},
-      unit: {},
-      co2Kg: {},
-      method: {},
-      projected: {},
-      metadata: {},
-      createdAt: {},
-      updatedAt: {},
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
+const ctx = setupRouteTest({
+  db: mockDb,
+  mocks: () => {
+    vi.doMock("../../src/db/schema/emission.schema.js", () => ({
+      emissions: {
+        id: {},
+        date: {},
+        scope: {},
+        category: {},
+        subcategory: {},
+        source: {},
+        description: {},
+        amount: {},
+        unit: {},
+        co2Kg: {},
+        method: {},
+        projected: {},
+        metadata: {},
+        createdAt: {},
+        updatedAt: {},
       },
-  }));
-
-  const { emissionsRoutes } = await import(
-    "../../src/routes/emissions.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/emissions", emissionsRoutes);
-
-  return app;
-};
-
-// ── Tests ──
-
-describe("emissions routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.resetAllMocks();
-
-    // Re-establish SELECT chain after resetAllMocks.
+    }));
+  },
+  mountRoute: async (app) => {
+    const { emissionsRoutes } = await import(
+      "../../src/routes/emissions.routes.js"
+    );
+    app.route("/api/emissions", emissionsRoutes);
+  },
+  beforeEach: () => {
+    // Re-establish SELECT chain after clearAllMocks.
     // summary/breakdown: db.select({...}).from(emissions).where(...)
     mockSelect.mockReturnValue({ from: mockSelectFrom });
-    mockSelectFrom.mockImplementation(() => {
-      const result = Promise.resolve([
-        { co2Kg: "0", entryCount: 0, latestDate: null },
-      ]);
-      (result as any).where = mockSelectWhere;
-      (result as any).groupBy = mockSelectGroupBy;
-      (result as any).orderBy = mockSelectOrderBy;
-      return result;
-    });
-    mockSelectWhere.mockImplementation(() => {
-      const result = Promise.resolve([
-        { co2Kg: "0", entryCount: 0, latestDate: null },
-      ]);
-      (result as any).groupBy = mockSelectGroupBy;
-      (result as any).orderBy = mockSelectOrderBy;
-      return result;
-    });
-    mockSelectGroupBy.mockImplementation(() => {
-      const result = Promise.resolve([]);
-      (result as any).orderBy = mockSelectOrderBy;
-      return result;
-    });
+    mockSelectFrom.mockImplementation(() =>
+      chainablePromise(
+        [{ co2Kg: "0", entryCount: 0, latestDate: null }],
+        { where: mockSelectWhere, groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
+      ),
+    );
+    mockSelectWhere.mockImplementation(() =>
+      chainablePromise(
+        [{ co2Kg: "0", entryCount: 0, latestDate: null }],
+        { groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
+      ),
+    );
+    mockSelectGroupBy.mockImplementation(() =>
+      chainablePromise([], { orderBy: mockSelectOrderBy }),
+    );
     mockSelectOrderBy.mockResolvedValue([]);
 
     // INSERT chain: db.insert(table).values({...}).onConflictDoNothing().returning()
     mockInsert.mockReturnValue({ values: mockInsertValues });
     mockInsertValues.mockReturnValue({ returning: mockInsertReturning });
     mockInsertReturning.mockResolvedValue([makeMockEmissionRow()]);
+  },
+});
 
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-    mockRoles = ["subscriber"];
+// ── Tests ──
 
-    app = await setupEmissionsApp();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("emissions routes", () => {
   // ── GET /api/emissions/summary ──
 
   describe("GET /api/emissions/summary", () => {
@@ -172,7 +98,7 @@ describe("emissions routes", () => {
           { co2Kg: "-0.01" },
         ]);
 
-      const res = await app.request("/api/emissions/summary");
+      const res = await ctx.app.request("/api/emissions/summary");
       const body = await res.json() as Record<string, unknown>;
 
       expect(res.status).toBe(200);
@@ -188,7 +114,7 @@ describe("emissions routes", () => {
     });
 
     it("returns zeros when no entries", async () => {
-      const res = await app.request("/api/emissions/summary");
+      const res = await ctx.app.request("/api/emissions/summary");
       const body = await res.json() as Record<string, unknown>;
 
       expect(res.status).toBe(200);
@@ -203,9 +129,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 200 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/emissions/summary");
+      const res = await ctx.app.request("/api/emissions/summary");
 
       expect(res.status).toBe(200);
     });
@@ -218,13 +144,13 @@ describe("emissions routes", () => {
       const row = makeMockEmissionRow();
 
       // The breakdown handler calls:
-      // 1. db.select().from(emissions).where(ne(scope,0) AND projected=false) → gross actual
-      // 2. db.select().from(emissions).where(ne(scope,0) AND projected=true) → projected
-      // 3. db.select().from(emissions).where(eq(scope,0)) → offset
-      // 4. db.select().from(emissions).groupBy() → byScope
-      // 5. db.select().from(emissions).groupBy() → byCategory
-      // 6. db.select().from(emissions).groupBy().orderBy() → monthly
-      // 7. db.select().from(emissions).orderBy() → entries
+      // 1. db.select().from(emissions).where(ne(scope,0) AND projected=false) -> gross actual
+      // 2. db.select().from(emissions).where(ne(scope,0) AND projected=true) -> projected
+      // 3. db.select().from(emissions).where(eq(scope,0)) -> offset
+      // 4. db.select().from(emissions).groupBy() -> byScope
+      // 5. db.select().from(emissions).groupBy() -> byCategory
+      // 6. db.select().from(emissions).groupBy().orderBy() -> monthly
+      // 7. db.select().from(emissions).orderBy() -> entries
 
       mockSelectFrom
         // Gross actual query
@@ -277,7 +203,7 @@ describe("emissions routes", () => {
           orderBy: () => Promise.resolve([row]),
         }));
 
-      const res = await app.request("/api/emissions/breakdown");
+      const res = await ctx.app.request("/api/emissions/breakdown");
       const body = await res.json() as Record<string, any>;
 
       expect(res.status).toBe(200);
@@ -298,9 +224,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 200 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/emissions/breakdown");
+      const res = await ctx.app.request("/api/emissions/breakdown");
       const body = await res.json() as Record<string, any>;
 
       expect(res.status).toBe(200);
@@ -346,7 +272,7 @@ describe("emissions routes", () => {
           orderBy: () => Promise.resolve([row]),
         }));
 
-      const res = await app.request("/api/emissions/breakdown");
+      const res = await ctx.app.request("/api/emissions/breakdown");
       const body = await res.json() as Record<string, any>;
 
       expect(res.status).toBe(200);
@@ -373,27 +299,27 @@ describe("emissions routes", () => {
     };
 
     it("creates and returns a new entry", async () => {
-      mockRoles = ["admin"];
+      ctx.auth.roles = ["admin"];
 
-      const res = await app.request("/api/emissions/entries", {
+      const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validBody),
       });
-      const body = await res.json();
+      const body = await res.json() as Record<string, unknown>;
 
       expect(res.status).toBe(200);
-      expect((body as any).id).toBeDefined();
-      expect((body as any).date).toBe("2026-03-31");
-      expect((body as any).projected).toBe(false);
+      expect(body.id).toBeDefined();
+      expect(body.date).toBe("2026-03-31");
+      expect(body.projected).toBe(false);
     });
 
     it("creates a projected entry when projected=true", async () => {
-      mockRoles = ["admin"];
+      ctx.auth.roles = ["admin"];
       const projectedRow = makeMockEmissionRow({ projected: true });
       mockInsertReturning.mockResolvedValue([projectedRow]);
 
-      const res = await app.request("/api/emissions/entries", {
+      const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...validBody, projected: true }),
@@ -405,9 +331,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 400 for invalid body", async () => {
-      mockRoles = ["admin"];
+      ctx.auth.roles = ["admin"];
 
-      const res = await app.request("/api/emissions/entries", {
+      const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date: "bad" }),
@@ -417,9 +343,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/emissions/entries", {
+      const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validBody),
@@ -429,9 +355,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 403 for non-admin", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/emissions/entries", {
+      const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validBody),
@@ -455,7 +381,7 @@ describe("emissions routes", () => {
     };
 
     it("creates an offset entry with scope 0 and negative co2Kg", async () => {
-      mockRoles = ["admin"];
+      ctx.auth.roles = ["admin"];
       const offsetRow = makeMockEmissionRow({
         scope: 0,
         category: "offset",
@@ -463,7 +389,7 @@ describe("emissions routes", () => {
       });
       mockInsertReturning.mockResolvedValue([offsetRow]);
 
-      const res = await app.request("/api/emissions/offsets", {
+      const res = await ctx.app.request("/api/emissions/offsets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validOffset),
@@ -476,9 +402,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 400 for invalid body", async () => {
-      mockRoles = ["admin"];
+      ctx.auth.roles = ["admin"];
 
-      const res = await app.request("/api/emissions/offsets", {
+      const res = await ctx.app.request("/api/emissions/offsets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date: "bad" }),
@@ -488,9 +414,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 401 for unauthenticated request", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/emissions/offsets", {
+      const res = await ctx.app.request("/api/emissions/offsets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validOffset),
@@ -500,9 +426,9 @@ describe("emissions routes", () => {
     });
 
     it("returns 403 for non-admin", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/emissions/offsets", {
+      const res = await ctx.app.request("/api/emissions/offsets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validOffset),

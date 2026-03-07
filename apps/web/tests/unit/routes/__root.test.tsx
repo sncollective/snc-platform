@@ -2,16 +2,13 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type React from "react";
 
+import { createRouterMock } from "../../helpers/router-mock.js";
+
 // ── Hoisted Mocks ──
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createRootRoute: (options: Record<string, unknown>) => options,
-    Outlet: () =>
-      React.createElement("div", { "data-testid": "outlet" }, "Page content"),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ rootRoute: true, outlet: true }),
+);
 
 vi.mock("../../../src/components/layout/nav-bar.js", () => ({
   NavBar: () => null,
@@ -39,6 +36,10 @@ vi.mock("../../../src/components/media/mini-player.js", () => ({
 
 vi.mock("../../../src/lib/config.js", () => ({
   DEMO_MODE: false,
+}));
+
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchAuthStateServer: vi.fn().mockResolvedValue({ user: null, roles: [] }),
 }));
 
 vi.mock("../../../src/styles/global.css?url", () => ({

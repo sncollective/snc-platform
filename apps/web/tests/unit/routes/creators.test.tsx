@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { makeMockCreatorListItem } from "../../helpers/creator-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -10,35 +12,9 @@ const { mockUseLoaderData } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  "$creatorId",
-                  (params as Record<string, string>).creatorId!,
-                )
-              : (to as string),
-          className,
-        },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useLoaderData: mockUseLoaderData }),
+);
 
 vi.mock("../../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
@@ -46,14 +22,7 @@ vi.mock("../../../../src/lib/api-server.js", () => ({
 
 // ── Component Under Test ──
 
-let CreatorsPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/creators/index.js");
-  CreatorsPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const CreatorsPage = extractRouteComponent(() => import("../../../src/routes/creators/index.js"));
 
 // ── Test Lifecycle ──
 

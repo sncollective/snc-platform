@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type React from "react";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { extractRoute } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -8,22 +9,9 @@ const { mockUseLoaderData } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
-    Link: ({ to, children, className }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-    useNavigate: () => vi.fn(),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useLoaderData: mockUseLoaderData, useNavigate: () => vi.fn() }),
+);
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
@@ -75,15 +63,7 @@ vi.mock("../../../src/components/landing/landing-pricing.js", async () => {
 
 // ── Component Under Test ──
 
-let LandingPage: () => React.ReactElement;
-let RouteObject: Record<string, unknown>;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/index.js");
-  const route = mod.Route as unknown as Record<string, unknown>;
-  RouteObject = route;
-  LandingPage = (route as { component: () => React.ReactElement }).component;
-});
+const { component: LandingPage, route: RouteObject } = extractRoute(() => import("../../../src/routes/index.js"));
 
 // ── Lifecycle ──
 

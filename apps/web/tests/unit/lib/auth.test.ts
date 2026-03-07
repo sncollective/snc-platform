@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 import { makeMockUser, makeMockSession } from "../../helpers/auth-fixtures.js";
+import { setupFetchMock } from "../../helpers/fetch-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -21,9 +22,11 @@ vi.mock("better-auth/react", () => ({
 // ── Imports (after mocks) ──
 
 import { createAuthClient } from "better-auth/react";
-import { useRoles, fetchAuthState } from "../../../src/lib/auth.js";
+import { useRoles, fetchAuthState, hasRole } from "../../../src/lib/auth.js";
 
 // ── Test Lifecycle ──
+
+const { getMockFetch } = setupFetchMock();
 
 beforeEach(() => {
   mockUseSession.mockReturnValue({
@@ -31,11 +34,6 @@ beforeEach(() => {
     isPending: false,
     error: null,
   });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 // ── Tests ──
@@ -66,13 +64,10 @@ describe("useRoles", () => {
       error: null,
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ user, roles: ["subscriber"] }),
-          { status: 200 },
-        ),
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ user, roles: ["subscriber"] }),
+        { status: 200 },
       ),
     );
 
@@ -82,7 +77,7 @@ describe("useRoles", () => {
       expect(result.current).toEqual(["subscriber"]);
     });
 
-    expect(fetch).toHaveBeenCalledWith("/api/me", {
+    expect(getMockFetch()).toHaveBeenCalledWith("/api/me", {
       credentials: "include",
     });
   });
@@ -96,10 +91,7 @@ describe("useRoles", () => {
       error: null,
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Network error")),
-    );
+    getMockFetch().mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useRoles());
 
@@ -117,16 +109,31 @@ describe("useRoles", () => {
       error: null,
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
-    );
+    getMockFetch().mockResolvedValue(new Response(null, { status: 500 }));
 
     const { result } = renderHook(() => useRoles());
 
     await waitFor(() => {
       expect(result.current).toEqual([]);
     });
+  });
+});
+
+describe("hasRole", () => {
+  it("returns true when the role is present", () => {
+    expect(hasRole(["subscriber", "creator"], "creator")).toBe(true);
+  });
+
+  it("returns false when the role is absent", () => {
+    expect(hasRole(["subscriber"], "creator")).toBe(false);
+  });
+
+  it("returns false for an empty roles array", () => {
+    expect(hasRole([], "subscriber")).toBe(false);
+  });
+
+  it("returns true for a single matching role", () => {
+    expect(hasRole(["cooperative-member"], "cooperative-member")).toBe(true);
   });
 });
 
@@ -142,13 +149,10 @@ describe("fetchAuthState", () => {
       updatedAt: "2025-01-01T00:00:00.000Z",
     };
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ user: userJson, roles: ["subscriber"] }),
-          { status: 200 },
-        ),
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ user: userJson, roles: ["subscriber"] }),
+        { status: 200 },
       ),
     );
 
@@ -159,10 +163,7 @@ describe("fetchAuthState", () => {
   });
 
   it("returns null user when response is not ok", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
-    );
+    getMockFetch().mockResolvedValue(new Response(null, { status: 401 }));
 
     const result = await fetchAuthState();
 
@@ -170,10 +171,7 @@ describe("fetchAuthState", () => {
   });
 
   it("returns null user when fetch throws", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Network error")),
-    );
+    getMockFetch().mockRejectedValue(new Error("Network error"));
 
     const result = await fetchAuthState();
 

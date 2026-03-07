@@ -2,6 +2,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+
 // ── Hoisted Mocks ──
 
 const { mockFormatPrice, mockNavigate } = vi.hoisted(() => ({
@@ -9,39 +12,13 @@ const { mockFormatPrice, mockNavigate } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    useNavigate: () => mockNavigate,
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-      onClick,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  /\$(\w+)/g,
-                  (_, key: string) =>
-                    (params as Record<string, string>)[key] ?? "",
-                )
-              : (to as string),
-          className,
-          onClick: onClick as React.MouseEventHandler | undefined,
-        },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useNavigate: () => mockNavigate }),
+);
 
-vi.mock("../../../src/lib/format.js", () => ({
-  formatPrice: mockFormatPrice,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatPrice: mockFormatPrice }),
+);
 
 // ── Import component under test (after mocks) ──
 

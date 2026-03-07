@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -6,6 +6,10 @@ import { makeMockCreatorListItem } from "../../helpers/creator-fixtures.js";
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { makeMockPlan, makeMockUserSubscription } from "../../helpers/subscription-fixtures.js";
 import { makeMockMerchProduct } from "../../helpers/merch-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createAuthMock } from "../../helpers/auth-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -25,62 +29,21 @@ const {
   mockFetchProducts: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useLoaderData: mockUseLoaderData,
-    }),
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({
+    useLoaderData: mockUseLoaderData,
     useNavigate: () => vi.fn(),
-    Link: ({
-      to,
-      params,
-      search,
-      children,
-      className,
-    }: Record<string, unknown>) => {
-      let href = to as string;
-      if (typeof params === "object" && params !== null) {
-        const p = params as Record<string, string>;
-        if (p.contentId) {
-          href = href.replace("$contentId", p.contentId);
-        }
-        if (p.creatorId) {
-          href = href.replace("$creatorId", p.creatorId);
-        }
-        if (p.handle) {
-          href = href.replace("$handle", p.handle);
-        }
-      }
-      if (typeof search === "object" && search !== null) {
-        const s = search as Record<string, string>;
-        const searchParams = new URLSearchParams();
-        for (const [key, value] of Object.entries(s)) {
-          searchParams.set(key, value);
-        }
-        href = `${href}?${searchParams.toString()}`;
-      }
-      return React.createElement(
-        "a",
-        { href, className },
-        children as React.ReactNode,
-      );
-    },
-  };
-});
+  }),
+);
 
 vi.mock("../../../src/lib/format.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/lib/format.js")>();
-  return {
-    ...actual,
-    formatRelativeDate: mockFormatRelativeDate,
-  };
+  return createFormatMock({ formatRelativeDate: mockFormatRelativeDate }, actual);
 });
 
-vi.mock("../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../src/lib/subscription.js", () => ({
   fetchPlans: mockFetchPlans,
@@ -93,14 +56,7 @@ vi.mock("../../../src/lib/merch.js", () => ({
 
 // ── Component Under Test ──
 
-let CreatorDetailPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/creators/$creatorId.js");
-  CreatorDetailPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const CreatorDetailPage = extractRouteComponent(() => import("../../../src/routes/creators/$creatorId.js"));
 
 // ── Test Lifecycle ──
 

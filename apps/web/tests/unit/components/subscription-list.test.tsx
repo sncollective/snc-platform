@@ -2,33 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+
 const { mockFormatDate } = vi.hoisted(() => ({
   mockFormatDate: vi.fn(),
 }));
 
 vi.mock("../../../src/lib/format.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/lib/format.js")>();
-  return {
-    ...actual,
-    formatDate: mockFormatDate,
-  };
+  return createFormatMock({ formatDate: mockFormatDate }, actual);
 });
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({
-      to,
-      children,
-      className,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 import { SubscriptionList } from "../../../src/components/subscription/subscription-list.js";
 import { makeMockUserSubscription } from "../../helpers/subscription-fixtures.js";

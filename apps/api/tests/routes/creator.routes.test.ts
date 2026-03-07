@@ -1,19 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Hono } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
-import { TEST_CONFIG } from "../helpers/test-constants.js";
-import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
+import { setupRouteTest } from "../helpers/route-test-factory.js";
+import { makeMockUser } from "../helpers/auth-fixtures.js";
 import { makeMockDbCreatorProfile } from "../helpers/creator-fixtures.js";
 import { ok, textToStream } from "@snc/shared";
-import type { User, Session } from "@snc/shared";
+import { chainablePromise } from "../helpers/db-mock-utils.js";
 
-// ── Mock State ──
+// ── Storage Mock ──
 
-let mockUser: User | null;
-let mockSession: Session | null;
-let mockRoles: string[];
-
-// Storage mock — individual method stubs
 const mockStorageUpload = vi.fn();
 const mockStorageDownload = vi.fn();
 const mockStorageDelete = vi.fn();
@@ -28,7 +22,7 @@ const mockStorage = {
 const mockDownloadResult = (text: string) =>
   ok({ stream: textToStream(text), size: new TextEncoder().encode(text).byteLength });
 
-// Drizzle db mock — chainable method stubs
+// ── Mock DB Chains ──
 
 // Simple select queries: select → from → where (returns promise directly)
 const mockSelectWhere = vi.fn();
@@ -40,11 +34,8 @@ const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 // Batch count query chain: select → from → where → groupBy
 const mockGroupBy = vi.fn();
 
-const mockSelectFrom = vi.fn(() => ({
-  where: mockSelectWhere,
-  orderBy: vi.fn(() => ({ limit: mockLimit })),
-}));
-const mockSelect = vi.fn(() => ({ from: mockSelectFrom }));
+const mockSelectFrom = vi.fn();
+const mockSelect = vi.fn();
 
 // INSERT chain (for ensureCreatorProfile and upsert in PATCH)
 const mockInsertReturning = vi.fn();
@@ -59,11 +50,9 @@ const mockInsert = vi.fn(() => ({ values: mockInsertValues }));
 
 // UPDATE chain
 const mockUpdateReturning = vi.fn();
-const mockUpdateWhere = vi.fn(() => {
-  const promise = Promise.resolve(undefined);
-  (promise as any).returning = mockUpdateReturning;
-  return promise;
-});
+const mockUpdateWhere = vi.fn(() =>
+  chainablePromise(undefined, { returning: mockUpdateReturning }),
+);
 const mockUpdateSet = vi.fn(() => ({ where: mockUpdateWhere }));
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
@@ -73,94 +62,43 @@ const mockDb = {
   update: mockUpdate,
 };
 
-// ── Test App Factory ──
+// ── Test Setup ──
 
-const setupCreatorApp = async (): Promise<Hono> => {
-  // Import error classes first so they share the same module instance as
-  // errorHandler (after vi.resetModules() each test gets a fresh registry).
-  const { UnauthorizedError, ForbiddenError } = await import("@snc/shared");
+const ctx = setupRouteTest({
+  db: mockDb,
+  defaultAuth: { roles: ["subscriber", "creator"] },
+  mocks: () => {
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorProfiles: {},
+    }));
 
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
-    parseOrigins: (raw: string) =>
-      raw
-        .split(",")
-        .map((o: string) => o.trim())
-        .filter(Boolean),
-  }));
+    vi.doMock("../../src/db/schema/content.schema.js", () => ({
+      content: {},
+    }));
 
-  vi.doMock("../../src/db/connection.js", () => ({
-    db: mockDb,
-    sql: vi.fn(),
-  }));
+    vi.doMock("../../src/db/schema/user.schema.js", () => ({
+      users: {},
+      userRoles: {},
+    }));
 
-  vi.doMock("../../src/db/schema/creator.schema.js", () => ({
-    creatorProfiles: {},
-  }));
-
-  vi.doMock("../../src/db/schema/content.schema.js", () => ({
-    content: {},
-  }));
-
-  vi.doMock("../../src/db/schema/user.schema.js", () => ({
-    users: {},
-    userRoles: {},
-  }));
-
-  vi.doMock("../../src/middleware/require-auth.js", () => ({
-    requireAuth: async (c: any, next: any) => {
-      if (!mockUser) throw new UnauthorizedError();
-      c.set("user", mockUser);
-      c.set("session", mockSession);
-      await next();
-    },
-  }));
-
-  vi.doMock("../../src/middleware/require-role.js", () => ({
-    requireRole:
-      (...requiredRoles: string[]) =>
-      async (c: any, next: any) => {
-        if (!requiredRoles.some((r) => mockRoles.includes(r))) {
-          throw new ForbiddenError("Insufficient permissions");
-        }
-        c.set("roles", mockRoles);
-        await next();
-      },
-  }));
-
-  vi.doMock("../../src/storage/index.js", () => ({
-    storage: mockStorage,
-    createStorageProvider: vi.fn(),
-  }));
-
-  const { creatorRoutes } = await import(
-    "../../src/routes/creator.routes.js"
-  );
-  const { errorHandler } = await import(
-    "../../src/middleware/error-handler.js"
-  );
-  const { corsMiddleware } = await import("../../src/middleware/cors.js");
-
-  const app = new Hono();
-  app.use("*", corsMiddleware);
-  app.onError(errorHandler);
-  app.route("/api/creators", creatorRoutes);
-
-  return app;
-};
-
-// ── Tests ──
-
-describe("creator routes", () => {
-  let app: Hono;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    // Default: authenticated creator
-    mockUser = makeMockUser();
-    mockSession = makeMockSession();
-    mockRoles = ["subscriber", "creator"];
+    vi.doMock("../../src/storage/index.js", () => ({
+      storage: mockStorage,
+      createStorageProvider: vi.fn(),
+    }));
+  },
+  mountRoute: async (app) => {
+    const { creatorRoutes } = await import(
+      "../../src/routes/creator.routes.js"
+    );
+    app.route("/api/creators", creatorRoutes);
+  },
+  beforeEach: () => {
+    // Re-establish SELECT chain after clearAllMocks.
+    mockSelect.mockReturnValue({ from: mockSelectFrom });
+    mockSelectFrom.mockImplementation(() => ({
+      where: mockSelectWhere,
+      orderBy: vi.fn(() => ({ limit: mockLimit })),
+    }));
 
     // Default db mock responses
     mockSelectWhere.mockResolvedValue([]);
@@ -169,19 +107,33 @@ describe("creator routes", () => {
     mockInsertReturning.mockResolvedValue([]);
     mockUpdateReturning.mockResolvedValue([]);
 
+    // Re-establish INSERT chain
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockReturnValue({
+      returning: mockInsertReturning,
+      onConflictDoNothing: mockOnConflictDoNothing,
+    });
+    mockOnConflictDoNothing.mockReturnValue({
+      returning: mockInsertReturning,
+    });
+
+    // Re-establish UPDATE chain
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockImplementation(() =>
+      chainablePromise(undefined, { returning: mockUpdateReturning }),
+    );
+
     // Default storage mock responses
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
     mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
+  },
+});
 
-    app = await setupCreatorApp();
-  });
+// ── Tests ──
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
-  });
-
+describe("creator routes", () => {
   // ── GET /api/creators ──
 
   describe("GET /api/creators", () => {
@@ -215,7 +167,7 @@ describe("creator routes", () => {
         { creatorId: "user_2", count: 3 },
       ]);
 
-      const res = await app.request("/api/creators?limit=2");
+      const res = await ctx.app.request("/api/creators?limit=2");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -230,7 +182,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
       mockLimit.mockResolvedValueOnce([]);
 
-      const res = await app.request("/api/creators");
+      const res = await ctx.app.request("/api/creators");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -250,7 +202,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
       mockGroupBy.mockResolvedValueOnce([{ creatorId: "user_test123", count: 0 }]);
 
-      const res = await app.request("/api/creators");
+      const res = await ctx.app.request("/api/creators");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -275,7 +227,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
       mockLimit.mockResolvedValueOnce([]);
 
-      const res = await app.request(`/api/creators?cursor=${cursor}`);
+      const res = await ctx.app.request(`/api/creators?cursor=${cursor}`);
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -314,7 +266,7 @@ describe("creator routes", () => {
         { creatorId: "user_2", count: 3 },
       ]);
 
-      const res = await app.request("/api/creators");
+      const res = await ctx.app.request("/api/creators");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -337,7 +289,7 @@ describe("creator routes", () => {
       // getContentCount query
       mockSelectWhere.mockResolvedValueOnce([{ count: 7 }]);
 
-      const res = await app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/user_test123");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -353,7 +305,7 @@ describe("creator routes", () => {
       // users lookup → empty (no user)
       mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await app.request("/api/creators/nonexistent-user");
+      const res = await ctx.app.request("/api/creators/nonexistent-user");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -376,7 +328,7 @@ describe("creator routes", () => {
       // getContentCount
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/user_test123");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -397,7 +349,7 @@ describe("creator routes", () => {
       // hasCreatorRole → no creator role
       mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/user_test123");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -414,7 +366,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/user_test123");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -427,7 +379,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/user_test123");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -452,7 +404,7 @@ describe("creator routes", () => {
       // getContentCount
       mockSelectWhere.mockResolvedValueOnce([{ count: 3 }]);
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "New Name", bio: "New bio" }),
@@ -477,7 +429,7 @@ describe("creator routes", () => {
       // getContentCount
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "New Name" }),
@@ -490,9 +442,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner tries to update", async () => {
-      mockUser = makeMockUser({ id: "other-user" });
+      ctx.auth.user = makeMockUser({ id: "other-user" });
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "Hacked Name" }),
@@ -504,9 +456,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role tries to update", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "Some Name" }),
@@ -518,9 +470,9 @@ describe("creator routes", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-      mockUser = null;
+      ctx.auth.user = null;
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "Some Name" }),
@@ -532,7 +484,7 @@ describe("creator routes", () => {
     });
 
     it("returns 400 for invalid fields", async () => {
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName: "" }),
@@ -553,7 +505,7 @@ describe("creator routes", () => {
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ socialLinks }),
@@ -579,7 +531,7 @@ describe("creator routes", () => {
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ socialLinks: [] }),
@@ -591,7 +543,7 @@ describe("creator routes", () => {
     });
 
     it("rejects socialLinks with invalid platform", async () => {
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -603,7 +555,7 @@ describe("creator routes", () => {
     });
 
     it("rejects socialLinks with invalid URL", async () => {
-      const res = await app.request("/api/creators/user_test123", {
+      const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -634,7 +586,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["image data"], "photo.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         body: formData,
       });
@@ -666,7 +618,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["new image"], "new.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         body: formData,
       });
@@ -677,12 +629,12 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
-      mockUser = makeMockUser({ id: "other-user" });
+      ctx.auth.user = makeMockUser({ id: "other-user" });
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "photo.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         body: formData,
       });
@@ -693,12 +645,12 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "photo.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         body: formData,
       });
@@ -710,7 +662,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["data"], "doc.txt", { type: "text/plain" }));
 
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         body: formData,
       });
@@ -722,7 +674,7 @@ describe("creator routes", () => {
     });
 
     it("returns 400 when Content-Length exceeds limit", async () => {
-      const res = await app.request("/api/creators/user_test123/avatar", {
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
         method: "POST",
         headers: { "content-length": "20000000" },
         body: new FormData(),
@@ -753,7 +705,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["banner data"], "header.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         body: formData,
       });
@@ -785,7 +737,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["new banner"], "new.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         body: formData,
       });
@@ -796,12 +748,12 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
-      mockUser = makeMockUser({ id: "other-user" });
+      ctx.auth.user = makeMockUser({ id: "other-user" });
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         body: formData,
       });
@@ -812,12 +764,12 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
-      mockRoles = ["subscriber"];
+      ctx.auth.roles = ["subscriber"];
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.jpg", { type: "image/jpeg" }));
 
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         body: formData,
       });
@@ -826,7 +778,7 @@ describe("creator routes", () => {
     });
 
     it("returns 400 when Content-Length exceeds limit", async () => {
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         headers: { "content-length": "20000000" },
         body: new FormData(),
@@ -841,7 +793,7 @@ describe("creator routes", () => {
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.txt", { type: "text/plain" }));
 
-      const res = await app.request("/api/creators/user_test123/banner", {
+      const res = await ctx.app.request("/api/creators/user_test123/banner", {
         method: "POST",
         body: formData,
       });
@@ -865,7 +817,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockStorageDownload.mockResolvedValueOnce(mockDownloadResult("image data"));
 
-      const res = await app.request("/api/creators/user_test123/avatar");
+      const res = await ctx.app.request("/api/creators/user_test123/avatar");
 
       expect(res.status).toBe(200);
       expect(res.headers.get("Content-Type")).toBe("image/jpeg");
@@ -881,7 +833,7 @@ describe("creator routes", () => {
       // findCreatorProfile → profile with null avatarKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
 
-      const res = await app.request("/api/creators/user_test123/avatar");
+      const res = await ctx.app.request("/api/creators/user_test123/avatar");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -892,7 +844,7 @@ describe("creator routes", () => {
       // findCreatorProfile → not found
       mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await app.request("/api/creators/user_test123/avatar");
+      const res = await ctx.app.request("/api/creators/user_test123/avatar");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -912,7 +864,7 @@ describe("creator routes", () => {
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockStorageDownload.mockResolvedValueOnce(mockDownloadResult("banner data"));
 
-      const res = await app.request("/api/creators/user_test123/banner");
+      const res = await ctx.app.request("/api/creators/user_test123/banner");
 
       expect(res.status).toBe(200);
       expect(res.headers.get("Content-Type")).toBe("image/png");
@@ -928,7 +880,7 @@ describe("creator routes", () => {
       // findCreatorProfile → profile with null bannerKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
 
-      const res = await app.request("/api/creators/user_test123/banner");
+      const res = await ctx.app.request("/api/creators/user_test123/banner");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -939,7 +891,7 @@ describe("creator routes", () => {
       // findCreatorProfile → not found
       mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await app.request("/api/creators/user_test123/banner");
+      const res = await ctx.app.request("/api/creators/user_test123/banner");
 
       expect(res.status).toBe(404);
       const body = await res.json();

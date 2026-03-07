@@ -7,6 +7,8 @@ import {
   makeLoggedInSessionResult,
 } from "../../../helpers/auth-fixtures.js";
 import { makeMockPlan, makeMockUserSubscription } from "../../../helpers/subscription-fixtures.js";
+import { createRouterMock } from "../../../helpers/router-mock.js";
+import { createAuthMock } from "../../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
@@ -24,22 +26,13 @@ const {
   mockNavigateExternal: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({ to, children, className }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className },
-        children as React.ReactNode,
-      ),
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({ useNavigate: () => mockNavigate }),
+);
 
-vi.mock("../../../../src/lib/auth.js", () => ({
-  useSession: mockUseSession,
-}));
+vi.mock("../../../../src/lib/auth.js", () =>
+  createAuthMock({ useSession: mockUseSession }),
+);
 
 vi.mock("../../../../src/lib/subscription.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../../src/lib/subscription.js")>();

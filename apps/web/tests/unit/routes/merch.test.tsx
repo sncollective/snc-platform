@@ -1,8 +1,11 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { makeMockMerchProduct } from "../../helpers/merch-fixtures.js";
+import { createRouterMock } from "../../helpers/router-mock.js";
+import { createFormatMock } from "../../helpers/format-mock.js";
+import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
@@ -11,55 +14,21 @@ const { mockFormatPrice, mockUseSearch } = vi.hoisted(() => ({
   mockUseSearch: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      ...options,
-      useSearch: mockUseSearch,
-    }),
-    Link: ({
-      to,
-      params,
-      children,
-      className,
-      onClick,
-    }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        {
-          href:
-            typeof params === "object" && params !== null
-              ? (to as string).replace(
-                  /\$(\w+)/g,
-                  (_, key: string) =>
-                    (params as Record<string, string>)[key] ?? "",
-                )
-              : (to as string),
-          className,
-          onClick: onClick as React.MouseEventHandler | undefined,
-        },
-        children as React.ReactNode,
-      ),
-    useNavigate: () => vi.fn(),
+vi.mock("@tanstack/react-router", () =>
+  createRouterMock({
     useSearch: mockUseSearch,
-  };
-});
+    useNavigate: () => vi.fn(),
+    extras: { useSearch: mockUseSearch },
+  }),
+);
 
-vi.mock("../../../src/lib/format.js", () => ({
-  formatPrice: mockFormatPrice,
-}));
+vi.mock("../../../src/lib/format.js", () =>
+  createFormatMock({ formatPrice: mockFormatPrice }),
+);
 
 // ── Component Under Test ──
 
-let MerchPage: () => React.ReactElement;
-
-beforeAll(async () => {
-  const mod = await import("../../../src/routes/merch/index.js");
-  MerchPage = (
-    mod.Route as unknown as { component: () => React.ReactElement }
-  ).component;
-});
+const MerchPage = extractRouteComponent(() => import("../../../src/routes/merch/index.js"));
 
 // ── Test Lifecycle ──
 

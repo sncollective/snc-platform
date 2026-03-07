@@ -2,20 +2,11 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockCreatorListItem } from "../../../helpers/creator-fixtures.js";
+import { createRouterMock } from "../../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
 
-vi.mock("@tanstack/react-router", async () => {
-  const React = await import("react");
-  return {
-    Link: ({ to, children, className, ...rest }: Record<string, unknown>) =>
-      React.createElement(
-        "a",
-        { href: to as string, className, ...rest },
-        children as React.ReactNode,
-      ),
-  };
-});
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 // ── Import component under test (after mocks) ──
 

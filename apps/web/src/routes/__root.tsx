@@ -12,9 +12,14 @@ import { DemoBanner } from "../components/layout/demo-banner.js";
 import { AudioPlayerProvider } from "../contexts/audio-player-context.js";
 import { MiniPlayer } from "../components/media/mini-player.js";
 import { DEMO_MODE } from "../lib/config.js";
+import { fetchAuthStateServer } from "../lib/api-server.js";
 import globalCss from "../styles/global.css?url";
 
 export const Route = createRootRoute({
+  loader: async () => {
+    const authState = await fetchAuthStateServer();
+    return { authState };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -49,6 +54,8 @@ function RootComponent() {
 }
 
 export function RootLayout() {
+  const { authState } = Route.useLoaderData();
+
   return (
     <div style={DEMO_MODE ? { "--demo-banner-height": "32px" } as React.CSSProperties : undefined}>
       <DemoBanner />
@@ -56,7 +63,7 @@ export function RootLayout() {
         Skip to main content
       </a>
       <AudioPlayerProvider>
-        <NavBar />
+        <NavBar serverAuth={authState} />
         <main id="main-content" className="main-content">
           <Outlet />
         </main>

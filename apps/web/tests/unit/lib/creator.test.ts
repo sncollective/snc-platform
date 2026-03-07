@@ -1,37 +1,28 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
 } from "../../../src/lib/creator.js";
 import { makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
+import { setupFetchMock } from "../../helpers/fetch-mock.js";
 
 // ── Test Lifecycle ──
 
-let mockFetch: ReturnType<typeof vi.fn>;
-
-beforeEach(() => {
-  mockFetch = vi.fn();
-  vi.stubGlobal("fetch", mockFetch);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const { getMockFetch } = setupFetchMock();
 
 // ── Tests ──
 
 describe("fetchCreatorProfile", () => {
   it("fetches from correct URL with credentials", async () => {
     const profile = makeMockCreatorProfileResponse();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify(profile), { status: 200 }),
     );
 
     const result = await fetchCreatorProfile("user_test123");
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/creators/user_test123",
       { credentials: "include" },
     );
@@ -40,20 +31,20 @@ describe("fetchCreatorProfile", () => {
 
   it("encodes special characters in creator ID", async () => {
     const profile = makeMockCreatorProfileResponse();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify(profile), { status: 200 }),
     );
 
     await fetchCreatorProfile("user/special id");
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/creators/user%2Fspecial%20id",
       { credentials: "include" },
     );
   });
 
   it("throws on 404 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Creator not found" } }),
         { status: 404 },
@@ -66,7 +57,7 @@ describe("fetchCreatorProfile", () => {
   });
 
   it("throws on 500 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Server error" } }),
         { status: 500 },
@@ -85,13 +76,13 @@ describe("updateCreatorProfile", () => {
       { platform: "bandcamp" as const, url: "https://myband.bandcamp.com" },
     ];
     const updatedProfile = makeMockCreatorProfileResponse({ socialLinks });
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify(updatedProfile), { status: 200 }),
     );
 
     const result = await updateCreatorProfile("user_test123", { socialLinks });
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/creators/user_test123",
       {
         method: "PATCH",
@@ -107,18 +98,18 @@ describe("updateCreatorProfile", () => {
 
   it("encodes special characters in creator ID", async () => {
     const profile = makeMockCreatorProfileResponse();
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(JSON.stringify(profile), { status: 200 }),
     );
 
     await updateCreatorProfile("user/special id", { displayName: "X" });
 
-    const calledUrl = mockFetch.mock.calls[0]![0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("user%2Fspecial%20id");
   });
 
   it("throws on 401 response", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Unauthorized" } }),
         { status: 401 },
@@ -131,7 +122,7 @@ describe("updateCreatorProfile", () => {
   });
 
   it("throws on 403 response for non-owner", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({
           error: { message: "Cannot update another creator's profile" },
@@ -146,7 +137,7 @@ describe("updateCreatorProfile", () => {
   });
 
   it("throws on 400 validation error", async () => {
-    mockFetch.mockResolvedValue(
+    getMockFetch().mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Validation failed" } }),
         { status: 400 },
