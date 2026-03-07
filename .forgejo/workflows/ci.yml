@@ -1,0 +1,164 @@
+name: Platform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── Validate ──
+  lint-and-typecheck:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+  # ── Test (parallel) ──
+  test-shared:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/shared
+        run: pnpm --filter @snc/shared test
+
+  test-api:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/api
+        run: pnpm --filter @snc/api test
+
+  test-web:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/web
+        run: pnpm --filter @snc/web test
+
+  # ── Build ──
+  build:
+    runs-on: docker
+    container: node:24
+    needs: [lint-and-typecheck, test-shared, test-api, test-web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+  # ── Deploy to demo ──
+  deploy-demo:
+    runs-on: docker
+    container: alpine:latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Install SSH client
+        run: apk add --no-cache openssh-client curl
+
+      - name: Deploy
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'snc' }}
+        run: |
+          eval $(ssh-agent -s)
+          echo "$SSH_PRIVATE_KEY" | ssh-add -
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh ${DEPLOY_USER}@${DEPLOY_HOST} '
+            set -euo pipefail
+            cd /opt/snc
+            git pull origin main
+            corepack enable
+            pnpm install --frozen-lockfile
+            pnpm build
+            pnpm --filter @snc/api db:migrate
+            sudo systemctl restart snc-api snc-web
+            sleep 3
+            curl -sf http://localhost:3000/health || { echo "Health check failed"; exit 1; }
+          '
