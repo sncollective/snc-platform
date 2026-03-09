@@ -92,3 +92,4 @@ export const makeMockBookingWithService = (
 - Defining `Date` objects in web fixtures — web layer always receives ISO strings from `JSON.parse`
 - Omitting nested objects in web fixtures that the component expects (e.g., `BookingWithService.service`) — leads to runtime property access errors in tests
 - Using `new Date()` (non-deterministic) in fixtures instead of fixed ISO strings
+- Non-format default values (IDs, names, booleans, enums) differing between API and web fixtures for the same entity — vertical slice analysis flags these

@@ -96,3 +96,4 @@ if (config.urlPattern && !config.urlPattern.test(trimmedUrl)) {
 ## Common Violations
 - **Duplicating the regex locally**: Defining the same pattern in both `@snc/shared` and the frontend component creates drift risk — export from shared instead.
 - **Accessing `urlPattern` without a null check**: `PLATFORM_CONFIG` entries may omit `urlPattern` (e.g., `mastodon`, `website`), meaning any URL is accepted. Always guard with `if (config.urlPattern && ...)` before calling `.test()`.
+- **Validation constants used only on one side**: If a constant is validated on the server but not imported on the client (or vice versa), vertical slice analysis flags it as a sync gap.

@@ -86,11 +86,26 @@ A full sweep across all scopes will exhaust the orchestrator's context window. E
 
 ### Step 1: Discover Scopes
 
-Read `.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available scopes.
+Read `.claude/skills/platform-refactor-plan/SKILL.md` and extract the scope keyword table from Step 2. This is the single source of truth for available horizontal layer scopes.
 
 Check `docs/refactor/archive/` for archived reports. For each archived report, note the scope and `**Archived**` date. When presenting scopes, mark recently refactored ones (e.g., "middleware — last refactored 2026-03-01") so the user can deprioritize them.
 
-Present the scope list to the user with the recommendation to select **1-3 scopes per session**. Let them:
+**Dynamic domain discovery** — detect available vertical slices from the file system:
+
+1. Glob `packages/shared/src/*.ts` to find shared schema files
+2. Glob `apps/api/src/routes/*.routes.ts` to find API route files
+3. Intersect the basenames (stripping `.routes.ts` / `.ts`) — any name appearing in both is a domain with a vertical slice available
+4. Exclude known non-domain files (`index`, `errors`, `result`, `auth`, `storage`, `storage-contract`) from the shared glob results
+
+Present both groups to the user:
+
+```
+Horizontal layers: routes, components, lib, hooks, tests, shared, middleware, styles
+
+Vertical slices (auto-detected): booking, content, creator, dashboard, merch, subscription
+```
+
+Recommend selecting **1-3 scopes per session**. The user can pick from either group. Let them:
 
 - Select which scopes to include (recommend 1-3; warn if they select more)
 - Confirm or reorder

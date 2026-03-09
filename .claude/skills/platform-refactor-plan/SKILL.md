@@ -31,6 +31,7 @@ Before analyzing code, load these foundational references:
    - Tests → `vi-doMock-dynamic-import.md`, `hono-test-app-factory.md`, `drizzle-chainable-mock.md`, `dual-layer-fixtures.md`, `vi-hoisted-module-mock.md`
    - Lib → `web-fetch-client.md`, `stripe-service-layer.md`, `external-error-factory.md`
    - Shared → `result-type.md`, `app-error-hierarchy.md`, `shared-validation-constants.md`
+   - Domain (vertical slice) scopes → also read `vertical-slice-lens.md` in this skill directory for additional cross-layer patterns to load
 4. **Dependencies**: Read `apps/api/package.json` and `apps/web/package.json` for exact dependency versions.
 
 ## Step 2: Map the Scope
@@ -48,7 +49,7 @@ Translate the scope argument into a concrete file list:
 | `middleware` | `apps/api/src/middleware/*.ts` |
 | `styles` | `apps/web/src/styles/*.css` + `apps/web/src/components/**/*.module.css` |
 | A specific file path | That file + its test file + files it imports |
-| A domain (e.g., `booking`) | Full vertical slice: route + test + web lib + components + shared schema + fixtures |
+| A domain (e.g., `booking`) | Full vertical slice — use the structured file mapping table in `vertical-slice-lens.md` to enumerate all layers |
 | A concept (e.g., `upload handlers`) | Grep across the codebase, analyze all matching files |
 
 Use `Glob` to enumerate files, then `Read` each one. For large scopes, read all files — do not sample.
@@ -101,6 +102,10 @@ Explicitly note patterns that *look like* duplication but are intentionally sepa
 - Any other cases where the existing pattern documentation justifies the repetition
 
 This section reduces noise and demonstrates the analysis is informed by project conventions.
+
+### 3v. Vertical Slice Cross-Layer Analysis
+
+If Step 2 resolved to a domain scope, perform the additional cross-layer checks described in `vertical-slice-lens.md` (section 3v: Schema-Transformer Alignment, Validation Sync, Error Path Coverage, Type Chain, Fixture Sync, Dead API Surface). Include the "Cross-Layer Continuity" section in the report using the table formats defined there.
 
 ## Step 4: Research
 

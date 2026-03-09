@@ -51,8 +51,9 @@
 
 ## Docker Networking
 - You are running inside a Docker container on the shared `claude-net` Docker network
-- When starting project services, use the network override so containers join your network:
-  `docker compose -f docker-compose.yml -f /tmp/claude-network-override.yml up -d`
+- Postgres starts automatically on container boot via `scripts/start-dev.sh`
+- To restart Postgres manually:
+  `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d`
 - Use the container name to reach services — Docker DNS resolves them automatically:
   - `DATABASE_URL=postgres://snc:snc@snc-postgres:5432/snc`
 - Fallback if shared network doesn't work: use `host.docker.internal` with the
@@ -223,5 +224,5 @@
 - `pnpm --filter @snc/web test` — run web unit tests (567 tests)
 - `pnpm --filter @snc/api dev` — start API dev server (Node 24+ with `--experimental-strip-types`)
 - `pnpm --filter @snc/web dev` — start web dev server (TanStack Start on port 3001)
-- `docker compose -f docker-compose.yml -f /tmp/claude-network-override.yml up -d` — start PostgreSQL
+- `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL (with claude-net)
 

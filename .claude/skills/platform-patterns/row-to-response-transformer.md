@@ -103,3 +103,4 @@ const toPlanResponse = (row: PlanRow): SubscriptionPlan => ({
 - Calling `.toISOString()` inline inside handlers instead of in the transformer — breaks DRY
 - Forgetting nullable fields: use `?? null` for optional columns, `?.toISOString() ?? null` for nullable dates
 - Adding DB queries inside a transformer — transformers must be synchronous and pure
+- Return type not referencing the shared type (e.g., `Service` from `@snc/shared`) — inline return types create drift risk; vertical slice analysis checks this
