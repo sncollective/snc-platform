@@ -126,7 +126,7 @@ const toProfileResponse = (
     bio: profile.bio ?? null,
     avatarUrl: urls.avatarUrl,
     bannerUrl: urls.bannerUrl,
-    socialLinks: (profile.socialLinks as import("@snc/shared").SocialLink[]) ?? [],
+    socialLinks: profile.socialLinks ?? [],
     contentCount,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),

@@ -6,12 +6,3 @@
   max-width: 640px;
   margin: 0 auto;
 }
-
-.error {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-error-bg);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-sm);
-  color: var(--color-error);
-  font-size: var(--font-size-sm);
-}

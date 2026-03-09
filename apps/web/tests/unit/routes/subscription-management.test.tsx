@@ -47,7 +47,9 @@ beforeEach(() => {
   mockFetchMySubscriptions.mockResolvedValue([
     makeMockUserSubscription({ id: "sub-1", status: "active" }),
   ]);
-  mockCancelSubscription.mockResolvedValue(undefined);
+  mockCancelSubscription.mockResolvedValue(
+    makeMockUserSubscription({ id: "sub-1", status: "active", cancelAtPeriodEnd: true }),
+  );
   mockConfirm.mockReturnValue(true);
   vi.stubGlobal("confirm", mockConfirm);
 });
@@ -128,22 +130,17 @@ describe("SubscriptionManagementPage", () => {
     expect(mockCancelSubscription).not.toHaveBeenCalled();
   });
 
-  it("calls cancelSubscription and refreshes list on confirmed cancel", async () => {
+  it("calls cancelSubscription and updates list with returned data", async () => {
     const user = userEvent.setup();
     mockConfirm.mockReturnValue(true);
-    mockCancelSubscription.mockResolvedValue(undefined);
-    // After cancel, refetch returns updated subscription
-    mockFetchMySubscriptions
-      .mockResolvedValueOnce([
-        makeMockUserSubscription({ id: "sub-1", status: "active" }),
-      ])
-      .mockResolvedValue([
-        makeMockUserSubscription({
-          id: "sub-1",
-          status: "active",
-          cancelAtPeriodEnd: true,
-        }),
-      ]);
+    // cancelSubscription returns the updated subscription directly
+    mockCancelSubscription.mockResolvedValue(
+      makeMockUserSubscription({
+        id: "sub-1",
+        status: "active",
+        cancelAtPeriodEnd: true,
+      }),
+    );
 
     render(<SubscriptionManagementPage />);
 
@@ -159,7 +156,7 @@ describe("SubscriptionManagementPage", () => {
       expect(mockCancelSubscription).toHaveBeenCalledWith("sub-1");
     });
 
-    // After refresh, SubscriptionList shows canceling state
+    // List updated optimistically with returned data (no refetch needed)
     await waitFor(() => {
       expect(screen.getByText("Canceling")).toBeInTheDocument();
     });

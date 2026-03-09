@@ -6,29 +6,15 @@
   gap: var(--space-2xl);
 }
 
-/* ── Sections ── */
+/* ── Section Overrides ── */
 
 .section {
-  display: flex;
-  flex-direction: column;
   gap: var(--space-lg);
 }
 
 .sectionHeading {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-xl);
-  margin: 0;
   padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--color-border);
-}
-
-/* ── Status Messages ── */
-
-.status {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-base);
-  padding: var(--space-2xl) 0;
 }
 
 /* ── View All Link ── */
@@ -43,34 +29,4 @@
 
 .viewAllLink:hover {
   text-decoration: underline;
-}
-
-/* ── Load More ── */
-
-.loadMoreWrapper {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-lg) 0;
-}
-
-.loadMoreButton {
-  padding: var(--space-sm) var(--space-xl);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.loadMoreButton:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.loadMoreButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

@@ -20,6 +20,8 @@ import { useSession } from "../../lib/auth.js";
 import { fetchProducts } from "../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../lib/subscription.js";
 import styles from "./creator-detail.module.css";
+import sectionStyles from "../../styles/detail-section.module.css";
+import listingStyles from "../../styles/listing-page.module.css";
 
 // ── Route ──
 
@@ -115,16 +117,16 @@ function CreatorDetailPage(): React.ReactElement {
       />
 
       {/* Content Section */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Content</h2>
+      <section className={`${sectionStyles.section} ${styles.section}`}>
+        <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Content</h2>
         <FilterBar
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
         />
         {isLoading && items.length === 0 ? (
-          <p className={styles.status}>Loading...</p>
+          <p className={listingStyles.status}>Loading...</p>
         ) : items.length === 0 ? (
-          <p className={styles.status}>No content yet.</p>
+          <p className={listingStyles.status}>No content yet.</p>
         ) : (
           <>
             <div className="content-grid">
@@ -133,10 +135,10 @@ function CreatorDetailPage(): React.ReactElement {
               ))}
             </div>
             {nextCursor && (
-              <div className={styles.loadMoreWrapper}>
+              <div className={listingStyles.loadMoreWrapper}>
                 <button
                   type="button"
-                  className={styles.loadMoreButton}
+                  className={listingStyles.loadMoreButton}
                   onClick={handleLoadMore}
                   disabled={isLoading}
                 >
@@ -152,8 +154,8 @@ function CreatorDetailPage(): React.ReactElement {
 
       {/* Merch Section */}
       {merchProducts.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionHeading}>Merch</h2>
+        <section className={`${sectionStyles.section} ${styles.section}`}>
+          <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Merch</h2>
           <div className="content-grid">
             {merchProducts.map((product) => (
               <ProductCard key={product.handle} product={product} />

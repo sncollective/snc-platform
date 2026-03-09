@@ -9,6 +9,7 @@ import {
   cancelSubscription,
 } from "../../lib/subscription.js";
 import { SubscriptionList } from "../../components/subscription/subscription-list.js";
+import errorStyles from "../../styles/error-alert.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 
@@ -60,9 +61,10 @@ function SubscriptionManagementPage(): React.ReactElement {
     setError(null);
 
     try {
-      await cancelSubscription(subscriptionId);
-      const refreshed = await fetchMySubscriptions();
-      setSubscriptions(refreshed);
+      const updated = await cancelSubscription(subscriptionId);
+      setSubscriptions((prev) =>
+        prev.map((sub) => (sub.id === updated.id ? updated : sub)),
+      );
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Failed to cancel subscription",
@@ -77,7 +79,7 @@ function SubscriptionManagementPage(): React.ReactElement {
       <h1 className={listingStyles.heading}>My Subscriptions</h1>
 
       {error !== null && (
-        <div className={settingsStyles.error} role="alert">
+        <div className={errorStyles.error} role="alert">
           {error}
         </div>
       )}

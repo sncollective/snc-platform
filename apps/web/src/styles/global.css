@@ -43,6 +43,15 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
+  /* Surfaces */
+  --color-surface: var(--color-bg-elevated);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.05);
+
+  /* Links */
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
   /* Derived tokens */
   --color-error-bg: rgba(239, 83, 80, 0.1);
   --color-success: #4caf50;

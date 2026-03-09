@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 import { eq, and, isNull, isNotNull, desc, lt, or } from "drizzle-orm";
@@ -116,6 +117,38 @@ const resolveFeedItem = (row: FeedRow): FeedItem => ({
   ...resolveContentUrls(row),
   creatorName: row.creatorName,
 });
+
+type ContentKeyField = "mediaKey" | "thumbnailKey" | "coverArtKey";
+
+const requireContentFile = async (
+  id: string,
+  keyField: ContentKeyField,
+  notUploadedMsg: string,
+): Promise<{ row: ContentRow; key: string }> => {
+  const row = await findActiveContent(id);
+  if (!row) {
+    throw new NotFoundError("Content not found");
+  }
+
+  const key = row[keyField];
+  if (!key) {
+    throw new NotFoundError(notUploadedMsg);
+  }
+
+  return { row, key };
+};
+
+const streamContentFile = async (
+  c: Context<AuthEnv>,
+  id: string,
+  keyField: ContentKeyField,
+  notUploadedMsg: string,
+  notFoundMsg: string,
+  cacheControl: string,
+): Promise<Response> => {
+  const { key } = await requireContentFile(id, keyField, notUploadedMsg);
+  return streamFile(c, storage, key, notFoundMsg, cacheControl);
+};
 
 const UploadQuerySchema = z.object({
   field: z.enum(UPLOAD_FIELDS),
@@ -593,15 +626,7 @@ contentRoutes.get(
   }),
   async (c) => {
     const id = c.req.param("id");
-    const row = await findActiveContent(id);
-
-    if (!row) {
-      throw new NotFoundError("Content not found");
-    }
-
-    if (!row.mediaKey) {
-      throw new NotFoundError("No media uploaded for this content");
-    }
+    const { row, key } = await requireContentFile(id, "mediaKey", "No media uploaded for this content");
 
     // Access check: subscribers-only requires active subscription
     if (row.visibility === "subscribers") {
@@ -622,7 +647,7 @@ contentRoutes.get(
       }
     }
 
-    return streamFile(c, storage, row.mediaKey, "Media file not found", "private, max-age=3600");
+    return streamFile(c, storage, key, "Media file not found", "private, max-age=3600");
   },
 );
 
@@ -646,17 +671,7 @@ contentRoutes.get(
   }),
   async (c) => {
     const id = c.req.param("id");
-    const row = await findActiveContent(id);
-
-    if (!row) {
-      throw new NotFoundError("Content not found");
-    }
-
-    if (!row.thumbnailKey) {
-      throw new NotFoundError("No thumbnail uploaded for this content");
-    }
-
-    return streamFile(c, storage, row.thumbnailKey, "Thumbnail file not found", "public, max-age=86400");
+    return streamContentFile(c, id, "thumbnailKey", "No thumbnail uploaded for this content", "Thumbnail file not found", "public, max-age=86400");
   },
 );
 
@@ -680,16 +695,6 @@ contentRoutes.get(
   }),
   async (c) => {
     const id = c.req.param("id");
-    const row = await findActiveContent(id);
-
-    if (!row) {
-      throw new NotFoundError("Content not found");
-    }
-
-    if (!row.coverArtKey) {
-      throw new NotFoundError("No cover art uploaded for this content");
-    }
-
-    return streamFile(c, storage, row.coverArtKey, "Cover art file not found", "public, max-age=86400");
+    return streamContentFile(c, id, "coverArtKey", "No cover art uploaded for this content", "Cover art file not found", "public, max-age=86400");
   },
 );

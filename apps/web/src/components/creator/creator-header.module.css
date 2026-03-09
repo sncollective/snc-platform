@@ -85,30 +85,11 @@
   margin: 0;
 }
 
-/* ── Subscribe Button ── */
+/* ── Subscribe Button (positioning override) ── */
 
 .subscribeButton {
   align-self: flex-start;
   margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-xl);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.subscribeButton:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.subscribeButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* ── Subscribed Badge ── */
@@ -145,25 +126,9 @@
   outline-offset: 2px;
 }
 
-/* ── Login Link (styled as button) ── */
+/* ── Login Link (positioning override) ── */
 
 .loginLink {
   align-self: flex-start;
   margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-xl);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.loginLink:hover {
-  background: var(--color-accent-hover);
 }

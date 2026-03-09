@@ -4,6 +4,7 @@ import { AppError, ok, err, type Result } from "@snc/shared";
 
 import { config } from "../config.js";
 import { wrapExternalError } from "./external-error.js";
+import { getStripe, ensureConfigured } from "./stripe-client.js";
 
 // ── Public Types ──
 
@@ -16,35 +17,9 @@ export type CreateCheckoutSessionParams = {
   cancelUrl: string;
 };
 
-// ── Module-Level Configuration ──
-
-const STRIPE_KEY: string | null = config.STRIPE_SECRET_KEY ?? null;
-
 // ── Private Helpers ──
 
 const wrapStripeError = wrapExternalError("STRIPE_ERROR");
-
-let stripeInstance: Stripe | null = null;
-
-const getStripe = (): Stripe => {
-  if (stripeInstance === null) {
-    stripeInstance = new Stripe(STRIPE_KEY!);
-  }
-  return stripeInstance;
-};
-
-const ensureConfigured = (): Result<void, AppError> => {
-  if (STRIPE_KEY === null) {
-    return err(
-      new AppError(
-        "BILLING_NOT_CONFIGURED",
-        "Stripe integration is not configured",
-        503,
-      ),
-    );
-  }
-  return ok(undefined);
-};
 
 // ── Public API ──
 
@@ -59,7 +34,7 @@ export const getOrCreateCustomer = async (
   email: string,
 ): Promise<Result<string, AppError>> => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<string, AppError>;
+  if (!configured.ok) return err(configured.error);
 
   try {
     const stripe = getStripe();
@@ -92,7 +67,7 @@ export const createCheckoutSession = async (
   params: CreateCheckoutSessionParams,
 ): Promise<Result<string, AppError>> => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<string, AppError>;
+  if (!configured.ok) return err(configured.error);
 
   try {
     const stripe = getStripe();
@@ -150,7 +125,7 @@ export const verifyWebhookSignature = (
   signature: string,
 ): Result<Stripe.Event, AppError> => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<Stripe.Event, AppError>;
+  if (!configured.ok) return err(configured.error);
 
   if (!config.STRIPE_WEBHOOK_SECRET) {
     return err(

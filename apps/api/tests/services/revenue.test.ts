@@ -23,17 +23,30 @@ const mockStripeInstance = {
   },
 };
 
-// ── Setup Factory ──
+// ── Setup Factories ──
 
 const setupRevenueService = async () => {
-  vi.doMock("stripe", () => ({
-    default: function MockStripe() {
-      return mockStripeInstance;
-    },
+  vi.doMock("../../src/services/stripe-client.js", () => ({
+    getStripe: () => mockStripeInstance,
+    ensureConfigured: () => ({ ok: true, value: undefined }),
   }));
 
-  vi.doMock("../../src/config.js", () => ({
-    config: TEST_CONFIG,
+  return await import("../../src/services/revenue.js");
+};
+
+const setupRevenueServiceUnconfigured = async () => {
+  const { AppError, err } = await import("@snc/shared");
+
+  vi.doMock("../../src/services/stripe-client.js", () => ({
+    getStripe: () => mockStripeInstance,
+    ensureConfigured: () =>
+      err(
+        new AppError(
+          "BILLING_NOT_CONFIGURED",
+          "Stripe integration is not configured",
+          503,
+        ),
+      ),
   }));
 
   return await import("../../src/services/revenue.js");
@@ -239,6 +252,20 @@ describe("revenue service", () => {
       expect(callArgs.created.lt).toBe(Math.floor(now.getTime() / 1000));
 
       vi.useRealTimers();
+    });
+
+    it("returns BILLING_NOT_CONFIGURED 503 when Stripe is not configured", async () => {
+      const { getMonthlyRevenue } = await setupRevenueServiceUnconfigured();
+      const result = await getMonthlyRevenue(12);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("BILLING_NOT_CONFIGURED");
+        expect(result.error.statusCode).toBe(503);
+        expect(result.error.message).toBe(
+          "Stripe integration is not configured",
+        );
+      }
     });
 
     it("handles invoices spanning a year boundary", async () => {

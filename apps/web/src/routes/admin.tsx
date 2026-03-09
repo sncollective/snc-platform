@@ -7,6 +7,9 @@ import { fetchAuthStateServer } from "../lib/api-server.js";
 import { assignRole, revokeRole } from "../lib/admin.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import { UserRoleManager } from "../components/admin/user-role-manager.js";
+import errorStyles from "../styles/error-alert.module.css";
+import listingStyles from "../styles/listing-page.module.css";
+import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./admin.module.css";
 
 export const Route = createFileRoute("/admin")({
@@ -74,16 +77,16 @@ function AdminPage(): React.ReactElement {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Admin</h1>
+      <h1 className={pageHeadingStyles.heading}>Admin</h1>
 
       {actionError !== null && (
-        <div className={styles.error} role="alert">{actionError}</div>
+        <div className={errorStyles.error} role="alert">{actionError}</div>
       )}
 
       {isLoading && users.length === 0 ? (
-        <p className={styles.status}>Loading users...</p>
+        <p className={listingStyles.status}>Loading users...</p>
       ) : error !== null && users.length === 0 ? (
-        <div className={styles.error} role="alert">{error}</div>
+        <div className={errorStyles.error} role="alert">{error}</div>
       ) : (
         <>
           <div className={styles.userList}>
@@ -98,14 +101,14 @@ function AdminPage(): React.ReactElement {
           </div>
 
           {users.length === 0 && !isLoading && (
-            <p className={styles.status}>No users found</p>
+            <p className={listingStyles.status}>No users found</p>
           )}
 
           {nextCursor !== null && (
-            <div className={styles.loadMoreWrapper}>
+            <div className={listingStyles.loadMoreWrapper}>
               <button
                 type="button"
-                className={styles.loadMoreButton}
+                className={listingStyles.loadMoreButton}
                 onClick={loadMore}
                 disabled={isLoading}
               >

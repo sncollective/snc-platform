@@ -5,6 +5,8 @@ import type { UserSubscriptionWithPlan } from "@snc/shared";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { fetchMySubscriptions } from "../../lib/subscription.js";
+import buttonStyles from "../../styles/button.module.css";
+import pageHeadingStyles from "../../styles/page-heading.module.css";
 import styles from "./success.module.css";
 
 const MAX_POLL_ATTEMPTS = 5;
@@ -64,7 +66,7 @@ function CheckoutSuccessPage(): React.ReactElement {
     <div className={styles.successPage}>
       {isProcessing ? (
         <>
-          <h1 className={styles.heading}>Processing your payment...</h1>
+          <h1 className={pageHeadingStyles.heading}>Processing your payment...</h1>
           <p className={styles.message}>
             This may take a moment. Please wait while we confirm your subscription.
           </p>
@@ -72,13 +74,13 @@ function CheckoutSuccessPage(): React.ReactElement {
         </>
       ) : activeSubscription !== null ? (
         <>
-          <h1 className={styles.heading}>Welcome!</h1>
+          <h1 className={pageHeadingStyles.heading}>Welcome!</h1>
           <p className={styles.message}>
             You now have access to{" "}
             <strong>{activeSubscription.plan.name}</strong>.
           </p>
           <div className={styles.links}>
-            <Link to="/feed" className={styles.primaryLink}>
+            <Link to="/feed" className={buttonStyles.primaryButtonLink}>
               Browse Feed
             </Link>
             <Link to="/creators" className={styles.secondaryLink}>
@@ -88,13 +90,13 @@ function CheckoutSuccessPage(): React.ReactElement {
         </>
       ) : (
         <>
-          <h1 className={styles.heading}>Almost there!</h1>
+          <h1 className={pageHeadingStyles.heading}>Almost there!</h1>
           <p className={styles.message}>
             Your payment is being processed. It may take a minute for your
             subscription to activate. Please check back shortly.
           </p>
           <div className={styles.links}>
-            <Link to="/feed" className={styles.primaryLink}>
+            <Link to="/feed" className={buttonStyles.primaryButtonLink}>
               Go to Feed
             </Link>
             <Link to="/pricing" className={styles.secondaryLink}>

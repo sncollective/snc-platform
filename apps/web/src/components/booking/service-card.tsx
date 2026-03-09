@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Service } from "@snc/shared";
 
+import buttonStyles from "../../styles/button.module.css";
 import styles from "./service-card.module.css";
 
 // ── Public Types ──
@@ -25,7 +26,7 @@ export function ServiceCard({
       </div>
       <button
         type="button"
-        className={styles.bookButton}
+        className={`${buttonStyles.primaryButton} ${styles.bookButton}`}
         onClick={() => onRequestBooking(service.id)}
       >
         Request Booking

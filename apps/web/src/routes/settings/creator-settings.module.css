@@ -1,9 +1,7 @@
-/* ── Page ── */
+/* ── Page Heading Override ── */
 
 .heading {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-2xl);
-  margin: 0 0 var(--space-md) 0;
+  margin-bottom: var(--space-md);
 }
 
 /* ── Form ── */
@@ -14,58 +12,10 @@
   gap: var(--space-lg);
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.label {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text);
-}
+/* ── Input Override ── */
 
 .input {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  transition: border-color 0.15s;
   flex: 1;
-}
-
-.input:focus {
-  border-color: var(--color-accent);
-}
-
-.inputError {
-  border-color: var(--color-error);
-}
-
-.fieldError {
-  font-size: var(--font-size-xs);
-  color: var(--color-error);
-}
-
-/* ── Platform Select ── */
-
-.select {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  transition: border-color 0.15s;
-}
-
-.select:focus {
-  border-color: var(--color-accent);
 }
 
 /* ── Add Link Row ── */
@@ -157,38 +107,11 @@
   cursor: not-allowed;
 }
 
-/* ── Save Button ── */
+/* ── Save Button (overrides for shared primary button) ── */
 
 .saveButton {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
   align-self: flex-start;
-}
-
-.saveButton:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.saveButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Feedback Messages ── */
-
-.success {
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-success-bg);
-  border: 1px solid var(--color-success);
   border-radius: var(--radius-sm);
-  color: var(--color-success);
-  font-size: var(--font-size-sm);
 }
+

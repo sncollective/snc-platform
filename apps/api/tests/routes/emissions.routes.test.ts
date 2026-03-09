@@ -53,17 +53,18 @@ const ctx = setupRouteTest({
   },
   beforeEach: () => {
     // Re-establish SELECT chain after clearAllMocks.
-    // summary/breakdown: db.select({...}).from(emissions).where(...)
+    // Summary: db.select({...}).from(emissions) -> resolves directly (single aggregation query)
+    // Breakdown queries: .from().where().groupBy(), .from().groupBy().orderBy(), .from().orderBy()
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockImplementation(() =>
       chainablePromise(
-        [{ co2Kg: "0", entryCount: 0, latestDate: null }],
+        [{ grossCo2Kg: "0", projectedCo2Kg: "0", offsetCo2Kg: "0", entryCount: "0", latestDate: null }],
         { where: mockSelectWhere, groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
       ),
     );
     mockSelectWhere.mockImplementation(() =>
       chainablePromise(
-        [{ co2Kg: "0", entryCount: 0, latestDate: null }],
+        [],
         { groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
       ),
     );
@@ -72,7 +73,7 @@ const ctx = setupRouteTest({
     );
     mockSelectOrderBy.mockResolvedValue([]);
 
-    // INSERT chain: db.insert(table).values({...}).onConflictDoNothing().returning()
+    // INSERT chain: db.insert(table).values({...}).returning()
     mockInsert.mockReturnValue({ values: mockInsertValues });
     mockInsertValues.mockReturnValue({ returning: mockInsertReturning });
     mockInsertReturning.mockResolvedValue([makeMockEmissionRow()]);
@@ -86,17 +87,18 @@ describe("emissions routes", () => {
 
   describe("GET /api/emissions/summary", () => {
     it("returns emissions summary with gross/offset/net and projection fields", async () => {
-      // Calls: gross (actual), projected, offset
-      mockSelectWhere
-        .mockResolvedValueOnce([
-          { co2Kg: "0.034443", entryCount: 1, latestDate: "2026-03-31" },
-        ])
-        .mockResolvedValueOnce([
-          { co2Kg: "0.5" },
-        ])
-        .mockResolvedValueOnce([
-          { co2Kg: "-0.01" },
-        ]);
+      // Single aggregation query returns all summary fields
+      mockSelectFrom.mockImplementationOnce(() =>
+        Promise.resolve([
+          {
+            grossCo2Kg: "0.034443",
+            projectedCo2Kg: "0.5",
+            offsetCo2Kg: "0.01",
+            entryCount: "1",
+            latestDate: "2026-03-31",
+          },
+        ]),
+      );
 
       const res = await ctx.app.request("/api/emissions/summary");
       const body = await res.json() as Record<string, unknown>;
@@ -143,34 +145,26 @@ describe("emissions routes", () => {
     it("returns full breakdown with projection fields and split monthly data", async () => {
       const row = makeMockEmissionRow();
 
-      // The breakdown handler calls:
-      // 1. db.select().from(emissions).where(ne(scope,0) AND projected=false) -> gross actual
-      // 2. db.select().from(emissions).where(ne(scope,0) AND projected=true) -> projected
-      // 3. db.select().from(emissions).where(eq(scope,0)) -> offset
-      // 4. db.select().from(emissions).groupBy() -> byScope
-      // 5. db.select().from(emissions).groupBy() -> byCategory
-      // 6. db.select().from(emissions).groupBy().orderBy() -> monthly
-      // 7. db.select().from(emissions).orderBy() -> entries
+      // The breakdown handler calls Promise.all with 5 queries:
+      // 1. fetchEmissionsSummary: db.select({...}).from(emissions) -> resolves directly
+      // 2. byScope: db.select({...}).from(emissions).where(...).groupBy(scope)
+      // 3. byCategory: db.select({...}).from(emissions).where(...).groupBy(category)
+      // 4. monthly: db.select({...}).from(emissions).groupBy(month).orderBy(month)
+      // 5. entries: db.select().from(emissions).orderBy(desc(date))
 
       mockSelectFrom
-        // Gross actual query
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([
-            { co2Kg: "0.034443", entryCount: 1, latestDate: "2026-03-31" },
+        // Summary query (resolves directly from .from())
+        .mockImplementationOnce(() =>
+          Promise.resolve([
+            {
+              grossCo2Kg: "0.034443",
+              projectedCo2Kg: "0.5",
+              offsetCo2Kg: "0.01",
+              entryCount: "1",
+              latestDate: "2026-03-31",
+            },
           ]),
-        }))
-        // Projected query
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([
-            { co2Kg: "0.5" },
-          ]),
-        }))
-        // Offset query
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([
-            { co2Kg: "-0.01" },
-          ]),
-        }))
+        )
         // By scope query
         .mockImplementationOnce(() => ({
           where: () => ({
@@ -242,32 +236,37 @@ describe("emissions routes", () => {
       });
 
       mockSelectFrom
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([
-            { co2Kg: "0.01", entryCount: 1, latestDate: "2026-03-31" },
+        // Summary query
+        .mockImplementationOnce(() =>
+          Promise.resolve([
+            {
+              grossCo2Kg: "0.01",
+              projectedCo2Kg: "0",
+              offsetCo2Kg: "0",
+              entryCount: "1",
+              latestDate: "2026-03-31",
+            },
           ]),
-        }))
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([{ co2Kg: "0" }]),
-        }))
-        .mockImplementationOnce(() => ({
-          where: () => Promise.resolve([{ co2Kg: "0" }]),
-        }))
+        )
+        // By scope query
         .mockImplementationOnce(() => ({
           where: () => ({
             groupBy: () => Promise.resolve([]),
           }),
         }))
+        // By category query
         .mockImplementationOnce(() => ({
           where: () => ({
             groupBy: () => Promise.resolve([]),
           }),
         }))
+        // Monthly query
         .mockImplementationOnce(() => ({
           groupBy: () => ({
             orderBy: () => Promise.resolve([]),
           }),
         }))
+        // Entries query
         .mockImplementationOnce(() => ({
           orderBy: () => Promise.resolve([row]),
         }));
@@ -308,7 +307,7 @@ describe("emissions routes", () => {
       });
       const body = await res.json() as Record<string, unknown>;
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(body.id).toBeDefined();
       expect(body.date).toBe("2026-03-31");
       expect(body.projected).toBe(false);
@@ -326,7 +325,7 @@ describe("emissions routes", () => {
       });
       const body = await res.json() as Record<string, unknown>;
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(body.projected).toBe(true);
     });
 
@@ -396,7 +395,7 @@ describe("emissions routes", () => {
       });
       const body = await res.json() as Record<string, unknown>;
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(body.scope).toBe(0);
       expect(body.co2Kg).toBe(-10);
     });

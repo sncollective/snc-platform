@@ -163,6 +163,24 @@ describe("dashboard routes", () => {
       expect(body.error.code).toBe("REVENUE_ERROR");
     });
 
+    it("returns 503 when Stripe is not configured", async () => {
+      const { AppError } = await import("@snc/shared");
+      mockGetMonthlyRevenue.mockResolvedValue({
+        ok: false,
+        error: new AppError(
+          "BILLING_NOT_CONFIGURED",
+          "Stripe integration is not configured",
+          503,
+        ),
+      });
+
+      const res = await ctx.app.request("/api/dashboard/revenue");
+      const body = (await res.json()) as { error: { code: string } };
+
+      expect(res.status).toBe(503);
+      expect(body.error.code).toBe("BILLING_NOT_CONFIGURED");
+    });
+
     it("returns 403 for non-cooperative-member", async () => {
       ctx.auth.roles = ["subscriber"];
 

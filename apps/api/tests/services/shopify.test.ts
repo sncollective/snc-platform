@@ -12,6 +12,7 @@ import {
   makeMockShopifyProductByHandleResponse,
   makeMockShopifyCartResponse,
   makeMockShopifyCartErrorResponse,
+  makeMockShopifyCartWarningResponse,
 } from "../helpers/merch-fixtures.js";
 
 // ── Mock State ──
@@ -221,7 +222,7 @@ describe("shopify service", () => {
       await getProducts();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `https://${TEST_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`,
+        `https://${TEST_SHOPIFY_STORE_DOMAIN}/api/2025-10/graphql.json`,
         expect.any(Object),
       );
     });
@@ -244,7 +245,7 @@ describe("shopify service", () => {
 
     it("returns ok(null) when product not found", async () => {
       mockFetch.mockReturnValue(
-        mockFetchResponse({ data: { productByHandle: null } }),
+        mockFetchResponse({ data: { product: null } }),
       );
 
       const { getProductByHandle } = await setupShopifyService();
@@ -353,11 +354,27 @@ describe("shopify service", () => {
       }
     });
 
+    it("returns err with 422 when cart has warnings", async () => {
+      mockFetch.mockReturnValue(
+        mockFetchResponse(makeMockShopifyCartWarningResponse()),
+      );
+
+      const { createCheckoutUrl } = await setupShopifyService();
+      const result = await createCheckoutUrl(checkoutParams);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("SHOPIFY_CART_WARNING");
+        expect(result.error.statusCode).toBe(422);
+        expect(result.error.message).toBe("Not enough inventory");
+      }
+    });
+
     it("returns err with 502 when cart is null", async () => {
       mockFetch.mockReturnValue(
         mockFetchResponse({
           data: {
-            cartCreate: { cart: null, userErrors: [] },
+            cartCreate: { cart: null, userErrors: [], warnings: [] },
           },
         }),
       );

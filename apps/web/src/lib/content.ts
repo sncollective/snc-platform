@@ -1,6 +1,6 @@
-import type { ContentResponse, CreateContent, FeedResponse } from "@snc/shared";
+import type { ContentResponse, CreateContent } from "@snc/shared";
 
-import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
+import { apiMutate, apiUpload } from "./fetch-utils.js";
 
 // ── Public API ──
 
@@ -21,15 +21,4 @@ export async function uploadContentFile(
     `/api/content/${contentId}/upload?field=${field}`,
     formData,
   );
-}
-
-export async function fetchMyContent(
-  creatorId: string,
-  cursor?: string,
-): Promise<FeedResponse> {
-  return apiGet<FeedResponse>("/api/content", {
-    creatorId,
-    limit: 12,
-    cursor,
-  });
 }

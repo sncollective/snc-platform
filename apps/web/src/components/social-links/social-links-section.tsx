@@ -3,6 +3,7 @@ import type { SocialLink } from "@snc/shared";
 import { PLATFORM_CONFIG } from "@snc/shared";
 
 import { PlatformIcon } from "./platform-icon.js";
+import sectionStyles from "../../styles/detail-section.module.css";
 import styles from "./social-links-section.module.css";
 
 // ── Public Types ──
@@ -21,8 +22,8 @@ export function SocialLinksSection({
   }
 
   return (
-    <section className={styles.section}>
-      <h2 className={styles.sectionHeading}>Links</h2>
+    <section className={`${sectionStyles.section} ${styles.section}`}>
+      <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Links</h2>
       <div className={styles.linkList}>
         {socialLinks.map((link) => (
           <a

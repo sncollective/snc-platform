@@ -8,6 +8,8 @@ import { navigateExternal } from "../../lib/url.js";
 import { createMerchCheckout } from "../../lib/merch.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import { VariantSelector } from "./variant-selector.js";
+import buttonStyles from "../../styles/button.module.css";
+import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./product-detail.module.css";
 
 // ── Public Types ──
@@ -35,6 +37,7 @@ export function ProductDetail({
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedVariant = product.variants.find(
     (v) => v.id === selectedVariantId,
@@ -45,10 +48,14 @@ export function ProductDetail({
   const handleBuy = async (): Promise<void> => {
     if (isUnavailable || isCheckingOut) return;
     setIsCheckingOut(true);
+    setError(null);
     try {
       const checkoutUrl = await createMerchCheckout(selectedVariantId, 1);
       navigateExternal(checkoutUrl);
-    } catch {
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Checkout failed. Please try again.";
+      setError(message);
       setIsCheckingOut(false);
     }
   };
@@ -127,7 +134,7 @@ export function ProductDetail({
 
         <button
           type="button"
-          className={styles.buyButton}
+          className={`${buttonStyles.primaryButton} ${styles.buyButton}`}
           disabled={isUnavailable || isCheckingOut}
           onClick={() => void handleBuy()}
         >
@@ -135,6 +142,10 @@ export function ProductDetail({
             ? "Processing…"
             : `Buy — ${formatPrice(displayPrice)}`}
         </button>
+
+        {error && (
+          <p className={errorStyles.error} role="alert">{error}</p>
+        )}
 
         <div className={styles.description}>
           {product.description.split("\n").map((paragraph, i) => (

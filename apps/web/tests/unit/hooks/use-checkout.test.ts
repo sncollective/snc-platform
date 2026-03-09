@@ -83,7 +83,7 @@ describe("useCheckout", () => {
     expect(mockNavigateExternal).not.toHaveBeenCalled();
   });
 
-  it("calls onError callback on failure", async () => {
+  it("calls onError callback with error message on failure", async () => {
     mockCreateCheckout.mockRejectedValue(new Error("Checkout failed"));
     const onError = vi.fn();
 
@@ -94,6 +94,20 @@ describe("useCheckout", () => {
     });
 
     expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith("Checkout failed");
+  });
+
+  it("calls onError with fallback message for non-Error throws", async () => {
+    mockCreateCheckout.mockRejectedValue("unknown");
+    const onError = vi.fn();
+
+    const { result } = renderHook(() => useCheckout({ onError }));
+
+    await act(async () => {
+      await result.current.handleCheckout("plan-42");
+    });
+
+    expect(onError).toHaveBeenCalledWith("Failed to start checkout");
   });
 
   it("does not call onError on success", async () => {

@@ -1,5 +1,5 @@
 import type React from "react";
-import type { FeedItem } from "@snc/shared";
+import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { VideoDetail } from "./video-detail.js";
 import { AudioDetail } from "./audio-detail.js";
@@ -10,6 +10,7 @@ import styles from "./content-detail.module.css";
 
 export interface ContentDetailProps {
   readonly item: FeedItem;
+  readonly plans: readonly SubscriptionPlan[];
 }
 
 // ── Private Helpers ──
@@ -20,14 +21,14 @@ function isContentLocked(item: FeedItem): boolean {
 
 // ── Public API ──
 
-export function ContentDetail({ item }: ContentDetailProps): React.ReactElement {
+export function ContentDetail({ item, plans }: ContentDetailProps): React.ReactElement {
   const locked = isContentLocked(item);
 
   return (
     <article className={styles.detailPage}>
-      {item.type === "video" && <VideoDetail item={item} locked={locked} />}
-      {item.type === "audio" && <AudioDetail item={item} locked={locked} />}
-      {item.type === "written" && <WrittenDetail item={item} locked={locked} />}
+      {item.type === "video" && <VideoDetail item={item} locked={locked} plans={plans} />}
+      {item.type === "audio" && <AudioDetail item={item} locked={locked} plans={plans} />}
+      {item.type === "written" && <WrittenDetail item={item} locked={locked} plans={plans} />}
     </article>
   );
 }

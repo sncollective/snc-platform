@@ -73,17 +73,21 @@ export async function apiMutate<T>(
 ### Example 2: Dashboard lib uses apiGet and apiMutate
 **File**: `apps/web/src/lib/dashboard.ts`
 ```typescript
+import type {
+  RevenueResponse,
+  BookingSummary,
+  ReviewBookingRequest,
+  BookingWithService,
+} from "@snc/shared";
+
 import { apiGet, apiMutate } from "./fetch-utils.js";
 
 export async function fetchRevenue(): Promise<RevenueResponse> {
   return apiGet<RevenueResponse>("/api/dashboard/revenue");
 }
 
-export async function fetchPendingBookings(params?: {
-  cursor?: string;
-  limit?: number;
-}): Promise<PendingBookingsResponse> {
-  return apiGet<PendingBookingsResponse>("/api/bookings/pending", params);
+export async function fetchBookingSummary(): Promise<BookingSummary> {
+  return apiGet<BookingSummary>("/api/dashboard/bookings");
 }
 
 export async function reviewBooking(
@@ -117,15 +121,25 @@ export async function uploadContentFile(
 }
 ```
 
-### Example 4: Using apiMutate<void> for 204 No Content endpoints
+### Example 4: Using apiMutate with typed response to consume API data
 ```typescript
+import type { UserSubscriptionWithPlan } from "@snc/shared";
 import { apiMutate } from "./fetch-utils.js";
 
-export async function cancelSubscription(subscriptionId: string): Promise<void> {
-  return apiMutate<void>("/api/subscriptions/cancel", {
-    body: { subscriptionId },
-  });
+export async function cancelSubscription(
+  subscriptionId: string,
+): Promise<UserSubscriptionWithPlan> {
+  const data = await apiMutate<{ subscription: UserSubscriptionWithPlan }>(
+    "/api/subscriptions/cancel",
+    { body: { subscriptionId } },
+  );
+  return data.subscription;
 }
+```
+
+For endpoints returning 204 No Content, use `apiMutate<void>`:
+```typescript
+await apiMutate<void>("/api/some-endpoint", { method: "DELETE" });
 ```
 
 ## When to Use

@@ -1,5 +1,5 @@
 import type React from "react";
-import type { ContentType } from "@snc/shared";
+import type { ContentType, SubscriptionPlan } from "@snc/shared";
 
 import { SubscribeCta } from "./subscribe-cta.js";
 import styles from "./content-footer.module.css";
@@ -11,6 +11,7 @@ export interface ContentFooterProps {
   readonly creatorId?: string;
   readonly contentType?: ContentType;
   readonly locked?: boolean;
+  readonly plans?: readonly SubscriptionPlan[];
 }
 
 // ── Public API ──
@@ -20,6 +21,7 @@ export function ContentFooter({
   creatorId,
   contentType,
   locked,
+  plans,
 }: ContentFooterProps): React.ReactElement | null {
   const showCta = locked === true && creatorId !== undefined && contentType !== undefined;
   const showDescription = description !== null && description !== undefined;
@@ -31,7 +33,7 @@ export function ContentFooter({
   return (
     <>
       {showCta && (
-        <SubscribeCta creatorId={creatorId} contentType={contentType} />
+        <SubscribeCta creatorId={creatorId} contentType={contentType} plans={plans ?? []} />
       )}
       {showDescription && (
         <>

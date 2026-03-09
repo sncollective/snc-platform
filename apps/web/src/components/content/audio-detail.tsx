@@ -1,5 +1,5 @@
 import type React from "react";
-import type { FeedItem } from "@snc/shared";
+import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { AudioPlayer } from "../media/audio-player.js";
 import { ContentMeta } from "./content-meta.js";
@@ -11,6 +11,7 @@ import styles from "./audio-detail.module.css";
 export interface AudioDetailProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
+  readonly plans?: readonly SubscriptionPlan[];
 }
 
 // ── Public API ──
@@ -18,6 +19,7 @@ export interface AudioDetailProps {
 export function AudioDetail({
   item,
   locked,
+  plans,
 }: AudioDetailProps): React.ReactElement {
   const coverArtSrc = item.coverArtUrl;
 
@@ -48,6 +50,7 @@ export function AudioDetail({
           creatorId={item.creatorId}
           contentType="audio"
           locked
+          plans={plans}
         />
       </div>
     );

@@ -7,6 +7,7 @@ import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { useSession } from "../../lib/auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
 import { OptionalImage } from "../ui/optional-image.js";
+import buttonStyles from "../../styles/button.module.css";
 import styles from "./creator-header.module.css";
 
 // ── Public Types ──
@@ -72,7 +73,7 @@ export function CreatorHeader({
         {plans && plans.length > 0 && isSubscribed && (
           <button
             type="button"
-            className={`${styles.subscribeButton} ${styles.subscribedButton}`}
+            className={`${buttonStyles.primaryButton} ${styles.subscribeButton} ${styles.subscribedButton}`}
             disabled
             aria-label="Already subscribed to this creator"
           >
@@ -81,7 +82,7 @@ export function CreatorHeader({
         )}
 
         {plans && plans.length > 0 && !isSubscribed && !isAuthenticated && (
-          <Link to="/login" className={styles.loginLink}>
+          <Link to="/login" className={`${buttonStyles.primaryButtonLink} ${styles.loginLink}`}>
             Subscribe
           </Link>
         )}
@@ -89,7 +90,7 @@ export function CreatorHeader({
         {plans && plans.length > 0 && !isSubscribed && isAuthenticated && plans.length === 1 && (
           <button
             type="button"
-            className={styles.subscribeButton}
+            className={`${buttonStyles.primaryButton} ${styles.subscribeButton}`}
             onClick={() => {
               void handleCheckout(plans[0]!.id);
             }}
@@ -119,7 +120,7 @@ export function CreatorHeader({
             </select>
             <button
               type="button"
-              className={styles.subscribeButton}
+              className={`${buttonStyles.primaryButton} ${styles.subscribeButton}`}
               onClick={() => {
                 void handleCheckout(selectedPlanId ?? plans[0]!.id);
               }}

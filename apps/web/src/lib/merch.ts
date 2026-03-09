@@ -1,4 +1,5 @@
 import type {
+  MerchCheckoutResponse,
   MerchProduct,
   MerchProductDetail,
   MerchListResponse,
@@ -39,7 +40,7 @@ export async function createMerchCheckout(
   variantId: string,
   quantity?: number,
 ): Promise<string> {
-  const data = await apiMutate<{ checkoutUrl: string }>(
+  const data = await apiMutate<MerchCheckoutResponse>(
     "/api/merch/checkout",
     { body: { variantId, quantity } },
   );

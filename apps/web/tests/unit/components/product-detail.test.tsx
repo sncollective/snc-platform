@@ -227,6 +227,43 @@ describe("ProductDetail", () => {
     );
   });
 
+  it("displays error message when checkout fails", async () => {
+    const user = userEvent.setup();
+    mockCreateMerchCheckout.mockRejectedValue(new Error("Shopify is unavailable"));
+
+    render(<ProductDetail product={makeMockMerchProductDetail()} />);
+
+    await user.click(screen.getByRole("button", { name: /buy/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Shopify is unavailable"),
+    );
+
+    // Buy button should be re-enabled after error
+    expect(screen.getByRole("button", { name: /buy/i })).not.toBeDisabled();
+  });
+
+  it("clears error when retrying checkout", async () => {
+    const user = userEvent.setup();
+    mockCreateMerchCheckout
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockReturnValue(new Promise(() => {})); // second attempt never resolves
+
+    render(<ProductDetail product={makeMockMerchProductDetail()} />);
+
+    // First attempt fails
+    await user.click(screen.getByRole("button", { name: /buy/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Network error"),
+    );
+
+    // Second attempt clears the error
+    await user.click(screen.getByRole("button", { name: /buy/i }));
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).toBeNull(),
+    );
+  });
+
   it("renders back to merch link", () => {
     render(<ProductDetail product={makeMockMerchProductDetail()} />);
 

@@ -10,9 +10,9 @@ import { fetchApiServer } from "../../lib/api-server.js";
 export const Route = createFileRoute("/merch/$handle")({
   loader: async ({ params }): Promise<MerchProductDetail> => {
     try {
-      return await (fetchApiServer({
+      return (await fetchApiServer({
         data: `/api/merch/${encodeURIComponent(params.handle)}`,
-      }) as Promise<MerchProductDetail>);
+      })) as MerchProductDetail;
     } catch {
       throw redirect({ to: "/merch" });
     }

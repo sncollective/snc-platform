@@ -51,11 +51,12 @@ describe("ContentFooter", () => {
         creatorId="creator-1"
         contentType="video"
         locked
+        plans={[]}
       />,
     );
     expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
     expect(mockSubscribeCta).toHaveBeenCalledWith(
-      expect.objectContaining({ creatorId: "creator-1", contentType: "video" }),
+      expect.objectContaining({ creatorId: "creator-1", contentType: "video", plans: [] }),
     );
   });
 
@@ -66,6 +67,7 @@ describe("ContentFooter", () => {
         creatorId="creator-2"
         contentType="audio"
         locked
+        plans={[]}
       />,
     );
     expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();

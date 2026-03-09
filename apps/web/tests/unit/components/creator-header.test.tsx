@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { makeMockCreatorListItem } from "../../helpers/creator-fixtures.js";
+import { makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
 import { makeMockPlan } from "../../helpers/subscription-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { createAuthMock } from "../../helpers/auth-mock.js";
@@ -51,13 +51,13 @@ describe("CreatorHeader", () => {
   // ── Existing tests (preserved, adapted to new mocks) ──
 
   it("renders display name as heading", () => {
-    const creator = makeMockCreatorListItem({ displayName: "Alice Music" });
+    const creator = makeMockCreatorProfileResponse({ displayName: "Alice Music" });
     render(<CreatorHeader creator={creator} />);
     expect(screen.getByRole("heading", { level: 1, name: "Alice Music" })).toBeInTheDocument();
   });
 
   it("renders banner image when bannerUrl is present", () => {
-    const creator = makeMockCreatorListItem({
+    const creator = makeMockCreatorProfileResponse({
       displayName: "Alice Music",
       bannerUrl: "/api/creators/creator-1/banner",
     });
@@ -67,13 +67,13 @@ describe("CreatorHeader", () => {
   });
 
   it("renders banner placeholder when bannerUrl is null", () => {
-    const creator = makeMockCreatorListItem({ bannerUrl: null });
+    const creator = makeMockCreatorProfileResponse({ bannerUrl: null });
     render(<CreatorHeader creator={creator} />);
     expect(screen.queryByRole("img", { name: /banner/ })).toBeNull();
   });
 
   it("renders avatar image when avatarUrl is present", () => {
-    const creator = makeMockCreatorListItem({
+    const creator = makeMockCreatorProfileResponse({
       displayName: "Alice Music",
       avatarUrl: "/api/creators/creator-1/avatar",
     });
@@ -83,13 +83,13 @@ describe("CreatorHeader", () => {
   });
 
   it("renders avatar placeholder when avatarUrl is null", () => {
-    const creator = makeMockCreatorListItem({ avatarUrl: null });
+    const creator = makeMockCreatorProfileResponse({ avatarUrl: null });
     render(<CreatorHeader creator={creator} />);
     expect(screen.queryByRole("img", { name: /avatar/ })).toBeNull();
   });
 
   it("renders bio paragraphs split on double newlines", () => {
-    const creator = makeMockCreatorListItem({
+    const creator = makeMockCreatorProfileResponse({
       bio: "First paragraph.\n\nSecond paragraph.",
     });
     render(<CreatorHeader creator={creator} />);
@@ -98,7 +98,7 @@ describe("CreatorHeader", () => {
   });
 
   it("does not render bio when bio is null", () => {
-    const creator = makeMockCreatorListItem({
+    const creator = makeMockCreatorProfileResponse({
       displayName: "No Bio Creator",
       bio: null,
     });
@@ -108,7 +108,7 @@ describe("CreatorHeader", () => {
   });
 
   it("renders single-paragraph bio without splitting", () => {
-    const creator = makeMockCreatorListItem({
+    const creator = makeMockCreatorProfileResponse({
       bio: "Just one paragraph of bio text.",
     });
     render(<CreatorHeader creator={creator} />);
@@ -118,14 +118,14 @@ describe("CreatorHeader", () => {
   // ── New tests: subscribe button hidden when no plans ──
 
   it("does not render subscribe button when plans is undefined", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     render(<CreatorHeader creator={creator} />);
     expect(screen.queryByRole("button", { name: /subscribe/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /subscribe/i })).toBeNull();
   });
 
   it("does not render subscribe button when plans is empty", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     render(<CreatorHeader creator={creator} plans={[]} />);
     expect(screen.queryByRole("button", { name: /subscribe/i })).toBeNull();
   });
@@ -133,7 +133,7 @@ describe("CreatorHeader", () => {
   // ── New tests: subscribed state ──
 
   it("shows 'Subscribed' disabled badge when isSubscribed is true", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} isSubscribed />);
     const button = screen.getByRole("button", { name: /subscribed/i });
@@ -141,7 +141,7 @@ describe("CreatorHeader", () => {
   });
 
   it("'Subscribed' button has accessible label", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} isSubscribed />);
     expect(
@@ -153,7 +153,7 @@ describe("CreatorHeader", () => {
 
   it("shows login link for unauthenticated users when plans exist", () => {
     mockUseSession.mockReturnValue({ data: null });
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} />);
     const link = screen.getByRole("link", { name: /subscribe/i });
@@ -163,7 +163,7 @@ describe("CreatorHeader", () => {
   // ── New tests: single plan ──
 
   it("renders subscribe button with price for single plan", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ price: 999, interval: "month", type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} />);
     const button = screen.getByRole("button", { name: /subscribe/i });
@@ -174,7 +174,7 @@ describe("CreatorHeader", () => {
 
   it("subscribe button calls createCheckout with plan ID on click", async () => {
     const user = userEvent.setup();
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ id: "plan-creator-1", type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} />);
 
@@ -186,7 +186,7 @@ describe("CreatorHeader", () => {
     const user = userEvent.setup();
     // Make createCheckout hang (never resolves) to test loading state
     mockCreateCheckout.mockReturnValue(new Promise(() => {}));
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
     render(<CreatorHeader creator={creator} plans={plans} />);
 
@@ -198,7 +198,7 @@ describe("CreatorHeader", () => {
   // ── New tests: multiple plans ──
 
   it("renders tier selector dropdown when multiple plans exist", () => {
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [
       makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.userId }),
       makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.userId }),
@@ -212,7 +212,7 @@ describe("CreatorHeader", () => {
 
   it("multi-plan subscribe button uses selected plan ID", async () => {
     const user = userEvent.setup();
-    const creator = makeMockCreatorListItem();
+    const creator = makeMockCreatorProfileResponse();
     const plans = [
       makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.userId }),
       makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.userId }),

@@ -2,6 +2,7 @@ import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { formatPrice, formatInterval } from "../../lib/format.js";
+import buttonStyles from "../../styles/button.module.css";
 import styles from "./plan-card.module.css";
 
 // ── Public Types ──
@@ -34,8 +35,8 @@ export function PlanCard({
         type="button"
         className={
           isSubscribed === true
-            ? `${styles.subscribeButton} ${styles.subscribedButton}`
-            : styles.subscribeButton
+            ? `${buttonStyles.primaryButton} ${styles.subscribedButton}`
+            : buttonStyles.primaryButton
         }
         disabled={isDisabled}
         aria-label={isSubscribed === true ? "Already subscribed" : undefined}

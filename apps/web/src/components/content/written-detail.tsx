@@ -1,5 +1,5 @@
 import type React from "react";
-import type { FeedItem } from "@snc/shared";
+import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { ContentMeta } from "./content-meta.js";
 import { SubscribeCta } from "./subscribe-cta.js";
@@ -10,6 +10,7 @@ import styles from "./written-detail.module.css";
 export interface WrittenDetailProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
+  readonly plans?: readonly SubscriptionPlan[];
 }
 
 // ── Private Constants ──
@@ -31,6 +32,7 @@ function truncateToWords(text: string, maxWords: number): string {
 export function WrittenDetail({
   item,
   locked,
+  plans,
 }: WrittenDetailProps): React.ReactElement {
   if (locked === true) {
     const previewText = item.body
@@ -58,7 +60,7 @@ export function WrittenDetail({
           </div>
           <div className={styles.fadeOverlay} />
         </div>
-        <SubscribeCta creatorId={item.creatorId} contentType="written" />
+        <SubscribeCta creatorId={item.creatorId} contentType="written" plans={plans ?? []} />
       </div>
     );
   }

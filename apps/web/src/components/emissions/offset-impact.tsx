@@ -1,7 +1,7 @@
 import type React from "react";
 
 import { computeOffsetImpact } from "../../lib/offset-impact.js";
-import styles from "./co2-equivalencies.module.css";
+import styles from "./impact-cards.module.css";
 
 // ── Public Types ──
 

@@ -16,10 +16,11 @@ export interface UseCheckoutResult {
  * Encapsulates the checkout flow: loading state + createCheckout + redirect.
  *
  * On success, navigates to the Stripe Checkout URL.
- * On failure, resets loading state and calls the optional `onError` callback.
+ * On failure, resets loading state and calls the optional `onError` callback
+ * with the error message string.
  */
 export function useCheckout(options?: {
-  onError?: () => void;
+  onError?: (message: string) => void;
 }): UseCheckoutResult {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -28,9 +29,11 @@ export function useCheckout(options?: {
     try {
       const url = await createCheckout(planId);
       navigateExternal(url);
-    } catch {
+    } catch (e) {
       setCheckoutLoading(false);
-      options?.onError?.();
+      const message =
+        e instanceof Error ? e.message : "Failed to start checkout";
+      options?.onError?.(message);
     }
   };
 

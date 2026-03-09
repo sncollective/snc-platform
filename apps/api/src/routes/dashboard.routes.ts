@@ -15,7 +15,7 @@ import { bookingRequests } from "../db/schema/booking.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
-import { ERROR_401, ERROR_403, ERROR_502 } from "./openapi-errors.js";
+import { ERROR_401, ERROR_403, ERROR_502, ERROR_503 } from "./openapi-errors.js";
 import { getMonthlyRevenue } from "../services/revenue.js";
 
 // ── Public API ──
@@ -39,6 +39,7 @@ dashboardRoutes.get(
       401: ERROR_401,
       403: ERROR_403,
       502: ERROR_502,
+      503: ERROR_503,
     },
   }),
   async (c) => {

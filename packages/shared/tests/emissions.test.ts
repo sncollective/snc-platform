@@ -198,7 +198,6 @@ describe("emissions schemas", () => {
   describe("EmissionsSummarySchema", () => {
     it("parses a valid summary with gross/offset/net and projection fields", () => {
       const result = EmissionsSummarySchema.safeParse({
-        totalCo2Kg: 0.024,
         grossCo2Kg: 0.034443,
         offsetCo2Kg: 0.01,
         netCo2Kg: 0.024,
@@ -213,7 +212,6 @@ describe("emissions schemas", () => {
 
     it("accepts null latestDate", () => {
       const result = EmissionsSummarySchema.safeParse({
-        totalCo2Kg: 0,
         grossCo2Kg: 0,
         offsetCo2Kg: 0,
         netCo2Kg: 0,
@@ -233,7 +231,6 @@ describe("emissions schemas", () => {
     it("parses a valid breakdown with offset and projection fields", () => {
       const result = EmissionsBreakdownSchema.safeParse({
         summary: {
-          totalCo2Kg: 0.024,
           grossCo2Kg: 0.034443,
           offsetCo2Kg: 0.01,
           netCo2Kg: 0.024,
@@ -274,7 +271,6 @@ describe("emissions schemas", () => {
     it("accepts empty arrays", () => {
       const result = EmissionsBreakdownSchema.safeParse({
         summary: {
-          totalCo2Kg: 0,
           grossCo2Kg: 0,
           offsetCo2Kg: 0,
           netCo2Kg: 0,

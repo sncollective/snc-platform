@@ -4,6 +4,7 @@ import type { MerchProduct } from "@snc/shared";
 
 import { ProductCard } from "../../components/merch/product-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
+import successStyles from "../../styles/success-alert.module.css";
 import styles from "./merch-index.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
@@ -36,7 +37,7 @@ function MerchPage(): React.ReactElement {
       <h1 className={listingStyles.heading}>Merch</h1>
 
       {status === "success" && (
-        <div className={styles.banner} role="status">
+        <div className={successStyles.success} role="status">
           Purchase complete! Thank you for your order.
         </div>
       )}

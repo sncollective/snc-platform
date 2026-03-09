@@ -56,11 +56,16 @@ describe("useCursorPagination", () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it("sets error state when response is not ok", async () => {
+  it("sets error state with structured message when response is not ok", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(() =>
-        Promise.resolve(makeResponse({ error: "Not found" }, 404)),
+        Promise.resolve(
+          makeResponse(
+            { error: { code: "NOT_FOUND", message: "Service not found" } },
+            404,
+          ),
+        ),
       ),
     );
 
@@ -74,7 +79,34 @@ describe("useCursorPagination", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBe("Failed to load");
+    expect(result.current.error).toBe("Service not found");
+    expect(result.current.items).toEqual([]);
+  });
+
+  it("falls back to statusText when response body has no structured error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response("not json", {
+            status: 500,
+            statusText: "Internal Server Error",
+          }),
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() =>
+      useCursorPagination<string>({
+        buildUrl: () => "http://localhost/api/items",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBe("Internal Server Error");
     expect(result.current.items).toEqual([]);
   });
 

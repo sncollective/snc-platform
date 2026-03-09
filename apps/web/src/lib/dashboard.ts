@@ -2,7 +2,6 @@ import type {
   RevenueResponse,
   SubscriberSummary,
   BookingSummary,
-  PendingBookingsResponse,
   ReviewBookingRequest,
   BookingWithService,
 } from "@snc/shared";
@@ -21,13 +20,6 @@ export async function fetchSubscribers(): Promise<SubscriberSummary> {
 
 export async function fetchBookingSummary(): Promise<BookingSummary> {
   return apiGet<BookingSummary>("/api/dashboard/bookings");
-}
-
-export async function fetchPendingBookings(params?: {
-  cursor?: string;
-  limit?: number;
-}): Promise<PendingBookingsResponse> {
-  return apiGet<PendingBookingsResponse>("/api/bookings/pending", params);
 }
 
 export async function reviewBooking(
