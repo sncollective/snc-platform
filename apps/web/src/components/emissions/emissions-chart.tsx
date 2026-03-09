@@ -4,7 +4,7 @@ import type React from "react";
 import type { MonthlyDataItem } from "../../lib/chart-math.js";
 import {
   computeChartLines,
-  formatCo2Kg,
+  formatCo2AxisLabel,
   formatMonthLabel,
   formatMonthShort,
   niceTicks,
@@ -171,7 +171,7 @@ export function EmissionsChart({
                 y={y + 4}
                 textAnchor="end"
               >
-                {formatCo2Kg(v)}
+                {formatCo2AxisLabel(v)}
               </text>
             </g>
           );
@@ -232,7 +232,7 @@ export function EmissionsChart({
                 y={cy - 8}
                 textAnchor="middle"
               >
-                {formatCo2Kg(-lines.offsets[i]!)}
+                {formatCo2AxisLabel(-lines.offsets[i]!)}
               </text>
             </g>
           );
@@ -296,7 +296,7 @@ export function EmissionsChart({
               y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 26}
               textAnchor="middle"
             >
-              Actual: {formatCo2Kg(lines.actualUse[hoveredIndex]!)}
+              Actual: {formatCo2AxisLabel(lines.actualUse[hoveredIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
@@ -304,7 +304,7 @@ export function EmissionsChart({
               y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 38}
               textAnchor="middle"
             >
-              Projected: {formatCo2Kg(lines.projectedUse[hoveredIndex]!)}
+              Projected: {formatCo2AxisLabel(lines.projectedUse[hoveredIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
@@ -312,7 +312,7 @@ export function EmissionsChart({
               y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 50}
               textAnchor="middle"
             >
-              Offsets: {formatCo2Kg(lines.offsets[hoveredIndex]!)} | Net: {formatCo2Kg(lines.net[hoveredIndex]!)}
+              Offsets: {formatCo2AxisLabel(lines.offsets[hoveredIndex]!)} | Net: {formatCo2AxisLabel(lines.net[hoveredIndex]!)}
             </text>
           </g>
         )}

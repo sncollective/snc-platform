@@ -158,7 +158,7 @@
   - `lib/config.ts` — `API_BASE_URL` constant from env
   - `lib/format.ts` — `formatRelativeDate`, `formatDate`, `formatTime`, `formatPrice`,
     `formatInterval`, `formatIntervalShort` utilities
-  - `lib/url.ts` — `buildMediaUrl` utility for API URL construction
+  - `lib/url.ts` — `navigateExternal` utility for external URL navigation
   - `lib/subscription.ts` — `fetchPlans`, `createCheckout`, `fetchMySubscriptions`, `cancelSubscription`, `hasPlatformSubscription`
   - `lib/merch.ts` — `fetchProducts`, `fetchProductByHandle`, `createMerchCheckout`
   - `lib/booking.ts` — `fetchServices`, `fetchServiceById`, `createBooking`, `fetchMyBookings`, `fetchBookingById`

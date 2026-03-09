@@ -89,6 +89,13 @@ export function formatIntervalShort(interval: "month" | "year"): string {
   return interval === "month" ? "mo" : "yr";
 }
 
+/**
+ * Formats a CO2 kilogram value for summary/card display.
+ * Auto-scales between g (< 1 kg) and kg (>= 1 kg).
+ *
+ * For chart axis labels that always display in kg with variable precision,
+ * see `formatCo2AxisLabel` in `chart-math.ts`.
+ */
 export function formatCo2(kg: number): string {
   if (kg === 0) return "0 g";
   if (Math.abs(kg) < 1) return `${(kg * 1000).toFixed(1)} g`;

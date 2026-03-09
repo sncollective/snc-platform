@@ -2,7 +2,6 @@ import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { VideoPlayer } from "../media/video-player.js";
-import { buildMediaUrl } from "../../lib/url.js";
 import { ContentMeta } from "./content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import styles from "./video-detail.module.css";
@@ -20,7 +19,7 @@ export function VideoDetail({
   item,
   locked,
 }: VideoDetailProps): React.ReactElement {
-  const posterSrc = buildMediaUrl(item.thumbnailUrl);
+  const posterSrc = item.thumbnailUrl;
 
   if (locked === true) {
     return (
@@ -59,7 +58,7 @@ export function VideoDetail({
     );
   }
 
-  const mediaSrc = buildMediaUrl(item.mediaUrl) ?? "";
+  const mediaSrc = item.mediaUrl ?? "";
 
   return (
     <div className={styles.videoDetail}>

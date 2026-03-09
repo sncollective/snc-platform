@@ -48,12 +48,12 @@ export function ContentDetail({ item }: ContentDetailProps): React.ReactElement 
 ```typescript
 // Each variant gets the same FeedItem prop — type narrowing happens internally
 export function VideoDetail({ item }: { readonly item: FeedItem }): React.ReactElement {
-  const mediaSrc = buildMediaUrl(item.mediaUrl);
-  const posterSrc = buildMediaUrl(item.thumbnailUrl);
+  const posterSrc = item.thumbnailUrl;
+  const mediaSrc = item.mediaUrl ?? "";
 
   return (
     <div className={styles.videoDetail}>
-      <VideoPlayer src={mediaSrc ?? ""} poster={posterSrc ?? undefined} />
+      <VideoPlayer src={mediaSrc} poster={posterSrc ?? undefined} />
       <ContentMeta title={item.title} creatorName={item.creatorName} publishedAt={item.publishedAt} />
       {item.description && <p className={styles.description}>{item.description}</p>}
     </div>
@@ -65,14 +65,14 @@ export function VideoDetail({ item }: { readonly item: FeedItem }): React.ReactE
 ```typescript
 // Audio variant extracts coverArtUrl, contentId — fields irrelevant to VideoDetail/WrittenDetail
 export function AudioDetail({ item }: { readonly item: FeedItem }): React.ReactElement {
-  const mediaSrc = buildMediaUrl(item.mediaUrl);
-  const coverArtSrc = buildMediaUrl(item.coverArtUrl);
+  const coverArtSrc = item.coverArtUrl;
+  const mediaSrc = item.mediaUrl ?? "";
 
   return (
     <div className={styles.audioDetail}>
       <ContentMeta title={item.title} creatorName={item.creatorName} publishedAt={item.publishedAt} />
       <AudioPlayer
-        src={mediaSrc ?? ""}
+        src={mediaSrc}
         title={item.title}
         creator={item.creatorName}
         coverArtUrl={coverArtSrc ?? undefined}

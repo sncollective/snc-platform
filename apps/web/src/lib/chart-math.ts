@@ -24,7 +24,15 @@ export interface ChartLines {
 
 // ── Formatting Helpers ──
 
-export function formatCo2Kg(kg: number): string {
+/**
+ * Formats a CO2 kilogram value for chart axis labels and tooltips.
+ * Always displays in kg with variable precision (3 decimals for tiny values,
+ * 1 decimal for small, integer for large).
+ *
+ * For summary/card display that auto-scales between g and kg, see
+ * `formatCo2` in `format.ts`.
+ */
+export function formatCo2AxisLabel(kg: number): string {
   if (kg === 0) return "0 kg";
   if (Math.abs(kg) < 0.1) return `${kg.toFixed(3)} kg`;
   if (Math.abs(kg) < 10) return `${kg.toFixed(1)} kg`;

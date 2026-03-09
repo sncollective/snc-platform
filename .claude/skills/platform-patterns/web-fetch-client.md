@@ -1,50 +1,77 @@
 # Pattern: Web Fetch Client
 
-Thin async functions in `apps/web/src/lib/` wrap each API endpoint using `apiGet<T>()` / `apiMutate<T>()` generic helpers from `fetch-utils.ts`. Both helpers handle URL construction, session-cookie forwarding, and structured error extraction.
+Thin async functions in `apps/web/src/lib/` wrap each API endpoint using `apiGet<T>()` / `apiMutate<T>()` / `apiUpload<T>()` generic helpers from `fetch-utils.ts`. All three helpers handle session-cookie forwarding (`credentials: "include"`) and structured error extraction.
 
 ## Rationale
 
-All API calls from the frontend need consistent session-cookie forwarding (`credentials: "include"`), URL construction with optional query params, and structured error extraction matching the `{ error: { message } }` response body shape. `apiGet`/`apiMutate` eliminate per-caller boilerplate; `throwIfNotOk` underlies both and can still be imported directly for edge cases.
+All API calls from the frontend need consistent session-cookie forwarding (`credentials: "include"`), URL construction with optional query params, and structured error extraction matching the `{ error: { message } }` response body shape. `apiGet`/`apiMutate`/`apiUpload` eliminate per-caller boilerplate; `throwIfNotOk` underlies all three and can still be imported directly for edge cases.
 
 ## Examples
 
-### Example 1: apiGet and apiMutate helpers in fetch-utils.ts
-**File**: `apps/web/src/lib/fetch-utils.ts:17`
+### Example 1: apiGet, apiMutate, and apiUpload helpers in fetch-utils.ts
+**File**: `apps/web/src/lib/fetch-utils.ts`
 ```typescript
-/** GET with optional query params. Always sends session cookie. */
+/** GET with optional query params and optional AbortSignal. Always sends session cookie. */
 export async function apiGet<T>(
   endpoint: string,
   params?: Record<string, string | number | undefined>,
+  signal?: AbortSignal,
 ): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  let url = endpoint;
   if (params) {
+    const searchParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) url.searchParams.set(key, String(value));
+      if (value !== undefined) searchParams.set(key, String(value));
+    }
+    const qs = searchParams.toString();
+    if (qs) {
+      url = `${endpoint}?${qs}`;
     }
   }
-  const response = await fetch(url.toString(), { credentials: "include" });
+  const response = await fetch(url, { credentials: "include", signal });
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }
 
-/** POST/PATCH/DELETE with JSON body. Always sends session cookie. */
-export async function apiMutate<T>(
+/** POST with FormData body (multipart). Always sends session cookie. */
+export async function apiUpload<T>(
   endpoint: string,
-  options: { method?: string; body?: unknown },
+  formData: FormData,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: options.method ?? "POST",
+  const response = await fetch(endpoint, {
+    method: "POST",
     credentials: "include",
-    headers: options.body !== undefined ? { "Content-Type": "application/json" } : {},
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: formData,
   });
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }
+
+/** POST/PATCH/DELETE with JSON body. Always sends session cookie.
+ *  Returns undefined for 204 No Content responses (use apiMutate<void>). */
+export async function apiMutate<T>(
+  endpoint: string,
+  options: { method?: string; body?: unknown },
+): Promise<T> {
+  const init: RequestInit = {
+    method: options.method ?? "POST",
+    credentials: "include",
+    headers: options.body !== undefined
+      ? { "Content-Type": "application/json" }
+      : {},
+  };
+  if (options.body !== undefined) {
+    init.body = JSON.stringify(options.body);
+  }
+  const response = await fetch(endpoint, init);
+  await throwIfNotOk(response);
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
 ```
 
-### Example 2: Dashboard lib uses both helpers
-**File**: `apps/web/src/lib/dashboard.ts:14`
+### Example 2: Dashboard lib uses apiGet and apiMutate
+**File**: `apps/web/src/lib/dashboard.ts`
 ```typescript
 import { apiGet, apiMutate } from "./fetch-utils.js";
 
@@ -71,39 +98,49 @@ export async function reviewBooking(
 }
 ```
 
-### Example 3: Merch lib follows same structure
-**File**: `apps/web/src/lib/merch.ts:7`
+### Example 3: Content lib uses apiUpload for file uploads
+**File**: `apps/web/src/lib/content.ts`
 ```typescript
-import { apiGet, apiMutate } from "./fetch-utils.js";
+import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
 
-export async function fetchProducts(params?: {
-  creatorId?: string; limit?: number; cursor?: string;
-}): Promise<MerchListResponse> {
-  return apiGet<MerchListResponse>("/api/merch", params);
-}
-
-export async function createMerchCheckout(
-  variantId: string, quantity?: number,
-): Promise<string> {
-  const data = await apiMutate<{ checkoutUrl: string }>(
-    "/api/merch/checkout",
-    { body: { variantId, quantity } },
+export async function uploadContentFile(
+  contentId: string,
+  field: "media" | "thumbnail" | "coverArt",
+  file: File,
+): Promise<ContentResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<ContentResponse>(
+    `/api/content/${contentId}/upload?field=${field}`,
+    formData,
   );
-  return data.checkoutUrl;
+}
+```
+
+### Example 4: Using apiMutate<void> for 204 No Content endpoints
+```typescript
+import { apiMutate } from "./fetch-utils.js";
+
+export async function cancelSubscription(subscriptionId: string): Promise<void> {
+  return apiMutate<void>("/api/subscriptions/cancel", {
+    body: { subscriptionId },
+  });
 }
 ```
 
 ## When to Use
 - Every function in `apps/web/src/lib/` that calls a backend API endpoint
-- Use `apiGet<T>(endpoint, params?)` for GET requests with optional query params
-- Use `apiMutate<T>(endpoint, { method, body })` for POST/PATCH/DELETE
+- Use `apiGet<T>(endpoint, params?, signal?)` for GET requests with optional query params and optional abort signal
+- Use `apiMutate<T>(endpoint, { method, body })` for POST/PATCH/DELETE with JSON body; use `apiMutate<void>(...)` for endpoints returning 204 No Content
+- Use `apiUpload<T>(endpoint, formData)` for multipart file uploads (avatar, banner, content media)
 
 ## When NOT to Use
-- TanStack Start `loader` functions that construct their own fetch — `apiGet`/`apiMutate` are for lib modules consumed by hooks/components
+- TanStack Start `loader` functions that construct their own fetch — `apiGet`/`apiMutate`/`apiUpload` are for lib modules consumed by hooks/components
 - Server-side fetch calls (Node.js API layer) — those return `Result<T, AppError>` instead
 - `useCursorPagination` hook constructs its own URL via `buildUrl()` callback — use `fetchOptions: { credentials: "include" }` there instead
 
 ## Common Violations
 - Forgetting `credentials: "include"` — session cookie won't be sent, causing 401 on protected endpoints
-- Importing `throwIfNotOk` directly when `apiGet`/`apiMutate` would suffice — adds unnecessary boilerplate
+- Importing `throwIfNotOk` directly when `apiGet`/`apiMutate`/`apiUpload` would suffice — adds unnecessary boilerplate
 - Reading `response.json()` before calling `throwIfNotOk` — body stream is consumed and error message extraction fails
+- Using raw `fetch()` instead of `apiMutate` for mutation endpoints — bypasses consistent error handling and 204 support

@@ -29,7 +29,7 @@ export function computeOffsetImpact(offsetCo2Kg: number): OffsetImpactCard[] {
   const cards: OffsetImpactCard[] = [
     {
       label: "Pika Project donation",
-      value: `$${donation < 1 ? donation.toFixed(2) : donation.toFixed(2)}`,
+      value: `$${donation.toFixed(2)}`,
       unit: "USD",
     },
   ];

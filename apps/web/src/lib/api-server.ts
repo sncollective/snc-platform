@@ -3,6 +3,37 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 
 import type { AuthState } from "./auth.js";
 
+/** Resolve the API base URL from server-only env vars with fallback. */
+function getServerBaseUrl(): string {
+  const env =
+    (globalThis as Record<string, unknown>).process as
+      | { env?: Record<string, string | undefined> }
+      | undefined;
+  return (
+    env?.env?.API_INTERNAL_URL ??
+    env?.env?.VITE_API_URL ??
+    "http://localhost:3000"
+  );
+}
+
+/**
+ * Build a headers object forwarding the incoming request's cookie.
+ * Returns empty headers when called outside an SSR request context
+ * (e.g. during client-side navigation RPC).
+ */
+function forwardCookies(): HeadersInit {
+  const headers: HeadersInit = {};
+  try {
+    const cookie = getRequestHeader("cookie");
+    if (cookie) {
+      headers.cookie = cookie;
+    }
+  } catch {
+    // getRequestHeader throws outside of SSR request context
+  }
+  return headers;
+}
+
 /**
  * Server-side API fetch. Runs exclusively on the server — during SSR it
  * executes directly; during client navigation TanStack Start calls it
@@ -14,26 +45,9 @@ import type { AuthState } from "./auth.js";
 export const fetchApiServer = createServerFn({ method: "GET" })
   .inputValidator((endpoint: string) => endpoint)
   .handler(async ({ data: endpoint }) => {
-    const env =
-      (globalThis as Record<string, unknown>).process as
-        | { env?: Record<string, string | undefined> }
-        | undefined;
-    const baseUrl =
-      env?.env?.API_INTERNAL_URL ??
-      env?.env?.VITE_API_URL ??
-      "http://localhost:3000";
-
-    const headers: HeadersInit = {};
-    try {
-      const cookie = getRequestHeader("cookie");
-      if (cookie) {
-        headers.cookie = cookie;
-      }
-    } catch {
-      // getRequestHeader throws outside of SSR request context (e.g. client navigation)
-    }
-
-    const res = await fetch(`${baseUrl}${endpoint}`, { headers });
+    const res = await fetch(`${getServerBaseUrl()}${endpoint}`, {
+      headers: forwardCookies(),
+    });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       const message =
@@ -51,28 +65,11 @@ export const fetchApiServer = createServerFn({ method: "GET" })
  */
 export const fetchAuthStateServer = createServerFn({ method: "GET" })
   .handler(async (): Promise<AuthState> => {
-    const env =
-      (globalThis as Record<string, unknown>).process as
-        | { env?: Record<string, string | undefined> }
-        | undefined;
-    const baseUrl =
-      env?.env?.API_INTERNAL_URL ??
-      env?.env?.VITE_API_URL ??
-      "http://localhost:3000";
-
-    const headers: HeadersInit = {};
-    try {
-      const cookie = getRequestHeader("cookie");
-      if (cookie) {
-        headers.cookie = cookie;
-      }
-    } catch {
-      // getRequestHeader throws outside of SSR request context
-    }
-
     let res: Response;
     try {
-      res = await fetch(`${baseUrl}/api/me`, { headers });
+      res = await fetch(`${getServerBaseUrl()}/api/me`, {
+        headers: forwardCookies(),
+      });
     } catch {
       return { user: null, roles: [] };
     }

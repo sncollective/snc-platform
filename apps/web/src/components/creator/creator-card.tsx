@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem } from "@snc/shared";
 
-import { buildMediaUrl } from "../../lib/url.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./creator-card.module.css";
 
@@ -15,7 +14,7 @@ export interface CreatorCardProps {
 // ── Public API ──
 
 export function CreatorCard({ creator }: CreatorCardProps): React.ReactElement {
-  const avatarSrc = buildMediaUrl(creator.avatarUrl);
+  const avatarSrc = creator.avatarUrl;
 
   return (
     <Link

@@ -3,7 +3,6 @@ import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { formatRelativeDate } from "../../lib/format.js";
-import { buildMediaUrl } from "../../lib/url.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./content-card.module.css";
 
@@ -30,9 +29,8 @@ export interface ContentCardProps {
 // ── Public API ──
 
 export function ContentCard({ item }: ContentCardProps): React.ReactElement {
-  const thumbnailSrc = buildMediaUrl(
-    item.thumbnailUrl ?? (item.type === "audio" ? item.coverArtUrl : null),
-  );
+  const thumbnailSrc =
+    item.thumbnailUrl ?? (item.type === "audio" ? item.coverArtUrl : null);
 
   const badgeClass = TYPE_BADGE_CLASSES[item.type];
 

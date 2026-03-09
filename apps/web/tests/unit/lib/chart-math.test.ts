@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   computeChartLines,
-  formatCo2Kg,
+  formatCo2AxisLabel,
   formatMonthLabel,
   formatMonthShort,
   niceNum,
@@ -39,27 +39,27 @@ describe("computeChartLines", () => {
   });
 });
 
-describe("formatCo2Kg", () => {
+describe("formatCo2AxisLabel", () => {
   it("formats zero", () => {
-    expect(formatCo2Kg(0)).toBe("0 kg");
+    expect(formatCo2AxisLabel(0)).toBe("0 kg");
   });
 
   it("formats very small values with 3 decimals", () => {
-    expect(formatCo2Kg(0.05)).toBe("0.050 kg");
+    expect(formatCo2AxisLabel(0.05)).toBe("0.050 kg");
   });
 
   it("formats small values with 1 decimal", () => {
-    expect(formatCo2Kg(3.7)).toBe("3.7 kg");
+    expect(formatCo2AxisLabel(3.7)).toBe("3.7 kg");
   });
 
   it("formats large values as integers", () => {
-    expect(formatCo2Kg(42.3)).toBe("42 kg");
+    expect(formatCo2AxisLabel(42.3)).toBe("42 kg");
   });
 
   it("formats negative values correctly", () => {
-    expect(formatCo2Kg(-0.05)).toBe("-0.050 kg");
-    expect(formatCo2Kg(-3.7)).toBe("-3.7 kg");
-    expect(formatCo2Kg(-42.3)).toBe("-42 kg");
+    expect(formatCo2AxisLabel(-0.05)).toBe("-0.050 kg");
+    expect(formatCo2AxisLabel(-3.7)).toBe("-3.7 kg");
+    expect(formatCo2AxisLabel(-42.3)).toBe("-42 kg");
   });
 });
 

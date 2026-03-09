@@ -2,7 +2,6 @@ import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { AudioPlayer } from "../media/audio-player.js";
-import { buildMediaUrl } from "../../lib/url.js";
 import { ContentMeta } from "./content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import styles from "./audio-detail.module.css";
@@ -20,7 +19,7 @@ export function AudioDetail({
   item,
   locked,
 }: AudioDetailProps): React.ReactElement {
-  const coverArtSrc = buildMediaUrl(item.coverArtUrl);
+  const coverArtSrc = item.coverArtUrl;
 
   if (locked === true) {
     return (
@@ -54,7 +53,7 @@ export function AudioDetail({
     );
   }
 
-  const mediaSrc = buildMediaUrl(item.mediaUrl) ?? "";
+  const mediaSrc = item.mediaUrl ?? "";
 
   return (
     <div className={styles.audioDetail}>

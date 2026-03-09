@@ -3,7 +3,6 @@ import type React from "react";
 import type { CreatorProfileResponse, SubscriptionPlan } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
 
-import { buildMediaUrl } from "../../lib/url.js";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { useSession } from "../../lib/auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
@@ -29,8 +28,8 @@ export function CreatorHeader({
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const { checkoutLoading, handleCheckout } = useCheckout();
 
-  const bannerSrc = buildMediaUrl(creator.bannerUrl);
-  const avatarSrc = buildMediaUrl(creator.avatarUrl);
+  const bannerSrc = creator.bannerUrl;
+  const avatarSrc = creator.avatarUrl;
 
   const isAuthenticated = session.data !== null && session.data !== undefined;
 

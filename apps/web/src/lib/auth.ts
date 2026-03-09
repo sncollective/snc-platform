@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Role, User, Session, AuthSession } from "@snc/shared";
 
 import { authClient } from "./auth-client.js";
+import { apiGet } from "./fetch-utils.js";
 
 // ── Public API: Re-exports ──
 
@@ -18,19 +19,12 @@ export interface AuthState {
 }
 
 export async function fetchAuthState(): Promise<AuthState> {
-  let res: Response;
   try {
-    res = await fetch("/api/me", { credentials: "include" });
+    const body = await apiGet<{ user: User | null; roles?: Role[] }>("/api/me");
+    return { user: body.user ?? null, roles: body.roles ?? [] };
   } catch {
     return { user: null, roles: [] };
   }
-
-  if (!res.ok) {
-    return { user: null, roles: [] };
-  }
-
-  const body = (await res.json()) as { user: User | null; roles?: Role[] };
-  return { user: body.user ?? null, roles: body.roles ?? [] };
 }
 
 // ── Public API: hasRole ──
