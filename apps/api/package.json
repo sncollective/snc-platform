@@ -17,13 +17,13 @@
     "seed:demo": "ALLOW_DEMO_SEED=true tsx --import ./src/env.ts src/scripts/seed-demo.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.14.0",
+    "@hono/node-server": "^1.19.11",
     "@hono/standard-validator": "^0.2.2",
     "@scalar/hono-api-reference": "^0.9.46",
     "@snc/shared": "workspace:*",
     "better-auth": "^1.4.19",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.12.2",
+    "hono": "^4.12.5",
     "hono-openapi": "^1.2.0",
     "postgres": "^3.4.7",
     "stripe": "^20.4.0",
