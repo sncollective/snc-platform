@@ -47,7 +47,6 @@ export const CreateOffsetEntrySchema = z.object({
 });
 
 export const EmissionsSummarySchema = z.object({
-  totalCo2Kg: z.number(),
   grossCo2Kg: z.number(),
   offsetCo2Kg: z.number(),
   netCo2Kg: z.number(),

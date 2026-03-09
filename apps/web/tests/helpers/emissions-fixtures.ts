@@ -34,7 +34,6 @@ export const makeMockEmissionEntry = (
 export const makeMockEmissionsSummary = (
   overrides?: Partial<EmissionsSummary>,
 ): EmissionsSummary => ({
-  totalCo2Kg: 0.024,
   grossCo2Kg: 0.034443,
   offsetCo2Kg: 0.01,
   netCo2Kg: 0.024,

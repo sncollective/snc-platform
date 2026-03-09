@@ -1,7 +1,7 @@
 import type React from "react";
 
 import { computeEquivalencies } from "../../lib/co2-equivalencies.js";
-import styles from "./co2-equivalencies.module.css";
+import styles from "./impact-cards.module.css";
 
 // ── Public Types ──
 

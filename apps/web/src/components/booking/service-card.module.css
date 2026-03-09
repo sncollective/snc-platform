@@ -40,22 +40,8 @@
   color: var(--color-accent);
 }
 
-/* ── Book Button ── */
+/* ── Book Button (positioning override) ── */
 
 .bookButton {
   align-self: flex-start;
-  padding: var(--space-sm) var(--space-xl);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.bookButton:hover {
-  background: var(--color-accent-hover);
 }

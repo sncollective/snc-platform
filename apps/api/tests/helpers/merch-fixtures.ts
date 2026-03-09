@@ -112,7 +112,7 @@ export const makeMockShopifyProductByHandleResponse = (
   node = makeMockShopifyProductNode(),
 ) => ({
   data: {
-    productByHandle: node,
+    product: node,
   },
 });
 
@@ -123,6 +123,7 @@ export const makeMockShopifyCartResponse = (
     cartCreate: {
       cart: { checkoutUrl },
       userErrors: [],
+      warnings: [],
     },
   },
 });
@@ -134,6 +135,20 @@ export const makeMockShopifyCartErrorResponse = (
     cartCreate: {
       cart: null,
       userErrors: [{ field: ["lines", "0", "merchandiseId"], message }],
+      warnings: [],
+    },
+  },
+});
+
+export const makeMockShopifyCartWarningResponse = (
+  message = "Not enough inventory",
+  code = "MERCHANDISE_NOT_ENOUGH_STOCK",
+) => ({
+  data: {
+    cartCreate: {
+      cart: { checkoutUrl: "https://test-store.myshopify.com/cart/c/mock" },
+      userErrors: [],
+      warnings: [{ code, message }],
     },
   },
 });

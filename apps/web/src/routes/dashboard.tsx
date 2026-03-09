@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type React from "react";
 import type {
   RevenueResponse,
@@ -10,20 +10,29 @@ import type {
   ReviewBookingRequest,
 } from "@snc/shared";
 
-import { fetchAuthStateServer } from "../lib/api-server.js";
-import {
-  fetchRevenue,
-  fetchSubscribers,
-  fetchBookingSummary,
-  reviewBooking,
-} from "../lib/dashboard.js";
+import { fetchApiServer, fetchAuthStateServer } from "../lib/api-server.js";
+import { reviewBooking } from "../lib/dashboard.js";
 import { formatPrice, formatCo2 } from "../lib/format.js";
-import { fetchEmissionsSummary } from "../lib/emissions.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import { KpiCard } from "../components/dashboard/kpi-card.js";
 import { RevenueChart } from "../components/dashboard/revenue-chart.js";
 import { PendingBookingsTable } from "../components/dashboard/pending-bookings-table.js";
+import sectionStyles from "../styles/detail-section.module.css";
+import errorStyles from "../styles/error-alert.module.css";
+import listingStyles from "../styles/listing-page.module.css";
+import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./dashboard.module.css";
+
+// ── Private Types ──
+
+interface DashboardLoaderData {
+  readonly revenue: RevenueResponse;
+  readonly subscribers: SubscriberSummary;
+  readonly bookingSummary: BookingSummary;
+  readonly emissionsSummary: EmissionsSummary;
+}
+
+// ── Route ──
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
@@ -37,17 +46,25 @@ export const Route = createFileRoute("/dashboard")({
       throw redirect({ to: "/feed" });
     }
   },
+  loader: async (): Promise<DashboardLoaderData> => {
+    const [revenue, subscribers, bookingSummary, emissionsSummary] =
+      await Promise.all([
+        fetchApiServer({ data: "/api/dashboard/revenue" }) as Promise<RevenueResponse>,
+        fetchApiServer({ data: "/api/dashboard/subscribers" }) as Promise<SubscriberSummary>,
+        fetchApiServer({ data: "/api/dashboard/bookings" }) as Promise<BookingSummary>,
+        fetchApiServer({ data: "/api/emissions/summary" }) as Promise<EmissionsSummary>,
+      ]);
+
+    return { revenue, subscribers, bookingSummary, emissionsSummary };
+  },
   component: DashboardPage,
 });
 
+// ── Component ──
+
 function DashboardPage(): React.ReactElement {
-  // ── KPI State ──
-  const [revenue, setRevenue] = useState<RevenueResponse | null>(null);
-  const [subscribers, setSubscribers] = useState<SubscriberSummary | null>(null);
-  const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
-  const [emissionsSummary, setEmissionsSummary] = useState<EmissionsSummary | null>(null);
-  const [kpiError, setKpiError] = useState<string | null>(null);
-  const [kpiLoading, setKpiLoading] = useState(true);
+  const { revenue, subscribers, bookingSummary, emissionsSummary } =
+    Route.useLoaderData();
 
   // ── Pending Bookings (cursor-paginated) ──
   const {
@@ -77,46 +94,6 @@ function DashboardPage(): React.ReactElement {
 
   const visibleBookings = pendingBookings.filter((b) => !removedIds.has(b.id));
 
-  // ── Load KPI Data ──
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadKpis(): Promise<void> {
-      setKpiLoading(true);
-      setKpiError(null);
-
-      try {
-        const [revenueResult, subscribersResult, bookingResult, emissionsResult] =
-          await Promise.all([
-            fetchRevenue(),
-            fetchSubscribers(),
-            fetchBookingSummary(),
-            fetchEmissionsSummary(),
-          ]);
-
-        if (!cancelled) {
-          setRevenue(revenueResult);
-          setSubscribers(subscribersResult);
-          setBookingSummary(bookingResult);
-          setEmissionsSummary(emissionsResult);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setKpiError(e instanceof Error ? e.message : "Failed to load dashboard data");
-        }
-      } finally {
-        if (!cancelled) {
-          setKpiLoading(false);
-        }
-      }
-    }
-
-    void loadKpis();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // ── Review Handler ──
   const handleReview = useCallback(
     async (id: string, data: ReviewBookingRequest): Promise<void> => {
@@ -139,27 +116,14 @@ function DashboardPage(): React.ReactElement {
   );
 
   // ── Derived KPI Values ──
-  const revenueValue = revenue !== null
-    ? formatPrice(revenue.currentMonth)
-    : "—";
-  const subscriberValue = subscribers !== null
-    ? String(subscribers.active)
-    : "—";
-  const pendingValue = bookingSummary !== null
-    ? String(Math.max(0, bookingSummary.pending - pendingAdjustment))
-    : "—";
-  const co2Value = emissionsSummary !== null
-    ? formatCo2(emissionsSummary.totalCo2Kg)
-    : "—";
+  const revenueValue = formatPrice(revenue.currentMonth);
+  const subscriberValue = String(subscribers.active);
+  const pendingValue = String(Math.max(0, bookingSummary.pending - pendingAdjustment));
+  const co2Value = formatCo2(emissionsSummary.netCo2Kg);
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Dashboard</h1>
-
-      {/* ── KPI Error ── */}
-      {kpiError !== null && (
-        <div className={styles.error} role="alert">{kpiError}</div>
-      )}
+      <h1 className={pageHeadingStyles.heading}>Dashboard</h1>
 
       {/* ── KPI Cards ── */}
       <div className={styles.kpiRow}>
@@ -167,47 +131,42 @@ function DashboardPage(): React.ReactElement {
           label="Revenue This Month"
           value={revenueValue}
           sublabel="from subscriptions"
-          isLoading={kpiLoading}
         />
         <KpiCard
           label="Active Subscribers"
           value={subscriberValue}
-          isLoading={kpiLoading}
         />
         <KpiCard
           label="Pending Bookings"
           value={pendingValue}
-          isLoading={kpiLoading}
         />
         <KpiCard
           label="Total CO2"
           value={co2Value}
           sublabel="estimated emissions"
-          isLoading={kpiLoading}
         />
       </div>
 
       {/* ── Revenue Chart Section ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Revenue Over Time</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={sectionStyles.sectionHeading}>Revenue Over Time</h2>
         <RevenueChart
-          data={revenue?.monthly ?? []}
-          isLoading={kpiLoading}
+          data={revenue.monthly}
         />
       </section>
 
       {/* ── Pending Bookings Section ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Pending Booking Requests</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={sectionStyles.sectionHeading}>Pending Booking Requests</h2>
 
         {reviewError !== null && (
-          <div className={styles.error} role="alert">{reviewError}</div>
+          <div className={errorStyles.error} role="alert">{reviewError}</div>
         )}
 
         {bookingsLoading && visibleBookings.length === 0 ? (
-          <p className={styles.status}>Loading booking requests...</p>
+          <p className={listingStyles.status}>Loading booking requests...</p>
         ) : bookingsError !== null && visibleBookings.length === 0 ? (
-          <div className={styles.error} role="alert">{bookingsError}</div>
+          <div className={errorStyles.error} role="alert">{bookingsError}</div>
         ) : (
           <>
             <PendingBookingsTable
@@ -216,10 +175,10 @@ function DashboardPage(): React.ReactElement {
               reviewingId={reviewingId}
             />
             {nextCursor !== null && (
-              <div className={styles.loadMoreWrapper}>
+              <div className={listingStyles.loadMoreWrapper}>
                 <button
                   type="button"
-                  className={styles.loadMoreButton}
+                  className={listingStyles.loadMoreButton}
                   onClick={loadMore}
                   disabled={bookingsLoading}
                 >

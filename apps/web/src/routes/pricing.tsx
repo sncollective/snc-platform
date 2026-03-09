@@ -4,11 +4,11 @@ import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { PlanCard } from "../components/subscription/plan-card.js";
-import { useSession } from "../lib/auth.js";
 import { fetchApiServer } from "../lib/api-server.js";
-import { createCheckout, hasPlatformSubscription } from "../lib/subscription.js";
-import { useSubscriptions } from "../hooks/use-subscriptions.js";
-import { navigateExternal } from "../lib/url.js";
+import { usePlatformAuth } from "../hooks/use-platform-auth.js";
+import { useCheckout } from "../hooks/use-checkout.js";
+import errorStyles from "../styles/error-alert.module.css";
+import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
@@ -26,15 +26,14 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage(): React.ReactElement {
-  const session = useSession();
   const navigate = useNavigate();
   const plans = Route.useLoaderData();
-  const subscriptions = useSubscriptions();
-  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const { isAuthenticated, isSubscribed: isSubscribedToPlatform } = usePlatformAuth();
   const [error, setError] = useState<string | null>(null);
 
-  const isAuthenticated: boolean = session.data !== null && session.data !== undefined;
-  const isSubscribedToPlatform: boolean = hasPlatformSubscription(subscriptions);
+  const { checkoutLoading, handleCheckout } = useCheckout({
+    onError: (message) => setError(message),
+  });
 
   async function handleSubscribe(planId: string): Promise<void> {
     if (!isAuthenticated) {
@@ -42,27 +41,19 @@ function PricingPage(): React.ReactElement {
       return;
     }
 
-    setLoadingPlanId(planId);
     setError(null);
-
-    try {
-      const checkoutUrl = await createCheckout(planId);
-      navigateExternal(checkoutUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to start checkout");
-      setLoadingPlanId(null);
-    }
+    await handleCheckout(planId);
   }
 
   return (
     <div className={styles.pricingPage}>
-      <h1 className={styles.heading}>Platform Subscription</h1>
+      <h1 className={pageHeadingStyles.heading}>Platform Subscription</h1>
       <p className={styles.subheading}>
         Get access to all content from every creator on S/NC.
       </p>
 
       {error !== null && (
-        <div className={styles.error} role="alert">
+        <div className={errorStyles.error} role="alert">
           {error}
         </div>
       )}
@@ -84,9 +75,9 @@ function PricingPage(): React.ReactElement {
             <PlanCard
               key={plan.id}
               plan={plan}
-              onSubscribe={handleSubscribe}
+              onSubscribe={(planId) => void handleSubscribe(planId)}
               isSubscribed={isSubscribedToPlatform}
-              isLoading={loadingPlanId === plan.id}
+              isLoading={checkoutLoading}
             />
           ))}
         </div>

@@ -7,12 +7,15 @@ import {
   CONTENT_TYPES,
   VISIBILITY,
   ACCEPTED_MIME_TYPES,
+  MAX_TITLE_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
 } from "@snc/shared";
 import type { ContentType, Visibility } from "@snc/shared";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { createContent, uploadContentFile } from "../../lib/content.js";
 import formStyles from "../../styles/form.module.css";
+import successStyles from "../../styles/success-alert.module.css";
 import styles from "./content-form.module.css";
 
 // ── Private Constants ──
@@ -20,9 +23,9 @@ import styles from "./content-form.module.css";
 const FORM_FIELDS = ["title", "description", "type", "visibility", "body"] as const;
 
 const FormSchema = z.object({
-  title: z.string().check(z.minLength(1, "Title is required"), z.maxLength(200)),
+  title: z.string().check(z.minLength(1, "Title is required"), z.maxLength(MAX_TITLE_LENGTH)),
   type: z.enum(CONTENT_TYPES),
-  description: z.optional(z.string().check(z.maxLength(2000))),
+  description: z.optional(z.string().check(z.maxLength(MAX_DESCRIPTION_LENGTH))),
   visibility: z.enum(VISIBILITY),
   body: z.optional(z.string()),
 });
@@ -151,7 +154,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
       )}
 
       {successMessage && (
-        <div className={styles.success} role="status">
+        <div className={successStyles.success} role="status">
           {successMessage}
         </div>
       )}
@@ -165,7 +168,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           id="content-type"
           value={type}
           onChange={(e) => setType(e.target.value as ContentType)}
-          className={styles.select}
+          className={formStyles.select}
           disabled={isSubmitting}
         >
           {CONTENT_TYPES.map((t) => (
@@ -192,7 +195,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
               : formStyles.input
           }
           disabled={isSubmitting}
-          maxLength={200}
+          maxLength={MAX_TITLE_LENGTH}
         />
         {fieldErrors.title && (
           <span className={formStyles.fieldError} role="alert">
@@ -210,9 +213,9 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           id="content-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className={styles.textarea}
+          className={`${formStyles.textarea} ${styles.textarea}`}
           disabled={isSubmitting}
-          maxLength={2000}
+          maxLength={MAX_DESCRIPTION_LENGTH}
           rows={3}
         />
         {fieldErrors.description && (
@@ -231,7 +234,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           id="content-visibility"
           value={visibility}
           onChange={(e) => setVisibility(e.target.value as Visibility)}
-          className={styles.select}
+          className={formStyles.select}
           disabled={isSubmitting}
         >
           {VISIBILITY.map((v) => (
@@ -254,8 +257,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
             onChange={(e) => setBody(e.target.value)}
             className={
               fieldErrors.body
-                ? `${styles.textarea} ${formStyles.inputError}`
-                : styles.textarea
+                ? `${formStyles.textarea} ${styles.textarea} ${formStyles.inputError}`
+                : `${formStyles.textarea} ${styles.textarea}`
             }
             disabled={isSubmitting}
             rows={8}

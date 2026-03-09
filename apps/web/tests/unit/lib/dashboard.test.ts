@@ -4,14 +4,12 @@ import {
   fetchRevenue,
   fetchSubscribers,
   fetchBookingSummary,
-  fetchPendingBookings,
   reviewBooking,
 } from "../../../src/lib/dashboard.js";
 import {
   makeMockRevenueResponse,
   makeMockSubscriberSummary,
   makeMockBookingSummary,
-  makeMockPendingBookingItem,
 } from "../../helpers/dashboard-fixtures.js";
 import { makeMockBookingWithService } from "../../helpers/booking-fixtures.js";
 import { setupFetchMock } from "../../helpers/fetch-mock.js";
@@ -107,70 +105,6 @@ describe("fetchBookingSummary", () => {
     );
 
     await expect(fetchBookingSummary()).rejects.toThrow("Unauthorized");
-  });
-});
-
-// ── fetchPendingBookings ──
-
-describe("fetchPendingBookings", () => {
-  it("fetches from correct URL without params", async () => {
-    const item = makeMockPendingBookingItem();
-    getMockFetch().mockResolvedValue(
-      new Response(
-        JSON.stringify({ items: [item], nextCursor: null }),
-        { status: 200 },
-      ),
-    );
-
-    const result = await fetchPendingBookings();
-
-    expect(getMockFetch()).toHaveBeenCalledWith(
-      "/api/bookings/pending",
-      { credentials: "include" },
-    );
-    expect(result.items).toEqual([item]);
-    expect(result.nextCursor).toBeNull();
-  });
-
-  it("includes cursor and limit query params", async () => {
-    getMockFetch().mockResolvedValue(
-      new Response(
-        JSON.stringify({ items: [], nextCursor: null }),
-        { status: 200 },
-      ),
-    );
-
-    await fetchPendingBookings({ cursor: "abc123", limit: 10 });
-
-    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
-    expect(calledUrl).toContain("cursor=abc123");
-    expect(calledUrl).toContain("limit=10");
-  });
-
-  it("includes only provided params", async () => {
-    getMockFetch().mockResolvedValue(
-      new Response(
-        JSON.stringify({ items: [], nextCursor: null }),
-        { status: 200 },
-      ),
-    );
-
-    await fetchPendingBookings({ limit: 5 });
-
-    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
-    expect(calledUrl).toContain("limit=5");
-    expect(calledUrl).not.toContain("cursor");
-  });
-
-  it("throws on error response", async () => {
-    getMockFetch().mockResolvedValue(
-      new Response(
-        JSON.stringify({ error: { message: "Unauthorized" } }),
-        { status: 401 },
-      ),
-    );
-
-    await expect(fetchPendingBookings()).rejects.toThrow("Unauthorized");
   });
 });
 

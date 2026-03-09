@@ -16,7 +16,7 @@ import {
 } from "../../helpers/dashboard-fixtures.js";
 import { makeMockBookingWithService } from "../../helpers/booking-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
-import { extractRouteComponent } from "../../helpers/route-test-utils.js";
+import { extractRoute } from "../../helpers/route-test-utils.js";
 
 // ── Helpers ──
 
@@ -30,60 +30,65 @@ function makePendingBookingsResponse(
   );
 }
 
+function makeDefaultLoaderData() {
+  return {
+    revenue: makeMockRevenueResponse(),
+    subscribers: makeMockSubscriberSummary(),
+    bookingSummary: makeMockBookingSummary(),
+    emissionsSummary: {
+      grossCo2Kg: 0.034443,
+      offsetCo2Kg: 0,
+      netCo2Kg: 0.034443,
+      entryCount: 1,
+      latestDate: "2026-03-31",
+      projectedGrossCo2Kg: 0.034443,
+      doubleOffsetTargetCo2Kg: 0.068886,
+      additionalOffsetCo2Kg: 0.068886,
+    },
+  };
+}
+
 // ── Hoisted Mocks ──
 
 const {
-  mockFetchRevenue,
-  mockFetchSubscribers,
-  mockFetchBookingSummary,
   mockReviewBooking,
-  mockFetchEmissionsSummary,
+  mockFetchAuthStateServer,
+  mockRedirect,
+  mockUseLoaderData,
 } = vi.hoisted(() => ({
-  mockFetchRevenue: vi.fn(),
-  mockFetchSubscribers: vi.fn(),
-  mockFetchBookingSummary: vi.fn(),
   mockReviewBooking: vi.fn(),
-  mockFetchEmissionsSummary: vi.fn(),
+  mockFetchAuthStateServer: vi.fn(),
+  mockRedirect: vi.fn((args: unknown) => args),
+  mockUseLoaderData: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ redirect: vi.fn() }),
+  createRouterMock({ redirect: mockRedirect, useLoaderData: mockUseLoaderData }),
 );
 
 vi.mock("../../../src/lib/api-server.js", () => ({
-  fetchAuthStateServer: vi.fn().mockResolvedValue({
-    user: { id: "u1" },
-    roles: ["cooperative-member"],
-  }),
+  fetchApiServer: vi.fn(),
+  fetchAuthStateServer: mockFetchAuthStateServer,
 }));
 
 vi.mock("../../../src/lib/dashboard.js", () => ({
-  fetchRevenue: mockFetchRevenue,
-  fetchSubscribers: mockFetchSubscribers,
-  fetchBookingSummary: mockFetchBookingSummary,
   reviewBooking: mockReviewBooking,
-}));
-
-vi.mock("../../../src/lib/emissions.js", () => ({
-  fetchEmissionsSummary: mockFetchEmissionsSummary,
 }));
 
 // ── Component Under Test ──
 
-const DashboardPage = extractRouteComponent(() => import("../../../src/routes/dashboard.js"));
+const { component: DashboardPage, route: routeObject } = extractRoute(() => import("../../../src/routes/dashboard.js"));
+const routeBeforeLoad = () => (routeObject.beforeLoad as () => Promise<void>)();
 
 // ── Lifecycle ──
 
 beforeEach(() => {
-  mockFetchRevenue.mockResolvedValue(makeMockRevenueResponse());
-  mockFetchSubscribers.mockResolvedValue(makeMockSubscriberSummary());
-  mockFetchBookingSummary.mockResolvedValue(makeMockBookingSummary());
-  mockReviewBooking.mockResolvedValue(makeMockBookingWithService());
-  mockFetchEmissionsSummary.mockResolvedValue({
-    totalCo2Kg: 0.034443,
-    entryCount: 1,
-    latestDate: "2026-03-31",
+  mockFetchAuthStateServer.mockResolvedValue({
+    user: { id: "u1" },
+    roles: ["cooperative-member"],
   });
+  mockReviewBooking.mockResolvedValue(makeMockBookingWithService());
+  mockUseLoaderData.mockReturnValue(makeDefaultLoaderData());
 
   vi.stubGlobal(
     "fetch",
@@ -103,6 +108,25 @@ afterEach(() => {
 // ── Tests ──
 
 describe("DashboardPage", () => {
+  // ── beforeLoad guard tests ──
+
+  describe("beforeLoad", () => {
+    it("redirects to /login when user is not authenticated", async () => {
+      mockFetchAuthStateServer.mockResolvedValue({ user: null, roles: [] });
+      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/login" });
+    });
+
+    it("redirects to /feed when user lacks cooperative-member role", async () => {
+      mockFetchAuthStateServer.mockResolvedValue({
+        user: { id: "u1" },
+        roles: ["subscriber"],
+      });
+      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/feed" });
+    });
+  });
+
+  // ── Rendering tests ──
+
   it("renders page heading 'Dashboard'", () => {
     render(<DashboardPage />);
     expect(
@@ -110,29 +134,17 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders four KPI cards with loading state initially", () => {
-    mockFetchRevenue.mockReturnValue(new Promise(() => {}));
-    mockFetchEmissionsSummary.mockReturnValue(new Promise(() => {}));
-    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
-    render(<DashboardPage />);
-    expect(screen.getAllByLabelText("Loading")).toHaveLength(4);
-  });
-
-  it("renders KPI cards with fetched data after load", async () => {
+  it("renders KPI cards with loader data", () => {
     render(<DashboardPage />);
     // $50.00 appears in both the KPI card value and the revenue chart tooltip
-    await waitFor(() => {
-      expect(screen.getAllByText("$50.00").length).toBeGreaterThanOrEqual(1);
-    });
+    expect(screen.getAllByText("$50.00").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("renders revenue KPI with 'from subscriptions' sublabel", async () => {
+  it("renders revenue KPI with 'from subscriptions' sublabel", () => {
     render(<DashboardPage />);
-    await waitFor(() => {
-      expect(screen.getByText("from subscriptions")).toBeInTheDocument();
-    });
+    expect(screen.getByText("from subscriptions")).toBeInTheDocument();
   });
 
   it("renders section headings for Revenue and Bookings", () => {
@@ -145,11 +157,9 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders revenue chart with 12 bars when data is loaded", async () => {
+  it("renders revenue chart with 12 bars from loader data", () => {
     render(<DashboardPage />);
-    await waitFor(() => {
-      expect(screen.getAllByRole("img")).toHaveLength(12);
-    });
+    expect(screen.getAllByRole("img")).toHaveLength(12);
   });
 
   it("renders pending bookings table with booking data", async () => {
@@ -162,7 +172,6 @@ describe("DashboardPage", () => {
   });
 
   it("shows loading state for bookings when initially loading", () => {
-    mockFetchRevenue.mockReturnValue(new Promise(() => {}));
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     render(<DashboardPage />);
     expect(
@@ -259,14 +268,6 @@ describe("DashboardPage", () => {
         status: "denied",
         reviewNote: "Not available",
       });
-    });
-  });
-
-  it("shows error when KPI fetch fails", async () => {
-    mockFetchRevenue.mockRejectedValue(new Error("Stripe unavailable"));
-    render(<DashboardPage />);
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Stripe unavailable");
     });
   });
 

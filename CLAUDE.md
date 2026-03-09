@@ -164,7 +164,7 @@
   - `lib/merch.ts` — `fetchProducts`, `fetchProductByHandle`, `createMerchCheckout`
   - `lib/booking.ts` — `fetchServices`, `fetchServiceById`, `createBooking`, `fetchMyBookings`, `fetchBookingById`
   - `lib/creator.ts` — `fetchCreatorProfile`, `updateCreatorProfile` API helpers
-  - `lib/dashboard.ts` — `fetchRevenue`, `fetchSubscribers`, `fetchBookingSummary`, `fetchPendingBookings`, `reviewBooking`
+  - `lib/dashboard.ts` — `fetchRevenue`, `fetchSubscribers`, `fetchBookingSummary`, `reviewBooking`
   - `lib/fetch-utils.ts` — `throwIfNotOk(response)`, `apiGet<T>(endpoint, params?)`, `apiMutate<T>(endpoint, {method, body})` shared fetch helpers
   - `lib/form-utils.ts` — `extractFieldErrors()` generic Zod issue → field error mapper
   - `hooks/use-menu-toggle.ts` — Shared menu open/close/escape/click-outside hook

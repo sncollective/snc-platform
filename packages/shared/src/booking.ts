@@ -3,6 +3,8 @@ import { z } from "zod";
 // ── Public Constants ──
 
 export const BOOKING_STATUSES = ["pending", "approved", "denied"] as const;
+export const MAX_PREFERRED_DATES = 5;
+export const MAX_BOOKING_NOTES_LENGTH = 2000;
 
 // ── Public Schemas ──
 
@@ -38,8 +40,8 @@ export const BookingWithServiceSchema = BookingRequestSchema.extend({
 
 export const CreateBookingRequestSchema = z.object({
   serviceId: z.string().min(1),
-  preferredDates: z.array(z.string().min(1)).min(1).max(5),
-  notes: z.string().max(2000).default(""),
+  preferredDates: z.array(z.string().min(1)).min(1).max(MAX_PREFERRED_DATES),
+  notes: z.string().max(MAX_BOOKING_NOTES_LENGTH).default(""),
 });
 
 export const ServicesResponseSchema = z.object({

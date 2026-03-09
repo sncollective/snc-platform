@@ -5,6 +5,8 @@ import type React from "react";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { ContentForm } from "../../components/content/content-form.js";
 import { MyContentList } from "../../components/content/my-content-list.js";
+import sectionStyles from "../../styles/detail-section.module.css";
+import pageHeadingStyles from "../../styles/page-heading.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 import styles from "./content-settings.module.css";
 
@@ -36,15 +38,15 @@ function ContentSettingsPage(): React.ReactElement {
 
   return (
     <div className={settingsStyles.page}>
-      <h1 className={styles.heading}>My Content</h1>
+      <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>My Content</h1>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Create New Content</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Create New Content</h2>
         <ContentForm onCreated={handleCreated} />
       </section>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Published Content</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Published Content</h2>
         <MyContentList creatorId={userId} refreshKey={refreshKey} />
       </section>
     </div>

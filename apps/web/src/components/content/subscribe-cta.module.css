@@ -40,32 +40,6 @@
   color: var(--color-text-muted);
 }
 
-/* ── Subscribe Button ── */
-
-.subscribeButton {
-  padding: var(--space-sm) var(--space-xl);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.subscribeButton:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.subscribeButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* ── Platform Link ── */
 
 .platformLink {

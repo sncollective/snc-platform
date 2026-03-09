@@ -7,6 +7,21 @@ import {
 } from "../db/schema/subscription.schema.js";
 import { getUserRoles } from "../auth/user-roles.js";
 
+// ── Private Helpers ──
+
+/**
+ * Drizzle SQL condition for "subscription is effectively active":
+ * status = "active" OR (status = "canceled" AND currentPeriodEnd > now).
+ */
+const buildSubscriptionStatusCondition = (now: Date) =>
+  or(
+    eq(userSubscriptions.status, "active"),
+    and(
+      eq(userSubscriptions.status, "canceled"),
+      gt(userSubscriptions.currentPeriodEnd, now),
+    ),
+  );
+
 // ── Public Types ──
 
 export type ContentGateResult =
@@ -88,13 +103,7 @@ export const buildContentAccessContext = async (
     .where(
       and(
         eq(userSubscriptions.userId, userId),
-        or(
-          eq(userSubscriptions.status, "active"),
-          and(
-            eq(userSubscriptions.status, "canceled"),
-            gt(userSubscriptions.currentPeriodEnd, now),
-          ),
-        ),
+        buildSubscriptionStatusCondition(now),
       ),
     );
 
@@ -180,14 +189,7 @@ export const checkContentAccess = async (
     .where(
       and(
         eq(userSubscriptions.userId, userId),
-        // Status must be "active", OR "canceled" with period not yet expired
-        or(
-          eq(userSubscriptions.status, "active"),
-          and(
-            eq(userSubscriptions.status, "canceled"),
-            gt(userSubscriptions.currentPeriodEnd, now),
-          ),
-        ),
+        buildSubscriptionStatusCondition(now),
         // Plan must be platform-wide OR creator-specific for this creator
         or(
           eq(subscriptionPlans.type, "platform"),

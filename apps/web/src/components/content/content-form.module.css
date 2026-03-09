@@ -6,29 +6,10 @@
   gap: var(--space-lg);
 }
 
-/* ── Extended Input Elements ── */
-
-.textarea,
-.select {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  transition: border-color 0.15s;
-}
-
-.textarea:focus,
-.select:focus {
-  border-color: var(--color-accent);
-  outline: none;
-}
+/* ── Textarea Override ── */
 
 .textarea {
   min-height: 120px;
-  resize: vertical;
 }
 
 /* ── File Input ── */
@@ -90,13 +71,3 @@
   align-self: flex-start;
 }
 
-/* ── Feedback Messages ── */
-
-.success {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-success-bg);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-sm);
-  color: var(--color-success);
-  font-size: var(--font-size-sm);
-}

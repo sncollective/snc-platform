@@ -204,7 +204,7 @@ describe("admin routes", () => {
             }),
           };
         }
-        // batchGetUserRoles batch query
+        // getUserRoles query
         return {
           from: () => ({
             where: vi

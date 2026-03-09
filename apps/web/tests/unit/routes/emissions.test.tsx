@@ -1,40 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 import {
   makeMockEmissionsBreakdown,
 } from "../../helpers/emissions-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
-import { createAuthMock } from "../../helpers/auth-mock.js";
 import { createFormatMock } from "../../helpers/format-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatCo2 } = vi.hoisted(() => ({
+const { mockFormatCo2, mockUseLoaderData } = vi.hoisted(() => ({
   mockFormatCo2: vi.fn(),
+  mockUseLoaderData: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ redirect: vi.fn() }),
-);
-
-vi.mock("../../../src/lib/auth.js", () =>
-  createAuthMock({
-    fetchAuthState: vi.fn().mockResolvedValue({
-      user: { id: "u1", name: "Test" },
-      roles: ["subscriber"],
-    }),
+  createRouterMock({
+    useLoaderData: mockUseLoaderData,
   }),
 );
+
+vi.mock("../../../src/lib/api-server.js", () => ({
+  fetchApiServer: vi.fn(),
+}));
 
 vi.mock("../../../src/lib/format.js", () =>
   createFormatMock({ formatCo2: mockFormatCo2 }),
 );
-
-vi.mock("../../../src/lib/emissions.js", () => ({
-  fetchEmissionsBreakdown: vi.fn(),
-}));
 
 vi.mock("../../../src/components/emissions/emissions-chart.js", async () => {
   const React = await import("react");
@@ -100,29 +93,19 @@ beforeEach(() => {
     if (kg < 1) return `${(kg * 1000).toFixed(1)} g`;
     return `${kg.toFixed(1)} kg`;
   });
+  mockUseLoaderData.mockReturnValue(makeMockEmissionsBreakdown());
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 // ── Tests ──
 
 describe("EmissionsPage", () => {
-  it("renders net summary hero card after loading", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockResolvedValue(
-      makeMockEmissionsBreakdown(),
-    );
-
+  it("renders net summary hero card from loader data", () => {
     render(<EmissionsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("net-summary")).toBeInTheDocument();
-    });
     const summary = screen.getByTestId("net-summary");
     expect(summary).toHaveTextContent("Net Emissions");
     expect(summary).toHaveTextContent("0.0 kg");
@@ -130,86 +113,56 @@ describe("EmissionsPage", () => {
     expect(summary).toHaveTextContent("10.0 g");
   });
 
-  it("renders chart and breakdown tables", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockResolvedValue(
-      makeMockEmissionsBreakdown(),
-    );
-
+  it("renders chart and breakdown tables", () => {
     render(<EmissionsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("emissions-chart")).toHaveTextContent(
-        "Chart rendered",
-      );
-    });
+    expect(screen.getByTestId("emissions-chart")).toHaveTextContent(
+      "Chart rendered",
+    );
     expect(screen.getByTestId("scope-breakdown")).toBeInTheDocument();
     expect(screen.getByTestId("category-breakdown")).toBeInTheDocument();
   });
 
-  it("shows error state on fetch failure", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockRejectedValue(
-      new Error("Network error"),
-    );
-
+  it("renders CO2 equivalencies section", () => {
     render(<EmissionsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Network error");
-    });
+    expect(screen.getByTestId("co2-equivalencies")).toBeInTheDocument();
   });
 
-  it("renders CO2 equivalencies section", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockResolvedValue(
-      makeMockEmissionsBreakdown(),
-    );
-
+  it("renders offset impact section", () => {
     render(<EmissionsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("co2-equivalencies")).toBeInTheDocument();
-    });
+    expect(screen.getByTestId("offset-impact")).toBeInTheDocument();
   });
 
-  it("renders offset impact section", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockResolvedValue(
-      makeMockEmissionsBreakdown(),
-    );
-
+  it("renders grouped Emissions heading with subsections", () => {
     render(<EmissionsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("offset-impact")).toBeInTheDocument();
-    });
-  });
-
-  it("renders grouped Emissions heading with subsections", async () => {
-    const { fetchEmissionsBreakdown } = await import(
-      "../../../src/lib/emissions.js"
-    );
-    vi.mocked(fetchEmissionsBreakdown).mockResolvedValue(
-      makeMockEmissionsBreakdown(),
-    );
-
-    render(<EmissionsPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Emissions").length).toBeGreaterThanOrEqual(2);
-    });
+    expect(screen.getAllByText("Emissions").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Cumulative")).toBeInTheDocument();
     expect(screen.getByText("By Scope")).toBeInTheDocument();
     expect(screen.getByText("By Category")).toBeInTheDocument();
   });
 
+  it("hides What Does This Mean section when grossCo2Kg is 0", () => {
+    mockUseLoaderData.mockReturnValue(
+      makeMockEmissionsBreakdown({
+        summary: {
+          grossCo2Kg: 0,
+          offsetCo2Kg: 0,
+          netCo2Kg: 0,
+          entryCount: 0,
+          latestDate: "2026-03-31",
+          projectedGrossCo2Kg: 0,
+          doubleOffsetTargetCo2Kg: 0,
+          additionalOffsetCo2Kg: 0,
+        },
+      }),
+    );
+
+    render(<EmissionsPage />);
+
+    expect(screen.queryByTestId("co2-equivalencies")).toBeNull();
+    expect(screen.queryByTestId("offset-impact")).toBeNull();
+  });
 });

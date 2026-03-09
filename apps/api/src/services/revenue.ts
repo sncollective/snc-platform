@@ -1,39 +1,11 @@
-import Stripe from "stripe";
-
 import { AppError, ok, err, type Result, type MonthlyRevenue } from "@snc/shared";
 
-import { config } from "../config.js";
 import { wrapExternalError } from "./external-error.js";
-
-// ── Module-Level Configuration ──
-
-const STRIPE_KEY: string | null = config.STRIPE_SECRET_KEY ?? null;
+import { getStripe, ensureConfigured } from "./stripe-client.js";
 
 // ── Private Helpers ──
 
 const wrapRevenueError = wrapExternalError("REVENUE_ERROR");
-
-let stripeInstance: Stripe | null = null;
-
-const getStripe = (): Stripe => {
-  if (stripeInstance === null) {
-    stripeInstance = new Stripe(STRIPE_KEY!);
-  }
-  return stripeInstance;
-};
-
-const ensureConfigured = (): Result<void, AppError> => {
-  if (STRIPE_KEY === null) {
-    return err(
-      new AppError(
-        "BILLING_NOT_CONFIGURED",
-        "Stripe integration is not configured",
-        503,
-      ),
-    );
-  }
-  return ok(undefined);
-};
 
 // ── Public API ──
 
@@ -41,7 +13,7 @@ export const getMonthlyRevenue = async (
   months: number,
 ): Promise<Result<MonthlyRevenue[], AppError>> => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<MonthlyRevenue[], AppError>;
+  if (!configured.ok) return err(configured.error);
 
   try {
     const stripe = getStripe();

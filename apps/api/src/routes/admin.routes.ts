@@ -15,6 +15,7 @@ import type { AdminUsersQuery, AdminUser, Role } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
+import { getUserRoles } from "../auth/user-roles.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -26,7 +27,25 @@ import {
 } from "./openapi-errors.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 
+// ── Private Types ──
+
+type UserRow = typeof users.$inferSelect;
+
 // ── Private Helpers ──
+
+const toAdminUserResponse = (
+  row: UserRow,
+  roles: Role[],
+): AdminUser => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  emailVerified: row.emailVerified,
+  image: row.image,
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+  roles,
+});
 
 async function batchGetUserRoles(
   userIds: string[],
@@ -53,18 +72,9 @@ async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
 
   if (!user) return null;
 
-  const rolesMap = await batchGetUserRoles([userId]);
+  const roles = await getUserRoles(userId);
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    emailVerified: user.emailVerified,
-    image: user.image,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
-    roles: (rolesMap.get(userId) ?? []) as AdminUser["roles"],
-  };
+  return toAdminUserResponse(user, roles);
 }
 
 // ── Public API ──
@@ -133,16 +143,9 @@ adminRoutes.get(
 
     const rolesMap = await batchGetUserRoles(pagedUsers.map((u) => u.id));
 
-    const usersWithRoles: AdminUser[] = pagedUsers.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      emailVerified: u.emailVerified,
-      image: u.image,
-      createdAt: u.createdAt.toISOString(),
-      updatedAt: u.updatedAt.toISOString(),
-      roles: (rolesMap.get(u.id) ?? []) as AdminUser["roles"],
-    }));
+    const usersWithRoles: AdminUser[] = pagedUsers.map((u) =>
+      toAdminUserResponse(u, rolesMap.get(u.id) ?? []),
+    );
 
     return c.json({ items: usersWithRoles, nextCursor });
   },

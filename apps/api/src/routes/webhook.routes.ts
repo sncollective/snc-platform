@@ -2,6 +2,7 @@ import node_crypto from "node:crypto";
 
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
+import type Stripe from "stripe";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 
@@ -14,22 +15,6 @@ import {
 } from "../db/schema/subscription.schema.js";
 import { verifyWebhookSignature } from "../services/stripe.js";
 import { ERROR_400 } from "./openapi-errors.js";
-
-// ── Private Types ──
-
-/**
- * Minimal Stripe event shape used by the webhook handler. This avoids
- * importing the full Stripe types into the route file — the event is
- * already verified and typed by `verifyWebhookSignature`, but the private
- * handlers extract only the fields they need.
- */
-type StripeEventData = {
-  id: string;
-  type: string;
-  data: {
-    object: Record<string, unknown>;
-  };
-};
 
 // ── Private Constants ──
 
@@ -209,7 +194,8 @@ webhookRoutes.post(
       throw verifyResult.error;
     }
 
-    const event = verifyResult.value as unknown as StripeEventData;
+    const event: Pick<Stripe.Event, "id" | "type" | "data"> =
+      verifyResult.value;
 
     // 3. Idempotency check: INSERT into payment_events
     //    If the event ID already exists, skip processing
@@ -233,7 +219,9 @@ webhookRoutes.post(
     // 4. Dispatch to event-specific handler
     const handler = EVENT_HANDLERS[event.type];
     if (handler) {
-      await handler(event.data.object as Record<string, unknown>);
+      // Stripe.Event.Data.Object is a union of 80+ specific types;
+      // handlers use Record<string, unknown> to extract fields generically.
+      await handler(event.data.object as unknown as Record<string, unknown>);
     }
     // Unknown event types are silently acknowledged
 

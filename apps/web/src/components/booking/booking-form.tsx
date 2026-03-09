@@ -3,6 +3,7 @@ import type React from "react";
 import type { FormEvent } from "react";
 
 import { z, minLength, maxLength, safeParse } from "zod/mini";
+import { MAX_PREFERRED_DATES, MAX_BOOKING_NOTES_LENGTH } from "@snc/shared";
 
 import { createBooking } from "../../lib/booking.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
@@ -11,18 +12,16 @@ import styles from "./booking-form.module.css";
 
 // ── Private Constants ──
 
-const MAX_DATES = 5;
-
 const BOOKING_FORM_SCHEMA = z.object({
   preferredDates: z
     .array(z.string().check(minLength(1, "Date cannot be empty")))
     .check(
       minLength(1, "At least one preferred date is required"),
-      maxLength(MAX_DATES, `Maximum ${MAX_DATES} preferred dates allowed`),
+      maxLength(MAX_PREFERRED_DATES, `Maximum ${MAX_PREFERRED_DATES} preferred dates allowed`),
     ),
   notes: z
     .string()
-    .check(maxLength(2000, "Notes cannot exceed 2000 characters")),
+    .check(maxLength(MAX_BOOKING_NOTES_LENGTH, `Notes cannot exceed ${MAX_BOOKING_NOTES_LENGTH} characters`)),
 });
 
 type BookingFormFields = z.infer<typeof BOOKING_FORM_SCHEMA>;
@@ -60,7 +59,7 @@ export function BookingForm({
 
   const addDate = useCallback(() => {
     setPreferredDates((prev) =>
-      prev.length < MAX_DATES ? [...prev, ""] : prev,
+      prev.length < MAX_PREFERRED_DATES ? [...prev, ""] : prev,
     );
   }, []);
 
@@ -161,7 +160,7 @@ export function BookingForm({
           type="button"
           className={styles.addDateButton}
           onClick={addDate}
-          disabled={preferredDates.length >= MAX_DATES}
+          disabled={preferredDates.length >= MAX_PREFERRED_DATES}
         >
           Add another date
         </button>
@@ -178,8 +177,8 @@ export function BookingForm({
           placeholder="Any details about your booking request..."
           className={
             fieldErrors.notes
-              ? `${styles.textarea} ${formStyles.inputError}`
-              : styles.textarea
+              ? `${formStyles.textarea} ${styles.textarea} ${formStyles.inputError}`
+              : `${formStyles.textarea} ${styles.textarea}`
           }
         />
         {fieldErrors.notes && (

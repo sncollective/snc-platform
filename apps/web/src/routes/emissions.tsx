@@ -1,72 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import type React from "react";
 import type { EmissionsBreakdown } from "@snc/shared";
 
-import { fetchEmissionsBreakdown } from "../lib/emissions.js";
+import { fetchApiServer } from "../lib/api-server.js";
 import { formatCo2 } from "../lib/format.js";
 import { EmissionsChart } from "../components/emissions/emissions-chart.js";
 import { ScopeBreakdown } from "../components/emissions/scope-breakdown.js";
 import { CategoryBreakdown } from "../components/emissions/category-breakdown.js";
 import { Co2Equivalencies } from "../components/emissions/co2-equivalencies.js";
 import { OffsetImpact } from "../components/emissions/offset-impact.js";
+import sectionStyles from "../styles/detail-section.module.css";
+import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./emissions.module.css";
 
 export const Route = createFileRoute("/emissions")({
+  loader: async (): Promise<EmissionsBreakdown> => {
+    return (await fetchApiServer({
+      data: "/api/emissions/breakdown",
+    })) as EmissionsBreakdown;
+  },
   component: EmissionsPage,
 });
 
 function EmissionsPage(): React.ReactElement {
-  const [breakdown, setBreakdown] = useState<EmissionsBreakdown | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const breakdown = Route.useLoaderData();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadData(): Promise<void> {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const result = await fetchEmissionsBreakdown();
-        if (!cancelled) {
-          setBreakdown(result);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(
-            e instanceof Error ? e.message : "Failed to load emissions data",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadData();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const grossCo2Value = breakdown !== null
-    ? formatCo2(breakdown.summary.grossCo2Kg)
-    : "—";
-  const offsetCo2Value = breakdown !== null
-    ? formatCo2(breakdown.summary.offsetCo2Kg)
-    : "—";
-  const netCo2Value = breakdown !== null
-    ? `${breakdown.summary.netCo2Kg.toFixed(1)} kg`
-    : "—";
-  const netValueClass = breakdown !== null
-    ? breakdown.summary.netCo2Kg <= 0 ? styles.valueSuccess : styles.valueError
-    : undefined;
+  const grossCo2Value = formatCo2(breakdown.summary.grossCo2Kg);
+  const offsetCo2Value = formatCo2(breakdown.summary.offsetCo2Kg);
+  const netCo2Value = `${breakdown.summary.netCo2Kg.toFixed(1)} kg`;
+  const netValueClass = breakdown.summary.netCo2Kg <= 0
+    ? styles.valueSuccess
+    : styles.valueError;
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Emissions</h1>
+      <h1 className={pageHeadingStyles.heading}>Emissions</h1>
 
       <p className={styles.intro}>
           We take responsibility for the ecological impact of what we make. This
@@ -90,76 +57,58 @@ function EmissionsPage(): React.ReactElement {
           . No greenwashing, just transparency.
       </p>
 
-      {error !== null && (
-        <div className={styles.error} role="alert">{error}</div>
-      )}
-
       {/* ── Net Summary ── */}
       <div className={styles.summaryCard} data-testid="net-summary">
         <p className={styles.summaryLabel}>Net Emissions</p>
-        {loading ? (
-          <p className={styles.status}>Loading...</p>
-        ) : (
-          <>
-            <p className={`${styles.summaryValue} ${netValueClass ?? ""}`}>
-              {netCo2Value}
-            </p>
-            <p className={styles.summaryMath}>
-              <span className={styles.valueError}>{grossCo2Value}</span> emitted
-              {" "}&minus;{" "}
-              <span className={styles.valueSuccess}>{offsetCo2Value}</span> offset
-            </p>
-          </>
-        )}
+        <p className={`${styles.summaryValue} ${netValueClass}`}>
+          {netCo2Value}
+        </p>
+        <p className={styles.summaryMath}>
+          <span className={styles.valueError}>{grossCo2Value}</span> emitted
+          {" "}&minus;{" "}
+          <span className={styles.valueSuccess}>{offsetCo2Value}</span> offset
+        </p>
       </div>
 
       {/* ── Emissions ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Emissions</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={sectionStyles.sectionHeading}>Emissions</h2>
 
-        <section className={styles.section}>
+        <section className={sectionStyles.section}>
           <h3 className={styles.subsectionHeading}>Cumulative</h3>
           <EmissionsChart
-            data={breakdown?.monthly ?? []}
-            isLoading={loading}
+            data={breakdown.monthly}
+            isLoading={false}
           />
         </section>
 
         <details className={styles.methodologyDetails}>
           <summary className={styles.methodologySummary}>By Scope</summary>
           <div className={styles.methodologyContent}>
-            {loading ? (
-              <p className={styles.status}>Loading...</p>
-            ) : (
-              <ScopeBreakdown data={breakdown?.byScope ?? []} />
-            )}
+            <ScopeBreakdown data={breakdown.byScope} />
           </div>
         </details>
 
         <details className={styles.methodologyDetails}>
           <summary className={styles.methodologySummary}>By Category</summary>
           <div className={styles.methodologyContent}>
-            {loading ? (
-              <p className={styles.status}>Loading...</p>
-            ) : (
-              <CategoryBreakdown data={breakdown?.byCategory ?? []} />
-            )}
+            <CategoryBreakdown data={breakdown.byCategory} />
           </div>
         </details>
       </section>
 
       {/* ── What Does This Mean? ── */}
-      {!loading && breakdown !== null && breakdown.summary.grossCo2Kg > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionHeading}>What Does This Mean?</h2>
+      {breakdown.summary.grossCo2Kg > 0 && (
+        <section className={sectionStyles.section}>
+          <h2 className={sectionStyles.sectionHeading}>What Does This Mean?</h2>
           <Co2Equivalencies co2Kg={breakdown.summary.grossCo2Kg} />
           <OffsetImpact offsetCo2Kg={breakdown.summary.offsetCo2Kg} />
         </section>
       )}
 
       {/* ── Methodology ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Methodology</h2>
+      <section className={sectionStyles.section}>
+        <h2 className={sectionStyles.sectionHeading}>Methodology</h2>
         <p className={styles.methodologyIntro}>
           All figures are estimates — no provider publishes verified per-use
           emissions data. Where multiple estimates exist, we use the highest

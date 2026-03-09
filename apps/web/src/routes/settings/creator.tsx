@@ -18,6 +18,11 @@ import {
   fetchCreatorProfile,
   updateCreatorProfile,
 } from "../../lib/creator.js";
+import buttonStyles from "../../styles/button.module.css";
+import errorStyles from "../../styles/error-alert.module.css";
+import formStyles from "../../styles/form.module.css";
+import successStyles from "../../styles/success-alert.module.css";
+import pageHeadingStyles from "../../styles/page-heading.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 import styles from "./creator-settings.module.css";
 
@@ -171,24 +176,24 @@ function CreatorSettingsPage(): React.ReactElement {
 
   return (
     <div className={settingsStyles.page}>
-      <h1 className={styles.heading}>Creator Settings</h1>
+      <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>Creator Settings</h1>
 
       {serverError && (
-        <div className={settingsStyles.error} role="alert">
+        <div className={errorStyles.error} role="alert">
           {serverError}
         </div>
       )}
 
       {successMessage && (
-        <div className={styles.success} role="status">
+        <div className={successStyles.success} role="status">
           {successMessage}
         </div>
       )}
 
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
         {/* Add Social Link */}
-        <div className={styles.fieldGroup}>
-          <label htmlFor="link-platform" className={styles.label}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="link-platform" className={formStyles.label}>
             Social Links
           </label>
           <div className={styles.addLinkRow}>
@@ -198,7 +203,7 @@ function CreatorSettingsPage(): React.ReactElement {
               onChange={(e) =>
                 setNewPlatform(e.target.value as SocialPlatform)
               }
-              className={styles.select}
+              className={formStyles.select}
               disabled={isSubmitting}
             >
               {SOCIAL_PLATFORMS.map((p) => (
@@ -215,8 +220,8 @@ function CreatorSettingsPage(): React.ReactElement {
               placeholder="https://..."
               className={
                 linkError
-                  ? `${styles.input} ${styles.inputError}`
-                  : styles.input
+                  ? `${formStyles.input} ${styles.input} ${formStyles.inputError}`
+                  : `${formStyles.input} ${styles.input}`
               }
               disabled={isSubmitting}
             />
@@ -230,7 +235,7 @@ function CreatorSettingsPage(): React.ReactElement {
             </button>
           </div>
           {linkError && (
-            <span className={styles.fieldError} role="alert">
+            <span className={formStyles.fieldError} role="alert">
               {linkError}
             </span>
           )}
@@ -264,7 +269,7 @@ function CreatorSettingsPage(): React.ReactElement {
         {/* Save Button */}
         <button
           type="submit"
-          className={styles.saveButton}
+          className={`${buttonStyles.primaryButton} ${styles.saveButton}`}
           disabled={isSubmitting}
         >
           {isSubmitting ? "Saving\u2026" : "Save Changes"}

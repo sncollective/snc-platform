@@ -32,18 +32,35 @@ const mockStripeInstance = {
 // ── Setup Factory ──
 
 const setupStripeService = async () => {
-  // Use a regular function (not vi.fn) as the constructor: arrow functions and
-  // vitest spy wrappers cannot be called with `new`, but a regular function that
-  // returns an object satisfies `new Stripe(...)` — returning a non-null object
-  // from a constructor overrides `this` and gives callers our mockStripeInstance.
-  vi.doMock("stripe", () => ({
-    default: function MockStripe() {
-      return mockStripeInstance;
-    },
+  vi.doMock("../../src/services/stripe-client.js", () => ({
+    getStripe: () => mockStripeInstance,
+    ensureConfigured: () => ({ ok: true, value: undefined }),
   }));
 
   vi.doMock("../../src/config.js", () => ({
     config: TEST_CONFIG,
+  }));
+
+  return await import("../../src/services/stripe.js");
+};
+
+const setupStripeServiceUnconfigured = async () => {
+  const { AppError, err } = await import("@snc/shared");
+
+  vi.doMock("../../src/services/stripe-client.js", () => ({
+    getStripe: () => mockStripeInstance,
+    ensureConfigured: () =>
+      err(
+        new AppError(
+          "BILLING_NOT_CONFIGURED",
+          "Stripe integration is not configured",
+          503,
+        ),
+      ),
+  }));
+
+  vi.doMock("../../src/config.js", () => ({
+    config: { ...TEST_CONFIG, STRIPE_SECRET_KEY: undefined },
   }));
 
   return await import("../../src/services/stripe.js");
@@ -115,6 +132,17 @@ describe("stripe service", () => {
         expect(result.error.code).toBe("STRIPE_ERROR");
         expect(result.error.statusCode).toBe(502);
         expect(result.error.message).toBe("Stripe network error");
+      }
+    });
+
+    it("returns err when Stripe is not configured", async () => {
+      const { getOrCreateCustomer } = await setupStripeServiceUnconfigured();
+      const result = await getOrCreateCustomer("user_123", "user@example.com");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("BILLING_NOT_CONFIGURED");
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });

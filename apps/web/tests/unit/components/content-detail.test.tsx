@@ -47,25 +47,25 @@ afterEach(() => {
 describe("ContentDetail", () => {
   it("renders VideoDetail for video type", () => {
     const item = makeMockFeedItem({ type: "video" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(screen.getByTestId("video-detail")).toBeInTheDocument();
   });
 
   it("renders AudioDetail for audio type", () => {
     const item = makeMockFeedItem({ type: "audio" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(screen.getByTestId("audio-detail")).toBeInTheDocument();
   });
 
   it("renders WrittenDetail for written type", () => {
     const item = makeMockFeedItem({ type: "written" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(screen.getByTestId("written-detail")).toBeInTheDocument();
   });
 
   it("wraps content in an article element", () => {
     const item = makeMockFeedItem();
-    const { container } = render(<ContentDetail item={item} />);
+    const { container } = render(<ContentDetail item={item} plans={[]} />);
     expect(container.querySelector("article")).not.toBeNull();
   });
 
@@ -76,7 +76,7 @@ describe("ContentDetail", () => {
       mediaUrl: null,
       body: null,
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockVideoDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: true }),
     );
@@ -84,7 +84,7 @@ describe("ContentDetail", () => {
 
   it("passes locked=false to VideoDetail when content is public", () => {
     const item = makeMockFeedItem({ type: "video", visibility: "public" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockVideoDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
     );
@@ -96,7 +96,7 @@ describe("ContentDetail", () => {
       visibility: "subscribers",
       mediaUrl: "/api/content/1/media",
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockVideoDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
     );
@@ -109,7 +109,7 @@ describe("ContentDetail", () => {
       mediaUrl: null,
       body: null,
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockAudioDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: true }),
     );
@@ -117,7 +117,7 @@ describe("ContentDetail", () => {
 
   it("passes locked=false to AudioDetail when content is public", () => {
     const item = makeMockFeedItem({ type: "audio", visibility: "public" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockAudioDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
     );
@@ -129,7 +129,7 @@ describe("ContentDetail", () => {
       visibility: "subscribers",
       mediaUrl: "/api/content/1/media",
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockAudioDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
     );
@@ -142,7 +142,7 @@ describe("ContentDetail", () => {
       mediaUrl: null,
       body: null,
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockWrittenDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: true }),
     );
@@ -150,7 +150,7 @@ describe("ContentDetail", () => {
 
   it("passes locked=false to WrittenDetail when content is public", () => {
     const item = makeMockFeedItem({ type: "written", visibility: "public" });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockWrittenDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
     );
@@ -162,9 +162,17 @@ describe("ContentDetail", () => {
       visibility: "subscribers",
       mediaUrl: "/api/content/1/media",
     });
-    render(<ContentDetail item={item} />);
+    render(<ContentDetail item={item} plans={[]} />);
     expect(mockWrittenDetail).toHaveBeenCalledWith(
       expect.objectContaining({ locked: false }),
+    );
+  });
+
+  it("passes plans to variant detail components", () => {
+    const item = makeMockFeedItem({ type: "video" });
+    render(<ContentDetail item={item} plans={[]} />);
+    expect(mockVideoDetail).toHaveBeenCalledWith(
+      expect.objectContaining({ plans: [] }),
     );
   });
 });

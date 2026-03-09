@@ -4,6 +4,8 @@ import { z } from "zod";
 
 export const CONTENT_TYPES = ["video", "audio", "written"] as const;
 export const VISIBILITY = ["public", "subscribers"] as const;
+export const MAX_TITLE_LENGTH = 200;
+export const MAX_DESCRIPTION_LENGTH = 2000;
 
 // ── Public Schemas ──
 
@@ -11,16 +13,16 @@ export const ContentTypeSchema = z.enum(CONTENT_TYPES);
 export const VisibilitySchema = z.enum(VISIBILITY);
 
 export const CreateContentSchema = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().min(1).max(MAX_TITLE_LENGTH),
   type: ContentTypeSchema,
-  description: z.string().max(2000).optional(),
+  description: z.string().max(MAX_DESCRIPTION_LENGTH).optional(),
   visibility: VisibilitySchema.default("public"),
   body: z.string().optional(),
 });
 
 export const UpdateContentSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(2000).optional(),
+  title: z.string().min(1).max(MAX_TITLE_LENGTH).optional(),
+  description: z.string().max(MAX_DESCRIPTION_LENGTH).optional(),
   visibility: VisibilitySchema.optional(),
   body: z.string().optional(),
 });

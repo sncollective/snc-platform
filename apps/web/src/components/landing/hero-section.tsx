@@ -4,6 +4,7 @@ import type { SubscriptionPlan } from "@snc/shared";
 
 import { usePlatformAuth } from "../../hooks/use-platform-auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
+import buttonStyles from "../../styles/button.module.css";
 import styles from "./hero-section.module.css";
 
 interface HeroSectionProps {
@@ -53,13 +54,13 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
         </p>
         <div className={styles.actions}>
           {isSubscribed ? (
-            <Link to="/feed" className={styles.primaryCta}>
+            <Link to="/feed" className={`${buttonStyles.primaryButton} ${styles.primaryCta}`}>
               Explore Content
             </Link>
           ) : (
             <button
               type="button"
-              className={styles.primaryCta}
+              className={`${buttonStyles.primaryButton} ${styles.primaryCta}`}
               disabled={checkoutLoading}
               onClick={() => void handlePrimaryCta()}
             >

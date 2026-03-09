@@ -59,11 +59,14 @@ export function hasPlatformSubscription(
 
 /**
  * Cancel a subscription by its ID (our user_subscriptions.id).
+ * Returns the updated subscription with nested plan data.
  */
 export async function cancelSubscription(
   subscriptionId: string,
-): Promise<void> {
-  await apiMutate<void>("/api/subscriptions/cancel", {
-    body: { subscriptionId },
-  });
+): Promise<UserSubscriptionWithPlan> {
+  const data = await apiMutate<{ subscription: UserSubscriptionWithPlan }>(
+    "/api/subscriptions/cancel",
+    { body: { subscriptionId } },
+  );
+  return data.subscription;
 }

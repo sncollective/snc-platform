@@ -56,7 +56,7 @@ export type CreateCheckoutParams = {
 
 // ── Module-Level Configuration ──
 
-const STOREFRONT_API_VERSION = "2025-01";
+const STOREFRONT_API_VERSION = "2025-10";
 
 const SHOPIFY_STOREFRONT_ENDPOINT: string | null =
   config.SHOPIFY_STORE_DOMAIN !== undefined
@@ -135,49 +135,56 @@ const query = async <T>(
 
 // ── GraphQL Queries ──
 
+const PRODUCT_FIELDS_FRAGMENT = `
+  fragment ProductFields on Product {
+    id
+    handle
+    title
+    description
+    vendor
+    tags
+    featuredImage {
+      url
+      altText
+    }
+    images(first: 10) {
+      edges {
+        node {
+          url
+          altText
+        }
+      }
+    }
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          title
+          price {
+            amount
+            currencyCode
+          }
+          availableForSale
+        }
+      }
+    }
+  }
+`;
+
 const PRODUCTS_QUERY = `
+  ${PRODUCT_FIELDS_FRAGMENT}
   query Products($first: Int!, $after: String, $query: String) {
     products(first: $first, after: $after, query: $query) {
       edges {
         cursor
         node {
-          id
-          handle
-          title
-          description
-          vendor
-          tags
-          featuredImage {
-            url
-            altText
-          }
-          images(first: 10) {
-            edges {
-              node {
-                url
-                altText
-              }
-            }
-          }
-          priceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-          }
-          variants(first: 100) {
-            edges {
-              node {
-                id
-                title
-                price {
-                  amount
-                  currencyCode
-                }
-                availableForSale
-              }
-            }
-          }
+          ...ProductFields
         }
       }
       pageInfo {
@@ -189,45 +196,10 @@ const PRODUCTS_QUERY = `
 `;
 
 const PRODUCT_BY_HANDLE_QUERY = `
+  ${PRODUCT_FIELDS_FRAGMENT}
   query ProductByHandle($handle: String!) {
-    productByHandle(handle: $handle) {
-      id
-      handle
-      title
-      description
-      vendor
-      tags
-      featuredImage {
-        url
-        altText
-      }
-      images(first: 10) {
-        edges {
-          node {
-            url
-            altText
-          }
-        }
-      }
-      priceRange {
-        minVariantPrice {
-          amount
-          currencyCode
-        }
-      }
-      variants(first: 100) {
-        edges {
-          node {
-            id
-            title
-            price {
-              amount
-              currencyCode
-            }
-            availableForSale
-          }
-        }
-      }
+    product(handle: $handle) {
+      ...ProductFields
     }
   }
 `;
@@ -240,6 +212,10 @@ const CART_CREATE_MUTATION = `
       }
       userErrors {
         field
+        message
+      }
+      warnings {
+        code
         message
       }
     }
@@ -256,13 +232,14 @@ type ProductsQueryData = {
 };
 
 type ProductByHandleData = {
-  productByHandle: ShopifyProductNode | null;
+  product: ShopifyProductNode | null;
 };
 
 type CartCreateData = {
   cartCreate: {
     cart: { checkoutUrl: string } | null;
     userErrors: Array<{ field: string[]; message: string }>;
+    warnings: Array<{ code: string; message: string }>;
   };
 };
 
@@ -298,7 +275,7 @@ export const getProductByHandle = async (
   });
   if (!result.ok) return result;
 
-  return ok(result.value.productByHandle);
+  return ok(result.value.product);
 };
 
 export const createCheckoutUrl = async (
@@ -311,7 +288,7 @@ export const createCheckoutUrl = async (
   const result = await query<CartCreateData>(CART_CREATE_MUTATION, { input });
   if (!result.ok) return result;
 
-  const { cart, userErrors } = result.value.cartCreate;
+  const { cart, userErrors, warnings } = result.value.cartCreate;
 
   if (userErrors.length > 0) {
     return err(
@@ -319,6 +296,16 @@ export const createCheckoutUrl = async (
         "SHOPIFY_ERROR",
         userErrors[0]?.message ?? "Cart creation failed",
         502,
+      ),
+    );
+  }
+
+  if (warnings.length > 0) {
+    return err(
+      new AppError(
+        "SHOPIFY_CART_WARNING",
+        warnings[0]?.message ?? "Cart creation warning",
+        422,
       ),
     );
   }

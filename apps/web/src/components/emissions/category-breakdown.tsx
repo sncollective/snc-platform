@@ -1,7 +1,7 @@
 import type React from "react";
 
 import { formatCo2 } from "../../lib/format.js";
-import styles from "./category-breakdown.module.css";
+import styles from "./breakdown-table.module.css";
 
 // ── Public Types ──
 

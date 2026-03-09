@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { throwIfNotOk } from "../lib/fetch-utils.js";
+
 export function useCursorPagination<T>({
   buildUrl,
   deps = [],
@@ -44,10 +46,7 @@ export function useCursorPagination<T>({
       try {
         const url = buildUrlRef.current(cursor);
         const res = await fetch(url, fetchOptionsRef.current);
-        if (!res.ok) {
-          setError("Failed to load");
-          return;
-        }
+        await throwIfNotOk(res);
         const data = (await res.json()) as {
           items: T[];
           nextCursor: string | null;

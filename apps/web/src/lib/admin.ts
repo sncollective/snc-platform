@@ -1,20 +1,12 @@
 import type {
-  AdminUsersResponse,
   AdminUserResponse,
   AssignRoleRequest,
   RevokeRoleRequest,
 } from "@snc/shared";
 
-import { apiGet, apiMutate } from "./fetch-utils.js";
+import { apiMutate } from "./fetch-utils.js";
 
 // ── Public API ──
-
-export async function fetchAdminUsers(params?: {
-  cursor?: string;
-  limit?: number;
-}): Promise<AdminUsersResponse> {
-  return apiGet<AdminUsersResponse>("/api/admin/users", params);
-}
 
 export async function assignRole(
   userId: string,

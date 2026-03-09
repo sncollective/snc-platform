@@ -37,6 +37,8 @@ import {
   ERROR_401,
   ERROR_403,
   ERROR_404,
+  ERROR_502,
+  ERROR_503,
 } from "./openapi-errors.js";
 import {
   getOrCreateCustomer,
@@ -163,6 +165,8 @@ subscriptionRoutes.post(
       },
       400: ERROR_400,
       401: ERROR_401,
+      502: ERROR_502,
+      503: ERROR_503,
     },
   }),
   validator("json", CheckoutRequestSchema),
@@ -233,6 +237,8 @@ subscriptionRoutes.post(
       401: ERROR_401,
       403: ERROR_403,
       404: ERROR_404,
+      502: ERROR_502,
+      503: ERROR_503,
     },
   }),
   validator("json", CancelRequestSchema),

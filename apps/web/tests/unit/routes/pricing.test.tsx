@@ -2,25 +2,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { makeMockPlan, makeMockUserSubscription } from "../../helpers/subscription-fixtures.js";
+import { makeMockPlan } from "../../helpers/subscription-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
-import { createAuthMock } from "../../helpers/auth-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
 const {
-  mockUseSession,
   mockNavigate,
   mockUseLoaderData,
-  mockCreateCheckout,
-  mockFetchMySubscriptions,
+  mockUsePlatformAuth,
+  mockHandleCheckout,
 } = vi.hoisted(() => ({
-  mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
   mockUseLoaderData: vi.fn(),
-  mockCreateCheckout: vi.fn(),
-  mockFetchMySubscriptions: vi.fn(),
+  mockUsePlatformAuth: vi.fn(),
+  mockHandleCheckout: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -30,22 +27,20 @@ vi.mock("@tanstack/react-router", () =>
   }),
 );
 
-vi.mock("../../../src/lib/auth.js", () =>
-  createAuthMock({ useSession: mockUseSession }),
-);
-
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/subscription.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../src/lib/subscription.js")>();
-  return {
-    ...actual,
-    createCheckout: mockCreateCheckout,
-    fetchMySubscriptions: mockFetchMySubscriptions,
-  };
-});
+vi.mock("../../../src/hooks/use-platform-auth.js", () => ({
+  usePlatformAuth: mockUsePlatformAuth,
+}));
+
+vi.mock("../../../src/hooks/use-checkout.js", () => ({
+  useCheckout: (options?: { onError?: (message: string) => void }) => ({
+    checkoutLoading: false,
+    handleCheckout: (planId: string) => mockHandleCheckout(planId, options?.onError),
+  }),
+}));
 
 // ── Component Under Test ──
 
@@ -54,13 +49,12 @@ const PricingPage = extractRouteComponent(() => import("../../../src/routes/pric
 // ── Test Lifecycle ──
 
 beforeEach(() => {
-  mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
+  mockUsePlatformAuth.mockReturnValue({ isAuthenticated: false, isSubscribed: false });
   mockUseLoaderData.mockReturnValue([
     makeMockPlan({ id: "plan-monthly", name: "Monthly", price: 999, interval: "month" }),
     makeMockPlan({ id: "plan-yearly", name: "Yearly", price: 9999, interval: "year" }),
   ]);
-  mockFetchMySubscriptions.mockResolvedValue([]);
-  mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
+  mockHandleCheckout.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -85,14 +79,9 @@ describe("PricingPage", () => {
     expect(screen.getByText("No plans available.")).toBeInTheDocument();
   });
 
-  it("subscribe button calls createCheckout for authenticated users", async () => {
+  it("subscribe button calls handleCheckout for authenticated users", async () => {
     const user = userEvent.setup();
-    mockUseSession.mockReturnValue({
-      data: { user: { id: "user-1" } },
-      isPending: false,
-      error: null,
-    });
-    vi.stubGlobal("location", { ...window.location, set href(_: string) {} });
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: true, isSubscribed: false });
 
     render(<PricingPage />);
 
@@ -100,13 +89,13 @@ describe("PricingPage", () => {
     await user.click(subscribeButtons[0]!);
 
     await waitFor(() => {
-      expect(mockCreateCheckout).toHaveBeenCalledWith("plan-monthly");
+      expect(mockHandleCheckout).toHaveBeenCalledWith("plan-monthly", expect.any(Function));
     });
   });
 
   it("subscribe button navigates to /login for unauthenticated users", async () => {
     const user = userEvent.setup();
-    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: false, isSubscribed: false });
 
     render(<PricingPage />);
 
@@ -118,39 +107,21 @@ describe("PricingPage", () => {
     });
   });
 
-  it("shows 'You're subscribed!' banner for subscribed users", async () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: "user-1" } },
-      isPending: false,
-      error: null,
-    });
-    mockFetchMySubscriptions.mockResolvedValue([
-      makeMockUserSubscription({ status: "active" }),
-    ]);
+  it("shows 'You're subscribed!' banner for subscribed users", () => {
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: true, isSubscribed: true });
 
     render(<PricingPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("You're subscribed!")).toBeInTheDocument();
-    });
+    expect(screen.getByText("You're subscribed!")).toBeInTheDocument();
   });
 
-  it("'Manage subscriptions' link points to /settings/subscriptions", async () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: "user-1" } },
-      isPending: false,
-      error: null,
-    });
-    mockFetchMySubscriptions.mockResolvedValue([
-      makeMockUserSubscription({ status: "active" }),
-    ]);
+  it("'Manage subscriptions' link points to /settings/subscriptions", () => {
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: true, isSubscribed: true });
 
     render(<PricingPage />);
 
-    await waitFor(() => {
-      const link = screen.getByText("Manage subscriptions");
-      expect(link).toHaveAttribute("href", "/settings/subscriptions");
-    });
+    const link = screen.getByText("Manage subscriptions");
+    expect(link).toHaveAttribute("href", "/settings/subscriptions");
   });
 
   it("shows creator note footer text", () => {
@@ -161,17 +132,32 @@ describe("PricingPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not show subscribed banner when user has no active platform subscription", async () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: "user-1" } },
-      isPending: false,
-      error: null,
-    });
-    mockFetchMySubscriptions.mockResolvedValue([]);
+  it("does not show subscribed banner when user has no active platform subscription", () => {
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: true, isSubscribed: false });
 
     render(<PricingPage />);
 
     expect(screen.getByText("Monthly")).toBeInTheDocument();
     expect(screen.queryByText("You're subscribed!")).toBeNull();
+  });
+
+  it("passes onError callback that sets error state", async () => {
+    const user = userEvent.setup();
+    mockUsePlatformAuth.mockReturnValue({ isAuthenticated: true, isSubscribed: false });
+    mockHandleCheckout.mockImplementation(
+      (_planId: string, onError?: (message: string) => void) => {
+        onError?.("Checkout failed");
+        return Promise.resolve();
+      },
+    );
+
+    render(<PricingPage />);
+
+    const subscribeButtons = screen.getAllByRole("button", { name: /subscribe/i });
+    await user.click(subscribeButtons[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Checkout failed");
+    });
   });
 });

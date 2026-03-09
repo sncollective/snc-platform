@@ -5,6 +5,7 @@ import type { BookingWithService } from "@snc/shared";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { BookingList } from "../../components/booking/booking-list.js";
+import errorStyles from "../../styles/error-alert.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 
@@ -39,7 +40,7 @@ function BookingManagementPage(): React.ReactElement {
       <h1 className={listingStyles.heading}>My Booking Requests</h1>
 
       {error !== null && (
-        <div className={settingsStyles.error} role="alert">
+        <div className={errorStyles.error} role="alert">
           {error}
         </div>
       )}
