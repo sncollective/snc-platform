@@ -21,7 +21,7 @@
     "@hono/standard-validator": "^0.2.2",
     "@scalar/hono-api-reference": "^0.9.46",
     "@snc/shared": "workspace:*",
-    "better-auth": "^1.4.19",
+    "better-auth": "^1.5.4",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.12.5",
     "hono-openapi": "^1.2.0",
