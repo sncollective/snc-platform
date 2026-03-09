@@ -60,9 +60,12 @@ const findCreatorProfile = async (
   return rows[0];
 };
 
+type CreatorProfileInsert = typeof creatorProfiles.$inferInsert;
+
 const ensureCreatorProfile = async (
   userId: string,
   userName: string,
+  overrides?: Partial<Pick<CreatorProfileInsert, "bio" | "socialLinks">>,
 ): Promise<CreatorProfileRow> => {
   const now = new Date();
   const [inserted] = await db
@@ -70,6 +73,7 @@ const ensureCreatorProfile = async (
     .values({
       userId,
       displayName: userName,
+      ...overrides,
       createdAt: now,
       updatedAt: now,
     })
@@ -529,23 +533,16 @@ creatorRoutes.patch(
       }
       profile = updated;
     } else {
-      // Create new profile (upsert behavior)
-      const [inserted] = await db
-        .insert(creatorProfiles)
-        .values({
-          userId: creatorId,
-          displayName: body.displayName ?? user.name,
+      // Create new profile (upsert behavior) — delegate to ensureCreatorProfile
+      // so conflict handling and the re-fetch guard are applied consistently
+      profile = await ensureCreatorProfile(
+        creatorId,
+        body.displayName ?? user.name,
+        {
           bio: body.bio ?? null,
           socialLinks: body.socialLinks ?? [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      if (!inserted) {
-        throw new NotFoundError("Failed to create creator profile");
-      }
-      profile = inserted;
+        },
+      );
     }
 
     const contentCount = await getContentCount(creatorId);

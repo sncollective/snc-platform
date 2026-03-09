@@ -18,13 +18,12 @@ export const AdminUsersResponseSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 
-export const AssignRoleRequestSchema = z.object({
+const RoleBodySchema = z.object({
   role: RoleSchema,
 });
 
-export const RevokeRoleRequestSchema = z.object({
-  role: RoleSchema,
-});
+export const AssignRoleRequestSchema = RoleBodySchema;
+export const RevokeRoleRequestSchema = RoleBodySchema;
 
 export const AdminUserResponseSchema = z.object({
   user: AdminUserSchema,

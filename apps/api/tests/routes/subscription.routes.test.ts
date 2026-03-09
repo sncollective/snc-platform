@@ -520,6 +520,29 @@ describe("subscription routes", () => {
 
       expect(res.status).toBe(502);
     });
+
+    it("returns 404 when subscription plan is not found after cancel", async () => {
+      const user = makeMockUser();
+      ctx.auth.user = user;
+      const sub = makeMockSubscription({ userId: user.id });
+
+      mockSelectWhere
+        .mockResolvedValueOnce([sub]) // subscription lookup
+        .mockResolvedValueOnce([]); // plan lookup returns nothing
+      mockUpdateReturning.mockResolvedValue([
+        makeMockSubscription({ userId: user.id, cancelAtPeriodEnd: true }),
+      ]);
+
+      const res = await ctx.app.request("/api/subscriptions/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: sub.id }),
+      });
+      const body = await res.json();
+
+      expect(res.status).toBe(404);
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
   });
 
   // ── GET /api/subscriptions/mine ──

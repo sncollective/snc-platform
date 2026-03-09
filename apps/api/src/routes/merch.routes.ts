@@ -30,7 +30,7 @@ import {
   ERROR_502,
   ERROR_503,
 } from "./openapi-errors.js";
-import { encodeCursor } from "./cursor.js";
+import { encodeCursor, decodeRawCursor } from "./cursor.js";
 
 // ── Private Helpers ──
 
@@ -97,10 +97,8 @@ merchRoutes.get(
     let after: string | undefined;
     if (cursor !== undefined) {
       try {
-        const decoded = JSON.parse(
-          Buffer.from(cursor, "base64url").toString("utf-8"),
-        );
-        after = decoded.endCursor as string;
+        const decoded = decodeRawCursor(cursor);
+        after = decoded.endCursor;
       } catch {
         after = undefined;
       }

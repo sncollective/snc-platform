@@ -105,22 +105,10 @@ describe("admin routes", () => {
     it("returns paginated user list with roles", async () => {
       const dbUser = makeMockDbUser();
 
-      // First call: select users with orderBy/limit
-      mockSelect.mockReturnValue({ from: mockSelectFrom });
-      mockSelectFrom.mockImplementation(() => {
-        const chain: any = {
-          where: vi.fn().mockImplementation(() => chain),
-          orderBy: vi.fn().mockImplementation(() => ({
-            limit: vi.fn().mockResolvedValue([dbUser]),
-          })),
-        };
-        return chain;
-      });
-
-      // Second call (roles query): select roles where userId
-      const originalSelect = mockSelect;
+      // First call: paginated users query (select → from → where → orderBy → limit)
+      // Second call: batch roles query (select → from → where with inArray)
       let callCount = 0;
-      originalSelect.mockImplementation(() => {
+      mockSelect.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
           // Users query
@@ -136,10 +124,14 @@ describe("admin routes", () => {
             },
           };
         }
-        // Roles query
+        // Batch roles query (select userId + role, from userRoles, where inArray)
         return {
           from: () => ({
-            where: vi.fn().mockResolvedValue([{ role: "subscriber" }]),
+            where: vi
+              .fn()
+              .mockResolvedValue([
+                { userId: dbUser.id, role: "subscriber" },
+              ]),
           }),
         };
       });
@@ -202,26 +194,28 @@ describe("admin routes", () => {
       const targetUser = makeMockDbUser();
 
       let callCount = 0;
-      mockSelect.mockImplementation(() => ({
-        from: () => ({
-          where: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount <= 1) {
-              // User exists check
-              return Promise.resolve([targetUser]);
-            }
-            // getUserWithRoles user query
-            if (callCount === 2) {
-              return Promise.resolve([targetUser]);
-            }
-            // getUserWithRoles roles query
-            return Promise.resolve([
-              { role: "subscriber" },
-              { role: "creator" },
-            ]);
+      mockSelect.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 2) {
+          // User exists check + getUserWithRoles user query
+          return {
+            from: () => ({
+              where: vi.fn().mockResolvedValue([targetUser]),
+            }),
+          };
+        }
+        // batchGetUserRoles batch query
+        return {
+          from: () => ({
+            where: vi
+              .fn()
+              .mockResolvedValue([
+                { userId: targetUser.id, role: "subscriber" },
+                { userId: targetUser.id, role: "creator" },
+              ]),
           }),
-        }),
-      }));
+        };
+      });
 
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
@@ -263,15 +257,23 @@ describe("admin routes", () => {
       const targetUser = makeMockDbUser();
 
       let callCount = 0;
-      mockSelect.mockImplementation(() => ({
-        from: () => ({
-          where: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount <= 2) return Promise.resolve([targetUser]);
-            return Promise.resolve([{ role: "subscriber" }]);
+      mockSelect.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 2) {
+          return {
+            from: () => ({
+              where: vi.fn().mockResolvedValue([targetUser]),
+            }),
+          };
+        }
+        return {
+          from: () => ({
+            where: vi
+              .fn()
+              .mockResolvedValue([{ userId: targetUser.id, role: "subscriber" }]),
           }),
-        }),
-      }));
+        };
+      });
 
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
@@ -315,15 +317,23 @@ describe("admin routes", () => {
       const targetUser = makeMockDbUser();
 
       let callCount = 0;
-      mockSelect.mockImplementation(() => ({
-        from: () => ({
-          where: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount <= 2) return Promise.resolve([targetUser]);
-            return Promise.resolve([{ role: "subscriber" }]);
+      mockSelect.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 2) {
+          return {
+            from: () => ({
+              where: vi.fn().mockResolvedValue([targetUser]),
+            }),
+          };
+        }
+        return {
+          from: () => ({
+            where: vi
+              .fn()
+              .mockResolvedValue([{ userId: targetUser.id, role: "subscriber" }]),
           }),
-        }),
-      }));
+        };
+      });
 
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",

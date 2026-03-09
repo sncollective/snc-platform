@@ -77,7 +77,7 @@
   - `db/schema/content.schema.ts` — Drizzle `content` table with 14 columns + 3 indexes
     (FK to `users`, soft-delete via `deletedAt`)
   - `db/schema/creator.schema.ts` — Drizzle `creator_profiles` table (1:1 with users,
-    FK CASCADE; displayName, bio, avatarKey, bannerKey, bandcampUrl, bandcampEmbeds JSONB)
+    FK CASCADE; displayName, bio, avatarKey, bannerKey, socialLinks JSONB as `SocialLink[]`)
   - `db/schema/subscription.schema.ts` — Drizzle tables: `subscriptionPlans`, `userSubscriptions`,
     `paymentEvents` (subscription billing + webhook idempotency)
   - `db/schema/booking.schema.ts` — Drizzle tables: `services` (8 cols + active/sort index),
@@ -100,7 +100,7 @@
   - `routes/auth.routes.ts` — Better Auth handler at `/api/auth/*` with OpenAPI docs
   - `routes/me.routes.ts` — `GET /api/me` returning user + session + roles (enriched session)
   - `routes/content.routes.ts` — Content CRUD + upload + media streaming + feed list (9 endpoints, gated via checkContentAccess)
-  - `routes/creator.routes.ts` — Creator profile CRUD + avatar/banner upload/streaming + Bandcamp fields (7 endpoints)
+  - `routes/creator.routes.ts` — Creator profile CRUD + avatar/banner upload/streaming + social links (7 endpoints)
   - `routes/subscription.routes.ts` — Subscription CRUD + checkout (4 endpoints: GET /plans, POST /checkout, POST /cancel, GET /mine)
   - `routes/webhook.routes.ts` — Stripe webhook handler (5 event types, idempotent via payment_events)
   - `routes/merch.routes.ts` — Merch listing + detail + checkout (3 endpoints: GET /merch, GET /merch/:handle, POST /merch/checkout)
@@ -130,7 +130,7 @@
   - `routes/feed.tsx` — Content feed page with filter bar, content grid, load-more pagination
   - `routes/content/$contentId.tsx` — Content detail page (video/audio/written dispatch)
   - `routes/creators/index.tsx` — Creator listing page with grid and cursor pagination
-  - `routes/creators/$creatorId.tsx` — Creator detail page (header, content grid, filter, subscription integration, merch section, Bandcamp section)
+  - `routes/creators/$creatorId.tsx` — Creator detail page (header, content grid, filter, subscription integration, merch section, social links section)
   - `routes/pricing.tsx` — Public pricing page with platform plan cards
   - `routes/checkout/success.tsx` — Post-checkout success page (polls for subscription activation)
   - `routes/checkout/cancel.tsx` — Post-checkout cancel page
@@ -139,7 +139,7 @@
   - `routes/merch/$handle.tsx` — Product detail page with loader and ProductDetail component
   - `routes/services.tsx` — Service listing page with booking request form (inline expand)
   - `routes/settings/bookings.tsx` — Booking request management page (auth guard + cursor pagination)
-  - `routes/settings/creator.tsx` — Creator settings page (Bandcamp URL + embed management, creator role guard)
+  - `routes/settings/creator.tsx` — Creator settings page (social links management via SOCIAL_PLATFORMS / SocialLink, creator role guard)
   - `components/layout/` — NavBar, UserMenu (includes Creator Settings link for creators), MobileMenu, Footer
   - `components/auth/` — LoginForm, RegisterForm
   - `components/content/` — ContentCard, FilterBar, ContentDetail, ContentMeta,
@@ -149,7 +149,7 @@
   - `components/subscription/` — PlanCard, SubscriptionList (+ CSS modules)
   - `components/merch/` — ProductCard, ProductDetail, VariantSelector (+ CSS modules)
   - `components/booking/` — ServiceCard, BookingForm, BookingList (+ CSS modules)
-  - `components/bandcamp/` — BandcampEmbed, BandcampSection (+ CSS modules)
+  - `components/social-links/` — SocialLinksSection (+ CSS modules)
   - `components/dashboard/` — KpiCard, RevenueChart, PendingBookingsTable (+ CSS modules)
   - `components/landing/` — HeroSection, FeaturedCreators, RecentContent, LandingPricing (+ CSS modules)
   - `contexts/audio-player-context.tsx` — Global audio playback state (reducer + provider + hook)
@@ -194,8 +194,8 @@
   - `content.ts` — `CONTENT_TYPES`, `VISIBILITY`, `CreateContentSchema`, `UpdateContentSchema`,
     `ContentResponseSchema`, `FeedQuerySchema`, `FeedItemSchema`, `FeedResponseSchema` + inferred types
   - `creator.ts` — `UpdateCreatorProfileSchema`, `CreatorProfileResponseSchema`,
-    `CreatorListQuerySchema`, `CreatorListResponseSchema`, `BANDCAMP_URL_REGEX`,
-    `BANDCAMP_EMBED_REGEX` + inferred types
+    `CreatorListQuerySchema`, `CreatorListResponseSchema`, `SOCIAL_PLATFORMS`,
+    `PLATFORM_CONFIG`, `SocialLinkSchema`, `MAX_SOCIAL_LINKS` + inferred types
   - `subscription.ts` — `PLAN_TYPES`, `PLAN_INTERVALS`, `SUBSCRIPTION_STATUSES`,
     `SubscriptionPlanSchema`, `CheckoutRequestSchema`, `CancelRequestSchema`,
     `UserSubscriptionWithPlanSchema`, `MySubscriptionsResponseSchema` + inferred types

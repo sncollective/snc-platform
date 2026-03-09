@@ -84,3 +84,33 @@ const setupAuthApp = async (): Promise<Hono<AuthEnv>> => {
 - Defining `Variables` inline on each `Hono<{ Variables: ... }>` instead of exporting a shared `Env` type — makes the type hard to reuse in middleware and tests
 - Using `c.get("user") as User` cast instead of parameterizing with the `Env` type — bypasses compile-time checking
 - Forgetting to type `MiddlewareHandler<AuthEnv>` on middleware — `c.set()` then accepts any key/value and loses type safety
+
+## Known Workaround: `c.req.valid()` double cast
+
+When `describeRoute()` from `hono-openapi` wraps a handler, the generic `Input` type contributed by `validator()` middleware is not propagated to the handler's `c` context. This means `c.req.valid("query")` has type `never`, and TypeScript rejects any direct use.
+
+**Canonical workaround** (used in 10 places across 6 route files):
+
+```typescript
+// c.req.valid("query") would be `never` inside a describeRoute() handler
+const query = c.req.valid("query" as never) as MyQueryType;
+```
+
+This is a **TypeScript-only workaround** — it has no runtime behavior and does not bypass Zod validation (which runs at the `zValidator` middleware layer before the handler executes). The cast is safe as long as the `zValidator("query", MySchema)` middleware precedes `describeRoute()` in the chain.
+
+**Tracking**: This is a known hono-openapi limitation tracked upstream at:
+- [rhinobase/hono-openapi#145](https://github.com/rhinobase/hono-openapi/issues/145)
+- [rhinobase/hono-openapi#192](https://github.com/rhinobase/hono-openapi/issues/192)
+
+When a fix lands in hono-openapi, remove all `"as never"` casts. Affected locations:
+
+| File | Lines | Target type |
+|------|-------|-------------|
+| `admin.routes.ts` | 98, 176, 225 | `AdminUsersQuery`, `{ role: string }`, `{ role: string }` |
+| `booking.routes.ts` | 274, 349 | `MyBookingsQuery`, `PendingBookingsQuery` |
+| `content.routes.ts` | 178, 482 | `FeedQuery`, `{ field: UploadField }` |
+| `creator.routes.ts` | 272 | `CreatorListQuery` |
+| `merch.routes.ts` | 95 | `MerchListQuery` |
+| `subscription.routes.ts` | 125 | `PlansQuery` |
+
+**Do not** remove the cast unilaterally — verify against the hono-openapi release notes that the underlying issue is resolved before doing so.

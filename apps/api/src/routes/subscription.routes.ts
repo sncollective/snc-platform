@@ -287,8 +287,12 @@ subscriptionRoutes.post(
       .from(subscriptionPlans)
       .where(eq(subscriptionPlans.id, sub.planId));
 
+    if (!plan) {
+      throw new NotFoundError("Subscription plan not found");
+    }
+
     return c.json({
-      subscription: toSubscriptionWithPlanResponse(updated!, plan!),
+      subscription: toSubscriptionWithPlanResponse(updated!, plan),
     });
   },
 );

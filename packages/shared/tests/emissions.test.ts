@@ -243,9 +243,9 @@ describe("emissions schemas", () => {
           doubleOffsetTargetCo2Kg: 2336,
           additionalOffsetCo2Kg: 1336,
         },
-        byScope: [{ scope: 2, co2Kg: 0.034443 }],
+        byScope: [{ scope: 2, co2Kg: 0.034443, entryCount: 1 }],
         byCategory: [
-          { category: "cloud-compute", co2Kg: 0.034443 },
+          { category: "cloud-compute", co2Kg: 0.034443, entryCount: 1 },
         ],
         monthly: [{ month: "2026-03", actualCo2Kg: 0.034443, projectedCo2Kg: 0, offsetCo2Kg: 0.01 }],
         entries: [

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, desc, lt, or, and } from "drizzle-orm";
+import { eq, desc, lt, or, and, inArray } from "drizzle-orm";
 
 import {
   AdminUsersQuerySchema,
@@ -11,7 +11,7 @@ import {
   NotFoundError,
   ForbiddenError,
 } from "@snc/shared";
-import type { AdminUsersQuery, AdminUser } from "@snc/shared";
+import type { AdminUsersQuery, AdminUser, Role } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
@@ -28,6 +28,23 @@ import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 
 // ── Private Helpers ──
 
+async function batchGetUserRoles(
+  userIds: string[],
+): Promise<Map<string, Role[]>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ userId: userRoles.userId, role: userRoles.role })
+    .from(userRoles)
+    .where(inArray(userRoles.userId, userIds));
+  const map = new Map<string, Role[]>();
+  for (const row of rows) {
+    const existing = map.get(row.userId) ?? [];
+    existing.push(row.role as Role);
+    map.set(row.userId, existing);
+  }
+  return map;
+}
+
 async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
   const [user] = await db
     .select()
@@ -36,10 +53,7 @@ async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
 
   if (!user) return null;
 
-  const roles = await db
-    .select({ role: userRoles.role })
-    .from(userRoles)
-    .where(eq(userRoles.userId, userId));
+  const rolesMap = await batchGetUserRoles([userId]);
 
   return {
     id: user.id,
@@ -49,7 +63,7 @@ async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
     image: user.image,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
-    roles: roles.map((r) => r.role) as AdminUser["roles"],
+    roles: (rolesMap.get(userId) ?? []) as AdminUser["roles"],
   };
 }
 
@@ -117,25 +131,18 @@ adminRoutes.get(
       }),
     );
 
-    const usersWithRoles: AdminUser[] = await Promise.all(
-      pagedUsers.map(async (u) => {
-        const roles = await db
-          .select({ role: userRoles.role })
-          .from(userRoles)
-          .where(eq(userRoles.userId, u.id));
+    const rolesMap = await batchGetUserRoles(pagedUsers.map((u) => u.id));
 
-        return {
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          emailVerified: u.emailVerified,
-          image: u.image,
-          createdAt: u.createdAt.toISOString(),
-          updatedAt: u.updatedAt.toISOString(),
-          roles: roles.map((r) => r.role) as AdminUser["roles"],
-        };
-      }),
-    );
+    const usersWithRoles: AdminUser[] = pagedUsers.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      emailVerified: u.emailVerified,
+      image: u.image,
+      createdAt: u.createdAt.toISOString(),
+      updatedAt: u.updatedAt.toISOString(),
+      roles: (rolesMap.get(u.id) ?? []) as AdminUser["roles"],
+    }));
 
     return c.json({ items: usersWithRoles, nextCursor });
   },

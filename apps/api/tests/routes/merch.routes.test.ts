@@ -171,6 +171,16 @@ describe("merch routes", () => {
       );
     });
 
+    it("treats an invalid cursor as absent and starts from the beginning", async () => {
+      // An invalid base64url string that cannot be decoded as JSON
+      const invalidCursor = "not-valid-base64url!!!";
+
+      await ctx.app.request(`/api/merch?cursor=${invalidCursor}`);
+      expect(mockGetProducts).toHaveBeenCalledWith(
+        expect.not.objectContaining({ after: expect.anything() }),
+      );
+    });
+
     it("returns 503 when Shopify not configured", async () => {
       const { AppError } = await import("@snc/shared");
       mockGetProducts.mockResolvedValue({

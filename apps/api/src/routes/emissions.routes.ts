@@ -9,6 +9,7 @@ import {
   CreateOffsetEntrySchema,
   EmissionsSummarySchema,
   EmissionsBreakdownSchema,
+  type EmissionsSummary,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -66,6 +67,51 @@ function toEntryResponse(row: EmissionRow) {
   };
 }
 
+async function fetchEmissionsSummary(): Promise<EmissionsSummary> {
+  const [grossRow] = await db
+    .select({
+      co2Kg: sum(emissions.co2Kg),
+      entryCount: count(),
+      latestDate: max(emissions.date),
+    })
+    .from(emissions)
+    .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)));
+
+  const [projectedRow] = await db
+    .select({
+      co2Kg: sum(emissions.co2Kg),
+    })
+    .from(emissions)
+    .where(and(ne(emissions.scope, 0), eq(emissions.projected, true)));
+
+  const [offsetRow] = await db
+    .select({
+      co2Kg: sum(emissions.co2Kg),
+    })
+    .from(emissions)
+    .where(eq(emissions.scope, 0));
+
+  const grossCo2Kg = Number(grossRow?.co2Kg ?? 0);
+  const projectedGrossAdd = Number(projectedRow?.co2Kg ?? 0);
+  const offsetCo2Kg = Math.abs(Number(offsetRow?.co2Kg ?? 0));
+  const netCo2Kg = grossCo2Kg - offsetCo2Kg;
+  const projectedGrossCo2Kg = grossCo2Kg + projectedGrossAdd;
+  const doubleOffsetTargetCo2Kg = projectedGrossCo2Kg * 2;
+  const additionalOffsetCo2Kg = Math.max(0, doubleOffsetTargetCo2Kg - offsetCo2Kg);
+
+  return {
+    totalCo2Kg: netCo2Kg,
+    grossCo2Kg,
+    offsetCo2Kg,
+    netCo2Kg,
+    entryCount: grossRow?.entryCount ?? 0,
+    latestDate: grossRow?.latestDate ?? null,
+    projectedGrossCo2Kg,
+    doubleOffsetTargetCo2Kg,
+    additionalOffsetCo2Kg,
+  };
+}
+
 // ── Public API ──
 
 export const emissionsRoutes = new Hono<AuthEnv>();
@@ -85,48 +131,8 @@ emissionsRoutes.get(
     },
   }),
   async (c) => {
-    const [grossRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-        entryCount: count(),
-        latestDate: max(emissions.date),
-      })
-      .from(emissions)
-      .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)));
-
-    const [projectedRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-      })
-      .from(emissions)
-      .where(and(ne(emissions.scope, 0), eq(emissions.projected, true)));
-
-    const [offsetRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-      })
-      .from(emissions)
-      .where(eq(emissions.scope, 0));
-
-    const grossCo2Kg = Number(grossRow?.co2Kg ?? 0);
-    const projectedGrossAdd = Number(projectedRow?.co2Kg ?? 0);
-    const offsetCo2Kg = Math.abs(Number(offsetRow?.co2Kg ?? 0));
-    const netCo2Kg = grossCo2Kg - offsetCo2Kg;
-    const projectedGrossCo2Kg = grossCo2Kg + projectedGrossAdd;
-    const doubleOffsetTargetCo2Kg = projectedGrossCo2Kg * 2;
-    const additionalOffsetCo2Kg = Math.max(0, doubleOffsetTargetCo2Kg - offsetCo2Kg);
-
-    return c.json({
-      totalCo2Kg: netCo2Kg,
-      grossCo2Kg,
-      offsetCo2Kg,
-      netCo2Kg,
-      entryCount: grossRow?.entryCount ?? 0,
-      latestDate: grossRow?.latestDate ?? null,
-      projectedGrossCo2Kg,
-      doubleOffsetTargetCo2Kg,
-      additionalOffsetCo2Kg,
-    });
+    const summary = await fetchEmissionsSummary();
+    return c.json(summary);
   },
 );
 
@@ -145,36 +151,7 @@ emissionsRoutes.get(
     },
   }),
   async (c) => {
-    const [grossRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-        entryCount: count(),
-        latestDate: max(emissions.date),
-      })
-      .from(emissions)
-      .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)));
-
-    const [projectedRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-      })
-      .from(emissions)
-      .where(and(ne(emissions.scope, 0), eq(emissions.projected, true)));
-
-    const [offsetRow] = await db
-      .select({
-        co2Kg: sum(emissions.co2Kg),
-      })
-      .from(emissions)
-      .where(eq(emissions.scope, 0));
-
-    const grossCo2Kg = Number(grossRow?.co2Kg ?? 0);
-    const projectedGrossAdd = Number(projectedRow?.co2Kg ?? 0);
-    const offsetCo2Kg = Math.abs(Number(offsetRow?.co2Kg ?? 0));
-    const netCo2Kg = grossCo2Kg - offsetCo2Kg;
-    const projectedGrossCo2Kg = grossCo2Kg + projectedGrossAdd;
-    const doubleOffsetTargetCo2Kg = projectedGrossCo2Kg * 2;
-    const additionalOffsetCo2Kg = Math.max(0, doubleOffsetTargetCo2Kg - offsetCo2Kg);
+    const summary = await fetchEmissionsSummary();
 
     const byScope = await db
       .select({
@@ -218,17 +195,7 @@ emissionsRoutes.get(
       .orderBy(desc(emissions.date));
 
     return c.json({
-      summary: {
-        totalCo2Kg: netCo2Kg,
-        grossCo2Kg,
-        offsetCo2Kg,
-        netCo2Kg,
-        entryCount: grossRow?.entryCount ?? 0,
-        latestDate: grossRow?.latestDate ?? null,
-        projectedGrossCo2Kg,
-        doubleOffsetTargetCo2Kg,
-        additionalOffsetCo2Kg,
-      },
+      summary,
       byScope: byScope.map((r) => ({
         scope: r.scope,
         co2Kg: Number(r.co2Kg ?? 0),

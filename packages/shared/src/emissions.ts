@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const EmissionEntrySchema = z.object({
   id: z.string(),
-  date: z.string(), // "YYYY-MM-DD"
+  date: z.iso.date(),
   scope: z.number().int(),
   category: z.string(),
   subcategory: z.string(),
@@ -21,7 +21,7 @@ export const EmissionEntrySchema = z.object({
 });
 
 export const CreateEmissionEntrySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.iso.date(),
   scope: z.number().int(),
   category: z.string().min(1),
   subcategory: z.string().min(1),
@@ -36,7 +36,7 @@ export const CreateEmissionEntrySchema = z.object({
 });
 
 export const CreateOffsetEntrySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.iso.date(),
   source: z.string().min(1),
   description: z.string().min(1),
   amount: z.number().positive(),
@@ -64,12 +64,14 @@ export const EmissionsBreakdownSchema = z.object({
     z.object({
       scope: z.number().int(),
       co2Kg: z.number(),
+      entryCount: z.number().int(),
     }),
   ),
   byCategory: z.array(
     z.object({
       category: z.string(),
       co2Kg: z.number(),
+      entryCount: z.number().int(),
     }),
   ),
   monthly: z.array(

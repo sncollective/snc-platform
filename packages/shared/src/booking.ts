@@ -15,8 +15,8 @@ export const ServiceSchema = z.object({
   pricingInfo: z.string(),
   active: z.boolean(),
   sortOrder: z.number().int(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 export const BookingRequestSchema = z.object({
@@ -28,8 +28,8 @@ export const BookingRequestSchema = z.object({
   status: BookingStatusSchema,
   reviewedBy: z.string().nullable(),
   reviewNote: z.string().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 export const BookingWithServiceSchema = BookingRequestSchema.extend({
@@ -46,10 +46,12 @@ export const ServicesResponseSchema = z.object({
   services: z.array(ServiceSchema),
 });
 
-export const MyBookingsQuerySchema = z.object({
+const BookingPaginationQuerySchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
+
+export const MyBookingsQuerySchema = BookingPaginationQuerySchema;
 
 export const BookingResponseSchema = z.object({
   booking: BookingWithServiceSchema,
@@ -65,17 +67,14 @@ export const MyBookingsResponseSchema = z.object({
 export const RequesterSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string(),
+  email: z.string().email(),
 });
 
 export const PendingBookingItemSchema = BookingWithServiceSchema.extend({
   requester: RequesterSchema,
 });
 
-export const PendingBookingsQuerySchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-});
+export const PendingBookingsQuerySchema = BookingPaginationQuerySchema;
 
 export const PendingBookingsResponseSchema = z.object({
   items: z.array(PendingBookingItemSchema),
