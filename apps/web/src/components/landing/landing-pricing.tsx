@@ -1,12 +1,9 @@
-import { useState } from "react";
 import type React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { SubscriptionPlan } from "@snc/shared";
 
-import { useSession } from "../../lib/auth.js";
-import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
-import { useSubscriptions } from "../../hooks/use-subscriptions.js";
-import { navigateExternal } from "../../lib/url.js";
+import { usePlatformAuth } from "../../hooks/use-platform-auth.js";
+import { useCheckout } from "../../hooks/use-checkout.js";
 import { PlanCard } from "../subscription/plan-card.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./landing-pricing.module.css";
@@ -18,13 +15,10 @@ interface LandingPricingProps {
 }
 
 export function LandingPricing({ plans }: LandingPricingProps): React.ReactElement {
-  const session = useSession();
   const navigate = useNavigate();
-  const subscriptions = useSubscriptions();
-  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const { isAuthenticated, isSubscribed: isSubscribedToPlatform } = usePlatformAuth();
 
-  const isAuthenticated: boolean = session.data !== null && session.data !== undefined;
-  const isSubscribedToPlatform: boolean = hasPlatformSubscription(subscriptions);
+  const { checkoutLoading, handleCheckout } = useCheckout();
 
   async function handleSubscribe(planId: string): Promise<void> {
     if (!isAuthenticated) {
@@ -32,14 +26,7 @@ export function LandingPricing({ plans }: LandingPricingProps): React.ReactEleme
       return;
     }
 
-    setLoadingPlanId(planId);
-
-    try {
-      const checkoutUrl = await createCheckout(planId);
-      navigateExternal(checkoutUrl);
-    } catch {
-      setLoadingPlanId(null);
-    }
+    await handleCheckout(planId);
   }
 
   return (
@@ -65,7 +52,7 @@ export function LandingPricing({ plans }: LandingPricingProps): React.ReactEleme
               plan={plan}
               onSubscribe={(planId) => void handleSubscribe(planId)}
               isSubscribed={isSubscribedToPlatform}
-              isLoading={loadingPlanId === plan.id}
+              isLoading={checkoutLoading}
             />
           ))}
         </div>

@@ -6,6 +6,7 @@ import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
 
 // ── Private Constants ──
@@ -84,13 +85,13 @@ export function RegisterForm() {
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       {serverError && (
-        <div className={styles.serverError} role="alert">
+        <div className={formStyles.serverError} role="alert">
           {serverError}
         </div>
       )}
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="register-name" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="register-name" className={formStyles.label}>
           Name
         </label>
         <input
@@ -100,21 +101,21 @@ export function RegisterForm() {
           onChange={(e) => setName(e.target.value)}
           className={
             fieldErrors.name
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           autoComplete="name"
           required
         />
         {fieldErrors.name && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.name}
           </span>
         )}
       </div>
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="register-email" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="register-email" className={formStyles.label}>
           Email
         </label>
         <input
@@ -124,21 +125,21 @@ export function RegisterForm() {
           onChange={(e) => setEmail(e.target.value)}
           className={
             fieldErrors.email
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           autoComplete="email"
           required
         />
         {fieldErrors.email && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.email}
           </span>
         )}
       </div>
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="register-password" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="register-password" className={formStyles.label}>
           Password
         </label>
         <input
@@ -148,14 +149,14 @@ export function RegisterForm() {
           onChange={(e) => setPassword(e.target.value)}
           className={
             fieldErrors.password
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           autoComplete="new-password"
           required
         />
         {fieldErrors.password && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.password}
           </span>
         )}
@@ -163,7 +164,7 @@ export function RegisterForm() {
 
       <button
         type="submit"
-        className={styles.submitButton}
+        className={formStyles.submitButton}
         disabled={isSubmitting}
       >
         {isSubmitting ? "Creating account\u2026" : "Create account"}

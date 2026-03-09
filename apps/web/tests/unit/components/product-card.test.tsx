@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { createFormatMock } from "../../helpers/format-mock.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatPrice, mockNavigate } = vi.hoisted(() => ({
+const { mockFormatPrice } = vi.hoisted(() => ({
   mockFormatPrice: vi.fn(),
-  mockNavigate: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ useNavigate: () => mockNavigate }),
-);
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 vi.mock("../../../src/lib/format.js", () =>
   createFormatMock({ formatPrice: mockFormatPrice }),
@@ -94,18 +90,14 @@ describe("ProductCard", () => {
     expect(screen.queryByRole("img")).toBeNull();
   });
 
-  it("navigates to product detail page on click", async () => {
-    const user = userEvent.setup();
+  it("renders as a link to the product detail page", () => {
     mockFormatPrice.mockReturnValue("$25.00");
     const product = makeMockMerchProduct({ handle: "cool-hoodie", creatorName: null });
 
     render(<ProductCard product={product} />);
 
-    await user.click(screen.getByRole("link"));
-    expect(mockNavigate).toHaveBeenCalledWith({
-      to: "/merch/$handle",
-      params: { handle: "cool-hoodie" },
-    });
+    const cardLink = screen.getByRole("link");
+    expect(cardLink).toHaveAttribute("href", "/merch/cool-hoodie");
   });
 
   it("creator name links to creator page when creatorId is set", () => {

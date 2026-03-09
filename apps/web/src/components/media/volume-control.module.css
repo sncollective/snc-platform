@@ -1,0 +1,48 @@
+/* ── Volume Control ── */
+
+.volumeControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.volumeIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.volumeSlider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.volumeSlider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.volumeSlider:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

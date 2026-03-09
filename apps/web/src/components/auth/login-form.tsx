@@ -6,6 +6,7 @@ import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
 
 // ── Private Constants ──
@@ -77,13 +78,13 @@ export function LoginForm() {
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       {serverError && (
-        <div className={styles.serverError} role="alert">
+        <div className={formStyles.serverError} role="alert">
           {serverError}
         </div>
       )}
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="login-email" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="login-email" className={formStyles.label}>
           Email
         </label>
         <input
@@ -93,21 +94,21 @@ export function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           className={
             fieldErrors.email
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           autoComplete="email"
           required
         />
         {fieldErrors.email && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.email}
           </span>
         )}
       </div>
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="login-password" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="login-password" className={formStyles.label}>
           Password
         </label>
         <input
@@ -117,14 +118,14 @@ export function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           className={
             fieldErrors.password
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           autoComplete="current-password"
           required
         />
         {fieldErrors.password && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.password}
           </span>
         )}
@@ -132,7 +133,7 @@ export function LoginForm() {
 
       <button
         type="submit"
-        className={styles.submitButton}
+        className={formStyles.submitButton}
         disabled={isSubmitting}
       >
         {isSubmitting ? "Logging in\u2026" : "Log in"}

@@ -4,6 +4,7 @@ import type { FeedItem } from "@snc/shared";
 
 import { formatRelativeDate } from "../../lib/format.js";
 import { buildMediaUrl } from "../../lib/url.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./content-card.module.css";
 
 // ── Constants ──
@@ -42,16 +43,13 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
       className={styles.card}
     >
       <div className={styles.thumbnailWrapper}>
-        {thumbnailSrc ? (
-          <img
-            src={thumbnailSrc}
-            alt={item.title}
-            className={styles.thumbnail}
-            loading="lazy"
-          />
-        ) : (
-          <div className={styles.thumbnailPlaceholder} />
-        )}
+        <OptionalImage
+          src={thumbnailSrc}
+          alt={item.title}
+          className={styles.thumbnail}
+          placeholderClassName={styles.thumbnailPlaceholder}
+          loading="lazy"
+        />
         <span className={`${styles.badge} ${badgeClass}`}>
           {TYPE_BADGE_LABELS[item.type]}
         </span>

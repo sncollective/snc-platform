@@ -6,19 +6,8 @@
   gap: var(--space-lg);
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
+/* ── Extended Input Elements ── */
 
-.label {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.input,
 .textarea,
 .select {
   padding: var(--space-sm) var(--space-md);
@@ -31,25 +20,15 @@
   transition: border-color 0.15s;
 }
 
-.input:focus,
 .textarea:focus,
 .select:focus {
   border-color: var(--color-accent);
   outline: none;
 }
 
-.inputError {
-  border-color: var(--color-error);
-}
-
 .textarea {
   min-height: 120px;
   resize: vertical;
-}
-
-.fieldError {
-  font-size: var(--font-size-xs);
-  color: var(--color-error);
 }
 
 /* ── File Input ── */
@@ -105,29 +84,10 @@
   border-color: var(--color-text-muted);
 }
 
-/* ── Submit Button ── */
+/* ── Submit Button Override ── */
 
 .submitButton {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
   align-self: flex-start;
-}
-
-.submitButton:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.submitButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* ── Feedback Messages ── */

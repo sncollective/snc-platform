@@ -6,6 +6,7 @@ import { z, minLength, maxLength, safeParse } from "zod/mini";
 
 import { createBooking } from "../../lib/booking.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import formStyles from "../../styles/form.module.css";
 import styles from "./booking-form.module.css";
 
 // ── Private Constants ──
@@ -119,13 +120,13 @@ export function BookingForm({
       </h4>
 
       {serverError && (
-        <div className={styles.serverError} role="alert">
+        <div className={formStyles.serverError} role="alert">
           {serverError}
         </div>
       )}
 
-      <div className={styles.fieldGroup}>
-        <label className={styles.label}>Preferred Dates</label>
+      <div className={formStyles.fieldGroup}>
+        <label className={formStyles.label}>Preferred Dates</label>
         {preferredDates.map((date, index) => (
           <div className={styles.dateRow} key={index}>
             <input
@@ -135,8 +136,8 @@ export function BookingForm({
               placeholder={`e.g. March ${15 + index}, 2026`}
               className={
                 fieldErrors.preferredDates
-                  ? `${styles.input} ${styles.inputError}`
-                  : styles.input
+                  ? `${formStyles.input} ${styles.dateRowInput} ${formStyles.inputError}`
+                  : `${formStyles.input} ${styles.dateRowInput}`
               }
               aria-label={`Preferred date ${index + 1}`}
             />
@@ -152,7 +153,7 @@ export function BookingForm({
           </div>
         ))}
         {fieldErrors.preferredDates && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.preferredDates}
           </span>
         )}
@@ -166,8 +167,8 @@ export function BookingForm({
         </button>
       </div>
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="booking-notes" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="booking-notes" className={formStyles.label}>
           Notes
         </label>
         <textarea
@@ -177,12 +178,12 @@ export function BookingForm({
           placeholder="Any details about your booking request..."
           className={
             fieldErrors.notes
-              ? `${styles.textarea} ${styles.inputError}`
+              ? `${styles.textarea} ${formStyles.inputError}`
               : styles.textarea
           }
         />
         {fieldErrors.notes && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.notes}
           </span>
         )}
@@ -191,7 +192,7 @@ export function BookingForm({
       <div className={styles.actions}>
         <button
           type="submit"
-          className={styles.submitButton}
+          className={`${formStyles.submitButton} ${styles.submitButton}`}
           disabled={isSubmitting}
         >
           {isSubmitting ? "Submitting\u2026" : "Submit Request"}

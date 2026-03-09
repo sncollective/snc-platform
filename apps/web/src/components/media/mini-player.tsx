@@ -3,7 +3,10 @@ import type React from "react";
 
 import { useAudioPlayer } from "../../contexts/audio-player-context.js";
 import { formatTime } from "../../lib/format.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./mini-player.module.css";
+import { PlayPauseButton } from "./play-pause-button.js";
+import { VolumeControl } from "./volume-control.js";
 
 // ── Constants ──
 
@@ -44,8 +47,7 @@ export function MiniPlayer(): React.ReactElement | null {
     actions.seek(Number(e.target.value));
   }
 
-  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = Number(e.target.value);
+  function handleVolumeChange(v: number) {
     setVolume(v);
     actions.setVolume(v);
   }
@@ -58,15 +60,12 @@ export function MiniPlayer(): React.ReactElement | null {
     <div className={styles.miniPlayer} role="region" aria-label="Audio player">
       {/* Left: Cover art thumbnail */}
       <div className={styles.coverArt}>
-        {track.coverArtUrl ? (
-          <img
-            src={track.coverArtUrl}
-            alt={`Cover art for ${track.title}`}
-            className={styles.coverArtImage}
-          />
-        ) : (
-          <div className={styles.coverArtPlaceholder} />
-        )}
+        <OptionalImage
+          src={track.coverArtUrl}
+          alt={`Cover art for ${track.title}`}
+          className={styles.coverArtImage}
+          placeholderClassName={styles.coverArtPlaceholder}
+        />
       </div>
 
       {/* Center: Track info + play/pause */}
@@ -74,14 +73,11 @@ export function MiniPlayer(): React.ReactElement | null {
         <span className={styles.trackTitle}>{track.title}</span>
         <span className={styles.trackCreator}>{track.creatorName}</span>
       </div>
-      <button
-        type="button"
-        className={styles.playButton}
-        aria-label={isPlaying ? "Pause" : "Play"}
+      <PlayPauseButton
+        isPlaying={isPlaying}
         onClick={handlePlayPause}
-      >
-        {isPlaying ? "⏸" : "▶"}
-      </button>
+        className={styles.playButton}
+      />
 
       {/* Right: Progress bar + close button (hidden on mobile) */}
       <div className={styles.progressSection}>
@@ -100,23 +96,11 @@ export function MiniPlayer(): React.ReactElement | null {
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
       </div>
-      <div className={styles.volumeSection}>
-        <svg className={styles.volumeIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M11 5L6 9H2v6h4l5 4V5z" />
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-        </svg>
-        <input
-          type="range"
-          className={styles.volumeSlider}
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={handleVolumeChange}
-        />
-      </div>
+      <VolumeControl
+        volume={volume}
+        onVolumeChange={handleVolumeChange}
+        className={styles.volumeSection}
+      />
       <button
         type="button"
         className={styles.closeButton}

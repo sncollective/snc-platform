@@ -1,8 +1,9 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type React from "react";
 import type { MerchProduct } from "@snc/shared";
 
 import { formatPrice } from "../../lib/format.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./product-card.module.css";
 
 // ── Public Types ──
@@ -16,38 +17,20 @@ export interface ProductCardProps {
 export function ProductCard({
   product,
 }: ProductCardProps): React.ReactElement {
-  const navigate = useNavigate();
-
-  const handleCardClick = (): void => {
-    void navigate({ to: "/merch/$handle", params: { handle: product.handle } });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent): void => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleCardClick();
-    }
-  };
-
   return (
-    <div
-      role="link"
-      tabIndex={0}
+    <Link
+      to="/merch/$handle"
+      params={{ handle: product.handle }}
       className={styles.card}
-      onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
     >
       <div className={styles.imageWrapper}>
-        {product.image ? (
-          <img
-            src={product.image.url}
-            alt={product.image.altText ?? product.title}
-            className={styles.image}
-            loading="lazy"
-          />
-        ) : (
-          <div className={styles.imagePlaceholder} />
-        )}
+        <OptionalImage
+          src={product.image?.url}
+          alt={product.image?.altText ?? product.title}
+          className={styles.image}
+          placeholderClassName={styles.imagePlaceholder}
+          loading="lazy"
+        />
       </div>
       <div className={styles.info}>
         <h3 className={styles.title}>{product.title}</h3>
@@ -69,6 +52,6 @@ export function ProductCard({
           </span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

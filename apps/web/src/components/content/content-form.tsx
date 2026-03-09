@@ -12,6 +12,7 @@ import type { ContentType, Visibility } from "@snc/shared";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { createContent, uploadContentFile } from "../../lib/content.js";
+import formStyles from "../../styles/form.module.css";
 import styles from "./content-form.module.css";
 
 // ── Private Constants ──
@@ -144,7 +145,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
   return (
     <form onSubmit={handleSubmit} noValidate className={styles.form}>
       {serverError && (
-        <div className={styles.fieldError} role="alert" style={{ fontSize: "var(--font-size-sm)" }}>
+        <div className={formStyles.serverError} role="alert">
           {serverError}
         </div>
       )}
@@ -156,8 +157,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
       )}
 
       {/* Content Type */}
-      <div className={styles.fieldGroup}>
-        <label htmlFor="content-type" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="content-type" className={formStyles.label}>
           Type
         </label>
         <select
@@ -176,8 +177,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
       </div>
 
       {/* Title */}
-      <div className={styles.fieldGroup}>
-        <label htmlFor="content-title" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="content-title" className={formStyles.label}>
           Title
         </label>
         <input
@@ -187,22 +188,22 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           onChange={(e) => setTitle(e.target.value)}
           className={
             fieldErrors.title
-              ? `${styles.input} ${styles.inputError}`
-              : styles.input
+              ? `${formStyles.input} ${formStyles.inputError}`
+              : formStyles.input
           }
           disabled={isSubmitting}
           maxLength={200}
         />
         {fieldErrors.title && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.title}
           </span>
         )}
       </div>
 
       {/* Description */}
-      <div className={styles.fieldGroup}>
-        <label htmlFor="content-description" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="content-description" className={formStyles.label}>
           Description
         </label>
         <textarea
@@ -215,15 +216,15 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
           rows={3}
         />
         {fieldErrors.description && (
-          <span className={styles.fieldError} role="alert">
+          <span className={formStyles.fieldError} role="alert">
             {fieldErrors.description}
           </span>
         )}
       </div>
 
       {/* Visibility */}
-      <div className={styles.fieldGroup}>
-        <label htmlFor="content-visibility" className={styles.label}>
+      <div className={formStyles.fieldGroup}>
+        <label htmlFor="content-visibility" className={formStyles.label}>
           Visibility
         </label>
         <select
@@ -243,8 +244,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
 
       {/* Body (written only) */}
       {type === "written" && (
-        <div className={styles.fieldGroup}>
-          <label htmlFor="content-body" className={styles.label}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="content-body" className={formStyles.label}>
             Body
           </label>
           <textarea
@@ -253,14 +254,14 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
             onChange={(e) => setBody(e.target.value)}
             className={
               fieldErrors.body
-                ? `${styles.textarea} ${styles.inputError}`
+                ? `${styles.textarea} ${formStyles.inputError}`
                 : styles.textarea
             }
             disabled={isSubmitting}
             rows={8}
           />
           {fieldErrors.body && (
-            <span className={styles.fieldError} role="alert">
+            <span className={formStyles.fieldError} role="alert">
               {fieldErrors.body}
             </span>
           )}
@@ -269,8 +270,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
 
       {/* Media file (audio/video only) */}
       {type !== "written" && (
-        <div className={styles.fieldGroup}>
-          <label htmlFor="content-media" className={styles.label}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="content-media" className={formStyles.label}>
             Media File
           </label>
           <div className={styles.fileInputRow}>
@@ -301,8 +302,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
 
       {/* Cover art (audio only) */}
       {type === "audio" && (
-        <div className={styles.fieldGroup}>
-          <label htmlFor="content-cover-art" className={styles.label}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="content-cover-art" className={formStyles.label}>
             Cover Art (optional)
           </label>
           <div className={styles.fileInputRow}>
@@ -333,8 +334,8 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
 
       {/* Thumbnail (video only) */}
       {type === "video" && (
-        <div className={styles.fieldGroup}>
-          <label htmlFor="content-thumbnail" className={styles.label}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="content-thumbnail" className={formStyles.label}>
             Thumbnail (optional)
           </label>
           <div className={styles.fileInputRow}>
@@ -366,7 +367,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
       {/* Submit */}
       <button
         type="submit"
-        className={styles.submitButton}
+        className={`${formStyles.submitButton} ${styles.submitButton}`}
         disabled={isSubmitting}
       >
         {isSubmitting ? submitStatus || "Creating..." : "Create Content"}

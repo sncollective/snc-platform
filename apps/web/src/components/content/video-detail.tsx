@@ -4,7 +4,7 @@ import type { FeedItem } from "@snc/shared";
 import { VideoPlayer } from "../media/video-player.js";
 import { buildMediaUrl } from "../../lib/url.js";
 import { ContentMeta } from "./content-meta.js";
-import { SubscribeCta } from "./subscribe-cta.js";
+import { ContentFooter } from "./content-footer.js";
 import styles from "./video-detail.module.css";
 
 // ── Public Types ──
@@ -49,13 +49,12 @@ export function VideoDetail({
             publishedAt={item.publishedAt}
           />
         </div>
-        <SubscribeCta creatorId={item.creatorId} contentType="video" />
-        {item.description && (
-          <>
-            <hr className={styles.divider} />
-            <p className={styles.description}>{item.description}</p>
-          </>
-        )}
+        <ContentFooter
+          description={item.description}
+          creatorId={item.creatorId}
+          contentType="video"
+          locked
+        />
       </div>
     );
   }
@@ -72,12 +71,7 @@ export function VideoDetail({
           publishedAt={item.publishedAt}
         />
       </div>
-      {item.description && (
-        <>
-          <hr className={styles.divider} />
-          <p className={styles.description}>{item.description}</p>
-        </>
-      )}
+      <ContentFooter description={item.description} />
     </div>
   );
 }

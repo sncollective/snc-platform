@@ -3,6 +3,7 @@ import type React from "react";
 import type { CreatorListItem } from "@snc/shared";
 
 import { buildMediaUrl } from "../../lib/url.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./creator-card.module.css";
 
 // ── Public Types ──
@@ -23,16 +24,13 @@ export function CreatorCard({ creator }: CreatorCardProps): React.ReactElement {
       className={styles.card}
     >
       <div className={styles.avatarWrapper}>
-        {avatarSrc ? (
-          <img
-            src={avatarSrc}
-            alt={`${creator.displayName} avatar`}
-            className={styles.avatar}
-            loading="lazy"
-          />
-        ) : (
-          <div className={styles.avatarPlaceholder} />
-        )}
+        <OptionalImage
+          src={avatarSrc}
+          alt={`${creator.displayName} avatar`}
+          className={styles.avatar}
+          placeholderClassName={styles.avatarPlaceholder}
+          loading="lazy"
+        />
       </div>
       <div className={styles.info}>
         <h3 className={styles.displayName}>{creator.displayName}</h3>

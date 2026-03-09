@@ -1,44 +1,13 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
-import {
-  EmissionsChart,
-  computeChartLines,
-} from "../../../../src/components/emissions/emissions-chart.js";
+import { EmissionsChart } from "../../../../src/components/emissions/emissions-chart.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("computeChartLines", () => {
-  it("computes cumulative series for all 4 lines", () => {
-    const data = [
-      { month: "2026-01", actualCo2Kg: 10, projectedCo2Kg: 0, offsetCo2Kg: 0 },
-      { month: "2026-02", actualCo2Kg: 5, projectedCo2Kg: 2, offsetCo2Kg: 0 },
-      { month: "2026-03", actualCo2Kg: 0, projectedCo2Kg: 3, offsetCo2Kg: 8 },
-    ];
-    const lines = computeChartLines(data);
-    expect(lines.actualUse).toEqual([10, 15, 15]);
-    expect(lines.projectedUse).toEqual([10, 17, 20]);
-    expect(lines.offsets).toEqual([0, 0, 8]);
-    expect(lines.net).toEqual([10, 17, 12]);
-  });
-
-  it("returns empty arrays for empty input", () => {
-    const lines = computeChartLines([]);
-    expect(lines.months).toEqual([]);
-    expect(lines.net).toEqual([]);
-  });
-
-  it("net goes negative when offsets exceed projected use", () => {
-    const data = [
-      { month: "2026-01", actualCo2Kg: 2, projectedCo2Kg: 0, offsetCo2Kg: 0 },
-      { month: "2026-02", actualCo2Kg: 0, projectedCo2Kg: 0, offsetCo2Kg: 5 },
-    ];
-    const lines = computeChartLines(data);
-    expect(lines.net[1]).toBe(-3);
-  });
-});
+// computeChartLines tests have moved to tests/unit/lib/chart-math.test.ts
 
 describe("EmissionsChart", () => {
   const makeData = (

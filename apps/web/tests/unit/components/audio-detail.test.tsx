@@ -7,16 +7,16 @@ import { createFormatMock, DEFAULT_FORMAT_DATE } from "../../helpers/format-mock
 
 // ── Hoisted Mocks ──
 
-const { mockAudioPlayer, mockSubscribeCta } = vi.hoisted(() => ({
+const { mockAudioPlayer, mockContentFooter } = vi.hoisted(() => ({
   mockAudioPlayer: vi.fn(),
-  mockSubscribeCta: vi.fn(),
+  mockContentFooter: vi.fn(),
 }));
 
 vi.mock("../../../src/components/media/audio-player.js", () =>
   stubComponent("AudioPlayer", "audio-player", mockAudioPlayer),
 );
-vi.mock("../../../src/components/content/subscribe-cta.js", () =>
-  stubComponent("SubscribeCta", "subscribe-cta", mockSubscribeCta),
+vi.mock("../../../src/components/content/content-footer.js", () =>
+  stubComponent("ContentFooter", "content-footer", mockContentFooter),
 );
 
 vi.mock("../../../src/lib/format.js", () =>
@@ -94,19 +94,23 @@ describe("AudioDetail", () => {
     expect(screen.getByText(/FORMATTED:/)).toBeInTheDocument();
   });
 
-  it("renders description when present", () => {
+  it("passes description to ContentFooter when present", () => {
     const item = makeMockFeedItem({
       type: "audio",
       description: "Liner notes here",
     });
     render(<AudioDetail item={item} />);
-    expect(screen.getByText("Liner notes here")).toBeInTheDocument();
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({ description: "Liner notes here" }),
+    );
   });
 
-  it("omits description section when null", () => {
+  it("passes null description to ContentFooter when null", () => {
     const item = makeMockFeedItem({ type: "audio", description: null });
-    const { container } = render(<AudioDetail item={item} />);
-    expect(container.querySelector("hr")).toBeNull();
+    render(<AudioDetail item={item} />);
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({ description: null }),
+    );
   });
 
   it("renders AudioPlayer when not locked", () => {
@@ -116,7 +120,6 @@ describe("AudioDetail", () => {
     });
     render(<AudioDetail item={item} />);
     expect(screen.getByTestId("audio-player")).toBeInTheDocument();
-    expect(screen.queryByTestId("subscribe-cta")).toBeNull();
   });
 
   it("does not render AudioPlayer when locked=true", () => {
@@ -139,7 +142,7 @@ describe("AudioDetail", () => {
     expect(screen.getByText("Subscribe to listen")).toBeInTheDocument();
   });
 
-  it("renders SubscribeCta when locked=true with contentType=audio", () => {
+  it("renders ContentFooter with locked props when locked=true", () => {
     const item = makeMockFeedItem({
       type: "audio",
       creatorId: "creator-99",
@@ -147,9 +150,13 @@ describe("AudioDetail", () => {
       mediaUrl: null,
     });
     render(<AudioDetail item={item} locked={true} />);
-    expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
-    expect(mockSubscribeCta).toHaveBeenCalledWith(
-      expect.objectContaining({ creatorId: "creator-99", contentType: "audio" }),
+    expect(screen.getByTestId("content-footer")).toBeInTheDocument();
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creatorId: "creator-99",
+        contentType: "audio",
+        locked: true,
+      }),
     );
   });
 

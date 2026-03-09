@@ -4,7 +4,7 @@ import type { FeedItem } from "@snc/shared";
 import { AudioPlayer } from "../media/audio-player.js";
 import { buildMediaUrl } from "../../lib/url.js";
 import { ContentMeta } from "./content-meta.js";
-import { SubscribeCta } from "./subscribe-cta.js";
+import { ContentFooter } from "./content-footer.js";
 import styles from "./audio-detail.module.css";
 
 // ── Public Types ──
@@ -44,15 +44,12 @@ export function AudioDetail({
             <p className={styles.lockedText}>Subscribe to listen</p>
           </div>
         </div>
-        <SubscribeCta creatorId={item.creatorId} contentType="audio" />
-        {item.description && (
-          <>
-            <hr className={styles.divider} />
-            <div className={styles.description}>
-              <p>{item.description}</p>
-            </div>
-          </>
-        )}
+        <ContentFooter
+          description={item.description}
+          creatorId={item.creatorId}
+          contentType="audio"
+          locked
+        />
       </div>
     );
   }
@@ -88,14 +85,7 @@ export function AudioDetail({
           </div>
         </div>
       </div>
-      {item.description && (
-        <>
-          <hr className={styles.divider} />
-          <div className={styles.description}>
-            <p>{item.description}</p>
-          </div>
-        </>
-      )}
+      <ContentFooter description={item.description} />
     </div>
   );
 }

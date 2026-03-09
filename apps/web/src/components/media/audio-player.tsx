@@ -5,6 +5,8 @@ import type { AudioTrack } from "../../contexts/audio-player-context.js";
 import { useAudioPlayer } from "../../contexts/audio-player-context.js";
 import { formatTime } from "../../lib/format.js";
 import styles from "./audio-player.module.css";
+import { PlayPauseButton } from "./play-pause-button.js";
+import { VolumeControl } from "./volume-control.js";
 
 // ── Public Types ──
 
@@ -68,8 +70,7 @@ export function AudioPlayer({
     actions.seek(Number(e.target.value));
   }
 
-  function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newVolume = Number(e.target.value);
+  function handleVolumeChange(newVolume: number) {
     setVolume(newVolume);
     actions.setVolume(newVolume);
   }
@@ -79,14 +80,11 @@ export function AudioPlayer({
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={preloadRef} src={src} preload="metadata" hidden />
       <div className={styles.controls}>
-        <button
-          type="button"
-          className={styles.playButton}
-          aria-label={isPlaying ? "Pause" : "Play"}
+        <PlayPauseButton
+          isPlaying={isPlaying}
           onClick={handlePlayPause}
-        >
-          {isPlaying ? "⏸" : "▶"}
-        </button>
+          className={styles.playButton}
+        />
         <input
           type="range"
           className={styles.progressBar}
@@ -103,23 +101,11 @@ export function AudioPlayer({
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
       </div>
-      <div className={styles.volumeRow}>
-        <svg className={styles.volumeIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M11 5L6 9H2v6h4l5 4V5z" />
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-        </svg>
-        <input
-          type="range"
-          className={styles.volumeSlider}
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={handleVolumeChange}
-        />
-      </div>
+      <VolumeControl
+        volume={volume}
+        onVolumeChange={handleVolumeChange}
+        className={styles.volumeRow}
+      />
     </div>
   );
 }

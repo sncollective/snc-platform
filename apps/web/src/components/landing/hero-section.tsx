@@ -1,12 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
-import { useSession } from "../../lib/auth.js";
-import { createCheckout, hasPlatformSubscription } from "../../lib/subscription.js";
-import { useSubscriptions } from "../../hooks/use-subscriptions.js";
-import { navigateExternal } from "../../lib/url.js";
+import { usePlatformAuth } from "../../hooks/use-platform-auth.js";
+import { useCheckout } from "../../hooks/use-checkout.js";
 import styles from "./hero-section.module.css";
 
 interface HeroSectionProps {
@@ -14,14 +11,13 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
-  const session = useSession();
   const navigate = useNavigate();
-  const subscriptions = useSubscriptions();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const isAuthenticated: boolean = session.data !== null && session.data !== undefined;
-  const isSubscribed: boolean = hasPlatformSubscription(subscriptions);
+  const { isAuthenticated, isSubscribed } = usePlatformAuth();
   const platformPlanId: string | undefined = plans[0]?.id;
+
+  const { checkoutLoading, handleCheckout } = useCheckout({
+    onError: () => void navigate({ to: "/pricing" }),
+  });
 
   async function handlePrimaryCta(): Promise<void> {
     if (isSubscribed) {
@@ -41,15 +37,7 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const checkoutUrl = await createCheckout(platformPlanId);
-      navigateExternal(checkoutUrl);
-    } catch {
-      // On checkout failure, redirect to pricing page as fallback
-      void navigate({ to: "/pricing" });
-      setIsLoading(false);
-    }
+    await handleCheckout(platformPlanId);
   }
 
   return (
@@ -72,10 +60,10 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
             <button
               type="button"
               className={styles.primaryCta}
-              disabled={isLoading}
+              disabled={checkoutLoading}
               onClick={() => void handlePrimaryCta()}
             >
-              {isLoading ? "Loading..." : "Subscribe"}
+              {checkoutLoading ? "Loading..." : "Subscribe"}
             </button>
           )}
           <Link to="/feed" className={styles.secondaryCta}>

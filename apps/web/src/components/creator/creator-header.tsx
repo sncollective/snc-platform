@@ -3,10 +3,11 @@ import type React from "react";
 import type { CreatorProfileResponse, SubscriptionPlan } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
 
-import { buildMediaUrl, navigateExternal } from "../../lib/url.js";
+import { buildMediaUrl } from "../../lib/url.js";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
-import { createCheckout } from "../../lib/subscription.js";
 import { useSession } from "../../lib/auth.js";
+import { useCheckout } from "../../hooks/use-checkout.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./creator-header.module.css";
 
 // ── Public Types ──
@@ -26,50 +27,34 @@ export function CreatorHeader({
 }: CreatorHeaderProps): React.ReactElement {
   const session = useSession();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const { checkoutLoading, handleCheckout } = useCheckout();
 
   const bannerSrc = buildMediaUrl(creator.bannerUrl);
   const avatarSrc = buildMediaUrl(creator.avatarUrl);
 
   const isAuthenticated = session.data !== null && session.data !== undefined;
 
-  const handleSubscribe = async (planId: string) => {
-    setCheckoutLoading(true);
-    try {
-      const checkoutUrl = await createCheckout(planId);
-      navigateExternal(checkoutUrl);
-    } catch {
-      setCheckoutLoading(false);
-    }
-  };
-
   return (
     <header className={styles.header}>
       {/* Banner */}
       <div className={styles.bannerWrapper}>
-        {bannerSrc ? (
-          <img
-            src={bannerSrc}
-            alt={`${creator.displayName} banner`}
-            className={styles.banner}
-          />
-        ) : (
-          <div className={styles.bannerPlaceholder} />
-        )}
+        <OptionalImage
+          src={bannerSrc}
+          alt={`${creator.displayName} banner`}
+          className={styles.banner}
+          placeholderClassName={styles.bannerPlaceholder}
+        />
       </div>
 
       {/* Profile Info */}
       <div className={styles.profileSection}>
         <div className={styles.avatarWrapper}>
-          {avatarSrc ? (
-            <img
-              src={avatarSrc}
-              alt={`${creator.displayName} avatar`}
-              className={styles.avatar}
-            />
-          ) : (
-            <div className={styles.avatarPlaceholder} />
-          )}
+          <OptionalImage
+            src={avatarSrc}
+            alt={`${creator.displayName} avatar`}
+            className={styles.avatar}
+            placeholderClassName={styles.avatarPlaceholder}
+          />
         </div>
 
         <h1 className={styles.displayName}>{creator.displayName}</h1>
@@ -107,7 +92,7 @@ export function CreatorHeader({
             type="button"
             className={styles.subscribeButton}
             onClick={() => {
-              void handleSubscribe(plans[0]!.id);
+              void handleCheckout(plans[0]!.id);
             }}
             disabled={checkoutLoading}
           >
@@ -137,7 +122,7 @@ export function CreatorHeader({
               type="button"
               className={styles.subscribeButton}
               onClick={() => {
-                void handleSubscribe(selectedPlanId ?? plans[0]!.id);
+                void handleCheckout(selectedPlanId ?? plans[0]!.id);
               }}
               disabled={checkoutLoading}
             >

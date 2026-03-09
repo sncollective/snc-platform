@@ -7,16 +7,16 @@ import { createFormatMock, DEFAULT_FORMAT_DATE } from "../../helpers/format-mock
 
 // ── Hoisted Mocks ──
 
-const { mockVideoPlayer, mockSubscribeCta } = vi.hoisted(() => ({
+const { mockVideoPlayer, mockContentFooter } = vi.hoisted(() => ({
   mockVideoPlayer: vi.fn(),
-  mockSubscribeCta: vi.fn(),
+  mockContentFooter: vi.fn(),
 }));
 
 vi.mock("../../../src/components/media/video-player.js", () =>
   stubComponent("VideoPlayer", "video-player", mockVideoPlayer),
 );
-vi.mock("../../../src/components/content/subscribe-cta.js", () =>
-  stubComponent("SubscribeCta", "subscribe-cta", mockSubscribeCta),
+vi.mock("../../../src/components/content/content-footer.js", () =>
+  stubComponent("ContentFooter", "content-footer", mockContentFooter),
 );
 
 vi.mock("../../../src/lib/format.js", () =>
@@ -82,19 +82,23 @@ describe("VideoDetail", () => {
     expect(screen.getByText(/FORMATTED:/)).toBeInTheDocument();
   });
 
-  it("renders description when present", () => {
+  it("passes description to ContentFooter when present", () => {
     const item = makeMockFeedItem({
       type: "video",
       description: "A great video",
     });
     render(<VideoDetail item={item} />);
-    expect(screen.getByText("A great video")).toBeInTheDocument();
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({ description: "A great video" }),
+    );
   });
 
-  it("omits description section when null", () => {
+  it("passes null description to ContentFooter when null", () => {
     const item = makeMockFeedItem({ type: "video", description: null });
-    const { container } = render(<VideoDetail item={item} />);
-    expect(container.querySelector("hr")).toBeNull();
+    render(<VideoDetail item={item} />);
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({ description: null }),
+    );
   });
 
   it("renders VideoPlayer when not locked", () => {
@@ -104,7 +108,6 @@ describe("VideoDetail", () => {
     });
     render(<VideoDetail item={item} />);
     expect(screen.getByTestId("video-player")).toBeInTheDocument();
-    expect(screen.queryByTestId("subscribe-cta")).toBeNull();
   });
 
   it("does not render VideoPlayer when locked=true", () => {
@@ -127,7 +130,7 @@ describe("VideoDetail", () => {
     expect(screen.getByText("Subscribe to watch")).toBeInTheDocument();
   });
 
-  it("renders SubscribeCta when locked=true", () => {
+  it("renders ContentFooter with locked props when locked=true", () => {
     const item = makeMockFeedItem({
       type: "video",
       creatorId: "creator-42",
@@ -135,9 +138,13 @@ describe("VideoDetail", () => {
       mediaUrl: null,
     });
     render(<VideoDetail item={item} locked={true} />);
-    expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
-    expect(mockSubscribeCta).toHaveBeenCalledWith(
-      expect.objectContaining({ creatorId: "creator-42", contentType: "video" }),
+    expect(screen.getByTestId("content-footer")).toBeInTheDocument();
+    expect(mockContentFooter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creatorId: "creator-42",
+        contentType: "video",
+        locked: true,
+      }),
     );
   });
 

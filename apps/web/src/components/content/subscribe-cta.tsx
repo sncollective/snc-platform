@@ -6,8 +6,8 @@ import { Link } from "@tanstack/react-router";
 
 import { useSession } from "../../lib/auth.js";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
-import { createCheckout, fetchPlans } from "../../lib/subscription.js";
-import { navigateExternal } from "../../lib/url.js";
+import { fetchPlans } from "../../lib/subscription.js";
+import { useCheckout } from "../../hooks/use-checkout.js";
 import styles from "./subscribe-cta.module.css";
 
 // ── Public Types ──
@@ -48,7 +48,7 @@ export function SubscribeCta({
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const { checkoutLoading, handleCheckout } = useCheckout();
 
   useEffect(() => {
     let cancelled = false;
@@ -77,16 +77,6 @@ export function SubscribeCta({
     };
   }, [creatorId]);
 
-  const handleSubscribe = async (planId: string): Promise<void> => {
-    setCheckoutLoading(true);
-    try {
-      const url = await createCheckout(planId);
-      navigateExternal(url);
-    } catch {
-      setCheckoutLoading(false);
-    }
-  };
-
   const bestPlan = cheapestPlan(plans);
 
   return (
@@ -112,7 +102,7 @@ export function SubscribeCta({
             <button
               type="button"
               className={styles.subscribeButton}
-              onClick={() => void handleSubscribe(bestPlan.id)}
+              onClick={() => void handleCheckout(bestPlan.id)}
               disabled={checkoutLoading}
             >
               {checkoutLoading ? "Subscribing…" : "Subscribe"}

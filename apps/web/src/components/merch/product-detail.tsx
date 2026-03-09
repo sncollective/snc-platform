@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { formatPrice } from "../../lib/format.js";
 import { navigateExternal } from "../../lib/url.js";
 import { createMerchCheckout } from "../../lib/merch.js";
+import { OptionalImage } from "../ui/optional-image.js";
 import { VariantSelector } from "./variant-selector.js";
 import styles from "./product-detail.module.css";
 
@@ -57,17 +58,12 @@ export function ProductDetail({
       {/* ── Image Gallery ── */}
       <div className={styles.gallery}>
         <div className={styles.mainImageWrapper}>
-          {product.images.length > 0 ? (
-            <img
-              src={product.images[selectedImageIndex]?.url}
-              alt={
-                product.images[selectedImageIndex]?.altText ?? product.title
-              }
-              className={styles.mainImage}
-            />
-          ) : (
-            <div className={styles.imagePlaceholder} />
-          )}
+          <OptionalImage
+            src={product.images.length > 0 ? product.images[selectedImageIndex]?.url : null}
+            alt={product.images[selectedImageIndex]?.altText ?? product.title}
+            className={styles.mainImage}
+            placeholderClassName={styles.imagePlaceholder}
+          />
         </div>
 
         {product.images.length > 1 && (
