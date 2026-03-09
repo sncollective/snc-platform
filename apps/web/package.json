@@ -14,12 +14,12 @@
   },
   "dependencies": {
     "@snc/shared": "workspace:*",
-    "@tanstack/react-router": "^1.163.2",
-    "@tanstack/react-start": "^1.162.2",
+    "@tanstack/react-router": "^1.166.6",
+    "@tanstack/react-start": "^1.166.6",
     "better-auth": "^1.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "simple-icons": "^16.10.0",
+    "simple-icons": "^16.11.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
