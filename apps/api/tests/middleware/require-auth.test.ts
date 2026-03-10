@@ -68,7 +68,7 @@ describe("requireAuth middleware", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
     vi.resetModules();
   });
 

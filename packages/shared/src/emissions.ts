@@ -5,7 +5,7 @@ import { z } from "zod";
 export const EmissionEntrySchema = z.object({
   id: z.string(),
   date: z.iso.date(),
-  scope: z.number().int(),
+  scope: z.number().int().min(0).max(3),
   category: z.string(),
   subcategory: z.string(),
   source: z.string(),
@@ -22,7 +22,7 @@ export const EmissionEntrySchema = z.object({
 
 export const CreateEmissionEntrySchema = z.object({
   date: z.iso.date(),
-  scope: z.number().int(),
+  scope: z.number().int().min(0).max(3),
   category: z.string().min(1),
   subcategory: z.string().min(1),
   source: z.string().min(1),
@@ -75,7 +75,7 @@ export const EmissionsBreakdownSchema = z.object({
   ),
   monthly: z.array(
     z.object({
-      month: z.string(), // "YYYY-MM"
+      month: z.string().regex(/^\d{4}-\d{2}$/), // "YYYY-MM"
       actualCo2Kg: z.number(),
       projectedCo2Kg: z.number(),
       offsetCo2Kg: z.number(),

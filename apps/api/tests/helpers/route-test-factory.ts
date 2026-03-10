@@ -194,7 +194,7 @@ export function setupRouteTest(options: RouteTestOptions): RouteTestContext {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
     vi.resetModules();
   });
 

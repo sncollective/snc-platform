@@ -74,7 +74,7 @@ describe("stripe service", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
     vi.resetModules();
   });
 

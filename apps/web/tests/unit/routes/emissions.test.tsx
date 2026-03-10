@@ -88,6 +88,7 @@ const EmissionsPage = extractRouteComponent(() => import("../../../src/routes/em
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mockFormatCo2.mockImplementation((kg: number) => {
     if (kg === 0) return "0 g";
     if (kg < 1) return `${(kg * 1000).toFixed(1)} g`;
@@ -97,7 +98,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  vi.resetAllMocks();
 });
 
 // ── Tests ──

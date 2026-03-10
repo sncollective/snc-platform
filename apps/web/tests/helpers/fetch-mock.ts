@@ -26,7 +26,7 @@ export function setupFetchMock() {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
     vi.unstubAllGlobals();
   });
 

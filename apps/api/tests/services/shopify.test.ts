@@ -63,7 +63,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.restoreAllMocks();
+  vi.resetAllMocks();
   vi.resetModules();
 });
 

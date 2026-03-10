@@ -60,7 +60,8 @@ describe("revenue service", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
+    vi.useRealTimers();
     vi.resetModules();
   });
 
