@@ -10,15 +10,14 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 
 ### lib (archived 2026-03-09)
 - `apps/web/src/lib/content.ts` — no unit tests
-- `apps/web/src/lib/merch.ts` — no unit tests
-- `apps/web/src/lib/booking.ts` — no unit tests
-- `apps/web/src/lib/dashboard.ts` — no unit tests
-- `apps/web/src/lib/creator.ts` — no unit tests
 - `apps/web/src/lib/subscription.ts` — no unit tests
+- `apps/web/src/lib/config.ts` — no unit tests
+- `apps/web/src/lib/emissions.ts` — no unit tests
 
 ### components (archived 2026-03-09)
 - `apps/web/src/components/content/content-form.tsx` — no unit tests
 - `apps/web/src/routes/settings/content.tsx` (MyContentList) — no unit tests
+- `apps/web/src/components/content/content-form.tsx` — three file-input blocks (media, cover art, thumbnail) follow identical pattern; `FileInputField` sub-component would reduce ~60 lines
 
 ### routes (archived 2026-03-09)
 - `apps/api/src/routes/content.routes.ts:247` — `as FeedRow[]` cast (Drizzle join return type)
@@ -31,7 +30,6 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - `apps/api/scripts/import-emissions.ts:61` — `JSON.parse(raw) as EmissionsFile` has no runtime validation; consider Zod schema
 - `packages/shared/src/emissions.ts:8` — `scope: z.number().int()` lacks `.min(0).max(3)` constraint
 - `packages/shared/src/emissions.ts:79` — Monthly breakdown `month` field uses `z.string()` instead of `z.string().regex(/^\d{4}-\d{2}$/)` for YYYY-MM format
-- `apps/web/src/routes/emissions.tsx:63` — `breakdown.summary.netCo2Kg.toFixed(1)` is inline formatting; could use `formatCo2` for consistency
 
 ### checkout (archived 2026-03-09)
 - `apps/web/src/routes/checkout/success.tsx` — magic numbers (poll interval, max attempts)
@@ -41,12 +39,28 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - Revenue test fake timers — consider extracting date range logic for testability
 - `apps/web/src/components/dashboard/revenue-chart.tsx` — `MAX_BAR_HEIGHT = 200` magic number (matches CSS)
 - Dashboard `useOptimistic` consideration for booking review actions
+- `apps/web/src/components/dashboard/pending-bookings-table.tsx:18-27` — `formatPreferredDates` is a pure utility inlined as private function; if booking date formatting is needed elsewhere, move to `lib/format.ts`
 
 ### creator (archived 2026-03-09)
 - Creator settings `userId` initialization pattern — `useState("")` then effect-set from session
+- `apps/web/src/routes/settings/creator.tsx:199` — platform `<select>` casts `e.target.value as SocialPlatform` without runtime validation
 
 ### booking (archived 2026-03-09)
 - `reviewNote` not displayed in `BookingList` component (data exists but UI omits it)
+
+### middleware (archived 2026-03-06)
+- `apps/api/src/services/content-access.ts` — uses string literals `"public"` instead of `VISIBILITY.public` / `VISIBILITY.subscribers` constants from `@snc/shared`
+- `apps/api/src/middleware/error-handler.ts:40` — `details` extraction via duck-typing (`"details" in e ? (e as ...).details`); consider adding `details?: unknown` to `AppError` base class
+
+### merch (archived 2026-03-09)
+- `apps/web/src/components/merch/product-card.module.css` / `product-detail.module.css` — imagePlaceholder gradient duplicated (2 occurrences, same domain; marked intentional in comments)
+
+### subscription (archived 2026-03-09)
+- `apps/api/src/routes/subscription.routes.ts:97-99` — `CancelResponseSchema` module-scope definition could benefit from pattern reference comment
+
+### content (archived 2026-03-09)
+- `apps/web/src/components/content/written-detail.tsx` — uses paragraph text as React key (fragile if duplicate paragraphs exist)
+- `apps/api/src/routes/content.routes.ts:178` — destructured field renames (`type: typeFilter`) add cognitive overhead
 
 ### admin (archived 2026-03-09)
 - `admin.routes.ts:98` — `c.req.valid("query" as never) as AdminUsersQuery` double cast. Known Hono-OpenAPI typing limitation, cross-cutting concern.
@@ -74,6 +88,21 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 |------------------|-------------|------------------|
 | Multi-import CSS modules | CSS `composes` for shared styles | Medium — requires restructuring module imports |
 
+### Stripe v20.4 (from subscription, 2026-03-09)
+| Current Approach | Recommended | Migration Effort |
+|------------------|-------------|------------------|
+| `wrapExternalError("STRIPE_ERROR")` wraps all Stripe exceptions as 502 | Differentiate `StripeCardError` (4xx) from `StripeConnectionError` (5xx) using Stripe SDK typed errors | Medium |
+
+### Vitest v4 (from subscription, 2026-03-09)
+| Current Approach | Recommended | Migration Effort |
+|------------------|-------------|------------------|
+| `vi.restoreAllMocks()` in `afterEach` across 19 call sites | Vitest v4 changes `vi.restoreAllMocks()` behavior — audit needed | Low |
+
+### Hono v4.12 (from middleware, 2026-03-06)
+| Current Approach | Recommended | Migration Effort |
+|------------------|-------------|------------------|
+| Explicit `MiddlewareHandler<AuthEnv>` type annotation | `createMiddleware<AuthEnv>()` from `hono/factory` — infers types, reduces boilerplate | Low |
+
 ---
 
 ## OSS Alternatives
@@ -87,3 +116,8 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - **Replaces**: `niceTicks`/`niceNum` in `chart-math.ts` (26 LOC)
 - **Weekly DL**: ~4.5M | **Size**: small (single module)
 - **Recommendation**: keep — current implementation is well-tested, trivial gain
+
+### hono-rate-limiter (from middleware, 2026-03-06)
+- **Replaces**: Hand-rolled `rateLimiter` in `rate-limit.ts` (67 LOC)
+- **Weekly DL**: ~163 | **Size**: small
+- **Recommendation**: evaluate when scaling to multiple API instances (Redis store for shared rate limit state)
