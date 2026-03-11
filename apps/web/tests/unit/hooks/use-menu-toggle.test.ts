@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { createRef } from "react";
 
@@ -7,10 +7,6 @@ import { useMenuToggle } from "../../../src/hooks/use-menu-toggle.js";
 // ── Tests ──
 
 describe("useMenuToggle", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("isOpen starts false", () => {
     const ref = createRef<HTMLElement | null>();
     const { result } = renderHook(() => useMenuToggle(ref));

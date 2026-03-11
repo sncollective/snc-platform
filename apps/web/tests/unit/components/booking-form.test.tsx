@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -30,10 +30,6 @@ beforeEach(() => {
   mockCreateBooking.mockReset();
   defaultProps.onSubmit = vi.fn();
   defaultProps.onCancel = vi.fn();
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

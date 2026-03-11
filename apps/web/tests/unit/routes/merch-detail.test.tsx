@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockMerchProductDetail } from "../../helpers/merch-fixtures.js";
@@ -33,10 +33,6 @@ const MerchDetailPage = extractRouteComponent(() => import("../../../src/routes/
 beforeEach(() => {
   const mockProduct = makeMockMerchProductDetail();
   mockUseLoaderData.mockReturnValue(mockProduct);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

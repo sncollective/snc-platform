@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { RevenueChart } from "../../../../src/components/dashboard/revenue-chart.js";
@@ -6,10 +6,6 @@ import {
   makeMockRevenueResponse,
   makeMockMonthlyRevenue,
 } from "../../../helpers/dashboard-fixtures.js";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("RevenueChart", () => {
   it("renders one bar per month entry", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
 import { useCursorPagination } from "../../../src/hooks/use-cursor-pagination.js";
@@ -21,11 +21,6 @@ describe("useCursorPagination", () => {
         ),
       ),
     );
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it("fetches initial page on mount", async () => {

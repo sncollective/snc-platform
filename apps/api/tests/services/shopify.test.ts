@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 import {
   TEST_CONFIG,
@@ -57,13 +57,7 @@ const setupUnconfiguredShopifyService = async () => {
 
 // ── Lifecycle ──
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
 afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.resetAllMocks();
   vi.resetModules();
 });
 

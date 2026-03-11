@@ -34,7 +34,6 @@ const setupAuthRoutesApp = async (): Promise<Hono> => {
 };
 
 afterEach(() => {
-  vi.restoreAllMocks();
   vi.resetModules(); // purge module cache for next test
 });
 ```
@@ -61,7 +60,6 @@ const setupAuthApp = async (): Promise<Hono<AuthEnv>> => {
 };
 
 afterEach(() => {
-  vi.restoreAllMocks();
   vi.resetModules();
 });
 ```
@@ -99,6 +97,10 @@ vi.doMock("../../src/config.js", () => ({ config: TEST_CONFIG }));
 
 const { getOrCreateCustomer } = await import("../../src/services/stripe.js");
 ```
+
+## Note on Mock Cleanup
+
+`restoreMocks: true` in vitest.config.ts handles mock cleanup globally — only `vi.resetModules()` is needed in `afterEach`.
 
 ## When to Use
 - Testing modules that read config or initialize singletons at module load time

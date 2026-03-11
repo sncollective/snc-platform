@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 import { createAuthMock } from "../../helpers/auth-mock.js";
@@ -37,10 +37,6 @@ describe("usePlatformAuth", () => {
   beforeEach(() => {
     mockUseSession.mockReturnValue(makeMockSessionResult());
     mockFetchMySubscriptions.mockResolvedValue([]);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("returns isAuthenticated false and isSubscribed false when no session", () => {

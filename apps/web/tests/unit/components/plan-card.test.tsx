@@ -1,13 +1,9 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { PlanCard } from "../../../src/components/subscription/plan-card.js";
 import { makeMockPlan } from "../../helpers/subscription-fixtures.js";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("PlanCard", () => {
   it("renders plan name as heading", () => {

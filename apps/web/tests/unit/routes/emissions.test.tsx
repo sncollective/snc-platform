@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import {
@@ -88,7 +88,6 @@ const EmissionsPage = extractRouteComponent(() => import("../../../src/routes/em
 // ── Test Lifecycle ──
 
 beforeEach(() => {
-  vi.clearAllMocks();
   mockFormatCo2.mockImplementation((kg: number) => {
     if (kg === 0) return "0 g";
     if (kg < 1) return `${(kg * 1000).toFixed(1)} g`;
@@ -97,9 +96,6 @@ beforeEach(() => {
   mockUseLoaderData.mockReturnValue(makeMockEmissionsBreakdown());
 });
 
-afterEach(() => {
-  vi.resetAllMocks();
-});
 
 // ── Tests ──
 

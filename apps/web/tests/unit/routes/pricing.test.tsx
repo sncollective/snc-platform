@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -55,10 +55,6 @@ beforeEach(() => {
     makeMockPlan({ id: "plan-yearly", name: "Yearly", price: 9999, interval: "year" }),
   ]);
   mockHandleCheckout.mockResolvedValue(undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

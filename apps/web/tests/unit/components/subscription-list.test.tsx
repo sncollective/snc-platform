@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -21,10 +21,6 @@ import { makeMockUserSubscription } from "../../helpers/subscription-fixtures.js
 
 beforeEach(() => {
   mockFormatDate.mockReturnValue("Mar 1, 2026");
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 describe("SubscriptionList", () => {

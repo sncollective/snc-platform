@@ -2,6 +2,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    restoreMocks: true,
+    mockReset: true,
+    unstubGlobals: true,
     env: {
       DATABASE_URL: "postgres://test:test@localhost:5432/test",
       BETTER_AUTH_SECRET: "test-secret-that-is-at-least-thirty-two-characters",

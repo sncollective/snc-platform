@@ -1,11 +1,7 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { KpiCard } from "../../../../src/components/dashboard/kpi-card.js";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("KpiCard", () => {
   it("renders label text", () => {

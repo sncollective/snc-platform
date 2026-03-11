@@ -1,6 +1,6 @@
 # Pattern: vi.hoisted Module Mock
 
-React component tests hoist mock functions via `vi.hoisted()` before `vi.mock()` calls, then import the component under test after all mocks are established. `beforeEach` sets default return values; `afterEach` restores all mocks.
+React component tests hoist mock functions via `vi.hoisted()` before `vi.mock()` calls, then import the component under test after all mocks are established. `beforeEach` sets default return values.
 
 ## Rationale
 
@@ -50,7 +50,7 @@ vi.mock("../../../src/lib/auth-client.js", () => ({
 import { NavBar } from "../../../src/components/layout/nav-bar.js";
 ```
 
-### Example 2: Test lifecycle — defaults in beforeEach, restore in afterEach
+### Example 2: Test lifecycle — defaults in beforeEach
 **File**: `apps/web/tests/unit/components/nav-bar.test.tsx:63`
 ```typescript
 beforeEach(() => {
@@ -59,10 +59,6 @@ beforeEach(() => {
   });
   mockUseSession.mockReturnValue(makeMockSessionResult());
   mockUseRoles.mockReturnValue([]);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 ```
 
@@ -94,10 +90,6 @@ beforeEach(() => {
   mockSignUpEmail.mockReset();
   mockNavigate.mockReset();
 });
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 ```
 
 ### Example 4: Per-test mock override for role-based rendering
@@ -126,6 +118,10 @@ it("hides 'Dashboard' link when user lacks cooperative-member role", async () =>
   expect(screen.queryByRole("menuitem", { name: "Dashboard" })).toBeNull();
 });
 ```
+
+## Note on Mock Cleanup
+
+`restoreMocks: true` in vitest.config.ts eliminates manual `vi.restoreAllMocks()` cleanup.
 
 ## When to Use
 

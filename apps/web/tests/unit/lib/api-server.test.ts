@@ -46,7 +46,6 @@ describe("fetchApiServer", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     (globalThis as Record<string, unknown>).process = originalProcess;
   });
 
@@ -121,7 +120,6 @@ describe("fetchAuthStateServer", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     (globalThis as Record<string, unknown>).process = originalProcess;
   });
 

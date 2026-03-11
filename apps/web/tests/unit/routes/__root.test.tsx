@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type React from "react";
 
@@ -53,12 +53,6 @@ let RootLayout: () => React.ReactElement;
 beforeAll(async () => {
   const mod = await import("../../../src/routes/__root.js");
   RootLayout = mod.RootLayout;
-});
-
-// ── Lifecycle ──
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import Stripe from "stripe";
 
 import { TEST_CONFIG } from "../helpers/test-constants.js";
@@ -70,12 +70,7 @@ const setupStripeServiceUnconfigured = async () => {
 // ── Tests ──
 
 describe("stripe service", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 

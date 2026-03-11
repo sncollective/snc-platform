@@ -1,4 +1,4 @@
-import { vi, beforeEach, afterEach } from "vitest";
+import { vi, beforeEach } from "vitest";
 
 /**
  * Sets up a shared fetch mock with proper lifecycle management.
@@ -23,11 +23,6 @@ export function setupFetchMock() {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
-    vi.unstubAllGlobals();
   });
 
   return {

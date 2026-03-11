@@ -180,8 +180,6 @@ export function setupRouteTest(options: RouteTestOptions): RouteTestContext {
   };
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-
     // Reset auth state to defaults
     ctx.auth.user = options.defaultAuth?.user ?? makeMockUser();
     ctx.auth.session = options.defaultAuth?.session ?? makeMockSession();
@@ -194,7 +192,6 @@ export function setupRouteTest(options: RouteTestOptions): RouteTestContext {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 

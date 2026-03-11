@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
@@ -23,12 +23,6 @@ vi.mock("../../../src/components/content/subscribe-cta.js", () =>
 // ── Component Under Test ──
 
 import { WrittenDetail } from "../../../src/components/content/written-detail.js";
-
-// ── Lifecycle ──
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 // ── Tests ──
 

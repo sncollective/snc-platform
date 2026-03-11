@@ -4,7 +4,6 @@ import {
   expect,
   vi,
   beforeEach,
-  afterEach,
 } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -74,11 +73,6 @@ beforeEach(() => {
       Promise.resolve(makeAdminUsersResponse([defaultUser])),
     ),
   );
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 // ── Tests ──

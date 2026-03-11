@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -39,10 +39,6 @@ import { CreatorHeader } from "../../../src/components/creator/creator-header.js
 beforeEach(() => {
   mockUseSession.mockReturnValue({ data: { user: { id: "user-1" } } });
   mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

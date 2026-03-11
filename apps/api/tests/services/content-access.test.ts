@@ -64,7 +64,6 @@ describe("checkContentAccess", () => {
   ) => Promise<{ allowed: boolean; reason?: string; creatorId?: string }>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     // Default: no matching subscriptions found, no roles
     mockLimit.mockResolvedValue([]);
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
@@ -73,7 +72,6 @@ describe("checkContentAccess", () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 
@@ -273,7 +271,6 @@ describe("buildContentAccessContext", () => {
   }>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     mockLimit.mockResolvedValue([]);
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
     const mod = await setupContentGate();
@@ -281,7 +278,6 @@ describe("buildContentAccessContext", () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 
@@ -376,7 +372,6 @@ describe("hasContentAccess", () => {
   ) => boolean;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     mockLimit.mockResolvedValue([]);
     mockGetUserRoles.mockResolvedValue(["subscriber"]);
     const mod = await setupContentGate();
@@ -384,7 +379,6 @@ describe("hasContentAccess", () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 

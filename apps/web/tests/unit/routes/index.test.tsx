@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { extractRoute } from "../../helpers/route-test-utils.js";
@@ -73,10 +73,6 @@ beforeEach(() => {
     recentContent: [],
     plans: [],
   });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

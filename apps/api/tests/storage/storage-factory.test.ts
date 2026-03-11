@@ -5,7 +5,6 @@ import { makeTestConfig } from "../helpers/test-constants.js";
 
 describe("createStorageProvider", () => {
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 

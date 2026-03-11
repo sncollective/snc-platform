@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -52,10 +52,6 @@ const MOCK_ACTIONS = {
 describe("AudioPlayer", () => {
   beforeEach(() => {
     mockUseAudioPlayer.mockReturnValue(makeMockContext(MOCK_ACTIONS));
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("renders play button when no track is active", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockCreatorListItem } from "../../../helpers/creator-fixtures.js";
@@ -11,12 +11,6 @@ vi.mock("@tanstack/react-router", () => createRouterMock());
 // ── Import component under test (after mocks) ──
 
 import { FeaturedCreators } from "../../../../src/components/landing/featured-creators.js";
-
-// ── Lifecycle ──
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 // ── Tests ──
 

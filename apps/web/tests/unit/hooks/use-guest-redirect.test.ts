@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 
 import { createRouterMock } from "../../helpers/router-mock.js";
@@ -33,10 +33,6 @@ describe("useGuestRedirect", () => {
   beforeEach(() => {
     mockUseSession.mockReturnValue(makeMockSessionResult());
     mockNavigate.mockReset();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("returns true (shouldRender) when session is pending", () => {

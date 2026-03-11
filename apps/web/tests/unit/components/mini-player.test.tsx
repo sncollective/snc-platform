@@ -47,7 +47,6 @@ describe("MiniPlayer", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     document.body.style.removeProperty("--mini-player-height");
   });
 

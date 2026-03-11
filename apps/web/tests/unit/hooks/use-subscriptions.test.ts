@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
 import { createAuthMock } from "../../helpers/auth-mock.js";
@@ -33,10 +33,6 @@ describe("useSubscriptions", () => {
   beforeEach(() => {
     mockUseSession.mockReturnValue(makeMockSessionResult());
     mockFetchMySubscriptions.mockReset();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("returns [] when session.data is null", () => {

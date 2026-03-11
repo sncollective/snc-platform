@@ -81,7 +81,6 @@ const setupRoleAppNoUser = async (
 
 describe("requireRole middleware", () => {
   afterEach(() => {
-    vi.resetAllMocks();
     vi.resetModules();
   });
 

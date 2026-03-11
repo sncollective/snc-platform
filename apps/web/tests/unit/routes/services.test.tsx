@@ -4,7 +4,6 @@ import {
   expect,
   vi,
   beforeEach,
-  afterEach,
 } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -62,10 +61,6 @@ beforeEach(() => {
   mockUseSession.mockReturnValue({ data: { user: { id: "u1" } } });
   mockCreateBooking.mockResolvedValue({});
   mockNavigate.mockReset();
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

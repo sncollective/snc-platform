@@ -93,11 +93,6 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 |------------------|-------------|------------------|
 | `wrapExternalError("STRIPE_ERROR")` wraps all Stripe exceptions as 502 | Differentiate `StripeCardError` (4xx) from `StripeConnectionError` (5xx) using Stripe SDK typed errors | Medium |
 
-### Vitest v4 (from subscription, 2026-03-09)
-| Current Approach | Recommended | Migration Effort |
-|------------------|-------------|------------------|
-| `vi.restoreAllMocks()` in `afterEach` across 19 call sites | Vitest v4 changes `vi.restoreAllMocks()` behavior — audit needed | Low |
-
 ### Hono v4.12 (from middleware, 2026-03-06)
 | Current Approach | Recommended | Migration Effort |
 |------------------|-------------|------------------|

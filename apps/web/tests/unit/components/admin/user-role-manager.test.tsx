@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -15,10 +15,6 @@ let mockOnRevokeRole: ReturnType<typeof vi.fn<(userId: string, role: Role) => Pr
 beforeEach(() => {
   mockOnAssignRole = vi.fn<(userId: string, role: Role) => Promise<void>>().mockResolvedValue(undefined);
   mockOnRevokeRole = vi.fn<(userId: string, role: Role) => Promise<void>>().mockResolvedValue(undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──

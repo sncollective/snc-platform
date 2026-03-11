@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { TEST_CONFIG } from "../helpers/test-constants.js";
 import { makeMockStripeInvoice } from "../helpers/dashboard-fixtures.js";
@@ -55,12 +55,7 @@ const setupRevenueServiceUnconfigured = async () => {
 // ── Tests ──
 
 describe("revenue service", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   afterEach(() => {
-    vi.resetAllMocks();
     vi.useRealTimers();
     vi.resetModules();
   });

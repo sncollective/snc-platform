@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 
@@ -28,10 +28,6 @@ const TEST_TRACK: AudioTrack = {
 beforeEach(() => {
   HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
   HTMLMediaElement.prototype.pause = vi.fn();
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 function wrapper({ children }: Readonly<{ children: ReactNode }>): React.ReactElement {

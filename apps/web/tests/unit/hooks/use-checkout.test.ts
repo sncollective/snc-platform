@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
 // ── Hoisted Mocks ──
@@ -25,10 +25,6 @@ import { useCheckout } from "../../../src/hooks/use-checkout.js";
 describe("useCheckout", () => {
   beforeEach(() => {
     mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("returns checkoutLoading false initially", () => {

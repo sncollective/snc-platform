@@ -1,12 +1,8 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { SocialLinksSection } from "../../../src/components/social-links/social-links-section.js";
 import type { SocialLink } from "@snc/shared";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 // ── Tests ──
 

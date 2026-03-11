@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { makeMockBookingWithService } from "../../helpers/booking-fixtures.js";
@@ -26,10 +26,6 @@ import { BookingList } from "../../../src/components/booking/booking-list.js";
 
 beforeEach(() => {
   mockFormatRelativeDate.mockReturnValue("2d ago");
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 // ── Tests ──
