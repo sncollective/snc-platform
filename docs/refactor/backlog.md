@@ -9,10 +9,10 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 ## P3 Findings
 
 ### lib (archived 2026-03-09)
-- `apps/web/src/lib/content.ts` — no unit tests
-- `apps/web/src/lib/subscription.ts` — no unit tests
-- `apps/web/src/lib/config.ts` — no unit tests
-- `apps/web/src/lib/emissions.ts` — no unit tests
+- ~~`apps/web/src/lib/content.ts` — no unit tests~~ — resolved 2026-03-11 (8 tests in `tests/unit/lib/content.test.ts`)
+- ~~`apps/web/src/lib/subscription.ts` — no unit tests~~ — resolved 2026-03-11 (18 tests in `tests/unit/lib/subscription.test.ts`)
+- ~~`apps/web/src/lib/config.ts` — no unit tests~~ — resolved 2026-03-11 (3 tests in `tests/unit/lib/config.test.ts`)
+- ~~`apps/web/src/lib/emissions.ts` — no unit tests~~ — resolved 2026-03-11 (4 tests in `tests/unit/lib/emissions.test.ts`)
 
 ### components (archived 2026-03-09)
 - `apps/web/src/components/content/content-form.tsx` — no unit tests
