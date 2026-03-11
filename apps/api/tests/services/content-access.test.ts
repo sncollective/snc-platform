@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import type { Visibility } from "@snc/shared";
+
 import { TEST_CONFIG } from "../helpers/test-constants.js";
 
 // ── Mock State ──
@@ -57,7 +59,7 @@ describe("checkContentAccess", () => {
   let checkContentAccess: (
     userId: string | null,
     contentCreatorId: string,
-    contentVisibility: string,
+    contentVisibility: Visibility,
     prefetchedRoles?: string[],
   ) => Promise<{ allowed: boolean; reason?: string; creatorId?: string }>;
 
@@ -370,7 +372,7 @@ describe("hasContentAccess", () => {
       hasPlatformSubscription: boolean;
     },
     contentCreatorId: string,
-    contentVisibility: string,
+    contentVisibility: Visibility,
   ) => boolean;
 
   beforeEach(async () => {

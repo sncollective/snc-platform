@@ -21,7 +21,7 @@ import {
   FeedResponseSchema,
   FeedItemSchema,
 } from "@snc/shared";
-import type { ContentResponse, ContentType, Visibility, FeedItem, FeedQuery } from "@snc/shared";
+import type { ContentResponse, ContentType, FeedItem, FeedQuery } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
@@ -62,11 +62,11 @@ const FIELD_KEY_MAP = {
 const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   id: row.id,
   creatorId: row.creatorId,
-  type: row.type as ContentType,
+  type: row.type,
   title: row.title,
   body: row.body ?? null,
   description: row.description ?? null,
-  visibility: row.visibility as Visibility,
+  visibility: row.visibility,
   thumbnailUrl: row.thumbnailKey
     ? `/api/content/${row.id}/thumbnail`
     : null,
@@ -521,7 +521,7 @@ contentRoutes.post(
 
     // Determine constraints for this field + content type
     const { maxSize, acceptedTypes } = getUploadConstraints(
-      existing.type as ContentType,
+      existing.type,
       field,
     );
 

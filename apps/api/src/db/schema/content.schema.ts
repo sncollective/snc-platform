@@ -1,5 +1,7 @@
 import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 
+import type { ContentType, Visibility } from "@snc/shared";
+
 import { users } from "./user.schema.js";
 
 // ── Content ──
@@ -11,11 +13,11 @@ export const content = pgTable(
     creatorId: text("creator_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(),
+    type: text("type").$type<ContentType>().notNull(),
     title: text("title").notNull(),
     body: text("body"),
     description: text("description"),
-    visibility: text("visibility").notNull().default("public"),
+    visibility: text("visibility").$type<Visibility>().notNull().default("public"),
     thumbnailKey: text("thumbnail_key"),
     mediaKey: text("media_key"),
     coverArtKey: text("cover_art_key"),

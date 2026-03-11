@@ -1,5 +1,7 @@
 import { and, eq, or, gt } from "drizzle-orm";
 
+import type { Visibility } from "@snc/shared";
+
 import { db } from "../db/connection.js";
 import {
   userSubscriptions,
@@ -128,7 +130,7 @@ export const buildContentAccessContext = async (
 export const hasContentAccess = (
   ctx: ContentAccessContext,
   contentCreatorId: string,
-  contentVisibility: string,
+  contentVisibility: Visibility,
 ): boolean => {
   if (contentVisibility === "public") return true;
   if (ctx.userId === null) return false;
@@ -148,7 +150,7 @@ export const hasContentAccess = (
 export const checkContentAccess = async (
   userId: string | null,
   contentCreatorId: string,
-  contentVisibility: string,
+  contentVisibility: Visibility,
   prefetchedRoles?: string[],
 ): Promise<ContentGateResult> => {
   // Rule 1: Public content is always accessible

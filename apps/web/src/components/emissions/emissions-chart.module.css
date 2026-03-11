@@ -48,7 +48,7 @@
 }
 
 .netLineNegative {
-  stroke: var(--color-success, #4caf50);
+  stroke: var(--color-success);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
@@ -61,7 +61,7 @@
 }
 
 .projectedNetNegative {
-  stroke: var(--color-success, #4caf50);
+  stroke: var(--color-success);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 2 4;
@@ -167,7 +167,7 @@
 }
 
 .netSwatch {
-  background: linear-gradient(90deg, var(--color-success, #4caf50), var(--color-error));
+  background: linear-gradient(90deg, var(--color-success), var(--color-error));
 }
 
 .projectedNetSwatch {
@@ -178,7 +178,7 @@
     var(--color-bg) 2px,
     var(--color-bg) 4px
   ),
-  linear-gradient(90deg, var(--color-success, #4caf50), var(--color-error));
+  linear-gradient(90deg, var(--color-success), var(--color-error));
 }
 
 /* ── Empty State ── */

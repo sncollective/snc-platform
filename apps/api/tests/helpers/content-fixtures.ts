@@ -1,15 +1,15 @@
-import type { ContentResponse } from "@snc/shared";
+import type { ContentResponse, ContentType, Visibility } from "@snc/shared";
 
 // ── Private Types ──
 
 type DbContentRow = {
   id: string;
   creatorId: string;
-  type: string;
+  type: ContentType;
   title: string;
   body: string | null;
   description: string | null;
-  visibility: string;
+  visibility: Visibility;
   thumbnailKey: string | null;
   mediaKey: string | null;
   coverArtKey: string | null;

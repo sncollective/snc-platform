@@ -57,6 +57,7 @@
   --color-success: #4caf50;
   --color-success-bg: rgba(76, 175, 80, 0.1);
   --color-accent-bg: rgba(245, 166, 35, 0.1);
+  --overlay-lock: rgba(0, 0, 0, 0.6);
   --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.3);
   --color-text-on-color: #fff;
   --color-media-bg: #000;

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// ── Private Constants ──
+
+const MONTH_REGEX = /^\d{4}-\d{2}$/;
+
 // ── Public Schemas ──
 
 export const EmissionEntrySchema = z.object({
@@ -75,7 +79,7 @@ export const EmissionsBreakdownSchema = z.object({
   ),
   monthly: z.array(
     z.object({
-      month: z.string().regex(/^\d{4}-\d{2}$/), // "YYYY-MM"
+      month: z.string().regex(MONTH_REGEX), // "YYYY-MM"
       actualCo2Kg: z.number(),
       projectedCo2Kg: z.number(),
       offsetCo2Kg: z.number(),

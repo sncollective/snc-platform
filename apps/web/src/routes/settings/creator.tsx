@@ -197,9 +197,12 @@ function CreatorSettingsPage(): React.ReactElement {
             <select
               id="link-platform"
               value={newPlatform}
-              onChange={(e) =>
-                setNewPlatform(e.target.value as SocialPlatform)
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (SOCIAL_PLATFORMS.includes(val as SocialPlatform)) {
+                  setNewPlatform(val as SocialPlatform);
+                }
+              }}
               className={formStyles.select}
               disabled={isSubmitting}
             >

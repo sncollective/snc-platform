@@ -32,7 +32,7 @@
 }
 
 .valueSuccess {
-  color: var(--color-success, #4caf50);
+  color: var(--color-success);
 }
 
 .unit {
