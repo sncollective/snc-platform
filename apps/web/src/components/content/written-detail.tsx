@@ -45,8 +45,8 @@ export function WrittenDetail({
         <hr className={styles.divider} />
         <div className={styles.bodyPreview}>
           <div className={styles.body}>
-            {previewParagraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {previewParagraphs.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
             ))}
           </div>
           <div className={styles.fadeOverlay} />
@@ -71,8 +71,8 @@ export function WrittenDetail({
       </header>
       <hr className={styles.divider} />
       <div className={styles.body}>
-        {paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
+        {paragraphs.map((paragraph, index) => (
+          <p key={index}>{paragraph}</p>
         ))}
       </div>
     </div>

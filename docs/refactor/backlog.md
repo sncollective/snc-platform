@@ -20,7 +20,6 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - `apps/web/src/components/content/content-form.tsx` — three file-input blocks (media, cover art, thumbnail) follow identical pattern; `FileInputField` sub-component would reduce ~60 lines
 
 ### routes (archived 2026-03-09)
-- `apps/api/src/routes/content.routes.ts:247` — `as FeedRow[]` cast (Drizzle join return type)
 - Loader return type casts via `fetchApiServer` — several routes cast response as specific types
 
 ### emissions (archived 2026-03-09)
@@ -28,11 +27,8 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - `apps/web/src/components/emissions/emissions-chart.tsx` — 332-line component with SVG rendering could be split into subcomponents (GridLines, DataLines, Legend, Tooltip)
 - `apps/web/src/lib/chart-math.ts:3-6` — `MONTHS` array duplicates locale-aware formatting that `Intl.DateTimeFormat` could provide
 - `apps/api/scripts/import-emissions.ts:61` — `JSON.parse(raw) as EmissionsFile` has no runtime validation; consider Zod schema
-- `packages/shared/src/emissions.ts:8` — `scope: z.number().int()` lacks `.min(0).max(3)` constraint
-- `packages/shared/src/emissions.ts:79` — Monthly breakdown `month` field uses `z.string()` instead of `z.string().regex(/^\d{4}-\d{2}$/)` for YYYY-MM format
 
 ### checkout (archived 2026-03-09)
-- `apps/web/src/routes/checkout/success.tsx` — magic numbers (poll interval, max attempts)
 - `apps/web/src/routes/checkout/success.module.css` + `cancel.module.css` — style duplication
 
 ### dashboard (archived 2026-03-09)
@@ -43,13 +39,11 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 
 ### creator (archived 2026-03-09)
 - Creator settings `userId` initialization pattern — `useState("")` then effect-set from session
-- `apps/web/src/routes/settings/creator.tsx:199` — platform `<select>` casts `e.target.value as SocialPlatform` without runtime validation
 
 ### booking (archived 2026-03-09)
-- `reviewNote` not displayed in `BookingList` component (data exists but UI omits it)
+*(all items resolved)*
 
 ### middleware (archived 2026-03-06)
-- `apps/api/src/services/content-access.ts` — uses string literals `"public"` instead of `VISIBILITY.public` / `VISIBILITY.subscribers` constants from `@snc/shared`
 - `apps/api/src/middleware/error-handler.ts:40` — `details` extraction via duck-typing (`"details" in e ? (e as ...).details`); consider adding `details?: unknown` to `AppError` base class
 
 ### merch (archived 2026-03-09)
@@ -59,13 +53,10 @@ Deferred items from refactor analysis. Revisit when touching nearby code or duri
 - `apps/api/src/routes/subscription.routes.ts:97-99` — `CancelResponseSchema` module-scope definition could benefit from pattern reference comment
 
 ### content (archived 2026-03-09)
-- `apps/web/src/components/content/written-detail.tsx` — uses paragraph text as React key (fragile if duplicate paragraphs exist)
 - `apps/api/src/routes/content.routes.ts:178` — destructured field renames (`type: typeFilter`) add cognitive overhead
 
 ### admin (archived 2026-03-09)
 - `admin.routes.ts:98` — `c.req.valid("query" as never) as AdminUsersQuery` double cast. Known Hono-OpenAPI typing limitation, cross-cutting concern.
-- `admin.routes.ts:196,249` — `c.json({ user: user! })` non-null assertion after verified-exists check. Guard clause would be safer.
-- `user-role-manager.tsx:25` — Extra whitespace in `useState<Role | "">(""  )`. Cosmetic only.
 
 ---
 

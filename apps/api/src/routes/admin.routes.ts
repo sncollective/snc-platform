@@ -114,15 +114,14 @@ adminRoutes.get(
         timestampField: "createdAt",
         idField: "id",
       });
-      conditions.push(
-        or(
-          lt(users.createdAt, decoded.timestamp),
-          and(
-            eq(users.createdAt, decoded.timestamp),
-            lt(users.id, decoded.id),
-          ),
-        )!,
+      const cursorCondition = or(
+        lt(users.createdAt, decoded.timestamp),
+        and(
+          eq(users.createdAt, decoded.timestamp),
+          lt(users.id, decoded.id),
+        ),
       );
+      if (cursorCondition) conditions.push(cursorCondition);
     }
 
     const userRows = await db

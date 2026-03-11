@@ -100,6 +100,39 @@ describe("BookingList", () => {
     expect(screen.queryByText("Afternoon preferred")).not.toBeInTheDocument();
   });
 
+  it("renders reviewNote when present and status is not pending", () => {
+    const booking = makeMockBookingWithService({
+      status: "approved",
+      reviewNote: "Looks good, confirmed for March 15",
+    });
+    render(<BookingList bookings={[booking]} />);
+    expect(screen.getByText(/Approved:/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Looks good, confirmed for March 15/),
+    ).toBeInTheDocument();
+  });
+
+  it("renders denied label for denied bookings with reviewNote", () => {
+    const booking = makeMockBookingWithService({
+      status: "denied",
+      reviewNote: "Studio unavailable on those dates",
+    });
+    render(<BookingList bookings={[booking]} />);
+    expect(screen.getByText(/Denied:/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Studio unavailable on those dates/),
+    ).toBeInTheDocument();
+  });
+
+  it("hides reviewNote when status is pending", () => {
+    const booking = makeMockBookingWithService({
+      status: "pending",
+      reviewNote: "Should not appear",
+    });
+    render(<BookingList bookings={[booking]} />);
+    expect(screen.queryByText(/Should not appear/)).not.toBeInTheDocument();
+  });
+
   it("renders multiple bookings", () => {
     const bookings = [
       makeMockBookingWithService({

@@ -199,7 +199,7 @@ function CreatorSettingsPage(): React.ReactElement {
               value={newPlatform}
               onChange={(e) => {
                 const val = e.target.value;
-                if (SOCIAL_PLATFORMS.includes(val as SocialPlatform)) {
+                if ((SOCIAL_PLATFORMS as readonly string[]).includes(val)) {
                   setNewPlatform(val as SocialPlatform);
                 }
               }}

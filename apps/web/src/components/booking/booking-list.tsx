@@ -52,6 +52,12 @@ export function BookingList({
           {booking.notes !== "" && (
             <div className={styles.notes}>{booking.notes}</div>
           )}
+          {booking.reviewNote && booking.status !== "pending" && (
+            <div className={styles.reviewNote}>
+              <strong>{booking.status === "approved" ? "Approved" : "Denied"}:</strong>{" "}
+              {booking.reviewNote}
+            </div>
+          )}
           <div className={styles.submittedDate}>
             Submitted {formatRelativeDate(booking.createdAt)}
           </div>

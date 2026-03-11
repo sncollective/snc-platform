@@ -39,7 +39,7 @@ import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 // ── Private Types ──
 
 type ContentRow = typeof content.$inferSelect;
-type FeedRow = ContentRow & { creatorName: string };
+type FeedRow = ContentRow & { creatorName: string | null };
 
 const UPLOAD_FIELDS = ["media", "thumbnail", "coverArt"] as const;
 type UploadField = (typeof UPLOAD_FIELDS)[number];
@@ -115,7 +115,7 @@ const requireContentOwnership = async (
 
 const resolveFeedItem = (row: FeedRow): FeedItem => ({
   ...resolveContentUrls(row),
-  creatorName: row.creatorName,
+  creatorName: row.creatorName ?? "",
 });
 
 type ContentKeyField = "mediaKey" | "thumbnailKey" | "coverArtKey";
@@ -243,15 +243,14 @@ contentRoutes.get(
         timestampField: "publishedAt",
         idField: "id",
       });
-      conditions.push(
-        or(
-          lt(content.publishedAt, decoded.timestamp),
-          and(
-            eq(content.publishedAt, decoded.timestamp),
-            lt(content.id, decoded.id),
-          ),
-        )!,
+      const cursorCondition = or(
+        lt(content.publishedAt, decoded.timestamp),
+        and(
+          eq(content.publishedAt, decoded.timestamp),
+          lt(content.id, decoded.id),
+        ),
       );
+      if (cursorCondition) conditions.push(cursorCondition);
     }
 
     // Query with JOIN to get creatorName
@@ -277,7 +276,7 @@ contentRoutes.get(
       .innerJoin(users, eq(content.creatorId, users.id))
       .where(and(...conditions))
       .orderBy(desc(content.publishedAt), desc(content.id))
-      .limit(limit + 1)) as FeedRow[];
+      .limit(limit + 1));
 
     const { items: rawItems, nextCursor } = buildPaginatedResponse(
       rows,
