@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -34,7 +34,7 @@ export function RegisterForm() {
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = useCallback((): RegisterFields | null => {
+  const validate = (): RegisterFields | null => {
     const result = safeParse(REGISTER_SCHEMA, { name, email, password });
 
     if (result.success) {
@@ -46,41 +46,38 @@ export function RegisterForm() {
       extractFieldErrors(result.error.issues, ["name", "email", "password"]),
     );
     return null;
-  }, [name, email, password]);
+  };
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault();
-      setServerError("");
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setServerError("");
 
-      const data = validate();
-      if (!data) return;
+    const data = validate();
+    if (!data) return;
 
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
-      try {
-        const result = await authClient.signUp.email({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-        });
+    try {
+      const result = await authClient.signUp.email({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
 
-        if (result.error) {
-          setServerError(
-            result.error.message ?? "Registration failed. Please try again.",
-          );
-          return;
-        }
-
-        void navigate({ to: "/feed" });
-      } catch {
-        setServerError("Registration failed. Please try again.");
-      } finally {
-        setIsSubmitting(false);
+      if (result.error) {
+        setServerError(
+          result.error.message ?? "Registration failed. Please try again.",
+        );
+        return;
       }
-    },
-    [validate, navigate],
-  );
+
+      void navigate({ to: "/feed" });
+    } catch {
+      setServerError("Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>

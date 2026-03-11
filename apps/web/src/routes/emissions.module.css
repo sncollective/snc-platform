@@ -229,7 +229,7 @@
   margin-left: var(--space-xs);
   padding: 1px var(--space-xs);
   background: var(--color-success, #22c55e);
-  color: #fff;
+  color: var(--color-text-on-color);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-weight: 600;

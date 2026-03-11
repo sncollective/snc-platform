@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
@@ -32,9 +32,9 @@ function ContentSettingsPage(): React.ReactElement {
   const { userId } = Route.useRouteContext();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleCreated = useCallback(() => {
+  const handleCreated = () => {
     setRefreshKey((k) => k + 1);
-  }, []);
+  };
 
   return (
     <div className={settingsStyles.page}>

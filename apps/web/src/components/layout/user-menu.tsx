@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
 
@@ -29,11 +29,11 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     await authClient.signOut();
     handleClose();
     void navigate({ to: "/" });
-  }, [navigate, handleClose]);
+  };
 
   // Resolve user: prefer live session, fall back to server-prefetched
   const user = session.isPending

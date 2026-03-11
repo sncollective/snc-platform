@@ -41,8 +41,6 @@ function FeedPage(): React.ReactElement {
     setActiveFilter(filter);
   };
 
-  const handleLoadMore = loadMore;
-
   return (
     <div className={styles.feedPage}>
       <h1 className={listingStyles.heading}>Content Feed</h1>
@@ -63,7 +61,7 @@ function FeedPage(): React.ReactElement {
               <button
                 type="button"
                 className={listingStyles.loadMoreButton}
-                onClick={handleLoadMore}
+                onClick={loadMore}
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : "Load more"}

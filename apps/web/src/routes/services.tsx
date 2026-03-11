@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import type { Service } from "@snc/shared";
 
@@ -32,26 +32,23 @@ function ServicesPage(): React.ReactElement {
   const [activeFormServiceId, setActiveFormServiceId] = useState<string | null>(null);
   const [successServiceId, setSuccessServiceId] = useState<string | null>(null);
 
-  const handleRequestBooking = useCallback(
-    (serviceId: string) => {
-      if (!session.data) {
-        void navigate({ to: "/login" });
-        return;
-      }
-      setSuccessServiceId(null);
-      setActiveFormServiceId(serviceId);
-    },
-    [navigate, session.data],
-  );
+  const handleRequestBooking = (serviceId: string) => {
+    if (!session.data) {
+      void navigate({ to: "/login" });
+      return;
+    }
+    setSuccessServiceId(null);
+    setActiveFormServiceId(serviceId);
+  };
 
-  const handleBookingSuccess = useCallback(() => {
+  const handleBookingSuccess = () => {
     setSuccessServiceId(activeFormServiceId);
     setActiveFormServiceId(null);
-  }, [activeFormServiceId]);
+  };
 
-  const handleBookingCancel = useCallback(() => {
+  const handleBookingCancel = () => {
     setActiveFormServiceId(null);
-  }, []);
+  };
 
   return (
     <div className={styles.servicesPage}>

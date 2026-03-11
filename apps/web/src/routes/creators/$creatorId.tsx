@@ -106,8 +106,6 @@ function CreatorDetailPage(): React.ReactElement {
     setActiveFilter(filter);
   };
 
-  const handleLoadMore = loadMore;
-
   return (
     <div className={styles.detailPage}>
       <CreatorHeader
@@ -139,7 +137,7 @@ function CreatorDetailPage(): React.ReactElement {
                 <button
                   type="button"
                   className={listingStyles.loadMoreButton}
-                  onClick={handleLoadMore}
+                  onClick={loadMore}
                   disabled={isLoading}
                 >
                   {isLoading ? "Loading..." : "Load more"}

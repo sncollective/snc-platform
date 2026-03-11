@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import type {
   RevenueResponse,
@@ -95,25 +95,25 @@ function DashboardPage(): React.ReactElement {
   const visibleBookings = pendingBookings.filter((b) => !removedIds.has(b.id));
 
   // ── Review Handler ──
-  const handleReview = useCallback(
-    async (id: string, data: ReviewBookingRequest): Promise<void> => {
-      setReviewingId(id);
-      setReviewError(null);
+  const handleReview = async (
+    id: string,
+    data: ReviewBookingRequest,
+  ): Promise<void> => {
+    setReviewingId(id);
+    setReviewError(null);
 
-      try {
-        await reviewBooking(id, data);
-        setRemovedIds((prev) => new Set(prev).add(id));
-        setPendingAdjustment((prev) => prev + 1);
-      } catch (e) {
-        setReviewError(
-          e instanceof Error ? e.message : "Failed to review booking",
-        );
-      } finally {
-        setReviewingId(undefined);
-      }
-    },
-    [],
-  );
+    try {
+      await reviewBooking(id, data);
+      setRemovedIds((prev) => new Set(prev).add(id));
+      setPendingAdjustment((prev) => prev + 1);
+    } catch (e) {
+      setReviewError(
+        e instanceof Error ? e.message : "Failed to review booking",
+      );
+    } finally {
+      setReviewingId(undefined);
+    }
+  };
 
   // ── Derived KPI Values ──
   const revenueValue = formatPrice(revenue.currentMonth);

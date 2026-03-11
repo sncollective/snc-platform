@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type React from "react";
 import { z, safeParse } from "zod/mini";
@@ -63,7 +63,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     setTitle("");
     setDescription("");
     setBody("");
@@ -75,75 +75,72 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
     setMediaFileName("");
     setCoverArtFileName("");
     setThumbnailFileName("");
-  }, []);
+  };
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent): Promise<void> => {
-      e.preventDefault();
-      setServerError("");
-      setSuccessMessage("");
-      setFieldErrors({});
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
+    e.preventDefault();
+    setServerError("");
+    setSuccessMessage("");
+    setFieldErrors({});
 
-      const formData = {
-        title: title.trim(),
-        type,
-        description: description.trim() || undefined,
-        visibility,
-        body: type === "written" ? body : undefined,
-      };
+    const formData = {
+      title: title.trim(),
+      type,
+      description: description.trim() || undefined,
+      visibility,
+      body: type === "written" ? body : undefined,
+    };
 
-      const result = safeParse(FormSchema, formData);
-      if (!result.success) {
-        setFieldErrors(extractFieldErrors(result.error.issues, FORM_FIELDS));
-        return;
+    const result = safeParse(FormSchema, formData);
+    if (!result.success) {
+      setFieldErrors(extractFieldErrors(result.error.issues, FORM_FIELDS));
+      return;
+    }
+
+    if (type === "written" && !body.trim()) {
+      setFieldErrors({ body: "Body is required for written content" });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Step 1: Create content record
+      setSubmitStatus("Creating...");
+      const created = await createContent(formData);
+
+      // Step 2: Upload files
+      const mediaFile = mediaRef.current?.files?.[0];
+      const coverArtFile = coverArtRef.current?.files?.[0];
+      const thumbnailFile = thumbnailRef.current?.files?.[0];
+
+      if (mediaFile) {
+        setSubmitStatus("Uploading media...");
+        await uploadContentFile(created.id, "media", mediaFile);
       }
 
-      if (type === "written" && !body.trim()) {
-        setFieldErrors({ body: "Body is required for written content" });
-        return;
+      if (coverArtFile) {
+        setSubmitStatus("Uploading cover art...");
+        await uploadContentFile(created.id, "coverArt", coverArtFile);
       }
 
-      setIsSubmitting(true);
-
-      try {
-        // Step 1: Create content record
-        setSubmitStatus("Creating...");
-        const created = await createContent(formData);
-
-        // Step 2: Upload files
-        const mediaFile = mediaRef.current?.files?.[0];
-        const coverArtFile = coverArtRef.current?.files?.[0];
-        const thumbnailFile = thumbnailRef.current?.files?.[0];
-
-        if (mediaFile) {
-          setSubmitStatus("Uploading media...");
-          await uploadContentFile(created.id, "media", mediaFile);
-        }
-
-        if (coverArtFile) {
-          setSubmitStatus("Uploading cover art...");
-          await uploadContentFile(created.id, "coverArt", coverArtFile);
-        }
-
-        if (thumbnailFile) {
-          setSubmitStatus("Uploading thumbnail...");
-          await uploadContentFile(created.id, "thumbnail", thumbnailFile);
-        }
-
-        setSuccessMessage("Content created successfully");
-        resetForm();
-        onCreated();
-      } catch (err) {
-        setServerError(
-          err instanceof Error ? err.message : "Failed to create content",
-        );
-      } finally {
-        setIsSubmitting(false);
-        setSubmitStatus("");
+      if (thumbnailFile) {
+        setSubmitStatus("Uploading thumbnail...");
+        await uploadContentFile(created.id, "thumbnail", thumbnailFile);
       }
-    },
-    [title, type, description, visibility, body, resetForm, onCreated],
-  );
+
+      setSuccessMessage("Content created successfully");
+      resetForm();
+      onCreated();
+    } catch (err) {
+      setServerError(
+        err instanceof Error ? err.message : "Failed to create content",
+      );
+    } finally {
+      setIsSubmitting(false);
+      setSubmitStatus("");
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} noValidate className={styles.form}>

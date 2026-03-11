@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 
 import { ROLES } from "@snc/shared";
@@ -26,7 +26,7 @@ export function UserRoleManager({
 
   const availableRoles = ROLES.filter((r) => !user.roles.includes(r));
 
-  const handleAssign = useCallback(async () => {
+  const handleAssign = async () => {
     if (!selectedRole || isUpdating) return;
     setIsUpdating(true);
     try {
@@ -35,20 +35,17 @@ export function UserRoleManager({
     } finally {
       setIsUpdating(false);
     }
-  }, [selectedRole, isUpdating, onAssignRole, user.id]);
+  };
 
-  const handleRevoke = useCallback(
-    async (role: Role) => {
-      if (isUpdating) return;
-      setIsUpdating(true);
-      try {
-        await onRevokeRole(user.id, role);
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [isUpdating, onRevokeRole, user.id],
-  );
+  const handleRevoke = async (role: Role) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onRevokeRole(user.id, role);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className={styles.userRow}>

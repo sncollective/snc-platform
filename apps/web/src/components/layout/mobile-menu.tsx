@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 
 import { Link } from "@tanstack/react-router";
 
@@ -22,10 +22,10 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     await authClient.signOut();
     handleClose();
-  }, [handleClose]);
+  };
 
   return (
     <div className={styles.mobileMenu} ref={menuRef}>

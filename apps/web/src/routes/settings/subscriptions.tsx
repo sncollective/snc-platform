@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
@@ -50,7 +50,7 @@ function SubscriptionManagementPage(): React.ReactElement {
     };
   }, []);
 
-  const handleCancel = useCallback(async (subscriptionId: string): Promise<void> => {
+  const handleCancel = async (subscriptionId: string): Promise<void> => {
     const confirmed = window.confirm(
       "Are you sure you want to cancel this subscription? " +
         "You will retain access until the end of your current billing period.",
@@ -72,7 +72,7 @@ function SubscriptionManagementPage(): React.ReactElement {
     } finally {
       setCancelingId(null);
     }
-  }, []);
+  };
 
   return (
     <div className={settingsStyles.page}>

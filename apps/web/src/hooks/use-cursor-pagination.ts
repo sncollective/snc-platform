@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { throwIfNotOk } from "../lib/fetch-utils.js";

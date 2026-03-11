@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import Stripe from "stripe";
 
 import { TEST_CONFIG } from "../helpers/test-constants.js";
 
@@ -289,6 +290,115 @@ describe("stripe service", () => {
       if (!result.ok) {
         expect(result.error.code).toBe("WEBHOOK_SIGNATURE_ERROR");
         expect(result.error.statusCode).toBe(400);
+      }
+    });
+  });
+
+  describe("granular error mapping", () => {
+    it("maps StripeCardError to 400 with STRIPE_CARD_ERROR code", async () => {
+      mockCustomersSearch.mockRejectedValue(
+        new Stripe.errors.StripeCardError({ message: "Card declined" }),
+      );
+
+      const { getOrCreateCustomer } = await setupStripeService();
+      const result = await getOrCreateCustomer("user_123", "u@example.com");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_CARD_ERROR");
+        expect(result.error.statusCode).toBe(400);
+      }
+    });
+
+    it("maps StripeInvalidRequestError to 400", async () => {
+      mockCheckoutSessionsCreate.mockRejectedValue(
+        new Stripe.errors.StripeInvalidRequestError({
+          message: "Invalid price",
+        }),
+      );
+
+      const { createCheckoutSession } = await setupStripeService();
+      const result = await createCheckoutSession({
+        customerId: "cus_1",
+        planStripePriceId: "price_bad",
+        userId: "u1",
+        planId: "p1",
+        successUrl: "https://example.com/ok",
+        cancelUrl: "https://example.com/cancel",
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_INVALID_REQUEST");
+        expect(result.error.statusCode).toBe(400);
+      }
+    });
+
+    it("maps StripeRateLimitError to 429", async () => {
+      mockSubscriptionsUpdate.mockRejectedValue(
+        new Stripe.errors.StripeRateLimitError({
+          message: "Too many requests",
+        }),
+      );
+
+      const { cancelSubscriptionAtPeriodEnd } = await setupStripeService();
+      const result = await cancelSubscriptionAtPeriodEnd("sub_123");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_RATE_LIMIT");
+        expect(result.error.statusCode).toBe(429);
+      }
+    });
+
+    it("maps StripeAuthenticationError to 500", async () => {
+      mockCustomersSearch.mockRejectedValue(
+        new Stripe.errors.StripeAuthenticationError({
+          message: "Invalid API key",
+        }),
+      );
+
+      const { getOrCreateCustomer } = await setupStripeService();
+      const result = await getOrCreateCustomer("user_123", "u@example.com");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_AUTH_ERROR");
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+
+    it("maps StripeConnectionError to 502", async () => {
+      mockCustomersSearch.mockRejectedValue(
+        new Stripe.errors.StripeConnectionError({
+          message: "Connection refused",
+        }),
+      );
+
+      const { getOrCreateCustomer } = await setupStripeService();
+      const result = await getOrCreateCustomer("user_123", "u@example.com");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_CONNECTION_ERROR");
+        expect(result.error.statusCode).toBe(502);
+      }
+    });
+
+    it("maps StripeAPIError to 502", async () => {
+      mockCustomersSearch.mockRejectedValue(
+        new Stripe.errors.StripeAPIError({
+          message: "Internal Stripe error",
+        }),
+      );
+
+      const { getOrCreateCustomer } = await setupStripeService();
+      const result = await getOrCreateCustomer("user_123", "u@example.com");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_API_ERROR");
+        expect(result.error.statusCode).toBe(502);
       }
     });
   });

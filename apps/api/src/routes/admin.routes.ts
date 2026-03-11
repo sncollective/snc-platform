@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, desc, lt, or, and, inArray } from "drizzle-orm";
+import { eq, desc, lt, or, and, inArray, type SQL } from "drizzle-orm";
 
 import {
   AdminUsersQuerySchema,
@@ -107,7 +107,7 @@ adminRoutes.get(
     const { limit, cursor } =
       c.req.valid("query" as never) as AdminUsersQuery;
 
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (cursor) {
       const decoded = decodeCursor(cursor, {

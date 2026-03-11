@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type React from "react";
 import { z, safeParse } from "zod/mini";
@@ -96,7 +96,7 @@ function CreatorSettingsPage(): React.ReactElement {
   }, []);
 
   // ── Add Link Handler ──
-  const handleAddLink = useCallback((): void => {
+  const handleAddLink = (): void => {
     const trimmedUrl = newUrl.trim();
     if (!trimmedUrl) {
       setLinkError("Please enter a URL");
@@ -137,34 +137,31 @@ function CreatorSettingsPage(): React.ReactElement {
     setSocialLinks((prev) => [...prev, link]);
     setNewUrl("");
     setNewLabel("");
-  }, [newUrl, newLabel, newPlatform, socialLinks]);
+  };
 
   // ── Remove Link Handler ──
-  const handleRemoveLink = useCallback((platform: SocialPlatform): void => {
+  const handleRemoveLink = (platform: SocialPlatform): void => {
     setSocialLinks((prev) => prev.filter((l) => l.platform !== platform));
-  }, []);
+  };
 
   // ── Save Handler ──
-  const handleSubmit = useCallback(
-    async (e: FormEvent): Promise<void> => {
-      e.preventDefault();
-      setSuccessMessage("");
-      setServerError("");
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
+    e.preventDefault();
+    setSuccessMessage("");
+    setServerError("");
 
-      setIsSubmitting(true);
-      try {
-        await updateCreatorProfile(userId, { socialLinks });
-        setSuccessMessage("Changes saved successfully");
-      } catch (err) {
-        setServerError(
-          err instanceof Error ? err.message : "Failed to save changes",
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [socialLinks, userId],
-  );
+    setIsSubmitting(true);
+    try {
+      await updateCreatorProfile(userId, { socialLinks });
+      setSuccessMessage("Changes saved successfully");
+    } catch (err) {
+      setServerError(
+        err instanceof Error ? err.message : "Failed to save changes",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (

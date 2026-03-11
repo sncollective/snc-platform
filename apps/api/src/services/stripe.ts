@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { AppError, ok, err, type Result } from "@snc/shared";
 
 import { config } from "../config.js";
-import { wrapExternalError } from "./external-error.js";
+import { wrapStripeErrorGranular } from "./external-error.js";
 import { getStripe, ensureConfigured } from "./stripe-client.js";
 
 // ── Public Types ──
@@ -19,7 +19,7 @@ export type CreateCheckoutSessionParams = {
 
 // ── Private Helpers ──
 
-const wrapStripeError = wrapExternalError("STRIPE_ERROR");
+const wrapStripeError = wrapStripeErrorGranular;
 
 // ── Public API ──
 

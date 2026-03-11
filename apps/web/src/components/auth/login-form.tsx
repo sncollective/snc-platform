@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -30,7 +30,7 @@ export function LoginForm() {
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = useCallback((): LoginFields | null => {
+  const validate = (): LoginFields | null => {
     const result = safeParse(LOGIN_SCHEMA, { email, password });
 
     if (result.success) {
@@ -42,38 +42,35 @@ export function LoginForm() {
       extractFieldErrors(result.error.issues, ["email", "password"]),
     );
     return null;
-  }, [email, password]);
+  };
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault();
-      setServerError("");
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setServerError("");
 
-      const data = validate();
-      if (!data) return;
+    const data = validate();
+    if (!data) return;
 
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
-      try {
-        const result = await authClient.signIn.email({
-          email: data.email,
-          password: data.password,
-        });
+    try {
+      const result = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+      });
 
-        if (result.error) {
-          setServerError(result.error.message ?? "Invalid email or password");
-          return;
-        }
-
-        void navigate({ to: "/feed" });
-      } catch {
-        setServerError("Invalid email or password");
-      } finally {
-        setIsSubmitting(false);
+      if (result.error) {
+        setServerError(result.error.message ?? "Invalid email or password");
+        return;
       }
-    },
-    [validate, navigate],
-  );
+
+      void navigate({ to: "/feed" });
+    } catch {
+      setServerError("Invalid email or password");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>

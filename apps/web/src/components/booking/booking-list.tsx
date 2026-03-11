@@ -13,11 +13,11 @@ export interface BookingListProps {
 
 // ── Private Helpers ──
 
-function getStatusClass(status: string): string {
-  if (status === "approved") return styles.statusApproved!;
-  if (status === "denied") return styles.statusDenied!;
-  return styles.statusPending!;
-}
+const STATUS_CLASS: Record<string, string | undefined> = {
+  approved: styles.statusApproved,
+  denied: styles.statusDenied,
+  pending: styles.statusPending,
+};
 
 // ── Public API ──
 
@@ -41,7 +41,7 @@ export function BookingList({
           <div className={listItemStyles.itemHeader}>
             <h3 className={styles.serviceName}>{booking.service.name}</h3>
             <span
-              className={`${listItemStyles.statusBadge} ${styles.status} ${getStatusClass(booking.status)}`}
+              className={`${listItemStyles.statusBadge} ${styles.status} ${STATUS_CLASS[booking.status] ?? styles.statusPending}`}
             >
               {booking.status}
             </span>

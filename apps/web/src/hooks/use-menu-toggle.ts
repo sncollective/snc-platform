@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type React from "react";
 
@@ -17,13 +17,13 @@ export function useMenuToggle(
 ): UseMenuToggleReturn {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = () => {
     setIsOpen((prev) => !prev);
-  }, []);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setIsOpen(false);
-  }, []);
+  };
 
   useEffect(() => {
     if (!isOpen) return;

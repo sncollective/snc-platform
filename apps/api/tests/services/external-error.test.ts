@@ -1,0 +1,111 @@
+import { describe, it, expect } from "vitest";
+import Stripe from "stripe";
+
+import { AppError } from "@snc/shared";
+
+import {
+  wrapExternalError,
+  wrapStripeErrorGranular,
+} from "../../src/services/external-error.js";
+
+describe("wrapExternalError", () => {
+  const wrapShopifyError = wrapExternalError("SHOPIFY_ERROR");
+
+  it("wraps Error instances with code and 502 status", () => {
+    const result = wrapShopifyError(new Error("GraphQL failed"));
+
+    expect(result).toBeInstanceOf(AppError);
+    expect(result.code).toBe("SHOPIFY_ERROR");
+    expect(result.message).toBe("GraphQL failed");
+    expect(result.statusCode).toBe(502);
+  });
+
+  it("wraps non-Error values by stringifying", () => {
+    const result = wrapShopifyError("raw string error");
+
+    expect(result.code).toBe("SHOPIFY_ERROR");
+    expect(result.message).toBe("raw string error");
+    expect(result.statusCode).toBe(502);
+  });
+});
+
+describe("wrapStripeErrorGranular", () => {
+  it("maps StripeCardError to 400", () => {
+    const err = new Stripe.errors.StripeCardError({
+      message: "Your card was declined",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result).toBeInstanceOf(AppError);
+    expect(result.code).toBe("STRIPE_CARD_ERROR");
+    expect(result.message).toBe("Your card was declined");
+    expect(result.statusCode).toBe(400);
+  });
+
+  it("maps StripeInvalidRequestError to 400", () => {
+    const err = new Stripe.errors.StripeInvalidRequestError({
+      message: "Invalid price ID",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_INVALID_REQUEST");
+    expect(result.statusCode).toBe(400);
+  });
+
+  it("maps StripeRateLimitError to 429", () => {
+    const err = new Stripe.errors.StripeRateLimitError({
+      message: "Too many requests",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_RATE_LIMIT");
+    expect(result.statusCode).toBe(429);
+  });
+
+  it("maps StripeAuthenticationError to 500", () => {
+    const err = new Stripe.errors.StripeAuthenticationError({
+      message: "Invalid API key",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_AUTH_ERROR");
+    expect(result.statusCode).toBe(500);
+  });
+
+  it("maps StripeConnectionError to 502", () => {
+    const err = new Stripe.errors.StripeConnectionError({
+      message: "Connection refused",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_CONNECTION_ERROR");
+    expect(result.statusCode).toBe(502);
+  });
+
+  it("maps StripeAPIError to 502", () => {
+    const err = new Stripe.errors.StripeAPIError({
+      message: "Internal Stripe error",
+    });
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_API_ERROR");
+    expect(result.statusCode).toBe(502);
+  });
+
+  it("maps unknown Error to generic STRIPE_ERROR with 502", () => {
+    const err = new Error("Unknown failure");
+    const result = wrapStripeErrorGranular(err);
+
+    expect(result.code).toBe("STRIPE_ERROR");
+    expect(result.message).toBe("Unknown failure");
+    expect(result.statusCode).toBe(502);
+  });
+
+  it("maps non-Error values to generic STRIPE_ERROR with 502", () => {
+    const result = wrapStripeErrorGranular("string error");
+
+    expect(result.code).toBe("STRIPE_ERROR");
+    expect(result.message).toBe("string error");
+    expect(result.statusCode).toBe(502);
+  });
+});

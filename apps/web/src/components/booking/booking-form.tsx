@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
@@ -53,24 +53,24 @@ export function BookingForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Date management callbacks
-  const updateDate = useCallback((index: number, value: string) => {
+  const updateDate = (index: number, value: string) => {
     setPreferredDates((prev) => prev.map((d, i) => (i === index ? value : d)));
-  }, []);
+  };
 
-  const addDate = useCallback(() => {
+  const addDate = () => {
     setPreferredDates((prev) =>
       prev.length < MAX_PREFERRED_DATES ? [...prev, ""] : prev,
     );
-  }, []);
+  };
 
-  const removeDate = useCallback((index: number) => {
+  const removeDate = (index: number) => {
     setPreferredDates((prev) =>
       prev.length > 1 ? prev.filter((_, i) => i !== index) : prev,
     );
-  }, []);
+  };
 
   // Validation
-  const validate = useCallback((): BookingFormFields | null => {
+  const validate = (): BookingFormFields | null => {
     const result = safeParse(BOOKING_FORM_SCHEMA, { preferredDates, notes });
     if (result.success) {
       setFieldErrors({});
@@ -80,36 +80,33 @@ export function BookingForm({
       extractFieldErrors(result.error.issues, ["preferredDates", "notes"]),
     );
     return null;
-  }, [preferredDates, notes]);
+  };
 
   // Submit handler
-  const handleSubmit = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault();
-      setServerError("");
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setServerError("");
 
-      const data = validate();
-      if (!data) return;
+    const data = validate();
+    if (!data) return;
 
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
-      try {
-        await createBooking({
-          serviceId,
-          preferredDates: data.preferredDates,
-          notes: data.notes,
-        });
-        onSubmit();
-      } catch (err) {
-        setServerError(
-          err instanceof Error ? err.message : "Failed to submit booking request",
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [validate, serviceId, onSubmit],
-  );
+    try {
+      await createBooking({
+        serviceId,
+        preferredDates: data.preferredDates,
+        notes: data.notes,
+      });
+      onSubmit();
+    } catch (err) {
+      setServerError(
+        err instanceof Error ? err.message : "Failed to submit booking request",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Render
   return (

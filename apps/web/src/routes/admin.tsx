@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import type { AdminUser, Role } from "@snc/shared";
 
@@ -49,31 +49,31 @@ function AdminPage(): React.ReactElement {
 
   const getUser = (u: AdminUser): AdminUser => localUsers.get(u.id) ?? u;
 
-  const handleAssignRole = useCallback(
-    async (userId: string, role: Role): Promise<void> => {
-      setActionError(null);
-      try {
-        const result = await assignRole(userId, { role });
-        setLocalUsers((prev) => new Map(prev).set(userId, result.user));
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to assign role");
-      }
-    },
-    [],
-  );
+  const handleAssignRole = async (
+    userId: string,
+    role: Role,
+  ): Promise<void> => {
+    setActionError(null);
+    try {
+      const result = await assignRole(userId, { role });
+      setLocalUsers((prev) => new Map(prev).set(userId, result.user));
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to assign role");
+    }
+  };
 
-  const handleRevokeRole = useCallback(
-    async (userId: string, role: Role): Promise<void> => {
-      setActionError(null);
-      try {
-        const result = await revokeRole(userId, { role });
-        setLocalUsers((prev) => new Map(prev).set(userId, result.user));
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to revoke role");
-      }
-    },
-    [],
-  );
+  const handleRevokeRole = async (
+    userId: string,
+    role: Role,
+  ): Promise<void> => {
+    setActionError(null);
+    try {
+      const result = await revokeRole(userId, { role });
+      setLocalUsers((prev) => new Map(prev).set(userId, result.user));
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to revoke role");
+    }
+  };
 
   return (
     <div className={styles.page}>

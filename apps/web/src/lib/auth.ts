@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Role, User, Session, AuthSession } from "@snc/shared";
 
@@ -39,18 +39,18 @@ export function useRoles(): Role[] {
   const session = useSession();
   const [roles, setRoles] = useState<Role[]>([]);
 
-  const fetchRoles = useCallback(async () => {
-    if (!session.data) {
-      setRoles([]);
-      return;
-    }
-    const state = await fetchAuthState();
-    setRoles(state.roles);
-  }, [session.data]);
-
   useEffect(() => {
+    const fetchRoles = async () => {
+      if (!session.data) {
+        setRoles([]);
+        return;
+      }
+      const state = await fetchAuthState();
+      setRoles(state.roles);
+    };
+
     void fetchRoles();
-  }, [fetchRoles]);
+  }, [session.data]);
 
   return roles;
 }

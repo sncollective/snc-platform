@@ -30,8 +30,6 @@ function CreatorsPage(): React.ReactElement {
       initialData: loaderData,
     });
 
-  const handleLoadMore = loadMore;
-
   return (
     <div className={styles.creatorsPage}>
       <h1 className={listingStyles.heading}>Creators</h1>
@@ -51,7 +49,7 @@ function CreatorsPage(): React.ReactElement {
               <button
                 type="button"
                 className={listingStyles.loadMoreButton}
-                onClick={handleLoadMore}
+                onClick={loadMore}
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : "Load more"}

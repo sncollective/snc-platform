@@ -1,4 +1,5 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
@@ -9,11 +10,13 @@ export default defineConfig({
       projects: ["./tsconfig.json"],
     }),
     tanstackStart(),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
     nitro(),
   ],
-  esbuild: {
-    jsx: "automatic",
-  },
   server: {
     port: 3001,
     host: "0.0.0.0",
