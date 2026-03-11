@@ -179,7 +179,7 @@ describe("revenue service", () => {
       vi.useRealTimers();
     });
 
-    it("wraps Stripe errors as AppError with code REVENUE_ERROR", async () => {
+    it("wraps unknown errors as AppError with code STRIPE_ERROR", async () => {
       mockInvoicesList.mockImplementation(() => {
         throw new Error("Stripe connection failure");
       });
@@ -189,9 +189,27 @@ describe("revenue service", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.code).toBe("REVENUE_ERROR");
+        expect(result.error.code).toBe("STRIPE_ERROR");
         expect(result.error.statusCode).toBe(502);
         expect(result.error.message).toBe("Stripe connection failure");
+      }
+    });
+
+    it("maps StripeRateLimitError to STRIPE_RATE_LIMIT 429", async () => {
+      const Stripe = await import("stripe");
+      mockInvoicesList.mockImplementation(() => {
+        throw new Stripe.default.errors.StripeRateLimitError({
+          message: "Too many requests",
+        });
+      });
+
+      const { getMonthlyRevenue } = await setupRevenueService();
+      const result = await getMonthlyRevenue(12);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("STRIPE_RATE_LIMIT");
+        expect(result.error.statusCode).toBe(429);
       }
     });
 

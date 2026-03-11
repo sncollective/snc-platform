@@ -1,11 +1,11 @@
 import { AppError, ok, err, type Result, type MonthlyRevenue } from "@snc/shared";
 
-import { wrapExternalError } from "./external-error.js";
+import { wrapStripeErrorGranular } from "./external-error.js";
 import { getStripe, ensureConfigured } from "./stripe-client.js";
 
 // ── Private Helpers ──
 
-const wrapRevenueError = wrapExternalError("REVENUE_ERROR");
+const wrapRevenueError = wrapStripeErrorGranular;
 
 // ── Public API ──
 
