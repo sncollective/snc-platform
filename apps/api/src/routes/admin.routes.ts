@@ -195,8 +195,9 @@ adminRoutes.post(
       .onConflictDoNothing();
 
     const user = await getUserWithRoles(userId);
+    if (!user) throw new NotFoundError("User not found");
 
-    return c.json({ user: user! });
+    return c.json({ user });
   },
 );
 
@@ -248,7 +249,8 @@ adminRoutes.delete(
       .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)));
 
     const user = await getUserWithRoles(userId);
+    if (!user) throw new NotFoundError("User not found");
 
-    return c.json({ user: user! });
+    return c.json({ user });
   },
 );

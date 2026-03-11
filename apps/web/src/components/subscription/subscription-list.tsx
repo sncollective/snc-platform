@@ -17,15 +17,18 @@ export interface SubscriptionListProps {
 
 // ── Private Helpers ──
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  canceled: "Canceled",
+  past_due: "Past Due",
+};
+
 function getStatusLabel(
   status: string,
   cancelAtPeriodEnd: boolean,
 ): string {
   if (status === "active" && cancelAtPeriodEnd) return "Canceling";
-  if (status === "active") return "Active";
-  if (status === "canceled") return "Canceled";
-  if (status === "past_due") return "Past Due";
-  return "Incomplete";
+  return STATUS_LABELS[status] ?? "Incomplete";
 }
 
 function getStatusClass(

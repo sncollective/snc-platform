@@ -8,7 +8,7 @@ import buttonStyles from "../../styles/button.module.css";
 import styles from "./hero-section.module.css";
 
 interface HeroSectionProps {
-  plans: SubscriptionPlan[];
+  readonly plans: SubscriptionPlan[];
 }
 
 export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {

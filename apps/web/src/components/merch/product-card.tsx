@@ -4,6 +4,7 @@ import type { MerchProduct } from "@snc/shared";
 
 import { formatPrice } from "../../lib/format.js";
 import { OptionalImage } from "../ui/optional-image.js";
+import { CreatorAttribution } from "./creator-attribution.js";
 import styles from "./product-card.module.css";
 
 // ── Public Types ──
@@ -37,18 +38,11 @@ export function ProductCard({
         <span className={styles.price}>{formatPrice(product.price)}</span>
         {product.creatorName && (
           <span className={styles.creator}>
-            {product.creatorId ? (
-              <Link
-                to="/creators/$creatorId"
-                params={{ creatorId: product.creatorId }}
-                className={styles.creatorLink}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              >
-                {product.creatorName}
-              </Link>
-            ) : (
-              product.creatorName
-            )}
+            <CreatorAttribution
+              creatorId={product.creatorId}
+              creatorName={product.creatorName}
+              linkClassName={styles.creatorLink}
+            />
           </span>
         )}
       </div>

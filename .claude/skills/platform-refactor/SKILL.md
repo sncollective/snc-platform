@@ -73,6 +73,7 @@ After all phases complete, summarize:
 - Findings: total / implemented / failed
 - Test results from validation
 - Whether the report was archived
+- Backlog items saved: P3 findings / best practices / OSS alternatives deferred to `docs/refactor/backlog.md`
 
 ## Full Sweep (No Arguments)
 
@@ -125,6 +126,7 @@ After all scopes (or when the user stops), report:
 - Scopes completed vs. remaining
 - Total findings across all scopes: implemented / skipped
 - Any scopes that had test failures during validation
+- Backlog totals: P3 findings / best practices / OSS alternatives saved across all scopes
 
 ## Anti-Patterns
 

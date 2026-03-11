@@ -66,6 +66,60 @@ Read the report's "Pattern Compliance" table. For each entry with status `Drift`
 2. If the code now matches the pattern, update the status from `Drift` to `Fixed`.
 3. If drift remains, leave as `Drift` and note it in the final report.
 
+## Step 5.5: Extract Backlog Items
+
+Before archiving, extract deferred items into the persistent backlog so they are not lost.
+
+1. **Parse the report** for three sections:
+   - **P3 items** — bullet lines under `## P3 — Nice-to-Have` (or `## P3 -- Nice-to-Have`). Skip if the section says "None found" or is empty.
+   - **Best Practices** — the full `## Best Practices Research` section. Skip rows where the recommendation is "None needed" or the section says "No ... libraries" / "None required".
+   - **OSS Alternatives** — the full `## OSS Alternatives` section. Skip if "No candidates identified" or empty table.
+
+2. **Determine scope name** from the report filename: `refactor-{scope}.md` → `{scope}`.
+
+3. **Read `docs/refactor/backlog.md`**. If the file does not exist, create it from this template:
+
+```markdown
+# Refactor Backlog
+
+Deferred items from refactor analysis. Revisit when touching nearby code or during future planning cycles.
+
+> Last updated: {today}
+
+---
+
+## P3 Findings
+
+---
+
+## Best Practices
+
+---
+
+## OSS Alternatives
+```
+
+4. **Update each section** using scope-based deduplication:
+
+   - **P3 Findings**: Look for an existing `### {scope} (archived ...)` subsection.
+     - If found, replace its content with the new P3 items — but preserve any lines prefixed with `~~[done]~~` or `~~[dismissed]~~` whose file path still appears in the new items list.
+     - If not found, append a new `### {scope} (archived {today})` subsection with the P3 items.
+     - If the report had no P3 items, do not add or modify the scope subsection.
+
+   - **Best Practices**: For each library/tool mentioned:
+     - Match by `### {Library}` heading — replace with latest table and update the `(from {scope}, {date})` annotation.
+     - If no matching heading, append a new subsection.
+     - Skip entries where the recommendation is "None needed" or equivalent.
+
+   - **OSS Alternatives**: For each package mentioned:
+     - Match by `### {Package}` heading — replace with latest assessment and update `(from {scope}, {date})`.
+     - If no matching heading, append a new subsection.
+     - Skip "No candidates identified" entries.
+
+5. **Update the `> Last updated:` line** with today's date. Write the file.
+
+If no P3 items, best practices, or OSS alternatives were found in the report, skip this step entirely.
+
 ## Step 6: Archive
 
 1. Ensure `docs/refactor/archive/` directory exists (create if needed).
@@ -83,6 +137,7 @@ Tell the user:
 - **Test results**: pass/fail counts per package
 - **Cross-finding regressions**: any found, or "None — clean"
 - **Pattern Compliance updates**: any `Drift` → `Fixed` changes
+- **Backlog extraction**: counts of P3 items, best practices, and OSS alternatives saved to `docs/refactor/backlog.md` (or "None — nothing to defer")
 - **Archive confirmation**: where the report was moved
 - **Remaining work**: any unchecked items that were skipped (if user chose to proceed anyway in Step 2)
 

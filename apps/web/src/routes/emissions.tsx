@@ -27,7 +27,7 @@ function EmissionsPage(): React.ReactElement {
 
   const grossCo2Value = formatCo2(breakdown.summary.grossCo2Kg);
   const offsetCo2Value = formatCo2(breakdown.summary.offsetCo2Kg);
-  const netCo2Value = `${breakdown.summary.netCo2Kg.toFixed(1)} kg`;
+  const netCo2Value = formatCo2(breakdown.summary.netCo2Kg);
   const netValueClass = breakdown.summary.netCo2Kg <= 0
     ? styles.valueSuccess
     : styles.valueError;

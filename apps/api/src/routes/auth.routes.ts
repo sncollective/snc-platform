@@ -39,7 +39,7 @@ authRoutes.post(
     requestBody: {
       content: {
         "application/json": {
-          // @ts-expect-error — hono-openapi handles ResolverReturnType in requestBody at runtime
+          // @ts-expect-error — hono-openapi handles ResolverReturnType in requestBody at runtime (rhinobase/hono-openapi#145)
           schema: resolver(
             z.object({
               name: z.string(),
@@ -76,7 +76,7 @@ authRoutes.post(
     requestBody: {
       content: {
         "application/json": {
-          // @ts-expect-error — hono-openapi handles ResolverReturnType in requestBody at runtime
+          // @ts-expect-error — hono-openapi handles ResolverReturnType in requestBody at runtime (rhinobase/hono-openapi#145)
           schema: resolver(
             z.object({
               email: z.string().email(),

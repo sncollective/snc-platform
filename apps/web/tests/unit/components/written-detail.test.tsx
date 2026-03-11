@@ -11,9 +11,10 @@ const { mockSubscribeCta } = vi.hoisted(() => ({
   mockSubscribeCta: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/format.js", () =>
-  createFormatMock({ formatDate: DEFAULT_FORMAT_DATE }),
-);
+vi.mock("../../../src/lib/format.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/lib/format.js")>();
+  return createFormatMock({ formatDate: DEFAULT_FORMAT_DATE }, actual);
+});
 
 vi.mock("../../../src/components/content/subscribe-cta.js", () =>
   stubComponent("SubscribeCta", "subscribe-cta", mockSubscribeCta),

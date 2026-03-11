@@ -11,7 +11,7 @@ import styles from "./landing-pricing.module.css";
 // ── Public API ──
 
 interface LandingPricingProps {
-  plans: SubscriptionPlan[];
+  readonly plans: SubscriptionPlan[];
 }
 
 export function LandingPricing({ plans }: LandingPricingProps): React.ReactElement {

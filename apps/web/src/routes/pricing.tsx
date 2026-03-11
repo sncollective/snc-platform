@@ -61,7 +61,7 @@ function PricingPage(): React.ReactElement {
       {isSubscribedToPlatform ? (
         <div className={styles.subscribedBanner}>
           <p className={styles.subscribedText}>You're subscribed!</p>
-          <Link to={"/settings/subscriptions" as never} className={styles.manageLink}>
+          <Link to="/settings/subscriptions" className={styles.manageLink}>
             Manage subscriptions
           </Link>
         </div>

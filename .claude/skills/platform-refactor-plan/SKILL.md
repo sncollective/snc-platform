@@ -33,6 +33,10 @@ Before analyzing code, load these foundational references:
    - Shared → `result-type.md`, `app-error-hierarchy.md`, `shared-validation-constants.md`
    - Domain (vertical slice) scopes → also read `vertical-slice-lens.md` in this skill directory for additional cross-layer patterns to load
 4. **Dependencies**: Read `apps/api/package.json` and `apps/web/package.json` for exact dependency versions.
+5. **Backlog awareness**: Read `docs/refactor/backlog.md` if it exists. When analyzing findings:
+   - **Do not re-flag** items marked with `~~[dismissed]~~` — these were intentionally rejected.
+   - **Verify `~~[done]~~` items** — re-flag only if the code has regressed (the fix was reverted or overwritten). If the fix is still in place, leave them as done.
+   - Existing P3 items in the backlog for this scope do not need to be re-reported unless the analysis finds something new to say about them.
 
 ## Step 2: Map the Scope
 

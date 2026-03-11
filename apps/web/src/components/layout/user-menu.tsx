@@ -6,19 +6,8 @@ import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useRoles, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
+import { getInitials } from "../../lib/format.js";
 import styles from "./user-menu.module.css";
-
-// ── Private Helpers ──
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 // ── Public API ──
 

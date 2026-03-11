@@ -35,6 +35,7 @@
   object-fit: cover;
 }
 
+/* Gradient duplicated in product-card.module.css (same domain, intentional) */
 .imagePlaceholder {
   width: 100%;
   height: 100%;

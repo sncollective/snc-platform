@@ -2,14 +2,10 @@ import type React from "react";
 import type { MonthlyRevenue } from "@snc/shared";
 
 import { formatPrice } from "../../lib/format.js";
+import { MONTH_LABELS } from "../../lib/chart-math.js";
 import styles from "./revenue-chart.module.css";
 
 // ── Constants ──
-
-const MONTH_LABELS: readonly string[] = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
 
 const MAX_BAR_HEIGHT = 200; // px — matches CSS .barRow height
 const MIN_BAR_HEIGHT = 2;   // px — minimum for non-zero amounts

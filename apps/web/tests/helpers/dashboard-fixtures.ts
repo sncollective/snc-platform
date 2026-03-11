@@ -57,7 +57,7 @@ export const makeMockPendingBookingItem = (
   overrides?: Partial<PendingBookingItem>,
 ): PendingBookingItem => ({
   id: "bk_pending_001",
-  userId: "user_requester_1",
+  userId: "user_requester1",
   serviceId: "svc_test_recording",
   preferredDates: ["2026-03-15", "2026-03-20"],
   notes: "Afternoon session preferred",
@@ -77,7 +77,7 @@ export const makeMockPendingBookingItem = (
     updatedAt: "2026-01-15T10:00:00.000Z",
   },
   requester: {
-    id: "user_requester_1",
+    id: "user_requester1",
     name: "Jane Doe",
     email: "jane@example.com",
   },

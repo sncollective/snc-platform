@@ -109,7 +109,7 @@ describe("EmissionsPage", () => {
 
     const summary = screen.getByTestId("net-summary");
     expect(summary).toHaveTextContent("Net Emissions");
-    expect(summary).toHaveTextContent("0.0 kg");
+    expect(summary).toHaveTextContent("24.0 g");
     expect(summary).toHaveTextContent("34.4 g");
     expect(summary).toHaveTextContent("10.0 g");
   });

@@ -89,6 +89,24 @@ export function formatIntervalShort(interval: "month" | "year"): string {
   return interval === "month" ? "mo" : "yr";
 }
 
+export function truncateToWords(text: string, maxWords: number): string {
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) {
+    return text;
+  }
+  return words.slice(0, maxWords).join(" ");
+}
+
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 /**
  * Formats a CO2 kilogram value for summary/card display.
  * Auto-scales between g (< 1 kg) and kg (>= 1 kg).

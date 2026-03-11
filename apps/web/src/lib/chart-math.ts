@@ -1,6 +1,6 @@
 // ── Constants ──
 
-const MONTHS = [
+export const MONTH_LABELS: readonly string[] = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
@@ -41,12 +41,12 @@ export function formatCo2AxisLabel(kg: number): string {
 
 export function formatMonthLabel(month: string): string {
   const [year = "", m = ""] = month.split("-");
-  return `${MONTHS[Number(m) - 1] ?? ""} ${year}`;
+  return `${MONTH_LABELS[Number(m) - 1] ?? ""} ${year}`;
 }
 
 export function formatMonthShort(month: string): string {
   const [year = "", m = ""] = month.split("-");
-  return `${MONTHS[Number(m) - 1] ?? ""} '${year.slice(2)}`;
+  return `${MONTH_LABELS[Number(m) - 1] ?? ""} '${year.slice(2)}`;
 }
 
 // ── Chart Line Computation ──

@@ -8,6 +8,7 @@ import { navigateExternal } from "../../lib/url.js";
 import { createMerchCheckout } from "../../lib/merch.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import { VariantSelector } from "./variant-selector.js";
+import { CreatorAttribution } from "./creator-attribution.js";
 import buttonStyles from "../../styles/button.module.css";
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./product-detail.module.css";
@@ -107,18 +108,12 @@ export function ProductDetail({
 
         {product.creatorName && (
           <p className={styles.creator}>
-            by{" "}
-            {product.creatorId ? (
-              <Link
-                to="/creators/$creatorId"
-                params={{ creatorId: product.creatorId }}
-                className={styles.creatorLink}
-              >
-                {product.creatorName}
-              </Link>
-            ) : (
-              product.creatorName
-            )}
+            <CreatorAttribution
+              creatorId={product.creatorId}
+              creatorName={product.creatorName}
+              linkClassName={styles.creatorLink}
+              prefix="by"
+            />
           </p>
         )}
 

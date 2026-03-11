@@ -1,6 +1,7 @@
 import type React from "react";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
+import { truncateToWords } from "../../lib/format.js";
 import { ContentMeta } from "./content-meta.js";
 import { SubscribeCta } from "./subscribe-cta.js";
 import styles from "./written-detail.module.css";
@@ -16,16 +17,6 @@ export interface WrittenDetailProps {
 // ── Private Constants ──
 
 const TRUNCATE_WORD_COUNT = 200;
-
-// ── Private Helpers ──
-
-function truncateToWords(text: string, maxWords: number): string {
-  const words = text.split(/\s+/);
-  if (words.length <= maxWords) {
-    return text;
-  }
-  return words.slice(0, maxWords).join(" ");
-}
 
 // ── Public API ──
 

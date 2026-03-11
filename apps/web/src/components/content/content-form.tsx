@@ -34,6 +34,56 @@ const AUDIO_ACCEPT = ACCEPTED_MIME_TYPES.audio.join(",");
 const VIDEO_ACCEPT = ACCEPTED_MIME_TYPES.video.join(",");
 const IMAGE_ACCEPT = ACCEPTED_MIME_TYPES.image.join(",");
 
+// ── Private Components ──
+
+function FileInputField({
+  label,
+  inputId,
+  accept,
+  inputRef,
+  fileName,
+  onFileChange,
+  onClear,
+  disabled,
+}: {
+  readonly label: string;
+  readonly inputId: string;
+  readonly accept: string;
+  readonly inputRef: React.RefObject<HTMLInputElement | null>;
+  readonly fileName: string;
+  readonly onFileChange: (name: string) => void;
+  readonly onClear: () => void;
+  readonly disabled: boolean;
+}): React.ReactElement {
+  return (
+    <div className={formStyles.fieldGroup}>
+      <label htmlFor={inputId} className={formStyles.label}>
+        {label}
+      </label>
+      <div className={styles.fileInputRow}>
+        <input
+          id={inputId}
+          type="file"
+          ref={inputRef}
+          accept={accept}
+          className={styles.fileInput}
+          disabled={disabled}
+          onChange={(e) => onFileChange(e.target.files?.[0]?.name ?? "")}
+        />
+        {fileName && (
+          <button
+            type="button"
+            className={styles.clearButton}
+            onClick={onClear}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Public Types ──
 
 export interface ContentFormProps {
@@ -164,7 +214,12 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
         <select
           id="content-type"
           value={type}
-          onChange={(e) => setType(e.target.value as ContentType)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if ((CONTENT_TYPES as readonly string[]).includes(v)) {
+              setType(v as ContentType);
+            }
+          }}
           className={formStyles.select}
           disabled={isSubmitting}
         >
@@ -230,7 +285,12 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
         <select
           id="content-visibility"
           value={visibility}
-          onChange={(e) => setVisibility(e.target.value as Visibility)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if ((VISIBILITY as readonly string[]).includes(v)) {
+              setVisibility(v as Visibility);
+            }
+          }}
           className={formStyles.select}
           disabled={isSubmitting}
         >
@@ -270,98 +330,53 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
 
       {/* Media file (audio/video only) */}
       {type !== "written" && (
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="content-media" className={formStyles.label}>
-            Media File
-          </label>
-          <div className={styles.fileInputRow}>
-            <input
-              id="content-media"
-              type="file"
-              ref={mediaRef}
-              accept={type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
-              className={styles.fileInput}
-              disabled={isSubmitting}
-              onChange={(e) => setMediaFileName(e.target.files?.[0]?.name ?? "")}
-            />
-            {mediaFileName && (
-              <button
-                type="button"
-                className={styles.clearButton}
-                onClick={() => {
-                  if (mediaRef.current) mediaRef.current.value = "";
-                  setMediaFileName("");
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
+        <FileInputField
+          label="Media File"
+          inputId="content-media"
+          accept={type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
+          inputRef={mediaRef}
+          fileName={mediaFileName}
+          onFileChange={setMediaFileName}
+          onClear={() => {
+            if (mediaRef.current) mediaRef.current.value = "";
+            setMediaFileName("");
+          }}
+          disabled={isSubmitting}
+        />
       )}
 
       {/* Cover art (audio only) */}
       {type === "audio" && (
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="content-cover-art" className={formStyles.label}>
-            Cover Art (optional)
-          </label>
-          <div className={styles.fileInputRow}>
-            <input
-              id="content-cover-art"
-              type="file"
-              ref={coverArtRef}
-              accept={IMAGE_ACCEPT}
-              className={styles.fileInput}
-              disabled={isSubmitting}
-              onChange={(e) => setCoverArtFileName(e.target.files?.[0]?.name ?? "")}
-            />
-            {coverArtFileName && (
-              <button
-                type="button"
-                className={styles.clearButton}
-                onClick={() => {
-                  if (coverArtRef.current) coverArtRef.current.value = "";
-                  setCoverArtFileName("");
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
+        <FileInputField
+          label="Cover Art (optional)"
+          inputId="content-cover-art"
+          accept={IMAGE_ACCEPT}
+          inputRef={coverArtRef}
+          fileName={coverArtFileName}
+          onFileChange={setCoverArtFileName}
+          onClear={() => {
+            if (coverArtRef.current) coverArtRef.current.value = "";
+            setCoverArtFileName("");
+          }}
+          disabled={isSubmitting}
+        />
       )}
 
       {/* Thumbnail (video only) */}
       {type === "video" && (
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="content-thumbnail" className={formStyles.label}>
-            Thumbnail (optional)
-          </label>
-          <div className={styles.fileInputRow}>
-            <input
-              id="content-thumbnail"
-              type="file"
-              ref={thumbnailRef}
-              accept={IMAGE_ACCEPT}
-              className={styles.fileInput}
-              disabled={isSubmitting}
-              onChange={(e) => setThumbnailFileName(e.target.files?.[0]?.name ?? "")}
-            />
-            {thumbnailFileName && (
-              <button
-                type="button"
-                className={styles.clearButton}
-                onClick={() => {
-                  if (thumbnailRef.current) thumbnailRef.current.value = "";
-                  setThumbnailFileName("");
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
+        <FileInputField
+          label="Thumbnail (optional)"
+          inputId="content-thumbnail"
+          accept={IMAGE_ACCEPT}
+          inputRef={thumbnailRef}
+          fileName={thumbnailFileName}
+          onFileChange={setThumbnailFileName}
+          onClear={() => {
+            if (thumbnailRef.current) thumbnailRef.current.value = "";
+            setThumbnailFileName("");
+          }}
+          disabled={isSubmitting}
+        />
       )}
 
       {/* Submit */}

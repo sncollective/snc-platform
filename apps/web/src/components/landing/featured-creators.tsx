@@ -8,7 +8,7 @@ import styles from "./featured-creators.module.css";
 // ── Public API ──
 
 interface FeaturedCreatorsProps {
-  creators: CreatorListResponse["items"];
+  readonly creators: CreatorListResponse["items"];
 }
 
 export function FeaturedCreators({
