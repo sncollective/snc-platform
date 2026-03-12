@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { ContentType, FeedItem, FeedResponse } from "@snc/shared";
@@ -7,10 +7,14 @@ import { ContentCard } from "../components/content/content-card.js";
 import { FilterBar } from "../components/content/filter-bar.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
+import { isFeatureEnabled } from "../lib/config.js";
 import styles from "./feed.module.css";
 import listingStyles from "../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/feed")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("content")) throw redirect({ to: "/" });
+  },
   loader: async (): Promise<FeedResponse> => {
     try {
       return (await fetchApiServer({

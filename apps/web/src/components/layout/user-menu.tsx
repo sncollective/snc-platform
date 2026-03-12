@@ -6,6 +6,7 @@ import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useRoles, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import { getInitials } from "../../lib/format.js";
 import styles from "./user-menu.module.css";
 
@@ -75,7 +76,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
 
           <div className={styles.divider} />
 
-          {hasRole(effectiveRoles, "admin") && (
+          {isFeatureEnabled("admin") && hasRole(effectiveRoles, "admin") && (
             <Link
               to="/admin"
               className={styles.menuItem}
@@ -86,7 +87,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {hasRole(effectiveRoles, "cooperative-member") && (
+          {isFeatureEnabled("dashboard") && hasRole(effectiveRoles, "cooperative-member") && (
             <Link
               to="/dashboard"
               className={styles.menuItem}
@@ -97,7 +98,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {hasRole(effectiveRoles, "creator") && (
+          {isFeatureEnabled("creator") && hasRole(effectiveRoles, "creator") && (
             <Link
               to="/settings/creator"
               className={styles.menuItem}
@@ -108,7 +109,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {hasRole(effectiveRoles, "creator") && (
+          {isFeatureEnabled("content") && hasRole(effectiveRoles, "creator") && (
             <Link
               to="/settings/content"
               className={styles.menuItem}
@@ -128,23 +129,27 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             Settings
           </Link>
 
-          <Link
-            to="/settings/subscriptions"
-            className={styles.menuItem}
-            role="menuitem"
-            onClick={handleClose}
-          >
-            Subscriptions
-          </Link>
+          {isFeatureEnabled("subscription") && (
+            <Link
+              to="/settings/subscriptions"
+              className={styles.menuItem}
+              role="menuitem"
+              onClick={handleClose}
+            >
+              Subscriptions
+            </Link>
+          )}
 
-          <Link
-            to="/settings/bookings"
-            className={styles.menuItem}
-            role="menuitem"
-            onClick={handleClose}
-          >
-            My Bookings
-          </Link>
+          {isFeatureEnabled("booking") && (
+            <Link
+              to="/settings/bookings"
+              className={styles.menuItem}
+              role="menuitem"
+              onClick={handleClose}
+            >
+              My Bookings
+            </Link>
+          )}
 
           <div className={styles.divider} />
 

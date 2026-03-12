@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import type React from "react";
 import type { EmissionsBreakdown } from "@snc/shared";
 
 import { fetchApiServer } from "../lib/api-server.js";
+import { isFeatureEnabled } from "../lib/config.js";
 import { formatCo2 } from "../lib/format.js";
 import { EmissionsChart } from "../components/emissions/emissions-chart.js";
 import { ScopeBreakdown } from "../components/emissions/scope-breakdown.js";
@@ -14,6 +15,9 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./emissions.module.css";
 
 export const Route = createFileRoute("/emissions")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("emissions")) throw redirect({ to: "/" });
+  },
   loader: async (): Promise<EmissionsBreakdown> => {
     return (await fetchApiServer({
       data: "/api/emissions/breakdown",

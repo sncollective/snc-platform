@@ -3,6 +3,7 @@ import { useState } from "react";
 import type React from "react";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import { ContentForm } from "../../components/content/content-form.js";
 import { MyContentList } from "../../components/content/my-content-list.js";
 import sectionStyles from "../../styles/detail-section.module.css";
@@ -14,6 +15,8 @@ import styles from "./content-settings.module.css";
 
 export const Route = createFileRoute("/settings/content")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("content")) throw redirect({ to: "/" });
+
     const { user, roles } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });

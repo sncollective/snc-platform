@@ -31,6 +31,14 @@ describe("parseConfig", () => {
       STORAGE_LOCAL_DIR: "./uploads",
       STRIPE_SECRET_KEY: TEST_STRIPE_SECRET_KEY,
       STRIPE_WEBHOOK_SECRET: TEST_STRIPE_WEBHOOK_SECRET,
+      FEATURE_CONTENT: true,
+      FEATURE_CREATOR: true,
+      FEATURE_SUBSCRIPTION: true,
+      FEATURE_MERCH: true,
+      FEATURE_BOOKING: true,
+      FEATURE_DASHBOARD: true,
+      FEATURE_ADMIN: true,
+      FEATURE_EMISSIONS: true,
     });
   });
 

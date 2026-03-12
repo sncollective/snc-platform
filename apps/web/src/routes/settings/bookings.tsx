@@ -3,6 +3,7 @@ import type React from "react";
 import type { BookingWithService } from "@snc/shared";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { BookingList } from "../../components/booking/booking-list.js";
 import errorStyles from "../../styles/error-alert.module.css";
@@ -11,6 +12,8 @@ import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/bookings")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("booking")) throw redirect({ to: "/" });
+
     const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });

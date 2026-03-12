@@ -11,6 +11,7 @@ import type {
 } from "@snc/shared";
 
 import { fetchApiServer, fetchAuthStateServer } from "../lib/api-server.js";
+import { isFeatureEnabled } from "../lib/config.js";
 import { reviewBooking } from "../lib/dashboard.js";
 import { formatPrice, formatCo2 } from "../lib/format.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
@@ -36,6 +37,8 @@ interface DashboardLoaderData {
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("dashboard")) throw redirect({ to: "/" });
+
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {

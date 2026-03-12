@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type {
@@ -17,6 +17,7 @@ import { ProductCard } from "../../components/merch/product-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useSession } from "../../lib/auth.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchProducts } from "../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../lib/subscription.js";
 import styles from "./creator-detail.module.css";
@@ -26,6 +27,9 @@ import listingStyles from "../../styles/listing-page.module.css";
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
+  },
   loader: async ({ params }): Promise<CreatorProfileResponse> => {
     return fetchApiServer({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}`,

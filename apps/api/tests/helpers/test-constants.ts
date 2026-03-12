@@ -30,6 +30,14 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
     | undefined,
   SHOPIFY_STORE_DOMAIN: TEST_SHOPIFY_STORE_DOMAIN,
   SHOPIFY_STOREFRONT_TOKEN: TEST_SHOPIFY_STOREFRONT_TOKEN,
+  FEATURE_CONTENT: true,
+  FEATURE_CREATOR: true,
+  FEATURE_SUBSCRIPTION: true,
+  FEATURE_MERCH: true,
+  FEATURE_BOOKING: true,
+  FEATURE_DASHBOARD: true,
+  FEATURE_ADMIN: true,
+  FEATURE_EMISSIONS: true,
   ...overrides,
 });
 

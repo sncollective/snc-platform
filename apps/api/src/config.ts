@@ -1,4 +1,12 @@
 import { z } from "zod";
+import type { FeatureFlags } from "@snc/shared";
+
+// ── Private Helpers ──
+
+const booleanFlag = z
+  .string()
+  .default("true")
+  .transform((v) => v === "true");
 
 // ── Public Types ──
 
@@ -16,6 +24,15 @@ export const ENV_SCHEMA = z.object({
   // Phase 8: Shopify (optional — API returns 503 MERCH_NOT_CONFIGURED when absent)
   SHOPIFY_STORE_DOMAIN: z.string().optional(),
   SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
+  // Feature flags (default ON — set "false" to disable a domain)
+  FEATURE_CONTENT: booleanFlag,
+  FEATURE_CREATOR: booleanFlag,
+  FEATURE_SUBSCRIPTION: booleanFlag,
+  FEATURE_MERCH: booleanFlag,
+  FEATURE_BOOKING: booleanFlag,
+  FEATURE_DASHBOARD: booleanFlag,
+  FEATURE_ADMIN: booleanFlag,
+  FEATURE_EMISSIONS: booleanFlag,
 });
 
 export type Config = z.infer<typeof ENV_SCHEMA>;
@@ -45,7 +62,24 @@ export const parseConfig = (
 };
 
 /**
+ * Extract feature flags from a parsed Config object.
+ */
+export const getFeatureFlags = (cfg: Config): FeatureFlags => ({
+  content: cfg.FEATURE_CONTENT,
+  creator: cfg.FEATURE_CREATOR,
+  subscription: cfg.FEATURE_SUBSCRIPTION,
+  merch: cfg.FEATURE_MERCH,
+  booking: cfg.FEATURE_BOOKING,
+  dashboard: cfg.FEATURE_DASHBOARD,
+  admin: cfg.FEATURE_ADMIN,
+  emissions: cfg.FEATURE_EMISSIONS,
+});
+
+/**
  * Validated application configuration. Crashes at import time if required
  * environment variables are missing.
  */
 export const config: Config = parseConfig(process.env);
+
+/** Resolved feature flags for the running environment. */
+export const features: FeatureFlags = getFeatureFlags(config);

@@ -1,14 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem, CreatorListResponse } from "@snc/shared";
 
 import { CreatorCard } from "../../components/creator/creator-card.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/creators/")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
+  },
   loader: async (): Promise<CreatorListResponse> => {
     try {
       return (await fetchApiServer({

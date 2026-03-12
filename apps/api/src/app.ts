@@ -4,6 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { describeRoute, openAPIRouteHandler, resolver } from "hono-openapi";
 import { z } from "zod";
 
+import { features } from "./config.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { rateLimiter } from "./middleware/rate-limit.js";
@@ -55,17 +56,22 @@ app.get(
   (c) => c.json({ status: "ok" as const }),
 );
 
+// Always-on routes (auth, me)
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
-app.route("/api/content", contentRoutes);
-app.route("/api/creators", creatorRoutes);
-app.route("/api/subscriptions", subscriptionRoutes);
-app.route("/api/webhooks", webhookRoutes);
-app.route("/api/merch", merchRoutes);
-app.route("/api", bookingRoutes);
-app.route("/api/dashboard", dashboardRoutes);
-app.route("/api/admin", adminRoutes);
-app.route("/api/emissions", emissionsRoutes);
+
+// Feature-gated routes
+if (features.content) app.route("/api/content", contentRoutes);
+if (features.creator) app.route("/api/creators", creatorRoutes);
+if (features.subscription) {
+  app.route("/api/subscriptions", subscriptionRoutes);
+  app.route("/api/webhooks", webhookRoutes);
+}
+if (features.merch) app.route("/api/merch", merchRoutes);
+if (features.booking) app.route("/api", bookingRoutes);
+if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
+if (features.admin) app.route("/api/admin", adminRoutes);
+if (features.emissions) app.route("/api/emissions", emissionsRoutes);
 
 // ── OpenAPI (non-production only) ──
 

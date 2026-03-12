@@ -6,6 +6,7 @@ import { NAV_LINKS } from "../../config/navigation.js";
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useRoles, hasRole } from "../../lib/auth.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import styles from "./mobile-menu.module.css";
 
 // ── Public Types ──
@@ -64,7 +65,7 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
               </li>
             ))}
 
-            {session.data && hasRole(roles, "cooperative-member") && (
+            {isFeatureEnabled("dashboard") && session.data && hasRole(roles, "cooperative-member") && (
               <li>
                 <Link
                   to="/dashboard"

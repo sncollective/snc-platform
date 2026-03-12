@@ -4,6 +4,7 @@ import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import {
   fetchMySubscriptions,
   cancelSubscription,
@@ -15,6 +16,8 @@ import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/subscriptions")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
+
     const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });

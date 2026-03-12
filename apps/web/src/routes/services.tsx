@@ -1,16 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { Service } from "@snc/shared";
 
 import { useSession } from "../lib/auth.js";
 import { fetchApiServer } from "../lib/api-server.js";
+import { isFeatureEnabled } from "../lib/config.js";
 import { ServiceCard } from "../components/booking/service-card.js";
 import { BookingForm } from "../components/booking/booking-form.js";
 import listingStyles from "../styles/listing-page.module.css";
 import styles from "./services.module.css";
 
 export const Route = createFileRoute("/services")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("booking")) throw redirect({ to: "/" });
+  },
   loader: async (): Promise<Service[]> => {
     try {
       const data = (await fetchApiServer({

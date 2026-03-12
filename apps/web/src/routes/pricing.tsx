@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { PlanCard } from "../components/subscription/plan-card.js";
 import { fetchApiServer } from "../lib/api-server.js";
+import { isFeatureEnabled } from "../lib/config.js";
 import { usePlatformAuth } from "../hooks/use-platform-auth.js";
 import { useCheckout } from "../hooks/use-checkout.js";
 import errorStyles from "../styles/error-alert.module.css";
@@ -12,6 +13,9 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
+  },
   loader: async (): Promise<SubscriptionPlan[]> => {
     try {
       const data = (await fetchApiServer({

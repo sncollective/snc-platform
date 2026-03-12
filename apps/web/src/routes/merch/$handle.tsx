@@ -4,10 +4,14 @@ import type { MerchProductDetail } from "@snc/shared";
 
 import { ProductDetail } from "../../components/merch/product-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 
 // ── Route ──
 
 export const Route = createFileRoute("/merch/$handle")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("merch")) throw redirect({ to: "/" });
+  },
   loader: async ({ params }): Promise<MerchProductDetail> => {
     try {
       return (await fetchApiServer({

@@ -14,6 +14,7 @@ import type { SocialLink, SocialPlatform } from "@snc/shared";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { fetchAuthState } from "../../lib/auth.js";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
@@ -38,6 +39,8 @@ const URL_SCHEMA = z.object({
 
 export const Route = createFileRoute("/settings/creator")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
+
     const { user, roles } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });

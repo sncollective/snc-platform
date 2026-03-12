@@ -1,9 +1,10 @@
 import type React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { ContentDetail } from "../../components/content/content-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 
 // ── Private Types ──
 
@@ -21,6 +22,9 @@ function isContentLocked(item: FeedItem): boolean {
 // ── Route ──
 
 export const Route = createFileRoute("/content/$contentId")({
+  beforeLoad: () => {
+    if (!isFeatureEnabled("content")) throw redirect({ to: "/" });
+  },
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
     const item = (await fetchApiServer({
       data: `/api/content/${encodeURIComponent(params.contentId)}`,

@@ -4,6 +4,7 @@ import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchMySubscriptions } from "../../lib/subscription.js";
 import buttonStyles from "../../styles/button.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
@@ -14,6 +15,8 @@ const POLL_INTERVAL_MS = 2000;
 
 export const Route = createFileRoute("/checkout/success")({
   beforeLoad: async () => {
+    if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
+
     const { user } = await fetchAuthStateServer();
     if (!user) {
       throw redirect({ to: "/login" });
