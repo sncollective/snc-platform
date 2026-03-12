@@ -1,0 +1,50 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # ── Re-run tests + build ──
+  test-and-build:
+    uses: ./.forgejo/workflows/test-and-build.yml
+
+  # ── Deploy to production ──
+  deploy-prod:
+    runs-on: docker
+    container: alpine:latest
+    needs: [test-and-build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Install SSH client
+        run: apk add --no-cache openssh-client curl
+
+      - name: Deploy
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER || 'snc' }}
+          SEAFILE_OIDC_CLIENT_ID: ${{ secrets.SEAFILE_OIDC_CLIENT_ID }}
+          SEAFILE_OIDC_CLIENT_SECRET: ${{ secrets.SEAFILE_OIDC_CLIENT_SECRET }}
+        run: |
+          eval $(ssh-agent -s)
+          echo "$SSH_PRIVATE_KEY" | ssh-add -
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          # Unquoted heredoc: $VAR expands locally (CI), \$VAR expands on remote
+          ssh ${DEPLOY_USER}@${DEPLOY_HOST} bash <<DEPLOY
+          set -euo pipefail
+          cd /opt/snc/platform
+
+          # ── Inject Forgejo-managed secrets into .env ──
+          set_env() {
+            local key=\$1 val=\$2
+            [ -z "\$val" ] && return
+            sed -i "/^\${key}=/d" .env 2>/dev/null || true
+            echo "\${key}=\${val}" >> .env
+          }
+          set_env SEAFILE_OIDC_CLIENT_ID "${SEAFILE_OIDC_CLIENT_ID}"
+          set_env SEAFILE_OIDC_CLIENT_SECRET "${SEAFILE_OIDC_CLIENT_SECRET}"
+
+          # ── Deploy via script ──
+          bash deploy/deploy-prod.sh
+          DEPLOY
