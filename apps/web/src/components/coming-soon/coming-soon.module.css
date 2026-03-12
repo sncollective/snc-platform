@@ -1,0 +1,37 @@
+/* ── ComingSoon Styles ── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-2xl);
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  max-width: 480px;
+  margin-bottom: var(--space-xl);
+  line-height: 1.6;
+}
+
+.backLink {
+  color: var(--color-accent);
+  font-size: var(--font-size-base);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.backLink:hover {
+  color: var(--color-accent-hover);
+}

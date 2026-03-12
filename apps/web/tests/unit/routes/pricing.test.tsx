@@ -13,11 +13,13 @@ const {
   mockUseLoaderData,
   mockUsePlatformAuth,
   mockHandleCheckout,
+  mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockUseLoaderData: vi.fn(),
   mockUsePlatformAuth: vi.fn(),
   mockHandleCheckout: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -42,6 +44,12 @@ vi.mock("../../../src/hooks/use-checkout.js", () => ({
   }),
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const PricingPage = extractRouteComponent(() => import("../../../src/routes/pricing.js"));
@@ -49,6 +57,7 @@ const PricingPage = extractRouteComponent(() => import("../../../src/routes/pric
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockUsePlatformAuth.mockReturnValue({ isAuthenticated: false, isSubscribed: false });
   mockUseLoaderData.mockReturnValue([
     makeMockPlan({ id: "plan-monthly", name: "Monthly", price: 999, interval: "month" }),
@@ -155,5 +164,16 @@ describe("PricingPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Checkout failed");
     });
+  });
+
+  it("renders Coming Soon when subscription feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "subscription");
+
+    render(<PricingPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Subscriptions — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

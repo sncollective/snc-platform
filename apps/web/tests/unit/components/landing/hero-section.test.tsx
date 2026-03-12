@@ -18,12 +18,14 @@ const {
   mockCreateCheckout,
   mockFetchMySubscriptions,
   mockNavigateExternal,
+  mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
   mockNavigateExternal: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -48,6 +50,12 @@ vi.mock("../../../../src/lib/url.js", async (importOriginal) => {
   return { ...actual, navigateExternal: mockNavigateExternal };
 });
 
+vi.mock("../../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Import component under test (after mocks) ──
 
 import { HeroSection } from "../../../../src/components/landing/hero-section.js";
@@ -59,6 +67,7 @@ const DEFAULT_PLANS = [makeMockPlan({ id: "plan-platform-monthly" })];
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockUseSession.mockReturnValue(makeMockSessionResult());
   mockFetchMySubscriptions.mockResolvedValue([]);
   mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
@@ -218,6 +227,76 @@ describe("HeroSection", () => {
       });
 
       expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
+    });
+  });
+
+  describe("under-construction variant", () => {
+    it("shows construction message when both content and subscription are disabled", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "content" && flag !== "subscription",
+      );
+
+      render(<HeroSection plans={[]} />);
+
+      expect(
+        screen.getByText(/We're building something different/),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Coming Soon")).toBeInTheDocument();
+    });
+
+    it("hides Subscribe button and Browse link when under construction", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "content" && flag !== "subscription",
+      );
+
+      render(<HeroSection plans={[]} />);
+
+      expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "Browse Free Content" })).toBeNull();
+    });
+
+    it("hides Browse link when only content is disabled", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "content",
+      );
+
+      render(<HeroSection plans={DEFAULT_PLANS} />);
+
+      expect(screen.queryByRole("link", { name: "Browse Free Content" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
+    });
+
+    it("hides Subscribe button when only subscription is disabled", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "subscription",
+      );
+
+      render(<HeroSection plans={[]} />);
+
+      expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Browse Free Content" })).toBeInTheDocument();
+    });
+
+    it("still renders heading in under-construction mode", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "content" && flag !== "subscription",
+      );
+
+      render(<HeroSection plans={[]} />);
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Signal to Noise Collective" }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides tagline in under-construction mode", () => {
+      mockIsFeatureEnabled.mockImplementation(
+        (flag: string) => flag !== "content" && flag !== "subscription",
+      );
+
+      render(<HeroSection plans={[]} />);
+
+      expect(screen.queryByText(/We cut through the noise/)).toBeNull();
     });
   });
 });

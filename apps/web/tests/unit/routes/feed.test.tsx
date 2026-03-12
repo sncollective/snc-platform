@@ -9,9 +9,10 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatRelativeDate, mockUseLoaderData } = vi.hoisted(() => ({
+const { mockFormatRelativeDate, mockUseLoaderData, mockIsFeatureEnabled } = vi.hoisted(() => ({
   mockFormatRelativeDate: vi.fn(),
   mockUseLoaderData: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -26,6 +27,12 @@ vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const FeedPage = extractRouteComponent(() => import("../../../src/routes/feed.js"));
@@ -33,6 +40,7 @@ const FeedPage = extractRouteComponent(() => import("../../../src/routes/feed.js
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockFormatRelativeDate.mockReturnValue("2h ago");
   mockUseLoaderData.mockReturnValue({
     items: [
@@ -189,5 +197,16 @@ describe("FeedPage", () => {
 
     const links = screen.getAllByRole("link");
     expect(links.some((link) => link.getAttribute("href") === "/content/c1")).toBe(true);
+  });
+
+  it("renders Coming Soon when content feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "content");
+
+    render(<FeedPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Content — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

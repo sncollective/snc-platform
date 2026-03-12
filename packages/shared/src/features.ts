@@ -38,3 +38,45 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
   admin: true,
   emissions: false,
 };
+
+// ── Labels ──
+
+export interface FeatureLabelInfo {
+  readonly name: string;
+  readonly description: string;
+}
+
+export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
+  content: {
+    name: "Content",
+    description: "Videos, audio, and written content from our creators.",
+  },
+  creator: {
+    name: "Creators",
+    description: "Creator profiles, portfolios, and subscription pages.",
+  },
+  subscription: {
+    name: "Subscriptions",
+    description: "Platform and creator subscription plans.",
+  },
+  merch: {
+    name: "Merch",
+    description: "Merchandise from our creators and the collective.",
+  },
+  booking: {
+    name: "Services",
+    description: "Studio and label services available for booking.",
+  },
+  dashboard: {
+    name: "Dashboard",
+    description: "Cooperative member dashboard with KPIs and analytics.",
+  },
+  admin: {
+    name: "Admin",
+    description: "Platform administration and feature management.",
+  },
+  emissions: {
+    name: "Emissions",
+    description: "Our carbon footprint — tracked, reduced, and offset.",
+  },
+};

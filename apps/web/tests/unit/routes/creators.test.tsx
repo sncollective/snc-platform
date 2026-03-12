@@ -8,8 +8,9 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseLoaderData } = vi.hoisted(() => ({
+const { mockUseLoaderData, mockIsFeatureEnabled } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -20,6 +21,12 @@ vi.mock("../../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const CreatorsPage = extractRouteComponent(() => import("../../../src/routes/creators/index.js"));
@@ -27,6 +34,7 @@ const CreatorsPage = extractRouteComponent(() => import("../../../src/routes/cre
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockUseLoaderData.mockReturnValue({
     items: [
       makeMockCreatorListItem({
@@ -195,5 +203,16 @@ describe("CreatorsPage", () => {
     expect(
       links.some((link) => link.getAttribute("href") === "/creators/creator-2"),
     ).toBe(true);
+  });
+
+  it("renders Coming Soon when creator feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "creator");
+
+    render(<CreatorsPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Creators — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

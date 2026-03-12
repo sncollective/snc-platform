@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem, CreatorListResponse } from "@snc/shared";
 
+import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { CreatorCard } from "../../components/creator/creator-card.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
@@ -10,10 +11,8 @@ import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/creators/")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
-  },
   loader: async (): Promise<CreatorListResponse> => {
+    if (!isFeatureEnabled("creator")) return { items: [], nextCursor: null };
     try {
       return (await fetchApiServer({
         data: "/api/creators?limit=24",
@@ -26,6 +25,8 @@ export const Route = createFileRoute("/creators/")({
 });
 
 function CreatorsPage(): React.ReactElement {
+  if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
+
   const loaderData = Route.useLoaderData();
 
   const { items, nextCursor, isLoading, loadMore } =

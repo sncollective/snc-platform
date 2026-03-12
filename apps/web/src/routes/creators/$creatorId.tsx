@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type {
@@ -9,6 +9,7 @@ import type {
   SubscriptionPlan,
 } from "@snc/shared";
 
+import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { SocialLinksSection } from "../../components/social-links/social-links-section.js";
 import { ContentCard } from "../../components/content/content-card.js";
 import { FilterBar } from "../../components/content/filter-bar.js";
@@ -27,10 +28,8 @@ import listingStyles from "../../styles/listing-page.module.css";
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
-  },
-  loader: async ({ params }): Promise<CreatorProfileResponse> => {
+  loader: async ({ params }): Promise<CreatorProfileResponse | null> => {
+    if (!isFeatureEnabled("creator")) return null;
     return fetchApiServer({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
     }) as Promise<CreatorProfileResponse>;
@@ -42,6 +41,7 @@ export const Route = createFileRoute("/creators/$creatorId")({
 
 function CreatorDetailPage(): React.ReactElement {
   const creator = Route.useLoaderData();
+  if (!isFeatureEnabled("creator") || creator === null) return <ComingSoon feature="creator" />;
   const session = useSession();
   const [activeFilter, setActiveFilter] = useState<ContentType | null>(null);
   const [creatorPlans, setCreatorPlans] = useState<SubscriptionPlan[]>([]);

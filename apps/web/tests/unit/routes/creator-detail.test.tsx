@@ -20,6 +20,7 @@ const {
   mockFetchPlans,
   mockFetchMySubscriptions,
   mockFetchProducts,
+  mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockFormatRelativeDate: vi.fn(),
@@ -27,6 +28,7 @@ const {
   mockFetchPlans: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
   mockFetchProducts: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -54,6 +56,12 @@ vi.mock("../../../src/lib/merch.js", () => ({
   fetchProducts: mockFetchProducts,
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const CreatorDetailPage = extractRouteComponent(() => import("../../../src/routes/creators/$creatorId.js"));
@@ -62,6 +70,7 @@ const CreatorDetailPage = extractRouteComponent(() => import("../../../src/route
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockFormatRelativeDate.mockReturnValue("2h ago");
   mockUseSession.mockReturnValue({ data: { user: { id: "user-1" } } });
   mockFetchPlans.mockResolvedValue([]);
@@ -491,5 +500,16 @@ describe("CreatorDetailPage", () => {
       expect(screen.getByText("Content")).toBeInTheDocument();
     });
     expect(screen.queryByRole("button", { name: /subscribe/i })).toBeNull();
+  });
+
+  it("renders Coming Soon when creator feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "creator");
+
+    render(<CreatorDetailPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Creators — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

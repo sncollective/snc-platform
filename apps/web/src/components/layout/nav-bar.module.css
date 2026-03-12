@@ -56,6 +56,11 @@
   border-bottom-color: var(--color-accent);
 }
 
+.navLinkDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .right {
   display: flex;
   align-items: center;

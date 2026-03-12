@@ -1,7 +1,8 @@
 import type React from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
+import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ContentDetail } from "../../components/content/content-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
@@ -9,7 +10,7 @@ import { isFeatureEnabled } from "../../lib/config.js";
 // ── Private Types ──
 
 interface ContentDetailLoaderData {
-  readonly item: FeedItem;
+  readonly item: FeedItem | null;
   readonly plans: readonly SubscriptionPlan[];
 }
 
@@ -22,10 +23,9 @@ function isContentLocked(item: FeedItem): boolean {
 // ── Route ──
 
 export const Route = createFileRoute("/content/$contentId")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("content")) throw redirect({ to: "/" });
-  },
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
+    if (!isFeatureEnabled("content")) return { item: null, plans: [] };
+
     const item = (await fetchApiServer({
       data: `/api/content/${encodeURIComponent(params.contentId)}`,
     })) as FeedItem;
@@ -52,5 +52,6 @@ export const Route = createFileRoute("/content/$contentId")({
 
 function ContentDetailPage(): React.ReactElement {
   const { item, plans } = Route.useLoaderData();
+  if (!isFeatureEnabled("content") || item === null) return <ComingSoon feature="content" />;
   return <ContentDetail item={item} plans={plans} />;
 }

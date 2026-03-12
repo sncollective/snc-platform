@@ -1,8 +1,9 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { ContentType, FeedItem, FeedResponse } from "@snc/shared";
 
+import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { ContentCard } from "../components/content/content-card.js";
 import { FilterBar } from "../components/content/filter-bar.js";
 import { fetchApiServer } from "../lib/api-server.js";
@@ -12,10 +13,8 @@ import styles from "./feed.module.css";
 import listingStyles from "../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/feed")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("content")) throw redirect({ to: "/" });
-  },
   loader: async (): Promise<FeedResponse> => {
+    if (!isFeatureEnabled("content")) return { items: [], nextCursor: null };
     try {
       return (await fetchApiServer({
         data: "/api/content?limit=12",
@@ -30,6 +29,8 @@ export const Route = createFileRoute("/feed")({
 // ── Public API ──
 
 function FeedPage(): React.ReactElement {
+  if (!isFeatureEnabled("content")) return <ComingSoon feature="content" />;
+
   const loaderData = Route.useLoaderData();
   const [activeFilter, setActiveFilter] = useState<ContentType | null>(null);
 

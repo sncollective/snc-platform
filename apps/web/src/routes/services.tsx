@@ -1,8 +1,9 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { Service } from "@snc/shared";
 
+import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { useSession } from "../lib/auth.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
@@ -12,10 +13,8 @@ import listingStyles from "../styles/listing-page.module.css";
 import styles from "./services.module.css";
 
 export const Route = createFileRoute("/services")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("booking")) throw redirect({ to: "/" });
-  },
   loader: async (): Promise<Service[]> => {
+    if (!isFeatureEnabled("booking")) return [];
     try {
       const data = (await fetchApiServer({
         data: "/api/services",
@@ -29,6 +28,8 @@ export const Route = createFileRoute("/services")({
 });
 
 function ServicesPage(): React.ReactElement {
+  if (!isFeatureEnabled("booking")) return <ComingSoon feature="booking" />;
+
   const navigate = useNavigate();
   const session = useSession();
 

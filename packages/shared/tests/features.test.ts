@@ -4,6 +4,7 @@ import {
   FEATURE_FLAGS,
   ALL_FEATURES_ON,
   PRODUCTION_DEFAULTS,
+  FEATURE_LABELS,
   type FeatureFlag,
   type FeatureFlags,
 } from "../src/index.js";
@@ -61,5 +62,21 @@ describe("PRODUCTION_DEFAULTS", () => {
     expect(Object.keys(PRODUCTION_DEFAULTS).sort()).toStrictEqual(
       [...FEATURE_FLAGS].sort(),
     );
+  });
+});
+
+describe("FEATURE_LABELS", () => {
+  it("has exactly the same keys as FEATURE_FLAGS", () => {
+    expect(Object.keys(FEATURE_LABELS).sort()).toStrictEqual(
+      [...FEATURE_FLAGS].sort(),
+    );
+  });
+
+  it("every entry has a non-empty name and description", () => {
+    for (const flag of FEATURE_FLAGS) {
+      const label = FEATURE_LABELS[flag];
+      expect(label.name.length).toBeGreaterThan(0);
+      expect(label.description.length).toBeGreaterThan(0);
+    }
   });
 });

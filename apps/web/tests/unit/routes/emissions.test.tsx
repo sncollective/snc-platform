@@ -10,9 +10,10 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatCo2, mockUseLoaderData } = vi.hoisted(() => ({
+const { mockFormatCo2, mockUseLoaderData, mockIsFeatureEnabled } = vi.hoisted(() => ({
   mockFormatCo2: vi.fn(),
   mockUseLoaderData: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -23,6 +24,12 @@ vi.mock("@tanstack/react-router", () =>
 
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
+}));
+
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
 }));
 
 vi.mock("../../../src/lib/format.js", () =>
@@ -88,6 +95,7 @@ const EmissionsPage = extractRouteComponent(() => import("../../../src/routes/em
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockFormatCo2.mockImplementation((kg: number) => {
     if (kg === 0) return "0 g";
     if (kg < 1) return `${(kg * 1000).toFixed(1)} g`;
@@ -161,5 +169,17 @@ describe("EmissionsPage", () => {
 
     expect(screen.queryByTestId("co2-equivalencies")).toBeNull();
     expect(screen.queryByTestId("offset-impact")).toBeNull();
+  });
+
+  it("renders Coming Soon when emissions feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "emissions");
+    mockUseLoaderData.mockReturnValue(null);
+
+    render(<EmissionsPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Emissions — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

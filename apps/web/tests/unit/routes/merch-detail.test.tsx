@@ -7,14 +7,21 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseLoaderData, mockProductDetail } = vi.hoisted(() => ({
+const { mockUseLoaderData, mockProductDetail, mockIsFeatureEnabled } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockProductDetail: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
   createRouterMock({ useLoaderData: mockUseLoaderData }),
 );
+
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
 
 vi.mock("../../../src/components/merch/product-detail.js", () => ({
   ProductDetail: (props: Record<string, unknown>) => {
@@ -31,6 +38,7 @@ const MerchDetailPage = extractRouteComponent(() => import("../../../src/routes/
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   const mockProduct = makeMockMerchProductDetail();
   mockUseLoaderData.mockReturnValue(mockProduct);
 });
@@ -75,5 +83,17 @@ describe("MerchDetailPage", () => {
         }),
       }),
     );
+  });
+
+  it("renders Coming Soon when merch feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "merch");
+    mockUseLoaderData.mockReturnValue(null);
+
+    render(<MerchDetailPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Merch — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

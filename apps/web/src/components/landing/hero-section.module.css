@@ -69,6 +69,32 @@
   background: var(--color-accent-bg);
 }
 
+/* ── Under-construction variant ── */
+
+.constructionNote {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-xl) 0;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.comingSoonBadge {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-xl);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  opacity: 0.6;
+}
+
 @media (max-width: 767px) {
   .hero {
     padding: var(--space-xl) var(--space-md);

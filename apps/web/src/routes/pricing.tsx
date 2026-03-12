@@ -1,8 +1,9 @@
-import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
+import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { PlanCard } from "../components/subscription/plan-card.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
@@ -13,10 +14,8 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
-  },
   loader: async (): Promise<SubscriptionPlan[]> => {
+    if (!isFeatureEnabled("subscription")) return [];
     try {
       const data = (await fetchApiServer({
         data: "/api/subscriptions/plans?type=platform",
@@ -30,6 +29,8 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage(): React.ReactElement {
+  if (!isFeatureEnabled("subscription")) return <ComingSoon feature="subscription" />;
+
   const navigate = useNavigate();
   const plans = Route.useLoaderData();
   const { isAuthenticated, isSubscribed: isSubscribedToPlatform } = usePlatformAuth();

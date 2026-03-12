@@ -21,6 +21,22 @@ module.exports = {
       name: "web",
       cwd: "./apps/web",
       script: "./node_modules/.bin/vite",
+      args: "--port 3001 --strictPort",
+      interpreter: "bash",
+      env: {
+        NODE_ENV: "development",
+      },
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 1000,
+    },
+    {
+      name: "web-staging",
+      cwd: "./apps/web",
+      script: "./node_modules/.bin/vite",
+      args: "--mode staging --port 3002 --strictPort",
       interpreter: "bash",
       env: {
         NODE_ENV: "development",

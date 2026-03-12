@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { EmissionsBreakdown } from "@snc/shared";
 
+import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { formatCo2 } from "../lib/format.js";
@@ -15,10 +16,8 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./emissions.module.css";
 
 export const Route = createFileRoute("/emissions")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("emissions")) throw redirect({ to: "/" });
-  },
-  loader: async (): Promise<EmissionsBreakdown> => {
+  loader: async (): Promise<EmissionsBreakdown | null> => {
+    if (!isFeatureEnabled("emissions")) return null;
     return (await fetchApiServer({
       data: "/api/emissions/breakdown",
     })) as EmissionsBreakdown;
@@ -28,6 +27,7 @@ export const Route = createFileRoute("/emissions")({
 
 function EmissionsPage(): React.ReactElement {
   const breakdown = Route.useLoaderData();
+  if (!isFeatureEnabled("emissions") || breakdown === null) return <ComingSoon feature="emissions" />;
 
   const grossCo2Value = formatCo2(breakdown.summary.grossCo2Kg);
   const offsetCo2Value = formatCo2(breakdown.summary.offsetCo2Kg);

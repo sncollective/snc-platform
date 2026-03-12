@@ -24,11 +24,13 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <li key={link.to}>
               <Link
                 to={link.to}
-                className={
-                  currentPath.startsWith(link.to)
-                    ? `${styles.navLink} ${styles.navLinkActive}`
-                    : styles.navLink
-                }
+                className={[
+                  styles.navLink,
+                  link.disabled && styles.navLinkDisabled,
+                  !link.disabled && currentPath.startsWith(link.to) && styles.navLinkActive,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {link.label}
               </Link>

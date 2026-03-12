@@ -8,11 +8,12 @@ export interface NavLink {
   readonly to: string;
   readonly label: string;
   readonly feature?: FeatureFlag;
+  readonly disabled?: boolean;
 }
 
 // ── Private Constants ──
 
-const ALL_NAV_LINKS: readonly NavLink[] = [
+const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
   { to: "/feed", label: "Feed", feature: "content" },
   { to: "/creators", label: "Creators", feature: "creator" },
   { to: "/services", label: "Services", feature: "booking" },
@@ -23,6 +24,7 @@ const ALL_NAV_LINKS: readonly NavLink[] = [
 
 // ── Public API ──
 
-export const NAV_LINKS: readonly NavLink[] = ALL_NAV_LINKS.filter(
-  (link) => !link.feature || isFeatureEnabled(link.feature),
-);
+export const NAV_LINKS: readonly NavLink[] = ALL_NAV_LINKS.map((link) => ({
+  ...link,
+  disabled: link.feature !== undefined && !isFeatureEnabled(link.feature),
+}));

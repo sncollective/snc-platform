@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { MerchProduct } from "@snc/shared";
 
+import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ProductCard } from "../../components/merch/product-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { isFeatureEnabled } from "../../lib/config.js";
@@ -12,15 +13,14 @@ import listingStyles from "../../styles/listing-page.module.css";
 // ── Route ──
 
 export const Route = createFileRoute("/merch/")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("merch")) throw redirect({ to: "/" });
-  },
   component: MerchPage,
 });
 
 // ── Component ──
 
 function MerchPage(): React.ReactElement {
+  if (!isFeatureEnabled("merch")) return <ComingSoon feature="merch" />;
+
   const search = Route.useSearch() as {
     creatorId?: string;
     status?: string;

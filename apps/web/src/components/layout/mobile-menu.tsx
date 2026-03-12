@@ -53,11 +53,13 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
               <li key={link.to}>
                 <Link
                   to={link.to}
-                  className={
-                    currentPath.startsWith(link.to)
-                      ? `${styles.menuLink} ${styles.menuLinkActive}`
-                      : styles.menuLink
-                  }
+                  className={[
+                    styles.menuLink,
+                    link.disabled && styles.menuLinkDisabled,
+                    !link.disabled && currentPath.startsWith(link.to) && styles.menuLinkActive,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   onClick={handleClose}
                 >
                   {link.label}

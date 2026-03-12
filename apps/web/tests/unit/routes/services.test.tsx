@@ -19,11 +19,13 @@ const {
   mockUseSession,
   mockNavigate,
   mockCreateBooking,
+  mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockUseSession: vi.fn(),
   mockNavigate: vi.fn(),
   mockCreateBooking: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -47,6 +49,12 @@ vi.mock("../../../src/lib/booking.js", () => ({
   createBooking: mockCreateBooking,
 }));
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const ServicesPage = extractRouteComponent(() => import("../../../src/routes/services.js"));
@@ -54,6 +62,7 @@ const ServicesPage = extractRouteComponent(() => import("../../../src/routes/ser
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockUseLoaderData.mockReturnValue([
     makeMockService({ id: "svc-1", name: "Recording Session", pricingInfo: "$50/hour" }),
     makeMockService({ id: "svc-2", name: "Label Services", pricingInfo: "Contact for pricing" }),
@@ -191,5 +200,16 @@ describe("ServicesPage", () => {
     await waitFor(() => {
       expect(screen.queryByText(/^Book:/)).toBeNull();
     });
+  });
+
+  it("renders Coming Soon when booking feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "booking");
+
+    render(<ServicesPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Services — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

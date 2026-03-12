@@ -9,9 +9,10 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockFormatPrice, mockUseSearch } = vi.hoisted(() => ({
+const { mockFormatPrice, mockUseSearch, mockIsFeatureEnabled } = vi.hoisted(() => ({
   mockFormatPrice: vi.fn(),
   mockUseSearch: vi.fn(),
+  mockIsFeatureEnabled: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -26,6 +27,12 @@ vi.mock("../../../src/lib/format.js", () =>
   createFormatMock({ formatPrice: mockFormatPrice }),
 );
 
+vi.mock("../../../src/lib/config.js", () => ({
+  DEMO_MODE: false,
+  features: {},
+  isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
 // ── Component Under Test ──
 
 const MerchPage = extractRouteComponent(() => import("../../../src/routes/merch/index.js"));
@@ -33,6 +40,7 @@ const MerchPage = extractRouteComponent(() => import("../../../src/routes/merch/
 // ── Test Lifecycle ──
 
 beforeEach(() => {
+  mockIsFeatureEnabled.mockReturnValue(true);
   mockFormatPrice.mockImplementation(
     (cents: number) => `$${(cents / 100).toFixed(2)}`,
   );
@@ -254,5 +262,16 @@ describe("MerchPage", () => {
       expect(screen.getByRole("status")).toBeInTheDocument();
     });
     expect(screen.getByText(/checkout was canceled/i)).toBeInTheDocument();
+  });
+
+  it("renders Coming Soon when merch feature is disabled", () => {
+    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "merch");
+
+    render(<MerchPage />);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Merch — Coming Soon" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });
