@@ -174,4 +174,42 @@ describe("parseConfig", () => {
 
     expect(result.STRIPE_WEBHOOK_SECRET).toBeUndefined();
   });
+
+  it("accepts config when SEAFILE_OIDC_CLIENT_ID is missing", () => {
+    const result = parseConfig(BASE_ENV);
+
+    expect(result.SEAFILE_OIDC_CLIENT_ID).toBeUndefined();
+  });
+
+  it("accepts config with SEAFILE_OIDC_CLIENT_ID set", () => {
+    const result = parseConfig({
+      ...BASE_ENV,
+      SEAFILE_OIDC_CLIENT_ID: "seafile-client-id",
+    });
+
+    expect(result.SEAFILE_OIDC_CLIENT_ID).toBe("seafile-client-id");
+  });
+
+  it("accepts config with both Seafile OIDC client ID and secret", () => {
+    const result = parseConfig({
+      ...BASE_ENV,
+      SEAFILE_OIDC_CLIENT_ID: "seafile-client-id",
+      SEAFILE_OIDC_CLIENT_SECRET:
+        "a-secret-that-is-at-least-thirty-two-chars",
+    });
+
+    expect(result.SEAFILE_OIDC_CLIENT_ID).toBe("seafile-client-id");
+    expect(result.SEAFILE_OIDC_CLIENT_SECRET).toBe(
+      "a-secret-that-is-at-least-thirty-two-chars",
+    );
+  });
+
+  it("throws ZodError when SEAFILE_OIDC_CLIENT_SECRET is shorter than 32 chars", () => {
+    expect(() =>
+      parseConfig({
+        ...BASE_ENV,
+        SEAFILE_OIDC_CLIENT_SECRET: "too-short",
+      }),
+    ).toThrow();
+  });
 });

@@ -98,6 +98,19 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
+          {(hasRole(effectiveRoles, "cooperative-member") || hasRole(effectiveRoles, "creator")) && (
+            <a
+              href="https://files.s-nc.org"
+              className={styles.menuItem}
+              role="menuitem"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleClose}
+            >
+              Files
+            </a>
+          )}
+
           {isFeatureEnabled("creator") && hasRole(effectiveRoles, "creator") && (
             <Link
               to="/settings/creator"

@@ -38,6 +38,8 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   FEATURE_DASHBOARD: true,
   FEATURE_ADMIN: true,
   FEATURE_EMISSIONS: true,
+  SEAFILE_OIDC_CLIENT_ID: undefined as string | undefined,
+  SEAFILE_OIDC_CLIENT_SECRET: undefined as string | undefined,
   ...overrides,
 });
 

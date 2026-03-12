@@ -24,6 +24,9 @@ export const ENV_SCHEMA = z.object({
   // Phase 8: Shopify (optional — API returns 503 MERCH_NOT_CONFIGURED when absent)
   SHOPIFY_STORE_DOMAIN: z.string().optional(),
   SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
+  // Seafile OIDC (optional — OIDC provider inactive when absent)
+  SEAFILE_OIDC_CLIENT_ID: z.string().optional(),
+  SEAFILE_OIDC_CLIENT_SECRET: z.string().min(32).optional(),
   // Feature flags (default ON — set "false" to disable a domain)
   FEATURE_CONTENT: booleanFlag,
   FEATURE_CREATOR: booleanFlag,

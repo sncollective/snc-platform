@@ -57,6 +57,13 @@
       "when": 1772800000000,
       "tag": "0007_social_links",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773347772417,
+      "tag": "0008_lyrical_albert_cleary",
+      "breakpoints": true
     }
   ]
 }

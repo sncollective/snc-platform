@@ -116,20 +116,35 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'snc' }}
+          SEAFILE_OIDC_CLIENT_ID: ${{ secrets.SEAFILE_OIDC_CLIENT_ID }}
+          SEAFILE_OIDC_CLIENT_SECRET: ${{ secrets.SEAFILE_OIDC_CLIENT_SECRET }}
         run: |
           eval $(ssh-agent -s)
           echo "$SSH_PRIVATE_KEY" | ssh-add -
           mkdir -p ~/.ssh
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-          ssh ${DEPLOY_USER}@${DEPLOY_HOST} '
-            set -euo pipefail
-            cd /opt/snc
-            git pull origin main
-            corepack enable
-            pnpm install --frozen-lockfile
-            pnpm build
-            pnpm --filter @snc/api db:migrate
-            sudo systemctl restart snc-api snc-web
-            sleep 3
-            curl -sf http://localhost:3000/health || { echo "Health check failed"; exit 1; }
-          '
+          # Unquoted heredoc: $VAR expands locally (CI), \$VAR expands on remote
+          ssh ${DEPLOY_USER}@${DEPLOY_HOST} bash <<DEPLOY
+          set -euo pipefail
+          cd /opt/snc
+
+          # ── Inject Forgejo-managed secrets into .env ──
+          set_env() {
+            local key=\$1 val=\$2
+            [ -z "\$val" ] && return
+            sed -i "/^\${key}=/d" .env 2>/dev/null || true
+            echo "\${key}=\${val}" >> .env
+          }
+          set_env SEAFILE_OIDC_CLIENT_ID "${SEAFILE_OIDC_CLIENT_ID}"
+          set_env SEAFILE_OIDC_CLIENT_SECRET "${SEAFILE_OIDC_CLIENT_SECRET}"
+
+          # ── Build & deploy ──
+          git pull origin main
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm --filter @snc/api db:migrate
+          sudo systemctl restart snc-api snc-web
+          sleep 3
+          curl -sf http://localhost:3000/health || { echo "Health check failed"; exit 1; }
+          DEPLOY
