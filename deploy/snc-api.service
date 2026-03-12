@@ -12,11 +12,6 @@ ExecStart=/usr/bin/node --import tsx src/index.ts
 Restart=on-failure
 RestartSec=5
 
-# Sandboxing
-ReadWritePaths=/opt/snc/platform/uploads /opt/snc/platform/apps/api/uploads
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

@@ -8,14 +8,11 @@ User=snc
 Group=snc
 WorkingDirectory=/opt/snc/platform/apps/web
 EnvironmentFile=/opt/snc/platform/.env
+Environment=PORT=3001 NITRO_PORT=3001
 ExecStart=/usr/bin/node .output/server/index.mjs
 Restart=on-failure
 RestartSec=5
 
-# Sandboxing
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
