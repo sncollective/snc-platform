@@ -4,15 +4,106 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Re-run tests + build ──
-  test-and-build:
-    uses: ./.forgejo/workflows/test-and-build.yml
+  # ── Test (parallel) ──
+  test-shared:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/shared
+        run: pnpm --filter @snc/shared test
+
+  test-api:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/api
+        run: pnpm --filter @snc/api test
+
+  test-web:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test @snc/web
+        run: pnpm --filter @snc/web test
+
+  # ── Build ──
+  build:
+    runs-on: docker
+    container: node:24
+    needs: [test-shared, test-api, test-web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack install
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
 
   # ── Deploy to demo server ──
   deploy-demo:
     runs-on: docker
     container: alpine:latest
-    needs: [test-and-build]
+    needs: [build]
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Install SSH client
