@@ -1,0 +1,29 @@
+# S/NC Production — add this site block to /etc/caddy/Caddyfile
+# Replace YOUR_DOMAIN with the actual domain and APP_IP with snc-app container IP.
+
+YOUR_DOMAIN {
+	# ── Security headers ──
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# ── API + health + uploads → API server ──
+	handle /api/* {
+		reverse_proxy APP_IP:3000
+	}
+	handle /health {
+		reverse_proxy APP_IP:3000
+	}
+	handle /uploads/* {
+		reverse_proxy APP_IP:3000
+	}
+
+	# ── Everything else → Web SSR server ──
+	handle {
+		reverse_proxy APP_IP:3001
+	}
+}
