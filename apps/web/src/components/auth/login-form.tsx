@@ -6,6 +6,7 @@ import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import { navigateExternal } from "../../lib/url.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
 
@@ -22,7 +23,11 @@ type FieldErrors = Partial<Record<"email" | "password", string>>;
 
 // ── Public API ──
 
-export function LoginForm() {
+export function LoginForm({
+  oidcAuthorizeUrl,
+}: {
+  oidcAuthorizeUrl?: string | null;
+}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,9 +69,19 @@ export function LoginForm() {
         return;
       }
 
-      void navigate({ to: "/feed" });
+      if (oidcAuthorizeUrl) {
+        navigateExternal(oidcAuthorizeUrl);
+      } else {
+        void navigate({ to: "/feed" });
+      }
     } catch {
-      setServerError("Invalid email or password");
+      // In OIDC flow, the after-hook 302 redirect causes a fetch error,
+      // but the session was created successfully. Redirect to authorize.
+      if (oidcAuthorizeUrl) {
+        navigateExternal(oidcAuthorizeUrl);
+      } else {
+        setServerError("Invalid email or password");
+      }
     } finally {
       setIsSubmitting(false);
     }

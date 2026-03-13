@@ -6,11 +6,13 @@ import { createRouterMock } from "../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
 
-const { mockNavigate, mockSignInEmail, mockSignUpEmail } = vi.hoisted(() => ({
-  mockNavigate: vi.fn(),
-  mockSignInEmail: vi.fn(),
-  mockSignUpEmail: vi.fn(),
-}));
+const { mockNavigate, mockSignInEmail, mockSignUpEmail, mockNavigateExternal } =
+  vi.hoisted(() => ({
+    mockNavigate: vi.fn(),
+    mockSignInEmail: vi.fn(),
+    mockSignUpEmail: vi.fn(),
+    mockNavigateExternal: vi.fn(),
+  }));
 
 vi.mock("@tanstack/react-router", () =>
   createRouterMock({ useNavigate: () => mockNavigate }),
@@ -24,6 +26,10 @@ vi.mock("../../../src/lib/auth-client.js", () => ({
   },
 }));
 
+vi.mock("../../../src/lib/url.js", () => ({
+  navigateExternal: mockNavigateExternal,
+}));
+
 // ── Import components under test (after mocks) ──
 
 import { LoginForm } from "../../../src/components/auth/login-form.js";
@@ -35,6 +41,7 @@ beforeEach(() => {
   mockSignInEmail.mockReset();
   mockSignUpEmail.mockReset();
   mockNavigate.mockReset();
+  mockNavigateExternal.mockReset();
 });
 
 // ── Tests ──
@@ -113,6 +120,38 @@ describe("LoginForm", () => {
       const button = screen.getByRole("button", { name: /logging in/i });
       expect(button).toBeDisabled();
     });
+  });
+
+  it("redirects to OIDC authorize URL on successful login", async () => {
+    const user = userEvent.setup();
+    const oidcUrl = "/api/auth/oauth2/authorize?client_id=seafile&redirect_uri=http://localhost/callback";
+    mockSignInEmail.mockResolvedValue({ data: {}, error: null });
+    render(<LoginForm oidcAuthorizeUrl={oidcUrl} />);
+
+    await user.type(screen.getByLabelText("Email"), "user@example.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
+    await user.click(screen.getByRole("button", { name: /log in/i }));
+
+    await waitFor(() => {
+      expect(mockNavigateExternal).toHaveBeenCalledWith(oidcUrl);
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("redirects to OIDC authorize URL when sign-in throws (after-hook 302)", async () => {
+    const user = userEvent.setup();
+    const oidcUrl = "/api/auth/oauth2/authorize?client_id=seafile&redirect_uri=http://localhost/callback";
+    mockSignInEmail.mockRejectedValue(new Error("fetch failed"));
+    render(<LoginForm oidcAuthorizeUrl={oidcUrl} />);
+
+    await user.type(screen.getByLabelText("Email"), "user@example.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
+    await user.click(screen.getByRole("button", { name: /log in/i }));
+
+    await waitFor(() => {
+      expect(mockNavigateExternal).toHaveBeenCalledWith(oidcUrl);
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
 
