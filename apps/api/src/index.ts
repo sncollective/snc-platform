@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 
 import { app } from "./app.js";
+import { seedOidcClients } from "./auth/seed-oidc-clients.js";
 import { config } from "./config.js";
 import { sql } from "./db/connection.js";
 
@@ -12,6 +13,10 @@ const server = serve({
 });
 
 console.log(`Server running on port ${config.PORT}`);
+
+seedOidcClients().catch((err) =>
+  console.error("Failed to seed OIDC clients:", err),
+);
 
 // ── Graceful Shutdown ──
 
