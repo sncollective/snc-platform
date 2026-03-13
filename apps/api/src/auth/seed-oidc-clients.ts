@@ -19,13 +19,11 @@ export async function seedOidcClients(): Promise<void> {
   await db
     .insert(oauthApplications)
     .values({
-      id: crypto.randomUUID(),
+      id: config.SEAFILE_OIDC_CLIENT_ID,
       clientId: config.SEAFILE_OIDC_CLIENT_ID,
       clientSecret: config.SEAFILE_OIDC_CLIENT_SECRET,
       name: "Seafile",
-      redirectUrls: JSON.stringify([
-        "https://files.s-nc.org/oauth/callback/",
-      ]),
+      redirectUrls: "https://files.s-nc.org/oauth/callback/",
       type: "web",
       disabled: false,
       metadata: null,
@@ -36,11 +34,10 @@ export async function seedOidcClients(): Promise<void> {
     .onConflictDoUpdate({
       target: oauthApplications.clientId,
       set: {
+        id: config.SEAFILE_OIDC_CLIENT_ID,
         clientSecret: config.SEAFILE_OIDC_CLIENT_SECRET,
         name: "Seafile",
-        redirectUrls: JSON.stringify([
-          "https://files.s-nc.org/oauth/callback/",
-        ]),
+        redirectUrls: "https://files.s-nc.org/oauth/callback/",
         disabled: false,
         updatedAt: now,
       },
