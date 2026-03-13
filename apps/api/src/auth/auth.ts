@@ -30,10 +30,19 @@ export const auth = betterAuth({
   },
   trustedOrigins: parseOrigins(config.CORS_ORIGIN),
   plugins: [
-    jwt(),
+    jwt({
+      disableSettingJwtHeader: true,
+      jwks: {
+        keyPairConfig: { alg: "RS256" },
+      },
+      jwt: {
+        issuer: `${config.BETTER_AUTH_URL}/api/auth`,
+      },
+    }),
     oidcProvider({
       loginPage: "/login",
       requirePKCE: false,
+      useJWTPlugin: true,
       trustedClients: config.SEAFILE_OIDC_CLIENT_ID
         ? [
             {
