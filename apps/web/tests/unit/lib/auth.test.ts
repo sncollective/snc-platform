@@ -40,7 +40,9 @@ beforeEach(() => {
 
 describe("auth client configuration", () => {
   it("configures auth client without explicit baseURL (uses window.location.origin)", () => {
-    expect(createAuthClient).toHaveBeenCalledWith({});
+    expect(createAuthClient).toHaveBeenCalledWith(
+      expect.objectContaining({ plugins: expect.any(Array) }),
+    );
   });
 });
 

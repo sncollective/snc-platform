@@ -29,6 +29,7 @@ describe("getFeatureFlags", () => {
       dashboard: true,
       admin: true,
       emissions: true,
+      calendar: true,
     });
   });
 
@@ -112,6 +113,7 @@ describe("conditional route registration", () => {
           dashboard: false,
           admin: false,
           emissions: false,
+          calendar: false,
         },
       };
     });

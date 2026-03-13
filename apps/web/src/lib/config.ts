@@ -24,6 +24,7 @@ export const features: FeatureFlags = {
   dashboard: flag(import.meta.env.VITE_FEATURE_DASHBOARD),
   admin: flag(import.meta.env.VITE_FEATURE_ADMIN),
   emissions: flag(import.meta.env.VITE_FEATURE_EMISSIONS),
+  calendar: flag(import.meta.env.VITE_FEATURE_CALENDAR),
 };
 
 /** Check whether a single feature flag is enabled. */

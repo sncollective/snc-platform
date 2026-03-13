@@ -9,6 +9,7 @@ export const FEATURE_FLAGS = [
   "dashboard",
   "admin",
   "emissions",
+  "calendar",
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
@@ -26,6 +27,7 @@ export const ALL_FEATURES_ON: FeatureFlags = {
   dashboard: true,
   admin: true,
   emissions: true,
+  calendar: true,
 };
 
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
@@ -37,6 +39,7 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
   dashboard: false,
   admin: true,
   emissions: false,
+  calendar: false,
 };
 
 // ── Labels ──
@@ -78,5 +81,9 @@ export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
   emissions: {
     name: "Emissions",
     description: "Our carbon footprint — tracked, reduced, and offset.",
+  },
+  calendar: {
+    name: "Calendar",
+    description: "Cooperative calendar with events and .ics feed.",
   },
 };

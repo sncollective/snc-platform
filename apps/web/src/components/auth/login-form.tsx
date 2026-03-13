@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
@@ -141,6 +141,9 @@ export function LoginForm({
             {fieldErrors.password}
           </span>
         )}
+        <Link to="/forgot-password" className={styles.forgotLink}>
+          Forgot password?
+        </Link>
       </div>
 
       <button

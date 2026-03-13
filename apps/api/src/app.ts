@@ -19,6 +19,7 @@ import { bookingRoutes } from "./routes/booking.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { emissionsRoutes } from "./routes/emissions.routes.js";
+import { calendarRoutes } from "./routes/calendar.routes.js";
 
 // ── Schemas ──
 
@@ -38,7 +39,11 @@ const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
 const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
 app.use("/api/auth/*", (c, next) => {
   const path = c.req.path;
-  if (path.startsWith("/api/auth/sign-in") || path.startsWith("/api/auth/sign-up")) {
+  if (
+    path.startsWith("/api/auth/sign-in") ||
+    path.startsWith("/api/auth/sign-up") ||
+    path.startsWith("/api/auth/email-otp")
+  ) {
     return authStrictLimiter(c, next);
   }
   return authGeneralLimiter(c, next);
@@ -80,6 +85,7 @@ if (features.booking) app.route("/api", bookingRoutes);
 if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
 if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);
+if (features.calendar) app.route("/api/calendar", calendarRoutes);
 
 // ── OpenAPI (non-production only) ──
 

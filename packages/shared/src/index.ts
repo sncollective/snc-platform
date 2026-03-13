@@ -13,5 +13,6 @@ export * from "./booking.js";
 export * from "./dashboard.js";
 export * from "./emissions.js";
 export * from "./admin.js";
+export * from "./calendar.js";
 export * from "./features.js";
 export { textToStream, streamToText } from "./storage-contract.js";

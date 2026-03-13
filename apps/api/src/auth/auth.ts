@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { jwt } from "better-auth/plugins/jwt";
 import { oidcProvider } from "better-auth/plugins/oidc-provider";
+import { emailOTP } from "better-auth/plugins/email-otp";
 
 import { db } from "../db/connection.js";
 import { config, parseOrigins } from "../config.js";
@@ -9,6 +10,7 @@ import * as userSchema from "../db/schema/user.schema.js";
 import { userRoles } from "../db/schema/user.schema.js";
 import * as oidcSchema from "../db/schema/oidc.schema.js";
 import { getUserRoles } from "./user-roles.js";
+import { sendEmail } from "../email/send.js";
 
 // ── Private Helpers ──
 
@@ -27,6 +29,19 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   emailAndPassword: {
     enabled: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    requireEmailVerification: false,
+    autoSignInAfterVerification: true,
+    async sendVerificationEmail({ user, url }) {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your S/NC email",
+        html: `<p>Click <a href="${url}">here</a> to verify your email address.</p>`,
+        text: `Verify your email: ${url}`,
+      });
+    },
   },
   trustedOrigins: parseOrigins(config.CORS_ORIGIN),
   plugins: [
@@ -60,6 +75,18 @@ export const auth = betterAuth({
       async getAdditionalUserInfoClaim(user) {
         const roles = await getUserRoles(user.id);
         return { roles };
+      },
+    }),
+    emailOTP({
+      async sendVerificationOTP({ email, otp, type }) {
+        if (type === "forget-password") {
+          await sendEmail({
+            to: email,
+            subject: "Your S/NC password reset code",
+            html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+            text: `Your password reset code is: ${otp}\n\nThis code expires in 10 minutes.`,
+          });
+        }
       },
     }),
   ],

@@ -31,6 +31,8 @@ describe("parseConfig", () => {
       STORAGE_LOCAL_DIR: "./uploads",
       STRIPE_SECRET_KEY: TEST_STRIPE_SECRET_KEY,
       STRIPE_WEBHOOK_SECRET: TEST_STRIPE_WEBHOOK_SECRET,
+      SMTP_PORT: 587,
+      EMAIL_FROM: "S/NC <noreply@s-nc.org>",
       FEATURE_CONTENT: true,
       FEATURE_CREATOR: true,
       FEATURE_SUBSCRIPTION: true,
@@ -39,6 +41,7 @@ describe("parseConfig", () => {
       FEATURE_DASHBOARD: true,
       FEATURE_ADMIN: true,
       FEATURE_EMISSIONS: true,
+      FEATURE_CALENDAR: true,
     });
   });
 

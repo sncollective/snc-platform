@@ -27,6 +27,12 @@ export const ENV_SCHEMA = z.object({
   // Seafile OIDC (optional — OIDC provider inactive when absent)
   SEAFILE_OIDC_CLIENT_ID: z.string().optional(),
   SEAFILE_OIDC_CLIENT_SECRET: z.string().min(32).optional(),
+  // SMTP (optional — email features degrade gracefully when absent)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default("S/NC <noreply@s-nc.org>"),
   // Feature flags (default ON — set "false" to disable a domain)
   FEATURE_CONTENT: booleanFlag,
   FEATURE_CREATOR: booleanFlag,
@@ -36,6 +42,7 @@ export const ENV_SCHEMA = z.object({
   FEATURE_DASHBOARD: booleanFlag,
   FEATURE_ADMIN: booleanFlag,
   FEATURE_EMISSIONS: booleanFlag,
+  FEATURE_CALENDAR: booleanFlag,
 });
 
 export type Config = z.infer<typeof ENV_SCHEMA>;
@@ -76,6 +83,7 @@ export const getFeatureFlags = (cfg: Config): FeatureFlags => ({
   dashboard: cfg.FEATURE_DASHBOARD,
   admin: cfg.FEATURE_ADMIN,
   emissions: cfg.FEATURE_EMISSIONS,
+  calendar: cfg.FEATURE_CALENDAR,
 });
 
 /**

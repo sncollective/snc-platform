@@ -26,3 +26,9 @@
   color: var(--color-text-muted);
   margin-top: var(--space-md);
 }
+
+.forgotLink {
+  align-self: flex-end;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

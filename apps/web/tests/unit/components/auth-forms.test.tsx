@@ -138,6 +138,13 @@ describe("LoginForm", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
+  it("renders forgot password link", () => {
+    render(<LoginForm />);
+
+    const link = screen.getByRole("link", { name: /forgot password/i });
+    expect(link).toHaveAttribute("href", "/forgot-password");
+  });
+
   it("redirects to OIDC authorize URL when sign-in throws (after-hook 302)", async () => {
     const user = userEvent.setup();
     const oidcUrl = "/api/auth/oauth2/authorize?client_id=seafile&redirect_uri=http://localhost/callback";

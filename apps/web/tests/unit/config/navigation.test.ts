@@ -15,6 +15,7 @@ const ALL_ON: FeatureFlags = {
   dashboard: true,
   admin: true,
   emissions: true,
+  calendar: true,
 };
 
 describe("NAV_LINKS", () => {
@@ -95,6 +96,7 @@ describe("NAV_LINKS", () => {
       dashboard: false,
       admin: false,
       emissions: false,
+      calendar: false,
     };
 
     vi.doMock("../../../src/lib/config.js", () => ({
@@ -105,7 +107,7 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(6);
+    expect(NAV_LINKS).toHaveLength(7);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }
