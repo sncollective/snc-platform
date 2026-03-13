@@ -24,7 +24,8 @@ echo "==> Running database migrations..."
 pnpm --filter @snc/api db:migrate
 
 echo "==> Restarting services..."
-sudo systemctl restart snc-api snc-web
+sudo systemctl restart snc-api
+sudo systemctl restart snc-web
 
 echo "==> Waiting for API to start..."
 sleep 3
@@ -37,7 +38,8 @@ else
   git checkout "$BACKUP_TAG"
   pnpm install --frozen-lockfile
   pnpm build
-  sudo systemctl restart snc-api snc-web
+  sudo systemctl restart snc-api
+sudo systemctl restart snc-web
   echo "==> Rolled back to $BACKUP_TAG"
   exit 1
 fi
