@@ -34,7 +34,15 @@ export const app = new Hono();
 
 app.use("*", corsMiddleware);
 app.use("*", secureHeaders());
-app.use("/api/auth/*", rateLimiter({ windowMs: 60_000, max: 10 }));
+const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
+const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
+app.use("/api/auth/*", (c, next) => {
+  const path = c.req.path;
+  if (path.startsWith("/api/auth/sign-in") || path.startsWith("/api/auth/sign-up")) {
+    return authStrictLimiter(c, next);
+  }
+  return authGeneralLimiter(c, next);
+});
 app.onError(errorHandler);
 
 // ── Routes ──
