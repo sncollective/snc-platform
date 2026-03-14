@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
@@ -17,6 +19,10 @@ const getTransporter = (): Transporter => {
         user: config.SMTP_USER,
         pass: config.SMTP_PASS,
       },
+      pool: false,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
     });
   }
   return transporter;
@@ -46,11 +52,14 @@ export async function sendEmail(opts: SendEmailOptions): Promise<void> {
     throw new Error("Email sending is not configured");
   }
 
+  const domain = config.SMTP_USER?.split("@")[1] ?? "s-nc.org";
+
   await getTransporter().sendMail({
     from: config.EMAIL_FROM,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
+    messageId: `<${randomUUID()}@${domain}>`,
   });
 }
