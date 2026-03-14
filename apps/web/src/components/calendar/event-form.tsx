@@ -37,8 +37,10 @@ const EVENT_FORM_SCHEMA = z.object({
     .check(
       maxLength(MAX_EVENT_DESCRIPTION_LENGTH, `Description cannot exceed ${MAX_EVENT_DESCRIPTION_LENGTH} characters`),
     ),
-  startAt: z.string().check(minLength(1, "Start date/time is required")),
-  endAt: z.string(),
+  startDate: z.string().check(minLength(1, "Start date is required")),
+  startTime: z.string(),
+  endDate: z.string(),
+  endTime: z.string(),
   category: z.string().check(minLength(1, "Category is required")),
   location: z
     .string()
@@ -47,8 +49,18 @@ const EVENT_FORM_SCHEMA = z.object({
     ),
 });
 
-type EventFormFields = "title" | "description" | "startAt" | "endAt" | "category" | "location";
+type EventFormFields = "title" | "description" | "startDate" | "startTime" | "endDate" | "endTime" | "category" | "location";
 type FieldErrors = Partial<Record<EventFormFields, string>>;
+
+// ── Private Helpers ──
+
+/** Combine a date string (YYYY-MM-DD) and optional time (HH:MM) into an ISO string. */
+const toISOString = (date: string, time: string): string => {
+  if (time) {
+    return new Date(`${date}T${time}`).toISOString();
+  }
+  return new Date(`${date}T00:00:00`).toISOString();
+};
 
 // ── Public Types ──
 
@@ -69,11 +81,17 @@ export function EventForm({
 
   const [title, setTitle] = useState(event?.title ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
-  const [startAt, setStartAt] = useState(
-    event ? event.startAt.slice(0, 16) : "",
+  const [startDate, setStartDate] = useState(
+    event ? event.startAt.slice(0, 10) : "",
   );
-  const [endAt, setEndAt] = useState(
-    event?.endAt ? event.endAt.slice(0, 16) : "",
+  const [startTime, setStartTime] = useState(
+    event && !event.allDay ? event.startAt.slice(11, 16) : "",
+  );
+  const [endDate, setEndDate] = useState(
+    event?.endAt ? event.endAt.slice(0, 10) : "",
+  );
+  const [endTime, setEndTime] = useState(
+    event?.endAt && !event.allDay ? event.endAt.slice(11, 16) : "",
   );
   const [allDay, setAllDay] = useState(event?.allDay ?? false);
   const [category, setCategory] = useState(event?.category ?? "");
@@ -86,8 +104,10 @@ export function EventForm({
     const result = safeParse(EVENT_FORM_SCHEMA, {
       title,
       description,
-      startAt,
-      endAt,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
       category,
       location,
     });
@@ -99,8 +119,10 @@ export function EventForm({
       extractFieldErrors(result.error.issues, [
         "title",
         "description",
-        "startAt",
-        "endAt",
+        "startDate",
+        "startTime",
+        "endDate",
+        "endTime",
         "category",
         "location",
       ]),
@@ -118,11 +140,17 @@ export function EventForm({
     setIsSubmitting(true);
 
     try {
+      const startIso = toISOString(data.startDate, allDay ? "" : data.startTime);
+      const endIso =
+        data.endDate
+          ? toISOString(data.endDate, allDay ? "" : data.endTime)
+          : null;
+
       const payload = {
         title: data.title,
         description: data.description,
-        startAt: new Date(data.startAt).toISOString(),
-        endAt: data.endAt ? new Date(data.endAt).toISOString() : null,
+        startAt: startIso,
+        endAt: endIso,
         allDay,
         category: data.category as (typeof EVENT_CATEGORIES)[number],
         location: data.location,
@@ -206,43 +234,6 @@ export function EventForm({
         )}
       </div>
 
-      <div className={styles.dateRow}>
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="event-start" className={formStyles.label}>
-            Start
-          </label>
-          <input
-            id="event-start"
-            type="datetime-local"
-            value={startAt}
-            onChange={(e) => setStartAt(e.target.value)}
-            className={
-              fieldErrors.startAt
-                ? `${formStyles.input} ${formStyles.inputError}`
-                : formStyles.input
-            }
-          />
-          {fieldErrors.startAt && (
-            <span className={formStyles.fieldError} role="alert">
-              {fieldErrors.startAt}
-            </span>
-          )}
-        </div>
-
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="event-end" className={formStyles.label}>
-            End
-          </label>
-          <input
-            id="event-end"
-            type="datetime-local"
-            value={endAt}
-            onChange={(e) => setEndAt(e.target.value)}
-            className={formStyles.input}
-          />
-        </div>
-      </div>
-
       <div className={styles.checkboxRow}>
         <input
           id="event-allday"
@@ -253,6 +244,75 @@ export function EventForm({
         <label htmlFor="event-allday" className={formStyles.label}>
           All day
         </label>
+      </div>
+
+      <div className={styles.dateRow}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="event-start-date" className={formStyles.label}>
+            Start date
+          </label>
+          <input
+            id="event-start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={
+              fieldErrors.startDate
+                ? `${formStyles.input} ${formStyles.inputError}`
+                : formStyles.input
+            }
+          />
+          {fieldErrors.startDate && (
+            <span className={formStyles.fieldError} role="alert">
+              {fieldErrors.startDate}
+            </span>
+          )}
+        </div>
+
+        {!allDay && (
+          <div className={formStyles.fieldGroup}>
+            <label htmlFor="event-start-time" className={formStyles.label}>
+              Start time
+            </label>
+            <input
+              id="event-start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className={formStyles.input}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className={styles.dateRow}>
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="event-end-date" className={formStyles.label}>
+            End date
+          </label>
+          <input
+            id="event-end-date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={formStyles.input}
+          />
+        </div>
+
+        {!allDay && (
+          <div className={formStyles.fieldGroup}>
+            <label htmlFor="event-end-time" className={formStyles.label}>
+              End time
+            </label>
+            <input
+              id="event-end-time"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className={formStyles.input}
+            />
+          </div>
+        )}
       </div>
 
       <div className={formStyles.fieldGroup}>

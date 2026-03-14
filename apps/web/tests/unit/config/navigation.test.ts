@@ -107,7 +107,7 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(7);
+    expect(NAV_LINKS).toHaveLength(6);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }

@@ -82,6 +82,22 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
                 </Link>
               </li>
             )}
+
+            {isFeatureEnabled("calendar") && session.data && hasRole(roles, "cooperative-member") && (
+              <li>
+                <Link
+                  to="/calendar"
+                  className={
+                    currentPath.startsWith("/calendar")
+                      ? `${styles.menuLink} ${styles.menuLinkActive}`
+                      : styles.menuLink
+                  }
+                  onClick={handleClose}
+                >
+                  Calendar
+                </Link>
+              </li>
+            )}
           </ul>
 
           <div className={styles.divider} />
