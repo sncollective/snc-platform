@@ -86,6 +86,7 @@ describe("email/send", () => {
         subject: "Test Subject",
         html: "<p>Hello</p>",
         text: "Hello",
+        messageId: expect.stringMatching(/^<[0-9a-f-]+@s-nc\.org>$/),
       });
     });
   });
