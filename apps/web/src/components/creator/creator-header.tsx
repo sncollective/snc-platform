@@ -1,11 +1,15 @@
 import { useState } from "react";
 import type React from "react";
 import type { CreatorProfileResponse, SubscriptionPlan } from "@snc/shared";
+import { FEDERATION_DOMAIN } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
 
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { useSession } from "../../lib/auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
+import { isFeatureEnabled } from "../../lib/config.js";
+import { FediverseAddress } from "../federation/fediverse-address.js";
+import { FollowFediverseDialog } from "../federation/follow-fediverse-dialog.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import buttonStyles from "../../styles/button.module.css";
 import styles from "./creator-header.module.css";
@@ -27,7 +31,11 @@ export function CreatorHeader({
 }: CreatorHeaderProps): React.ReactElement {
   const session = useSession();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [followDialogOpen, setFollowDialogOpen] = useState(false);
   const { checkoutLoading, handleCheckout } = useCheckout();
+
+  const showFediverseUI =
+    isFeatureEnabled("federation") && creator.handle !== null && creator.handle !== undefined;
 
   const bannerSrc = creator.bannerUrl;
   const avatarSrc = creator.avatarUrl;
@@ -58,6 +66,14 @@ export function CreatorHeader({
         </div>
 
         <h1 className={styles.displayName}>{creator.displayName}</h1>
+
+        {showFediverseUI && (
+          <FediverseAddress
+            handle={creator.handle!}
+            domain={FEDERATION_DOMAIN}
+            size="sm"
+          />
+        )}
 
         {creator.bio && (
           <div className={styles.bio}>
@@ -129,6 +145,23 @@ export function CreatorHeader({
               {checkoutLoading ? "Subscribing..." : "Subscribe"}
             </button>
           </div>
+        )}
+        {showFediverseUI && (
+          <>
+            <button
+              type="button"
+              className={styles.followFediverseButton}
+              onClick={() => setFollowDialogOpen(true)}
+            >
+              Follow on Fediverse
+            </button>
+            <FollowFediverseDialog
+              handle={creator.handle!}
+              domain={FEDERATION_DOMAIN}
+              open={followDialogOpen}
+              onClose={() => setFollowDialogOpen(false)}
+            />
+          </>
         )}
       </div>
     </header>

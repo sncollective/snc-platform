@@ -8,8 +8,11 @@ import {
   SOCIAL_PLATFORMS,
   PLATFORM_CONFIG,
   MAX_SOCIAL_LINKS,
+  FEDERATION_DOMAIN,
 } from "@snc/shared";
 import type { SocialLink, SocialPlatform } from "@snc/shared";
+
+import { FediverseAddress } from "../../components/federation/fediverse-address.js";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { fetchAuthState } from "../../lib/auth.js";
@@ -60,6 +63,9 @@ function CreatorSettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState("");
 
+  // ── Federation State ──
+  const [handle, setHandle] = useState<string | null>(null);
+
   // ── Social Links State ──
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [newPlatform, setNewPlatform] = useState<SocialPlatform>("bandcamp");
@@ -83,6 +89,7 @@ function CreatorSettingsPage(): React.ReactElement {
         setUserId(user.id);
         const profile = await fetchCreatorProfile(user.id);
         if (cancelled) return;
+        setHandle(profile.handle);
         setSocialLinks([...profile.socialLinks]);
       } catch {
         if (!cancelled) setServerError("Failed to load profile");
@@ -278,6 +285,24 @@ function CreatorSettingsPage(): React.ReactElement {
           {isSubmitting ? "Saving\u2026" : "Save Changes"}
         </button>
       </form>
+
+      {isFeatureEnabled("federation") && handle && (
+        <section className={styles.federationSection}>
+          <h2 className={styles.federationHeading}>Fediverse</h2>
+          <p className={styles.federationDescription}>
+            Anyone on Mastodon, Pixelfed, or other Fediverse platforms can follow you using this address.
+          </p>
+          <FediverseAddress handle={handle} domain={FEDERATION_DOMAIN} />
+          <a
+            href="https://joinmastodon.org/about"
+            className={styles.federationLink}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Learn about the Fediverse
+          </a>
+        </section>
+      )}
     </div>
   );
 }
