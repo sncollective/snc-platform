@@ -25,6 +25,7 @@ const VALID_CREATOR_PROFILE = {
   userId: "user_creator1",
   displayName: "Test Creator",
   bio: "A test creator bio",
+  handle: null,
   avatarUrl: "/api/creators/user_creator1/avatar",
   bannerUrl: null,
   socialLinks: [],

@@ -79,9 +79,16 @@ export type SocialLink = z.infer<typeof SocialLinkSchema>;
 
 // ── Public Schemas ──
 
+export const HANDLE_REGEX = /^[a-z0-9_-]{3,30}$/;
+
 export const UpdateCreatorProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   bio: z.string().max(2000).optional(),
+  handle: z
+    .string()
+    .regex(HANDLE_REGEX, "Handle must be 3–30 characters: lowercase letters, digits, _ or -")
+    .optional()
+    .nullable(),
   socialLinks: z
     .array(SocialLinkSchema)
     .max(MAX_SOCIAL_LINKS, `Maximum ${MAX_SOCIAL_LINKS} links allowed`)
@@ -113,6 +120,7 @@ export const CreatorProfileResponseSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
   bio: z.string().nullable(),
+  handle: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   bannerUrl: z.string().nullable(),
   socialLinks: z.array(SocialLinkSchema),

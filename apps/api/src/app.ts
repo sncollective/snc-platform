@@ -20,6 +20,7 @@ import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { emissionsRoutes } from "./routes/emissions.routes.js";
 import { calendarRoutes } from "./routes/calendar.routes.js";
+import { federationRoutes } from "./routes/federation.routes.js";
 
 // ── Schemas ──
 
@@ -86,6 +87,8 @@ if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
 if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);
 if (features.calendar) app.route("/api/calendar", calendarRoutes);
+// Federation routes mount at root (not /api/) because /.well-known/* and /ap/* paths live there
+if (features.federation) app.route("/", federationRoutes);
 
 // ── OpenAPI (non-production only) ──
 

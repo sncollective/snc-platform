@@ -14,6 +14,7 @@ import {
   AppError,
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
+  HANDLE_REGEX,
 } from "@snc/shared";
 import type {
   CreatorProfileResponse,
@@ -124,6 +125,7 @@ const toProfileResponse = (
     userId: profile.userId,
     displayName: profile.displayName,
     bio: profile.bio ?? null,
+    handle: profile.handle ?? null,
     avatarUrl: urls.avatarUrl,
     bannerUrl: urls.bannerUrl,
     socialLinks: profile.socialLinks ?? [],
@@ -516,6 +518,19 @@ creatorRoutes.patch(
     let profile = await findCreatorProfile(creatorId);
 
     if (profile) {
+      // Validate handle uniqueness before update (catch DB constraint with a clear error)
+      if (body.handle && body.handle !== profile.handle) {
+        const existing = await db
+          .select({ userId: creatorProfiles.userId })
+          .from(creatorProfiles)
+          .where(eq(creatorProfiles.handle, body.handle));
+        if (existing.length > 0) {
+          throw new ValidationError(
+            `Handle '${body.handle}' is already taken`,
+          );
+        }
+      }
+
       const updateData = {
         ...body,
         updatedAt: new Date(),

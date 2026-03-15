@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = [
   "admin",
   "emissions",
   "calendar",
+  "federation",
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
@@ -28,6 +29,7 @@ export const ALL_FEATURES_ON: FeatureFlags = {
   admin: true,
   emissions: true,
   calendar: true,
+  federation: true,
 };
 
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
@@ -40,6 +42,7 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
   admin: true,
   emissions: false,
   calendar: false,
+  federation: false,
 };
 
 // ── Labels ──
@@ -85,5 +88,9 @@ export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
   calendar: {
     name: "Calendar",
     description: "Cooperative calendar with events and .ics feed.",
+  },
+  federation: {
+    name: "Federation",
+    description: "ActivityPub federation — discover S/NC creators from the Fediverse.",
   },
 };

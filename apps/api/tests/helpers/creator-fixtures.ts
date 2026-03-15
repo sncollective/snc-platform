@@ -6,6 +6,7 @@ type DbCreatorProfileRow = {
   userId: string;
   displayName: string;
   bio: string | null;
+  handle: string | null;
   avatarKey: string | null;
   bannerKey: string | null;
   socialLinks: SocialLink[];
@@ -21,6 +22,7 @@ export const makeMockDbCreatorProfile = (
   userId: "user_test123",
   displayName: "Test Creator",
   bio: "A test creator bio",
+  handle: null,
   avatarKey: null,
   bannerKey: null,
   socialLinks: [],

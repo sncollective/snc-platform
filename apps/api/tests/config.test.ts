@@ -42,6 +42,8 @@ describe("parseConfig", () => {
       FEATURE_ADMIN: true,
       FEATURE_EMISSIONS: true,
       FEATURE_CALENDAR: true,
+      FEDERATION_DOMAIN: "s-nc.org",
+      FEATURE_FEDERATION: false,
     });
   });
 

@@ -18,6 +18,7 @@ export const creatorProfiles = pgTable("creator_profiles", {
     .$type<SocialLink[]>()
     .notNull()
     .default([]),
+  handle: text("handle").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

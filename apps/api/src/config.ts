@@ -43,6 +43,12 @@ export const ENV_SCHEMA = z.object({
   FEATURE_ADMIN: booleanFlag,
   FEATURE_EMISSIONS: booleanFlag,
   FEATURE_CALENDAR: booleanFlag,
+  // Phase 11: ActivityPub federation (off by default — domain must be configured)
+  FEDERATION_DOMAIN: z.string().min(1).default("s-nc.org"),
+  FEATURE_FEDERATION: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 export type Config = z.infer<typeof ENV_SCHEMA>;
@@ -84,6 +90,7 @@ export const getFeatureFlags = (cfg: Config): FeatureFlags => ({
   admin: cfg.FEATURE_ADMIN,
   emissions: cfg.FEATURE_EMISSIONS,
   calendar: cfg.FEATURE_CALENDAR,
+  federation: cfg.FEATURE_FEDERATION,
 });
 
 /**

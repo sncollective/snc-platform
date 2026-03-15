@@ -40,6 +40,8 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   FEATURE_EMISSIONS: true,
   SEAFILE_OIDC_CLIENT_ID: undefined as string | undefined,
   SEAFILE_OIDC_CLIENT_SECRET: undefined as string | undefined,
+  FEDERATION_DOMAIN: "s-nc.test",
+  FEATURE_FEDERATION: false,
   ...overrides,
 });
 

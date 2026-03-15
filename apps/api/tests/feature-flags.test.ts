@@ -30,6 +30,7 @@ describe("getFeatureFlags", () => {
       admin: true,
       emissions: true,
       calendar: true,
+      federation: false,
     });
   });
 
