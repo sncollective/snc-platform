@@ -34,13 +34,13 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     requireEmailVerification: false,
     autoSignInAfterVerification: true,
-    async sendVerificationEmail({ user, url }) {
-      await sendEmail({
+    sendVerificationEmail({ user, url }) {
+      sendEmail({
         to: user.email,
         subject: "Verify your S/NC email",
         html: `<p>Click <a href="${url}">here</a> to verify your email address.</p>`,
         text: `Verify your email: ${url}`,
-      });
+      }).catch((e) => console.error("Failed to send verification email:", e));
     },
   },
   trustedOrigins: parseOrigins(config.CORS_ORIGIN),
@@ -78,14 +78,14 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
-      async sendVerificationOTP({ email, otp, type }) {
+      sendVerificationOTP({ email, otp, type }) {
         if (type === "forget-password") {
-          await sendEmail({
+          sendEmail({
             to: email,
             subject: "Your S/NC password reset code",
             html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
             text: `Your password reset code is: ${otp}\n\nThis code expires in 10 minutes.`,
-          });
+          }).catch((e) => console.error("Failed to send password reset OTP:", e));
         }
       },
     }),
