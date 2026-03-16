@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -8,24 +10,31 @@ import {
   CreatorListQuerySchema,
   CreatorListResponseSchema,
   UpdateCreatorProfileSchema,
+  CreateCreatorSchema,
+  AddCreatorMemberSchema,
+  UpdateCreatorMemberSchema,
+  CreatorMembersResponseSchema,
   NotFoundError,
   ForbiddenError,
   ValidationError,
   AppError,
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
-  HANDLE_REGEX,
 } from "@snc/shared";
 import type {
   CreatorProfileResponse,
   CreatorListQuery,
   UpdateCreatorProfile,
+  CreateCreator,
+  AddCreatorMember,
+  UpdateCreatorMember,
+  CreatorMemberRole,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
-import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { content } from "../db/schema/content.schema.js";
-import { users, userRoles } from "../db/schema/user.schema.js";
+import { users } from "../db/schema/user.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";
@@ -33,6 +42,7 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { requireCreatorPermission, getCreatorMemberships } from "../services/creator-team.js";
 
 // ── Private Types ──
 
@@ -44,10 +54,10 @@ const resolveCreatorUrls = (
   profile: CreatorProfileRow,
 ): { avatarUrl: string | null; bannerUrl: string | null } => ({
   avatarUrl: profile.avatarKey
-    ? `/api/creators/${profile.userId}/avatar`
+    ? `/api/creators/${profile.id}/avatar`
     : null,
   bannerUrl: profile.bannerKey
-    ? `/api/creators/${profile.userId}/banner`
+    ? `/api/creators/${profile.id}/banner`
     : null,
 });
 
@@ -57,41 +67,8 @@ const findCreatorProfile = async (
   const rows = await db
     .select()
     .from(creatorProfiles)
-    .where(eq(creatorProfiles.userId, creatorId));
+    .where(eq(creatorProfiles.id, creatorId));
   return rows[0];
-};
-
-type CreatorProfileInsert = typeof creatorProfiles.$inferInsert;
-
-const ensureCreatorProfile = async (
-  userId: string,
-  userName: string,
-  overrides?: Partial<Pick<CreatorProfileInsert, "bio" | "socialLinks">>,
-): Promise<CreatorProfileRow> => {
-  const now = new Date();
-  const [inserted] = await db
-    .insert(creatorProfiles)
-    .values({
-      userId,
-      displayName: userName,
-      ...overrides,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing()
-    .returning();
-
-  // If onConflictDoNothing returned nothing, the profile was concurrently
-  // created — re-fetch it
-  if (!inserted) {
-    const existing = await findCreatorProfile(userId);
-    if (!existing) {
-      throw new NotFoundError("Creator not found");
-    }
-    return existing;
-  }
-
-  return inserted;
 };
 
 const getContentCount = async (creatorId: string): Promise<number> => {
@@ -108,21 +85,13 @@ const getContentCount = async (creatorId: string): Promise<number> => {
   return rows[0]?.count ?? 0;
 };
 
-const hasCreatorRole = async (userId: string): Promise<boolean> => {
-  const rows = await db
-    .select({ role: userRoles.role })
-    .from(userRoles)
-    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "creator")));
-  return rows.length > 0;
-};
-
 const toProfileResponse = (
   profile: CreatorProfileRow,
   contentCount: number,
 ): CreatorProfileResponse => {
   const urls = resolveCreatorUrls(profile);
   return {
-    userId: profile.userId,
+    id: profile.id,
     displayName: profile.displayName,
     bio: profile.bio ?? null,
     handle: profile.handle ?? null,
@@ -157,13 +126,11 @@ const handleImageUpload = async (
   c: Context<AuthEnv>,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const creatorId = c.req.param("creatorId");
+  const creatorId = c.req.param("creatorId") ?? "";
   const user = c.get("user");
 
-  // Ownership check
-  if (creatorId !== user.id) {
-    throw new ForbiddenError("Cannot upload to another creator's profile");
-  }
+  // Permission check
+  await requireCreatorPermission(user.id, creatorId, "editProfile");
 
   // Pre-check Content-Length header
   const contentLengthHeader = c.req.header("content-length");
@@ -201,10 +168,10 @@ const handleImageUpload = async (
   const sanitized = sanitizeFilename(file.name || field);
   const key = `creators/${creatorId}/${field}/${sanitized}`;
 
-  // Ensure profile exists (upsert: create if first upload)
-  let profile = await findCreatorProfile(creatorId);
+  // Ensure profile exists
+  const profile = await findCreatorProfile(creatorId);
   if (!profile) {
-    profile = await ensureCreatorProfile(creatorId, user.name);
+    throw new NotFoundError("Creator profile not found");
   }
 
   // Delete old file if re-uploading
@@ -237,7 +204,7 @@ const handleImageUpload = async (
       [field === "avatar" ? "avatarKey" : "bannerKey"]: key,
       updatedAt: new Date(),
     })
-    .where(eq(creatorProfiles.userId, creatorId))
+    .where(eq(creatorProfiles.id, creatorId))
     .returning();
 
   if (!updated) {
@@ -282,13 +249,13 @@ creatorRoutes.get(
     if (cursor) {
       const decoded = decodeCursor(cursor, {
         timestampField: "createdAt",
-        idField: "userId",
+        idField: "id",
       });
       whereCondition = or(
         lt(creatorProfiles.createdAt, decoded.timestamp),
         and(
           eq(creatorProfiles.createdAt, decoded.timestamp),
-          lt(creatorProfiles.userId, decoded.id),
+          lt(creatorProfiles.id, decoded.id),
         ),
       );
     }
@@ -298,7 +265,7 @@ creatorRoutes.get(
       .select()
       .from(creatorProfiles)
       .where(whereCondition)
-      .orderBy(desc(creatorProfiles.createdAt), desc(creatorProfiles.userId))
+      .orderBy(desc(creatorProfiles.createdAt), desc(creatorProfiles.id))
       .limit(limit + 1);
 
     const { items: rawRows, nextCursor } = buildPaginatedResponse(
@@ -306,17 +273,128 @@ creatorRoutes.get(
       limit,
       (last) => ({
         createdAt: last.createdAt.toISOString(),
-        userId: last.userId,
+        id: last.id,
       }),
     );
 
     // Batch-fetch content counts to avoid N+1 queries
-    const countMap = await batchGetContentCounts(rawRows.map((r) => r.userId));
+    const countMap = await batchGetContentCounts(rawRows.map((r) => r.id));
     const items = rawRows.map((row) =>
-      toProfileResponse(row, countMap.get(row.userId) ?? 0),
+      toProfileResponse(row, countMap.get(row.id) ?? 0),
     );
 
     return c.json({ items, nextCursor });
+  },
+);
+
+// POST / — Create new creator entity
+creatorRoutes.post(
+  "/",
+  requireAuth,
+  requireRole("creator"),
+  describeRoute({
+    description: "Create a new creator entity (requires creator platform role)",
+    tags: ["creators"],
+    responses: {
+      201: {
+        description: "Creator entity created",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorProfileResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  validator("json", CreateCreatorSchema),
+  async (c) => {
+    const body = c.req.valid("json") as CreateCreator;
+    const user = c.get("user");
+
+    // Check handle uniqueness if provided
+    if (body.handle) {
+      const existing = await db
+        .select({ id: creatorProfiles.id })
+        .from(creatorProfiles)
+        .where(eq(creatorProfiles.handle, body.handle));
+      if (existing.length > 0) {
+        throw new ValidationError(`Handle '${body.handle}' is already taken`);
+      }
+    }
+
+    const id = randomUUID();
+    const now = new Date();
+
+    const [inserted] = await db
+      .insert(creatorProfiles)
+      .values({
+        id,
+        ownerId: user.id,
+        displayName: body.displayName,
+        handle: body.handle ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    if (!inserted) {
+      throw new AppError("INSERT_FAILED", "Failed to create creator profile", 500);
+    }
+
+    // Seed owner member row
+    await db.insert(creatorMembers).values({
+      creatorId: id,
+      userId: user.id,
+      role: "owner",
+      createdAt: now,
+    });
+
+    return c.json(toProfileResponse(inserted, 0), 201);
+  },
+);
+
+// GET /mine — List creator entities the user is a member of
+creatorRoutes.get(
+  "/mine",
+  requireAuth,
+  describeRoute({
+    description: "List creator entities the authenticated user is a member of",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "List of creator profiles",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorListResponseSchema),
+          },
+        },
+      },
+      401: ERROR_401,
+    },
+  }),
+  async (c) => {
+    const user = c.get("user");
+    const memberships = await getCreatorMemberships(user.id);
+
+    if (memberships.length === 0) {
+      return c.json({ items: [], nextCursor: null });
+    }
+
+    const creatorIds = memberships.map((m) => m.creatorId);
+    const profiles = await db
+      .select()
+      .from(creatorProfiles)
+      .where(inArray(creatorProfiles.id, creatorIds));
+
+    const countMap = await batchGetContentCounts(creatorIds);
+    const items = profiles.map((p) =>
+      toProfileResponse(p, countMap.get(p.id) ?? 0),
+    );
+
+    return c.json({ items, nextCursor: null });
   },
 );
 
@@ -324,9 +402,8 @@ creatorRoutes.get(
 creatorRoutes.post(
   "/:creatorId/avatar",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
-    description: "Upload avatar image for own creator profile",
+    description: "Upload avatar image for a creator profile (owner/editor)",
     tags: ["creators"],
     responses: {
       200: {
@@ -349,9 +426,8 @@ creatorRoutes.post(
 creatorRoutes.post(
   "/:creatorId/banner",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
-    description: "Upload banner image for own creator profile",
+    description: "Upload banner image for a creator profile (owner/editor)",
     tags: ["creators"],
     responses: {
       200: {
@@ -430,11 +506,326 @@ creatorRoutes.get(
   },
 );
 
+// GET /:creatorId/members — List members
+creatorRoutes.get(
+  "/:creatorId/members",
+  requireAuth,
+  describeRoute({
+    description: "List team members for a creator entity",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "List of creator members",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorMembersResponseSchema),
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) throw new NotFoundError("Creator not found");
+
+    // Must be a member to view members
+    const memberRows = await db
+      .select({ role: creatorMembers.role })
+      .from(creatorMembers)
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, user.id),
+        ),
+      );
+    if (memberRows.length === 0) {
+      throw new ForbiddenError("Not a member of this creator");
+    }
+
+    const allMembers = await db
+      .select({
+        userId: creatorMembers.userId,
+        role: creatorMembers.role,
+        joinedAt: creatorMembers.createdAt,
+        displayName: users.name,
+      })
+      .from(creatorMembers)
+      .innerJoin(users, eq(creatorMembers.userId, users.id))
+      .where(eq(creatorMembers.creatorId, creatorId));
+
+    const members = allMembers.map((m) => ({
+      userId: m.userId,
+      displayName: m.displayName,
+      role: m.role as CreatorMemberRole,
+      joinedAt: m.joinedAt.toISOString(),
+    }));
+
+    return c.json({ members });
+  },
+);
+
+// POST /:creatorId/members — Add member
+creatorRoutes.post(
+  "/:creatorId/members",
+  requireAuth,
+  describeRoute({
+    description: "Add a member to a creator entity (owner only)",
+    tags: ["creators"],
+    responses: {
+      201: {
+        description: "Member added",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorMembersResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("json", AddCreatorMemberSchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const body = c.req.valid("json") as AddCreatorMember;
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) throw new NotFoundError("Creator not found");
+
+    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+
+    // Check target user exists
+    const targetUser = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(eq(users.id, body.userId));
+    if (targetUser.length === 0) throw new NotFoundError("User not found");
+
+    // Check not already a member (409)
+    const existing = await db
+      .select({ role: creatorMembers.role })
+      .from(creatorMembers)
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, body.userId),
+        ),
+      );
+    if (existing.length > 0) {
+      throw new ValidationError("User is already a member of this creator");
+    }
+
+    await db.insert(creatorMembers).values({
+      creatorId,
+      userId: body.userId,
+      role: body.role,
+      createdAt: new Date(),
+    });
+
+    // Return updated members list
+    const allMembers = await db
+      .select({
+        userId: creatorMembers.userId,
+        role: creatorMembers.role,
+        joinedAt: creatorMembers.createdAt,
+        displayName: users.name,
+      })
+      .from(creatorMembers)
+      .innerJoin(users, eq(creatorMembers.userId, users.id))
+      .where(eq(creatorMembers.creatorId, creatorId));
+
+    const members = allMembers.map((m) => ({
+      userId: m.userId,
+      displayName: m.displayName,
+      role: m.role as CreatorMemberRole,
+      joinedAt: m.joinedAt.toISOString(),
+    }));
+
+    return c.json({ members }, 201);
+  },
+);
+
+// PATCH /:creatorId/members/:memberId — Update member role
+creatorRoutes.patch(
+  "/:creatorId/members/:memberId",
+  requireAuth,
+  describeRoute({
+    description: "Update a member's role (owner only)",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "Member role updated",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorMembersResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("json", UpdateCreatorMemberSchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const memberId = c.req.param("memberId");
+    const user = c.get("user");
+    const body = c.req.valid("json") as UpdateCreatorMember;
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) throw new NotFoundError("Creator not found");
+
+    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+
+    const existing = await db
+      .select({ role: creatorMembers.role })
+      .from(creatorMembers)
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, memberId),
+        ),
+      );
+    if (existing.length === 0) throw new NotFoundError("Member not found");
+
+    await db
+      .update(creatorMembers)
+      .set({ role: body.role })
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, memberId),
+        ),
+      );
+
+    const allMembers = await db
+      .select({
+        userId: creatorMembers.userId,
+        role: creatorMembers.role,
+        joinedAt: creatorMembers.createdAt,
+        displayName: users.name,
+      })
+      .from(creatorMembers)
+      .innerJoin(users, eq(creatorMembers.userId, users.id))
+      .where(eq(creatorMembers.creatorId, creatorId));
+
+    const members = allMembers.map((m) => ({
+      userId: m.userId,
+      displayName: m.displayName,
+      role: m.role as CreatorMemberRole,
+      joinedAt: m.joinedAt.toISOString(),
+    }));
+
+    return c.json({ members });
+  },
+);
+
+// DELETE /:creatorId/members/:memberId — Remove member
+creatorRoutes.delete(
+  "/:creatorId/members/:memberId",
+  requireAuth,
+  describeRoute({
+    description: "Remove a member from a creator entity (owner only; cannot remove last owner)",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "Member removed, updated members list returned",
+        content: {
+          "application/json": {
+            schema: resolver(CreatorMembersResponseSchema),
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+      422: { description: "Cannot remove last owner" },
+    },
+  }),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const memberId = c.req.param("memberId");
+    const user = c.get("user");
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) throw new NotFoundError("Creator not found");
+
+    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+
+    const existing = await db
+      .select({ role: creatorMembers.role })
+      .from(creatorMembers)
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, memberId),
+        ),
+      );
+    if (existing.length === 0) throw new NotFoundError("Member not found");
+
+    // Block removal of last owner
+    if (existing[0]!.role === "owner") {
+      const ownerRows = await db
+        .select({ userId: creatorMembers.userId })
+        .from(creatorMembers)
+        .where(
+          and(
+            eq(creatorMembers.creatorId, creatorId),
+            eq(creatorMembers.role, "owner"),
+          ),
+        );
+      if (ownerRows.length <= 1) {
+        throw new ValidationError("Cannot remove the last owner of a creator");
+      }
+    }
+
+    await db
+      .delete(creatorMembers)
+      .where(
+        and(
+          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.userId, memberId),
+        ),
+      );
+
+    const allMembers = await db
+      .select({
+        userId: creatorMembers.userId,
+        role: creatorMembers.role,
+        joinedAt: creatorMembers.createdAt,
+        displayName: users.name,
+      })
+      .from(creatorMembers)
+      .innerJoin(users, eq(creatorMembers.userId, users.id))
+      .where(eq(creatorMembers.creatorId, creatorId));
+
+    const members = allMembers.map((m) => ({
+      userId: m.userId,
+      displayName: m.displayName,
+      role: m.role as CreatorMemberRole,
+      joinedAt: m.joinedAt.toISOString(),
+    }));
+
+    return c.json({ members });
+  },
+);
+
 // GET /:creatorId — Get creator profile
 creatorRoutes.get(
   "/:creatorId",
   describeRoute({
-    description: "Get a creator profile by user ID",
+    description: "Get a creator profile by ID",
     tags: ["creators"],
     responses: {
       200: {
@@ -450,29 +841,10 @@ creatorRoutes.get(
   }),
   async (c) => {
     const creatorId = c.req.param("creatorId");
-
-    // Try to find existing profile
-    let profile = await findCreatorProfile(creatorId);
+    const profile = await findCreatorProfile(creatorId);
 
     if (!profile) {
-      // Check if user exists and has creator role for lazy initialization
-      const userRows = await db
-        .select({ id: users.id, name: users.name })
-        .from(users)
-        .where(eq(users.id, creatorId));
-
-      const user = userRows[0];
-      if (!user) {
-        throw new NotFoundError("Creator not found");
-      }
-
-      const isCreator = await hasCreatorRole(creatorId);
-      if (!isCreator) {
-        throw new NotFoundError("Creator not found");
-      }
-
-      // Lazily create profile
-      profile = await ensureCreatorProfile(user.id, user.name);
+      throw new NotFoundError("Creator not found");
     }
 
     const contentCount = await getContentCount(creatorId);
@@ -481,13 +853,12 @@ creatorRoutes.get(
   },
 );
 
-// PATCH /:creatorId — Update own creator profile
+// PATCH /:creatorId — Update creator profile
 creatorRoutes.patch(
   "/:creatorId",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
-    description: "Update own creator profile",
+    description: "Update a creator profile (owner/editor)",
     tags: ["creators"],
     responses: {
       200: {
@@ -509,59 +880,36 @@ creatorRoutes.patch(
     const user = c.get("user");
     const body = c.req.valid("json") as UpdateCreatorProfile;
 
-    // Ownership check
-    if (creatorId !== user.id) {
-      throw new ForbiddenError("Cannot update another creator's profile");
+    await requireCreatorPermission(user.id, creatorId, "editProfile");
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) {
+      throw new NotFoundError("Creator profile not found");
     }
 
-    // Upsert: update if exists, create if not
-    let profile = await findCreatorProfile(creatorId);
-
-    if (profile) {
-      // Validate handle uniqueness before update (catch DB constraint with a clear error)
-      if (body.handle && body.handle !== profile.handle) {
-        const existing = await db
-          .select({ userId: creatorProfiles.userId })
-          .from(creatorProfiles)
-          .where(eq(creatorProfiles.handle, body.handle));
-        if (existing.length > 0) {
-          throw new ValidationError(
-            `Handle '${body.handle}' is already taken`,
-          );
-        }
+    // Validate handle uniqueness before update
+    if (body.handle && body.handle !== profile.handle) {
+      const existing = await db
+        .select({ id: creatorProfiles.id })
+        .from(creatorProfiles)
+        .where(eq(creatorProfiles.handle, body.handle));
+      if (existing.length > 0) {
+        throw new ValidationError(`Handle '${body.handle}' is already taken`);
       }
+    }
 
-      const updateData = {
-        ...body,
-        updatedAt: new Date(),
-      };
+    const [updated] = await db
+      .update(creatorProfiles)
+      .set({ ...body, updatedAt: new Date() })
+      .where(eq(creatorProfiles.id, creatorId))
+      .returning();
 
-      // Update existing profile
-      const [updated] = await db
-        .update(creatorProfiles)
-        .set(updateData)
-        .where(eq(creatorProfiles.userId, creatorId))
-        .returning();
-
-      if (!updated) {
-        throw new NotFoundError("Creator profile not found");
-      }
-      profile = updated;
-    } else {
-      // Create new profile (upsert behavior) — delegate to ensureCreatorProfile
-      // so conflict handling and the re-fetch guard are applied consistently
-      profile = await ensureCreatorProfile(
-        creatorId,
-        body.displayName ?? user.name,
-        {
-          bio: body.bio ?? null,
-          socialLinks: body.socialLinks ?? [],
-        },
-      );
+    if (!updated) {
+      throw new NotFoundError("Creator profile not found");
     }
 
     const contentCount = await getContentCount(creatorId);
-    const response = toProfileResponse(profile, contentCount);
+    const response = toProfileResponse(updated, contentCount);
     return c.json(response);
   },
 );

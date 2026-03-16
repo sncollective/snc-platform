@@ -95,11 +95,15 @@ describe("VisibilitySchema", () => {
 });
 
 describe("CreateContentSchema", () => {
+  const CREATOR_ID = "creator_abc123";
+
   it("validates a minimal valid input (title + type)", () => {
     const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
       title: "My Post",
       type: "written",
     });
+    expect(result.creatorId).toBe(CREATOR_ID);
     expect(result.title).toBe("My Post");
     expect(result.type).toBe("written");
     expect(result.visibility).toBe("public"); // default
@@ -107,6 +111,7 @@ describe("CreateContentSchema", () => {
 
   it("validates a full valid input with all fields", () => {
     const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
       title: "My Video",
       type: "video",
       description: "A great video",
@@ -120,6 +125,7 @@ describe("CreateContentSchema", () => {
 
   it("defaults visibility to 'public' when omitted", () => {
     const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
       title: "Post",
       type: "audio",
     });
@@ -128,25 +134,26 @@ describe("CreateContentSchema", () => {
 
   it("rejects missing title", () => {
     expect(() =>
-      CreateContentSchema.parse({ type: "written" }),
+      CreateContentSchema.parse({ creatorId: CREATOR_ID, type: "written" }),
     ).toThrow();
   });
 
   it("rejects missing type", () => {
     expect(() =>
-      CreateContentSchema.parse({ title: "Post" }),
+      CreateContentSchema.parse({ creatorId: CREATOR_ID, title: "Post" }),
     ).toThrow();
   });
 
   it("rejects empty title (min length 1)", () => {
     expect(() =>
-      CreateContentSchema.parse({ title: "", type: "written" }),
+      CreateContentSchema.parse({ creatorId: CREATOR_ID, title: "", type: "written" }),
     ).toThrow();
   });
 
   it("rejects title exceeding 200 characters", () => {
     expect(() =>
       CreateContentSchema.parse({
+        creatorId: CREATOR_ID,
         title: "x".repeat(201),
         type: "written",
       }),
@@ -155,6 +162,7 @@ describe("CreateContentSchema", () => {
 
   it("accepts title at exactly 200 characters", () => {
     const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
       title: "x".repeat(200),
       type: "written",
     });
@@ -164,6 +172,7 @@ describe("CreateContentSchema", () => {
   it("rejects description exceeding 2000 characters", () => {
     expect(() =>
       CreateContentSchema.parse({
+        creatorId: CREATOR_ID,
         title: "Post",
         type: "written",
         description: "x".repeat(2001),
@@ -173,6 +182,7 @@ describe("CreateContentSchema", () => {
 
   it("accepts description at exactly 2000 characters", () => {
     const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
       title: "Post",
       type: "written",
       description: "x".repeat(2000),
@@ -183,6 +193,7 @@ describe("CreateContentSchema", () => {
   it("rejects invalid content type", () => {
     expect(() =>
       CreateContentSchema.parse({
+        creatorId: CREATOR_ID,
         title: "Post",
         type: "podcast",
       }),

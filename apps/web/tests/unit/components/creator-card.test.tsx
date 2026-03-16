@@ -69,7 +69,7 @@ describe("CreatorCard", () => {
   });
 
   it("links to the creator detail page", () => {
-    const creator = makeMockCreatorListItem({ userId: "creator-42" });
+    const creator = makeMockCreatorListItem({ id: "creator-42" });
 
     render(<CreatorCard creator={creator} />);
 

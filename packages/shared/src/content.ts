@@ -13,6 +13,7 @@ export const ContentTypeSchema = z.enum(CONTENT_TYPES);
 export const VisibilitySchema = z.enum(VISIBILITY);
 
 export const CreateContentSchema = z.object({
+  creatorId: z.string(),
   title: z.string().min(1).max(MAX_TITLE_LENGTH),
   type: ContentTypeSchema,
   description: z.string().max(MAX_DESCRIPTION_LENGTH).optional(),

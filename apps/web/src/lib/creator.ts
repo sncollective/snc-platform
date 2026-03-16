@@ -1,12 +1,17 @@
 import type {
   CreatorProfileResponse,
   UpdateCreatorProfile,
+  CreateCreator,
+  AddCreatorMember,
+  UpdateCreatorMember,
+  CreatorMembersResponse,
+  CreatorMember,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
 
 /**
- * Fetch a single creator profile by user ID.
+ * Fetch a single creator profile by ID.
  */
 export async function fetchCreatorProfile(
   creatorId: string,
@@ -17,8 +22,7 @@ export async function fetchCreatorProfile(
 }
 
 /**
- * Update a creator's profile (owner only).
- * Returns the updated profile.
+ * Update a creator's profile (owner/editor).
  */
 export async function updateCreatorProfile(
   creatorId: string,
@@ -27,5 +31,78 @@ export async function updateCreatorProfile(
   return apiMutate<CreatorProfileResponse>(
     `/api/creators/${encodeURIComponent(creatorId)}`,
     { method: "PATCH", body: data },
+  );
+}
+
+/**
+ * Create a new creator entity (requires creator platform role).
+ */
+export async function createCreatorEntity(
+  data: CreateCreator,
+): Promise<CreatorProfileResponse> {
+  return apiMutate<CreatorProfileResponse>("/api/creators", {
+    method: "POST",
+    body: data,
+  });
+}
+
+/**
+ * List creator entities the authenticated user is a member of.
+ */
+export async function fetchMyCreatorPages(): Promise<CreatorProfileResponse[]> {
+  const res = await apiGet<{ items: CreatorProfileResponse[]; nextCursor: string | null }>(
+    "/api/creators/mine",
+  );
+  return res.items;
+}
+
+/**
+ * List members of a creator entity.
+ */
+export async function fetchCreatorMembers(
+  creatorId: string,
+): Promise<CreatorMembersResponse> {
+  return apiGet<CreatorMembersResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/members`,
+  );
+}
+
+/**
+ * Add a member to a creator entity (owner only).
+ */
+export async function addCreatorMember(
+  creatorId: string,
+  data: AddCreatorMember,
+): Promise<CreatorMembersResponse> {
+  return apiMutate<CreatorMembersResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/members`,
+    { method: "POST", body: data },
+  );
+}
+
+/**
+ * Update a member's role (owner only).
+ */
+export async function updateCreatorMember(
+  creatorId: string,
+  userId: string,
+  data: UpdateCreatorMember,
+): Promise<CreatorMembersResponse> {
+  return apiMutate<CreatorMembersResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/members/${encodeURIComponent(userId)}`,
+    { method: "PATCH", body: data },
+  );
+}
+
+/**
+ * Remove a member from a creator entity (owner only).
+ */
+export async function removeCreatorMember(
+  creatorId: string,
+  userId: string,
+): Promise<void> {
+  await apiMutate<void>(
+    `/api/creators/${encodeURIComponent(creatorId)}/members/${encodeURIComponent(userId)}`,
+    { method: "DELETE" },
   );
 }

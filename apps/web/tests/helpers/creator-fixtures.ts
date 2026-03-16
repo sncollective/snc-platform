@@ -6,7 +6,7 @@ export function makeMockCreatorListItem(
   overrides?: Partial<CreatorListItem>,
 ): CreatorListItem {
   return {
-    userId: "user_test123",
+    id: "user_test123",
     displayName: "Test Creator",
     bio: "A test creator bio",
     handle: null,
@@ -24,7 +24,7 @@ export function makeMockCreatorProfileResponse(
   overrides?: Partial<CreatorProfileResponse>,
 ): CreatorProfileResponse {
   return {
-    userId: "user_test123",
+    id: "user_test123",
     displayName: "Test Creator",
     bio: "A test creator bio",
     handle: null,

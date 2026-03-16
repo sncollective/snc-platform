@@ -7,6 +7,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+import { creatorProfiles } from "./creator.schema.js";
 import { users } from "./user.schema.js";
 
 // ── Subscription Plans ──
@@ -17,7 +18,7 @@ export const subscriptionPlans = pgTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     type: text("type").notNull(), // "platform" | "creator"
-    creatorId: text("creator_id").references(() => users.id, {
+    creatorId: text("creator_id").references(() => creatorProfiles.id, {
       onDelete: "set null",
     }),
     stripePriceId: text("stripe_price_id").notNull().unique(),

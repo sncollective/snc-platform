@@ -10,6 +10,11 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 let mockGateRoles: string[];
 
+// Creator team permission mock
+const mockRequireCreatorPermission = vi.fn();
+// Holds the ForbiddenError class from the same module instance as the error handler
+let TestForbiddenError: new (msg?: string) => Error;
+
 // Drizzle db mock — chainable method stubs
 const mockSelectWhere = vi.fn();
 
@@ -74,13 +79,24 @@ const mockGetSession = vi.fn();
 const ctx = setupRouteTest({
   db: mockDb,
   defaultAuth: { roles: ["subscriber", "creator"] },
-  mocks: () => {
+  mocks: ({ ForbiddenError }) => {
+    TestForbiddenError = ForbiddenError;
+
     vi.doMock("../../src/db/schema/content.schema.js", () => ({
       content: {},
     }));
 
     vi.doMock("../../src/db/schema/user.schema.js", () => ({
       users: {},
+    }));
+
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorProfiles: {},
+      creatorMembers: {},
+    }));
+
+    vi.doMock("../../src/services/creator-team.js", () => ({
+      requireCreatorPermission: mockRequireCreatorPermission,
     }));
 
     vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
@@ -121,6 +137,9 @@ const ctx = setupRouteTest({
     // Content gate role check defaults to subscriber-only so subscription
     // tests exercise the subscription path rather than the creator bypass
     mockGateRoles = ["subscriber"];
+
+    // Default: permission check passes (no throw)
+    mockRequireCreatorPermission.mockResolvedValue(undefined);
 
     // Default db mock responses
     mockSelectWhere.mockResolvedValue([]);
@@ -447,8 +466,9 @@ describe("content routes", () => {
   describe("POST /api/content", () => {
     it("creates written content and returns 201 with metadata", async () => {
       const now = new Date("2026-01-01T00:00:00.000Z");
+      const creatorId = "creator_test123";
       const insertedRow = makeMockDbContent({
-        creatorId: ctx.auth.user!.id,
+        creatorId,
         type: "written",
         title: "My Post",
         body: "Content here",
@@ -462,6 +482,7 @@ describe("content routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creatorId,
           title: "My Post",
           type: "written",
           body: "Content here",
@@ -471,7 +492,7 @@ describe("content routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.id).toBeDefined();
-      expect(body.creatorId).toBe(ctx.auth.user!.id);
+      expect(body.creatorId).toBe(creatorId);
       expect(body.type).toBe("written");
       expect(body.title).toBe("My Post");
       expect(body.body).toBe("Content here");
@@ -493,6 +514,7 @@ describe("content routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creatorId: "creator_test123",
           title: "My Video",
           type: "video",
         }),
@@ -509,6 +531,7 @@ describe("content routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creatorId: "creator_test123",
           title: "Post",
           type: "written",
         }),
@@ -524,6 +547,7 @@ describe("content routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creatorId: "creator_test123",
           type: "written",
           body: "some text",
         }),
@@ -678,13 +702,16 @@ describe("content routes", () => {
     });
 
     it("returns mediaUrl for subscribers-only content when user is the content creator", async () => {
-      mockSelectWhere.mockResolvedValueOnce([
-        makeMockDbContent({
-          visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/video.mp4",
-          creatorId: "user_test123",
-        }),
-      ]);
+      mockSelectWhere
+        .mockResolvedValueOnce([
+          makeMockDbContent({
+            visibility: "subscribers",
+            mediaKey: "content/content-test-1/media/video.mp4",
+            creatorId: "user_test123",
+          }),
+        ])
+        .mockResolvedValueOnce([])                   // fetchCreatorName (creatorProfiles lookup)
+        .mockResolvedValueOnce([{ role: "owner" }]); // creatorMembers check in checkContentAccess
       mockGetSession.mockResolvedValue({
         user: makeMockUser({ id: "user_test123" }),
         session: makeMockSession(),
@@ -741,9 +768,10 @@ describe("content routes", () => {
     });
 
     it("returns 403 when non-owner tries to update", async () => {
-      mockSelectWhere.mockResolvedValue([
-        makeMockDbContent({ creatorId: "other-user" }),
-      ]);
+      mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: manageContent"),
+      );
 
       const res = await ctx.app.request("/api/content/content-test-1", {
         method: "PATCH",
@@ -810,9 +838,10 @@ describe("content routes", () => {
     });
 
     it("returns 403 when non-owner tries to delete", async () => {
-      mockSelectWhere.mockResolvedValue([
-        makeMockDbContent({ creatorId: "other-user" }),
-      ]);
+      mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: manageContent"),
+      );
 
       const res = await ctx.app.request("/api/content/content-test-1", {
         method: "DELETE",
@@ -870,9 +899,10 @@ describe("content routes", () => {
     });
 
     it("returns 403 when non-owner tries to upload", async () => {
-      mockSelectWhere.mockResolvedValue([
-        makeMockDbContent({ type: "video", creatorId: "other-user" }),
-      ]);
+      mockSelectWhere.mockResolvedValue([makeMockDbContent({ type: "video" })]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: manageContent"),
+      );
 
       const formData = new FormData();
       formData.append(
@@ -1021,7 +1051,8 @@ describe("content routes", () => {
     });
 
     it("returns 403 for subscribers-only content when authenticated but no subscription", async () => {
-      mockSelectWhere.mockResolvedValue([
+      // Use Once so the subsequent creatorMembers query falls back to the default []
+      mockSelectWhere.mockResolvedValueOnce([
         makeMockDbContent({
           visibility: "subscribers",
           mediaKey: "content/content-test-1/media/audio.mp3",

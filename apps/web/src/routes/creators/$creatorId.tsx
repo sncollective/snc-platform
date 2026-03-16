@@ -55,13 +55,13 @@ function CreatorDetailPage(): React.ReactElement {
     const loadSupplementary = async () => {
       const [plansResult, subscriptionsResult, merchResult] =
         await Promise.allSettled([
-          fetchPlans({ creatorId: creator.userId }),
+          fetchPlans({ creatorId: creator.id }),
           session.data
             ? fetchMySubscriptions()
             : Promise.resolve(
                 [] as Awaited<ReturnType<typeof fetchMySubscriptions>>,
               ),
-          fetchProducts({ creatorId: creator.userId, limit: 6 }),
+          fetchProducts({ creatorId: creator.id, limit: 6 }),
         ]);
 
       if (cancelled) return;
@@ -77,7 +77,7 @@ function CreatorDetailPage(): React.ReactElement {
             sub.status === "active" &&
             (sub.plan.type === "platform" ||
               (sub.plan.type === "creator" &&
-                sub.plan.creatorId === creator.userId)),
+                sub.plan.creatorId === creator.id)),
         );
         setIsSubscribed(subscribed);
       }
@@ -92,18 +92,18 @@ function CreatorDetailPage(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [creator.userId, session.data]);
+  }, [creator.id, session.data]);
 
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<FeedItem>({
       buildUrl: (cursor) =>
         buildContentUrl({
-          creatorId: creator.userId,
+          creatorId: creator.id,
           filter: activeFilter,
           cursor,
           limit: 12,
         }),
-      deps: [activeFilter, creator.userId],
+      deps: [activeFilter, creator.id],
     });
 
   const handleFilterChange = (filter: ContentType | null) => {
@@ -165,7 +165,7 @@ function CreatorDetailPage(): React.ReactElement {
           </div>
           <Link
             to="/merch"
-            search={{ creatorId: creator.userId }}
+            search={{ creatorId: creator.id }}
             className={styles.viewAllLink}
           >
             View all merch
