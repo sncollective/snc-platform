@@ -35,7 +35,7 @@ describe("useGuestRedirect", () => {
     mockNavigate.mockReset();
   });
 
-  it("returns true (shouldRender) when session is pending", () => {
+  it("returns false when session is pending (initial load)", () => {
     mockUseSession.mockReturnValue(
       makeMockSessionResult({ isPending: true, data: null }),
     );
@@ -71,5 +71,23 @@ describe("useGuestRedirect", () => {
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/feed" });
+  });
+
+  it("stays true during subsequent isPending flickers after guest confirmed", () => {
+    // First render: confirmed as guest (not pending, no data)
+    mockUseSession.mockReturnValue(
+      makeMockSessionResult({ isPending: false, data: null }),
+    );
+
+    const { result, rerender } = renderHook(() => useGuestRedirect());
+    expect(result.current).toBe(true);
+
+    // Second render: session refetch causes isPending flicker
+    mockUseSession.mockReturnValue(
+      makeMockSessionResult({ isPending: true, data: null }),
+    );
+    rerender();
+
+    expect(result.current).toBe(true);
   });
 });

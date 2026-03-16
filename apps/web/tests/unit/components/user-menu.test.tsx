@@ -114,6 +114,40 @@ describe("UserMenu", () => {
     expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
   });
 
+  it("shows 'Creator Settings' link for cooperative-member role", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Jane Doe" }),
+    );
+    mockUseRoles.mockReturnValue(["cooperative-member"]);
+
+    render(<UserMenu />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    const creatorSettingsLink = screen.getByRole("menuitem", {
+      name: "Creator Settings",
+    });
+    expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
+  });
+
+  it("shows 'Creator Settings' link for admin role", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Jane Doe" }),
+    );
+    mockUseRoles.mockReturnValue(["admin"]);
+
+    render(<UserMenu />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    const creatorSettingsLink = screen.getByRole("menuitem", {
+      name: "Creator Settings",
+    });
+    expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
+  });
+
   it("hides 'Creator Settings' link for users without creator role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(

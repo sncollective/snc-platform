@@ -122,7 +122,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </a>
           )}
 
-          {isFeatureEnabled("creator") && hasRole(effectiveRoles, "creator") && (
+          {isFeatureEnabled("creator") && (hasRole(effectiveRoles, "creator") || hasRole(effectiveRoles, "cooperative-member") || hasRole(effectiveRoles, "admin")) && (
             <Link
               to="/settings/creator"
               className={styles.menuItem}

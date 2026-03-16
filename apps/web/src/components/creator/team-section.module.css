@@ -1,0 +1,181 @@
+/* ── Team Section ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+/* ── Add Member Row ── */
+
+.addRow {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: stretch;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+/* ── Candidate Dropdown ── */
+
+.candidateList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+}
+
+.candidateItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.candidateItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.candidateName {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.candidateEmail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Role Badges ── */
+
+.roleBadge {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.roleBadgeOwner {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.roleBadgeEditor {
+  background: var(--color-info-bg, #e8f0fe);
+  color: var(--color-info, #1a73e8);
+}
+
+.roleBadgeViewer {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+}
+
+/* ── Member Actions ── */
+
+.memberActions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.memberName {
+  font-weight: 500;
+}
+
+/* ── Selected Candidate ── */
+
+.selectedCandidate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.clearButton {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0 var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.clearButton:hover {
+  color: var(--color-text);
+}
+
+/* ── Remove Button ── */
+
+.removeButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.removeButton:hover:not(:disabled) {
+  background: var(--color-error-bg);
+}
+
+.removeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Add Button ── */
+
+.addButton {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+}
+
+.addButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.addButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

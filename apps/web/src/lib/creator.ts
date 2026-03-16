@@ -5,7 +5,7 @@ import type {
   AddCreatorMember,
   UpdateCreatorMember,
   CreatorMembersResponse,
-  CreatorMember,
+  CandidatesResponse,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
@@ -100,9 +100,22 @@ export async function updateCreatorMember(
 export async function removeCreatorMember(
   creatorId: string,
   userId: string,
-): Promise<void> {
-  await apiMutate<void>(
+): Promise<CreatorMembersResponse> {
+  return apiMutate<CreatorMembersResponse>(
     `/api/creators/${encodeURIComponent(creatorId)}/members/${encodeURIComponent(userId)}`,
     { method: "DELETE" },
+  );
+}
+
+/**
+ * Browse eligible users to add as creator members.
+ */
+export async function fetchMemberCandidates(
+  creatorId: string,
+  q?: string,
+): Promise<CandidatesResponse> {
+  return apiGet<CandidatesResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/members/candidates`,
+    q ? { q } : undefined,
   );
 }
