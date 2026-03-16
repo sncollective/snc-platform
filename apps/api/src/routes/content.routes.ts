@@ -25,12 +25,13 @@ import type { ContentResponse, ContentType, FeedItem, FeedQuery } from "@snc/sha
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
-import { users } from "../db/schema/user.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { auth } from "../auth/auth.js";
 import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";
+import { requireCreatorPermission } from "../services/creator-team.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
@@ -93,9 +94,9 @@ const findActiveContent = async (
 
 const fetchCreatorName = async (creatorId: string): Promise<string> => {
   const rows = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, creatorId));
+    .select({ name: creatorProfiles.displayName })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.id, creatorId));
   return rows[0]?.name ?? "Unknown";
 };
 
@@ -107,9 +108,7 @@ const requireContentOwnership = async (
   if (!existing) {
     throw new NotFoundError("Content not found");
   }
-  if (existing.creatorId !== userId) {
-    throw new ForbiddenError("Not the content owner");
-  }
+  await requireCreatorPermission(userId, existing.creatorId, "manageContent");
   return existing;
 };
 
@@ -270,10 +269,10 @@ contentRoutes.get(
         deletedAt: content.deletedAt,
         createdAt: content.createdAt,
         updatedAt: content.updatedAt,
-        creatorName: users.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(content)
-      .innerJoin(users, eq(content.creatorId, users.id))
+      .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
       .where(and(...conditions))
       .orderBy(desc(content.publishedAt), desc(content.id))
       .limit(limit + 1));
@@ -329,12 +328,14 @@ contentRoutes.post(
       throw new ValidationError("Body is required for written content");
     }
 
+    await requireCreatorPermission(user.id, body.creatorId, "manageContent");
+
     const id = randomUUID();
     const now = new Date();
 
     const [inserted] = await db.insert(content).values({
       id,
-      creatorId: user.id,
+      creatorId: body.creatorId,
       type: body.type,
       title: body.title,
       body: body.body ?? null,

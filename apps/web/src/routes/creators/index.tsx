@@ -46,7 +46,7 @@ function CreatorsPage(): React.ReactElement {
         <>
           <div className="content-grid">
             {items.map((creator) => (
-              <CreatorCard key={creator.userId} creator={creator} />
+              <CreatorCard key={creator.id} creator={creator} />
             ))}
           </div>
           {nextCursor && (

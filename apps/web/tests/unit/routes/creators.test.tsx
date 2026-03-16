@@ -38,11 +38,11 @@ beforeEach(() => {
   mockUseLoaderData.mockReturnValue({
     items: [
       makeMockCreatorListItem({
-        userId: "creator-1",
+        id: "creator-1",
         displayName: "Alice Music",
       }),
       makeMockCreatorListItem({
-        userId: "creator-2",
+        id: "creator-2",
         displayName: "Bob Beats",
       }),
     ],
@@ -92,7 +92,7 @@ describe("CreatorsPage", () => {
 
   it("shows 'Load more' button when nextCursor is present", () => {
     mockUseLoaderData.mockReturnValue({
-      items: [makeMockCreatorListItem({ userId: "c1" })],
+      items: [makeMockCreatorListItem({ id: "c1" })],
       nextCursor: "eyJjcmVhdGVkQXQiOiIyMDI2LTAxLTAxIn0",
     });
 
@@ -115,7 +115,7 @@ describe("CreatorsPage", () => {
     mockUseLoaderData.mockReturnValue({
       items: [
         makeMockCreatorListItem({
-          userId: "c1",
+          id: "c1",
           displayName: "First Creator",
         }),
       ],
@@ -130,7 +130,7 @@ describe("CreatorsPage", () => {
             JSON.stringify({
               items: [
                 makeMockCreatorListItem({
-                  userId: "c2",
+                  id: "c2",
                   displayName: "Second Creator",
                 }),
               ],
@@ -164,7 +164,7 @@ describe("CreatorsPage", () => {
   it("sends cursor parameter on load-more fetch", async () => {
     const user = userEvent.setup();
     mockUseLoaderData.mockReturnValue({
-      items: [makeMockCreatorListItem({ userId: "c1" })],
+      items: [makeMockCreatorListItem({ id: "c1" })],
       nextCursor: "abc123",
     });
 
@@ -172,7 +172,7 @@ describe("CreatorsPage", () => {
       Promise.resolve(
         new Response(
           JSON.stringify({
-            items: [makeMockCreatorListItem({ userId: "c2" })],
+            items: [makeMockCreatorListItem({ id: "c2" })],
             nextCursor: null,
           }),
           { status: 200 },

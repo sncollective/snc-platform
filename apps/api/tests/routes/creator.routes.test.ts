@@ -6,6 +6,13 @@ import { makeMockDbCreatorProfile } from "../helpers/creator-fixtures.js";
 import { ok, textToStream } from "@snc/shared";
 import { chainablePromise } from "../helpers/db-mock-utils.js";
 
+// ── Creator Team Mock ──
+
+const mockRequireCreatorPermission = vi.fn();
+// Holds the ForbiddenError class from the same module instance as the error handler
+// (captured in mocks() callback since vi.resetModules() runs between tests)
+let TestForbiddenError: new (msg?: string) => Error;
+
 // ── Storage Mock ──
 
 const mockStorageUpload = vi.fn();
@@ -67,9 +74,17 @@ const mockDb = {
 const ctx = setupRouteTest({
   db: mockDb,
   defaultAuth: { roles: ["subscriber", "creator"] },
-  mocks: () => {
+  mocks: ({ ForbiddenError }) => {
+    TestForbiddenError = ForbiddenError;
+
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
       creatorProfiles: {},
+      creatorMembers: {},
+    }));
+
+    vi.doMock("../../src/services/creator-team.js", () => ({
+      requireCreatorPermission: mockRequireCreatorPermission,
+      getCreatorMemberships: vi.fn().mockResolvedValue([]),
     }));
 
     vi.doMock("../../src/db/schema/content.schema.js", () => ({
@@ -128,6 +143,9 @@ const ctx = setupRouteTest({
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
     mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
+
+    // Default: permission check passes (no throw)
+    mockRequireCreatorPermission.mockResolvedValue(undefined);
   },
 });
 
@@ -140,17 +158,17 @@ describe("creator routes", () => {
     it("returns paginated list of creators with content counts", async () => {
       const profiles = [
         makeMockDbCreatorProfile({
-          userId: "user_1",
+          id: "user_1",
           displayName: "Creator One",
           createdAt: new Date("2026-02-01T00:00:00.000Z"),
         }),
         makeMockDbCreatorProfile({
-          userId: "user_2",
+          id: "user_2",
           displayName: "Creator Two",
           createdAt: new Date("2026-01-15T00:00:00.000Z"),
         }),
         makeMockDbCreatorProfile({
-          userId: "user_3",
+          id: "user_3",
           displayName: "Creator Three",
           createdAt: new Date("2026-01-01T00:00:00.000Z"),
         }),
@@ -220,7 +238,7 @@ describe("creator routes", () => {
       const cursor = Buffer.from(
         JSON.stringify({
           createdAt: "2026-01-15T00:00:00.000Z",
-          userId: "user_2",
+          id: "user_2",
         }),
       ).toString("base64url");
 
@@ -241,7 +259,7 @@ describe("creator routes", () => {
     it("returns socialLinks for each creator in list", async () => {
       const profiles = [
         makeMockDbCreatorProfile({
-          userId: "user_1",
+          id: "user_1",
           displayName: "Creator One",
           socialLinks: [
             { platform: "bandcamp", url: "https://creator1.bandcamp.com" },
@@ -249,7 +267,7 @@ describe("creator routes", () => {
           createdAt: new Date("2026-02-01T00:00:00.000Z"),
         }),
         makeMockDbCreatorProfile({
-          userId: "user_2",
+          id: "user_2",
           displayName: "Creator Two",
           socialLinks: [],
           createdAt: new Date("2026-01-15T00:00:00.000Z"),
@@ -293,63 +311,17 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.userId).toBe("user_test123");
+      expect(body.id).toBe("user_test123");
       expect(body.displayName).toBe("Test Creator");
       expect(body.contentCount).toBe(7);
       expect(body.bio).toBe("A test creator bio");
     });
 
-    it("returns 404 for non-existent user", async () => {
+    it("returns 404 for non-existent creator", async () => {
       // findCreatorProfile → empty (no profile)
       mockSelectWhere.mockResolvedValueOnce([]);
-      // users lookup → empty (no user)
-      mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await ctx.app.request("/api/creators/nonexistent-user");
-
-      expect(res.status).toBe(404);
-      const body = await res.json();
-      expect(body.error.code).toBe("NOT_FOUND");
-    });
-
-    it("lazily creates profile for creator-role user without one", async () => {
-      const newProfile = makeMockDbCreatorProfile();
-
-      // findCreatorProfile → empty (no profile yet)
-      mockSelectWhere.mockResolvedValueOnce([]);
-      // users lookup → user exists
-      mockSelectWhere.mockResolvedValueOnce([
-        { id: "user_test123", name: "Test User" },
-      ]);
-      // hasCreatorRole → has creator role
-      mockSelectWhere.mockResolvedValueOnce([{ role: "creator" }]);
-      // ensureCreatorProfile insert
-      mockInsertReturning.mockResolvedValueOnce([newProfile]);
-      // getContentCount
-      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
-
-      const res = await ctx.app.request("/api/creators/user_test123");
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.userId).toBe("user_test123");
-      expect(body.displayName).toBe("Test Creator");
-      // Verify insert was called (lazy profile creation)
-      expect(mockInsert).toHaveBeenCalled();
-      expect(mockInsertValues).toHaveBeenCalled();
-    });
-
-    it("returns 404 for user without creator role", async () => {
-      // findCreatorProfile → empty
-      mockSelectWhere.mockResolvedValueOnce([]);
-      // users lookup → user exists
-      mockSelectWhere.mockResolvedValueOnce([
-        { id: "user_test123", name: "Test User" },
-      ]);
-      // hasCreatorRole → no creator role
-      mockSelectWhere.mockResolvedValueOnce([]);
-
-      const res = await ctx.app.request("/api/creators/user_test123");
+      const res = await ctx.app.request("/api/creators/nonexistent-creator");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -417,17 +389,9 @@ describe("creator routes", () => {
       expect(body.contentCount).toBe(3);
     });
 
-    it("creates profile on first update if none exists", async () => {
-      const newProfile = makeMockDbCreatorProfile({
-        displayName: "New Name",
-      });
-
-      // findCreatorProfile → empty (no profile)
+    it("returns 404 when no profile exists to update", async () => {
+      // requireCreatorPermission passes, but findCreatorProfile returns empty
       mockSelectWhere.mockResolvedValueOnce([]);
-      // insert returning new profile
-      mockInsertReturning.mockResolvedValueOnce([newProfile]);
-      // getContentCount
-      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
       const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
@@ -435,14 +399,13 @@ describe("creator routes", () => {
         body: JSON.stringify({ displayName: "New Name" }),
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.displayName).toBe("New Name");
-      expect(mockInsert).toHaveBeenCalled();
+      expect(res.status).toBe(404);
     });
 
     it("returns 403 when non-owner tries to update", async () => {
-      ctx.auth.user = makeMockUser({ id: "other-user" });
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
@@ -456,7 +419,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role tries to update", async () => {
-      ctx.auth.roles = ["subscriber"];
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const res = await ctx.app.request("/api/creators/user_test123", {
         method: "PATCH",
@@ -629,7 +594,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
-      ctx.auth.user = makeMockUser({ id: "other-user" });
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "photo.jpg", { type: "image/jpeg" }));
@@ -645,7 +612,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
-      ctx.auth.roles = ["subscriber"];
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "photo.jpg", { type: "image/jpeg" }));
@@ -748,7 +717,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
-      ctx.auth.user = makeMockUser({ id: "other-user" });
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.jpg", { type: "image/jpeg" }));
@@ -764,7 +735,9 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
-      ctx.auth.roles = ["subscriber"];
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: editProfile"),
+      );
 
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.jpg", { type: "image/jpeg" }));

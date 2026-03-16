@@ -77,6 +77,20 @@ export const SocialLinkSchema = z.object({
 
 export type SocialLink = z.infer<typeof SocialLinkSchema>;
 
+// ── Creator Member Roles ──
+
+export const CREATOR_MEMBER_ROLES = ["owner", "editor", "viewer"] as const;
+export type CreatorMemberRole = (typeof CREATOR_MEMBER_ROLES)[number];
+export const CreatorMemberRoleSchema = z.enum(CREATOR_MEMBER_ROLES);
+
+export const CREATOR_ROLE_PERMISSIONS = {
+  owner:  { editProfile: true,  manageContent: true,  manageBookings: true,  manageMembers: true,  viewPrivate: true  },
+  editor: { editProfile: true,  manageContent: true,  manageBookings: true,  manageMembers: false, viewPrivate: true  },
+  viewer: { editProfile: false, manageContent: false, manageBookings: false, manageMembers: false, viewPrivate: true  },
+} as const satisfies Record<CreatorMemberRole, Record<string, boolean>>;
+
+export type CreatorPermission = keyof (typeof CREATOR_ROLE_PERMISSIONS)["owner"];
+
 // ── Public Schemas ──
 
 export const HANDLE_REGEX = /^[a-z0-9_-]{3,30}$/;
@@ -117,7 +131,7 @@ export const UpdateCreatorProfileSchema = z.object({
 });
 
 export const CreatorProfileResponseSchema = z.object({
-  userId: z.string(),
+  id: z.string(),
   displayName: z.string(),
   bio: z.string().nullable(),
   handle: z.string().nullable(),
@@ -141,12 +155,45 @@ export const CreatorListResponseSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 
+export const CreateCreatorSchema = z.object({
+  displayName: z.string().min(1).max(100),
+  handle: z.string().regex(HANDLE_REGEX).optional(),
+});
+
+export const CreatorMemberSchema = z.object({
+  userId: z.string(),
+  displayName: z.string(),
+  role: CreatorMemberRoleSchema,
+  joinedAt: z.string(),
+});
+
+export const AddCreatorMemberSchema = z.object({
+  userId: z.string(),
+  role: CreatorMemberRoleSchema,
+});
+
+export const UpdateCreatorMemberSchema = z.object({
+  role: CreatorMemberRoleSchema,
+});
+
+export const CreatorMembersResponseSchema = z.object({
+  members: z.array(CreatorMemberSchema),
+});
+
+export const MyCreatorPagesResponseSchema = z.object({
+  items: z.array(CreatorProfileResponseSchema),
+});
+
 // ── Public Types ──
 
 export type UpdateCreatorProfile = z.infer<typeof UpdateCreatorProfileSchema>;
-export type CreatorProfileResponse = z.infer<
-  typeof CreatorProfileResponseSchema
->;
+export type CreatorProfileResponse = z.infer<typeof CreatorProfileResponseSchema>;
 export type CreatorListItem = z.infer<typeof CreatorListItemSchema>;
 export type CreatorListQuery = z.infer<typeof CreatorListQuerySchema>;
 export type CreatorListResponse = z.infer<typeof CreatorListResponseSchema>;
+export type CreateCreator = z.infer<typeof CreateCreatorSchema>;
+export type CreatorMember = z.infer<typeof CreatorMemberSchema>;
+export type AddCreatorMember = z.infer<typeof AddCreatorMemberSchema>;
+export type UpdateCreatorMember = z.infer<typeof UpdateCreatorMemberSchema>;
+export type CreatorMembersResponse = z.infer<typeof CreatorMembersResponseSchema>;
+export type MyCreatorPagesResponse = z.infer<typeof MyCreatorPagesResponseSchema>;

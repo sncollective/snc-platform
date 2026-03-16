@@ -3,6 +3,7 @@ import { and, eq, or, gt } from "drizzle-orm";
 import type { Visibility } from "@snc/shared";
 
 import { db } from "../db/connection.js";
+import { creatorMembers } from "../db/schema/creator.schema.js";
 import {
   userSubscriptions,
   subscriptionPlans,
@@ -54,6 +55,7 @@ export type ContentGateResult =
 export type ContentAccessContext = {
   userId: string | null;
   roles: string[];
+  memberCreatorIds: Set<string>;
   subscribedCreatorIds: Set<string>;
   hasPlatformSubscription: boolean;
 };
@@ -73,6 +75,7 @@ export const buildContentAccessContext = async (
     return {
       userId: null,
       roles: [],
+      memberCreatorIds: new Set(),
       subscribedCreatorIds: new Set(),
       hasPlatformSubscription: false,
     };
@@ -85,6 +88,7 @@ export const buildContentAccessContext = async (
     return {
       userId,
       roles,
+      memberCreatorIds: new Set(),
       subscribedCreatorIds: new Set(),
       hasPlatformSubscription: true,
     };
@@ -120,7 +124,13 @@ export const buildContentAccessContext = async (
     }
   }
 
-  return { userId, roles, subscribedCreatorIds, hasPlatformSubscription };
+  const memberRows = await db
+    .select({ creatorId: creatorMembers.creatorId })
+    .from(creatorMembers)
+    .where(eq(creatorMembers.userId, userId));
+  const memberCreatorIds = new Set(memberRows.map((r) => r.creatorId));
+
+  return { userId, roles, memberCreatorIds, subscribedCreatorIds, hasPlatformSubscription };
 };
 
 /**
@@ -134,7 +144,7 @@ export const hasContentAccess = (
 ): boolean => {
   if (contentVisibility === "public") return true;
   if (ctx.userId === null) return false;
-  if (ctx.userId === contentCreatorId) return true;
+  if (ctx.memberCreatorIds.has(contentCreatorId)) return true;
   if (ctx.roles.includes("creator")) return true;
   if (ctx.hasPlatformSubscription) return true;
   if (ctx.subscribedCreatorIds.has(contentCreatorId)) return true;
@@ -167,8 +177,17 @@ export const checkContentAccess = async (
     };
   }
 
-  // Rule 3: Content creator always has access to their own content
-  if (userId === contentCreatorId) {
+  // Rule 3: Any creator team member has access to their own creator's content
+  const memberRow = await db
+    .select({ role: creatorMembers.role })
+    .from(creatorMembers)
+    .where(
+      and(
+        eq(creatorMembers.userId, userId),
+        eq(creatorMembers.creatorId, contentCreatorId),
+      ),
+    );
+  if (memberRow.length > 0) {
     return { allowed: true };
   }
 

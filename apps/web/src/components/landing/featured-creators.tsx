@@ -29,7 +29,7 @@ export function FeaturedCreators({
           tabIndex={0}
         >
           {creators.map((creator) => (
-            <div key={creator.userId} className={styles.scrollItem}>
+            <div key={creator.id} className={styles.scrollItem}>
               <CreatorCard creator={creator} />
             </div>
           ))}

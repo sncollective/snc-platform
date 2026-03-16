@@ -22,7 +22,7 @@ import {
 // ── Test Fixtures ──
 
 const VALID_CREATOR_PROFILE = {
-  userId: "user_creator1",
+  id: "user_creator1",
   displayName: "Test Creator",
   bio: "A test creator bio",
   handle: null,
@@ -271,7 +271,7 @@ describe("UpdateCreatorProfileSchema", () => {
 describe("CreatorProfileResponseSchema", () => {
   it("validates a complete profile response object", () => {
     const result = CreatorProfileResponseSchema.parse(VALID_CREATOR_PROFILE);
-    expect(result.userId).toBe(VALID_CREATOR_PROFILE.userId);
+    expect(result.id).toBe(VALID_CREATOR_PROFILE.id);
     expect(result.displayName).toBe(VALID_CREATOR_PROFILE.displayName);
     expect(result.contentCount).toBe(5);
   });
@@ -351,7 +351,7 @@ describe("CreatorProfileResponseSchema", () => {
 describe("CreatorListItemSchema", () => {
   it("validates the same shape as CreatorProfileResponseSchema", () => {
     const result = CreatorListItemSchema.parse(VALID_CREATOR_PROFILE);
-    expect(result.userId).toBe(VALID_CREATOR_PROFILE.userId);
+    expect(result.id).toBe(VALID_CREATOR_PROFILE.id);
     expect(result.displayName).toBe(VALID_CREATOR_PROFILE.displayName);
   });
 
@@ -433,13 +433,13 @@ describe("CreatorListResponseSchema", () => {
   });
 
   it("validates a response with multiple items", () => {
-    const item2 = { ...VALID_CREATOR_PROFILE, userId: "user_creator2" };
+    const item2 = { ...VALID_CREATOR_PROFILE, id: "user_creator2" };
     const result = CreatorListResponseSchema.parse({
       items: [VALID_CREATOR_PROFILE, item2],
       nextCursor: null,
     });
     expect(result.items).toHaveLength(2);
-    expect(result.items[1]!.userId).toBe("user_creator2");
+    expect(result.items[1]!.id).toBe("user_creator2");
   });
 
   it("rejects when items is missing", () => {

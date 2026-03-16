@@ -78,7 +78,7 @@ beforeEach(() => {
   mockFetchProducts.mockResolvedValue({ items: [], nextCursor: null });
   mockUseLoaderData.mockReturnValue(
     makeMockCreatorListItem({
-      userId: "creator-1",
+      id: "creator-1",
       displayName: "Alice Music",
       bio: "I make ambient music and soundscapes.",
       bannerUrl: "/api/creators/creator-1/banner",
@@ -273,7 +273,7 @@ describe("CreatorDetailPage", () => {
   it("renders social links section when creator has links", async () => {
     mockUseLoaderData.mockReturnValue(
       makeMockCreatorListItem({
-        userId: "creator-1",
+        id: "creator-1",
         displayName: "Alice Music",
         socialLinks: [
           { platform: "bandcamp", url: "https://alice.bandcamp.com" },
@@ -299,7 +299,7 @@ describe("CreatorDetailPage", () => {
   it("hides social links section when creator has no links", async () => {
     mockUseLoaderData.mockReturnValue(
       makeMockCreatorListItem({
-        userId: "creator-1",
+        id: "creator-1",
         displayName: "Alice Music",
         socialLinks: [],
       }),

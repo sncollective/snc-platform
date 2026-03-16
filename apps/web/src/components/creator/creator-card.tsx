@@ -19,7 +19,7 @@ export function CreatorCard({ creator }: CreatorCardProps): React.ReactElement {
   return (
     <Link
       to="/creators/$creatorId"
-      params={{ creatorId: creator.userId }}
+      params={{ creatorId: creator.id }}
       className={styles.card}
     >
       <div className={styles.avatarWrapper}>
