@@ -184,6 +184,22 @@ export const MyCreatorPagesResponseSchema = z.object({
   items: z.array(CreatorProfileResponseSchema),
 });
 
+export const CreatorMemberCandidateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  roles: z.array(z.string()),
+});
+
+export const CandidatesQuerySchema = z.object({
+  q: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const CandidatesResponseSchema = z.object({
+  candidates: z.array(CreatorMemberCandidateSchema),
+});
+
 // ── Public Types ──
 
 export type UpdateCreatorProfile = z.infer<typeof UpdateCreatorProfileSchema>;
@@ -197,3 +213,6 @@ export type AddCreatorMember = z.infer<typeof AddCreatorMemberSchema>;
 export type UpdateCreatorMember = z.infer<typeof UpdateCreatorMemberSchema>;
 export type CreatorMembersResponse = z.infer<typeof CreatorMembersResponseSchema>;
 export type MyCreatorPagesResponse = z.infer<typeof MyCreatorPagesResponseSchema>;
+export type CreatorMemberCandidate = z.infer<typeof CreatorMemberCandidateSchema>;
+export type CandidatesQuery = z.infer<typeof CandidatesQuerySchema>;
+export type CandidatesResponse = z.infer<typeof CandidatesResponseSchema>;

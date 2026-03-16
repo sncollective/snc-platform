@@ -12,7 +12,10 @@ import {
 } from "@snc/shared";
 import type { SocialLink, SocialPlatform } from "@snc/shared";
 
+import { CreateCreatorForm } from "../../components/creator/create-creator-form.js";
 import { FediverseAddress } from "../../components/federation/fediverse-address.js";
+import { CreatorSelector } from "../../components/creator/creator-selector.js";
+import { TeamSection } from "../../components/creator/team-section.js";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { fetchAuthState } from "../../lib/auth.js";
@@ -21,7 +24,9 @@ import { isFeatureEnabled } from "../../lib/config.js";
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
+  fetchMyCreatorPages,
 } from "../../lib/creator.js";
+import type { CreatorProfileResponse } from "@snc/shared";
 import buttonStyles from "../../styles/button.module.css";
 import errorStyles from "../../styles/error-alert.module.css";
 import formStyles from "../../styles/form.module.css";
@@ -48,7 +53,7 @@ export const Route = createFileRoute("/settings/creator")({
     if (!user) {
       throw redirect({ to: "/login" });
     }
-    if (!roles.includes("creator")) {
+    if (!roles.includes("creator") && !roles.includes("cooperative-member") && !roles.includes("admin")) {
       throw redirect({ to: "/feed" });
     }
     return { userId: user.id };
@@ -62,6 +67,10 @@ function CreatorSettingsPage(): React.ReactElement {
   // ── Loading State ──
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState("");
+
+  // ── Multi-Entity State ──
+  const [creatorPages, setCreatorPages] = useState<CreatorProfileResponse[]>([]);
+  const [selectedCreatorId, setSelectedCreatorId] = useState("");
 
   // ── Federation State ──
   const [handle, setHandle] = useState<string | null>(null);
@@ -78,7 +87,7 @@ function CreatorSettingsPage(): React.ReactElement {
   const [successMessage, setSuccessMessage] = useState("");
   const [serverError, setServerError] = useState("");
 
-  // ── Load Profile ──
+  // ── Load Creator Pages ──
   useEffect(() => {
     let cancelled = false;
 
@@ -87,12 +96,14 @@ function CreatorSettingsPage(): React.ReactElement {
         const { user } = await fetchAuthState();
         if (cancelled || !user) return;
         setUserId(user.id);
-        const profile = await fetchCreatorProfile(user.id);
+        const pages = await fetchMyCreatorPages();
         if (cancelled) return;
-        setHandle(profile.handle);
-        setSocialLinks([...profile.socialLinks]);
+        setCreatorPages(pages);
+        if (pages.length > 0) {
+          setSelectedCreatorId(pages[0]!.id);
+        }
       } catch {
-        if (!cancelled) setServerError("Failed to load profile");
+        if (!cancelled) setServerError("Failed to load creator pages");
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -104,6 +115,31 @@ function CreatorSettingsPage(): React.ReactElement {
       cancelled = true;
     };
   }, []);
+
+  // ── Load Profile for Selected Creator ──
+  useEffect(() => {
+    if (!selectedCreatorId) return;
+    let cancelled = false;
+
+    async function loadProfile(): Promise<void> {
+      try {
+        const profile = await fetchCreatorProfile(selectedCreatorId);
+        if (cancelled) return;
+        setHandle(profile.handle);
+        setSocialLinks([...profile.socialLinks]);
+        setSuccessMessage("");
+        setServerError("");
+      } catch {
+        if (!cancelled) setServerError("Failed to load profile");
+      }
+    }
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCreatorId]);
 
   // ── Add Link Handler ──
   const handleAddLink = (): void => {
@@ -162,7 +198,7 @@ function CreatorSettingsPage(): React.ReactElement {
 
     setIsSubmitting(true);
     try {
-      await updateCreatorProfile(userId, { socialLinks });
+      await updateCreatorProfile(selectedCreatorId, { socialLinks });
       setSuccessMessage("Changes saved successfully");
     } catch (err) {
       setServerError(
@@ -173,6 +209,11 @@ function CreatorSettingsPage(): React.ReactElement {
     }
   };
 
+  const handleCreated = (profile: CreatorProfileResponse): void => {
+    setCreatorPages((prev) => [...prev, profile]);
+    setSelectedCreatorId(profile.id);
+  };
+
   if (isLoading) {
     return (
       <div className={settingsStyles.page}>
@@ -181,9 +222,30 @@ function CreatorSettingsPage(): React.ReactElement {
     );
   }
 
+  if (creatorPages.length === 0) {
+    return (
+      <div className={settingsStyles.page}>
+        <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>Creator Settings</h1>
+        {serverError && (
+          <div className={errorStyles.error} role="alert">
+            {serverError}
+          </div>
+        )}
+        <p>You don't have a creator page yet. Create one to get started.</p>
+        <CreateCreatorForm onCreated={handleCreated} />
+      </div>
+    );
+  }
+
   return (
     <div className={settingsStyles.page}>
       <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>Creator Settings</h1>
+
+      <CreatorSelector
+        creators={creatorPages}
+        selectedId={selectedCreatorId}
+        onChange={setSelectedCreatorId}
+      />
 
       {serverError && (
         <div className={errorStyles.error} role="alert">
@@ -302,6 +364,10 @@ function CreatorSettingsPage(): React.ReactElement {
             Learn about the Fediverse
           </a>
         </section>
+      )}
+
+      {selectedCreatorId && (
+        <TeamSection creatorId={selectedCreatorId} currentUserId={userId} />
       )}
     </div>
   );

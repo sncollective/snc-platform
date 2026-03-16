@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, notInArray } from "drizzle-orm";
 
 import {
   CreatorProfileResponseSchema,
@@ -14,6 +14,8 @@ import {
   AddCreatorMemberSchema,
   UpdateCreatorMemberSchema,
   CreatorMembersResponseSchema,
+  CandidatesQuerySchema,
+  CandidatesResponseSchema,
   NotFoundError,
   ForbiddenError,
   ValidationError,
@@ -34,7 +36,7 @@ import type {
 import { db } from "../db/connection.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { content } from "../db/schema/content.schema.js";
-import { users } from "../db/schema/user.schema.js";
+import { users, userRoles } from "../db/schema/user.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";
@@ -291,9 +293,9 @@ creatorRoutes.get(
 creatorRoutes.post(
   "/",
   requireAuth,
-  requireRole("creator"),
+  requireRole("creator", "cooperative-member", "admin"),
   describeRoute({
-    description: "Create a new creator entity (requires creator platform role)",
+    description: "Create a new creator entity (requires creator, cooperative-member, or admin role)",
     tags: ["creators"],
     responses: {
       201: {
@@ -818,6 +820,102 @@ creatorRoutes.delete(
     }));
 
     return c.json({ members });
+  },
+);
+
+// GET /:creatorId/members/candidates — Browse eligible users to add as members
+creatorRoutes.get(
+  "/:creatorId/members/candidates",
+  requireAuth,
+  describeRoute({
+    description: "Browse eligible users to add as creator members (owner only)",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "List of candidate users",
+        content: {
+          "application/json": {
+            schema: resolver(CandidatesResponseSchema),
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("query", CandidatesQuerySchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const { q, limit } = c.req.valid("query" as never) as { q?: string; limit: number };
+
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) throw new NotFoundError("Creator not found");
+
+    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+
+    // Get existing member user IDs to exclude
+    const existingMembers = await db
+      .select({ userId: creatorMembers.userId })
+      .from(creatorMembers)
+      .where(eq(creatorMembers.creatorId, creatorId));
+    const excludeIds = existingMembers.map((m) => m.userId);
+
+    // Find users with creator or cooperative-member platform roles
+    const eligibleUserIds = await db
+      .select({ userId: userRoles.userId })
+      .from(userRoles)
+      .where(inArray(userRoles.role, ["creator", "cooperative-member"]));
+    const uniqueEligibleIds = [
+      ...new Set(eligibleUserIds.map((r) => r.userId)),
+    ].filter((id) => !excludeIds.includes(id));
+
+    if (uniqueEligibleIds.length === 0) {
+      return c.json({ candidates: [] });
+    }
+
+    // Build conditions: must be in eligible set
+    const conditions = [inArray(users.id, uniqueEligibleIds)];
+
+    // Optional search filter
+    if (q) {
+      const pattern = `%${q}%`;
+      conditions.push(
+        or(ilike(users.name, pattern), ilike(users.email, pattern))!,
+      );
+    }
+
+    const rows = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(and(...conditions))
+      .limit(limit);
+
+    // Batch-fetch roles for matched users
+    const userIds = rows.map((r) => r.id);
+    const roleRows =
+      userIds.length > 0
+        ? await db
+            .select({ userId: userRoles.userId, role: userRoles.role })
+            .from(userRoles)
+            .where(inArray(userRoles.userId, userIds))
+        : [];
+    const roleMap = new Map<string, string[]>();
+    for (const r of roleRows) {
+      const existing = roleMap.get(r.userId) ?? [];
+      existing.push(r.role);
+      roleMap.set(r.userId, existing);
+    }
+
+    const candidates = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      roles: roleMap.get(r.id) ?? [],
+    }));
+
+    return c.json({ candidates });
   },
 );
 

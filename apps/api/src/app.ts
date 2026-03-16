@@ -20,7 +20,8 @@ import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { emissionsRoutes } from "./routes/emissions.routes.js";
 import { calendarRoutes } from "./routes/calendar.routes.js";
-import { federationRoutes } from "./routes/federation.routes.js";
+// federation.routes uses @fedify/fedify which may not be installed;
+// imported dynamically below so the server boots even without it.
 
 // ── Schemas ──
 
@@ -88,7 +89,11 @@ if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);
 if (features.calendar) app.route("/api/calendar", calendarRoutes);
 // Federation routes mount at root (not /api/) because /.well-known/* and /ap/* paths live there
-if (features.federation) app.route("/", federationRoutes);
+if (features.federation) {
+  import("./routes/federation.routes.js")
+    .then(({ federationRoutes }) => app.route("/", federationRoutes))
+    .catch((err) => console.error("Failed to load federation routes:", err.message));
+}
 
 // ── OpenAPI (non-production only) ──
 

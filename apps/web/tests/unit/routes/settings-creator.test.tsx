@@ -19,11 +19,15 @@ const {
   mockFetchAuthState,
   mockFetchCreatorProfile,
   mockUpdateCreatorProfile,
+  mockFetchMyCreatorPages,
+  mockCreateCreatorEntity,
   mockRedirect,
 } = vi.hoisted(() => ({
   mockFetchAuthState: vi.fn(),
   mockFetchCreatorProfile: vi.fn(),
   mockUpdateCreatorProfile: vi.fn(),
+  mockFetchMyCreatorPages: vi.fn(),
+  mockCreateCreatorEntity: vi.fn(),
   mockRedirect: vi.fn((args: unknown) => args),
 }));
 
@@ -42,6 +46,13 @@ vi.mock("../../../src/lib/api-server.js", () => ({
 vi.mock("../../../src/lib/creator.js", () => ({
   fetchCreatorProfile: mockFetchCreatorProfile,
   updateCreatorProfile: mockUpdateCreatorProfile,
+  fetchMyCreatorPages: mockFetchMyCreatorPages,
+  createCreatorEntity: mockCreateCreatorEntity,
+  fetchCreatorMembers: vi.fn().mockResolvedValue({ members: [] }),
+  addCreatorMember: vi.fn(),
+  updateCreatorMember: vi.fn(),
+  removeCreatorMember: vi.fn(),
+  fetchMemberCandidates: vi.fn().mockResolvedValue({ candidates: [] }),
 }));
 
 // ── Component Under Test ──
@@ -65,6 +76,7 @@ beforeEach(() => {
     user: { id: "user_test123" },
     roles: ["creator"],
   });
+  mockFetchMyCreatorPages.mockResolvedValue([DEFAULT_PROFILE]);
   mockFetchCreatorProfile.mockResolvedValue(DEFAULT_PROFILE);
   mockUpdateCreatorProfile.mockResolvedValue(DEFAULT_PROFILE);
 });
@@ -80,7 +92,7 @@ describe("CreatorSettingsPage", () => {
       await expect(routeBeforeLoad()).rejects.toEqual({ to: "/login" });
     });
 
-    it("redirects to /feed when user is not a creator", async () => {
+    it("redirects to /feed when user has no qualifying role", async () => {
       mockFetchAuthState.mockResolvedValue({
         user: { id: "u1" },
         roles: ["subscriber"],
@@ -92,6 +104,24 @@ describe("CreatorSettingsPage", () => {
       mockFetchAuthState.mockResolvedValue({
         user: { id: "u1" },
         roles: ["creator"],
+      });
+      const result = await routeBeforeLoad();
+      expect(result).toEqual({ userId: "u1" });
+    });
+
+    it("allows cooperative-member role", async () => {
+      mockFetchAuthState.mockResolvedValue({
+        user: { id: "u1" },
+        roles: ["cooperative-member"],
+      });
+      const result = await routeBeforeLoad();
+      expect(result).toEqual({ userId: "u1" });
+    });
+
+    it("allows admin role", async () => {
+      mockFetchAuthState.mockResolvedValue({
+        user: { id: "u1" },
+        roles: ["admin"],
       });
       const result = await routeBeforeLoad();
       expect(result).toEqual({ userId: "u1" });
@@ -346,5 +376,45 @@ describe("CreatorSettingsPage", () => {
     expect(
       screen.getByRole("button", { name: "Saving\u2026" }),
     ).toBeDisabled();
+  });
+
+  // ── Create flow tests ──
+
+  it("shows create form when no creator pages exist", async () => {
+    mockFetchMyCreatorPages.mockResolvedValue([]);
+    render(<CreatorSettingsPage />);
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have a creator page yet. Create one to get started."),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "Create Creator" }),
+    ).toBeInTheDocument();
+  });
+
+  it("switches to management view after creating a creator", async () => {
+    const user = userEvent.setup();
+    mockFetchMyCreatorPages.mockResolvedValue([]);
+    const newProfile = makeMockCreatorProfileResponse({
+      id: "new_creator",
+      displayName: "New Band",
+    });
+    mockCreateCreatorEntity.mockResolvedValue(newProfile);
+    mockFetchCreatorProfile.mockResolvedValue(newProfile);
+
+    render(<CreatorSettingsPage />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Create Creator" }),
+      ).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText("Display Name"), "New Band");
+    await user.click(screen.getByRole("button", { name: "Create Creator" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Social Links")).toBeInTheDocument();
+    });
   });
 });

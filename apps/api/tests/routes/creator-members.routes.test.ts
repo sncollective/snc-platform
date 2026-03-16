@@ -319,6 +319,104 @@ describe("creator member routes", () => {
     });
   });
 
+  // ── GET /api/creators/:id/members/candidates ──
+
+  describe("GET /api/creators/:id/members/candidates", () => {
+    it("returns candidates for owner", async () => {
+      const profile = makeMockDbCreatorProfile();
+
+      // findCreatorProfile
+      mockSelectWhere.mockResolvedValueOnce([profile]);
+      // existing members
+      mockSelectWhere.mockResolvedValueOnce([{ userId: "user_test123" }]);
+      // eligible user IDs (from userRoles)
+      mockSelectWhere.mockResolvedValueOnce([
+        { userId: "user_candidate1" },
+        { userId: "user_candidate2" },
+      ]);
+      // user rows
+      mockSelectWhere.mockResolvedValueOnce([
+        { id: "user_candidate1", name: "Alice", email: "alice@test.com" },
+        { id: "user_candidate2", name: "Bob", email: "bob@test.com" },
+      ]);
+      // role rows
+      mockSelectWhere.mockResolvedValueOnce([
+        { userId: "user_candidate1", role: "creator" },
+        { userId: "user_candidate2", role: "cooperative-member" },
+      ]);
+
+      // Wire up from chains
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere }); // findCreatorProfile
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere }); // existing members
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere }); // eligible user IDs
+      mockSelectFrom.mockReturnValueOnce({
+        where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([
+          { id: "user_candidate1", name: "Alice", email: "alice@test.com" },
+          { id: "user_candidate2", name: "Bob", email: "bob@test.com" },
+        ]) }),
+      }); // users
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere }); // roles
+
+      const res = await ctx.app.request(
+        "/api/creators/user_test123/members/candidates",
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.candidates).toBeDefined();
+      expect(Array.isArray(body.candidates)).toBe(true);
+    });
+
+    it("returns 404 for unknown creator", async () => {
+      mockSelectWhere.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request(
+        "/api/creators/nonexistent/members/candidates",
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 403 for non-owner", async () => {
+      const profile = makeMockDbCreatorProfile();
+      mockSelectWhere.mockResolvedValueOnce([profile]);
+
+      const { ForbiddenError } = await import("@snc/shared");
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Missing creator permission: manageMembers"),
+      );
+
+      const res = await ctx.app.request(
+        "/api/creators/user_test123/members/candidates",
+      );
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns empty when no eligible users", async () => {
+      const profile = makeMockDbCreatorProfile();
+
+      // findCreatorProfile
+      mockSelectWhere.mockResolvedValueOnce([profile]);
+      // existing members
+      mockSelectWhere.mockResolvedValueOnce([{ userId: "user_test123" }]);
+      // eligible user IDs - empty
+      mockSelectWhere.mockResolvedValueOnce([]);
+
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere });
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere });
+      mockSelectFrom.mockReturnValueOnce({ where: mockSelectWhere });
+
+      const res = await ctx.app.request(
+        "/api/creators/user_test123/members/candidates",
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.candidates).toEqual([]);
+    });
+  });
+
   // ── DELETE /api/creators/:id/members/:memberId ──
 
   describe("DELETE /api/creators/:id/members/:memberId", () => {

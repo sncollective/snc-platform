@@ -24,7 +24,7 @@ import { hashPassword } from "better-auth/crypto";
 import type { SocialLink } from "@snc/shared";
 
 import { users, accounts, userRoles } from "../db/schema/user.schema.js";
-import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { services, bookingRequests } from "../db/schema/booking.schema.js";
@@ -269,9 +269,10 @@ try {
 
   // ── Creator Profiles ──
 
-  const creatorRows: Array<{ userId: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
+  const creatorRows: Array<{ id: string; ownerId: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
     {
-      userId: USER_IDS.maya,
+      id: USER_IDS.maya,
+      ownerId: USER_IDS.maya,
       displayName: "Maya Chen",
       bio: "Electronic and ambient music producer exploring the intersection of sound design and generative art. Co-op member since day one.",
       socialLinks: [
@@ -283,7 +284,8 @@ try {
       bannerKey: `creators/${USER_IDS.maya}/banner/photo.jpg`,
     },
     {
-      userId: USER_IDS.jordan,
+      id: USER_IDS.jordan,
+      ownerId: USER_IDS.jordan,
       displayName: "Jordan Ellis",
       bio: "Indie rock songwriter and multi-instrumentalist. Writing honest songs about ordinary life.",
       socialLinks: [
@@ -294,7 +296,8 @@ try {
       bannerKey: `creators/${USER_IDS.jordan}/banner/photo.jpg`,
     },
     {
-      userId: USER_IDS.sam,
+      id: USER_IDS.sam,
+      ownerId: USER_IDS.sam,
       displayName: "Sam Okafor",
       bio: "Hip-hop artist and spoken word poet. Using rhythm and language to tell stories that matter.",
       socialLinks: [
@@ -305,7 +308,8 @@ try {
       bannerKey: `creators/${USER_IDS.sam}/banner/photo.jpg`,
     },
     {
-      userId: USER_IDS.animalfuture,
+      id: USER_IDS.animalfuture,
+      ownerId: USER_IDS.animalfuture,
       displayName: "Animal Future",
       bio: "Punk rock and raw energy. Making loud, honest music about the world we're stuck in.",
       socialLinks: [
@@ -323,7 +327,7 @@ try {
       .insert(creatorProfiles)
       .values(row)
       .onConflictDoUpdate({
-        target: creatorProfiles.userId,
+        target: creatorProfiles.id,
         set: {
           displayName: row.displayName,
           bio: row.bio,
@@ -336,6 +340,21 @@ try {
   }
 
   console.log(`  Creator profiles: ${creatorRows.length} seeded`);
+
+  // ── Creator Members (seed owner rows) ──
+
+  for (const row of creatorRows) {
+    await db
+      .insert(creatorMembers)
+      .values({
+        creatorId: row.id,
+        userId: row.ownerId,
+        role: "owner",
+      })
+      .onConflictDoNothing();
+  }
+
+  console.log(`  Creator members: ${creatorRows.length} owner rows seeded`);
 
   // ── Content ──
 
