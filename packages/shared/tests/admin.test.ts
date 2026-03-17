@@ -25,7 +25,7 @@ const VALID_ADMIN_USER = {
   image: null,
   createdAt: "2025-01-01T00:00:00Z",
   updatedAt: "2025-01-01T00:00:00Z",
-  roles: ["admin", "cooperative-member"],
+  roles: ["admin", "stakeholder"],
 };
 
 describe("AdminUserSchema", () => {
@@ -33,7 +33,7 @@ describe("AdminUserSchema", () => {
     const result = AdminUserSchema.parse(VALID_ADMIN_USER);
     expect(result.id).toBe(VALID_ADMIN_USER.id);
     expect(result.email).toBe(VALID_ADMIN_USER.email);
-    expect(result.roles).toStrictEqual(["admin", "cooperative-member"]);
+    expect(result.roles).toStrictEqual(["admin", "stakeholder"]);
   });
 
   it("accepts an empty roles array", () => {
@@ -44,9 +44,9 @@ describe("AdminUserSchema", () => {
   it("accepts all valid role values", () => {
     const result = AdminUserSchema.parse({
       ...VALID_ADMIN_USER,
-      roles: ["subscriber", "creator", "cooperative-member", "service-client", "admin"],
+      roles: ["stakeholder", "admin"],
     });
-    expect(result.roles).toHaveLength(5);
+    expect(result.roles).toHaveLength(2);
   });
 
   it("accepts image as a string", () => {
@@ -189,7 +189,7 @@ describe("AssignRoleRequestSchema", () => {
     expect(result.role).toBe("admin");
   });
 
-  it.each(["subscriber", "creator", "cooperative-member", "service-client", "admin"])(
+  it.each(["stakeholder", "admin"])(
     'accepts role "%s"',
     (role) => {
       const result = AssignRoleRequestSchema.parse({ role });
@@ -215,12 +215,12 @@ describe("AssignRoleRequestSchema", () => {
 });
 
 describe("RevokeRoleRequestSchema", () => {
-  it('validates { role: "creator" }', () => {
-    const result = RevokeRoleRequestSchema.parse({ role: "creator" });
-    expect(result.role).toBe("creator");
+  it('validates { role: "stakeholder" }', () => {
+    const result = RevokeRoleRequestSchema.parse({ role: "stakeholder" });
+    expect(result.role).toBe("stakeholder");
   });
 
-  it.each(["subscriber", "creator", "cooperative-member", "service-client", "admin"])(
+  it.each(["stakeholder", "admin"])(
     'accepts role "%s"',
     (role) => {
       const result = RevokeRoleRequestSchema.parse({ role });
@@ -249,7 +249,7 @@ describe("AdminUserResponseSchema", () => {
   it("validates { user: AdminUser }", () => {
     const result = AdminUserResponseSchema.parse({ user: VALID_ADMIN_USER });
     expect(result.user.id).toBe(VALID_ADMIN_USER.id);
-    expect(result.user.roles).toStrictEqual(["admin", "cooperative-member"]);
+    expect(result.user.roles).toStrictEqual(["admin", "stakeholder"]);
   });
 
   it("rejects missing user field", () => {
@@ -279,5 +279,5 @@ const _adminUsersResponseCheck: AdminUsersResponse = {
   nextCursor: null,
 };
 const _assignRoleRequestCheck: AssignRoleRequest = { role: "admin" };
-const _revokeRoleRequestCheck: RevokeRoleRequest = { role: "creator" };
+const _revokeRoleRequestCheck: RevokeRoleRequest = { role: "stakeholder" };
 const _adminUserResponseCheck: AdminUserResponse = { user: VALID_ADMIN_USER };

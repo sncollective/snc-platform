@@ -87,12 +87,13 @@ function FileInputField({
 // ── Public Types ──
 
 export interface ContentFormProps {
+  readonly creatorId: string;
   readonly onCreated: () => void;
 }
 
 // ── Public API ──
 
-export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement {
+export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.ReactElement {
   const [type, setType] = useState<ContentType>("audio");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -134,6 +135,7 @@ export function ContentForm({ onCreated }: ContentFormProps): React.ReactElement
     setFieldErrors({});
 
     const formData = {
+      creatorId,
       title: title.trim(),
       type,
       description: description.trim() || undefined,

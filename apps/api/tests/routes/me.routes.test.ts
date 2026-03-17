@@ -55,7 +55,7 @@ describe("GET /api/me", () => {
     const user = makeMockUser();
     const session = makeMockSession();
     mockGetSession.mockResolvedValue({ user, session });
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockGetUserRoles.mockResolvedValue([]);
 
     const res = await ctx.app.request("/api/me", {
       headers: {
@@ -68,7 +68,7 @@ describe("GET /api/me", () => {
     expect(body.user.id).toBe("user_test123");
     expect(body.user.email).toBe("test@example.com");
     expect(body.session.token).toBe("tok_test789");
-    expect(body.roles).toStrictEqual(["subscriber"]);
+    expect(body.roles).toStrictEqual([]);
   });
 
   it("returns multiple roles for users with multiple roles", async () => {
@@ -76,7 +76,7 @@ describe("GET /api/me", () => {
       user: makeMockUser(),
       session: makeMockSession(),
     });
-    mockGetUserRoles.mockResolvedValue(["subscriber", "cooperative-member"]);
+    mockGetUserRoles.mockResolvedValue(["stakeholder", "admin"]);
 
     const res = await ctx.app.request("/api/me", {
       headers: {
@@ -86,14 +86,14 @@ describe("GET /api/me", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.roles).toStrictEqual(["subscriber", "cooperative-member"]);
+    expect(body.roles).toStrictEqual(["stakeholder", "admin"]);
   });
 
   it("calls getUserRoles with the correct user ID", async () => {
     const user = makeMockUser({ id: "user_xyz" });
     const session = makeMockSession({ userId: "user_xyz" });
     mockGetSession.mockResolvedValue({ user, session });
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockGetUserRoles.mockResolvedValue([]);
 
     await ctx.app.request("/api/me", {
       headers: {
@@ -111,7 +111,7 @@ describe("GET /api/me", () => {
       user,
       session: makeMockSession(),
     });
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockGetUserRoles.mockResolvedValue([]);
 
     const res = await ctx.app.request("/api/me", {
       headers: {

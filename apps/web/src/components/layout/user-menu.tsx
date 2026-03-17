@@ -87,7 +87,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {isFeatureEnabled("dashboard") && hasRole(effectiveRoles, "cooperative-member") && (
+          {isFeatureEnabled("dashboard") && hasRole(effectiveRoles, "stakeholder") && (
             <Link
               to="/dashboard"
               className={styles.menuItem}
@@ -98,7 +98,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "cooperative-member") && (
+          {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
             <Link
               to="/calendar"
               className={styles.menuItem}
@@ -109,7 +109,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {(hasRole(effectiveRoles, "cooperative-member") || hasRole(effectiveRoles, "creator")) && (
+          {(hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
             <a
               href="https://files.s-nc.org"
               className={styles.menuItem}
@@ -122,7 +122,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </a>
           )}
 
-          {isFeatureEnabled("creator") && (hasRole(effectiveRoles, "creator") || hasRole(effectiveRoles, "cooperative-member") || hasRole(effectiveRoles, "admin")) && (
+          {isFeatureEnabled("creator") && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
             <Link
               to="/settings/creator"
               className={styles.menuItem}
@@ -133,7 +133,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
-          {isFeatureEnabled("content") && hasRole(effectiveRoles, "creator") && (
+          {isFeatureEnabled("content") && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
             <Link
               to="/settings/content"
               className={styles.menuItem}

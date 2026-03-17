@@ -63,7 +63,7 @@ export const calendarRoutes = new Hono<AuthEnv>();
 calendarRoutes.get(
   "/events",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description:
       "List calendar events with optional date range and category filter",
@@ -140,7 +140,7 @@ calendarRoutes.get(
 calendarRoutes.get(
   "/events/:id",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Get a single calendar event by ID",
     tags: ["calendar"],
@@ -179,7 +179,7 @@ calendarRoutes.get(
 calendarRoutes.post(
   "/events",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Create a new calendar event",
     tags: ["calendar"],
@@ -231,7 +231,7 @@ calendarRoutes.post(
 calendarRoutes.patch(
   "/events/:id",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Update a calendar event",
     tags: ["calendar"],
@@ -291,7 +291,7 @@ calendarRoutes.patch(
 calendarRoutes.delete(
   "/events/:id",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Soft-delete a calendar event",
     tags: ["calendar"],
@@ -328,7 +328,7 @@ calendarRoutes.delete(
 calendarRoutes.post(
   "/feed-token",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Generate a new .ics feed token (replaces existing)",
     tags: ["calendar"],
@@ -373,7 +373,7 @@ calendarRoutes.post(
 calendarRoutes.get(
   "/feed-token",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Get the current user's .ics feed token",
     tags: ["calendar"],

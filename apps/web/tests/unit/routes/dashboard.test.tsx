@@ -84,7 +84,7 @@ const routeBeforeLoad = () => (routeObject.beforeLoad as () => Promise<void>)();
 beforeEach(() => {
   mockFetchAuthStateServer.mockResolvedValue({
     user: { id: "u1" },
-    roles: ["cooperative-member"],
+    roles: ["stakeholder"],
   });
   mockReviewBooking.mockResolvedValue(makeMockBookingWithService());
   mockUseLoaderData.mockReturnValue(makeDefaultLoaderData());
@@ -110,10 +110,10 @@ describe("DashboardPage", () => {
       await expect(routeBeforeLoad()).rejects.toEqual({ to: "/login" });
     });
 
-    it("redirects to /feed when user lacks cooperative-member role", async () => {
+    it("redirects to /feed when user lacks stakeholder role", async () => {
       mockFetchAuthStateServer.mockResolvedValue({
         user: { id: "u1" },
-        roles: ["subscriber"],
+        roles: [],
       });
       await expect(routeBeforeLoad()).rejects.toEqual({ to: "/feed" });
     });

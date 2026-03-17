@@ -456,7 +456,7 @@ describe("booking routes", () => {
 
   describe("GET /api/bookings/pending", () => {
     it("returns pending bookings with requester info and service data", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const joinRow = makeMockBookingWithUser();
       mockDoubleJoinLimit.mockResolvedValue([joinRow]);
 
@@ -482,7 +482,7 @@ describe("booking routes", () => {
     });
 
     it("returns empty array when no pending bookings", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       // mockDoubleJoinLimit defaults to [] from beforeEach
 
       const res = await ctx.app.request("/api/bookings/pending");
@@ -497,7 +497,7 @@ describe("booking routes", () => {
     });
 
     it("supports cursor-based pagination", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const row1 = makeMockBookingWithUser({
         booking: { id: "bk_older", createdAt: new Date("2026-02-01T10:00:00.000Z") },
       });
@@ -520,7 +520,7 @@ describe("booking routes", () => {
     });
 
     it("returns items ordered by createdAt ASC (oldest first)", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const olderRow = makeMockBookingWithUser({
         booking: { id: "bk_older", createdAt: new Date("2026-01-01T10:00:00.000Z") },
       });
@@ -543,8 +543,8 @@ describe("booking routes", () => {
       expect(body.items[1]!.id).toBe("bk_newer");
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      // ctx.auth.roles = ["subscriber"] (default from factory)
+    it("returns 403 for non-stakeholder", async () => {
+      // ctx.auth.roles = [] (default from factory)
 
       const res = await ctx.app.request("/api/bookings/pending");
 
@@ -564,7 +564,7 @@ describe("booking routes", () => {
 
   describe("PATCH /api/bookings/:id/review", () => {
     it("approves booking — updates status and sets reviewedBy", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "pending" });
       const updatedBooking = makeMockBookingRequest({
@@ -592,7 +592,7 @@ describe("booking routes", () => {
     });
 
     it("denies booking with note — saves reviewNote", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "pending" });
       const updatedBooking = makeMockBookingRequest({
@@ -628,7 +628,7 @@ describe("booking routes", () => {
     });
 
     it("returns 404 for non-existent booking", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       mockJoinWhere.mockResolvedValue([]);
 
       const res = await ctx.app.request("/api/bookings/nonexistent/review", {
@@ -641,7 +641,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 if booking is not pending (already reviewed)", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
       const service = makeMockService();
       const booking = makeMockBookingRequest({ status: "approved" });
 
@@ -659,7 +659,7 @@ describe("booking routes", () => {
     });
 
     it("returns 400 for invalid status value", async () => {
-      ctx.auth.roles = ["cooperative-member"];
+      ctx.auth.roles = ["stakeholder"];
 
       const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",
@@ -670,8 +670,8 @@ describe("booking routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      // ctx.auth.roles = ["subscriber"] (default from factory)
+    it("returns 403 for non-stakeholder", async () => {
+      // ctx.auth.roles = [] (default from factory)
 
       const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
         method: "PATCH",

@@ -7,7 +7,6 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { db } from "../db/connection.js";
 import { config, parseOrigins } from "../config.js";
 import * as userSchema from "../db/schema/user.schema.js";
-import { userRoles } from "../db/schema/user.schema.js";
 import * as oidcSchema from "../db/schema/oidc.schema.js";
 import { getUserRoles } from "./user-roles.js";
 import { sendEmail } from "../email/send.js";
@@ -90,16 +89,4 @@ export const auth = betterAuth({
       },
     }),
   ],
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (user) => {
-          await db.insert(userRoles).values({
-            userId: user.id,
-            role: "subscriber",
-          });
-        },
-      },
-    },
-  },
 });

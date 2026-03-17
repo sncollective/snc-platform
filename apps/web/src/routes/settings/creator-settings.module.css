@@ -115,6 +115,46 @@
   border-radius: var(--radius-sm);
 }
 
+/* ── Image Uploads ── */
+
+.imageUploads {
+  display: flex;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.imageField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.avatarPreview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.bannerPreview {
+  width: 300px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.uploadButton {
+  align-self: flex-start;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
 /* ── Federation Section ── */
 
 .federationSection {

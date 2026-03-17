@@ -8,7 +8,7 @@ import type {
   CandidatesResponse,
 } from "@snc/shared";
 
-import { apiGet, apiMutate } from "./fetch-utils.js";
+import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
 
 /**
  * Fetch a single creator profile by ID.
@@ -35,7 +35,37 @@ export async function updateCreatorProfile(
 }
 
 /**
- * Create a new creator entity (requires creator platform role).
+ * Upload or replace the avatar image for a creator.
+ */
+export async function uploadCreatorAvatar(
+  creatorId: string,
+  file: File,
+): Promise<CreatorProfileResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<CreatorProfileResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/avatar`,
+    formData,
+  );
+}
+
+/**
+ * Upload or replace the banner image for a creator.
+ */
+export async function uploadCreatorBanner(
+  creatorId: string,
+  file: File,
+): Promise<CreatorProfileResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<CreatorProfileResponse>(
+    `/api/creators/${encodeURIComponent(creatorId)}/banner`,
+    formData,
+  );
+}
+
+/**
+ * Create a new creator entity (requires stakeholder platform role).
  */
 export async function createCreatorEntity(
   data: CreateCreator,

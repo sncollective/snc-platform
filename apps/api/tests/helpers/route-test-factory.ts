@@ -65,7 +65,7 @@ interface RouteTestOptions {
   mockRole?: boolean;
 
   /**
-   * Default auth state for `beforeEach`. Defaults to an authenticated user with `["subscriber"]` roles.
+   * Default auth state for `beforeEach`. Defaults to an authenticated user with `[]` roles.
    */
   defaultAuth?: Partial<AuthState>;
 
@@ -183,7 +183,7 @@ export function setupRouteTest(options: RouteTestOptions): RouteTestContext {
     // Reset auth state to defaults
     ctx.auth.user = options.defaultAuth?.user ?? makeMockUser();
     ctx.auth.session = options.defaultAuth?.session ?? makeMockSession();
-    ctx.auth.roles = options.defaultAuth?.roles ?? ["subscriber"];
+    ctx.auth.roles = options.defaultAuth?.roles ?? [];
 
     // Run additional beforeEach setup (e.g., re-wire db chains)
     options.beforeEach?.();

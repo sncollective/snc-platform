@@ -12,7 +12,7 @@ export const makeMockAdminUser = (
   image: null,
   createdAt: "2025-01-01T00:00:00Z",
   updatedAt: "2025-01-01T00:00:00Z",
-  roles: ["admin", "subscriber"],
+  roles: ["admin"],
   ...overrides,
 });
 

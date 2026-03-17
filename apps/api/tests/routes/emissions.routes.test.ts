@@ -354,7 +354,7 @@ describe("emissions routes", () => {
     });
 
     it("returns 403 for non-admin", async () => {
-      ctx.auth.roles = ["subscriber"];
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/emissions/entries", {
         method: "POST",
@@ -425,7 +425,7 @@ describe("emissions routes", () => {
     });
 
     it("returns 403 for non-admin", async () => {
-      ctx.auth.roles = ["subscriber"];
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/emissions/offsets", {
         method: "POST",

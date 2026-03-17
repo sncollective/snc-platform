@@ -293,9 +293,9 @@ creatorRoutes.get(
 creatorRoutes.post(
   "/",
   requireAuth,
-  requireRole("creator", "cooperative-member", "admin"),
+  requireRole("stakeholder", "admin"),
   describeRoute({
-    description: "Create a new creator entity (requires creator, cooperative-member, or admin role)",
+    description: "Create a new creator entity (requires stakeholder or admin role)",
     tags: ["creators"],
     responses: {
       201: {
@@ -862,11 +862,11 @@ creatorRoutes.get(
       .where(eq(creatorMembers.creatorId, creatorId));
     const excludeIds = existingMembers.map((m) => m.userId);
 
-    // Find users with creator or cooperative-member platform roles
+    // Find users with stakeholder or admin platform roles
     const eligibleUserIds = await db
       .select({ userId: userRoles.userId })
       .from(userRoles)
-      .where(inArray(userRoles.role, ["creator", "cooperative-member"]));
+      .where(inArray(userRoles.role, ["stakeholder", "admin"]));
     const uniqueEligibleIds = [
       ...new Set(eligibleUserIds.map((r) => r.userId)),
     ].filter((id) => !excludeIds.includes(id));

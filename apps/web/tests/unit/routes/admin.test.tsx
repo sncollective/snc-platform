@@ -57,14 +57,14 @@ beforeEach(() => {
     id: "user_001",
     name: "Alice Admin",
     email: "alice@example.com",
-    roles: ["admin", "subscriber"],
+    roles: ["admin"],
   });
 
   mockAssignRole.mockResolvedValue({
-    user: { ...defaultUser, roles: [...defaultUser.roles, "creator"] },
+    user: { ...defaultUser, roles: [...defaultUser.roles, "stakeholder"] },
   });
   mockRevokeRole.mockResolvedValue({
-    user: { ...defaultUser, roles: ["admin"] },
+    user: { ...defaultUser, roles: [] },
   });
 
   vi.stubGlobal(
@@ -98,7 +98,6 @@ describe("AdminPage", () => {
     await waitFor(() => {
       expect(screen.getByText("admin")).toBeInTheDocument();
     });
-    expect(screen.getByText("subscriber")).toBeInTheDocument();
   });
 
   it("shows loading state initially", () => {
@@ -142,12 +141,12 @@ describe("AdminPage", () => {
     });
 
     const select = screen.getByRole("combobox", { name: "Select role to add" });
-    await userSetup.selectOptions(select, "creator");
+    await userSetup.selectOptions(select, "stakeholder");
     await userSetup.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
       expect(mockAssignRole).toHaveBeenCalledWith("user_001", {
-        role: "creator",
+        role: "stakeholder",
       });
     });
   });
@@ -161,12 +160,12 @@ describe("AdminPage", () => {
     });
 
     await userSetup.click(
-      screen.getByRole("button", { name: "Remove subscriber role" }),
+      screen.getByRole("button", { name: "Remove admin role" }),
     );
 
     await waitFor(() => {
       expect(mockRevokeRole).toHaveBeenCalledWith("user_001", {
-        role: "subscriber",
+        role: "admin",
       });
     });
   });
@@ -193,7 +192,7 @@ describe("AdminPage", () => {
     });
 
     const select = screen.getByRole("combobox", { name: "Select role to add" });
-    await userSetup.selectOptions(select, "creator");
+    await userSetup.selectOptions(select, "stakeholder");
     await userSetup.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {

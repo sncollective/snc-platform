@@ -41,7 +41,7 @@ const mockCheckCreatorPermission = vi.fn();
 
 const ctx = setupRouteTest({
   db: mockDb,
-  defaultAuth: { roles: ["subscriber", "creator"] },
+  defaultAuth: { roles: ["stakeholder"] },
   mocks: () => {
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
       creatorProfiles: {},
@@ -138,8 +138,8 @@ describe("creator member routes", () => {
       expect(body.displayName).toBe("New Band");
     });
 
-    it("returns 403 without creator platform role", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 without stakeholder or admin role", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/creators", {
         method: "POST",
@@ -341,8 +341,8 @@ describe("creator member routes", () => {
       ]);
       // role rows
       mockSelectWhere.mockResolvedValueOnce([
-        { userId: "user_candidate1", role: "creator" },
-        { userId: "user_candidate2", role: "cooperative-member" },
+        { userId: "user_candidate1", role: "stakeholder" },
+        { userId: "user_candidate2", role: "admin" },
       ]);
 
       // Wire up from chains

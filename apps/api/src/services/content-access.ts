@@ -40,8 +40,8 @@ export type ContentGateResult =
  *
  * 1. Public content → always allowed
  * 2. No userId (unauthenticated) → not allowed
- * 3. User is the content creator → allowed (owner bypass)
- * 4. User holds the "creator" role → allowed (contributor member perk)
+ * 3. User is a creator team member for this creator → allowed
+ * 4. User is a stakeholder or any creator team member → allowed (free perk)
  * 5. User has an active subscription that covers this creator → allowed
  * 6. Otherwise → not allowed (SUBSCRIPTION_REQUIRED)
  *
@@ -83,18 +83,25 @@ export const buildContentAccessContext = async (
 
   const roles = prefetchedRoles ?? (await getUserRoles(userId));
 
-  // Creators get free access to everything — skip subscription query
-  if (roles.includes("creator")) {
+  const now = new Date();
+
+  // Stakeholders and creator team members get free access — query memberships
+  const memberRows = await db
+    .select({ creatorId: creatorMembers.creatorId })
+    .from(creatorMembers)
+    .where(eq(creatorMembers.userId, userId));
+  const memberCreatorIds = new Set(memberRows.map((r) => r.creatorId));
+
+  // Stakeholders and creator team members get free access to all content
+  if (roles.includes("stakeholder") || memberCreatorIds.size > 0) {
     return {
       userId,
       roles,
-      memberCreatorIds: new Set(),
+      memberCreatorIds,
       subscribedCreatorIds: new Set(),
       hasPlatformSubscription: true,
     };
   }
-
-  const now = new Date();
 
   const rows = await db
     .select({
@@ -124,12 +131,6 @@ export const buildContentAccessContext = async (
     }
   }
 
-  const memberRows = await db
-    .select({ creatorId: creatorMembers.creatorId })
-    .from(creatorMembers)
-    .where(eq(creatorMembers.userId, userId));
-  const memberCreatorIds = new Set(memberRows.map((r) => r.creatorId));
-
   return { userId, roles, memberCreatorIds, subscribedCreatorIds, hasPlatformSubscription };
 };
 
@@ -145,7 +146,7 @@ export const hasContentAccess = (
   if (contentVisibility === "public") return true;
   if (ctx.userId === null) return false;
   if (ctx.memberCreatorIds.has(contentCreatorId)) return true;
-  if (ctx.roles.includes("creator")) return true;
+  if (ctx.roles.includes("stakeholder")) return true;
   if (ctx.hasPlatformSubscription) return true;
   if (ctx.subscribedCreatorIds.has(contentCreatorId)) return true;
   return false;
@@ -191,9 +192,19 @@ export const checkContentAccess = async (
     return { allowed: true };
   }
 
-  // Rule 4: Creators (contributor members) get free access to all content
+  // Rule 4: Stakeholders get free access to all content
   const roles = prefetchedRoles ?? (await getUserRoles(userId));
-  if (roles.includes("creator")) {
+  if (roles.includes("stakeholder")) {
+    return { allowed: true };
+  }
+
+  // Rule 4b: Any creator team member (on any creator) gets free access
+  const anyMembership = await db
+    .select({ creatorId: creatorMembers.creatorId })
+    .from(creatorMembers)
+    .where(eq(creatorMembers.userId, userId))
+    .limit(1);
+  if (anyMembership.length > 0) {
     return { allowed: true };
   }
 

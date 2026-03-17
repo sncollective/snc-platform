@@ -16,6 +16,9 @@ const mockRequireCreatorPermission = vi.fn();
 let TestForbiddenError: new (msg?: string) => Error;
 
 // Drizzle db mock — chainable method stubs
+// mockMemberAnyLimit handles the .limit(1) call on the "any membership" query
+// in checkContentAccess: db.select().from(creatorMembers).where(...).limit(1)
+const mockMemberAnyLimit = vi.fn();
 const mockSelectWhere = vi.fn();
 
 // Feed query mock chain: select -> from -> innerJoin -> where -> orderBy -> limit
@@ -78,7 +81,8 @@ const mockGetSession = vi.fn();
 
 const ctx = setupRouteTest({
   db: mockDb,
-  defaultAuth: { roles: ["subscriber", "creator"] },
+  mockRole: false,
+  defaultAuth: { roles: [] },
   mocks: ({ ForbiddenError }) => {
     TestForbiddenError = ForbiddenError;
 
@@ -134,15 +138,20 @@ const ctx = setupRouteTest({
     app.route("/api/content", contentRoutes);
   },
   beforeEach: () => {
-    // Content gate role check defaults to subscriber-only so subscription
+    // Content gate role check defaults to empty so subscription
     // tests exercise the subscription path rather than the creator bypass
-    mockGateRoles = ["subscriber"];
+    mockGateRoles = [];
 
     // Default: permission check passes (no throw)
     mockRequireCreatorPermission.mockResolvedValue(undefined);
 
     // Default db mock responses
-    mockSelectWhere.mockResolvedValue([]);
+    // mockSelectWhere returns a chainable promise so .limit() works for
+    // the "any creator membership" query in checkContentAccess
+    mockMemberAnyLimit.mockResolvedValue([]);
+    mockSelectWhere.mockImplementation(() =>
+      chainablePromise([] as unknown[], { limit: mockMemberAnyLimit }),
+    );
     mockInsertReturning.mockResolvedValue([]);
     mockUpdateReturning.mockResolvedValue([]);
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
@@ -390,13 +399,13 @@ describe("content routes", () => {
       expect(body.items[0].body).toBe("Public content");
     });
 
-    it("preserves mediaUrl and body for subscriber content when user has creator role", async () => {
+    it("preserves mediaUrl and body for subscriber content when user has stakeholder role", async () => {
       mockGetSession.mockResolvedValue({
         user: makeMockUser(),
         session: makeMockSession(),
       });
-      // getUserRoles inside buildContentAccessContext returns creator role
-      mockGateRoles = ["creator"];
+      // getUserRoles inside buildContentAccessContext returns stakeholder role
+      mockGateRoles = ["stakeholder"];
       mockLimit.mockResolvedValue([
         makeFeedRow({
           visibility: "subscribers",
@@ -572,21 +581,6 @@ describe("content routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 when user lacks creator role", async () => {
-      ctx.auth.roles = ["subscriber"];
-
-      const res = await ctx.app.request("/api/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "My Post",
-          type: "written",
-          body: "Content here",
-        }),
-      });
-
-      expect(res.status).toBe(403);
-    });
   });
 
   // ── GET /api/content/:id ──
@@ -782,18 +776,6 @@ describe("content routes", () => {
       expect(res.status).toBe(403);
       const body = await res.json();
       expect(body.error.code).toBe("FORBIDDEN");
-    });
-
-    it("returns 403 when user lacks creator role", async () => {
-      ctx.auth.roles = ["subscriber"];
-
-      const res = await ctx.app.request("/api/content/content-test-1", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Attempt" }),
-      });
-
-      expect(res.status).toBe(403);
     });
 
     it("returns 404 when content does not exist", async () => {

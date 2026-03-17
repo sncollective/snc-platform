@@ -249,13 +249,8 @@ try {
 
   const roleRows = [
     { userId: USER_IDS.alex, role: "admin" },
-    { userId: USER_IDS.alex, role: "cooperative-member" },
-    { userId: USER_IDS.maya, role: "creator" },
-    { userId: USER_IDS.maya, role: "cooperative-member" },
-    { userId: USER_IDS.jordan, role: "creator" },
-    { userId: USER_IDS.sam, role: "creator" },
-    { userId: USER_IDS.pat, role: "subscriber" },
-    { userId: USER_IDS.animalfuture, role: "creator" },
+    { userId: USER_IDS.alex, role: "stakeholder" },
+    { userId: USER_IDS.maya, role: "stakeholder" },
   ];
 
   for (const r of roleRows) {

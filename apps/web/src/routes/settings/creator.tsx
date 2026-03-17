@@ -24,6 +24,8 @@ import { isFeatureEnabled } from "../../lib/config.js";
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
+  uploadCreatorAvatar,
+  uploadCreatorBanner,
   fetchMyCreatorPages,
 } from "../../lib/creator.js";
 import type { CreatorProfileResponse } from "@snc/shared";
@@ -53,7 +55,7 @@ export const Route = createFileRoute("/settings/creator")({
     if (!user) {
       throw redirect({ to: "/login" });
     }
-    if (!roles.includes("creator") && !roles.includes("cooperative-member") && !roles.includes("admin")) {
+    if (!roles.includes("stakeholder") && !roles.includes("admin")) {
       throw redirect({ to: "/feed" });
     }
     return { userId: user.id };
@@ -72,8 +74,18 @@ function CreatorSettingsPage(): React.ReactElement {
   const [creatorPages, setCreatorPages] = useState<CreatorProfileResponse[]>([]);
   const [selectedCreatorId, setSelectedCreatorId] = useState("");
 
-  // ── Federation State ──
-  const [handle, setHandle] = useState<string | null>(null);
+  // ── Profile Fields State ──
+  const [displayName, setDisplayName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+
+  // ── Image Upload State ──
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // ── Social Links State ──
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
@@ -125,7 +137,11 @@ function CreatorSettingsPage(): React.ReactElement {
       try {
         const profile = await fetchCreatorProfile(selectedCreatorId);
         if (cancelled) return;
-        setHandle(profile.handle);
+        setDisplayName(profile.displayName);
+        setHandle(profile.handle ?? "");
+        setBio(profile.bio ?? "");
+        setAvatarUrl(profile.avatarUrl);
+        setBannerUrl(profile.bannerUrl);
         setSocialLinks([...profile.socialLinks]);
         setSuccessMessage("");
         setServerError("");
@@ -198,7 +214,12 @@ function CreatorSettingsPage(): React.ReactElement {
 
     setIsSubmitting(true);
     try {
-      await updateCreatorProfile(selectedCreatorId, { socialLinks });
+      await updateCreatorProfile(selectedCreatorId, {
+        displayName: displayName.trim() || undefined,
+        handle: handle.trim() || undefined,
+        bio: bio.trim() || undefined,
+        socialLinks,
+      });
       setSuccessMessage("Changes saved successfully");
     } catch (err) {
       setServerError(
@@ -206,6 +227,40 @@ function CreatorSettingsPage(): React.ReactElement {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // ── Avatar Upload Handler ──
+  const handleAvatarUpload = async (): Promise<void> => {
+    if (!avatarFile || !selectedCreatorId) return;
+    setIsUploadingAvatar(true);
+    setServerError("");
+    try {
+      const updated = await uploadCreatorAvatar(selectedCreatorId, avatarFile);
+      setAvatarUrl(updated.avatarUrl);
+      setAvatarFile(null);
+      setSuccessMessage("Avatar uploaded");
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Failed to upload avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // ── Banner Upload Handler ──
+  const handleBannerUpload = async (): Promise<void> => {
+    if (!bannerFile || !selectedCreatorId) return;
+    setIsUploadingBanner(true);
+    setServerError("");
+    try {
+      const updated = await uploadCreatorBanner(selectedCreatorId, bannerFile);
+      setBannerUrl(updated.bannerUrl);
+      setBannerFile(null);
+      setSuccessMessage("Banner uploaded");
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Failed to upload banner");
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -259,7 +314,103 @@ function CreatorSettingsPage(): React.ReactElement {
         </div>
       )}
 
+      {/* ── Avatar / Banner Upload ── */}
+      <div className={styles.imageUploads}>
+        <div className={styles.imageField}>
+          <span className={formStyles.label}>Avatar</span>
+          {avatarUrl && (
+            <img src={avatarUrl} alt="Avatar preview" className={styles.avatarPreview} />
+          )}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+            disabled={isUploadingAvatar}
+          />
+          <button
+            type="button"
+            className={`${buttonStyles.primaryButton} ${styles.uploadButton}`}
+            onClick={handleAvatarUpload}
+            disabled={!avatarFile || isUploadingAvatar}
+          >
+            {isUploadingAvatar ? "Uploading\u2026" : "Upload Avatar"}
+          </button>
+        </div>
+
+        <div className={styles.imageField}>
+          <span className={formStyles.label}>Banner</span>
+          {bannerUrl && (
+            <img src={bannerUrl} alt="Banner preview" className={styles.bannerPreview} />
+          )}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
+            disabled={isUploadingBanner}
+          />
+          <button
+            type="button"
+            className={`${buttonStyles.primaryButton} ${styles.uploadButton}`}
+            onClick={handleBannerUpload}
+            disabled={!bannerFile || isUploadingBanner}
+          >
+            {isUploadingBanner ? "Uploading\u2026" : "Upload Banner"}
+          </button>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
+        {/* Display Name */}
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="creator-display-name" className={formStyles.label}>
+            Display Name
+          </label>
+          <input
+            id="creator-display-name"
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className={formStyles.input}
+            disabled={isSubmitting}
+            maxLength={100}
+          />
+        </div>
+
+        {/* Handle */}
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="creator-handle" className={formStyles.label}>
+            Handle
+          </label>
+          <input
+            id="creator-handle"
+            type="text"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            className={formStyles.input}
+            disabled={isSubmitting}
+            placeholder="my-creator-page"
+          />
+          <span className={formStyles.fieldHint}>
+            Letters, numbers, and hyphens only. Used in your page URL.
+          </span>
+        </div>
+
+        {/* Bio */}
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="creator-bio" className={formStyles.label}>
+            Bio
+          </label>
+          <textarea
+            id="creator-bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            className={formStyles.textarea}
+            disabled={isSubmitting}
+            maxLength={2000}
+            rows={4}
+          />
+        </div>
+
         {/* Add Social Link */}
         <div className={formStyles.fieldGroup}>
           <label htmlFor="link-platform" className={formStyles.label}>
@@ -348,7 +499,7 @@ function CreatorSettingsPage(): React.ReactElement {
         </button>
       </form>
 
-      {isFeatureEnabled("federation") && handle && (
+      {isFeatureEnabled("federation") && handle.length > 0 && (
         <section className={styles.federationSection}>
           <h2 className={styles.federationHeading}>Fediverse</h2>
           <p className={styles.federationDescription}>
