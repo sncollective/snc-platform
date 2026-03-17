@@ -68,7 +68,7 @@ describe("useRoles", () => {
 
     getMockFetch().mockResolvedValue(
       new Response(
-        JSON.stringify({ user, roles: ["subscriber"] }),
+        JSON.stringify({ user, roles: ["stakeholder"] }),
         { status: 200 },
       ),
     );
@@ -76,7 +76,7 @@ describe("useRoles", () => {
     const { result } = renderHook(() => useRoles());
 
     await waitFor(() => {
-      expect(result.current).toEqual(["subscriber"]);
+      expect(result.current).toEqual(["stakeholder"]);
     });
 
     expect(getMockFetch()).toHaveBeenCalledWith("/api/me", {
@@ -123,19 +123,19 @@ describe("useRoles", () => {
 
 describe("hasRole", () => {
   it("returns true when the role is present", () => {
-    expect(hasRole(["subscriber", "creator"], "creator")).toBe(true);
+    expect(hasRole(["stakeholder", "admin"], "admin")).toBe(true);
   });
 
   it("returns false when the role is absent", () => {
-    expect(hasRole(["subscriber"], "creator")).toBe(false);
+    expect(hasRole(["stakeholder"], "admin")).toBe(false);
   });
 
   it("returns false for an empty roles array", () => {
-    expect(hasRole([], "subscriber")).toBe(false);
+    expect(hasRole([], "stakeholder")).toBe(false);
   });
 
   it("returns true for a single matching role", () => {
-    expect(hasRole(["cooperative-member"], "cooperative-member")).toBe(true);
+    expect(hasRole(["stakeholder"], "stakeholder")).toBe(true);
   });
 });
 
@@ -153,7 +153,7 @@ describe("fetchAuthState", () => {
 
     getMockFetch().mockResolvedValue(
       new Response(
-        JSON.stringify({ user: userJson, roles: ["subscriber"] }),
+        JSON.stringify({ user: userJson, roles: ["stakeholder"] }),
         { status: 200 },
       ),
     );
@@ -161,7 +161,7 @@ describe("fetchAuthState", () => {
     const result = await fetchAuthState();
 
     expect(result.user).toEqual(userJson);
-    expect(result.roles).toEqual(["subscriber"]);
+    expect(result.roles).toEqual(["stakeholder"]);
   });
 
   it("returns null user when response is not ok", async () => {

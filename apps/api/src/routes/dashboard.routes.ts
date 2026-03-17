@@ -25,7 +25,7 @@ export const dashboardRoutes = new Hono<AuthEnv>();
 dashboardRoutes.get(
   "/revenue",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Monthly revenue from Stripe invoices (last 12 months)",
     tags: ["dashboard"],
@@ -63,7 +63,7 @@ dashboardRoutes.get(
 dashboardRoutes.get(
   "/subscribers",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Active subscriber count",
     tags: ["dashboard"],
@@ -91,7 +91,7 @@ dashboardRoutes.get(
 dashboardRoutes.get(
   "/bookings",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description: "Pending and total booking request counts",
     tags: ["dashboard"],

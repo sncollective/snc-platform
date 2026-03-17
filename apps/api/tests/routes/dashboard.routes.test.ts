@@ -26,7 +26,7 @@ const mockDb = {
 
 const ctx = setupRouteTest({
   db: mockDb,
-  defaultAuth: { roles: ["cooperative-member"] },
+  defaultAuth: { roles: ["stakeholder"] },
   mocks: () => {
     vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
       userSubscriptions: {
@@ -181,8 +181,8 @@ describe("dashboard routes", () => {
       expect(body.error.code).toBe("BILLING_NOT_CONFIGURED");
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/dashboard/revenue");
 
@@ -220,8 +220,8 @@ describe("dashboard routes", () => {
       expect(body.active).toBe(0);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/dashboard/subscribers");
 
@@ -272,8 +272,8 @@ describe("dashboard routes", () => {
       expect(body.total).toBe(0);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/dashboard/bookings");
 

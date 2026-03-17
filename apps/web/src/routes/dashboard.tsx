@@ -45,7 +45,7 @@ export const Route = createFileRoute("/dashboard")({
       throw redirect({ to: "/login" });
     }
 
-    if (!roles.includes("cooperative-member")) {
+    if (!roles.includes("stakeholder")) {
       throw redirect({ to: "/feed" });
     }
   },

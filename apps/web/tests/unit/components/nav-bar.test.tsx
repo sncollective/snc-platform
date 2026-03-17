@@ -103,10 +103,10 @@ describe("NavBar", () => {
     expect(avatarButton).toHaveTextContent("JD");
   });
 
-  it("shows 'Dashboard' link when user has cooperative-member role", async () => {
+  it("shows 'Dashboard' link when user has stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-    mockUseRoles.mockReturnValue(["cooperative-member"]);
+    mockUseRoles.mockReturnValue(["stakeholder"]);
 
     render(<NavBar />);
 
@@ -116,10 +116,10 @@ describe("NavBar", () => {
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 
-  it("hides 'Dashboard' link when user lacks cooperative-member role", async () => {
+  it("hides 'Dashboard' link when user lacks stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-    mockUseRoles.mockReturnValue(["subscriber"]);
+    mockUseRoles.mockReturnValue([]);
 
     render(<NavBar />);
 

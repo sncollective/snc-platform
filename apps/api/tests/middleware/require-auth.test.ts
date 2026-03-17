@@ -63,7 +63,7 @@ describe("requireAuth middleware", () => {
   beforeEach(async () => {
     mockGetSession.mockReset();
     mockGetUserRoles.mockReset();
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockGetUserRoles.mockResolvedValue([]);
     app = await setupAuthApp();
   });
 
@@ -155,14 +155,14 @@ describe("requireAuth middleware", () => {
       user: MOCK_USER,
       session: MOCK_SESSION,
     });
-    mockGetUserRoles.mockResolvedValue(["subscriber", "creator"]);
+    mockGetUserRoles.mockResolvedValue(["stakeholder", "admin"]);
 
     const res = await app.request("/protected", {
       headers: { Cookie: "better-auth.session_token=valid_token" },
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.roles).toStrictEqual(["subscriber", "creator"]);
+    expect(body.roles).toStrictEqual(["stakeholder", "admin"]);
     expect(mockGetUserRoles).toHaveBeenCalledWith(MOCK_USER.id);
   });
 

@@ -130,7 +130,7 @@ describe("admin routes", () => {
             where: vi
               .fn()
               .mockResolvedValue([
-                { userId: dbUser.id, role: "subscriber" },
+                { userId: dbUser.id, role: "stakeholder" },
               ]),
           }),
         };
@@ -171,7 +171,7 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      ctx.auth.roles = ["subscriber"];
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/admin/users");
 
@@ -210,8 +210,8 @@ describe("admin routes", () => {
             where: vi
               .fn()
               .mockResolvedValue([
-                { userId: targetUser.id, role: "subscriber" },
-                { userId: targetUser.id, role: "creator" },
+                { userId: targetUser.id, role: "stakeholder" },
+                { userId: targetUser.id, role: "admin" },
               ]),
           }),
         };
@@ -220,7 +220,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(200);
@@ -237,7 +237,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(404);
@@ -270,7 +270,7 @@ describe("admin routes", () => {
           from: () => ({
             where: vi
               .fn()
-              .mockResolvedValue([{ userId: targetUser.id, role: "subscriber" }]),
+              .mockResolvedValue([{ userId: targetUser.id, role: "stakeholder" }]),
           }),
         };
       });
@@ -278,7 +278,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "subscriber" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(200);
@@ -286,12 +286,12 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      ctx.auth.roles = ["subscriber"];
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(403);
@@ -303,7 +303,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(401);
@@ -330,7 +330,7 @@ describe("admin routes", () => {
           from: () => ({
             where: vi
               .fn()
-              .mockResolvedValue([{ userId: targetUser.id, role: "subscriber" }]),
+              .mockResolvedValue([{ userId: targetUser.id, role: "stakeholder" }]),
           }),
         };
       });
@@ -338,7 +338,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(200);
@@ -370,7 +370,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(404);
@@ -387,12 +387,12 @@ describe("admin routes", () => {
     });
 
     it("returns 403 for non-admin user", async () => {
-      ctx.auth.roles = ["subscriber"];
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(403);
@@ -404,7 +404,7 @@ describe("admin routes", () => {
       const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       });
 
       expect(res.status).toBe(401);

@@ -45,7 +45,7 @@ const ctx = setupRouteTest({
   db: mockDb,
   defaultAuth: {
     user: makeMockUser(),
-    roles: ["cooperative-member"],
+    roles: ["stakeholder"],
   },
   mocks: () => {
     vi.doMock("../../src/db/schema/calendar.schema.js", () => ({
@@ -154,8 +154,8 @@ describe("calendar routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/calendar/events");
 
@@ -260,8 +260,8 @@ describe("calendar routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/calendar/events", {
         method: "POST",
@@ -359,8 +359,8 @@ describe("calendar routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/calendar/events/evt_test001", {
         method: "DELETE",
@@ -394,8 +394,8 @@ describe("calendar routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 for non-cooperative-member", async () => {
-      ctx.auth.roles = ["subscriber"];
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/calendar/feed-token", {
         method: "POST",

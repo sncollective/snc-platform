@@ -3,10 +3,7 @@ import { z } from "zod";
 // ── Public Constants ──
 
 export const ROLES = [
-  "subscriber",
-  "creator",
-  "cooperative-member",
-  "service-client",
+  "stakeholder",
   "admin",
 ] as const;
 

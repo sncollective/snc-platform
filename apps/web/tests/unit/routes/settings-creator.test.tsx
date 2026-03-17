@@ -74,7 +74,7 @@ const DEFAULT_PROFILE = makeMockCreatorProfileResponse({
 beforeEach(() => {
   mockFetchAuthState.mockResolvedValue({
     user: { id: "user_test123" },
-    roles: ["creator"],
+    roles: ["stakeholder"],
   });
   mockFetchMyCreatorPages.mockResolvedValue([DEFAULT_PROFILE]);
   mockFetchCreatorProfile.mockResolvedValue(DEFAULT_PROFILE);
@@ -95,24 +95,15 @@ describe("CreatorSettingsPage", () => {
     it("redirects to /feed when user has no qualifying role", async () => {
       mockFetchAuthState.mockResolvedValue({
         user: { id: "u1" },
-        roles: ["subscriber"],
+        roles: [],
       });
       await expect(routeBeforeLoad()).rejects.toEqual({ to: "/feed" });
     });
 
-    it("returns userId when user is an authenticated creator", async () => {
+    it("returns userId when user is an authenticated stakeholder", async () => {
       mockFetchAuthState.mockResolvedValue({
         user: { id: "u1" },
-        roles: ["creator"],
-      });
-      const result = await routeBeforeLoad();
-      expect(result).toEqual({ userId: "u1" });
-    });
-
-    it("allows cooperative-member role", async () => {
-      mockFetchAuthState.mockResolvedValue({
-        user: { id: "u1" },
-        roles: ["cooperative-member"],
+        roles: ["stakeholder"],
       });
       const result = await routeBeforeLoad();
       expect(result).toEqual({ userId: "u1" });
@@ -317,6 +308,9 @@ describe("CreatorSettingsPage", () => {
 
     await waitFor(() => {
       expect(mockUpdateCreatorProfile).toHaveBeenCalledWith("user_test123", {
+        displayName: "Test Creator",
+        bio: "A test creator bio",
+        handle: undefined,
         socialLinks: [
           { platform: "bandcamp", url: "https://testband.bandcamp.com" },
         ],

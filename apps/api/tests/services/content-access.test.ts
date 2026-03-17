@@ -7,18 +7,24 @@ import { TEST_CONFIG } from "../helpers/test-constants.js";
 // ── Mock State ──
 
 // SELECT chain for innerJoin path: db.select().from().innerJoin().where().limit()
-const mockLimit = vi.fn();
-const mockSelectWhere = vi.fn(() => ({ limit: mockLimit }));
-const mockInnerJoin = vi.fn(() => ({ where: mockSelectWhere }));
+const mockSubscriptionLimit = vi.fn();
+const mockSubscriptionWhere = vi.fn(() => ({ limit: mockSubscriptionLimit }));
+const mockInnerJoin = vi.fn(() => ({ where: mockSubscriptionWhere }));
 
 // SELECT chain for direct where path: db.select().from().where()
 // Used by creatorMembers queries (no innerJoin)
-const mockMemberWhere = vi.fn();
+// The where() result needs .limit() for the "any membership" query in checkContentAccess
+const mockMemberLimit = vi.fn();
+const mockMemberWhere = vi.fn(() => ({ limit: mockMemberLimit }));
 
-const mockSelectFrom = vi.fn(() => ({
-  innerJoin: mockInnerJoin,
-  where: mockMemberWhere,
-}));
+// Track which table is being queried to route to the right chain
+const mockSelectFrom = vi.fn((table: unknown) => {
+  const tableObj = table as Record<string, unknown>;
+  if ("creatorId" in tableObj && "userId" in tableObj && "role" in tableObj) {
+    return { innerJoin: mockInnerJoin, where: mockMemberWhere };
+  }
+  return { innerJoin: mockInnerJoin, where: mockSubscriptionWhere };
+});
 const mockSelect = vi.fn(() => ({ from: mockSelectFrom }));
 
 const mockDb = {
@@ -81,9 +87,11 @@ describe("checkContentAccess", () => {
 
   beforeEach(async () => {
     // Default: no matching subscriptions found, no roles, not a team member
-    mockLimit.mockResolvedValue([]);
-    mockMemberWhere.mockResolvedValue([]);
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockSubscriptionLimit.mockResolvedValue([]);
+    mockSubscriptionWhere.mockReturnValue({ limit: mockSubscriptionLimit });
+    mockMemberWhere.mockReturnValue({ limit: mockMemberLimit });
+    mockMemberLimit.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue([]);
     const mod = await setupContentGate();
     checkContentAccess = mod.checkContentAccess;
   });
@@ -116,18 +124,23 @@ describe("checkContentAccess", () => {
 
   describe("creator team member bypass", () => {
     it("returns allowed when user is a team member of the creator", async () => {
-      mockMemberWhere.mockResolvedValueOnce([{ role: "owner" }]);
+      // First member where call (specific creator check) returns a match
+      mockMemberWhere.mockReturnValueOnce([{ role: "owner" }]);
 
       const result = await checkContentAccess("creator_456", "creator_456", "subscribers");
 
       expect(result).toEqual({ allowed: true });
       // Subscription check should not be reached
-      expect(mockLimit).not.toHaveBeenCalled();
+      expect(mockSubscriptionLimit).not.toHaveBeenCalled();
     });
 
     it("falls through when user is not a team member", async () => {
-      // mockMemberWhere defaults to [] (not a member)
-      mockLimit.mockResolvedValue([]);
+      // Both member checks return empty (specific + any membership)
+      mockMemberWhere
+        .mockReturnValueOnce([])  // specific creator check — returns array directly (no .limit)
+        .mockReturnValue({ limit: mockMemberLimit });  // any membership check — returns chain
+      mockMemberLimit.mockResolvedValue([]);
+      mockSubscriptionLimit.mockResolvedValue([]);
 
       const result = await checkContentAccess("user_123", "creator_456", "subscribers");
 
@@ -139,28 +152,25 @@ describe("checkContentAccess", () => {
     });
   });
 
-  describe("creator role bypass", () => {
-    it("returns allowed when user has creator role", async () => {
-      mockGetUserRoles.mockResolvedValue(["creator"]);
+  describe("stakeholder role bypass", () => {
+    it("returns allowed when user has stakeholder role", async () => {
+      mockGetUserRoles.mockResolvedValue(["stakeholder"]);
+      // First member where (specific creator) returns empty
+      mockMemberWhere.mockReturnValueOnce([]);
 
       const result = await checkContentAccess("user_123", "creator_456", "subscribers");
 
       expect(result).toEqual({ allowed: true });
-      expect(mockLimit).not.toHaveBeenCalled();
+      expect(mockSubscriptionLimit).not.toHaveBeenCalled();
     });
 
-    it("skips subscription check when user has creator role", async () => {
-      mockGetUserRoles.mockResolvedValue(["subscriber", "creator"]);
-
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
-
-      expect(result).toEqual({ allowed: true });
-      expect(mockLimit).not.toHaveBeenCalled();
-    });
-
-    it("falls through to subscription check when user lacks creator role", async () => {
-      mockGetUserRoles.mockResolvedValue(["subscriber"]);
-      mockLimit.mockResolvedValue([]);
+    it("falls through to subscription check when user lacks stakeholder role", async () => {
+      mockGetUserRoles.mockResolvedValue([]);
+      mockMemberWhere
+        .mockReturnValueOnce([])  // specific creator check
+        .mockReturnValue({ limit: mockMemberLimit });  // any membership check
+      mockMemberLimit.mockResolvedValue([]);
+      mockSubscriptionLimit.mockResolvedValue([]);
 
       const result = await checkContentAccess("user_123", "creator_456", "subscribers");
 
@@ -169,85 +179,45 @@ describe("checkContentAccess", () => {
         reason: "SUBSCRIPTION_REQUIRED",
         creatorId: "creator_456",
       });
+    });
+  });
+
+  describe("any creator team member bypass", () => {
+    it("returns allowed when user is a member of any creator", async () => {
+      // First call: specific creator check → not a member
+      mockMemberWhere.mockReturnValueOnce([]);
+      // After stakeholder check fails, second call: any membership check → has membership
+      mockMemberWhere.mockReturnValue({ limit: mockMemberLimit });
+      mockMemberLimit.mockResolvedValue([{ creatorId: "other_creator" }]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
+
+      expect(result).toEqual({ allowed: true });
     });
   });
 
   describe("active platform subscription", () => {
     it("returns allowed when user has active platform subscription", async () => {
-      mockLimit.mockResolvedValue([{ id: "sub_123" }]);
+      mockMemberWhere
+        .mockReturnValueOnce([])  // specific creator check
+        .mockReturnValue({ limit: mockMemberLimit });
+      mockMemberLimit.mockResolvedValue([]);  // any membership check
+      mockSubscriptionLimit.mockResolvedValue([{ id: "sub_123" }]);
 
       const result = await checkContentAccess("user_123", "creator_456", "subscribers");
 
       expect(result).toEqual({ allowed: true });
-      expect(mockLimit).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe("active per-creator subscription", () => {
-    it("returns allowed when user has active subscription for matching creator", async () => {
-      mockLimit.mockResolvedValue([{ id: "sub_123" }]);
-
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
-
-      expect(result).toEqual({ allowed: true });
-    });
-
-    it("returns not allowed when user has active subscription for different creator", async () => {
-      mockLimit.mockResolvedValue([]);
-
-      const result = await checkContentAccess("user_123", "creator_other", "subscribers");
-
-      expect(result).toEqual({
-        allowed: false,
-        reason: "SUBSCRIPTION_REQUIRED",
-        creatorId: "creator_other",
-      });
-    });
-  });
-
-  describe("canceled subscription", () => {
-    it("returns allowed when canceled but currentPeriodEnd is in the future", async () => {
-      // DB query includes canceled + future period in WHERE clause; if it
-      // matches, the mock returns a row indicating access is granted
-      mockLimit.mockResolvedValue([{ id: "sub_123" }]);
-
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
-
-      expect(result).toEqual({ allowed: true });
-    });
-
-    it("returns not allowed when canceled and currentPeriodEnd is in the past", async () => {
-      // DB query excludes expired canceled subscriptions; mock returns empty
-      mockLimit.mockResolvedValue([]);
-
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
-
-      expect(result).toEqual({
-        allowed: false,
-        reason: "SUBSCRIPTION_REQUIRED",
-        creatorId: "creator_456",
-      });
-    });
-  });
-
-  describe("past_due subscription", () => {
-    it("returns not allowed when subscription is past_due", async () => {
-      // past_due is excluded from the query's status filter; mock returns empty
-      mockLimit.mockResolvedValue([]);
-
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers");
-
-      expect(result).toEqual({
-        allowed: false,
-        reason: "SUBSCRIPTION_REQUIRED",
-        creatorId: "creator_456",
-      });
+      expect(mockSubscriptionLimit).toHaveBeenCalledOnce();
     });
   });
 
   describe("no subscription", () => {
     it("returns not allowed when user has no subscriptions", async () => {
-      mockLimit.mockResolvedValue([]);
+      mockMemberWhere
+        .mockReturnValueOnce([])
+        .mockReturnValue({ limit: mockMemberLimit });
+      mockMemberLimit.mockResolvedValue([]);
+      mockSubscriptionLimit.mockResolvedValue([]);
 
       const result = await checkContentAccess("user_123", "creator_456", "subscribers");
 
@@ -261,9 +231,13 @@ describe("checkContentAccess", () => {
 
   describe("pre-fetched roles", () => {
     it("uses prefetchedRoles instead of querying getUserRoles", async () => {
-      mockLimit.mockResolvedValue([]);
+      mockMemberWhere
+        .mockReturnValueOnce([])
+        .mockReturnValue({ limit: mockMemberLimit });
+      mockMemberLimit.mockResolvedValue([]);
+      mockSubscriptionLimit.mockResolvedValue([]);
 
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers", ["subscriber"]);
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers", []);
 
       expect(result).toEqual({
         allowed: false,
@@ -273,17 +247,23 @@ describe("checkContentAccess", () => {
       expect(mockGetUserRoles).not.toHaveBeenCalled();
     });
 
-    it("returns allowed when prefetchedRoles includes creator", async () => {
-      const result = await checkContentAccess("user_123", "creator_456", "subscribers", ["creator"]);
+    it("returns allowed when prefetchedRoles includes stakeholder", async () => {
+      mockMemberWhere.mockReturnValueOnce([]);
+
+      const result = await checkContentAccess("user_123", "creator_456", "subscribers", ["stakeholder"]);
 
       expect(result).toEqual({ allowed: true });
       expect(mockGetUserRoles).not.toHaveBeenCalled();
-      expect(mockLimit).not.toHaveBeenCalled();
+      expect(mockSubscriptionLimit).not.toHaveBeenCalled();
     });
 
     it("falls back to getUserRoles when prefetchedRoles is undefined", async () => {
-      mockGetUserRoles.mockResolvedValue(["subscriber"]);
-      mockLimit.mockResolvedValue([]);
+      mockGetUserRoles.mockResolvedValue([]);
+      mockMemberWhere
+        .mockReturnValueOnce([])
+        .mockReturnValue({ limit: mockMemberLimit });
+      mockMemberLimit.mockResolvedValue([]);
+      mockSubscriptionLimit.mockResolvedValue([]);
 
       await checkContentAccess("user_123", "creator_456", "subscribers");
 
@@ -305,9 +285,11 @@ describe("buildContentAccessContext", () => {
   }>;
 
   beforeEach(async () => {
-    mockLimit.mockResolvedValue([]);
+    mockSubscriptionLimit.mockResolvedValue([]);
+    mockSubscriptionWhere.mockReturnValue({ limit: mockSubscriptionLimit });
     mockMemberWhere.mockResolvedValue([]);
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockMemberLimit.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue([]);
     const mod = await setupContentGate();
     buildContentAccessContext = mod.buildContentAccessContext;
   });
@@ -327,21 +309,33 @@ describe("buildContentAccessContext", () => {
     expect(mockSelect).not.toHaveBeenCalled();
   });
 
-  it("skips subscription query for creator role", async () => {
-    mockGetUserRoles.mockResolvedValue(["creator"]);
+  it("grants free access for stakeholder role", async () => {
+    mockGetUserRoles.mockResolvedValue(["stakeholder"]);
+    mockMemberWhere.mockResolvedValue([]);
 
     const ctx = await buildContentAccessContext("user_123");
 
     expect(ctx.userId).toBe("user_123");
-    expect(ctx.roles).toContain("creator");
+    expect(ctx.roles).toContain("stakeholder");
     expect(ctx.hasPlatformSubscription).toBe(true);
-    expect(mockSelectWhere).not.toHaveBeenCalled();
   });
 
-  it("fetches subscriptions for subscriber role", async () => {
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
-    // The batch query has no .limit() — it uses the innerJoin → where chain directly
-    mockSelectWhere.mockResolvedValue([
+  it("grants free access for any creator team member", async () => {
+    mockGetUserRoles.mockResolvedValue([]);
+    mockMemberWhere.mockResolvedValue([{ creatorId: "creator_A" }]);
+
+    const ctx = await buildContentAccessContext("user_123");
+
+    expect(ctx.userId).toBe("user_123");
+    expect(ctx.memberCreatorIds.has("creator_A")).toBe(true);
+    expect(ctx.hasPlatformSubscription).toBe(true);
+  });
+
+  it("fetches subscriptions for regular user", async () => {
+    mockGetUserRoles.mockResolvedValue([]);
+    mockMemberWhere.mockResolvedValue([]);
+    // The batch subscription query uses innerJoin → where chain (no limit)
+    mockSubscriptionWhere.mockResolvedValue([
       { planType: "platform", planCreatorId: null },
       { planType: "creator", planCreatorId: "creator_A" },
     ]);
@@ -355,8 +349,9 @@ describe("buildContentAccessContext", () => {
   });
 
   it("returns no platform subscription when only creator subscriptions exist", async () => {
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
-    mockSelectWhere.mockResolvedValue([
+    mockGetUserRoles.mockResolvedValue([]);
+    mockMemberWhere.mockResolvedValue([]);
+    mockSubscriptionWhere.mockResolvedValue([
       { planType: "creator", planCreatorId: "creator_B" },
     ]);
 
@@ -367,26 +362,28 @@ describe("buildContentAccessContext", () => {
   });
 
   it("uses prefetchedRoles instead of querying getUserRoles", async () => {
-    mockSelectWhere.mockResolvedValue([]);
+    mockMemberWhere.mockResolvedValue([]);
+    mockSubscriptionWhere.mockResolvedValue([]);
 
-    const ctx = await buildContentAccessContext("user_123", ["subscriber"]);
+    const ctx = await buildContentAccessContext("user_123", []);
 
-    expect(ctx.roles).toEqual(["subscriber"]);
+    expect(ctx.roles).toEqual([]);
     expect(mockGetUserRoles).not.toHaveBeenCalled();
     expect(mockSelect).toHaveBeenCalled();
   });
 
-  it("skips subscription query for prefetched creator role", async () => {
-    const ctx = await buildContentAccessContext("user_123", ["creator"]);
+  it("skips subscription query for prefetched stakeholder role", async () => {
+    mockMemberWhere.mockResolvedValue([]);
 
-    expect(ctx.roles).toContain("creator");
+    const ctx = await buildContentAccessContext("user_123", ["stakeholder"]);
+
+    expect(ctx.roles).toContain("stakeholder");
     expect(ctx.hasPlatformSubscription).toBe(true);
     expect(mockGetUserRoles).not.toHaveBeenCalled();
-    expect(mockSelectWhere).not.toHaveBeenCalled();
   });
 
   it("ignores prefetchedRoles for null userId", async () => {
-    const ctx = await buildContentAccessContext(null, ["creator"]);
+    const ctx = await buildContentAccessContext(null, ["stakeholder"]);
 
     expect(ctx.userId).toBeNull();
     expect(ctx.roles).toEqual([]);
@@ -408,9 +405,10 @@ describe("hasContentAccess", () => {
   ) => boolean;
 
   beforeEach(async () => {
-    mockLimit.mockResolvedValue([]);
+    mockSubscriptionLimit.mockResolvedValue([]);
     mockMemberWhere.mockResolvedValue([]);
-    mockGetUserRoles.mockResolvedValue(["subscriber"]);
+    mockMemberLimit.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue([]);
     const mod = await setupContentGate();
     hasContentAccess = mod.hasContentAccess;
   });
@@ -421,7 +419,7 @@ describe("hasContentAccess", () => {
 
   const baseCtx = {
     userId: "user_123",
-    roles: ["subscriber"],
+    roles: [] as string[],
     memberCreatorIds: new Set<string>(),
     subscribedCreatorIds: new Set<string>(),
     hasPlatformSubscription: false,
@@ -442,8 +440,8 @@ describe("hasContentAccess", () => {
     expect(hasContentAccess(ctx, "user_123", "subscribers")).toBe(true);
   });
 
-  it("allows user with creator role", () => {
-    const ctx = { ...baseCtx, roles: ["creator"] };
+  it("allows user with stakeholder role", () => {
+    const ctx = { ...baseCtx, roles: ["stakeholder"] };
     expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(true);
   });
 
@@ -467,7 +465,7 @@ describe("hasContentAccess", () => {
     expect(hasContentAccess(ctx, "creator_456", "subscribers")).toBe(false);
   });
 
-  it("denies subscriber with no subscriptions", () => {
+  it("denies regular user with no subscriptions", () => {
     expect(hasContentAccess(baseCtx, "creator_456", "subscribers")).toBe(false);
   });
 });

@@ -73,7 +73,7 @@ const mockDb = {
 
 const ctx = setupRouteTest({
   db: mockDb,
-  defaultAuth: { roles: ["subscriber", "creator"] },
+  defaultAuth: { roles: ["stakeholder"] },
   mocks: ({ ForbiddenError }) => {
     TestForbiddenError = ForbiddenError;
 

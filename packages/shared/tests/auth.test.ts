@@ -32,23 +32,17 @@ const VALID_SESSION = {
 };
 
 describe("ROLES", () => {
-  it("contains exactly the five expected roles", () => {
-    expect(ROLES).toStrictEqual([
-      "subscriber",
-      "creator",
-      "cooperative-member",
-      "service-client",
-      "admin",
-    ]);
+  it("contains exactly the two expected roles", () => {
+    expect(ROLES).toStrictEqual(["stakeholder", "admin"]);
   });
 
-  it("has length 5", () => {
-    expect(ROLES).toHaveLength(5);
+  it("has length 2", () => {
+    expect(ROLES).toHaveLength(2);
   });
 });
 
 describe("RoleSchema", () => {
-  it.each(["subscriber", "creator", "cooperative-member", "service-client", "admin"])(
+  it.each(["stakeholder", "admin"])(
     'accepts "%s"',
     (role) => {
       expect(RoleSchema.parse(role)).toBe(role);
@@ -150,7 +144,7 @@ describe("AuthSessionSchema", () => {
 
 // These assignments verify that the inferred types are correct.
 // If they compile, the types are correctly defined.
-const _roleCheck: Role = "subscriber";
+const _roleCheck: Role = "stakeholder";
 const _userCheck: User = VALID_USER;
 const _sessionCheck: Session = VALID_SESSION;
 const _authSessionCheck: AuthSession = {

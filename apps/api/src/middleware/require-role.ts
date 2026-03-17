@@ -15,7 +15,7 @@ import type { AuthEnv } from "./auth-env.js";
  *
  * Must be chained after `requireAuth` (reads `user` and `roles` from context).
  *
- * Usage: `app.post("/path", requireAuth, requireRole("creator"), handler)`
+ * Usage: `app.post("/path", requireAuth, requireRole("stakeholder"), handler)`
  */
 export const requireRole = (
   ...roles: Role[]

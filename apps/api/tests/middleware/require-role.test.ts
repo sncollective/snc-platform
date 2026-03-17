@@ -86,8 +86,8 @@ describe("requireRole middleware", () => {
 
   it("passes when user has the required role", async () => {
     const app = await setupRoleApp(
-      ["creator"],
-      ["subscriber", "creator"],
+      ["stakeholder"],
+      ["stakeholder"],
     );
     const res = await app.request("/protected");
     expect(res.status).toBe(200);
@@ -95,8 +95,8 @@ describe("requireRole middleware", () => {
 
   it("returns 403 when user lacks the required role", async () => {
     const app = await setupRoleApp(
-      ["creator"],
-      ["subscriber"],
+      ["stakeholder"],
+      [],
     );
     const res = await app.request("/protected");
     expect(res.status).toBe(403);
@@ -111,8 +111,8 @@ describe("requireRole middleware", () => {
 
   it("passes when user has one of multiple required roles", async () => {
     const app = await setupRoleApp(
-      ["creator", "cooperative-member"],
-      ["cooperative-member"],
+      ["stakeholder", "admin"],
+      ["stakeholder"],
     );
     const res = await app.request("/protected");
     expect(res.status).toBe(200);
@@ -120,8 +120,8 @@ describe("requireRole middleware", () => {
 
   it("returns 403 when user lacks all of multiple required roles", async () => {
     const app = await setupRoleApp(
-      ["creator", "cooperative-member"],
-      ["subscriber"],
+      ["stakeholder", "admin"],
+      [],
     );
     const res = await app.request("/protected");
     expect(res.status).toBe(403);
@@ -131,17 +131,17 @@ describe("requireRole middleware", () => {
 
   it("preserves roles on context after passing", async () => {
     const app = await setupRoleApp(
-      ["subscriber"],
-      ["subscriber", "creator"],
+      ["stakeholder"],
+      ["stakeholder", "admin"],
     );
     const res = await app.request("/protected");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.roles).toStrictEqual(["subscriber", "creator"]);
+    expect(body.roles).toStrictEqual(["stakeholder", "admin"]);
   });
 
   it("returns 401 when user is not on context", async () => {
-    const app = await setupRoleAppNoUser(["creator"]);
+    const app = await setupRoleAppNoUser(["stakeholder"]);
     const res = await app.request("/protected");
     expect(res.status).toBe(401);
     const body = await res.json();

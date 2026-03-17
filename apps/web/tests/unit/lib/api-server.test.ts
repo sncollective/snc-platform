@@ -128,7 +128,7 @@ describe("fetchAuthStateServer", () => {
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ user: { id: "u1" }, roles: ["subscriber"] }),
+        JSON.stringify({ user: { id: "u1" }, roles: ["stakeholder"] }),
         { status: 200 },
       ),
     );
@@ -145,14 +145,14 @@ describe("fetchAuthStateServer", () => {
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ user: { id: "u1" }, roles: ["subscriber"] }),
+        JSON.stringify({ user: { id: "u1" }, roles: ["stakeholder"] }),
         { status: 200 },
       ),
     );
 
     const result = await capturedHandlers.fetchAuthStateServer!();
 
-    expect(result).toEqual({ user: { id: "u1" }, roles: ["subscriber"] });
+    expect(result).toEqual({ user: { id: "u1" }, roles: ["stakeholder"] });
   });
 
   it("returns { user: null, roles: [] } on non-OK response", async () => {

@@ -12,12 +12,12 @@ const { getMockFetch } = setupFetchMock();
 
 describe("assignRole", () => {
   it("sends POST with correct URL, method, and body", async () => {
-    const user = makeMockAdminUser({ roles: ["admin", "subscriber"] });
+    const user = makeMockAdminUser({ roles: ["admin"] });
     getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ user }), { status: 200 }),
     );
 
-    const result = await assignRole("user_001", { role: "creator" });
+    const result = await assignRole("user_001", { role: "stakeholder" });
 
     expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/admin/users/user_001/roles",
@@ -25,7 +25,7 @@ describe("assignRole", () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "creator" }),
+        body: JSON.stringify({ role: "stakeholder" }),
       },
     );
     expect(result).toEqual({ user });
@@ -61,7 +61,7 @@ describe("assignRole", () => {
 
 describe("revokeRole", () => {
   it("sends DELETE with correct URL, method, and body", async () => {
-    const user = makeMockAdminUser({ roles: ["subscriber"] });
+    const user = makeMockAdminUser({ roles: ["stakeholder"] });
     getMockFetch().mockResolvedValue(
       new Response(JSON.stringify({ user }), { status: 200 }),
     );
@@ -86,7 +86,7 @@ describe("revokeRole", () => {
       new Response(JSON.stringify({ user }), { status: 200 }),
     );
 
-    await revokeRole("user/special id", { role: "creator" });
+    await revokeRole("user/special id", { role: "stakeholder" });
 
     const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("user%2Fspecial%20id");
@@ -116,7 +116,7 @@ describe("revokeRole", () => {
     );
 
     await expect(
-      revokeRole("nonexistent", { role: "creator" }),
+      revokeRole("nonexistent", { role: "stakeholder" }),
     ).rejects.toThrow("User not found");
   });
 });

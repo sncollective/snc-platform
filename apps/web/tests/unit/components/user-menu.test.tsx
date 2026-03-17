@@ -97,29 +97,12 @@ describe("UserMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("shows 'Creator Settings' link for users with creator role", async () => {
+  it("shows 'Creator Settings' link for users with stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["creator"]);
-
-    render(<UserMenu />);
-
-    await user.click(screen.getByLabelText("User menu"));
-
-    const creatorSettingsLink = screen.getByRole("menuitem", {
-      name: "Creator Settings",
-    });
-    expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
-  });
-
-  it("shows 'Creator Settings' link for cooperative-member role", async () => {
-    const user = userEvent.setup();
-    mockUseSession.mockReturnValue(
-      makeLoggedInSessionResult({ name: "Jane Doe" }),
-    );
-    mockUseRoles.mockReturnValue(["cooperative-member"]);
+    mockUseRoles.mockReturnValue(["stakeholder"]);
 
     render(<UserMenu />);
 
@@ -148,12 +131,12 @@ describe("UserMenu", () => {
     expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
   });
 
-  it("hides 'Creator Settings' link for users without creator role", async () => {
+  it("hides 'Creator Settings' link for users without stakeholder or admin role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["subscriber"]);
+    mockUseRoles.mockReturnValue([]);
 
     render(<UserMenu />);
 
@@ -164,12 +147,12 @@ describe("UserMenu", () => {
     ).toBeNull();
   });
 
-  it("shows 'Dashboard' link for cooperative-member role", async () => {
+  it("shows 'Dashboard' link for stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["cooperative-member"]);
+    mockUseRoles.mockReturnValue(["stakeholder"]);
 
     render(<UserMenu />);
 
@@ -179,12 +162,12 @@ describe("UserMenu", () => {
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 
-  it("hides 'Dashboard' link for users without cooperative-member role", async () => {
+  it("hides 'Dashboard' link for users without stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["subscriber"]);
+    mockUseRoles.mockReturnValue([]);
 
     render(<UserMenu />);
 
@@ -286,7 +269,7 @@ describe("UserMenu", () => {
 
     const serverAuth = {
       user: makeMockUser({ name: "Server User" }),
-      roles: ["cooperative-member"] as string[],
+      roles: ["stakeholder"] as string[],
     };
 
     render(<UserMenu serverAuth={serverAuth} />);

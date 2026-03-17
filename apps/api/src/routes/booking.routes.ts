@@ -324,7 +324,7 @@ bookingRoutes.get(
 bookingRoutes.get(
   "/bookings/pending",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description:
       "List pending booking requests with requester info (cooperative-member only)",
@@ -452,7 +452,7 @@ bookingRoutes.get(
 bookingRoutes.patch(
   "/bookings/:id/review",
   requireAuth,
-  requireRole("cooperative-member"),
+  requireRole("stakeholder"),
   describeRoute({
     description:
       "Approve or deny a booking request with optional review note (cooperative-member only)",

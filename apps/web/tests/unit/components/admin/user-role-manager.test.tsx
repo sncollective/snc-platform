@@ -36,7 +36,7 @@ describe("UserRoleManager", () => {
   });
 
   it("renders role badges for each user role", () => {
-    const user = makeMockAdminUser({ roles: ["admin", "creator"] });
+    const user = makeMockAdminUser({ roles: ["admin", "stakeholder"] });
 
     render(
       <UserRoleManager
@@ -47,11 +47,11 @@ describe("UserRoleManager", () => {
     );
 
     expect(screen.getByText("admin")).toBeInTheDocument();
-    expect(screen.getByText("creator")).toBeInTheDocument();
+    expect(screen.getByText("stakeholder")).toBeInTheDocument();
   });
 
   it("renders remove button for each role", () => {
-    const user = makeMockAdminUser({ roles: ["admin", "subscriber"] });
+    const user = makeMockAdminUser({ roles: ["admin", "stakeholder"] });
 
     render(
       <UserRoleManager
@@ -65,14 +65,14 @@ describe("UserRoleManager", () => {
       screen.getByRole("button", { name: "Remove admin role" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Remove subscriber role" }),
+      screen.getByRole("button", { name: "Remove stakeholder role" }),
     ).toBeInTheDocument();
   });
 
   it("calls onRevokeRole when remove button is clicked", async () => {
     const user = makeMockAdminUser({
       id: "user_123",
-      roles: ["admin", "subscriber"],
+      roles: ["admin", "stakeholder"],
     });
     const userSetup = userEvent.setup();
 
@@ -85,14 +85,14 @@ describe("UserRoleManager", () => {
     );
 
     await userSetup.click(
-      screen.getByRole("button", { name: "Remove subscriber role" }),
+      screen.getByRole("button", { name: "Remove stakeholder role" }),
     );
 
-    expect(mockOnRevokeRole).toHaveBeenCalledWith("user_123", "subscriber");
+    expect(mockOnRevokeRole).toHaveBeenCalledWith("user_123", "stakeholder");
   });
 
   it("renders role select dropdown with available roles", () => {
-    const user = makeMockAdminUser({ roles: ["subscriber"] });
+    const user = makeMockAdminUser({ roles: ["stakeholder"] });
 
     render(
       <UserRoleManager
@@ -109,7 +109,7 @@ describe("UserRoleManager", () => {
   it("calls onAssignRole when a role is selected and Add is clicked", async () => {
     const user = makeMockAdminUser({
       id: "user_123",
-      roles: ["subscriber"],
+      roles: ["stakeholder"],
     });
     const userSetup = userEvent.setup();
 
@@ -122,14 +122,14 @@ describe("UserRoleManager", () => {
     );
 
     const select = screen.getByRole("combobox", { name: "Select role to add" });
-    await userSetup.selectOptions(select, "creator");
+    await userSetup.selectOptions(select, "admin");
     await userSetup.click(screen.getByRole("button", { name: "Add" }));
 
-    expect(mockOnAssignRole).toHaveBeenCalledWith("user_123", "creator");
+    expect(mockOnAssignRole).toHaveBeenCalledWith("user_123", "admin");
   });
 
   it("disables Add button when no role is selected", () => {
-    const user = makeMockAdminUser({ roles: ["subscriber"] });
+    const user = makeMockAdminUser({ roles: ["stakeholder"] });
 
     render(
       <UserRoleManager

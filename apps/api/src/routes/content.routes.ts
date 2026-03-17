@@ -29,7 +29,6 @@ import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { auth } from "../auth/auth.js";
 import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
-import { requireRole } from "../middleware/require-role.js";
 import { storage } from "../storage/index.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -303,7 +302,6 @@ contentRoutes.get(
 contentRoutes.post(
   "/",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
     description: "Create a new content item",
     tags: ["content"],
@@ -405,7 +403,6 @@ contentRoutes.get(
 contentRoutes.patch(
   "/:id",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
     description: "Update content metadata",
     tags: ["content"],
@@ -447,7 +444,6 @@ contentRoutes.patch(
 contentRoutes.delete(
   "/:id",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
     description: "Soft-delete content and remove associated storage files",
     tags: ["content"],
@@ -493,7 +489,6 @@ contentRoutes.delete(
 contentRoutes.post(
   "/:id/upload",
   requireAuth,
-  requireRole("creator"),
   describeRoute({
     description: "Upload a media file, thumbnail, or cover art for content",
     tags: ["content"],
