@@ -10,7 +10,7 @@ Conventions for skills scoped to the S/NC platform (`platform/.claude/skills/`).
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `name` | string | `platform-{action}`. Must match directory name. |
+| `name` | string | `platform-{action}`. Must match directory name. Exception: library reference skills use `{library}-v{major}` without the `platform-` prefix (e.g., `drizzle-v0`, `hono-v4`). |
 | `description` | string | `{WHAT}. {WHEN}.` — drives discovery and auto-triggering. |
 
 ### Optional (include only when non-default)
