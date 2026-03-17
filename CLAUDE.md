@@ -1,3 +1,15 @@
+# Platform CLAUDE.md
+
+## Claude Skills
+
+Platform skills (`platform-*`, `drizzle-v0`, `hono-v4`, `tanstack-*`, `zod-v4`) live in the
+**parent monorepo** at `.claude/skills/` (repo root), not in this submodule.
+
+Work from the monorepo root (`/workspaces/SNC`) to access them. Standalone clones of
+`snc-platform` won't have these skills — clone the full monorepo for Claude skill support.
+
+---
+
 # Coding Conventions
 
 ## Naming
