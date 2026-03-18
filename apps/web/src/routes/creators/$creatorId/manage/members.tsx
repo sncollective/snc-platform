@@ -17,7 +17,7 @@ export const Route = createFileRoute("/creators/$creatorId/manage/members")({
 
 function ManageMembersPage(): React.ReactElement {
   const { creatorId } = Route.useParams();
-  const { userId } = parentRoute.useLoaderData();
+  const { userId, isAdmin } = parentRoute.useLoaderData();
 
-  return <TeamSection creatorId={creatorId} currentUserId={userId} />;
+  return <TeamSection creatorId={creatorId} currentUserId={userId} isAdmin={isAdmin} />;
 }

@@ -117,7 +117,7 @@ describe("NAV_LINKS", () => {
     }
   });
 
-  it("Studio link has external: true", async () => {
+  it("Studio link is an internal route", async () => {
     vi.doMock("../../../src/lib/config.js", () => ({
       DEMO_MODE: false,
       features: ALL_ON,
@@ -128,8 +128,8 @@ describe("NAV_LINKS", () => {
 
     const studioLink = NAV_LINKS.find((l) => l.label === "Studio");
     expect(studioLink).toBeDefined();
-    expect(studioLink?.external).toBe(true);
-    expect(studioLink?.to).toBe("https://s-nc.org/studio");
+    expect(studioLink?.external).toBeUndefined();
+    expect(studioLink?.to).toBe("/studio");
   });
 
 });

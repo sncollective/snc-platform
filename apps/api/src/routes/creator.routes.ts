@@ -225,6 +225,40 @@ const handleImageUpload = async (
   return c.json(response);
 };
 
+const handleImageStream = async (
+  c: Context,
+  field: "avatar" | "banner",
+): Promise<Response> => {
+  const profile = await findCreatorProfile(c.req.param("creatorId"));
+  const key = field === "avatar" ? profile?.avatarKey : profile?.bannerKey;
+  if (!profile || !key) throw new NotFoundError(`${field} not found`);
+  return streamFile(c, storage, key, `${field} file not found`);
+};
+
+const getMembersResponse = async (
+  creatorId: string,
+): Promise<{ members: Array<{ userId: string; displayName: string; role: CreatorMemberRole; joinedAt: string }> }> => {
+  const allMembers = await db
+    .select({
+      userId: creatorMembers.userId,
+      role: creatorMembers.role,
+      joinedAt: creatorMembers.createdAt,
+      displayName: users.name,
+    })
+    .from(creatorMembers)
+    .innerJoin(users, eq(creatorMembers.userId, users.id))
+    .where(eq(creatorMembers.creatorId, creatorId));
+
+  const members = allMembers.map((m) => ({
+    userId: m.userId,
+    displayName: m.displayName,
+    role: m.role as CreatorMemberRole,
+    joinedAt: m.joinedAt.toISOString(),
+  }));
+
+  return { members };
+};
+
 // ── Public API ──
 
 export const creatorRoutes = new Hono<AuthEnv>();
@@ -294,7 +328,7 @@ creatorRoutes.get(
     );
 
     // Enrich with canManage for stakeholder/admin users
-    const roles = c.get("roles" as never) as OptionalAuthEnv["Variables"]["roles"];
+    const roles = (c.get("roles") ?? []) as string[];
     const isManageEligible = roles.includes("stakeholder") || roles.includes("admin");
 
     const enrichedItems = isManageEligible
@@ -439,16 +473,7 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
-  async (c) => {
-    const creatorId = c.req.param("creatorId");
-
-    const profile = await findCreatorProfile(creatorId);
-    if (!profile || !profile.avatarKey) {
-      throw new NotFoundError("Avatar not found");
-    }
-
-    return streamFile(c, storage, profile.avatarKey, "Avatar file not found");
-  },
+  async (c) => handleImageStream(c, "avatar"),
 );
 
 // GET /:creatorId/banner — Stream banner image
@@ -469,16 +494,7 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
-  async (c) => {
-    const creatorId = c.req.param("creatorId");
-
-    const profile = await findCreatorProfile(creatorId);
-    if (!profile || !profile.bannerKey) {
-      throw new NotFoundError("Banner not found");
-    }
-
-    return streamFile(c, storage, profile.bannerKey, "Banner file not found");
-  },
+  async (c) => handleImageStream(c, "banner"),
 );
 
 // GET /:creatorId/members — List members
@@ -509,39 +525,25 @@ creatorRoutes.get(
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    // Must be a member to view members
-    const memberRows = await db
-      .select({ role: creatorMembers.role })
-      .from(creatorMembers)
-      .where(
-        and(
-          eq(creatorMembers.creatorId, profile.id),
-          eq(creatorMembers.userId, user.id),
-        ),
-      );
-    if (memberRows.length === 0) {
-      throw new ForbiddenError("Not a member of this creator");
+    // Must be a member or admin to view members
+    const roles = (c.get("roles") as string[] | undefined) ?? [];
+    const isAdmin = roles.includes("admin");
+    if (!isAdmin) {
+      const memberRows = await db
+        .select({ role: creatorMembers.role })
+        .from(creatorMembers)
+        .where(
+          and(
+            eq(creatorMembers.creatorId, profile.id),
+            eq(creatorMembers.userId, user.id),
+          ),
+        );
+      if (memberRows.length === 0) {
+        throw new ForbiddenError("Not a member of this creator");
+      }
     }
 
-    const allMembers = await db
-      .select({
-        userId: creatorMembers.userId,
-        role: creatorMembers.role,
-        joinedAt: creatorMembers.createdAt,
-        displayName: users.name,
-      })
-      .from(creatorMembers)
-      .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, profile.id));
-
-    const members = allMembers.map((m) => ({
-      userId: m.userId,
-      displayName: m.displayName,
-      role: m.role as CreatorMemberRole,
-      joinedAt: m.joinedAt.toISOString(),
-    }));
-
-    return c.json({ members });
+    return c.json(await getMembersResponse(profile.id));
   },
 );
 
@@ -572,11 +574,12 @@ creatorRoutes.post(
     const creatorId = c.req.param("creatorId");
     const user = c.get("user");
     const body = c.req.valid("json") as AddCreatorMember;
+    const roles = (c.get("roles") as string[] | undefined) ?? [];
 
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, profile.id, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers", roles);
 
     // Check target user exists
     const targetUser = await db
@@ -607,25 +610,7 @@ creatorRoutes.post(
     });
 
     // Return updated members list
-    const allMembers = await db
-      .select({
-        userId: creatorMembers.userId,
-        role: creatorMembers.role,
-        joinedAt: creatorMembers.createdAt,
-        displayName: users.name,
-      })
-      .from(creatorMembers)
-      .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, profile.id));
-
-    const members = allMembers.map((m) => ({
-      userId: m.userId,
-      displayName: m.displayName,
-      role: m.role as CreatorMemberRole,
-      joinedAt: m.joinedAt.toISOString(),
-    }));
-
-    return c.json({ members }, 201);
+    return c.json(await getMembersResponse(profile.id), 201);
   },
 );
 
@@ -657,11 +642,12 @@ creatorRoutes.patch(
     const memberId = c.req.param("memberId");
     const user = c.get("user");
     const body = c.req.valid("json") as UpdateCreatorMember;
+    const roles = (c.get("roles") as string[] | undefined) ?? [];
 
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, profile.id, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers", roles);
 
     const existing = await db
       .select({ role: creatorMembers.role })
@@ -684,25 +670,7 @@ creatorRoutes.patch(
         ),
       );
 
-    const allMembers = await db
-      .select({
-        userId: creatorMembers.userId,
-        role: creatorMembers.role,
-        joinedAt: creatorMembers.createdAt,
-        displayName: users.name,
-      })
-      .from(creatorMembers)
-      .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, profile.id));
-
-    const members = allMembers.map((m) => ({
-      userId: m.userId,
-      displayName: m.displayName,
-      role: m.role as CreatorMemberRole,
-      joinedAt: m.joinedAt.toISOString(),
-    }));
-
-    return c.json({ members });
+    return c.json(await getMembersResponse(profile.id));
   },
 );
 
@@ -732,11 +700,12 @@ creatorRoutes.delete(
     const creatorId = c.req.param("creatorId");
     const memberId = c.req.param("memberId");
     const user = c.get("user");
+    const roles = (c.get("roles") as string[] | undefined) ?? [];
 
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, profile.id, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers", roles);
 
     const existing = await db
       .select({ role: creatorMembers.role })
@@ -774,25 +743,7 @@ creatorRoutes.delete(
         ),
       );
 
-    const allMembers = await db
-      .select({
-        userId: creatorMembers.userId,
-        role: creatorMembers.role,
-        joinedAt: creatorMembers.createdAt,
-        displayName: users.name,
-      })
-      .from(creatorMembers)
-      .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, profile.id));
-
-    const members = allMembers.map((m) => ({
-      userId: m.userId,
-      displayName: m.displayName,
-      role: m.role as CreatorMemberRole,
-      joinedAt: m.joinedAt.toISOString(),
-    }));
-
-    return c.json({ members });
+    return c.json(await getMembersResponse(profile.id));
   },
 );
 
@@ -822,11 +773,12 @@ creatorRoutes.get(
     const creatorId = c.req.param("creatorId");
     const user = c.get("user");
     const { q, limit } = c.req.valid("query" as never) as { q?: string; limit: number };
+    const roles = (c.get("roles") as string[] | undefined) ?? [];
 
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, profile.id, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers", roles);
 
     // Get existing member user IDs to exclude
     const existingMembers = await db
