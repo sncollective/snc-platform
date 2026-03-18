@@ -60,7 +60,13 @@ export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
                 return null;
               }
 
-              const isActive = !link.external && !link.disabled && currentPath.startsWith(link.to);
+              const pathMatches = !link.external && !link.disabled &&
+                (currentPath === link.to || currentPath.startsWith(`${link.to}/`));
+              const isActive = pathMatches && !NAV_LINKS.some(
+                (other) => other !== link && !other.external && other.to.startsWith(link.to) &&
+                  other.to.length > link.to.length &&
+                  (currentPath === other.to || currentPath.startsWith(`${other.to}/`)),
+              );
               const className = [
                 styles.menuLink,
                 link.disabled && styles.menuLinkDisabled,

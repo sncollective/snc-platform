@@ -9,6 +9,9 @@ export const TEST_DATABASE_URL = "postgres://test:test@localhost:5432/test";
 export const TEST_BETTER_AUTH_SECRET =
   "test-secret-that-is-at-least-thirty-two-characters";
 
+/** Owncast URL for unit test config mocks. */
+export const TEST_OWNCAST_URL = "http://owncast.test:8080";
+
 /** Shopify store domain for unit test config mocks. */
 export const TEST_SHOPIFY_STORE_DOMAIN = "test-store.myshopify.com";
 
@@ -30,6 +33,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
     | undefined,
   SHOPIFY_STORE_DOMAIN: TEST_SHOPIFY_STORE_DOMAIN,
   SHOPIFY_STOREFRONT_TOKEN: TEST_SHOPIFY_STOREFRONT_TOKEN,
+  OWNCAST_URL: TEST_OWNCAST_URL as string | undefined,
   FEATURE_CONTENT: true,
   FEATURE_CREATOR: true,
   FEATURE_SUBSCRIPTION: true,
@@ -42,6 +46,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   SEAFILE_OIDC_CLIENT_SECRET: undefined as string | undefined,
   FEDERATION_DOMAIN: "s-nc.test",
   FEATURE_FEDERATION: false,
+  FEATURE_STREAMING: false,
   ...overrides,
 });
 

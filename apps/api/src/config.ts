@@ -43,9 +43,15 @@ export const ENV_SCHEMA = z.object({
   FEATURE_ADMIN: booleanFlag,
   FEATURE_EMISSIONS: booleanFlag,
   FEATURE_CALENDAR: booleanFlag,
+  // Owncast streaming (optional — API returns 503 STREAMING_NOT_CONFIGURED when absent)
+  OWNCAST_URL: z.string().url().optional(),
   // Phase 11: ActivityPub federation (off by default — domain must be configured)
   FEDERATION_DOMAIN: z.string().min(1).default("s-nc.org"),
   FEATURE_FEDERATION: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
+  FEATURE_STREAMING: z
     .string()
     .default("false")
     .transform((v) => v === "true"),
@@ -91,6 +97,7 @@ export const getFeatureFlags = (cfg: Config): FeatureFlags => ({
   emissions: cfg.FEATURE_EMISSIONS,
   calendar: cfg.FEATURE_CALENDAR,
   federation: cfg.FEATURE_FEDERATION,
+  streaming: cfg.FEATURE_STREAMING,
 });
 
 /**

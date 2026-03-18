@@ -11,6 +11,7 @@ export const FEATURE_FLAGS = [
   "emissions",
   "calendar",
   "federation",
+  "streaming",
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
@@ -30,6 +31,7 @@ export const ALL_FEATURES_ON: FeatureFlags = {
   emissions: true,
   calendar: true,
   federation: true,
+  streaming: true,
 };
 
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
@@ -43,6 +45,7 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
   emissions: false,
   calendar: false,
   federation: false,
+  streaming: false,
 };
 
 // ── Labels ──
@@ -92,5 +95,10 @@ export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
   federation: {
     name: "Federation",
     description: "ActivityPub federation — discover S/NC creators from the Fediverse.",
+  },
+  streaming: {
+    name: "Streaming",
+    description:
+      "Live streaming powered by Owncast — watch creators perform live.",
   },
 };
