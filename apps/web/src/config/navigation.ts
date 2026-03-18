@@ -1,4 +1,4 @@
-import type { FeatureFlag } from "@snc/shared";
+import type { FeatureFlag, Role } from "@snc/shared";
 
 import { isFeatureEnabled } from "../lib/config.js";
 
@@ -9,6 +9,8 @@ export interface NavLink {
   readonly label: string;
   readonly feature?: FeatureFlag;
   readonly disabled?: boolean;
+  readonly external?: boolean;
+  readonly role?: Role;
 }
 
 // ── Private Constants ──
@@ -16,10 +18,11 @@ export interface NavLink {
 const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
   { to: "/feed", label: "Feed", feature: "content" },
   { to: "/creators", label: "Creators", feature: "creator" },
-  { to: "/services", label: "Services", feature: "booking" },
+  { to: "https://s-nc.org/studio", label: "Studio", feature: "booking", external: true },
   { to: "/merch", label: "Merch", feature: "merch" },
   { to: "/pricing", label: "Pricing", feature: "subscription" },
   { to: "/emissions", label: "Emissions", feature: "emissions" },
+  { to: "/creators/mine", label: "My Creators", feature: "creator", role: "stakeholder" },
 ] as const;
 
 // ── Public API ──

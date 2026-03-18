@@ -71,16 +71,17 @@ export const fetchAuthStateServer = createServerFn({ method: "GET" })
         headers: forwardCookies(),
       });
     } catch {
-      return { user: null, roles: [] };
+      return { user: null, roles: [], isPatron: false };
     }
 
     if (!res.ok) {
-      return { user: null, roles: [] };
+      return { user: null, roles: [], isPatron: false };
     }
 
-    const body = (await res.json()) as { user: unknown; roles?: unknown[] };
+    const body = (await res.json()) as { user: unknown; roles?: unknown[]; isPatron?: boolean };
     return {
       user: (body.user ?? null) as AuthState["user"],
       roles: (body.roles ?? []) as AuthState["roles"],
+      isPatron: body.isPatron ?? false,
     };
   });

@@ -16,14 +16,15 @@ export const useSession = authClient.useSession;
 export interface AuthState {
   readonly user: User | null;
   readonly roles: Role[];
+  readonly isPatron: boolean;
 }
 
 export async function fetchAuthState(): Promise<AuthState> {
   try {
-    const body = await apiGet<{ user: User | null; roles?: Role[] }>("/api/me");
-    return { user: body.user ?? null, roles: body.roles ?? [] };
+    const body = await apiGet<{ user: User | null; roles?: Role[]; isPatron?: boolean }>("/api/me");
+    return { user: body.user ?? null, roles: body.roles ?? [], isPatron: body.isPatron ?? false };
   } catch {
-    return { user: null, roles: [] };
+    return { user: null, roles: [], isPatron: false };
   }
 }
 
@@ -33,24 +34,29 @@ export function hasRole(roles: Role[], role: Role): boolean {
   return roles.includes(role);
 }
 
-// ── Public API: useRoles Hook ──
+// ── Public API: useAuthExtras Hook ──
 
-export function useRoles(): Role[] {
+interface AuthExtras {
+  readonly roles: Role[];
+  readonly isPatron: boolean;
+}
+
+export function useAuthExtras(): AuthExtras {
   const session = useSession();
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [extras, setExtras] = useState<AuthExtras>({ roles: [], isPatron: false });
 
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchExtras = async () => {
       if (!session.data) {
-        setRoles([]);
+        setExtras({ roles: [], isPatron: false });
         return;
       }
       const state = await fetchAuthState();
-      setRoles(state.roles);
+      setExtras({ roles: state.roles, isPatron: state.isPatron });
     };
 
-    void fetchRoles();
+    void fetchExtras();
   }, [session.data]);
 
-  return roles;
+  return extras;
 }
