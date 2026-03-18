@@ -16,7 +16,7 @@ import styles from "./calendar.module.css";
 
 // ── Private Types ──
 
-interface CalendarLoaderData {
+export interface CalendarLoaderData {
   readonly events: CalendarEventsResponse;
   readonly feedToken: FeedTokenResponse | null;
 }

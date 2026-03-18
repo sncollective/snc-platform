@@ -7,7 +7,7 @@ import styles from "./volume-control.module.css";
 export interface VolumeControlProps {
   readonly volume: number;
   readonly onVolumeChange: (volume: number) => void;
-  readonly className?: string;
+  readonly className?: string | undefined;
 }
 
 // ── Public API ──

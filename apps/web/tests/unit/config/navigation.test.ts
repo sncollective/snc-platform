@@ -17,6 +17,7 @@ const ALL_ON: FeatureFlags = {
   emissions: true,
   calendar: true,
   federation: true,
+  streaming: true,
 };
 
 describe("NAV_LINKS", () => {
@@ -100,6 +101,7 @@ describe("NAV_LINKS", () => {
       emissions: false,
       calendar: false,
       federation: false,
+      streaming: false,
     };
 
     vi.doMock("../../../src/lib/config.js", () => ({

@@ -9,7 +9,7 @@ import { isFeatureEnabled } from "../../lib/config.js";
 
 // ── Private Types ──
 
-interface ContentDetailLoaderData {
+export interface ContentDetailLoaderData {
   readonly item: FeedItem | null;
   readonly plans: readonly SubscriptionPlan[];
 }

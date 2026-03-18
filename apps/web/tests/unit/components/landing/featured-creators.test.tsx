@@ -27,9 +27,9 @@ describe("FeaturedCreators", () => {
 
   it("renders creator cards from passed data", () => {
     const creators = [
-      makeMockCreatorListItem({ userId: "u1", displayName: "Alice" }),
-      makeMockCreatorListItem({ userId: "u2", displayName: "Bob" }),
-      makeMockCreatorListItem({ userId: "u3", displayName: "Carol" }),
+      makeMockCreatorListItem({ id: "u1", displayName: "Alice" }),
+      makeMockCreatorListItem({ id: "u2", displayName: "Bob" }),
+      makeMockCreatorListItem({ id: "u3", displayName: "Carol" }),
     ];
 
     render(<FeaturedCreators creators={creators} />);

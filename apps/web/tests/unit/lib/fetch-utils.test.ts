@@ -88,7 +88,7 @@ describe("apiGet", () => {
 
     await apiGet("/api/items", { page: 2, limit: 10 });
 
-    const calledUrl = getMockFetch().mock.calls[0][0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("/api/items?");
     expect(calledUrl).toContain("page=2");
     expect(calledUrl).toContain("limit=10");
@@ -99,7 +99,7 @@ describe("apiGet", () => {
 
     await apiGet("/api/items", { page: 1, cursor: undefined });
 
-    const calledUrl = getMockFetch().mock.calls[0][0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("page=1");
     expect(calledUrl).not.toContain("cursor");
   });
@@ -109,7 +109,7 @@ describe("apiGet", () => {
 
     await apiGet("/api/items", { cursor: undefined });
 
-    const calledUrl = getMockFetch().mock.calls[0][0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toBe("/api/items");
   });
 
@@ -118,7 +118,7 @@ describe("apiGet", () => {
 
     await apiGet("/api/items", {});
 
-    const calledUrl = getMockFetch().mock.calls[0][0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toBe("/api/items");
   });
 
@@ -127,7 +127,7 @@ describe("apiGet", () => {
 
     await apiGet("/api/items", { count: 42 });
 
-    const calledUrl = getMockFetch().mock.calls[0][0] as string;
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("count=42");
   });
 
@@ -188,7 +188,7 @@ describe("apiMutate", () => {
       body: { name: "updated" },
     });
 
-    const init = getMockFetch().mock.calls[0][1] as RequestInit;
+    const init = getMockFetch().mock.calls[0]![1] as RequestInit;
     expect(init.method).toBe("PATCH");
   });
 
@@ -197,7 +197,7 @@ describe("apiMutate", () => {
 
     await apiMutate("/api/items/1", { method: "DELETE" });
 
-    const init = getMockFetch().mock.calls[0][1] as RequestInit;
+    const init = getMockFetch().mock.calls[0]![1] as RequestInit;
     expect(init.method).toBe("DELETE");
   });
 
@@ -206,7 +206,7 @@ describe("apiMutate", () => {
 
     await apiMutate("/api/items/1", { method: "DELETE" });
 
-    const init = getMockFetch().mock.calls[0][1] as RequestInit;
+    const init = getMockFetch().mock.calls[0]![1] as RequestInit;
     expect(init.headers).toEqual({});
     expect(init.body).toBeUndefined();
   });
@@ -245,7 +245,7 @@ describe("apiMutate", () => {
     const complexBody = { nested: { array: [1, 2] }, flag: true };
     await apiMutate("/api/items", { body: complexBody });
 
-    const init = getMockFetch().mock.calls[0][1] as RequestInit;
+    const init = getMockFetch().mock.calls[0]![1] as RequestInit;
     expect(init.body).toBe(JSON.stringify(complexBody));
   });
 });
@@ -275,7 +275,7 @@ describe("apiUpload", () => {
 
     await apiUpload("/api/upload", formData);
 
-    const init = getMockFetch().mock.calls[0][1] as RequestInit;
+    const init = getMockFetch().mock.calls[0]![1] as RequestInit;
     expect(init.headers).toBeUndefined();
   });
 

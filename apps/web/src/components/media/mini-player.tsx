@@ -63,8 +63,8 @@ export function MiniPlayer(): React.ReactElement | null {
         <OptionalImage
           src={track.coverArtUrl}
           alt={`Cover art for ${track.title}`}
-          className={styles.coverArtImage}
-          placeholderClassName={styles.coverArtPlaceholder}
+          className={styles.coverArtImage!}
+          placeholderClassName={styles.coverArtPlaceholder!}
         />
       </div>
 
@@ -76,7 +76,7 @@ export function MiniPlayer(): React.ReactElement | null {
       <PlayPauseButton
         isPlaying={isPlaying}
         onClick={handlePlayPause}
-        className={styles.playButton}
+        className={styles.playButton!}
       />
 
       {/* Right: Progress bar + close button (hidden on mobile) */}

@@ -11,7 +11,7 @@ export interface ContentFooterProps {
   readonly creatorId?: string;
   readonly contentType?: ContentType;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

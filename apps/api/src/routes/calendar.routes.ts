@@ -458,11 +458,11 @@ calendarRoutes.get("/feed.ics", async (c) => {
     const icalEvent = calendar.createEvent({
       id: event.id,
       start: event.startAt,
-      end: event.endAt ?? undefined,
+      end: event.endAt ?? null,
       allDay: event.allDay,
       summary: event.title,
-      description: event.description || undefined,
-      location: event.location || undefined,
+      description: event.description ?? null,
+      location: event.location ?? null,
     });
     icalEvent.createCategory({ name: event.category });
   }

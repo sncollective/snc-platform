@@ -69,8 +69,8 @@ export function ProductDetail({
           <OptionalImage
             src={product.images.length > 0 ? product.images[selectedImageIndex]?.url : null}
             alt={product.images[selectedImageIndex]?.altText ?? product.title}
-            className={styles.mainImage}
-            placeholderClassName={styles.imagePlaceholder}
+            className={styles.mainImage!}
+            placeholderClassName={styles.imagePlaceholder!}
           />
         </div>
 

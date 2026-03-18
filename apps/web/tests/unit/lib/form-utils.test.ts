@@ -81,7 +81,7 @@ describe("extractFieldErrors", () => {
 
   it("handles issues with undefined path property", () => {
     const issues = [
-      { path: undefined, message: "No path" },
+      { message: "No path" },
       { path: ["password"], message: "Too short" },
     ];
 

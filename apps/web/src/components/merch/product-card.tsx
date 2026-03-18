@@ -28,8 +28,8 @@ export function ProductCard({
         <OptionalImage
           src={product.image?.url}
           alt={product.image?.altText ?? product.title}
-          className={styles.image}
-          placeholderClassName={styles.imagePlaceholder}
+          className={styles.image!}
+          placeholderClassName={styles.imagePlaceholder!}
           loading="lazy"
         />
       </div>

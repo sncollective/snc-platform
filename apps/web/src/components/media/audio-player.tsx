@@ -83,7 +83,7 @@ export function AudioPlayer({
         <PlayPauseButton
           isPlaying={isPlaying}
           onClick={handlePlayPause}
-          className={styles.playButton}
+          className={styles.playButton!}
         />
         <input
           type="range"

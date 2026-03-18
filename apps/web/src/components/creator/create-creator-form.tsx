@@ -48,7 +48,7 @@ export function CreateCreatorForm({
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = (): { displayName: string; handle?: string } | null => {
+  const validate = (): { displayName: string; handle?: string | undefined } | null => {
     const result = safeParse(CREATE_CREATOR_SCHEMA, {
       displayName,
       handle: handle || undefined,

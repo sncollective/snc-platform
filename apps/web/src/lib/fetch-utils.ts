@@ -29,7 +29,7 @@ export async function apiGet<T>(
       url = `${endpoint}?${qs}`;
     }
   }
-  const response = await fetch(url, { credentials: "include", signal });
+  const response = await fetch(url, { credentials: "include", ...(signal != null && { signal }) });
   await throwIfNotOk(response);
   return (await response.json()) as T;
 }

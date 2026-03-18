@@ -16,8 +16,8 @@ const CATEGORY_LABELS: Record<CalendarEvent["category"], string> = {
 
 export interface EventCardProps {
   readonly event: CalendarEvent;
-  readonly onEdit?: (id: string) => void;
-  readonly onDelete?: (id: string) => void;
+  readonly onEdit?: ((id: string) => void) | undefined;
+  readonly onDelete?: ((id: string) => void) | undefined;
 }
 
 // ── Public API ──
