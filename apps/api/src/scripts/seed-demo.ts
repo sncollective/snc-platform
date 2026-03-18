@@ -264,10 +264,9 @@ try {
 
   // ── Creator Profiles ──
 
-  const creatorRows: Array<{ id: string; ownerId: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
+  const creatorRows: Array<{ id: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
     {
       id: USER_IDS.maya,
-      ownerId: USER_IDS.maya,
       displayName: "Maya Chen",
       bio: "Electronic and ambient music producer exploring the intersection of sound design and generative art. Co-op member since day one.",
       socialLinks: [
@@ -280,7 +279,6 @@ try {
     },
     {
       id: USER_IDS.jordan,
-      ownerId: USER_IDS.jordan,
       displayName: "Jordan Ellis",
       bio: "Indie rock songwriter and multi-instrumentalist. Writing honest songs about ordinary life.",
       socialLinks: [
@@ -292,7 +290,6 @@ try {
     },
     {
       id: USER_IDS.sam,
-      ownerId: USER_IDS.sam,
       displayName: "Sam Okafor",
       bio: "Hip-hop artist and spoken word poet. Using rhythm and language to tell stories that matter.",
       socialLinks: [
@@ -304,7 +301,6 @@ try {
     },
     {
       id: USER_IDS.animalfuture,
-      ownerId: USER_IDS.animalfuture,
       displayName: "Animal Future",
       bio: "Punk rock and raw energy. Making loud, honest music about the world we're stuck in.",
       socialLinks: [
@@ -343,7 +339,7 @@ try {
       .insert(creatorMembers)
       .values({
         creatorId: row.id,
-        userId: row.ownerId,
+        userId: row.id,
         role: "owner",
       })
       .onConflictDoNothing();

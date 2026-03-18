@@ -4,7 +4,6 @@ import type { SocialLink } from "@snc/shared";
 
 type DbCreatorProfileRow = {
   id: string;
-  ownerId: string;
   displayName: string;
   bio: string | null;
   handle: string | null;
@@ -28,7 +27,6 @@ export const makeMockDbCreatorProfile = (
   overrides?: Partial<DbCreatorProfileRow>,
 ): DbCreatorProfileRow => ({
   id: "user_test123",
-  ownerId: "user_test123",
   displayName: "Test Creator",
   bio: "A test creator bio",
   handle: null,

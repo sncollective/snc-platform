@@ -66,12 +66,17 @@ const resolveCreatorUrls = (
 });
 
 const findCreatorProfile = async (
-  creatorId: string,
+  identifier: string,
 ): Promise<CreatorProfileRow | undefined> => {
   const rows = await db
     .select()
     .from(creatorProfiles)
-    .where(eq(creatorProfiles.id, creatorId));
+    .where(
+      or(
+        eq(creatorProfiles.id, identifier),
+        eq(creatorProfiles.handle, identifier),
+      ),
+    );
   return rows[0];
 };
 
@@ -130,13 +135,10 @@ const handleImageUpload = async (
   c: Context<AuthEnv>,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const creatorId = c.req.param("creatorId") ?? "";
+  const identifier = c.req.param("creatorId") ?? "";
   const user = c.get("user");
 
-  // Permission check
-  await requireCreatorPermission(user.id, creatorId, "editProfile");
-
-  // Pre-check Content-Length header
+  // Pre-check Content-Length header before any DB lookup
   const contentLengthHeader = c.req.header("content-length");
   if (contentLengthHeader) {
     const contentLength = parseInt(contentLengthHeader, 10);
@@ -146,6 +148,15 @@ const handleImageUpload = async (
       );
     }
   }
+
+  // Resolve profile (by UUID or handle)
+  const profile = await findCreatorProfile(identifier);
+  if (!profile) {
+    throw new NotFoundError("Creator profile not found");
+  }
+
+  // Permission check using canonical profile ID
+  await requireCreatorPermission(user.id, profile.id, "editProfile");
 
   // Parse multipart body
   const body = await c.req.parseBody();
@@ -168,15 +179,9 @@ const handleImageUpload = async (
     );
   }
 
-  // Generate storage key
+  // Generate storage key using canonical profile ID
   const sanitized = sanitizeFilename(file.name || field);
-  const key = `creators/${creatorId}/${field}/${sanitized}`;
-
-  // Ensure profile exists
-  const profile = await findCreatorProfile(creatorId);
-  if (!profile) {
-    throw new NotFoundError("Creator profile not found");
-  }
+  const key = `creators/${profile.id}/${field}/${sanitized}`;
 
   // Delete old file if re-uploading
   const oldKey = field === "avatar" ? profile.avatarKey : profile.bannerKey;
@@ -208,14 +213,14 @@ const handleImageUpload = async (
       [field === "avatar" ? "avatarKey" : "bannerKey"]: key,
       updatedAt: new Date(),
     })
-    .where(eq(creatorProfiles.id, creatorId))
+    .where(eq(creatorProfiles.id, profile.id))
     .returning();
 
   if (!updated) {
     throw new NotFoundError("Creator profile not found");
   }
 
-  const contentCount = await getContentCount(creatorId);
+  const contentCount = await getContentCount(profile.id);
   const response = toProfileResponse(updated, contentCount);
   return c.json(response);
 };
@@ -345,7 +350,6 @@ creatorRoutes.post(
       .insert(creatorProfiles)
       .values({
         id,
-        ownerId: user.id,
         displayName: body.displayName,
         handle: body.handle ?? null,
         createdAt: now,
@@ -511,7 +515,7 @@ creatorRoutes.get(
       .from(creatorMembers)
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, user.id),
         ),
       );
@@ -528,7 +532,7 @@ creatorRoutes.get(
       })
       .from(creatorMembers)
       .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, creatorId));
+      .where(eq(creatorMembers.creatorId, profile.id));
 
     const members = allMembers.map((m) => ({
       userId: m.userId,
@@ -572,7 +576,7 @@ creatorRoutes.post(
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers");
 
     // Check target user exists
     const targetUser = await db
@@ -587,7 +591,7 @@ creatorRoutes.post(
       .from(creatorMembers)
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, body.userId),
         ),
       );
@@ -596,7 +600,7 @@ creatorRoutes.post(
     }
 
     await db.insert(creatorMembers).values({
-      creatorId,
+      creatorId: profile.id,
       userId: body.userId,
       role: body.role,
       createdAt: new Date(),
@@ -612,7 +616,7 @@ creatorRoutes.post(
       })
       .from(creatorMembers)
       .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, creatorId));
+      .where(eq(creatorMembers.creatorId, profile.id));
 
     const members = allMembers.map((m) => ({
       userId: m.userId,
@@ -657,14 +661,14 @@ creatorRoutes.patch(
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers");
 
     const existing = await db
       .select({ role: creatorMembers.role })
       .from(creatorMembers)
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, memberId),
         ),
       );
@@ -675,7 +679,7 @@ creatorRoutes.patch(
       .set({ role: body.role })
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, memberId),
         ),
       );
@@ -689,7 +693,7 @@ creatorRoutes.patch(
       })
       .from(creatorMembers)
       .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, creatorId));
+      .where(eq(creatorMembers.creatorId, profile.id));
 
     const members = allMembers.map((m) => ({
       userId: m.userId,
@@ -732,14 +736,14 @@ creatorRoutes.delete(
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers");
 
     const existing = await db
       .select({ role: creatorMembers.role })
       .from(creatorMembers)
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, memberId),
         ),
       );
@@ -752,7 +756,7 @@ creatorRoutes.delete(
         .from(creatorMembers)
         .where(
           and(
-            eq(creatorMembers.creatorId, creatorId),
+            eq(creatorMembers.creatorId, profile.id),
             eq(creatorMembers.role, "owner"),
           ),
         );
@@ -765,7 +769,7 @@ creatorRoutes.delete(
       .delete(creatorMembers)
       .where(
         and(
-          eq(creatorMembers.creatorId, creatorId),
+          eq(creatorMembers.creatorId, profile.id),
           eq(creatorMembers.userId, memberId),
         ),
       );
@@ -779,7 +783,7 @@ creatorRoutes.delete(
       })
       .from(creatorMembers)
       .innerJoin(users, eq(creatorMembers.userId, users.id))
-      .where(eq(creatorMembers.creatorId, creatorId));
+      .where(eq(creatorMembers.creatorId, profile.id));
 
     const members = allMembers.map((m) => ({
       userId: m.userId,
@@ -822,13 +826,13 @@ creatorRoutes.get(
     const profile = await findCreatorProfile(creatorId);
     if (!profile) throw new NotFoundError("Creator not found");
 
-    await requireCreatorPermission(user.id, creatorId, "manageMembers");
+    await requireCreatorPermission(user.id, profile.id, "manageMembers");
 
     // Get existing member user IDs to exclude
     const existingMembers = await db
       .select({ userId: creatorMembers.userId })
       .from(creatorMembers)
-      .where(eq(creatorMembers.creatorId, creatorId));
+      .where(eq(creatorMembers.creatorId, profile.id));
     const excludeIds = existingMembers.map((m) => m.userId);
 
     // Find users with stakeholder or admin platform roles
@@ -914,7 +918,7 @@ creatorRoutes.get(
       throw new NotFoundError("Creator not found");
     }
 
-    const contentCount = await getContentCount(creatorId);
+    const contentCount = await getContentCount(profile.id);
     const response = toProfileResponse(profile, contentCount);
     return c.json(response);
   },
@@ -947,12 +951,12 @@ creatorRoutes.patch(
     const user = c.get("user");
     const body = c.req.valid("json") as UpdateCreatorProfile;
 
-    await requireCreatorPermission(user.id, creatorId, "editProfile");
-
     const profile = await findCreatorProfile(creatorId);
     if (!profile) {
       throw new NotFoundError("Creator profile not found");
     }
+
+    await requireCreatorPermission(user.id, profile.id, "editProfile");
 
     // Validate handle uniqueness before update
     if (body.handle && body.handle !== profile.handle) {
@@ -968,14 +972,14 @@ creatorRoutes.patch(
     const [updated] = await db
       .update(creatorProfiles)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(creatorProfiles.id, creatorId))
+      .where(eq(creatorProfiles.id, profile.id))
       .returning();
 
     if (!updated) {
       throw new NotFoundError("Creator profile not found");
     }
 
-    const contentCount = await getContentCount(creatorId);
+    const contentCount = await getContentCount(profile.id);
     const response = toProfileResponse(updated, contentCount);
     return c.json(response);
   },

@@ -60,7 +60,8 @@ export function createFederationApp(
       if (!profile) return null;
 
       const frontendBase = getFrontendBaseUrl();
-      const profileUrl = new URL(`${frontendBase}/creators/${profile.ownerId}`);
+      const creatorSlug = profile.handle ?? profile.id;
+      const profileUrl = new URL(`${frontendBase}/creators/${creatorSlug}`);
 
       return new Person({
         id: ctx.getActorUri(identifier),
@@ -72,7 +73,7 @@ export function createFederationApp(
         icon: profile.avatarKey
           ? new Image({
               url: new URL(
-                `https://${domain}/api/creators/${profile.ownerId}/avatar`,
+                `https://${domain}/api/creators/${creatorSlug}/avatar`,
               ),
             })
           : null,

@@ -444,6 +444,37 @@ describe("creator routes", () => {
     });
   });
 
+  // ── Handle-based lookup ──
+
+  describe("handle-based lookup", () => {
+    it("GET /api/creators/:handle returns profile by handle", async () => {
+      const profile = makeMockDbCreatorProfile({ id: "creator-uuid", handle: "testcreator" });
+
+      // findCreatorProfile (OR query on id/handle)
+      mockSelectWhere.mockResolvedValueOnce([profile]);
+      // getContentCount
+      mockSelectWhere.mockResolvedValueOnce([{ count: 5 }]);
+
+      const res = await ctx.app.request("/api/creators/testcreator");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.handle).toBe("testcreator");
+      expect(body.id).toBe("creator-uuid");
+      expect(body.contentCount).toBe(5);
+    });
+
+    it("returns 404 for non-existent identifier", async () => {
+      mockSelectWhere.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/creators/nonexistent");
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+
   // ── PATCH /api/creators/:creatorId ──
 
   describe("PATCH /api/creators/:creatorId", () => {
@@ -475,7 +506,7 @@ describe("creator routes", () => {
     });
 
     it("returns 404 when no profile exists to update", async () => {
-      // requireCreatorPermission passes, but findCreatorProfile returns empty
+      // findCreatorProfile returns empty → 404
       mockSelectWhere.mockResolvedValueOnce([]);
 
       const res = await ctx.app.request("/api/creators/user_test123", {
@@ -488,6 +519,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner tries to update", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -504,6 +537,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role tries to update", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -679,6 +714,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -697,6 +734,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -713,6 +752,9 @@ describe("creator routes", () => {
     });
 
     it("returns 400 for invalid MIME type", async () => {
+      // Profile and permission must pass before MIME validation runs
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
+
       const formData = new FormData();
       formData.append("file", new File(["data"], "doc.txt", { type: "text/plain" }));
 
@@ -802,6 +844,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-owner uploads", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -820,6 +864,8 @@ describe("creator routes", () => {
     });
 
     it("returns 403 when non-creator role uploads", async () => {
+      // findCreatorProfile resolves first, then permission check rejects
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Missing creator permission: editProfile"),
       );
@@ -848,6 +894,9 @@ describe("creator routes", () => {
     });
 
     it("returns 400 for invalid MIME type", async () => {
+      // Profile and permission must pass before MIME validation runs
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);
+
       const formData = new FormData();
       formData.append("file", new File(["data"], "banner.txt", { type: "text/plain" }));
 

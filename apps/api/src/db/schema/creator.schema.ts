@@ -8,9 +8,6 @@ import { users } from "./user.schema.js";
 
 export const creatorProfiles = pgTable("creator_profiles", {
   id: text("id").primaryKey(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name").notNull(),
   bio: text("bio"),
   avatarKey: text("avatar_key"),
