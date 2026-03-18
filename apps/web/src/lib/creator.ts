@@ -6,6 +6,7 @@ import type {
   UpdateCreatorMember,
   CreatorMembersResponse,
   CandidatesResponse,
+  MyCreatorItem,
 } from "@snc/shared";
 
 import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
@@ -79,8 +80,8 @@ export async function createCreatorEntity(
 /**
  * List creator entities the authenticated user is a member of.
  */
-export async function fetchMyCreatorPages(): Promise<CreatorProfileResponse[]> {
-  const res = await apiGet<{ items: CreatorProfileResponse[]; nextCursor: string | null }>(
+export async function fetchMyCreatorPages(): Promise<MyCreatorItem[]> {
+  const res = await apiGet<{ items: MyCreatorItem[]; nextCursor: string | null }>(
     "/api/creators/mine",
   );
   return res.items;

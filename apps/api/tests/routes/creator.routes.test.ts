@@ -9,6 +9,7 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 // ── Creator Team Mock ──
 
 const mockRequireCreatorPermission = vi.fn();
+const mockGetCreatorMemberships = vi.fn();
 // Holds the ForbiddenError class from the same module instance as the error handler
 // (captured in mocks() callback since vi.resetModules() runs between tests)
 let TestForbiddenError: new (msg?: string) => Error;
@@ -84,7 +85,7 @@ const ctx = setupRouteTest({
 
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
-      getCreatorMemberships: vi.fn().mockResolvedValue([]),
+      getCreatorMemberships: mockGetCreatorMemberships,
     }));
 
     vi.doMock("../../src/db/schema/content.schema.js", () => ({
@@ -146,6 +147,8 @@ const ctx = setupRouteTest({
 
     // Default: permission check passes (no throw)
     mockRequireCreatorPermission.mockResolvedValue(undefined);
+    // Default: user has no memberships
+    mockGetCreatorMemberships.mockResolvedValue([]);
   },
 });
 
@@ -775,6 +778,83 @@ describe("creator routes", () => {
       const body = await res.json();
       expect(body.error.code).toBe("VALIDATION_ERROR");
       expect(mockStorageUpload).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── GET /api/creators/mine ──
+
+  describe("GET /api/creators/mine", () => {
+    it("returns empty list when user has no memberships", async () => {
+      // Default mock already returns [] for getCreatorMemberships
+      const res = await ctx.app.request("/api/creators/mine");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(0);
+      expect(body.nextCursor).toBeNull();
+    });
+
+    it("includes memberRole in each item", async () => {
+      const profile1 = makeMockDbCreatorProfile({ id: "creator_1", displayName: "Creator One" });
+      const profile2 = makeMockDbCreatorProfile({ id: "creator_2", displayName: "Creator Two" });
+
+      // Override getCreatorMemberships to return two memberships with distinct roles
+      mockGetCreatorMemberships.mockResolvedValueOnce([
+        { creatorId: "creator_1", role: "owner" },
+        { creatorId: "creator_2", role: "editor" },
+      ]);
+
+      // profiles query: select → from → where (returns both profiles)
+      mockSelectWhere.mockResolvedValueOnce([profile1, profile2]);
+      // batch content count query
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([
+        { creatorId: "creator_1", count: 3 },
+        { creatorId: "creator_2", count: 1 },
+      ]);
+
+      const res = await ctx.app.request("/api/creators/mine");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+
+      const item1 = body.items.find((i: { id: string }) => i.id === "creator_1");
+      const item2 = body.items.find((i: { id: string }) => i.id === "creator_2");
+      expect(item1.memberRole).toBe("owner");
+      expect(item2.memberRole).toBe("editor");
+    });
+
+    it("defaults memberRole to viewer when membership not found for a profile", async () => {
+      // Profile exists but no matching membership entry (defensive fallback)
+      const profile = makeMockDbCreatorProfile({ id: "creator_orphan", displayName: "Orphan Creator" });
+
+      // Membership references a different ID than what the DB returns
+      mockGetCreatorMemberships.mockResolvedValueOnce([
+        { creatorId: "creator_other", role: "owner" },
+      ]);
+
+      // DB returns "creator_orphan" profile (mismatch)
+      mockSelectWhere.mockResolvedValueOnce([profile]);
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/creators/mine");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].memberRole).toBe("viewer");
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request("/api/creators/mine");
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error.code).toBe("UNAUTHORIZED");
     });
   });
 

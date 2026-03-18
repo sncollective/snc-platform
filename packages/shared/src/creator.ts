@@ -180,8 +180,12 @@ export const CreatorMembersResponseSchema = z.object({
   members: z.array(CreatorMemberSchema),
 });
 
+export const MyCreatorItemSchema = CreatorProfileResponseSchema.extend({
+  memberRole: CreatorMemberRoleSchema,
+});
+
 export const MyCreatorPagesResponseSchema = z.object({
-  items: z.array(CreatorProfileResponseSchema),
+  items: z.array(MyCreatorItemSchema),
 });
 
 export const CreatorMemberCandidateSchema = z.object({
@@ -212,6 +216,7 @@ export type CreatorMember = z.infer<typeof CreatorMemberSchema>;
 export type AddCreatorMember = z.infer<typeof AddCreatorMemberSchema>;
 export type UpdateCreatorMember = z.infer<typeof UpdateCreatorMemberSchema>;
 export type CreatorMembersResponse = z.infer<typeof CreatorMembersResponseSchema>;
+export type MyCreatorItem = z.infer<typeof MyCreatorItemSchema>;
 export type MyCreatorPagesResponse = z.infer<typeof MyCreatorPagesResponseSchema>;
 export type CreatorMemberCandidate = z.infer<typeof CreatorMemberCandidateSchema>;
 export type CandidatesQuery = z.infer<typeof CandidatesQuerySchema>;
