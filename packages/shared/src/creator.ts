@@ -84,9 +84,9 @@ export type CreatorMemberRole = (typeof CREATOR_MEMBER_ROLES)[number];
 export const CreatorMemberRoleSchema = z.enum(CREATOR_MEMBER_ROLES);
 
 export const CREATOR_ROLE_PERMISSIONS = {
-  owner:  { editProfile: true,  manageContent: true,  manageBookings: true,  manageMembers: true,  viewPrivate: true  },
-  editor: { editProfile: true,  manageContent: true,  manageBookings: true,  manageMembers: false, viewPrivate: true  },
-  viewer: { editProfile: false, manageContent: false, manageBookings: false, manageMembers: false, viewPrivate: true  },
+  owner:  { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: true,  viewPrivate: true  },
+  editor: { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: false, viewPrivate: true  },
+  viewer: { editProfile: false, manageContent: false, manageScheduling: false, manageMembers: false, viewPrivate: true  },
 } as const satisfies Record<CreatorMemberRole, Record<string, boolean>>;
 
 export type CreatorPermission = keyof (typeof CREATOR_ROLE_PERMISSIONS)["owner"];

@@ -50,6 +50,7 @@ const toEventResponse = (row: CalendarEventRow): CalendarEvent => ({
   category: row.category as CalendarEvent["category"],
   location: row.location,
   createdBy: row.createdBy,
+  creatorId: row.creatorId ?? null,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -87,7 +88,7 @@ calendarRoutes.get(
     const { from, to, category, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
-    const conditions = [isNull(calendarEvents.deletedAt)];
+    const conditions = [isNull(calendarEvents.deletedAt), isNull(calendarEvents.creatorId)];
 
     if (from) {
       conditions.push(gte(calendarEvents.startAt, new Date(from)));
@@ -217,6 +218,7 @@ calendarRoutes.post(
         category: data.category,
         location: data.location,
         createdBy: user.id,
+        creatorId: null,
         createdAt: now,
         updatedAt: now,
       })
@@ -442,6 +444,7 @@ calendarRoutes.get("/feed.ics", async (c) => {
     .where(
       and(
         isNull(calendarEvents.deletedAt),
+        isNull(calendarEvents.creatorId),
         gte(calendarEvents.startAt, from),
         lte(calendarEvents.startAt, to),
       ),

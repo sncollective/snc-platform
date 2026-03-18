@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./user.schema.js";
+import { creatorProfiles } from "./creator.schema.js";
 
 // ── Calendar Events ──
 
@@ -25,6 +26,9 @@ export const calendarEvents = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id").references(() => creatorProfiles.id, {
+      onDelete: "cascade",
+    }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -43,6 +47,10 @@ export const calendarEvents = pgTable(
       table.deletedAt,
     ),
     index("calendar_events_created_by_idx").on(table.createdBy),
+    index("calendar_events_creator_deleted_idx").on(
+      table.creatorId,
+      table.deletedAt,
+    ),
   ],
 );
 

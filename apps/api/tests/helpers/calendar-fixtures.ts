@@ -10,6 +10,7 @@ type DbCalendarEventRow = {
   category: string;
   location: string;
   createdBy: string;
+  creatorId: string | null;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,7 @@ export const makeMockCalendarEvent = (
   category: "recording-session",
   location: "Studio A",
   createdBy: "user_test123",
+  creatorId: null,
   deletedAt: null,
   createdAt: new Date("2026-03-15T10:00:00.000Z"),
   updatedAt: new Date("2026-03-15T10:00:00.000Z"),

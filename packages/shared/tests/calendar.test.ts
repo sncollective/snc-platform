@@ -30,6 +30,7 @@ const VALID_EVENT = {
   category: "recording-session" as const,
   location: "Studio A",
   createdBy: "user_abc",
+  creatorId: null,
   createdAt: "2026-03-15T10:00:00.000Z",
   updatedAt: "2026-03-15T10:00:00.000Z",
 };
