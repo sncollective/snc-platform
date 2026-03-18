@@ -14,6 +14,7 @@ export const makeMockCalendarEvent = (
   category: "recording-session",
   location: "Studio A",
   createdBy: "user_test123",
+  creatorId: null,
   createdAt: "2026-03-15T10:00:00.000Z",
   updatedAt: "2026-03-15T10:00:00.000Z",
   ...overrides,

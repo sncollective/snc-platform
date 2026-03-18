@@ -50,3 +50,48 @@ export async function fetchFeedToken(): Promise<FeedTokenResponse> {
 export async function generateFeedToken(): Promise<FeedTokenResponse> {
   return apiMutate<FeedTokenResponse>("/api/calendar/feed-token", {});
 }
+
+// ── Creator-Scoped Events ──
+
+export async function fetchCreatorEvents(
+  creatorId: string,
+  params?: Record<string, string | number | undefined>,
+): Promise<CalendarEventsResponse> {
+  return apiGet<CalendarEventsResponse>(
+    `/api/creators/${creatorId}/events`,
+    params,
+  );
+}
+
+export async function createCreatorEvent(
+  creatorId: string,
+  data: CreateCalendarEvent,
+): Promise<CalendarEvent> {
+  const result = await apiMutate<{ event: CalendarEvent }>(
+    `/api/creators/${creatorId}/events`,
+    { body: data },
+  );
+  return result.event;
+}
+
+export async function updateCreatorEvent(
+  creatorId: string,
+  eventId: string,
+  data: UpdateCalendarEvent,
+): Promise<CalendarEvent> {
+  const result = await apiMutate<{ event: CalendarEvent }>(
+    `/api/creators/${creatorId}/events/${eventId}`,
+    { method: "PATCH", body: data },
+  );
+  return result.event;
+}
+
+export async function deleteCreatorEvent(
+  creatorId: string,
+  eventId: string,
+): Promise<void> {
+  await apiMutate<undefined>(
+    `/api/creators/${creatorId}/events/${eventId}`,
+    { method: "DELETE" },
+  );
+}
