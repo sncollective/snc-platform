@@ -84,7 +84,7 @@ afterEach(() => {
 describe("TeamSection", () => {
   it("renders member list with names", async () => {
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -95,7 +95,7 @@ describe("TeamSection", () => {
 
   it("shows role dropdowns for owners", async () => {
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -106,7 +106,7 @@ describe("TeamSection", () => {
 
   it("shows remove buttons for owners", async () => {
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -117,7 +117,7 @@ describe("TeamSection", () => {
 
   it("shows search input for owners", async () => {
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -142,7 +142,7 @@ describe("TeamSection", () => {
     });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId="user_viewer" />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId="user_viewer" isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -164,7 +164,7 @@ describe("TeamSection", () => {
     });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -178,7 +178,7 @@ describe("TeamSection", () => {
     });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -197,7 +197,7 @@ describe("TeamSection", () => {
     });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -239,7 +239,7 @@ describe("TeamSection", () => {
     mockAddCreatorMember.mockResolvedValue({ members: newMembers });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -287,7 +287,7 @@ describe("TeamSection", () => {
     mockUpdateCreatorMember.mockResolvedValue({ members: updatedMembers });
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -311,7 +311,7 @@ describe("TeamSection", () => {
 
   it("removes a member", async () => {
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -334,7 +334,7 @@ describe("TeamSection", () => {
     mockFetchCreatorMembers.mockRejectedValue(new Error("Network error"));
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {
@@ -342,6 +342,61 @@ describe("TeamSection", () => {
         "Failed to load team members",
       );
     });
+  });
+
+  it("shows no-results message when search returns empty", async () => {
+    mockFetchMemberCandidates.mockResolvedValue({ candidates: [] });
+
+    render(
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Search users to add")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("Search users to add"), {
+        target: { value: "nonexistent" },
+      });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/No eligible users found/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows management UI for admin non-members", async () => {
+    mockFetchCreatorMembers.mockResolvedValue({
+      members: [
+        makeMockCreatorMember({
+          userId: "user_owner_other",
+          displayName: "Owner Other",
+          role: "owner",
+        }),
+        makeMockCreatorMember({
+          userId: "user_editor",
+          displayName: "Editor User",
+          role: "editor",
+        }),
+      ],
+    });
+
+    render(
+      <TeamSection creatorId={CREATOR_ID} currentUserId="user_admin_nonmember" isAdmin={true} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Owner Other")).toBeInTheDocument();
+    });
+
+    // Admin should see role dropdowns and remove buttons despite not being a member
+    expect(screen.getByLabelText("Role for Owner Other")).toBeInTheDocument();
+    expect(screen.getByLabelText("Role for Editor User")).toBeInTheDocument();
+    expect(screen.getByLabelText("Remove Owner Other")).toBeInTheDocument();
+    expect(screen.getByLabelText("Remove Editor User")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search users to add")).toBeInTheDocument();
   });
 
   it("shows error on add failure", async () => {
@@ -352,7 +407,7 @@ describe("TeamSection", () => {
     mockAddCreatorMember.mockRejectedValue(new Error("Already a member"));
 
     render(
-      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} />,
+      <TeamSection creatorId={CREATOR_ID} currentUserId={CURRENT_USER_ID} isAdmin={false} />,
     );
 
     await waitFor(() => {

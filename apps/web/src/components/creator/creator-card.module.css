@@ -7,6 +7,11 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-dropdown);
 }
 
 /* ── Card Link ── */
@@ -18,12 +23,7 @@
   padding: var(--space-lg) var(--space-md);
   text-decoration: none;
   color: var(--color-text);
-  transition: box-shadow 0.2s, border-color 0.2s;
   width: 100%;
-}
-
-.cardLink:hover {
-  box-shadow: var(--shadow-dropdown);
 }
 
 /* ── Avatar ── */

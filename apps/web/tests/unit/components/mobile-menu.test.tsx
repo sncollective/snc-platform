@@ -80,15 +80,15 @@ describe("MobileMenu", () => {
     expect(screen.getByRole("link", { name: "Merch" })).toHaveAttribute("href", "/merch");
   });
 
-  it("renders Studio as external link with target _blank", async () => {
+  it("renders Studio as internal link", async () => {
     render(<MobileMenu currentPath="/" />);
 
     await openMenu();
 
     const studioLink = screen.getByRole("link", { name: "Studio" });
-    expect(studioLink).toHaveAttribute("href", "https://s-nc.org/studio");
-    expect(studioLink).toHaveAttribute("target", "_blank");
-    expect(studioLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(studioLink).toHaveAttribute("href", "/studio");
+    expect(studioLink).not.toHaveAttribute("target");
+    expect(studioLink).not.toHaveAttribute("rel");
   });
 
   it("shows Dashboard link for stakeholder (bug fix verification)", async () => {

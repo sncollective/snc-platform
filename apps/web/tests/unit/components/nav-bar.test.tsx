@@ -77,13 +77,13 @@ describe("NavBar", () => {
     expect(merchLink).toHaveAttribute("href", "/merch");
   });
 
-  it("renders Studio as external link with correct href and target", () => {
+  it("renders Studio as internal link", () => {
     render(<NavBar />);
 
     const studioLink = screen.getByRole("link", { name: "Studio" });
-    expect(studioLink).toHaveAttribute("href", "https://s-nc.org/studio");
-    expect(studioLink).toHaveAttribute("target", "_blank");
-    expect(studioLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(studioLink).toHaveAttribute("href", "/studio");
+    expect(studioLink).not.toHaveAttribute("target");
+    expect(studioLink).not.toHaveAttribute("rel");
   });
 
   it("shows 'Log in' and 'Sign up' when no session", () => {

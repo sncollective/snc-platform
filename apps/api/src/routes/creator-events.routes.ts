@@ -76,7 +76,7 @@ const findActiveEvent = async (eventId: string, creatorId: string) => {
 export const creatorEventRoutes = new Hono<AuthEnv>();
 
 creatorEventRoutes.use("*", requireAuth);
-creatorEventRoutes.use("*", requireRole("stakeholder"));
+creatorEventRoutes.use("*", requireRole("stakeholder", "admin"));
 
 // ── GET /:creatorId/events — List creator events ──
 

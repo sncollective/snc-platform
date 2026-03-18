@@ -18,7 +18,7 @@ export interface NavLink {
 const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
   { to: "/feed", label: "Feed", feature: "content" },
   { to: "/creators", label: "Creators", feature: "creator" },
-  { to: "https://s-nc.org/studio", label: "Studio", feature: "booking", external: true },
+  { to: "/studio", label: "Studio", feature: "booking" },
   { to: "/merch", label: "Merch", feature: "merch" },
   { to: "/pricing", label: "Pricing", feature: "subscription" },
   { to: "/emissions", label: "Emissions", feature: "emissions" },

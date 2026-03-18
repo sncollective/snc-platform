@@ -26,6 +26,7 @@ import styles from "./team-section.module.css";
 export interface TeamSectionProps {
   readonly creatorId: string;
   readonly currentUserId: string;
+  readonly isAdmin: boolean;
 }
 
 // ── Private Constants ──
@@ -43,6 +44,7 @@ const DEBOUNCE_MS = 300;
 export function TeamSection({
   creatorId,
   currentUserId,
+  isAdmin,
 }: TeamSectionProps): React.ReactElement {
   // ── Member State ──
   const [members, setMembers] = useState<CreatorMember[]>([]);
@@ -57,12 +59,13 @@ export function TeamSection({
     useState<CreatorMemberCandidate | null>(null);
   const [addRole, setAddRole] = useState<CreatorMemberRole>("editor");
   const [isAdding, setIsAdding] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Derived State ──
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isOwner = currentMember?.role === "owner";
-  const canManageMembers = isOwner;
+  const canManageMembers = isOwner || isAdmin;
   const ownerCount = members.filter((m) => m.role === "owner").length;
 
   // ── Load Members ──
@@ -94,6 +97,7 @@ export function TeamSection({
 
     if (!searchQuery.trim()) {
       setCandidates([]);
+      setHasSearched(false);
       return;
     }
 
@@ -101,8 +105,9 @@ export function TeamSection({
       try {
         const res = await fetchMemberCandidates(creatorId, searchQuery.trim());
         setCandidates(res.candidates);
+        setHasSearched(true);
       } catch {
-        // Silently fail search
+        setHasSearched(true);
       }
     }, DEBOUNCE_MS);
 
@@ -273,6 +278,11 @@ export function TeamSection({
                     </li>
                   ))}
                 </ul>
+              )}
+              {hasSearched && candidates.length === 0 && (
+                <p className={styles.noResults}>
+                  No eligible users found. Only stakeholders and admins who aren't already members can be added.
+                </p>
               )}
             </div>
           )}
