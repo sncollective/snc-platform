@@ -10,6 +10,7 @@ import {
   CreatorListItemSchema,
   CreatorListQuerySchema,
   CreatorListResponseSchema,
+  MyCreatorItemSchema,
   type SocialPlatform,
   type SocialLink,
   type UpdateCreatorProfile,
@@ -17,6 +18,7 @@ import {
   type CreatorListItem,
   type CreatorListQuery,
   type CreatorListResponse,
+  type MyCreatorItem,
 } from "../src/index.js";
 
 // ── Test Fixtures ──
@@ -461,6 +463,56 @@ describe("CreatorListResponseSchema", () => {
   });
 });
 
+describe("MyCreatorItemSchema", () => {
+  it("parses MyCreatorItem with memberRole", () => {
+    const result = MyCreatorItemSchema.safeParse({
+      ...VALID_CREATOR_PROFILE,
+      memberRole: "editor",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.memberRole).toBe("editor");
+    }
+  });
+
+  it("accepts all valid member roles", () => {
+    for (const role of ["owner", "editor", "viewer"] as const) {
+      const result = MyCreatorItemSchema.safeParse({
+        ...VALID_CREATOR_PROFILE,
+        memberRole: role,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it("rejects invalid memberRole value", () => {
+    const result = MyCreatorItemSchema.safeParse({
+      ...VALID_CREATOR_PROFILE,
+      memberRole: "admin",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when memberRole is missing", () => {
+    const result = MyCreatorItemSchema.safeParse(VALID_CREATOR_PROFILE);
+    expect(result.success).toBe(false);
+  });
+
+  it("includes all CreatorProfileResponse fields", () => {
+    const result = MyCreatorItemSchema.safeParse({
+      ...VALID_CREATOR_PROFILE,
+      memberRole: "owner",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.id).toBe(VALID_CREATOR_PROFILE.id);
+      expect(result.data.displayName).toBe(VALID_CREATOR_PROFILE.displayName);
+      expect(result.data.contentCount).toBe(VALID_CREATOR_PROFILE.contentCount);
+      expect(result.data.memberRole).toBe("owner");
+    }
+  });
+});
+
 // ── Type-level assertions (compile-time only) ──
 
 const _updateCheck: UpdateCreatorProfile = {};
@@ -470,3 +522,4 @@ const _queryCheck: CreatorListQuery = { limit: 24 };
 const _responseCheck: CreatorListResponse = { items: [], nextCursor: null };
 const _platformCheck: SocialPlatform = "bandcamp";
 const _linkCheck: SocialLink = { platform: "bandcamp", url: "https://test.bandcamp.com" };
+const _myCreatorItemCheck: MyCreatorItem = { ...VALID_CREATOR_PROFILE, memberRole: "owner" };

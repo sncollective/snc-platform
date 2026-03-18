@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { z } from "zod";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -16,6 +17,7 @@ import {
   CreatorMembersResponseSchema,
   CandidatesQuerySchema,
   CandidatesResponseSchema,
+  MyCreatorItemSchema,
   NotFoundError,
   ForbiddenError,
   ValidationError,
@@ -49,6 +51,13 @@ import { requireCreatorPermission, getCreatorMemberships } from "../services/cre
 // ── Private Types ──
 
 type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
+
+// ── Private Schemas ──
+
+const MyCreatorListResponseSchema = z.object({
+  items: z.array(MyCreatorItemSchema),
+  nextCursor: z.string().nullable(),
+});
 
 // ── Private Helpers ──
 
@@ -367,10 +376,10 @@ creatorRoutes.get(
     tags: ["creators"],
     responses: {
       200: {
-        description: "List of creator profiles",
+        description: "List of creator profiles with member role",
         content: {
           "application/json": {
-            schema: resolver(CreatorListResponseSchema),
+            schema: resolver(MyCreatorListResponseSchema),
           },
         },
       },
@@ -392,9 +401,11 @@ creatorRoutes.get(
       .where(inArray(creatorProfiles.id, creatorIds));
 
     const countMap = await batchGetContentCounts(creatorIds);
-    const items = profiles.map((p) =>
-      toProfileResponse(p, countMap.get(p.id) ?? 0),
-    );
+    const roleMap = new Map(memberships.map((m) => [m.creatorId, m.role]));
+    const items = profiles.map((p) => ({
+      ...toProfileResponse(p, countMap.get(p.id) ?? 0),
+      memberRole: roleMap.get(p.id) ?? "viewer",
+    }));
 
     return c.json({ items, nextCursor: null });
   },
