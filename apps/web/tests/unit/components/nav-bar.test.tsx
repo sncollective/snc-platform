@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { Role } from "@snc/shared";
+
 import {
   makeMockUser,
   makeMockSessionResult,
@@ -16,13 +18,13 @@ const {
   mockUseRouterState,
   mockNavigate,
   mockUseSession,
-  mockUseRoles,
+  mockUseAuthExtras,
   mockSignOut,
 } = vi.hoisted(() => ({
   mockUseRouterState: vi.fn(),
   mockNavigate: vi.fn(),
   mockUseSession: vi.fn(),
-  mockUseRoles: vi.fn(),
+  mockUseAuthExtras: vi.fn(),
   mockSignOut: vi.fn(),
 }));
 
@@ -34,7 +36,7 @@ vi.mock("@tanstack/react-router", () =>
 );
 
 vi.mock("../../../src/lib/auth.js", () =>
-  createAuthMock({ useSession: mockUseSession, useRoles: mockUseRoles }),
+  createAuthMock({ useSession: mockUseSession, useAuthExtras: mockUseAuthExtras }),
 );
 
 vi.mock("../../../src/lib/auth-client.js", () => ({
@@ -52,7 +54,7 @@ beforeEach(() => {
     location: { pathname: "/" },
   });
   mockUseSession.mockReturnValue(makeMockSessionResult());
-  mockUseRoles.mockReturnValue([]);
+  mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 });
 
 // ── Tests ──
@@ -65,7 +67,7 @@ describe("NavBar", () => {
     expect(logo).toHaveAttribute("href", "/");
   });
 
-  it("renders all primary navigation links", () => {
+  it("renders primary navigation links", () => {
     render(<NavBar />);
 
     const feedLink = screen.getByRole("link", { name: "Feed" });
@@ -74,11 +76,17 @@ describe("NavBar", () => {
     const creatorsLink = screen.getByRole("link", { name: "Creators" });
     expect(creatorsLink).toHaveAttribute("href", "/creators");
 
-    const servicesLink = screen.getByRole("link", { name: "Services" });
-    expect(servicesLink).toHaveAttribute("href", "/services");
-
     const merchLink = screen.getByRole("link", { name: "Merch" });
     expect(merchLink).toHaveAttribute("href", "/merch");
+  });
+
+  it("renders Studio as external link with correct href and target", () => {
+    render(<NavBar />);
+
+    const studioLink = screen.getByRole("link", { name: "Studio" });
+    expect(studioLink).toHaveAttribute("href", "https://s-nc.org/studio");
+    expect(studioLink).toHaveAttribute("target", "_blank");
+    expect(studioLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("shows 'Log in' and 'Sign up' when no session", () => {
@@ -106,7 +114,7 @@ describe("NavBar", () => {
   it("shows 'Dashboard' link when user has stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-    mockUseRoles.mockReturnValue(["stakeholder"]);
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
 
     render(<NavBar />);
 
@@ -119,12 +127,57 @@ describe("NavBar", () => {
   it("hides 'Dashboard' link when user lacks stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-    mockUseRoles.mockReturnValue([]);
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 
     render(<NavBar />);
 
     await user.click(screen.getByLabelText("User menu"));
 
     expect(screen.queryByRole("menuitem", { name: "Dashboard" })).toBeNull();
+  });
+
+  it("shows 'My Creators' link in nav for stakeholder", () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
+
+    render(<NavBar />);
+
+    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
+    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
+  });
+
+  it("hides 'My Creators' link in nav for unauthenticated user", () => {
+    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<NavBar />);
+
+    expect(screen.queryByRole("link", { name: "My Creators" })).toBeNull();
+  });
+
+  it("shows 'My Creators' link in nav for admin", () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Admin User" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
+
+    render(<NavBar />);
+
+    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
+    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
+  });
+
+  it("uses serverAuth roles for nav links when session pending", () => {
+    mockUseSession.mockReturnValue({ data: null, isPending: true, error: null });
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    const serverAuth = {
+      user: makeMockUser({ name: "Server User" }),
+      roles: ["stakeholder"] as Role[],
+      isPatron: false,
+    };
+
+    render(<NavBar serverAuth={serverAuth} />);
+
+    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
+    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
   });
 });

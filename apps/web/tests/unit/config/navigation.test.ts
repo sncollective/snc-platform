@@ -32,10 +32,11 @@ describe("NAV_LINKS", () => {
     const labels = NAV_LINKS.map((l) => l.label);
     expect(labels).toContain("Feed");
     expect(labels).toContain("Creators");
-    expect(labels).toContain("Services");
+    expect(labels).toContain("Studio");
     expect(labels).toContain("Merch");
     expect(labels).toContain("Pricing");
     expect(labels).toContain("Emissions");
+    expect(labels).toContain("My Creators");
   });
 
   it("all links have disabled: false when all features are enabled", async () => {
@@ -73,21 +74,21 @@ describe("NAV_LINKS", () => {
     expect(labels).toContain("Creators");
     expect(labels).toContain("Pricing");
     expect(labels).toContain("Merch");
-    expect(labels).toContain("Services");
+    expect(labels).toContain("Studio");
     expect(labels).toContain("Emissions");
 
     const merchLink = NAV_LINKS.find((l) => l.label === "Merch");
-    const servicesLink = NAV_LINKS.find((l) => l.label === "Services");
+    const studioLink = NAV_LINKS.find((l) => l.label === "Studio");
     const emissionsLink = NAV_LINKS.find((l) => l.label === "Emissions");
     const feedLink = NAV_LINKS.find((l) => l.label === "Feed");
 
     expect(merchLink?.disabled).toBe(true);
-    expect(servicesLink?.disabled).toBe(true);
+    expect(studioLink?.disabled).toBe(true);
     expect(emissionsLink?.disabled).toBe(true);
     expect(feedLink?.disabled).toBe(false);
   });
 
-  it("always includes all 6 nav links regardless of feature state", async () => {
+  it("always includes all 7 nav links regardless of feature state", async () => {
     const flags: FeatureFlags = {
       content: false,
       creator: false,
@@ -109,9 +110,39 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(6);
+    expect(NAV_LINKS).toHaveLength(7);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }
+  });
+
+  it("Studio link has external: true", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { NAV_LINKS } = await import("../../../src/config/navigation.js");
+
+    const studioLink = NAV_LINKS.find((l) => l.label === "Studio");
+    expect(studioLink).toBeDefined();
+    expect(studioLink?.external).toBe(true);
+    expect(studioLink?.to).toBe("https://s-nc.org/studio");
+  });
+
+  it("My Creators link has role: stakeholder", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { NAV_LINKS } = await import("../../../src/config/navigation.js");
+
+    const myCreatorsLink = NAV_LINKS.find((l) => l.label === "My Creators");
+    expect(myCreatorsLink).toBeDefined();
+    expect(myCreatorsLink?.role).toBe("stakeholder");
+    expect(myCreatorsLink?.to).toBe("/creators/mine");
   });
 });

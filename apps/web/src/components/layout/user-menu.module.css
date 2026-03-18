@@ -137,3 +137,16 @@
 .logoutButton:hover {
   background: var(--color-bg-input);
 }
+
+.patronBadge {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 1px var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
+  text-transform: lowercase;
+}
