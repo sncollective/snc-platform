@@ -1,9 +1,3 @@
-/* ── Page Heading Override ── */
-
-.heading {
-  margin-bottom: var(--space-md);
-}
-
 /* ── Form ── */
 
 .form {
@@ -107,7 +101,7 @@
   cursor: not-allowed;
 }
 
-/* ── Save Button (overrides for shared primary button) ── */
+/* ── Save Button ── */
 
 .saveButton {
   align-self: flex-start;
@@ -183,4 +177,3 @@
   font-size: var(--font-size-sm);
   color: var(--color-accent);
 }
-

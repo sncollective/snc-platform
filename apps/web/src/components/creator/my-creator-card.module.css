@@ -1,0 +1,125 @@
+/* ── Card Container ── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg) var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ── Avatar ── */
+
+.avatarWrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-bottom: var(--space-md);
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-border) 100%);
+}
+
+/* ── Info Section ── */
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+  width: 100%;
+}
+
+/* ── Name Row ── */
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.displayName {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.displayName:hover {
+  color: var(--color-accent);
+}
+
+/* ── Bio ── */
+
+.bio {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ── Content Count ── */
+
+.contentCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Role Badge ── */
+
+.roleBadge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.roleBadgeOwner {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.roleBadgeEditor {
+  background: var(--color-info-bg, #e8f0fe);
+  color: var(--color-info, #1a73e8);
+}
+
+.roleBadgeViewer {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+}
+
+/* ── Manage Link ── */
+
+.manageLink {
+  margin-top: var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.manageLink:hover {
+  text-decoration: underline;
+}

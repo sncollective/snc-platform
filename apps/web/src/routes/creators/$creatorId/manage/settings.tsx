@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type React from "react";
@@ -12,30 +12,21 @@ import {
 } from "@snc/shared";
 import type { SocialLink, SocialPlatform } from "@snc/shared";
 
-import { CreateCreatorForm } from "../../components/creator/create-creator-form.js";
-import { FediverseAddress } from "../../components/federation/fediverse-address.js";
-import { CreatorSelector } from "../../components/creator/creator-selector.js";
-import { TeamSection } from "../../components/creator/team-section.js";
-
-import { extractFieldErrors } from "../../lib/form-utils.js";
-import { fetchAuthState } from "../../lib/auth.js";
-import { fetchAuthStateServer } from "../../lib/api-server.js";
-import { isFeatureEnabled } from "../../lib/config.js";
+import { FediverseAddress } from "../../../../components/federation/fediverse-address.js";
+import { extractFieldErrors } from "../../../../lib/form-utils.js";
+import { isFeatureEnabled } from "../../../../lib/config.js";
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
   uploadCreatorAvatar,
   uploadCreatorBanner,
-  fetchMyCreatorPages,
-} from "../../lib/creator.js";
-import type { CreatorProfileResponse } from "@snc/shared";
-import buttonStyles from "../../styles/button.module.css";
-import errorStyles from "../../styles/error-alert.module.css";
-import formStyles from "../../styles/form.module.css";
-import successStyles from "../../styles/success-alert.module.css";
-import pageHeadingStyles from "../../styles/page-heading.module.css";
-import settingsStyles from "../../styles/settings-page.module.css";
-import styles from "./creator-settings.module.css";
+} from "../../../../lib/creator.js";
+import buttonStyles from "../../../../styles/button.module.css";
+import errorStyles from "../../../../styles/error-alert.module.css";
+import formStyles from "../../../../styles/form.module.css";
+import successStyles from "../../../../styles/success-alert.module.css";
+import settingsStyles from "../../../../styles/settings-page.module.css";
+import styles from "./manage-settings.module.css";
 
 // ── Private Constants ──
 
@@ -47,32 +38,14 @@ const URL_SCHEMA = z.object({
 
 // ── Route ──
 
-export const Route = createFileRoute("/settings/creator")({
-  beforeLoad: async () => {
-    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
-
-    const { user, roles } = await fetchAuthStateServer();
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-    if (!roles.includes("stakeholder") && !roles.includes("admin")) {
-      throw redirect({ to: "/feed" });
-    }
-    return { userId: user.id };
-  },
-  component: CreatorSettingsPage,
+export const Route = createFileRoute("/creators/$creatorId/manage/settings")({
+  component: ManageSettingsPage,
 });
 
 // ── Component ──
 
-function CreatorSettingsPage(): React.ReactElement {
-  // ── Loading State ──
-  const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState("");
-
-  // ── Multi-Entity State ──
-  const [creatorPages, setCreatorPages] = useState<CreatorProfileResponse[]>([]);
-  const [selectedCreatorId, setSelectedCreatorId] = useState("");
+function ManageSettingsPage(): React.ReactElement {
+  const { creatorId } = Route.useParams();
 
   // ── Profile Fields State ──
   const [displayName, setDisplayName] = useState("");
@@ -99,43 +72,14 @@ function CreatorSettingsPage(): React.ReactElement {
   const [successMessage, setSuccessMessage] = useState("");
   const [serverError, setServerError] = useState("");
 
-  // ── Load Creator Pages ──
+  // ── Load Profile ──
   useEffect(() => {
-    let cancelled = false;
-
-    async function load(): Promise<void> {
-      try {
-        const { user } = await fetchAuthState();
-        if (cancelled || !user) return;
-        setUserId(user.id);
-        const pages = await fetchMyCreatorPages();
-        if (cancelled) return;
-        setCreatorPages(pages);
-        if (pages.length > 0) {
-          setSelectedCreatorId(pages[0]!.id);
-        }
-      } catch {
-        if (!cancelled) setServerError("Failed to load creator pages");
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // ── Load Profile for Selected Creator ──
-  useEffect(() => {
-    if (!selectedCreatorId) return;
+    if (!creatorId) return;
     let cancelled = false;
 
     async function loadProfile(): Promise<void> {
       try {
-        const profile = await fetchCreatorProfile(selectedCreatorId);
+        const profile = await fetchCreatorProfile(creatorId);
         if (cancelled) return;
         setDisplayName(profile.displayName);
         setHandle(profile.handle ?? "");
@@ -155,7 +99,7 @@ function CreatorSettingsPage(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [selectedCreatorId]);
+  }, [creatorId]);
 
   // ── Add Link Handler ──
   const handleAddLink = (): void => {
@@ -165,7 +109,6 @@ function CreatorSettingsPage(): React.ReactElement {
       return;
     }
 
-    // Validate URL format
     const result = safeParse(URL_SCHEMA, { url: trimmedUrl });
     if (!result.success) {
       const errs = extractFieldErrors(result.error.issues, ["url"]);
@@ -173,20 +116,14 @@ function CreatorSettingsPage(): React.ReactElement {
       return;
     }
 
-    // Check platform-specific pattern
     const config = PLATFORM_CONFIG[newPlatform];
     if (config.urlPattern && !config.urlPattern.test(trimmedUrl)) {
-      setLinkError(
-        `URL does not match ${config.displayName} format`,
-      );
+      setLinkError(`URL does not match ${config.displayName} format`);
       return;
     }
 
-    // Check for duplicate platform
     if (socialLinks.some((l) => l.platform === newPlatform)) {
-      setLinkError(
-        `A ${config.displayName} link has already been added`,
-      );
+      setLinkError(`A ${config.displayName} link has already been added`);
       return;
     }
 
@@ -214,7 +151,7 @@ function CreatorSettingsPage(): React.ReactElement {
 
     setIsSubmitting(true);
     try {
-      await updateCreatorProfile(selectedCreatorId, {
+      await updateCreatorProfile(creatorId, {
         displayName: displayName.trim() || undefined,
         handle: handle.trim() || undefined,
         bio: bio.trim() || undefined,
@@ -232,11 +169,11 @@ function CreatorSettingsPage(): React.ReactElement {
 
   // ── Avatar Upload Handler ──
   const handleAvatarUpload = async (): Promise<void> => {
-    if (!avatarFile || !selectedCreatorId) return;
+    if (!avatarFile || !creatorId) return;
     setIsUploadingAvatar(true);
     setServerError("");
     try {
-      const updated = await uploadCreatorAvatar(selectedCreatorId, avatarFile);
+      const updated = await uploadCreatorAvatar(creatorId, avatarFile);
       setAvatarUrl(updated.avatarUrl);
       setAvatarFile(null);
       setSuccessMessage("Avatar uploaded");
@@ -249,11 +186,11 @@ function CreatorSettingsPage(): React.ReactElement {
 
   // ── Banner Upload Handler ──
   const handleBannerUpload = async (): Promise<void> => {
-    if (!bannerFile || !selectedCreatorId) return;
+    if (!bannerFile || !creatorId) return;
     setIsUploadingBanner(true);
     setServerError("");
     try {
-      const updated = await uploadCreatorBanner(selectedCreatorId, bannerFile);
+      const updated = await uploadCreatorBanner(creatorId, bannerFile);
       setBannerUrl(updated.bannerUrl);
       setBannerFile(null);
       setSuccessMessage("Banner uploaded");
@@ -264,44 +201,8 @@ function CreatorSettingsPage(): React.ReactElement {
     }
   };
 
-  const handleCreated = (profile: CreatorProfileResponse): void => {
-    setCreatorPages((prev) => [...prev, profile]);
-    setSelectedCreatorId(profile.id);
-  };
-
-  if (isLoading) {
-    return (
-      <div className={settingsStyles.page}>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (creatorPages.length === 0) {
-    return (
-      <div className={settingsStyles.page}>
-        <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>Creator Settings</h1>
-        {serverError && (
-          <div className={errorStyles.error} role="alert">
-            {serverError}
-          </div>
-        )}
-        <p>You don't have a creator page yet. Create one to get started.</p>
-        <CreateCreatorForm onCreated={handleCreated} />
-      </div>
-    );
-  }
-
   return (
     <div className={settingsStyles.page}>
-      <h1 className={`${pageHeadingStyles.heading} ${styles.heading}`}>Creator Settings</h1>
-
-      <CreatorSelector
-        creators={creatorPages}
-        selectedId={selectedCreatorId}
-        onChange={setSelectedCreatorId}
-      />
-
       {serverError && (
         <div className={errorStyles.error} role="alert">
           {serverError}
@@ -503,7 +404,8 @@ function CreatorSettingsPage(): React.ReactElement {
         <section className={styles.federationSection}>
           <h2 className={styles.federationHeading}>Fediverse</h2>
           <p className={styles.federationDescription}>
-            Anyone on Mastodon, Pixelfed, or other Fediverse platforms can follow you using this address.
+            Anyone on Mastodon, Pixelfed, or other Fediverse platforms can follow you using this
+            address.
           </p>
           <FediverseAddress handle={handle} domain={FEDERATION_DOMAIN} />
           <a
@@ -515,10 +417,6 @@ function CreatorSettingsPage(): React.ReactElement {
             Learn about the Fediverse
           </a>
         </section>
-      )}
-
-      {selectedCreatorId && (
-        <TeamSection creatorId={selectedCreatorId} currentUserId={userId} />
       )}
     </div>
   );

@@ -1,8 +1,9 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import type React from "react";
-import type { CreatorProfileResponse } from "@snc/shared";
 
-import { CreatorCard } from "../../components/creator/creator-card.js";
+import type { MyCreatorItem } from "@snc/shared";
+
+import { MyCreatorCard } from "../../components/creator/my-creator-card.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import styles from "./creators.module.css";
@@ -24,11 +25,11 @@ export const Route = createFileRoute("/creators/mine")({
       throw redirect({ to: "/creators" });
     }
   },
-  loader: async (): Promise<{ items: CreatorProfileResponse[] }> => {
+  loader: async (): Promise<{ items: MyCreatorItem[] }> => {
     try {
       const res = (await fetchApiServer({
         data: "/api/creators/mine",
-      })) as { items: CreatorProfileResponse[]; nextCursor: string | null };
+      })) as { items: MyCreatorItem[]; nextCursor: string | null };
       return { items: res.items };
     } catch {
       return { items: [] };
@@ -53,7 +54,7 @@ function MyCreatorsPage(): React.ReactElement {
       ) : (
         <div className="content-grid">
           {items.map((creator) => (
-            <CreatorCard key={creator.id} creator={creator} />
+            <MyCreatorCard key={creator.id} creator={creator} />
           ))}
         </div>
       )}
