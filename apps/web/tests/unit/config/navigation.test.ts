@@ -37,7 +37,6 @@ describe("NAV_LINKS", () => {
     expect(labels).toContain("Merch");
     expect(labels).toContain("Pricing");
     expect(labels).toContain("Emissions");
-    expect(labels).toContain("My Creators");
   });
 
   it("all links have disabled: false when all features are enabled", async () => {
@@ -89,7 +88,7 @@ describe("NAV_LINKS", () => {
     expect(feedLink?.disabled).toBe(false);
   });
 
-  it("always includes all 7 nav links regardless of feature state", async () => {
+  it("always includes all 6 nav links regardless of feature state", async () => {
     const flags: FeatureFlags = {
       content: false,
       creator: false,
@@ -112,7 +111,7 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(7);
+    expect(NAV_LINKS).toHaveLength(6);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }
@@ -133,18 +132,4 @@ describe("NAV_LINKS", () => {
     expect(studioLink?.to).toBe("https://s-nc.org/studio");
   });
 
-  it("My Creators link has role: stakeholder", async () => {
-    vi.doMock("../../../src/lib/config.js", () => ({
-      DEMO_MODE: false,
-      features: ALL_ON,
-      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
-    }));
-
-    const { NAV_LINKS } = await import("../../../src/config/navigation.js");
-
-    const myCreatorsLink = NAV_LINKS.find((l) => l.label === "My Creators");
-    expect(myCreatorsLink).toBeDefined();
-    expect(myCreatorsLink?.role).toBe("stakeholder");
-    expect(myCreatorsLink?.to).toBe("/creators/mine");
-  });
 });

@@ -73,7 +73,7 @@ describe("CreatorCard", () => {
 
     render(<CreatorCard creator={creator} />);
 
-    const link = screen.getByRole("link");
+    const link = screen.getByRole("link", { name: /Test Creator/ });
     expect(link).toHaveAttribute("href", "/creators/creator-42");
   });
 
@@ -88,5 +88,49 @@ describe("CreatorCard", () => {
     expect(screen.getByText("No Bio Creator")).toBeInTheDocument();
     // Only display name and content count should be in the info section
     expect(screen.queryByText("A test creator bio")).toBeNull();
+  });
+
+  it("renders manage link when canManage is true", () => {
+    const creator = makeMockCreatorListItem({
+      id: "creator-99",
+      canManage: true,
+    });
+
+    render(<CreatorCard creator={creator} />);
+
+    const manageLink = screen.getByRole("link", { name: "Manage" });
+    expect(manageLink).toBeInTheDocument();
+    expect(manageLink).toHaveAttribute("href", "/creators/creator-99/manage");
+  });
+
+  it("does not render manage link when canManage is undefined", () => {
+    const creator = makeMockCreatorListItem();
+
+    render(<CreatorCard creator={creator} />);
+
+    expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
+  });
+
+  it("does not render manage link when canManage is false", () => {
+    const creator = makeMockCreatorListItem({ canManage: false });
+
+    render(<CreatorCard creator={creator} />);
+
+    expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
+  });
+
+  it("still links to detail page when manage link is present", () => {
+    const creator = makeMockCreatorListItem({
+      id: "creator-77",
+      canManage: true,
+    });
+
+    render(<CreatorCard creator={creator} />);
+
+    const detailLink = screen.getByRole("link", { name: /Test Creator/ });
+    expect(detailLink).toHaveAttribute("href", "/creators/creator-77");
+
+    const manageLink = screen.getByRole("link", { name: "Manage" });
+    expect(manageLink).toHaveAttribute("href", "/creators/creator-77/manage");
   });
 });

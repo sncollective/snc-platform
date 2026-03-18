@@ -22,7 +22,6 @@ const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
   { to: "/merch", label: "Merch", feature: "merch" },
   { to: "/pricing", label: "Pricing", feature: "subscription" },
   { to: "/emissions", label: "Emissions", feature: "emissions" },
-  { to: "/creators/mine", label: "My Creators", feature: "creator", role: "stakeholder" },
 ] as const;
 
 // ── Public API ──

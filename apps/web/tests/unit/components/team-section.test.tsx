@@ -31,7 +31,7 @@ vi.mock("../../../src/lib/creator.js", () => ({
   fetchCreatorProfile: vi.fn(),
   updateCreatorProfile: vi.fn(),
   createCreatorEntity: vi.fn(),
-  fetchMyCreatorPages: vi.fn(),
+  fetchAllCreators: vi.fn(),
 }));
 
 // ── Import under test ──

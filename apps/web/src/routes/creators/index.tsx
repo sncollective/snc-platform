@@ -32,6 +32,7 @@ function CreatorsPage(): React.ReactElement {
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<CreatorListItem>({
       buildUrl: (cursor) => buildCreatorsUrl({ cursor, limit: 24 }),
+      fetchOptions: { credentials: "include" },
       initialData: loaderData,
     });
 

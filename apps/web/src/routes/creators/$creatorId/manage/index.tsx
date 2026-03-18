@@ -19,8 +19,10 @@ export const Route = createFileRoute("/creators/$creatorId/manage/")({
 
 function OverviewPage(): React.ReactElement {
   const { creatorId } = Route.useParams();
-  const { memberRole } = parentRoute.useLoaderData();
-  const permissions = CREATOR_ROLE_PERMISSIONS[memberRole];
+  const { memberRole, isAdmin } = parentRoute.useLoaderData();
+  const permissions = isAdmin
+    ? CREATOR_ROLE_PERMISSIONS.owner
+    : CREATOR_ROLE_PERMISSIONS[memberRole];
 
   return (
     <div className={styles.overview}>
