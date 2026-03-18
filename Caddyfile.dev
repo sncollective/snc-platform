@@ -27,3 +27,7 @@ http://localhost:3082 {
 		reverse_proxy localhost:3002
 	}
 }
+
+http://localhost:3084 {
+	reverse_proxy localhost:4321
+}
