@@ -11,13 +11,13 @@
  *     createAuthMock({ useSession: mockUseSession }),
  *   );
  *
- * Usage (useSession + useRoles + hasRole — nav-bar, user-menu):
- *   const { mockUseSession, mockUseRoles } = vi.hoisted(() => ({
+ * Usage (useSession + useAuthExtras + hasRole — nav-bar, user-menu, mobile-menu):
+ *   const { mockUseSession, mockUseAuthExtras } = vi.hoisted(() => ({
  *     mockUseSession: vi.fn(),
- *     mockUseRoles: vi.fn(),
+ *     mockUseAuthExtras: vi.fn(),
  *   }));
  *   vi.mock("../../../src/lib/auth.js", () =>
- *     createAuthMock({ useSession: mockUseSession, useRoles: mockUseRoles }),
+ *     createAuthMock({ useSession: mockUseSession, useAuthExtras: mockUseAuthExtras }),
  *   );
  *
  * Usage (fetchAuthState only — route guards):
@@ -34,8 +34,10 @@
 interface AuthMockOptions {
   /** Mock for useSession hook. */
   useSession?: unknown;
-  /** Mock for useRoles hook. */
+  /** Mock for useRoles hook (legacy — kept for backward compat). */
   useRoles?: unknown;
+  /** Mock for useAuthExtras hook (replaces useRoles). */
+  useAuthExtras?: unknown;
   /** Mock for fetchAuthState (used in route beforeLoad guards). */
   fetchAuthState?: unknown;
   /** Additional top-level exports to include. */
@@ -45,8 +47,8 @@ interface AuthMockOptions {
 /**
  * Creates a mock module object for `lib/auth.js`.
  *
- * When `useRoles` is provided, `hasRole` is automatically included with
- * the standard implementation: `(roles, role) => roles.includes(role)`.
+ * When `useRoles` or `useAuthExtras` is provided, `hasRole` is automatically
+ * included with the standard implementation: `(roles, role) => roles.includes(role)`.
  *
  * Can be used as the factory argument to `vi.mock()`:
  * ```ts
@@ -62,6 +64,11 @@ export function createAuthMock(options: AuthMockOptions = {}): Record<string, un
 
   if (options.useRoles !== undefined) {
     mock.useRoles = options.useRoles;
+    mock.hasRole = (roles: string[], role: string) => roles.includes(role);
+  }
+
+  if (options.useAuthExtras !== undefined) {
+    mock.useAuthExtras = options.useAuthExtras;
     mock.hasRole = (roles: string[], role: string) => roles.includes(role);
   }
 

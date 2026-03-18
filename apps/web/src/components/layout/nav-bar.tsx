@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 
+import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { NAV_LINKS } from "../../config/navigation.js";
 import { UserMenu } from "./user-menu.js";
@@ -11,6 +12,12 @@ import styles from "./nav-bar.module.css";
 export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const session = useSession();
+  const { roles } = useAuthExtras();
+
+  const effectiveRoles = session.isPending
+    ? serverAuth?.roles ?? []
+    : roles;
 
   return (
     <header className={styles.header}>
@@ -20,27 +27,42 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
         </Link>
 
         <ul className={styles.links}>
-          {NAV_LINKS.map((link) => (
-            <li key={link.to}>
-              <Link
-                to={link.to}
-                className={[
-                  styles.navLink,
-                  link.disabled && styles.navLinkDisabled,
-                  !link.disabled && currentPath.startsWith(link.to) && styles.navLinkActive,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+          {NAV_LINKS.map((link) => {
+            if (link.role && !hasRole(effectiveRoles, link.role) && !hasRole(effectiveRoles, "admin")) {
+              return null;
+            }
+
+            const isActive = !link.external && !link.disabled && currentPath.startsWith(link.to);
+            const className = [
+              styles.navLink,
+              link.disabled && styles.navLinkDisabled,
+              isActive && styles.navLinkActive,
+            ].filter(Boolean).join(" ");
+
+            return (
+              <li key={link.to}>
+                {link.external ? (
+                  <a
+                    href={link.to}
+                    className={className}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link to={link.to} className={className}>
+                    {link.label}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <div className={styles.right}>
-          <UserMenu serverAuth={serverAuth} />
-          <MobileMenu currentPath={currentPath} />
+          <UserMenu {...(serverAuth !== undefined ? { serverAuth } : {})} />
+          <MobileMenu currentPath={currentPath} {...(serverAuth !== undefined ? { serverAuth } : {})} />
         </div>
       </nav>
     </header>

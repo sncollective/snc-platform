@@ -5,7 +5,8 @@ import { Link } from "@tanstack/react-router";
 import { NAV_LINKS } from "../../config/navigation.js";
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
-import { useSession, useRoles, hasRole } from "../../lib/auth.js";
+import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
+import type { AuthState } from "../../lib/auth.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import styles from "./mobile-menu.module.css";
 
@@ -13,15 +14,20 @@ import styles from "./mobile-menu.module.css";
 
 export interface MobileMenuProps {
   readonly currentPath: string;
+  readonly serverAuth?: AuthState;
 }
 
 // ── Public API ──
 
-export function MobileMenu({ currentPath }: MobileMenuProps) {
+export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
   const session = useSession();
-  const roles = useRoles();
+  const { roles } = useAuthExtras();
   const menuRef = useRef<HTMLDivElement>(null);
   const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
+
+  const effectiveRoles = session.isPending
+    ? serverAuth?.roles ?? []
+    : roles;
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -49,25 +55,44 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
           aria-label="Mobile navigation"
         >
           <ul className={styles.linkList}>
-            {NAV_LINKS.map((link) => (
-              <li key={link.to}>
-                <Link
-                  to={link.to}
-                  className={[
-                    styles.menuLink,
-                    link.disabled && styles.menuLinkDisabled,
-                    !link.disabled && currentPath.startsWith(link.to) && styles.menuLinkActive,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onClick={handleClose}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_LINKS.map((link) => {
+              if (link.role && !hasRole(effectiveRoles, link.role) && !hasRole(effectiveRoles, "admin")) {
+                return null;
+              }
 
-            {isFeatureEnabled("dashboard") && session.data && hasRole(roles, "cooperative-member") && (
+              const isActive = !link.external && !link.disabled && currentPath.startsWith(link.to);
+              const className = [
+                styles.menuLink,
+                link.disabled && styles.menuLinkDisabled,
+                isActive && styles.menuLinkActive,
+              ].filter(Boolean).join(" ");
+
+              return (
+                <li key={link.to}>
+                  {link.external ? (
+                    <a
+                      href={link.to}
+                      className={className}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={handleClose}
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.to}
+                      className={className}
+                      onClick={handleClose}
+                    >
+                      {link.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+
+            {isFeatureEnabled("dashboard") && session.data && hasRole(effectiveRoles, "stakeholder") && (
               <li>
                 <Link
                   to="/dashboard"
@@ -83,7 +108,7 @@ export function MobileMenu({ currentPath }: MobileMenuProps) {
               </li>
             )}
 
-            {isFeatureEnabled("calendar") && session.data && hasRole(roles, "cooperative-member") && (
+            {isFeatureEnabled("calendar") && session.data && hasRole(effectiveRoles, "stakeholder") && (
               <li>
                 <Link
                   to="/calendar"

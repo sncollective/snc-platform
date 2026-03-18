@@ -4,7 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
-import { useSession, useRoles, hasRole } from "../../lib/auth.js";
+import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { getInitials } from "../../lib/format.js";
@@ -14,7 +14,7 @@ import styles from "./user-menu.module.css";
 
 export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const session = useSession();
-  const roles = useRoles();
+  const { roles, isPatron } = useAuthExtras();
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
   const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
@@ -32,6 +32,9 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const effectiveRoles = session.isPending
     ? serverAuth?.roles ?? []
     : roles;
+  const effectiveIsPatron = session.isPending
+    ? serverAuth?.isPatron ?? false
+    : isPatron;
 
   // Still loading and no server data at all — show skeleton
   // (serverAuth undefined = genuinely unknown; serverAuth.user null = confirmed logged out)
@@ -70,7 +73,14 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
       {isOpen && (
         <div className={styles.dropdown} role="menu">
           <div className={styles.userInfo}>
-            <span className={styles.userName}>{user.name}</span>
+            <span className={styles.userName}>
+              {user.name}
+              {effectiveIsPatron && (
+                <span className={styles.patronBadge} aria-label="Patron">
+                  patron
+                </span>
+              )}
+            </span>
             <span className={styles.userEmail}>{user.email}</span>
           </div>
 
@@ -123,25 +133,14 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
           )}
 
           {isFeatureEnabled("creator") && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
-            <Link
-              to="/settings/creator"
+            <a
+              href="/creators/mine"
               className={styles.menuItem}
               role="menuitem"
               onClick={handleClose}
             >
-              Creator Settings
-            </Link>
-          )}
-
-          {isFeatureEnabled("content") && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
-            <Link
-              to="/settings/content"
-              className={styles.menuItem}
-              role="menuitem"
-              onClick={handleClose}
-            >
-              My Content
-            </Link>
+              My Creators
+            </a>
           )}
 
           <Link

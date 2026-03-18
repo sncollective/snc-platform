@@ -140,22 +140,22 @@ describe("fetchAuthStateServer", () => {
     });
   });
 
-  it("returns user and roles on success", async () => {
+  it("returns user, roles, and isPatron on success", async () => {
     mockGetRequestHeader.mockReturnValue("session=xyz");
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ user: { id: "u1" }, roles: ["stakeholder"] }),
+        JSON.stringify({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: true }),
         { status: 200 },
       ),
     );
 
     const result = await capturedHandlers.fetchAuthStateServer!();
 
-    expect(result).toEqual({ user: { id: "u1" }, roles: ["stakeholder"] });
+    expect(result).toEqual({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: true });
   });
 
-  it("returns { user: null, roles: [] } on non-OK response", async () => {
+  it("returns { user: null, roles: [], isPatron: false } on non-OK response", async () => {
     mockGetRequestHeader.mockReturnValue(undefined);
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockResolvedValue(
@@ -164,27 +164,27 @@ describe("fetchAuthStateServer", () => {
 
     const result = await capturedHandlers.fetchAuthStateServer!();
 
-    expect(result).toEqual({ user: null, roles: [] });
+    expect(result).toEqual({ user: null, roles: [], isPatron: false });
   });
 
-  it("returns { user: null, roles: [] } on fetch error", async () => {
+  it("returns { user: null, roles: [], isPatron: false } on fetch error", async () => {
     mockGetRequestHeader.mockReturnValue(undefined);
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockRejectedValue(new Error("ECONNREFUSED"));
 
     const result = await capturedHandlers.fetchAuthStateServer!();
 
-    expect(result).toEqual({ user: null, roles: [] });
+    expect(result).toEqual({ user: null, roles: [], isPatron: false });
   });
 
-  it("returns { user: null, roles: [] } when getRequestHeader throws", async () => {
+  it("returns user and roles when getRequestHeader throws (fetches without cookie)", async () => {
     mockGetRequestHeader.mockImplementation(() => {
       throw new Error("No request context");
     });
     const mockFetch = vi.mocked(globalThis.fetch);
     mockFetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ user: { id: "u1" }, roles: [] }),
+        JSON.stringify({ user: { id: "u1" }, roles: [], isPatron: false }),
         { status: 200 },
       ),
     );
@@ -192,6 +192,6 @@ describe("fetchAuthStateServer", () => {
     const result = await capturedHandlers.fetchAuthStateServer!();
 
     // Still succeeds — getRequestHeader error is caught, fetch proceeds without cookie
-    expect(result).toEqual({ user: { id: "u1" }, roles: [] });
+    expect(result).toEqual({ user: { id: "u1" }, roles: [], isPatron: false });
   });
 });

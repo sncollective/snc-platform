@@ -8,6 +8,14 @@ import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 const mockGetSession = vi.fn();
 const mockGetUserRoles = vi.fn();
 
+// ── Drizzle chain mocks for patron query ──
+
+const mockLimit = vi.fn();
+const mockWhere = vi.fn();
+const mockInnerJoin = vi.fn();
+const mockFrom = vi.fn();
+const mockSelect = vi.fn();
+
 // ── Test Setup ──
 
 const ctx = setupRouteTest({
@@ -26,6 +34,16 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/auth/user-roles.js", () => ({
       getUserRoles: mockGetUserRoles,
     }));
+
+    vi.doMock("../../src/db/connection.js", () => ({
+      db: { select: mockSelect },
+      sql: vi.fn(),
+    }));
+
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      subscriptionPlans: {},
+      userSubscriptions: {},
+    }));
   },
   mountRoute: async (app) => {
     const { meRoutes } = await import("../../src/routes/me.routes.js");
@@ -34,6 +52,14 @@ const ctx = setupRouteTest({
   beforeEach: () => {
     mockGetSession.mockReset();
     mockGetUserRoles.mockReset();
+
+    // Wire the Drizzle chain: select → from → innerJoin → where → limit
+    mockSelect.mockReturnValue({ from: mockFrom });
+    mockFrom.mockReturnValue({ innerJoin: mockInnerJoin });
+    mockInnerJoin.mockReturnValue({ where: mockWhere });
+    mockWhere.mockReturnValue({ limit: mockLimit });
+    // Default: no patron subscription
+    mockLimit.mockResolvedValue([]);
   },
 });
 
@@ -136,5 +162,43 @@ describe("GET /api/me", () => {
     expect(mockGetSession).toHaveBeenCalledOnce();
     const callArg = mockGetSession.mock.calls[0][0];
     expect(callArg).toHaveProperty("headers");
+  });
+});
+
+describe("isPatron field", () => {
+  it("returns isPatron true with active platform subscription", async () => {
+    mockGetSession.mockResolvedValue({ user: makeMockUser(), session: makeMockSession() });
+    mockGetUserRoles.mockResolvedValue([]);
+    mockLimit.mockResolvedValue([{ id: "sub_1" }]);
+
+    const res = await ctx.app.request("/api/me", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+
+    const body = await res.json();
+    expect(body.isPatron).toBe(true);
+  });
+
+  it("returns isPatron false with no subscriptions", async () => {
+    mockGetSession.mockResolvedValue({ user: makeMockUser(), session: makeMockSession() });
+    mockGetUserRoles.mockResolvedValue([]);
+    mockLimit.mockResolvedValue([]);
+
+    const res = await ctx.app.request("/api/me", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+
+    const body = await res.json();
+    expect(body.isPatron).toBe(false);
+  });
+
+  it("does not include isPatron for unauthenticated response", async () => {
+    mockGetSession.mockResolvedValue(null);
+
+    const res = await ctx.app.request("/api/me");
+
+    const body = await res.json();
+    expect(body).toStrictEqual({ user: null });
+    expect(body.isPatron).toBeUndefined();
   });
 });

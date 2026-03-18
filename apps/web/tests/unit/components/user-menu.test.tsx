@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { Role } from "@snc/shared";
+
 import {
   makeMockUser,
   makeMockSessionResult,
@@ -15,12 +17,12 @@ import { createAuthMock } from "../../helpers/auth-mock.js";
 const {
   mockNavigate,
   mockUseSession,
-  mockUseRoles,
+  mockUseAuthExtras,
   mockSignOut,
 } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockUseSession: vi.fn(),
-  mockUseRoles: vi.fn(),
+  mockUseAuthExtras: vi.fn(),
   mockSignOut: vi.fn(),
 }));
 
@@ -29,7 +31,7 @@ vi.mock("@tanstack/react-router", () =>
 );
 
 vi.mock("../../../src/lib/auth.js", () =>
-  createAuthMock({ useSession: mockUseSession, useRoles: mockUseRoles }),
+  createAuthMock({ useSession: mockUseSession, useAuthExtras: mockUseAuthExtras }),
 );
 
 vi.mock("../../../src/lib/auth-client.js", () => ({
@@ -44,7 +46,7 @@ import { UserMenu } from "../../../src/components/layout/user-menu.js";
 
 beforeEach(() => {
   mockUseSession.mockReturnValue(makeMockSessionResult());
-  mockUseRoles.mockReturnValue([]);
+  mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
   mockSignOut.mockResolvedValue(undefined);
 });
 
@@ -97,46 +99,62 @@ describe("UserMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("shows 'Creator Settings' link for users with stakeholder role", async () => {
+  it("shows 'My Creators' link for users with stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["stakeholder"]);
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
 
     render(<UserMenu />);
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const creatorSettingsLink = screen.getByRole("menuitem", {
-      name: "Creator Settings",
+    const myCreatorsLink = screen.getByRole("menuitem", {
+      name: "My Creators",
     });
-    expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
+    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
   });
 
-  it("shows 'Creator Settings' link for admin role", async () => {
+  it("shows 'My Creators' link for admin role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["admin"]);
+    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
 
     render(<UserMenu />);
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const creatorSettingsLink = screen.getByRole("menuitem", {
-      name: "Creator Settings",
+    const myCreatorsLink = screen.getByRole("menuitem", {
+      name: "My Creators",
     });
-    expect(creatorSettingsLink).toHaveAttribute("href", "/settings/creator");
+    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
   });
 
-  it("hides 'Creator Settings' link for users without stakeholder or admin role", async () => {
+  it("hides 'My Creators' link for users without stakeholder or admin role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue([]);
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<UserMenu />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    expect(
+      screen.queryByRole("menuitem", { name: "My Creators" }),
+    ).toBeNull();
+  });
+
+  it("does not show 'Creator Settings' link", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Jane Doe" }),
+    );
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder", "admin"], isPatron: false });
 
     render(<UserMenu />);
 
@@ -147,12 +165,40 @@ describe("UserMenu", () => {
     ).toBeNull();
   });
 
+  it("shows patron badge when isPatron is true", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Jane Doe" }),
+    );
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: true });
+
+    render(<UserMenu />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    expect(screen.getByLabelText("Patron")).toBeInTheDocument();
+  });
+
+  it("hides patron badge when isPatron is false", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Jane Doe" }),
+    );
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<UserMenu />);
+
+    await user.click(screen.getByLabelText("User menu"));
+
+    expect(screen.queryByLabelText("Patron")).toBeNull();
+  });
+
   it("shows 'Dashboard' link for stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue(["stakeholder"]);
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
 
     render(<UserMenu />);
 
@@ -167,7 +213,7 @@ describe("UserMenu", () => {
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
     );
-    mockUseRoles.mockReturnValue([]);
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 
     render(<UserMenu />);
 
@@ -222,7 +268,8 @@ describe("UserMenu", () => {
 
     const serverAuth = {
       user: null,
-      roles: [] as string[],
+      roles: [] as Role[],
+      isPatron: false,
     };
 
     render(<UserMenu serverAuth={serverAuth} />);
@@ -249,7 +296,8 @@ describe("UserMenu", () => {
 
     const serverAuth = {
       user: makeMockUser({ name: "Server User" }),
-      roles: [] as string[],
+      roles: [] as Role[],
+      isPatron: false,
     };
 
     render(<UserMenu serverAuth={serverAuth} />);
@@ -269,7 +317,8 @@ describe("UserMenu", () => {
 
     const serverAuth = {
       user: makeMockUser({ name: "Server User" }),
-      roles: ["stakeholder"] as string[],
+      roles: ["stakeholder"] as Role[],
+      isPatron: false,
     };
 
     render(<UserMenu serverAuth={serverAuth} />);

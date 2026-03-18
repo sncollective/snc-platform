@@ -22,7 +22,7 @@ vi.mock("better-auth/react", () => ({
 // ── Imports (after mocks) ──
 
 import { createAuthClient } from "better-auth/react";
-import { useRoles, fetchAuthState, hasRole } from "../../../src/lib/auth.js";
+import { useAuthExtras, fetchAuthState, hasRole } from "../../../src/lib/auth.js";
 
 // ── Test Lifecycle ──
 
@@ -46,18 +46,18 @@ describe("auth client configuration", () => {
   });
 });
 
-describe("useRoles", () => {
-  it("returns empty array when no session exists", async () => {
+describe("useAuthExtras", () => {
+  it("returns empty roles and isPatron false when no session exists", async () => {
     mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
 
-    const { result } = renderHook(() => useRoles());
+    const { result } = renderHook(() => useAuthExtras());
 
     await waitFor(() => {
-      expect(result.current).toEqual([]);
+      expect(result.current).toEqual({ roles: [], isPatron: false });
     });
   });
 
-  it("returns roles from API when session exists", async () => {
+  it("returns roles and isPatron from API when session exists", async () => {
     const user = makeMockUser();
     const session = makeMockSession({ userId: user.id });
     mockUseSession.mockReturnValue({
@@ -68,15 +68,15 @@ describe("useRoles", () => {
 
     getMockFetch().mockResolvedValue(
       new Response(
-        JSON.stringify({ user, roles: ["stakeholder"] }),
+        JSON.stringify({ user, roles: ["stakeholder"], isPatron: true }),
         { status: 200 },
       ),
     );
 
-    const { result } = renderHook(() => useRoles());
+    const { result } = renderHook(() => useAuthExtras());
 
     await waitFor(() => {
-      expect(result.current).toEqual(["stakeholder"]);
+      expect(result.current).toEqual({ roles: ["stakeholder"], isPatron: true });
     });
 
     expect(getMockFetch()).toHaveBeenCalledWith("/api/me", {
@@ -84,7 +84,7 @@ describe("useRoles", () => {
     });
   });
 
-  it("returns empty array when API fetch fails", async () => {
+  it("returns empty roles and isPatron false when API fetch fails", async () => {
     const user = makeMockUser();
     const session = makeMockSession({ userId: user.id });
     mockUseSession.mockReturnValue({
@@ -95,14 +95,14 @@ describe("useRoles", () => {
 
     getMockFetch().mockRejectedValue(new Error("Network error"));
 
-    const { result } = renderHook(() => useRoles());
+    const { result } = renderHook(() => useAuthExtras());
 
     await waitFor(() => {
-      expect(result.current).toEqual([]);
+      expect(result.current).toEqual({ roles: [], isPatron: false });
     });
   });
 
-  it("returns empty array when API returns non-ok", async () => {
+  it("returns empty roles and isPatron false when API returns non-ok", async () => {
     const user = makeMockUser();
     const session = makeMockSession({ userId: user.id });
     mockUseSession.mockReturnValue({
@@ -113,10 +113,10 @@ describe("useRoles", () => {
 
     getMockFetch().mockResolvedValue(new Response(null, { status: 500 }));
 
-    const { result } = renderHook(() => useRoles());
+    const { result } = renderHook(() => useAuthExtras());
 
     await waitFor(() => {
-      expect(result.current).toEqual([]);
+      expect(result.current).toEqual({ roles: [], isPatron: false });
     });
   });
 });
@@ -140,7 +140,7 @@ describe("hasRole", () => {
 });
 
 describe("fetchAuthState", () => {
-  it("returns user and roles on successful response", async () => {
+  it("returns user, roles, and isPatron on successful response", async () => {
     const userJson = {
       id: "user_test123",
       name: "Test User",
@@ -153,7 +153,7 @@ describe("fetchAuthState", () => {
 
     getMockFetch().mockResolvedValue(
       new Response(
-        JSON.stringify({ user: userJson, roles: ["stakeholder"] }),
+        JSON.stringify({ user: userJson, roles: ["stakeholder"], isPatron: true }),
         { status: 200 },
       ),
     );
@@ -162,6 +162,7 @@ describe("fetchAuthState", () => {
 
     expect(result.user).toEqual(userJson);
     expect(result.roles).toEqual(["stakeholder"]);
+    expect(result.isPatron).toBe(true);
   });
 
   it("returns null user when response is not ok", async () => {
@@ -169,7 +170,7 @@ describe("fetchAuthState", () => {
 
     const result = await fetchAuthState();
 
-    expect(result).toEqual({ user: null, roles: [] });
+    expect(result).toEqual({ user: null, roles: [], isPatron: false });
   });
 
   it("returns null user when fetch throws", async () => {
@@ -177,6 +178,6 @@ describe("fetchAuthState", () => {
 
     const result = await fetchAuthState();
 
-    expect(result).toEqual({ user: null, roles: [] });
+    expect(result).toEqual({ user: null, roles: [], isPatron: false });
   });
 });
