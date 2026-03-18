@@ -21,7 +21,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { hashPassword } from "better-auth/crypto";
 
-import type { SocialLink } from "@snc/shared";
+import type { ContentType, SocialLink, Visibility } from "@snc/shared";
 
 import { users, accounts, userRoles } from "../db/schema/user.schema.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
@@ -355,7 +355,19 @@ try {
 
   const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
 
-  const contentRows = [
+  const contentRows: Array<{
+    id: string;
+    creatorId: string;
+    type: ContentType;
+    title: string;
+    description: string;
+    visibility: Visibility;
+    publishedAt: Date;
+    coverArtKey?: string;
+    mediaKey?: string;
+    thumbnailKey?: string;
+    body?: string;
+  }> = [
     // Maya — audio
     {
       id: "seed_content_01",

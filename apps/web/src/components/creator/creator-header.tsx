@@ -49,8 +49,8 @@ export function CreatorHeader({
         <OptionalImage
           src={bannerSrc}
           alt={`${creator.displayName} banner`}
-          className={styles.banner}
-          placeholderClassName={styles.bannerPlaceholder}
+          className={styles.banner!}
+          placeholderClassName={styles.bannerPlaceholder!}
         />
       </div>
 
@@ -60,8 +60,8 @@ export function CreatorHeader({
           <OptionalImage
             src={avatarSrc}
             alt={`${creator.displayName} avatar`}
-            className={styles.avatar}
-            placeholderClassName={styles.avatarPlaceholder}
+            className={styles.avatar!}
+            placeholderClassName={styles.avatarPlaceholder!}
           />
         </div>
 

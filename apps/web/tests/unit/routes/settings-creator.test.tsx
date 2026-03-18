@@ -63,7 +63,7 @@ const routeBeforeLoad = () => (routeObject.beforeLoad as () => Promise<{ userId:
 // ── Default Test Data ──
 
 const DEFAULT_PROFILE = makeMockCreatorProfileResponse({
-  userId: "user_test123",
+  id: "user_test123",
   socialLinks: [
     { platform: "bandcamp", url: "https://testband.bandcamp.com" },
   ],

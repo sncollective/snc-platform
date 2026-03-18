@@ -19,7 +19,7 @@ export const EmissionEntrySchema = z.object({
   co2Kg: z.number(),
   method: z.string(),
   projected: z.boolean(),
-  metadata: z.record(z.string(), z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -36,7 +36,7 @@ export const CreateEmissionEntrySchema = z.object({
   co2Kg: z.number().min(0),
   method: z.string().min(1),
   projected: z.boolean().optional().default(false),
-  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export const CreateOffsetEntrySchema = z.object({
@@ -47,7 +47,7 @@ export const CreateOffsetEntrySchema = z.object({
   unit: z.string().min(1),
   co2Kg: z.number().min(0),
   method: z.string().min(1),
-  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export const EmissionsSummarySchema = z.object({

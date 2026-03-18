@@ -26,7 +26,7 @@ import styles from "./dashboard.module.css";
 
 // ── Private Types ──
 
-interface DashboardLoaderData {
+export interface DashboardLoaderData {
   readonly revenue: RevenueResponse;
   readonly subscribers: SubscriberSummary;
   readonly bookingSummary: BookingSummary;

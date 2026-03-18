@@ -26,6 +26,7 @@ export const features: FeatureFlags = {
   emissions: flag(import.meta.env.VITE_FEATURE_EMISSIONS),
   calendar: flag(import.meta.env.VITE_FEATURE_CALENDAR),
   federation: flag(import.meta.env.VITE_FEATURE_FEDERATION),
+  streaming: flag(import.meta.env.VITE_FEATURE_STREAMING),
 };
 
 /** Check whether a single feature flag is enabled. */

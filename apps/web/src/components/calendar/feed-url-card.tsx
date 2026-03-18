@@ -9,7 +9,7 @@ import styles from "./feed-url-card.module.css";
 // ── Public Types ──
 
 export interface FeedUrlCardProps {
-  readonly initialToken?: FeedTokenResponse;
+  readonly initialToken?: FeedTokenResponse | undefined;
 }
 
 // ── Public API ──

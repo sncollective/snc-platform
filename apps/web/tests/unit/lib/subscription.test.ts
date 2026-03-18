@@ -79,7 +79,7 @@ describe("fetchPlans", () => {
       new Response(JSON.stringify({ plans: [] }), { status: 200 }),
     );
 
-    await fetchPlans({ type: undefined, creatorId: "user_abc" });
+    await fetchPlans({ creatorId: "user_abc" });
 
     const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     const params = new URLSearchParams(calledUrl.split("?")[1]);

@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 export interface CreatorAttributionProps {
   readonly creatorId: string | null;
   readonly creatorName: string;
-  readonly linkClassName?: string;
+  readonly linkClassName?: string | undefined;
   readonly prefix?: string;
 }
 

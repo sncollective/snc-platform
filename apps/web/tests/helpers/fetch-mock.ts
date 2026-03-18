@@ -17,7 +17,7 @@ import { vi, beforeEach } from "vitest";
  * });
  * ```
  */
-export function setupFetchMock() {
+export function setupFetchMock(): { getMockFetch: () => ReturnType<typeof vi.fn> } {
   let mockFetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {

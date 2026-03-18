@@ -13,7 +13,7 @@ export function useCursorPagination<T>({
   buildUrl: (cursor: string | null) => string;
   deps?: readonly unknown[];
   fetchOptions?: RequestInit;
-  initialData?: { items: T[]; nextCursor: string | null };
+  initialData?: { items: T[]; nextCursor: string | null } | undefined;
 }): {
   items: T[];
   nextCursor: string | null;

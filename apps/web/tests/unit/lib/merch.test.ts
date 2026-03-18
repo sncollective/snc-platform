@@ -74,7 +74,7 @@ describe("fetchProducts", () => {
       new Response(JSON.stringify(products), { status: 200 }),
     );
 
-    await fetchProducts({ creatorId: undefined, limit: 12 });
+    await fetchProducts({ limit: 12 });
 
     const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     const params = new URLSearchParams(calledUrl.split("?")[1]);

@@ -65,7 +65,7 @@ const toISOString = (date: string, time: string): string => {
 // ── Public Types ──
 
 export interface EventFormProps {
-  readonly event?: CalendarEvent;
+  readonly event?: CalendarEvent | undefined;
   readonly onSuccess: () => void;
   readonly onCancel: () => void;
 }

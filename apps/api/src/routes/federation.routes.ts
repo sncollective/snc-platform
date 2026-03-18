@@ -60,22 +60,22 @@ export function createFederationApp(
       if (!profile) return null;
 
       const frontendBase = getFrontendBaseUrl();
-      const profileUrl = new URL(`${frontendBase}/creators/${profile.userId}`);
+      const profileUrl = new URL(`${frontendBase}/creators/${profile.ownerId}`);
 
       return new Person({
         id: ctx.getActorUri(identifier),
         preferredUsername: identifier,
         name: profile.displayName,
-        summary: profile.bio ?? undefined,
+        summary: profile.bio ?? null,
         url: profileUrl,
         inbox: ctx.getInboxUri(identifier),
         icon: profile.avatarKey
           ? new Image({
               url: new URL(
-                `https://${domain}/api/creators/${profile.userId}/avatar`,
+                `https://${domain}/api/creators/${profile.ownerId}/avatar`,
               ),
             })
-          : undefined,
+          : null,
       });
     })
     .setKeyPairsDispatcher(async (_ctx, identifier) => {

@@ -9,7 +9,7 @@ import { FeaturedCreators } from "../components/landing/featured-creators.js";
 import { RecentContent } from "../components/landing/recent-content.js";
 import { LandingPricing } from "../components/landing/landing-pricing.js";
 
-interface LandingData {
+export interface LandingData {
   creators: CreatorListResponse["items"];
   recentContent: FeedResponse["items"];
   plans: SubscriptionPlan[];

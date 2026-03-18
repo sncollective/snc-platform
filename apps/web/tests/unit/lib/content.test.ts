@@ -39,6 +39,7 @@ describe("createContent", () => {
     );
 
     const result = await createContent({
+      creatorId: "test_creator",
       type: "audio",
       title: "Test Track",
       visibility: "subscribers",
@@ -51,6 +52,7 @@ describe("createContent", () => {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creatorId: "test_creator",
           type: "audio",
           title: "Test Track",
           visibility: "subscribers",
@@ -69,7 +71,7 @@ describe("createContent", () => {
     );
 
     await expect(
-      createContent({ type: "audio", title: "Test", visibility: "public" }),
+      createContent({ creatorId: "test_creator", type: "audio", title: "Test", visibility: "public" }),
     ).rejects.toThrow("Unauthorized");
   });
 
@@ -82,7 +84,7 @@ describe("createContent", () => {
     );
 
     await expect(
-      createContent({ type: "audio", title: "", visibility: "public" }),
+      createContent({ creatorId: "test_creator", type: "audio", title: "", visibility: "public" }),
     ).rejects.toThrow("Validation failed");
   });
 });

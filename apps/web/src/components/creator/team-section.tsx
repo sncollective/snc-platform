@@ -31,9 +31,9 @@ export interface TeamSectionProps {
 // ── Private Constants ──
 
 const ROLE_BADGE_CLASS: Record<CreatorMemberRole, string> = {
-  owner: styles.roleBadgeOwner,
-  editor: styles.roleBadgeEditor,
-  viewer: styles.roleBadgeViewer,
+  owner: styles.roleBadgeOwner!,
+  editor: styles.roleBadgeEditor!,
+  viewer: styles.roleBadgeViewer!,
 };
 
 const DEBOUNCE_MS = 300;

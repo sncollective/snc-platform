@@ -130,7 +130,7 @@ describe("CreatorHeader", () => {
 
   it("shows 'Subscribed' disabled badge when isSubscribed is true", () => {
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} isSubscribed />);
     const button = screen.getByRole("button", { name: /subscribed/i });
     expect(button).toBeDisabled();
@@ -138,7 +138,7 @@ describe("CreatorHeader", () => {
 
   it("'Subscribed' button has accessible label", () => {
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} isSubscribed />);
     expect(
       screen.getByLabelText("Already subscribed to this creator"),
@@ -150,7 +150,7 @@ describe("CreatorHeader", () => {
   it("shows login link for unauthenticated users when plans exist", () => {
     mockUseSession.mockReturnValue({ data: null });
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} />);
     const link = screen.getByRole("link", { name: /subscribe/i });
     expect(link).toHaveAttribute("href", "/login");
@@ -160,7 +160,7 @@ describe("CreatorHeader", () => {
 
   it("renders subscribe button with price for single plan", () => {
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ price: 999, interval: "month", type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ price: 999, interval: "month", type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} />);
     const button = screen.getByRole("button", { name: /subscribe/i });
     expect(button).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("CreatorHeader", () => {
   it("subscribe button calls createCheckout with plan ID on click", async () => {
     const user = userEvent.setup();
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ id: "plan-creator-1", type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ id: "plan-creator-1", type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} />);
 
     await user.click(screen.getByRole("button", { name: /subscribe/i }));
@@ -183,7 +183,7 @@ describe("CreatorHeader", () => {
     // Make createCheckout hang (never resolves) to test loading state
     mockCreateCheckout.mockReturnValue(new Promise(() => {}));
     const creator = makeMockCreatorProfileResponse();
-    const plans = [makeMockPlan({ type: "creator", creatorId: creator.userId })];
+    const plans = [makeMockPlan({ type: "creator", creatorId: creator.id })];
     render(<CreatorHeader creator={creator} plans={plans} />);
 
     await user.click(screen.getByRole("button", { name: /subscribe/i }));
@@ -196,8 +196,8 @@ describe("CreatorHeader", () => {
   it("renders tier selector dropdown when multiple plans exist", () => {
     const creator = makeMockCreatorProfileResponse();
     const plans = [
-      makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.userId }),
-      makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.userId }),
+      makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.id }),
+      makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.id }),
     ];
     render(<CreatorHeader creator={creator} plans={plans} />);
     const select = screen.getByRole("combobox", { name: /select subscription tier/i });
@@ -210,8 +210,8 @@ describe("CreatorHeader", () => {
     const user = userEvent.setup();
     const creator = makeMockCreatorProfileResponse();
     const plans = [
-      makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.userId }),
-      makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.userId }),
+      makeMockPlan({ id: "p1", name: "Basic", price: 499, type: "creator", creatorId: creator.id }),
+      makeMockPlan({ id: "p2", name: "Premium", price: 999, type: "creator", creatorId: creator.id }),
     ];
     render(<CreatorHeader creator={creator} plans={plans} />);
 

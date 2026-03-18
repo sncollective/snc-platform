@@ -26,8 +26,8 @@ export function CreatorCard({ creator }: CreatorCardProps): React.ReactElement {
         <OptionalImage
           src={avatarSrc}
           alt={`${creator.displayName} avatar`}
-          className={styles.avatar}
-          placeholderClassName={styles.avatarPlaceholder}
+          className={styles.avatar!}
+          placeholderClassName={styles.avatarPlaceholder!}
           loading="lazy"
         />
       </div>

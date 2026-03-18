@@ -44,8 +44,8 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
         <OptionalImage
           src={thumbnailSrc}
           alt={item.title}
-          className={styles.thumbnail}
-          placeholderClassName={styles.thumbnailPlaceholder}
+          className={styles.thumbnail!}
+          placeholderClassName={styles.thumbnailPlaceholder!}
           loading="lazy"
         />
         <span className={`${styles.badge} ${badgeClass}`}>
