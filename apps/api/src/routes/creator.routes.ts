@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -17,7 +16,6 @@ import {
   CreatorMembersResponseSchema,
   CandidatesQuerySchema,
   CandidatesResponseSchema,
-  MyCreatorItemSchema,
   NotFoundError,
   ForbiddenError,
   ValidationError,
@@ -41,23 +39,18 @@ import { content } from "../db/schema/content.schema.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
+import type { OptionalAuthEnv } from "../middleware/optional-auth.js";
 import { storage } from "../storage/index.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
-import { requireCreatorPermission, getCreatorMemberships } from "../services/creator-team.js";
+import { requireCreatorPermission } from "../services/creator-team.js";
 
 // ── Private Types ──
 
 type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
-
-// ── Private Schemas ──
-
-const MyCreatorListResponseSchema = z.object({
-  items: z.array(MyCreatorItemSchema),
-  nextCursor: z.string().nullable(),
-});
 
 // ── Private Helpers ──
 
@@ -247,6 +240,7 @@ creatorRoutes.get(
       400: ERROR_400,
     },
   }),
+  optionalAuth,
   validator("query", CreatorListQuerySchema),
   async (c) => {
     const { limit, cursor } = c.req.valid("query" as never) as CreatorListQuery;
@@ -294,7 +288,15 @@ creatorRoutes.get(
       toProfileResponse(row, countMap.get(row.id) ?? 0),
     );
 
-    return c.json({ items, nextCursor });
+    // Enrich with canManage for stakeholder/admin users
+    const roles = c.get("roles" as never) as OptionalAuthEnv["Variables"]["roles"];
+    const isManageEligible = roles.includes("stakeholder") || roles.includes("admin");
+
+    const enrichedItems = isManageEligible
+      ? items.map((item) => ({ ...item, canManage: true }))
+      : items;
+
+    return c.json({ items: enrichedItems, nextCursor });
   },
 );
 
@@ -364,50 +366,6 @@ creatorRoutes.post(
     });
 
     return c.json(toProfileResponse(inserted, 0), 201);
-  },
-);
-
-// GET /mine — List creator entities the user is a member of
-creatorRoutes.get(
-  "/mine",
-  requireAuth,
-  describeRoute({
-    description: "List creator entities the authenticated user is a member of",
-    tags: ["creators"],
-    responses: {
-      200: {
-        description: "List of creator profiles with member role",
-        content: {
-          "application/json": {
-            schema: resolver(MyCreatorListResponseSchema),
-          },
-        },
-      },
-      401: ERROR_401,
-    },
-  }),
-  async (c) => {
-    const user = c.get("user");
-    const memberships = await getCreatorMemberships(user.id);
-
-    if (memberships.length === 0) {
-      return c.json({ items: [], nextCursor: null });
-    }
-
-    const creatorIds = memberships.map((m) => m.creatorId);
-    const profiles = await db
-      .select()
-      .from(creatorProfiles)
-      .where(inArray(creatorProfiles.id, creatorIds));
-
-    const countMap = await batchGetContentCounts(creatorIds);
-    const roleMap = new Map(memberships.map((m) => [m.creatorId, m.role]));
-    const items = profiles.map((p) => ({
-      ...toProfileResponse(p, countMap.get(p.id) ?? 0),
-      memberRole: roleMap.get(p.id) ?? "viewer",
-    }));
-
-    return c.json({ items, nextCursor: null });
   },
 );
 

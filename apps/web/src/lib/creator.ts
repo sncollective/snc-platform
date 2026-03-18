@@ -1,4 +1,5 @@
 import type {
+  CreatorListItem,
   CreatorProfileResponse,
   UpdateCreatorProfile,
   CreateCreator,
@@ -6,10 +7,18 @@ import type {
   UpdateCreatorMember,
   CreatorMembersResponse,
   CandidatesResponse,
-  MyCreatorItem,
 } from "@snc/shared";
 
 import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
+
+/**
+ * Fetch all creators (public listing). Authenticated stakeholder/admin
+ * users receive `canManage: true` on items they have access to.
+ */
+export async function fetchAllCreators(): Promise<CreatorListItem[]> {
+  const res = await apiGet<{ items: CreatorListItem[] }>("/api/creators?limit=50");
+  return res.items;
+}
 
 /**
  * Fetch a single creator profile by ID.
@@ -75,16 +84,6 @@ export async function createCreatorEntity(
     method: "POST",
     body: data,
   });
-}
-
-/**
- * List creator entities the authenticated user is a member of.
- */
-export async function fetchMyCreatorPages(): Promise<MyCreatorItem[]> {
-  const res = await apiGet<{ items: MyCreatorItem[]; nextCursor: string | null }>(
-    "/api/creators/mine",
-  );
-  return res.items;
 }
 
 /**

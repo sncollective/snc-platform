@@ -85,6 +85,8 @@ interface RouterMockOptions {
   outlet?: boolean;
   /** Custom createRootRoute factory (overrides rootRoute boolean). */
   createRootRoute?: unknown;
+  /** Mock for getRouteApi — returns an object with useLoaderData, useParams, useRouteContext. */
+  getRouteApi?: unknown;
   /** Additional top-level exports to spread onto the mock module. */
   extras?: Record<string, unknown>;
 }
@@ -144,6 +146,19 @@ export function createRouterMock(options: RouterMockOptions = {}): Record<string
   // redirect
   if (options.redirect !== undefined) {
     mock.redirect = options.redirect;
+  }
+
+  // getRouteApi — for child routes that access parent loader data
+  if (options.getRouteApi !== undefined) {
+    mock.getRouteApi = options.getRouteApi;
+  } else if (options.useLoaderData) {
+    // Default: getRouteApi returns an object with useLoaderData pointing to the same mock
+    const loaderDataFn = options.useLoaderData;
+    mock.getRouteApi = () => ({
+      useLoaderData: loaderDataFn,
+      useParams: () => ({}),
+      useRouteContext: () => ({}),
+    });
   }
 
   // Arbitrary additional exports

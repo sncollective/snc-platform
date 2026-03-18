@@ -4,18 +4,26 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-lg) var(--space-md);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+/* ── Card Link ── */
+
+.cardLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg) var(--space-md);
   text-decoration: none;
   color: var(--color-text);
   transition: box-shadow 0.2s, border-color 0.2s;
+  width: 100%;
 }
 
-.card:hover {
+.cardLink:hover {
   box-shadow: var(--shadow-dropdown);
-  border-color: var(--color-accent);
 }
 
 /* ── Avatar ── */
@@ -73,4 +81,19 @@
 .contentCount {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+/* ── Manage Link ── */
+
+.manageLink {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.manageLink:hover {
+  text-decoration: underline;
 }

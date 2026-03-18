@@ -13,6 +13,7 @@ import styles from "./manage.module.css";
 interface ManageLoaderData {
   readonly creator: CreatorProfileResponse;
   readonly memberRole: CreatorMemberRole;
+  readonly isAdmin: boolean;
   readonly userId: string;
 }
 
@@ -55,14 +56,12 @@ export const Route = createFileRoute("/creators/$creatorId/manage")({
     })) as { members: Array<{ userId: string; role: CreatorMemberRole }> };
 
     const membership = membersRes.members.find((m) => m.userId === context.userId);
-
-    if (!membership && !context.platformRoles.includes("admin")) {
-      throw redirect({ to: "/creators/mine" });
-    }
+    const isAdmin = context.platformRoles.includes("admin");
 
     return {
       creator,
       memberRole: membership?.role ?? "viewer",
+      isAdmin,
       userId: context.userId,
     };
   },
@@ -72,13 +71,15 @@ export const Route = createFileRoute("/creators/$creatorId/manage")({
 // ── Component ──
 
 function ManageLayout(): React.ReactElement {
-  const { creator, memberRole } = Route.useLoaderData();
+  const { creator, memberRole, isAdmin } = Route.useLoaderData();
   const { creatorId } = Route.useParams();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const basePath = `/creators/${creatorId}/manage`;
 
-  const permissions = CREATOR_ROLE_PERMISSIONS[memberRole];
+  const permissions = isAdmin
+    ? CREATOR_ROLE_PERMISSIONS.owner
+    : CREATOR_ROLE_PERMISSIONS[memberRole];
 
   return (
     <div className={styles.layout}>

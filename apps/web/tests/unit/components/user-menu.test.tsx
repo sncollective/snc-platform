@@ -99,56 +99,6 @@ describe("UserMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("shows 'My Creators' link for users with stakeholder role", async () => {
-    const user = userEvent.setup();
-    mockUseSession.mockReturnValue(
-      makeLoggedInSessionResult({ name: "Jane Doe" }),
-    );
-    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
-
-    render(<UserMenu />);
-
-    await user.click(screen.getByLabelText("User menu"));
-
-    const myCreatorsLink = screen.getByRole("menuitem", {
-      name: "My Creators",
-    });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
-  it("shows 'My Creators' link for admin role", async () => {
-    const user = userEvent.setup();
-    mockUseSession.mockReturnValue(
-      makeLoggedInSessionResult({ name: "Jane Doe" }),
-    );
-    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
-
-    render(<UserMenu />);
-
-    await user.click(screen.getByLabelText("User menu"));
-
-    const myCreatorsLink = screen.getByRole("menuitem", {
-      name: "My Creators",
-    });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
-  it("hides 'My Creators' link for users without stakeholder or admin role", async () => {
-    const user = userEvent.setup();
-    mockUseSession.mockReturnValue(
-      makeLoggedInSessionResult({ name: "Jane Doe" }),
-    );
-    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
-
-    render(<UserMenu />);
-
-    await user.click(screen.getByLabelText("User menu"));
-
-    expect(
-      screen.queryByRole("menuitem", { name: "My Creators" }),
-    ).toBeNull();
-  });
-
   it("does not show 'Creator Settings' link", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(

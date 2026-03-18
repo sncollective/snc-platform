@@ -206,6 +206,27 @@ describe("CreatorHeader", () => {
     expect(screen.getByText(/Premium/)).toBeInTheDocument();
   });
 
+  // ── Manage link (canManage) ──
+
+  it("shows Manage link when canManage is true", () => {
+    const creator = makeMockCreatorProfileResponse({ id: "c1" });
+    render(<CreatorHeader creator={creator} canManage />);
+    const link = screen.getByRole("link", { name: "Manage" });
+    expect(link).toHaveAttribute("href", "/creators/c1/manage");
+  });
+
+  it("hides Manage link when canManage is false", () => {
+    const creator = makeMockCreatorProfileResponse();
+    render(<CreatorHeader creator={creator} canManage={false} />);
+    expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
+  });
+
+  it("hides Manage link when canManage is not provided", () => {
+    const creator = makeMockCreatorProfileResponse();
+    render(<CreatorHeader creator={creator} />);
+    expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
+  });
+
   it("multi-plan subscribe button uses selected plan ID", async () => {
     const user = userEvent.setup();
     const creator = makeMockCreatorProfileResponse();

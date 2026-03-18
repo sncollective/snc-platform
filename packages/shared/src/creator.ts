@@ -143,7 +143,9 @@ export const CreatorProfileResponseSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const CreatorListItemSchema = CreatorProfileResponseSchema;
+export const CreatorListItemSchema = CreatorProfileResponseSchema.extend({
+  canManage: z.boolean().optional(),
+});
 
 export const CreatorListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(24),
@@ -180,14 +182,6 @@ export const CreatorMembersResponseSchema = z.object({
   members: z.array(CreatorMemberSchema),
 });
 
-export const MyCreatorItemSchema = CreatorProfileResponseSchema.extend({
-  memberRole: CreatorMemberRoleSchema,
-});
-
-export const MyCreatorPagesResponseSchema = z.object({
-  items: z.array(MyCreatorItemSchema),
-});
-
 export const CreatorMemberCandidateSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -216,8 +210,6 @@ export type CreatorMember = z.infer<typeof CreatorMemberSchema>;
 export type AddCreatorMember = z.infer<typeof AddCreatorMemberSchema>;
 export type UpdateCreatorMember = z.infer<typeof UpdateCreatorMemberSchema>;
 export type CreatorMembersResponse = z.infer<typeof CreatorMembersResponseSchema>;
-export type MyCreatorItem = z.infer<typeof MyCreatorItemSchema>;
-export type MyCreatorPagesResponse = z.infer<typeof MyCreatorPagesResponseSchema>;
 export type CreatorMemberCandidate = z.infer<typeof CreatorMemberCandidateSchema>;
 export type CandidatesQuery = z.infer<typeof CandidatesQuerySchema>;
 export type CandidatesResponse = z.infer<typeof CandidatesResponseSchema>;

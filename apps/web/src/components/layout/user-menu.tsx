@@ -132,17 +132,6 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </a>
           )}
 
-          {isFeatureEnabled("creator") && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
-            <a
-              href="/creators/mine"
-              className={styles.menuItem}
-              role="menuitem"
-              onClick={handleClose}
-            >
-              My Creators
-            </a>
-          )}
-
           <Link
             to="/settings"
             className={styles.menuItem}

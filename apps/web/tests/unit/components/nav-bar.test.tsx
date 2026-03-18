@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import type { Role } from "@snc/shared";
-
 import {
-  makeMockUser,
   makeMockSessionResult,
   makeLoggedInSessionResult,
 } from "../../helpers/auth-fixtures.js";
@@ -136,48 +133,4 @@ describe("NavBar", () => {
     expect(screen.queryByRole("menuitem", { name: "Dashboard" })).toBeNull();
   });
 
-  it("shows 'My Creators' link in nav for stakeholder", () => {
-    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
-
-    render(<NavBar />);
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
-  it("hides 'My Creators' link in nav for unauthenticated user", () => {
-    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
-    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
-
-    render(<NavBar />);
-
-    expect(screen.queryByRole("link", { name: "My Creators" })).toBeNull();
-  });
-
-  it("shows 'My Creators' link in nav for admin", () => {
-    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Admin User" }));
-    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
-
-    render(<NavBar />);
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
-  it("uses serverAuth roles for nav links when session pending", () => {
-    mockUseSession.mockReturnValue({ data: null, isPending: true, error: null });
-    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
-
-    const serverAuth = {
-      user: makeMockUser({ name: "Server User" }),
-      roles: ["stakeholder"] as Role[],
-      isPatron: false,
-    };
-
-    render(<NavBar serverAuth={serverAuth} />);
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
 });

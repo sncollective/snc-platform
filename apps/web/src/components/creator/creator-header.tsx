@@ -20,6 +20,7 @@ export interface CreatorHeaderProps {
   readonly creator: CreatorProfileResponse;
   readonly plans?: readonly SubscriptionPlan[];
   readonly isSubscribed?: boolean;
+  readonly canManage?: boolean;
 }
 
 // ── Public API ──
@@ -28,6 +29,7 @@ export function CreatorHeader({
   creator,
   plans,
   isSubscribed,
+  canManage,
 }: CreatorHeaderProps): React.ReactElement {
   const session = useSession();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -83,6 +85,17 @@ export function CreatorHeader({
               </p>
             ))}
           </div>
+        )}
+
+        {/* Manage Link (stakeholders and admins) */}
+        {canManage && (
+          <Link
+            to="/creators/$creatorId/manage"
+            params={{ creatorId: creator.id }}
+            className={styles.manageLink}
+          >
+            Manage
+          </Link>
         )}
 
         {/* Subscribe Action */}

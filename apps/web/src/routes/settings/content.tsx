@@ -5,7 +5,7 @@ import type { CreatorProfileResponse } from "@snc/shared";
 
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
-import { fetchMyCreatorPages } from "../../lib/creator.js";
+import { fetchAllCreators } from "../../lib/creator.js";
 import { ContentForm } from "../../components/content/content-form.js";
 import { MyContentList } from "../../components/content/my-content-list.js";
 import { CreatorSelector } from "../../components/creator/creator-selector.js";
@@ -50,7 +50,8 @@ function ContentSettingsPage(): React.ReactElement {
 
     async function load(): Promise<void> {
       try {
-        const pages = await fetchMyCreatorPages();
+        const allCreators = await fetchAllCreators();
+        const pages = allCreators.filter((c) => c.canManage);
         if (cancelled) return;
         setCreatorPages(pages);
         if (pages.length > 0) {

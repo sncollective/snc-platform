@@ -91,41 +91,6 @@ describe("MobileMenu", () => {
     expect(studioLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("shows 'My Creators' link for stakeholder", async () => {
-    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
-    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
-
-    render(<MobileMenu currentPath="/" />);
-
-    await openMenu();
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
-  it("hides 'My Creators' link for unauthenticated user", async () => {
-    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
-    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
-
-    render(<MobileMenu currentPath="/" />);
-
-    await openMenu();
-
-    expect(screen.queryByRole("link", { name: "My Creators" })).toBeNull();
-  });
-
-  it("shows 'My Creators' link for admin", async () => {
-    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
-    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Admin User" }));
-
-    render(<MobileMenu currentPath="/" />);
-
-    await openMenu();
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
-
   it("shows Dashboard link for stakeholder (bug fix verification)", async () => {
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
@@ -182,21 +147,4 @@ describe("MobileMenu", () => {
     expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
   });
 
-  it("uses serverAuth roles when session is pending", async () => {
-    mockUseSession.mockReturnValue({ data: null, isPending: true, error: null });
-    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
-
-    const serverAuth = {
-      user: makeMockUser({ name: "Server User" }),
-      roles: ["stakeholder"] as Role[],
-      isPatron: false,
-    };
-
-    render(<MobileMenu currentPath="/" serverAuth={serverAuth} />);
-
-    await openMenu();
-
-    const myCreatorsLink = screen.getByRole("link", { name: "My Creators" });
-    expect(myCreatorsLink).toHaveAttribute("href", "/creators/mine");
-  });
 });

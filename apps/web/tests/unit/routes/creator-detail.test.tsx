@@ -20,6 +20,7 @@ const {
   mockFetchPlans,
   mockFetchMySubscriptions,
   mockFetchProducts,
+  mockFetchAuthState,
   mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
@@ -28,6 +29,7 @@ const {
   mockFetchPlans: vi.fn(),
   mockFetchMySubscriptions: vi.fn(),
   mockFetchProducts: vi.fn(),
+  mockFetchAuthState: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
 }));
 
@@ -43,9 +45,10 @@ vi.mock("../../../src/lib/format.js", async (importOriginal) => {
   return createFormatMock({ formatRelativeDate: mockFormatRelativeDate }, actual);
 });
 
-vi.mock("../../../src/lib/auth.js", () =>
-  createAuthMock({ useSession: mockUseSession }),
-);
+vi.mock("../../../src/lib/auth.js", () => ({
+  ...createAuthMock({ useSession: mockUseSession }),
+  fetchAuthState: mockFetchAuthState,
+}));
 
 vi.mock("../../../src/lib/subscription.js", () => ({
   fetchPlans: mockFetchPlans,
@@ -64,7 +67,7 @@ vi.mock("../../../src/lib/config.js", () => ({
 
 // ── Component Under Test ──
 
-const CreatorDetailPage = extractRouteComponent(() => import("../../../src/routes/creators/$creatorId.js"));
+const CreatorDetailPage = extractRouteComponent(() => import("../../../src/routes/creators/$creatorId/index.js"));
 
 // ── Test Lifecycle ──
 
@@ -76,6 +79,7 @@ beforeEach(() => {
   mockFetchPlans.mockResolvedValue([]);
   mockFetchMySubscriptions.mockResolvedValue([]);
   mockFetchProducts.mockResolvedValue({ items: [], nextCursor: null });
+  mockFetchAuthState.mockResolvedValue({ user: { id: "user-1" }, roles: [], isPatron: false });
   mockUseLoaderData.mockReturnValue(
     makeMockCreatorListItem({
       id: "creator-1",
