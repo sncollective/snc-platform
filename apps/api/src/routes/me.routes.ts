@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import { z } from "zod";
@@ -6,6 +7,8 @@ import { SessionSchema, UserSchema } from "@snc/shared";
 
 import { auth } from "../auth/auth.js";
 import { getUserRoles } from "../auth/user-roles.js";
+import { db } from "../db/connection.js";
+import { subscriptionPlans, userSubscriptions } from "../db/schema/subscription.schema.js";
 
 // ── Schemas ──
 
@@ -13,6 +16,7 @@ const MeAuthenticatedResponse = z.object({
   user: UserSchema,
   session: SessionSchema,
   roles: z.array(z.string()),
+  isPatron: z.boolean(),
 });
 
 const MeUnauthenticatedResponse = z.object({
@@ -53,6 +57,21 @@ meRoutes.get(
 
     const roles = await getUserRoles(sessionResult.user.id);
 
+    const patronRow = await db
+      .select({ id: userSubscriptions.id })
+      .from(userSubscriptions)
+      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+      .where(
+        and(
+          eq(userSubscriptions.userId, sessionResult.user.id),
+          eq(userSubscriptions.status, "active"),
+          eq(subscriptionPlans.type, "platform"),
+        ),
+      )
+      .limit(1);
+
+    const isPatron = patronRow.length > 0;
+
     return c.json({
       user: {
         ...sessionResult.user,
@@ -60,6 +79,7 @@ meRoutes.get(
       },
       session: sessionResult.session,
       roles,
+      isPatron,
     });
   },
 );
