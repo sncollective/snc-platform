@@ -16,4 +16,5 @@ export * from "./admin.js";
 export * from "./calendar.js";
 export * from "./features.js";
 export * from "./federation.js";
+export * from "./streaming.js";
 export { textToStream, streamToText } from "./storage-contract.js";

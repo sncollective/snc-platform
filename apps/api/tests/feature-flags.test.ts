@@ -31,6 +31,7 @@ describe("getFeatureFlags", () => {
       emissions: true,
       calendar: true,
       federation: false,
+      streaming: false,
     });
   });
 

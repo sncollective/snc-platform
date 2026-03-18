@@ -10,8 +10,8 @@ import {
 } from "../src/index.js";
 
 describe("FEATURE_FLAGS", () => {
-  it("contains 10 flag names", () => {
-    expect(FEATURE_FLAGS).toHaveLength(10);
+  it("contains 11 flag names", () => {
+    expect(FEATURE_FLAGS).toHaveLength(11);
   });
 
   it("includes expected flags", () => {
@@ -26,6 +26,7 @@ describe("FEATURE_FLAGS", () => {
       "emissions",
       "calendar",
       "federation",
+      "streaming",
     ];
     expect([...FEATURE_FLAGS]).toStrictEqual(expected);
   });
@@ -58,6 +59,7 @@ describe("PRODUCTION_DEFAULTS", () => {
       emissions: false,
       calendar: false,
       federation: false,
+      streaming: false,
     };
     expect(PRODUCTION_DEFAULTS).toStrictEqual(expected);
   });
