@@ -59,6 +59,7 @@ const ctx = setupRouteTest({
         category: {},
         location: {},
         createdBy: {},
+        creatorId: {},
         deletedAt: {},
         createdAt: {},
         updatedAt: {},

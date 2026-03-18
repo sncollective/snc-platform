@@ -27,6 +27,7 @@ export const CalendarEventSchema = z.object({
   category: EventCategorySchema,
   location: z.string(),
   createdBy: z.string(),
+  creatorId: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
