@@ -11,7 +11,12 @@ import {
 } from "@snc/shared";
 import type { CalendarEvent } from "@snc/shared";
 
-import { createCalendarEvent, updateCalendarEvent } from "../../lib/calendar.js";
+import {
+  createCalendarEvent,
+  updateCalendarEvent,
+  createCreatorEvent,
+  updateCreatorEvent,
+} from "../../lib/calendar.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./event-form.module.css";
@@ -66,6 +71,7 @@ const toISOString = (date: string, time: string): string => {
 
 export interface EventFormProps {
   readonly event?: CalendarEvent | undefined;
+  readonly creatorId?: string | undefined;
   readonly onSuccess: () => void;
   readonly onCancel: () => void;
 }
@@ -74,6 +80,7 @@ export interface EventFormProps {
 
 export function EventForm({
   event,
+  creatorId,
   onSuccess,
   onCancel,
 }: EventFormProps): React.ReactElement {
@@ -157,9 +164,17 @@ export function EventForm({
       };
 
       if (isEdit) {
-        await updateCalendarEvent(event.id, payload);
+        if (creatorId) {
+          await updateCreatorEvent(creatorId, event.id, payload);
+        } else {
+          await updateCalendarEvent(event.id, payload);
+        }
       } else {
-        await createCalendarEvent(payload);
+        if (creatorId) {
+          await createCreatorEvent(creatorId, payload);
+        } else {
+          await createCalendarEvent(payload);
+        }
       }
       onSuccess();
     } catch (err) {
