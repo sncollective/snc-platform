@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, notInArray } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, notInArray, sql } from "drizzle-orm";
 
 import {
   CreatorProfileResponseSchema,
@@ -37,6 +37,7 @@ import { db } from "../db/connection.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
+import { userSubscriptions, subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
@@ -129,6 +130,95 @@ const batchGetContentCounts = async (
     )
     .groupBy(content.creatorId);
   return new Map(rows.map((r) => [r.creatorId, r.count]));
+};
+
+/** Returns set of creatorIds the user is subscribed to (active platform OR active creator sub) */
+const batchGetSubscribedCreatorIds = async (
+  userId: string,
+  creatorIds: string[],
+): Promise<Set<string>> => {
+  if (creatorIds.length === 0) return new Set();
+
+  // Check for active platform subscription (patron of all creators)
+  const platformSub = await db
+    .select({ id: userSubscriptions.id })
+    .from(userSubscriptions)
+    .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+    .where(
+      and(
+        eq(userSubscriptions.userId, userId),
+        eq(userSubscriptions.status, "active"),
+        eq(subscriptionPlans.type, "platform"),
+      ),
+    )
+    .limit(1);
+
+  if (platformSub.length > 0) {
+    return new Set(creatorIds); // platform patron → subscribed to all
+  }
+
+  // Check for active creator-specific subscriptions
+  const rows = await db
+    .select({ creatorId: subscriptionPlans.creatorId })
+    .from(userSubscriptions)
+    .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+    .where(
+      and(
+        eq(userSubscriptions.userId, userId),
+        eq(userSubscriptions.status, "active"),
+        eq(subscriptionPlans.type, "creator"),
+        inArray(subscriptionPlans.creatorId, creatorIds),
+      ),
+    );
+
+  return new Set(rows.map((r) => r.creatorId).filter((id): id is string => id !== null));
+};
+
+const batchGetSubscriberCounts = async (
+  creatorIds: string[],
+): Promise<Map<string, number>> => {
+  if (creatorIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      creatorId: subscriptionPlans.creatorId,
+      count: count(),
+    })
+    .from(userSubscriptions)
+    .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+    .where(
+      and(
+        eq(subscriptionPlans.type, "creator"),
+        eq(userSubscriptions.status, "active"),
+        inArray(subscriptionPlans.creatorId, creatorIds),
+      ),
+    )
+    .groupBy(subscriptionPlans.creatorId);
+  return new Map(
+    rows
+      .filter((r): r is typeof r & { creatorId: string } => r.creatorId !== null)
+      .map((r) => [r.creatorId, r.count]),
+  );
+};
+
+const batchGetLastPublished = async (
+  creatorIds: string[],
+): Promise<Map<string, string>> => {
+  if (creatorIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      creatorId: content.creatorId,
+      lastPublished: sql<Date>`max(${content.publishedAt})`,
+    })
+    .from(content)
+    .where(
+      and(
+        inArray(content.creatorId, creatorIds),
+        isNull(content.deletedAt),
+        isNotNull(content.publishedAt),
+      ),
+    )
+    .groupBy(content.creatorId);
+  return new Map(rows.map((r) => [r.creatorId, r.lastPublished.toISOString()]));
 };
 
 const handleImageUpload = async (
@@ -327,13 +417,45 @@ creatorRoutes.get(
       toProfileResponse(row, countMap.get(row.id) ?? 0),
     );
 
-    // Enrich with canManage for stakeholder/admin users
+    // Enrich with canManage, subscription status, and KPIs
+    const userId = (c.get("user") as { id: string } | undefined)?.id;
     const roles = (c.get("roles") ?? []) as string[];
     const isManageEligible = roles.includes("stakeholder") || roles.includes("admin");
+    const creatorIds = rawRows.map((r) => r.id);
 
-    const enrichedItems = isManageEligible
-      ? items.map((item) => ({ ...item, canManage: true }))
-      : items;
+    // Authenticated: fetch subscription status for current user
+    const subscribedIds = userId
+      ? await batchGetSubscribedCreatorIds(userId, creatorIds)
+      : new Set<string>();
+
+    // Stakeholder/admin: fetch KPIs
+    const [subscriberCounts, lastPublished] = isManageEligible
+      ? await Promise.all([
+          batchGetSubscriberCounts(creatorIds),
+          batchGetLastPublished(creatorIds),
+        ])
+      : [new Map<string, number>(), new Map<string, string>()];
+
+    const enrichedItems = items.map((item) => ({
+      ...item,
+      ...(userId ? { isSubscribed: subscribedIds.has(item.id) } : {}),
+      ...(isManageEligible
+        ? {
+            canManage: true,
+            subscriberCount: subscriberCounts.get(item.id) ?? 0,
+            lastPublishedAt: lastPublished.get(item.id) ?? null,
+          }
+        : {}),
+    }));
+
+    // Sort: subscribed creators first (stable sort preserves createdAt order within groups)
+    if (userId) {
+      enrichedItems.sort((a, b) => {
+        const aSubscribed = subscribedIds.has(a.id) ? 1 : 0;
+        const bSubscribed = subscribedIds.has(b.id) ? 1 : 0;
+        return bSubscribed - aSubscribed;
+      });
+    }
 
     return c.json({ items: enrichedItems, nextCursor });
   },
