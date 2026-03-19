@@ -14,6 +14,7 @@ export * from "./dashboard.js";
 export * from "./emissions.js";
 export * from "./admin.js";
 export * from "./calendar.js";
+export * from "./project.js";
 export * from "./features.js";
 export * from "./federation.js";
 export * from "./streaming.js";

@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 import {
-  EVENT_CATEGORIES,
-  EventCategorySchema,
+  DEFAULT_EVENT_TYPES,
+  DEFAULT_EVENT_TYPE_LABELS,
+  EventTypeSchema,
   CalendarEventSchema,
   CreateCalendarEventSchema,
   UpdateCalendarEventSchema,
@@ -10,7 +11,6 @@ import {
   CalendarEventResponseSchema,
   CalendarEventsResponseSchema,
   FeedTokenResponseSchema,
-  type EventCategory,
   type CalendarEvent,
   type CreateCalendarEvent,
   type UpdateCalendarEvent,
@@ -27,39 +27,60 @@ const VALID_EVENT = {
   startAt: "2026-03-20T14:00:00.000Z",
   endAt: "2026-03-20T18:00:00.000Z",
   allDay: false,
-  category: "recording-session" as const,
+  eventType: "recording-session",
   location: "Studio A",
   createdBy: "user_abc",
   creatorId: null,
+  projectId: null,
+  projectName: null,
   createdAt: "2026-03-15T10:00:00.000Z",
   updatedAt: "2026-03-15T10:00:00.000Z",
 };
 
-describe("EVENT_CATEGORIES", () => {
-  it("contains expected categories", () => {
-    expect(EVENT_CATEGORIES).toStrictEqual([
+describe("DEFAULT_EVENT_TYPES", () => {
+  it("contains expected types", () => {
+    expect(DEFAULT_EVENT_TYPES).toStrictEqual([
       "recording-session",
-      "album-milestone",
       "show",
       "meeting",
+      "other",
     ]);
   });
 
   it("has length 4", () => {
-    expect(EVENT_CATEGORIES).toHaveLength(4);
+    expect(DEFAULT_EVENT_TYPES).toHaveLength(4);
   });
 });
 
-describe("EventCategorySchema", () => {
-  it.each(["recording-session", "album-milestone", "show", "meeting"])(
+describe("DEFAULT_EVENT_TYPE_LABELS", () => {
+  it("has label for each default type", () => {
+    for (const slug of DEFAULT_EVENT_TYPES) {
+      expect(DEFAULT_EVENT_TYPE_LABELS[slug]).toBeTruthy();
+    }
+  });
+
+  it("has correct labels", () => {
+    expect(DEFAULT_EVENT_TYPE_LABELS["recording-session"]).toBe("Recording Session");
+    expect(DEFAULT_EVENT_TYPE_LABELS["show"]).toBe("Show");
+    expect(DEFAULT_EVENT_TYPE_LABELS["meeting"]).toBe("Meeting");
+    expect(DEFAULT_EVENT_TYPE_LABELS["other"]).toBe("Other");
+  });
+});
+
+describe("EventTypeSchema", () => {
+  it.each(["recording-session", "show", "meeting", "my-custom-type"])(
     'accepts "%s"',
-    (category) => {
-      expect(EventCategorySchema.parse(category)).toBe(category);
+    (eventType) => {
+      expect(EventTypeSchema.parse(eventType)).toBe(eventType);
     },
   );
 
-  it("rejects invalid category", () => {
-    expect(() => EventCategorySchema.parse("invalid")).toThrow();
+  it("rejects empty string", () => {
+    expect(() => EventTypeSchema.parse("")).toThrow();
+  });
+
+  it("rejects string exceeding 100 characters", () => {
+    expect(() => EventTypeSchema.parse("x".repeat(101))).toThrow();
   });
 });
 
@@ -68,14 +89,26 @@ describe("CalendarEventSchema", () => {
     const result = CalendarEventSchema.parse(VALID_EVENT);
     expect(result.id).toBe("evt_test123");
     expect(result.title).toBe("Recording Session");
-    expect(result.category).toBe("recording-session");
+    expect(result.eventType).toBe("recording-session");
     expect(result.allDay).toBe(false);
     expect(result.location).toBe("Studio A");
+    expect(result.projectId).toBeNull();
+    expect(result.projectName).toBeNull();
   });
 
   it("accepts null endAt", () => {
     const result = CalendarEventSchema.parse({ ...VALID_EVENT, endAt: null });
     expect(result.endAt).toBeNull();
+  });
+
+  it("accepts projectId and projectName", () => {
+    const result = CalendarEventSchema.parse({
+      ...VALID_EVENT,
+      projectId: "proj_123",
+      projectName: "New Album",
+    });
+    expect(result.projectId).toBe("proj_123");
+    expect(result.projectName).toBe("New Album");
   });
 
   it("rejects invalid datetime for startAt", () => {
@@ -88,10 +121,9 @@ describe("CalendarEventSchema", () => {
     expect(() => CalendarEventSchema.parse({})).toThrow();
   });
 
-  it("rejects invalid category", () => {
-    expect(() =>
-      CalendarEventSchema.parse({ ...VALID_EVENT, category: "invalid" }),
-    ).toThrow();
+  it("rejects missing eventType", () => {
+    const { eventType: _, ...withoutEventType } = VALID_EVENT;
+    expect(() => CalendarEventSchema.parse(withoutEventType)).toThrow();
   });
 });
 
@@ -99,7 +131,7 @@ describe("CreateCalendarEventSchema", () => {
   const VALID_CREATE = {
     title: "New Event",
     startAt: "2026-04-01T10:00:00.000Z",
-    category: "meeting" as const,
+    eventType: "meeting",
   };
 
   it("validates with required fields only", () => {
@@ -109,6 +141,7 @@ describe("CreateCalendarEventSchema", () => {
     expect(result.endAt).toBeNull();
     expect(result.allDay).toBe(false);
     expect(result.location).toBe("");
+    expect(result.projectId).toBeNull();
   });
 
   it("validates with all fields", () => {
@@ -118,10 +151,12 @@ describe("CreateCalendarEventSchema", () => {
       endAt: "2026-04-01T11:00:00.000Z",
       allDay: false,
       location: "Conference Room",
+      projectId: "proj_123",
     });
     expect(result.description).toBe("Team standup");
     expect(result.endAt).toBe("2026-04-01T11:00:00.000Z");
     expect(result.location).toBe("Conference Room");
+    expect(result.projectId).toBe("proj_123");
   });
 
   it("rejects empty title", () => {
@@ -145,12 +180,6 @@ describe("CreateCalendarEventSchema", () => {
       title: "x".repeat(200),
     });
     expect(result.title).toHaveLength(200);
-  });
-
-  it("rejects invalid category", () => {
-    expect(() =>
-      CreateCalendarEventSchema.parse({ ...VALID_CREATE, category: "invalid" }),
-    ).toThrow();
   });
 
   it("rejects invalid startAt", () => {
@@ -181,18 +210,18 @@ describe("CreateCalendarEventSchema", () => {
     expect(() =>
       CreateCalendarEventSchema.parse({
         startAt: "2026-04-01T10:00:00.000Z",
-        category: "meeting",
+        eventType: "meeting",
       }),
     ).toThrow();
   });
 
   it("rejects missing startAt", () => {
     expect(() =>
-      CreateCalendarEventSchema.parse({ title: "Event", category: "meeting" }),
+      CreateCalendarEventSchema.parse({ title: "Event", eventType: "meeting" }),
     ).toThrow();
   });
 
-  it("rejects missing category", () => {
+  it("rejects missing eventType", () => {
     expect(() =>
       CreateCalendarEventSchema.parse({
         title: "Event",
@@ -223,15 +252,24 @@ describe("UpdateCalendarEventSchema", () => {
     ).toThrow();
   });
 
-  it("rejects invalid category", () => {
-    expect(() =>
-      UpdateCalendarEventSchema.parse({ category: "invalid" }),
-    ).toThrow();
+  it("accepts any string eventType", () => {
+    const result = UpdateCalendarEventSchema.parse({ eventType: "my-custom-type" });
+    expect(result.eventType).toBe("my-custom-type");
   });
 
   it("accepts null endAt", () => {
     const result = UpdateCalendarEventSchema.parse({ endAt: null });
     expect(result.endAt).toBeNull();
+  });
+
+  it("accepts projectId update", () => {
+    const result = UpdateCalendarEventSchema.parse({ projectId: "proj_123" });
+    expect(result.projectId).toBe("proj_123");
+  });
+
+  it("accepts null projectId to unlink", () => {
+    const result = UpdateCalendarEventSchema.parse({ projectId: null });
+    expect(result.projectId).toBeNull();
   });
 });
 
@@ -278,17 +316,18 @@ describe("CalendarEventsQuerySchema", () => {
     expect(result.to).toBe("2026-03-31T23:59:59.000Z");
   });
 
-  it("accepts optional category", () => {
+  it("accepts optional eventType filter", () => {
     const result = CalendarEventsQuerySchema.parse({
-      category: "recording-session",
+      eventType: "recording-session",
     });
-    expect(result.category).toBe("recording-session");
+    expect(result.eventType).toBe("recording-session");
   });
 
-  it("rejects invalid category", () => {
-    expect(() =>
-      CalendarEventsQuerySchema.parse({ category: "invalid" }),
-    ).toThrow();
+  it("accepts optional projectId filter", () => {
+    const result = CalendarEventsQuerySchema.parse({
+      projectId: "proj_123",
+    });
+    expect(result.projectId).toBe("proj_123");
   });
 
   it("accepts optional cursor", () => {
@@ -300,13 +339,13 @@ describe("CalendarEventsQuerySchema", () => {
     const result = CalendarEventsQuerySchema.parse({
       from: "2026-03-01T00:00:00.000Z",
       to: "2026-03-31T23:59:59.000Z",
-      category: "show",
+      eventType: "show",
       cursor: "abc",
       limit: 25,
     });
     expect(result.from).toBe("2026-03-01T00:00:00.000Z");
     expect(result.to).toBe("2026-03-31T23:59:59.000Z");
-    expect(result.category).toBe("show");
+    expect(result.eventType).toBe("show");
     expect(result.cursor).toBe("abc");
     expect(result.limit).toBe(25);
   });
@@ -383,12 +422,11 @@ describe("FeedTokenResponseSchema", () => {
 
 // ── Type-level assertions (compile-time only) ──
 
-const _categoryCheck: EventCategory = "recording-session";
 const _eventCheck: CalendarEvent = VALID_EVENT;
 const _createCheck: CreateCalendarEvent = {
   title: "Event",
   startAt: "2026-04-01T10:00:00.000Z",
-  category: "meeting",
+  eventType: "meeting",
 };
 const _updateCheck: UpdateCalendarEvent = { title: "Updated" };
 const _queryCheck: CalendarEventsQuery = { limit: 50 };

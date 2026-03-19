@@ -12,8 +12,13 @@ import {
   CalendarEventResponseSchema,
   CalendarEventsResponseSchema,
   FeedTokenResponseSchema,
+  EventTypesResponseSchema,
+  CreateCustomEventTypeSchema,
+  DEFAULT_EVENT_TYPES,
+  DEFAULT_EVENT_TYPE_LABELS,
   NotFoundError,
   ForbiddenError,
+  ConflictError,
 } from "@snc/shared";
 import type { CalendarEvent, CalendarEventsQuery } from "@snc/shared";
 
@@ -21,7 +26,9 @@ import { db } from "../db/connection.js";
 import {
   calendarEvents,
   calendarFeedTokens,
+  customEventTypes,
 } from "../db/schema/calendar.schema.js";
+import { projects } from "../db/schema/project.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -40,17 +47,22 @@ type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
 // ── Private Helpers ──
 
-const toEventResponse = (row: CalendarEventRow): CalendarEvent => ({
+const toEventResponse = (
+  row: CalendarEventRow,
+  projectName: string | null,
+): CalendarEvent => ({
   id: row.id,
   title: row.title,
   description: row.description,
   startAt: row.startAt.toISOString(),
   endAt: row.endAt?.toISOString() ?? null,
   allDay: row.allDay,
-  category: row.category as CalendarEvent["category"],
+  eventType: row.eventType,
   location: row.location,
   createdBy: row.createdBy,
   creatorId: row.creatorId ?? null,
+  projectId: row.projectId ?? null,
+  projectName: projectName ?? null,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -67,7 +79,7 @@ calendarRoutes.get(
   requireRole("stakeholder"),
   describeRoute({
     description:
-      "List calendar events with optional date range and category filter",
+      "List calendar events with optional date range and event type filter",
     tags: ["calendar"],
     responses: {
       200: {
@@ -85,7 +97,7 @@ calendarRoutes.get(
   }),
   validator("query", CalendarEventsQuerySchema),
   async (c) => {
-    const { from, to, category, cursor, limit } =
+    const { from, to, eventType, projectId, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
     const conditions = [isNull(calendarEvents.deletedAt), isNull(calendarEvents.creatorId)];
@@ -96,8 +108,11 @@ calendarRoutes.get(
     if (to) {
       conditions.push(lte(calendarEvents.startAt, new Date(to)));
     }
-    if (category) {
-      conditions.push(eq(calendarEvents.category, category));
+    if (eventType) {
+      conditions.push(eq(calendarEvents.eventType, eventType));
+    }
+    if (projectId) {
+      conditions.push(eq(calendarEvents.projectId, projectId));
     }
 
     if (cursor) {
@@ -117,8 +132,12 @@ calendarRoutes.get(
     }
 
     const rows = await db
-      .select()
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
       .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
       .where(and(...conditions))
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
       .limit(limit + 1);
@@ -127,12 +146,15 @@ calendarRoutes.get(
       rows,
       limit,
       (last) => ({
-        startAt: last.startAt.toISOString(),
-        id: last.id,
+        startAt: last.event.startAt.toISOString(),
+        id: last.event.id,
       }),
     );
 
-    return c.json({ items: rawItems.map(toEventResponse), nextCursor });
+    return c.json({
+      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null)),
+      nextCursor,
+    });
   },
 );
 
@@ -163,15 +185,19 @@ calendarRoutes.get(
     const { id } = c.req.param();
 
     const [row] = await db
-      .select()
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
       .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
       .where(and(eq(calendarEvents.id, id), isNull(calendarEvents.deletedAt)));
 
     if (!row) {
       throw new NotFoundError("Event not found");
     }
 
-    return c.json({ event: toEventResponse(row) });
+    return c.json({ event: toEventResponse(row.event, row.projectName ?? null) });
   },
 );
 
@@ -215,8 +241,9 @@ calendarRoutes.post(
         startAt: new Date(data.startAt),
         endAt: data.endAt ? new Date(data.endAt) : null,
         allDay: data.allDay,
-        category: data.category,
+        eventType: data.eventType,
         location: data.location,
+        projectId: data.projectId ?? null,
         createdBy: user.id,
         creatorId: null,
         createdAt: now,
@@ -224,7 +251,7 @@ calendarRoutes.post(
       })
       .returning();
 
-    return c.json({ event: toEventResponse(event!) }, 201);
+    return c.json({ event: toEventResponse(event!, null) }, 201);
   },
 );
 
@@ -275,16 +302,25 @@ calendarRoutes.patch(
     if (data.endAt !== undefined)
       updates.endAt = data.endAt ? new Date(data.endAt) : null;
     if (data.allDay !== undefined) updates.allDay = data.allDay;
-    if (data.category !== undefined) updates.category = data.category;
+    if (data.eventType !== undefined) updates.eventType = data.eventType;
     if (data.location !== undefined) updates.location = data.location;
+    if (data.projectId !== undefined) updates.projectId = data.projectId;
 
-    const [updated] = await db
+    await db
       .update(calendarEvents)
       .set(updates)
-      .where(eq(calendarEvents.id, id))
-      .returning();
+      .where(eq(calendarEvents.id, id));
 
-    return c.json({ event: toEventResponse(updated!) });
+    const [row] = await db
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
+      .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .where(eq(calendarEvents.id, id));
+
+    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null) });
   },
 );
 
@@ -467,7 +503,7 @@ calendarRoutes.get("/feed.ics", async (c) => {
       description: event.description ?? null,
       location: event.location ?? null,
     });
-    icalEvent.createCategory({ name: event.category });
+    icalEvent.createCategory({ name: event.eventType });
   }
 
   return c.body(calendar.toString(), 200, {
@@ -475,3 +511,126 @@ calendarRoutes.get("/feed.ics", async (c) => {
     "Content-Disposition": 'attachment; filename="snc-calendar.ics"',
   });
 });
+
+// ── GET /event-types — List available event types ──
+
+calendarRoutes.get(
+  "/event-types",
+  requireAuth,
+  requireRole("stakeholder"),
+  describeRoute({
+    description: "List all available event types (defaults merged with custom)",
+    tags: ["calendar"],
+    responses: {
+      200: {
+        description: "List of event types",
+        content: {
+          "application/json": {
+            schema: resolver(EventTypesResponseSchema),
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  async (c) => {
+    const customRows = await db.select().from(customEventTypes);
+
+    const defaultItems = DEFAULT_EVENT_TYPES.map((slug) => ({
+      id: `default:${slug}`,
+      label: DEFAULT_EVENT_TYPE_LABELS[slug] ?? slug,
+      slug,
+    }));
+
+    const customSlugs = new Set(customRows.map((r) => r.slug));
+    const filteredDefaults = defaultItems.filter(
+      (d) => !customSlugs.has(d.slug),
+    );
+
+    const customItems = customRows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      slug: r.slug,
+    }));
+
+    const allItems = [...filteredDefaults, ...customItems].sort((a, b) =>
+      a.slug === "other" ? 1 : b.slug === "other" ? -1 : 0,
+    );
+
+    return c.json({ items: allItems });
+  },
+);
+
+// ── POST /event-types — Create custom event type ──
+
+calendarRoutes.post(
+  "/event-types",
+  requireAuth,
+  requireRole("stakeholder"),
+  describeRoute({
+    description: "Create a custom event type",
+    tags: ["calendar"],
+    responses: {
+      201: {
+        description: "Custom event type created",
+        content: {
+          "application/json": {
+            schema: resolver(EventTypesResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  validator("json", CreateCustomEventTypeSchema),
+  async (c) => {
+    const { label } = c.req.valid("json");
+    const user = c.get("user");
+
+    const slug = label
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+    // Check if slug conflicts with default types
+    if ((DEFAULT_EVENT_TYPES as readonly string[]).includes(slug)) {
+      throw new ConflictError(
+        `Event type with slug "${slug}" already exists as a default type`,
+      );
+    }
+
+    // Check if slug already exists in DB
+    const [existing] = await db
+      .select()
+      .from(customEventTypes)
+      .where(eq(customEventTypes.slug, slug));
+
+    if (existing) {
+      throw new ConflictError(
+        `Event type with slug "${slug}" already exists`,
+      );
+    }
+
+    const id = randomUUID();
+    const now = new Date();
+
+    const [created] = await db
+      .insert(customEventTypes)
+      .values({
+        id,
+        label,
+        slug,
+        createdBy: user.id,
+        createdAt: now,
+      })
+      .returning();
+
+    return c.json(
+      { items: [{ id: created!.id, label: created!.label, slug: created!.slug }] },
+      201,
+    );
+  },
+);

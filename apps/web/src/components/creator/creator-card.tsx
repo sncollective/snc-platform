@@ -53,7 +53,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
           )}
           {creator.lastPublishedAt !== undefined && creator.lastPublishedAt !== null && (
             <span className={styles.listMeta}>
-              {formatRelativeDate(creator.lastPublishedAt)}
+              Last post {formatRelativeDate(creator.lastPublishedAt)}
             </span>
           )}
         </Link>

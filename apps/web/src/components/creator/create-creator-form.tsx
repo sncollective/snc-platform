@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
@@ -42,16 +42,16 @@ export interface CreateCreatorFormProps {
 export function CreateCreatorForm({
   onCreated,
 }: CreateCreatorFormProps): React.ReactElement {
-  const [displayName, setDisplayName] = useState("");
-  const [handle, setHandle] = useState("");
+  const displayNameRef = useRef("");
+  const handleRef = useRef("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = (): { displayName: string; handle?: string | undefined } | null => {
     const result = safeParse(CREATE_CREATOR_SCHEMA, {
-      displayName,
-      handle: handle || undefined,
+      displayName: displayNameRef.current,
+      handle: handleRef.current || undefined,
     });
     if (result.success) {
       setFieldErrors({});
@@ -103,8 +103,8 @@ export function CreateCreatorForm({
         <input
           id="creator-display-name"
           type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+          defaultValue=""
+          onChange={(e) => { displayNameRef.current = e.target.value; }}
           placeholder="e.g. My Band"
           className={
             fieldErrors.displayName
@@ -127,8 +127,8 @@ export function CreateCreatorForm({
         <input
           id="creator-handle"
           type="text"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
+          defaultValue=""
+          onChange={(e) => { handleRef.current = e.target.value; }}
           placeholder="e.g. my-band"
           className={
             fieldErrors.handle

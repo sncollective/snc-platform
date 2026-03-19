@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
 import { z, minLength, maxLength, safeParse } from "zod/mini";
 import {
-  EVENT_CATEGORIES,
+  DEFAULT_EVENT_TYPE_LABELS,
   MAX_EVENT_TITLE_LENGTH,
   MAX_EVENT_DESCRIPTION_LENGTH,
   MAX_EVENT_LOCATION_LENGTH,
@@ -16,19 +16,15 @@ import {
   updateCalendarEvent,
   createCreatorEvent,
   updateCreatorEvent,
+  fetchEventTypes,
+  createCustomEventType,
 } from "../../lib/calendar.js";
+import { fetchProjects } from "../../lib/project.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./event-form.module.css";
 
 // ── Private Constants ──
-
-const CATEGORY_OPTIONS: { value: string; label: string }[] = [
-  { value: "recording-session", label: "Recording Session" },
-  { value: "album-milestone", label: "Album Milestone" },
-  { value: "show", label: "Show" },
-  { value: "meeting", label: "Meeting" },
-];
 
 const EVENT_FORM_SCHEMA = z.object({
   title: z
@@ -46,7 +42,7 @@ const EVENT_FORM_SCHEMA = z.object({
   startTime: z.string(),
   endDate: z.string(),
   endTime: z.string(),
-  category: z.string().check(minLength(1, "Category is required")),
+  eventType: z.string().check(minLength(1, "Event type is required")),
   location: z
     .string()
     .check(
@@ -54,10 +50,14 @@ const EVENT_FORM_SCHEMA = z.object({
     ),
 });
 
-type EventFormFields = "title" | "description" | "startDate" | "startTime" | "endDate" | "endTime" | "category" | "location";
+type EventFormFields = "title" | "description" | "startDate" | "startTime" | "endDate" | "endTime" | "eventType" | "location";
 type FieldErrors = Partial<Record<EventFormFields, string>>;
 
 // ── Private Helpers ──
+
+/** Convert a display label to a slug (e.g. "Single Release" → "single-release"). */
+const toSlug = (label: string): string =>
+  label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
 /** Combine a date string (YYYY-MM-DD) and optional time (HH:MM) into an ISO string. */
 const toISOString = (date: string, time: string): string => {
@@ -101,11 +101,71 @@ export function EventForm({
     event?.endAt && !event.allDay ? event.endAt.slice(11, 16) : "",
   );
   const [allDay, setAllDay] = useState(event?.allDay ?? false);
-  const [category, setCategory] = useState(event?.category ?? "");
+  const [eventType, setEventType] = useState(event?.eventType ?? "");
+  const [customEventTypeLabel, setCustomEventTypeLabel] = useState("");
   const [location, setLocation] = useState(event?.location ?? "");
+  const [projectId, setProjectId] = useState<string>(event?.projectId ?? "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Event types (fetched from API) ──
+  const [knownEventTypes, setKnownEventTypes] = useState<{ slug: string; label: string }[]>([]);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+
+  // ── Projects ──
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    // Fetch available event types (defaults + custom)
+    fetchEventTypes()
+      .then((res) => {
+        setKnownEventTypes(
+          res.items.map((et) => ({ slug: et.slug, label: et.label })),
+        );
+      })
+      .catch(() => {
+        // Fallback: use default labels
+        setKnownEventTypes(
+          Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({ slug, label })),
+        );
+      });
+
+    // Fetch active projects
+    const projectParams: Record<string, string> = { completed: "false" };
+    if (creatorId) projectParams.creatorId = creatorId;
+    fetchProjects(projectParams)
+      .then((res) => {
+        setProjects(res.items.map((p) => ({ id: p.id, name: p.name })));
+      })
+      .catch(() => {
+        // Projects are optional — silently ignore
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Once known types load, reconcile: if editing an event whose type is now
+  // a known type (custom default), select it directly instead of showing "Other"
+  useEffect(() => {
+    if (!event?.eventType || knownEventTypes.length === 0) return;
+    const match = knownEventTypes.find((et) => et.slug === event.eventType);
+    if (match) {
+      setEventType(match.slug);
+      setCustomEventTypeLabel("");
+    } else {
+      setEventType("other");
+      setCustomEventTypeLabel(
+        event.eventType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [knownEventTypes]);
+
+  const isOtherSelected = eventType === "other";
+  const customSlug = toSlug(customEventTypeLabel);
+  const resolvedEventType = isOtherSelected ? customSlug : eventType;
+  const isCustomType = isOtherSelected && customEventTypeLabel !== ""
+    && !knownEventTypes.some((et) => et.slug === customSlug);
 
   const validate = () => {
     const result = safeParse(EVENT_FORM_SCHEMA, {
@@ -115,7 +175,7 @@ export function EventForm({
       startTime,
       endDate,
       endTime,
-      category,
+      eventType: resolvedEventType,
       location,
     });
     if (result.success) {
@@ -130,7 +190,7 @@ export function EventForm({
         "startTime",
         "endDate",
         "endTime",
-        "category",
+        "eventType",
         "location",
       ]),
     );
@@ -147,6 +207,11 @@ export function EventForm({
     setIsSubmitting(true);
 
     try {
+      // Save custom event type if requested
+      if (saveAsDefault && isCustomType) {
+        await createCustomEventType(customEventTypeLabel);
+      }
+
       const startIso = toISOString(data.startDate, allDay ? "" : data.startTime);
       const endIso =
         data.endDate
@@ -159,8 +224,9 @@ export function EventForm({
         startAt: startIso,
         endAt: endIso,
         allDay,
-        category: data.category as (typeof EVENT_CATEGORIES)[number],
+        eventType: data.eventType,
         location: data.location,
+        projectId: projectId || null,
       };
 
       if (isEdit) {
@@ -222,32 +288,86 @@ export function EventForm({
       </div>
 
       <div className={formStyles.fieldGroup}>
-        <label htmlFor="event-category" className={formStyles.label}>
-          Category
+        <label htmlFor="event-event-type" className={formStyles.label}>
+          Event Type
         </label>
         <select
-          id="event-category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          id="event-event-type"
+          value={eventType}
+          onChange={(e) => {
+            setEventType(e.target.value);
+            if (e.target.value !== "other") {
+              setCustomEventTypeLabel("");
+              setSaveAsDefault(false);
+            }
+          }}
           className={
-            fieldErrors.category
+            fieldErrors.eventType
               ? `${formStyles.input} ${formStyles.inputError}`
               : formStyles.input
           }
         >
-          <option value="">Select category...</option>
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          <option value="">Select event type...</option>
+          {knownEventTypes.map((et) => (
+            <option key={et.slug} value={et.slug}>
+              {et.label}
             </option>
           ))}
         </select>
-        {fieldErrors.category && (
+        {isOtherSelected && (
+          <input
+            id="event-custom-type"
+            type="text"
+            value={customEventTypeLabel}
+            onChange={(e) => {
+              setCustomEventTypeLabel(e.target.value);
+              setSaveAsDefault(false);
+            }}
+            placeholder="e.g. Single Release, Rehearsal..."
+            className={formStyles.input}
+            style={{ marginTop: "0.5rem" }}
+          />
+        )}
+        {fieldErrors.eventType && (
           <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.category}
+            {fieldErrors.eventType}
           </span>
         )}
+        {isCustomType && (
+          <div className={styles.checkboxRow}>
+            <input
+              id="event-save-as-default"
+              type="checkbox"
+              checked={saveAsDefault}
+              onChange={(e) => setSaveAsDefault(e.target.checked)}
+            />
+            <label htmlFor="event-save-as-default" className={formStyles.label}>
+              Save as default type
+            </label>
+          </div>
+        )}
       </div>
+
+      {projects.length > 0 && (
+        <div className={formStyles.fieldGroup}>
+          <label htmlFor="event-project" className={formStyles.label}>
+            Project
+          </label>
+          <select
+            id="event-project"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className={formStyles.select}
+          >
+            <option value="">None</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className={styles.checkboxRow}>
         <input

@@ -1,16 +1,15 @@
 import type React from "react";
+import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import type { CalendarEvent } from "@snc/shared";
 
 import styles from "./event-card.module.css";
 
-// ── Private Constants ──
+// ── Private Helpers ──
 
-const CATEGORY_LABELS: Record<CalendarEvent["category"], string> = {
-  "recording-session": "Recording",
-  "album-milestone": "Milestone",
-  show: "Show",
-  meeting: "Meeting",
-};
+/** Resolve a display label for any event type slug. */
+const resolveEventTypeLabel = (slug: string): string =>
+  DEFAULT_EVENT_TYPE_LABELS[slug] ??
+  slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ── Public Types ──
 
@@ -38,9 +37,14 @@ export function EventCard({
     <div className={styles.card}>
       <div className={styles.header}>
         <span className={styles.time}>{timeDisplay}</span>
-        <span className={styles.badge} data-category={event.category}>
-          {CATEGORY_LABELS[event.category]}
-        </span>
+        <div className={styles.badges}>
+          <span className={styles.badge} data-event-type={event.eventType}>
+            {resolveEventTypeLabel(event.eventType)}
+          </span>
+          {event.projectName && (
+            <span className={styles.projectBadge}>{event.projectName}</span>
+          )}
+        </div>
       </div>
       <h3 className={styles.title}>{event.title}</h3>
       {event.location && (

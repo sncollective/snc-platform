@@ -17,6 +17,7 @@ import type { CalendarEvent, CalendarEventsQuery } from "@snc/shared";
 import { db } from "../db/connection.js";
 import { calendarEvents } from "../db/schema/calendar.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { projects } from "../db/schema/project.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -25,7 +26,7 @@ import {
   ERROR_403,
   ERROR_404,
 } from "./openapi-errors.js";
-import { encodeCursor, decodeCursor } from "./cursor.js";
+import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 
 // ── Private Types ──
@@ -34,17 +35,22 @@ type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
 // ── Private Helpers ──
 
-const toEventResponse = (row: CalendarEventRow): CalendarEvent => ({
+const toEventResponse = (
+  row: CalendarEventRow,
+  projectName: string | null,
+): CalendarEvent => ({
   id: row.id,
   title: row.title,
   description: row.description,
   startAt: row.startAt.toISOString(),
   endAt: row.endAt?.toISOString() ?? null,
   allDay: row.allDay,
-  category: row.category as CalendarEvent["category"],
+  eventType: row.eventType,
   location: row.location,
   createdBy: row.createdBy,
   creatorId: row.creatorId ?? null,
+  projectId: row.projectId ?? null,
+  projectName: projectName ?? null,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -84,7 +90,7 @@ creatorEventRoutes.get(
   "/:creatorId/events",
   describeRoute({
     description:
-      "List events for a creator with optional date range and category filter",
+      "List events for a creator with optional date range and event type filter",
     tags: ["creator-events"],
     responses: {
       200: {
@@ -103,7 +109,7 @@ creatorEventRoutes.get(
   validator("query", CalendarEventsQuerySchema),
   async (c) => {
     const { creatorId } = c.req.param();
-    const { from, to, category, cursor, limit } =
+    const { from, to, eventType, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
     const creator = await findCreator(creatorId);
@@ -122,8 +128,8 @@ creatorEventRoutes.get(
     if (to) {
       conditions.push(lte(calendarEvents.startAt, new Date(to)));
     }
-    if (category) {
-      conditions.push(eq(calendarEvents.category, category));
+    if (eventType) {
+      conditions.push(eq(calendarEvents.eventType, eventType));
     }
 
     if (cursor) {
@@ -143,23 +149,29 @@ creatorEventRoutes.get(
     }
 
     const rows = await db
-      .select()
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
       .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
       .where(and(...conditions))
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
       .limit(limit + 1);
 
-    let nextCursor: string | null = null;
-    if (rows.length > limit) {
-      rows.pop();
-      const lastItem = rows[rows.length - 1]!;
-      nextCursor = encodeCursor({
-        startAt: lastItem.startAt.toISOString(),
-        id: lastItem.id,
-      });
-    }
+    const { items: rawItems, nextCursor } = buildPaginatedResponse(
+      rows,
+      limit,
+      (last) => ({
+        startAt: last.event.startAt.toISOString(),
+        id: last.event.id,
+      }),
+    );
 
-    return c.json({ items: rows.map(toEventResponse), nextCursor });
+    return c.json({
+      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null)),
+      nextCursor,
+    });
   },
 );
 
@@ -210,8 +222,9 @@ creatorEventRoutes.post(
         startAt: new Date(data.startAt),
         endAt: data.endAt ? new Date(data.endAt) : null,
         allDay: data.allDay,
-        category: data.category,
+        eventType: data.eventType,
         location: data.location,
+        projectId: data.projectId ?? null,
         createdBy: user.id,
         creatorId,
         createdAt: now,
@@ -219,7 +232,7 @@ creatorEventRoutes.post(
       })
       .returning();
 
-    return c.json({ event: toEventResponse(event!) }, 201);
+    return c.json({ event: toEventResponse(event!, null) }, 201);
   },
 );
 
@@ -265,16 +278,25 @@ creatorEventRoutes.patch(
     if (data.endAt !== undefined)
       updates.endAt = data.endAt ? new Date(data.endAt) : null;
     if (data.allDay !== undefined) updates.allDay = data.allDay;
-    if (data.category !== undefined) updates.category = data.category;
+    if (data.eventType !== undefined) updates.eventType = data.eventType;
     if (data.location !== undefined) updates.location = data.location;
+    if (data.projectId !== undefined) updates.projectId = data.projectId;
 
-    const [updated] = await db
+    await db
       .update(calendarEvents)
       .set(updates)
-      .where(eq(calendarEvents.id, eventId))
-      .returning();
+      .where(eq(calendarEvents.id, eventId));
 
-    return c.json({ event: toEventResponse(updated!) });
+    const [row] = await db
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
+      .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .where(eq(calendarEvents.id, eventId));
+
+    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null) });
   },
 );
 

@@ -37,6 +37,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super("CONFLICT", message, 409);
+  }
+}
+
 export class RateLimitError extends AppError {
   constructor(message: string = "Too many requests") {
     super("RATE_LIMIT_EXCEEDED", message, 429);

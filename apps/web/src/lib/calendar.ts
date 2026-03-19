@@ -4,6 +4,8 @@ import type {
   CreateCalendarEvent,
   UpdateCalendarEvent,
   FeedTokenResponse,
+  EventTypesResponse,
+  CustomEventType,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
@@ -84,6 +86,18 @@ export async function updateCreatorEvent(
     { method: "PATCH", body: data },
   );
   return result.event;
+}
+
+export async function fetchEventTypes(): Promise<EventTypesResponse> {
+  return apiGet<EventTypesResponse>("/api/calendar/event-types");
+}
+
+export async function createCustomEventType(label: string): Promise<CustomEventType> {
+  const result = await apiMutate<{ eventType: CustomEventType }>(
+    "/api/calendar/event-types",
+    { body: { label } },
+  );
+  return result.eventType;
 }
 
 export async function deleteCreatorEvent(

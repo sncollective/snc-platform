@@ -10,10 +10,11 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
-// SELECT: db.select().from(table).where(...).orderBy(...).limit(...)
+// SELECT with leftJoin: db.select().from(table).leftJoin(...).where(...).orderBy(...).limit(...)
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn();
 const mockSelectWhere = vi.fn();
+const mockLeftJoin = vi.fn();
 const mockSelectFrom = vi.fn();
 const mockSelect = vi.fn();
 
@@ -39,6 +40,13 @@ const mockDb = {
   delete: mockDelete,
 };
 
+// ── Helper to wrap a DB row for leftJoin shape ──
+
+const wrapEventRow = (event: ReturnType<typeof makeMockCalendarEvent>) => ({
+  event,
+  projectName: null,
+});
+
 // ── Test Setup ──
 
 const ctx = setupRouteTest({
@@ -56,10 +64,11 @@ const ctx = setupRouteTest({
         startAt: {},
         endAt: {},
         allDay: {},
-        category: {},
+        eventType: {},
         location: {},
         createdBy: {},
         creatorId: {},
+        projectId: {},
         deletedAt: {},
         createdAt: {},
         updatedAt: {},
@@ -69,6 +78,27 @@ const ctx = setupRouteTest({
         userId: {},
         token: {},
         createdAt: {},
+      },
+      customEventTypes: {
+        id: {},
+        label: {},
+        slug: {},
+        createdBy: {},
+        createdAt: {},
+      },
+    }));
+
+    vi.doMock("../../src/db/schema/project.schema.js", () => ({
+      projects: {
+        id: {},
+        name: {},
+        description: {},
+        creatorId: {},
+        createdBy: {},
+        completed: {},
+        completedAt: {},
+        createdAt: {},
+        updatedAt: {},
       },
     }));
 
@@ -95,9 +125,10 @@ const ctx = setupRouteTest({
     app.route("/api/calendar", calendarRoutes);
   },
   beforeEach: () => {
-    // SELECT chain
+    // SELECT chain with leftJoin support
     mockSelect.mockReturnValue({ from: mockSelectFrom });
-    mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+    mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
+    mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
     mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue([]);
@@ -129,7 +160,7 @@ describe("calendar routes", () => {
   describe("GET /api/calendar/events", () => {
     it("returns events list", async () => {
       const event = makeMockCalendarEvent();
-      mockLimit.mockResolvedValue([event]);
+      mockLimit.mockResolvedValue([wrapEventRow(event)]);
 
       const res = await ctx.app.request("/api/calendar/events");
       const body = (await res.json()) as { items: unknown[] };
@@ -169,7 +200,7 @@ describe("calendar routes", () => {
   describe("GET /api/calendar/events/:id", () => {
     it("returns single event", async () => {
       const event = makeMockCalendarEvent();
-      mockSelectWhere.mockResolvedValue([event]);
+      mockSelectWhere.mockResolvedValue([wrapEventRow(event)]);
 
       const res = await ctx.app.request("/api/calendar/events/evt_test001");
       const body = (await res.json()) as { event: { id: string } };
@@ -208,7 +239,7 @@ describe("calendar routes", () => {
         body: JSON.stringify({
           title: "Recording Session",
           startAt: "2026-03-20T14:00:00.000Z",
-          category: "recording-session",
+          eventType: "recording-session",
         }),
       });
       const body = (await res.json()) as { event: { id: string; title: string } };
@@ -227,7 +258,7 @@ describe("calendar routes", () => {
         body: JSON.stringify({
           title: "Event",
           startAt: "2026-03-20T14:00:00.000Z",
-          category: "meeting",
+          eventType: "meeting",
         }),
       });
 
@@ -240,21 +271,20 @@ describe("calendar routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           startAt: "2026-03-20T14:00:00.000Z",
-          category: "meeting",
+          eventType: "meeting",
         }),
       });
 
       expect(res.status).toBe(400);
     });
 
-    it("returns 400 for invalid category", async () => {
+    it("returns 400 for missing eventType", async () => {
       const res = await ctx.app.request("/api/calendar/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: "Event",
           startAt: "2026-03-20T14:00:00.000Z",
-          category: "invalid",
         }),
       });
 
@@ -270,7 +300,7 @@ describe("calendar routes", () => {
         body: JSON.stringify({
           title: "Event",
           startAt: "2026-03-20T14:00:00.000Z",
-          category: "meeting",
+          eventType: "meeting",
         }),
       });
 
@@ -285,10 +315,11 @@ describe("calendar routes", () => {
       const event = makeMockCalendarEvent();
       const updated = makeMockCalendarEvent({ title: "Updated Title" });
 
-      // First select: lookup
-      mockSelectWhere.mockResolvedValueOnce([event]);
-      // Update
-      mockUpdateReturning.mockResolvedValue([updated]);
+      // First select: existence check via leftJoin chain
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(event)]);
+      // Update resolves (no returning)
+      // Second select: re-fetch with leftJoin after update
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]);
 
       const res = await ctx.app.request("/api/calendar/events/evt_test001", {
         method: "PATCH",
@@ -463,7 +494,7 @@ describe("calendar routes", () => {
 
       // Token lookup
       mockSelectWhere.mockResolvedValueOnce([token]);
-      // Events query
+      // Events query (no leftJoin in feed.ics)
       mockOrderBy.mockResolvedValueOnce([event]);
 
       const res = await ctx.app.request(
