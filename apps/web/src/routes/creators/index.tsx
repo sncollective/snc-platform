@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import type { CreatorListItem, CreatorListResponse } from "@snc/shared";
+import type { CreatorListItem, CreatorListResponse, CreatorProfileResponse } from "@snc/shared";
 
 import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { CreatorCard } from "../../components/creator/creator-card.js";
+import { CreateCreatorForm } from "../../components/creator/create-creator-form.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchAuthState } from "../../lib/auth.js";
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
+import buttonStyles from "../../styles/button.module.css";
 
 export const Route = createFileRoute("/creators/")({
   loader: async (): Promise<CreatorListResponse> => {
@@ -63,6 +65,7 @@ function CreatorsPage(): React.ReactElement {
   if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
 
   const loaderData = Route.useLoaderData();
+  const navigate = useNavigate();
 
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<CreatorListItem>({
@@ -73,6 +76,7 @@ function CreatorsPage(): React.ReactElement {
 
   const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
   const [canManage, setCanManage] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     void fetchAuthState().then((auth) => {
@@ -86,10 +90,23 @@ function CreatorsPage(): React.ReactElement {
     localStorage.setItem(VIEW_MODE_KEY, mode);
   };
 
+  const handleCreated = (profile: CreatorProfileResponse) => {
+    void navigate({ to: "/creators/$creatorId/manage", params: { creatorId: profile.id } });
+  };
+
   return (
     <div className={styles.creatorsPage}>
       <div className={styles.pageHeader}>
         <h1 className={listingStyles.heading}>Creators</h1>
+        {canManage && (
+          <button
+            type="button"
+            className={buttonStyles.primaryButton}
+            onClick={() => setShowForm((v) => !v)}
+          >
+            {showForm ? "Cancel" : "New Creator"}
+          </button>
+        )}
         {canManage && (
           <div className={styles.viewToggle}>
             <button
@@ -113,6 +130,7 @@ function CreatorsPage(): React.ReactElement {
           </div>
         )}
       </div>
+      {showForm && <CreateCreatorForm onCreated={handleCreated} />}
       {isLoading && items.length === 0 ? (
         <p className={listingStyles.status}>Loading...</p>
       ) : items.length === 0 ? (
