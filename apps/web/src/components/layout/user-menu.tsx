@@ -121,6 +121,17 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             </Link>
           )}
 
+          {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
+            <Link
+              to="/projects"
+              className={styles.menuItem}
+              role="menuitem"
+              onClick={handleClose}
+            >
+              Projects
+            </Link>
+          )}
+
           {(hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
             <a
               href="https://files.s-nc.org"

@@ -6,6 +6,7 @@ export const DEFAULT_EVENT_TYPES = [
   "recording-session",
   "show",
   "meeting",
+  "task",
   "other",
 ] as const;
 
@@ -13,6 +14,7 @@ export const DEFAULT_EVENT_TYPE_LABELS: Record<string, string> = {
   "recording-session": "Recording Session",
   "show": "Show",
   "meeting": "Meeting",
+  "task": "Task",
   "other": "Other",
 };
 
@@ -37,6 +39,7 @@ export const CalendarEventSchema = z.object({
   creatorId: z.string().nullable(),
   projectId: z.string().nullable(),
   projectName: z.string().nullable(),
+  completedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

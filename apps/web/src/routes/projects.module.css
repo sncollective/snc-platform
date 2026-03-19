@@ -177,3 +177,14 @@
   margin: 0;
   line-height: 1.5;
 }
+
+.projectNameLink {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.projectNameLink:hover {
+  color: var(--color-accent);
+}

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { eq, and, desc, lt, gt, gte, lte, or, asc, isNull } from "drizzle-orm";
-import ical, { ICalCalendarMethod } from "ical-generator";
+import ical, { ICalCalendarMethod, ICalEventStatus } from "ical-generator";
 
 import {
   CreateCalendarEventSchema,
@@ -16,6 +16,7 @@ import {
   CreateCustomEventTypeSchema,
   DEFAULT_EVENT_TYPES,
   DEFAULT_EVENT_TYPE_LABELS,
+  AppError,
   NotFoundError,
   ForbiddenError,
   ConflictError,
@@ -63,6 +64,7 @@ const toEventResponse = (
   creatorId: row.creatorId ?? null,
   projectId: row.projectId ?? null,
   projectName: projectName ?? null,
+  completedAt: row.completedAt?.toISOString() ?? null,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -361,6 +363,69 @@ calendarRoutes.delete(
   },
 );
 
+// ── PATCH /events/:id/complete — Toggle task completion ──
+
+calendarRoutes.patch(
+  "/events/:id/complete",
+  requireAuth,
+  requireRole("stakeholder"),
+  describeRoute({
+    description: "Toggle task completion status",
+    tags: ["calendar"],
+    responses: {
+      200: {
+        description: "Updated event with toggled completion",
+        content: {
+          "application/json": {
+            schema: resolver(CalendarEventResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  async (c) => {
+    const { id } = c.req.param();
+
+    const [existing] = await db
+      .select()
+      .from(calendarEvents)
+      .where(
+        and(eq(calendarEvents.id, id), isNull(calendarEvents.deletedAt)),
+      );
+
+    if (!existing) {
+      throw new NotFoundError("Event not found");
+    }
+
+    if (existing.eventType !== "task") {
+      throw new AppError("INVALID_EVENT_TYPE", "Only task events can be completed", 400);
+    }
+
+    const now = new Date();
+    const newCompletedAt = existing.completedAt === null ? now : null;
+
+    await db
+      .update(calendarEvents)
+      .set({ completedAt: newCompletedAt, updatedAt: now })
+      .where(eq(calendarEvents.id, id));
+
+    const [updated] = await db
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+      })
+      .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .where(eq(calendarEvents.id, id));
+
+    return c.json({ event: toEventResponse(updated!.event, updated!.projectName ?? null) });
+  },
+);
+
 // ── POST /feed-token — Generate feed token ──
 
 calendarRoutes.post(
@@ -504,6 +569,11 @@ calendarRoutes.get("/feed.ics", async (c) => {
       location: event.location ?? null,
     });
     icalEvent.createCategory({ name: event.eventType });
+    if (event.eventType === "task" && event.completedAt !== null) {
+      icalEvent.status(ICalEventStatus.CONFIRMED);
+    } else if (event.eventType === "task") {
+      icalEvent.status(ICalEventStatus.TENTATIVE);
+    }
   }
 
   return c.body(calendar.toString(), 200, {

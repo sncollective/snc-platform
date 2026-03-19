@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type { Project } from "@snc/shared";
@@ -193,7 +193,13 @@ function ProjectItem({ project, onEdit, onToggleComplete, onDelete }: ProjectIte
     <div className={styles.projectItem}>
       <div className={styles.projectItemHeader}>
         <div className={styles.projectItemMeta}>
-          <span className={styles.projectName}>{project.name}</span>
+          <Link
+            to="/projects/$projectSlug"
+            params={{ projectSlug: project.slug }}
+            className={styles.projectNameLink}
+          >
+            {project.name}
+          </Link>
           {project.completed && (
             <span className={styles.completedBadge}>Completed</span>
           )}

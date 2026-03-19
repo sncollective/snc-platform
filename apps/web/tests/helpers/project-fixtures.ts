@@ -5,6 +5,7 @@ import type { Project, ProjectsResponse } from "@snc/shared";
 export const makeMockProject = (overrides?: Partial<Project>): Project => ({
   id: "proj_test001",
   name: "Animal Future LP",
+  slug: "animal-future-lp",
   description: "Album release project",
   creatorId: "creator_test001",
   createdBy: "user_test123",

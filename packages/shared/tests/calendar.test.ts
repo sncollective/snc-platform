@@ -33,6 +33,7 @@ const VALID_EVENT = {
   creatorId: null,
   projectId: null,
   projectName: null,
+  completedAt: null,
   createdAt: "2026-03-15T10:00:00.000Z",
   updatedAt: "2026-03-15T10:00:00.000Z",
 };
@@ -43,12 +44,17 @@ describe("DEFAULT_EVENT_TYPES", () => {
       "recording-session",
       "show",
       "meeting",
+      "task",
       "other",
     ]);
   });
 
-  it("has length 4", () => {
-    expect(DEFAULT_EVENT_TYPES).toHaveLength(4);
+  it("has length 5", () => {
+    expect(DEFAULT_EVENT_TYPES).toHaveLength(5);
+  });
+
+  it("includes task type", () => {
+    expect(DEFAULT_EVENT_TYPES).toContain("task");
   });
 });
 
@@ -63,6 +69,7 @@ describe("DEFAULT_EVENT_TYPE_LABELS", () => {
     expect(DEFAULT_EVENT_TYPE_LABELS["recording-session"]).toBe("Recording Session");
     expect(DEFAULT_EVENT_TYPE_LABELS["show"]).toBe("Show");
     expect(DEFAULT_EVENT_TYPE_LABELS["meeting"]).toBe("Meeting");
+    expect(DEFAULT_EVENT_TYPE_LABELS["task"]).toBe("Task");
     expect(DEFAULT_EVENT_TYPE_LABELS["other"]).toBe("Other");
   });
 });
@@ -109,6 +116,19 @@ describe("CalendarEventSchema", () => {
     });
     expect(result.projectId).toBe("proj_123");
     expect(result.projectName).toBe("New Album");
+  });
+
+  it("accepts null completedAt", () => {
+    const result = CalendarEventSchema.parse({ ...VALID_EVENT, completedAt: null });
+    expect(result.completedAt).toBeNull();
+  });
+
+  it("accepts completedAt as ISO datetime string", () => {
+    const result = CalendarEventSchema.parse({
+      ...VALID_EVENT,
+      completedAt: "2026-03-19T00:00:00.000Z",
+    });
+    expect(result.completedAt).toBe("2026-03-19T00:00:00.000Z");
   });
 
   it("rejects invalid datetime for startAt", () => {
@@ -422,7 +442,7 @@ describe("FeedTokenResponseSchema", () => {
 
 // ── Type-level assertions (compile-time only) ──
 
-const _eventCheck: CalendarEvent = VALID_EVENT;
+const _eventCheck: CalendarEvent = { ...VALID_EVENT, completedAt: null };
 const _createCheck: CreateCalendarEvent = {
   title: "Event",
   startAt: "2026-04-01T10:00:00.000Z",

@@ -13,6 +13,7 @@ type DbCalendarEventRow = {
   creatorId: string | null;
   projectId: string | null;
   deletedAt: Date | null;
+  completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -27,6 +28,7 @@ type DbCalendarFeedTokenRow = {
 type DbProjectRow = {
   id: string;
   name: string;
+  slug: string;
   description: string;
   creatorId: string | null;
   createdBy: string;
@@ -53,6 +55,7 @@ export const makeMockCalendarEvent = (
   creatorId: null,
   projectId: null,
   deletedAt: null,
+  completedAt: null,
   createdAt: new Date("2026-03-15T10:00:00.000Z"),
   updatedAt: new Date("2026-03-15T10:00:00.000Z"),
   ...overrides,
@@ -73,6 +76,7 @@ export const makeMockProject = (
 ): DbProjectRow => ({
   id: "proj_test001",
   name: "New Album",
+  slug: "new-album",
   description: "Working on the new album",
   creatorId: null,
   createdBy: "user_test123",

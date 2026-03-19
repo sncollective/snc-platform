@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, asc, gt, or, isNull } from "drizzle-orm";
+import { eq, and, asc, gt, or, isNull, gte, ne } from "drizzle-orm";
 
 import {
   CreateProjectSchema,
@@ -40,9 +40,17 @@ type ProjectRow = typeof projects.$inferSelect;
 
 // ── Private Helpers ──
 
+const toSlug = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
+
 const toProjectResponse = (row: ProjectRow): Project => ({
   id: row.id,
   name: row.name,
+  slug: row.slug,
   description: row.description,
   creatorId: row.creatorId ?? null,
   createdBy: row.createdBy,
@@ -51,6 +59,19 @@ const toProjectResponse = (row: ProjectRow): Project => ({
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
+
+const findProjectByIdOrSlug = async (param: string): Promise<ProjectRow | undefined> => {
+  // UUID pattern: 8-4-4-4-12 hex chars
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
+
+  if (isUuid) {
+    const [row] = await db.select().from(projects).where(eq(projects.id, param));
+    return row;
+  }
+
+  const [row] = await db.select().from(projects).where(eq(projects.slug, param));
+  return row;
+};
 
 // ── Public API ──
 
@@ -156,10 +177,7 @@ projectRoutes.get(
   async (c) => {
     const { id } = c.req.param();
 
-    const [row] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
+    const row = await findProjectByIdOrSlug(id);
 
     if (!row) {
       throw new NotFoundError("Project not found");
@@ -203,11 +221,26 @@ projectRoutes.post(
     const id = randomUUID();
     const now = new Date();
 
+    // Generate unique slug — append numeric suffix on conflict
+    const baseSlug = toSlug(data.name);
+    let slug = baseSlug;
+    let attempt = 0;
+    while (true) {
+      const [existing] = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.slug, slug));
+      if (!existing) break;
+      attempt += 1;
+      slug = `${baseSlug}-${attempt + 1}`;
+    }
+
     const [project] = await db
       .insert(projects)
       .values({
         id,
         name: data.name,
+        slug,
         description: data.description,
         creatorId: data.creatorId ?? null,
         createdBy: user.id,
@@ -248,17 +281,30 @@ projectRoutes.patch(
     const { id } = c.req.param();
     const data = c.req.valid("json");
 
-    const [existing] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
+    const existing = await findProjectByIdOrSlug(id);
 
     if (!existing) {
       throw new NotFoundError("Project not found");
     }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (data.name !== undefined) updates.name = data.name;
+    if (data.name !== undefined) {
+      updates.name = data.name;
+      // Regenerate slug when name changes
+      const baseSlug = toSlug(data.name);
+      let slug = baseSlug;
+      let attempt = 0;
+      while (true) {
+        const [conflict] = await db
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.slug, slug), ne(projects.id, existing.id)));
+        if (!conflict) break;
+        attempt += 1;
+        slug = `${baseSlug}-${attempt + 1}`;
+      }
+      updates.slug = slug;
+    }
     if (data.description !== undefined) updates.description = data.description;
     if (data.completed !== undefined) {
       updates.completed = data.completed;
@@ -272,7 +318,7 @@ projectRoutes.patch(
     const [updated] = await db
       .update(projects)
       .set(updates)
-      .where(eq(projects.id, id))
+      .where(eq(projects.id, existing.id))
       .returning();
 
     return c.json({ project: toProjectResponse(updated!) });
@@ -296,16 +342,13 @@ projectRoutes.delete(
   async (c) => {
     const { id } = c.req.param();
 
-    const [existing] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
+    const existing = await findProjectByIdOrSlug(id);
 
     if (!existing) {
       throw new NotFoundError("Project not found");
     }
 
-    await db.delete(projects).where(eq(projects.id, id));
+    await db.delete(projects).where(eq(projects.id, existing.id));
 
     return c.body(null, 204);
   },
@@ -335,16 +378,15 @@ projectRoutes.get(
   async (c) => {
     const { id } = c.req.param();
 
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
+    const project = await findProjectByIdOrSlug(id);
 
     if (!project) {
       throw new NotFoundError("Project not found");
     }
 
     const limit = 50;
+
+    const now = new Date();
 
     const rows = await db
       .select({
@@ -355,8 +397,17 @@ projectRoutes.get(
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
       .where(
         and(
-          eq(calendarEvents.projectId, id),
+          eq(calendarEvents.projectId, project.id),
           isNull(calendarEvents.deletedAt),
+          or(
+            // Future events (any type)
+            gte(calendarEvents.startAt, now),
+            // Overdue uncompleted tasks
+            and(
+              eq(calendarEvents.eventType, "task"),
+              isNull(calendarEvents.completedAt),
+            ),
+          ),
         ),
       )
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
@@ -384,6 +435,7 @@ projectRoutes.get(
       creatorId: row.event.creatorId ?? null,
       projectId: row.event.projectId ?? null,
       projectName: row.projectName ?? null,
+      completedAt: row.event.completedAt?.toISOString() ?? null,
       createdAt: row.event.createdAt.toISOString(),
       updatedAt: row.event.updatedAt.toISOString(),
     }));

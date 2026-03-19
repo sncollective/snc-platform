@@ -39,6 +39,16 @@ export async function updateCalendarEvent(
   return result.event;
 }
 
+export async function toggleEventComplete(
+  id: string,
+): Promise<CalendarEvent> {
+  const result = await apiMutate<{ event: CalendarEvent }>(
+    `/api/calendar/events/${id}/complete`,
+    { method: "PATCH" },
+  );
+  return result.event;
+}
+
 export async function deleteCalendarEvent(id: string): Promise<void> {
   await apiMutate<undefined>(`/api/calendar/events/${id}`, {
     method: "DELETE",

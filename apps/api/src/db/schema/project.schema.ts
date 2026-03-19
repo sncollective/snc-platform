@@ -4,6 +4,7 @@ import {
   boolean,
   timestamp,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { users } from "./user.schema.js";
@@ -14,6 +15,7 @@ export const projects = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
+    slug: text("slug").notNull(),
     description: text("description").notNull().default(""),
     creatorId: text("creator_id").references(() => creatorProfiles.id, {
       onDelete: "cascade",
@@ -31,6 +33,7 @@ export const projects = pgTable(
       .defaultNow(),
   },
   (table) => [
+    uniqueIndex("projects_slug_idx").on(table.slug),
     index("projects_creator_idx").on(table.creatorId),
     index("projects_completed_idx").on(table.completed),
   ],
