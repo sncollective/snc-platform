@@ -145,6 +145,9 @@ export const CreatorProfileResponseSchema = z.object({
 
 export const CreatorListItemSchema = CreatorProfileResponseSchema.extend({
   canManage: z.boolean().optional(),
+  isSubscribed: z.boolean().optional(),
+  subscriberCount: z.number().int().min(0).optional(),
+  lastPublishedAt: z.string().nullable().optional(),
 });
 
 export const CreatorListQuerySchema = z.object({

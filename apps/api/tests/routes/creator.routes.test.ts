@@ -42,6 +42,12 @@ const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 // Batch count query chain: select → from → where → groupBy
 const mockGroupBy = vi.fn();
 
+// Subscription query chains: select → from → innerJoin → where (→ limit for platform check)
+const mockInnerJoin = vi.fn();
+const mockSubscriptionWhere = vi.fn();
+const mockSubscriptionLimit = vi.fn();
+const mockSubscriptionGroupBy = vi.fn();
+
 const mockSelectFrom = vi.fn();
 const mockSelect = vi.fn();
 
@@ -97,6 +103,11 @@ const ctx = setupRouteTest({
       userRoles: {},
     }));
 
+    vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
+      subscriptionPlans: {},
+      userSubscriptions: {},
+    }));
+
     vi.doMock("../../src/storage/index.js", () => ({
       storage: mockStorage,
       createStorageProvider: vi.fn(),
@@ -123,10 +134,29 @@ const ctx = setupRouteTest({
     mockSelectFrom.mockImplementation(() => ({
       where: mockSelectWhere,
       orderBy: vi.fn(() => ({ limit: mockLimit })),
+      innerJoin: mockInnerJoin,
     }));
 
-    // Default db mock responses
-    mockSelectWhere.mockResolvedValue([]);
+    // Wire subscription innerJoin chain.
+    // mockSubscriptionWhere uses chainablePromise so it can be:
+    //   - awaited directly (creator-specific sub check → resolves to [])
+    //   - chained with .limit() (platform check)
+    //   - chained with .groupBy() (subscriber counts)
+    mockInnerJoin.mockReturnValue({ where: mockSubscriptionWhere });
+    mockSubscriptionWhere.mockReturnValue(
+      chainablePromise([], { limit: mockSubscriptionLimit, groupBy: mockSubscriptionGroupBy }),
+    );
+    mockSubscriptionLimit.mockResolvedValue([]); // default: no platform sub
+    mockSubscriptionGroupBy.mockResolvedValue([]); // default: no subscriber counts
+
+    // Default db mock responses.
+    // mockSelectWhere returns a chainable promise so it can be:
+    //   - awaited directly (simple where-only queries → resolves to [])
+    //   - chained with .groupBy() (batch count / last-published queries)
+    //   - chained with .orderBy() (list query — overridden via mockReturnValueOnce per test)
+    mockSelectWhere.mockReturnValue(
+      chainablePromise([], { groupBy: mockGroupBy, orderBy: vi.fn(() => ({ limit: mockLimit })) }),
+    );
     mockLimit.mockResolvedValue([]);
     mockGroupBy.mockResolvedValue([]);
     mockInsertReturning.mockResolvedValue([]);
@@ -378,6 +408,198 @@ describe("creator routes", () => {
         { platform: "bandcamp", url: "https://creator1.bandcamp.com" },
       ]);
       expect(body.items[1].socialLinks).toEqual([]);
+    });
+
+    it("authenticated user with platform subscription → all items have isSubscribed: true", async () => {
+      ctx.auth.roles = []; // non-stakeholder authenticated user
+
+      const profiles = [
+        makeMockDbCreatorProfile({ id: "creator_1", createdAt: new Date("2026-02-01T00:00:00.000Z") }),
+        makeMockDbCreatorProfile({ id: "creator_2", createdAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ];
+
+      // Call 1: list query
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce(profiles);
+
+      // Call 2: content count
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      // Call 3: platform sub check → found → all creators subscribed
+      mockSubscriptionLimit.mockResolvedValueOnce([{ id: "sub_platform_1" }]);
+
+      const res = await ctx.app.request("/api/creators?limit=2");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+      expect(body.items[0].isSubscribed).toBe(true);
+      expect(body.items[1].isSubscribed).toBe(true);
+    });
+
+    it("authenticated user with creator-specific subscription → only that creator has isSubscribed: true", async () => {
+      ctx.auth.roles = []; // non-stakeholder authenticated user
+
+      const profiles = [
+        makeMockDbCreatorProfile({ id: "creator_1", createdAt: new Date("2026-02-01T00:00:00.000Z") }),
+        makeMockDbCreatorProfile({ id: "creator_2", createdAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ];
+
+      // Call 1: list query
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce(profiles);
+
+      // Call 2: content count
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      // Call 3: platform sub check → none (first mockSubscriptionWhere call)
+      mockSubscriptionWhere.mockReturnValueOnce(
+        chainablePromise([], { limit: mockSubscriptionLimit, groupBy: mockSubscriptionGroupBy }),
+      );
+      mockSubscriptionLimit.mockResolvedValueOnce([]);
+
+      // Call 4: creator-specific sub check → subscribed to creator_1 only (second mockSubscriptionWhere call)
+      mockSubscriptionWhere.mockReturnValueOnce(
+        chainablePromise(
+          [{ creatorId: "creator_1" }],
+          { limit: mockSubscriptionLimit, groupBy: mockSubscriptionGroupBy },
+        ),
+      );
+
+      const res = await ctx.app.request("/api/creators?limit=2");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+      // creator_1 is subscribed → sorted first
+      expect(body.items[0].id).toBe("creator_1");
+      expect(body.items[0].isSubscribed).toBe(true);
+      expect(body.items[1].id).toBe("creator_2");
+      expect(body.items[1].isSubscribed).toBe(false);
+    });
+
+    it("unauthenticated user → no isSubscribed field on any item", async () => {
+      ctx.auth.user = null;
+      ctx.auth.roles = [];
+
+      const profile = makeMockDbCreatorProfile({ id: "creator_1" });
+
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce([profile]);
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/creators");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0]).not.toHaveProperty("isSubscribed");
+    });
+
+    it("stakeholder user → items include subscriberCount and lastPublishedAt", async () => {
+      ctx.auth.roles = ["stakeholder"];
+
+      const profile = makeMockDbCreatorProfile({ id: "creator_1" });
+
+      // Call 1: list query
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce([profile]);
+
+      // Call 2: content count
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([{ creatorId: "creator_1", count: 2 }]);
+
+      // Subscription calls 3+4 use default mocks (no platform sub, no creator subs)
+
+      // Call 5: subscriber counts → 7 subscribers for creator_1
+      mockSubscriptionGroupBy.mockResolvedValueOnce([{ creatorId: "creator_1", count: 7 }]);
+
+      // Call 6: last published → most recent content date
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([
+        { creatorId: "creator_1", lastPublished: new Date("2026-03-01T12:00:00.000Z") },
+      ]);
+
+      const res = await ctx.app.request("/api/creators");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].subscriberCount).toBe(7);
+      expect(body.items[0].lastPublishedAt).toBe("2026-03-01T12:00:00.000Z");
+      expect(body.items[0].canManage).toBe(true);
+    });
+
+    it("non-stakeholder authenticated user → items do not include subscriberCount or lastPublishedAt", async () => {
+      ctx.auth.roles = ["subscriber"]; // authenticated but not stakeholder
+
+      const profile = makeMockDbCreatorProfile({ id: "creator_1" });
+
+      // Call 1: list query
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce([profile]);
+
+      // Call 2: content count
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      // Subscription calls 3+4 use defaults (no platform sub, no creator subs)
+
+      const res = await ctx.app.request("/api/creators");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0]).not.toHaveProperty("subscriberCount");
+      expect(body.items[0]).not.toHaveProperty("lastPublishedAt");
+      expect(body.items[0]).not.toHaveProperty("canManage");
+      expect(body.items[0]).toHaveProperty("isSubscribed");
+    });
+
+    it("subscribed creators appear before unsubscribed in response order", async () => {
+      ctx.auth.roles = []; // non-stakeholder authenticated user
+
+      // Creator_2 is earlier in list (higher createdAt), creator_1 is later
+      const profiles = [
+        makeMockDbCreatorProfile({ id: "creator_2", createdAt: new Date("2026-02-01T00:00:00.000Z") }),
+        makeMockDbCreatorProfile({ id: "creator_1", createdAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ];
+
+      // Call 1: list query
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce(profiles);
+
+      // Call 2: content count
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+
+      // Call 3: platform sub check → none (first mockSubscriptionWhere call)
+      mockSubscriptionWhere.mockReturnValueOnce(
+        chainablePromise([], { limit: mockSubscriptionLimit, groupBy: mockSubscriptionGroupBy }),
+      );
+      mockSubscriptionLimit.mockResolvedValueOnce([]);
+
+      // Call 4: creator-specific sub check → subscribed to creator_1 (not creator_2)
+      mockSubscriptionWhere.mockReturnValueOnce(
+        chainablePromise(
+          [{ creatorId: "creator_1" }],
+          { limit: mockSubscriptionLimit, groupBy: mockSubscriptionGroupBy },
+        ),
+      );
+
+      const res = await ctx.app.request("/api/creators?limit=2");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+      // creator_1 is subscribed → appears first despite lower createdAt
+      expect(body.items[0].id).toBe("creator_1");
+      expect(body.items[0].isSubscribed).toBe(true);
+      expect(body.items[1].id).toBe("creator_2");
+      expect(body.items[1].isSubscribed).toBe(false);
     });
   });
 
