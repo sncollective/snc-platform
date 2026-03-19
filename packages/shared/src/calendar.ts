@@ -2,12 +2,19 @@ import { z } from "zod";
 
 // ── Public Constants ──
 
-export const EVENT_CATEGORIES = [
+export const DEFAULT_EVENT_TYPES = [
   "recording-session",
-  "album-milestone",
   "show",
   "meeting",
+  "other",
 ] as const;
+
+export const DEFAULT_EVENT_TYPE_LABELS: Record<string, string> = {
+  "recording-session": "Recording Session",
+  "show": "Show",
+  "meeting": "Meeting",
+  "other": "Other",
+};
 
 export const MAX_EVENT_TITLE_LENGTH = 200;
 export const MAX_EVENT_DESCRIPTION_LENGTH = 5000;
@@ -15,7 +22,7 @@ export const MAX_EVENT_LOCATION_LENGTH = 500;
 
 // ── Public Schemas ──
 
-export const EventCategorySchema = z.enum(EVENT_CATEGORIES);
+export const EventTypeSchema = z.string().min(1).max(100);
 
 export const CalendarEventSchema = z.object({
   id: z.string(),
@@ -24,10 +31,12 @@ export const CalendarEventSchema = z.object({
   startAt: z.iso.datetime(),
   endAt: z.iso.datetime().nullable(),
   allDay: z.boolean(),
-  category: EventCategorySchema,
+  eventType: EventTypeSchema,
   location: z.string(),
   createdBy: z.string(),
   creatorId: z.string().nullable(),
+  projectId: z.string().nullable(),
+  projectName: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -38,8 +47,9 @@ export const CreateCalendarEventSchema = z.object({
   startAt: z.iso.datetime(),
   endAt: z.iso.datetime().nullable().default(null),
   allDay: z.boolean().default(false),
-  category: EventCategorySchema,
+  eventType: EventTypeSchema,
   location: z.string().max(MAX_EVENT_LOCATION_LENGTH).default(""),
+  projectId: z.string().nullable().default(null),
 });
 
 export const UpdateCalendarEventSchema = z.object({
@@ -48,14 +58,16 @@ export const UpdateCalendarEventSchema = z.object({
   startAt: z.iso.datetime().optional(),
   endAt: z.iso.datetime().nullable().optional(),
   allDay: z.boolean().optional(),
-  category: EventCategorySchema.optional(),
+  eventType: EventTypeSchema.optional(),
   location: z.string().max(MAX_EVENT_LOCATION_LENGTH).optional(),
+  projectId: z.string().nullable().optional(),
 });
 
 export const CalendarEventsQuerySchema = z.object({
   from: z.iso.datetime().optional(),
   to: z.iso.datetime().optional(),
-  category: EventCategorySchema.optional(),
+  eventType: z.string().optional(),
+  projectId: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -76,7 +88,6 @@ export const FeedTokenResponseSchema = z.object({
 
 // ── Public Types ──
 
-export type EventCategory = z.infer<typeof EventCategorySchema>;
 export type CalendarEvent = z.infer<typeof CalendarEventSchema>;
 export type CreateCalendarEvent = z.infer<typeof CreateCalendarEventSchema>;
 export type UpdateCalendarEvent = z.infer<typeof UpdateCalendarEventSchema>;

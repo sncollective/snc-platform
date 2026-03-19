@@ -1,7 +1,8 @@
 import { createFileRoute, getRouteApi, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
-import type { CalendarEvent, EventCategory } from "@snc/shared";
+import type { CalendarEvent } from "@snc/shared";
+import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
 import { EventForm } from "../../../../components/calendar/event-form.js";
 import { EventList } from "../../../../components/calendar/event-list.js";
@@ -9,18 +10,10 @@ import { isFeatureEnabled } from "../../../../lib/config.js";
 import {
   fetchCreatorEvents,
   deleteCreatorEvent,
+  fetchEventTypes,
 } from "../../../../lib/calendar.js";
 import sectionStyles from "../../../../styles/detail-section.module.css";
 import styles from "./events-manage.module.css";
-
-// ── Private Constants ──
-
-const CATEGORY_OPTIONS: { value: EventCategory; label: string }[] = [
-  { value: "recording-session", label: "Recording" },
-  { value: "album-milestone", label: "Milestone" },
-  { value: "show", label: "Show" },
-  { value: "meeting", label: "Meeting" },
-];
 
 // ── Route ──
 
@@ -43,10 +36,28 @@ function ManageEventsPage(): React.ReactElement {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(
     undefined,
   );
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [eventTypeOptions, setEventTypeOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    fetchEventTypes()
+      .then((res) => {
+        setEventTypeOptions(
+          res.items.map((et) => ({ value: et.slug, label: et.label })),
+        );
+      })
+      .catch(() => {
+        setEventTypeOptions(
+          Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({
+            value: slug,
+            label,
+          })),
+        );
+      });
+  }, []);
 
   // ── Date range navigation ──
   const [monthOffset, setMonthOffset] = useState(0);
@@ -78,7 +89,7 @@ function ManageEventsPage(): React.ReactElement {
         from: from.toISOString(),
         to: to.toISOString(),
       };
-      if (categoryFilter) params.category = categoryFilter;
+      if (eventTypeFilter) params.eventType = eventTypeFilter;
 
       const result = await fetchCreatorEvents(creator.id, params);
       setEvents(result.items);
@@ -105,8 +116,8 @@ function ManageEventsPage(): React.ReactElement {
     setTimeout(loadEvents, 0);
   };
 
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
+  const handleEventTypeChange = (value: string) => {
+    setEventTypeFilter(value);
     setTimeout(loadEvents, 0);
   };
 
@@ -142,8 +153,8 @@ function ManageEventsPage(): React.ReactElement {
     setShowForm(true);
   };
 
-  const filteredEvents = categoryFilter
-    ? events.filter((e) => e.category === categoryFilter)
+  const filteredEvents = eventTypeFilter
+    ? events.filter((e) => e.eventType === eventTypeFilter)
     : events;
 
   return (
@@ -185,15 +196,15 @@ function ManageEventsPage(): React.ReactElement {
           </button>
         </div>
 
-        {/* Category Filter */}
+        {/* Event Type Filter */}
         <div className={styles.filterRow}>
           <select
-            value={categoryFilter}
-            onChange={(e) => handleCategoryChange(e.target.value)}
+            value={eventTypeFilter}
+            onChange={(e) => handleEventTypeChange(e.target.value)}
             className={styles.filterSelect}
           >
-            <option value="">All categories</option>
-            {CATEGORY_OPTIONS.map((opt) => (
+            <option value="">All event types</option>
+            {eventTypeOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

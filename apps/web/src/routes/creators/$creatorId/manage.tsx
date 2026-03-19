@@ -29,6 +29,7 @@ const MANAGE_TABS: readonly ManageTab[] = [
   { to: "", label: "Overview" },
   { to: "/content", label: "Content", permission: "manageContent" },
   { to: "/events", label: "Events", permission: "manageScheduling" },
+  { to: "/projects", label: "Projects", permission: "manageScheduling" },
   { to: "/settings", label: "Settings", permission: "editProfile" },
   { to: "/members", label: "Members", permission: "manageMembers" },
 ] as const;

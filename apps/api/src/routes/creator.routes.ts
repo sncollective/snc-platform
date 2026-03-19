@@ -207,7 +207,7 @@ const batchGetLastPublished = async (
   const rows = await db
     .select({
       creatorId: content.creatorId,
-      lastPublished: sql<Date>`max(${content.publishedAt})`,
+      lastPublished: sql<string>`max(${content.publishedAt})`,
     })
     .from(content)
     .where(
@@ -218,7 +218,7 @@ const batchGetLastPublished = async (
       ),
     )
     .groupBy(content.creatorId);
-  return new Map(rows.map((r) => [r.creatorId, r.lastPublished.toISOString()]));
+  return new Map(rows.map((r) => [r.creatorId, new Date(r.lastPublished).toISOString()]));
 };
 
 const handleImageUpload = async (

@@ -21,6 +21,12 @@
   color: var(--color-text-muted);
 }
 
+.badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .badge {
   font-family: var(--font-ui);
   font-size: var(--font-size-xs);
@@ -33,19 +39,30 @@
   color: var(--color-text);
 }
 
-.badge[data-category="recording-session"] {
+.badge[data-event-type="recording-session"] {
   background: rgba(245, 166, 35, 0.2);
   color: var(--color-accent);
 }
 
-.badge[data-category="show"] {
+.badge[data-event-type="show"] {
   background: rgba(91, 181, 181, 0.2);
   color: var(--color-secondary);
 }
 
-.badge[data-category="album-milestone"] {
+.badge[data-event-type="album-milestone"] {
   background: rgba(239, 83, 80, 0.2);
   color: var(--color-error);
+}
+
+.projectBadge {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(91, 181, 181, 0.1);
+  border: 1px solid rgba(91, 181, 181, 0.3);
+  color: var(--color-secondary);
 }
 
 .title {

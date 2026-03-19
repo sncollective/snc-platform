@@ -60,8 +60,7 @@ function OverviewPage(): React.ReactElement {
       <section className={styles.section}>
         <h2 className={styles.sectionHeading}>Coming Soon</h2>
         <p className={styles.placeholder}>
-          Content scheduling, calendar events, and merchandise management will appear here in future
-          updates.
+          Content scheduling and merchandise management will appear here in future updates.
         </p>
       </section>
     </div>

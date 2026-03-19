@@ -7,10 +7,11 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
-// SELECT: db.select().from(table).where(...).orderBy(...).limit(...)
+// SELECT with leftJoin: db.select().from(table).leftJoin(...).where(...).orderBy(...).limit(...)
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn();
 const mockSelectWhere = vi.fn();
+const mockLeftJoin = vi.fn();
 const mockSelectFrom = vi.fn();
 const mockSelect = vi.fn();
 
@@ -40,6 +41,13 @@ const mockDb = {
 
 const mockRequireCreatorPermission = vi.fn();
 
+// ── Helper to wrap a DB row for leftJoin shape ──
+
+const wrapEventRow = (event: ReturnType<typeof makeMockCalendarEvent>) => ({
+  event,
+  projectName: null,
+});
+
 // ── Test Setup ──
 
 const ctx = setupRouteTest({
@@ -57,11 +65,33 @@ const ctx = setupRouteTest({
         startAt: {},
         endAt: {},
         allDay: {},
-        category: {},
+        eventType: {},
         location: {},
         createdBy: {},
         creatorId: {},
+        projectId: {},
         deletedAt: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+      customEventTypes: {
+        id: {},
+        label: {},
+        slug: {},
+        createdBy: {},
+        createdAt: {},
+      },
+    }));
+
+    vi.doMock("../../src/db/schema/project.schema.js", () => ({
+      projects: {
+        id: {},
+        name: {},
+        description: {},
+        creatorId: {},
+        createdBy: {},
+        completed: {},
+        completedAt: {},
         createdAt: {},
         updatedAt: {},
       },
@@ -101,9 +131,10 @@ const ctx = setupRouteTest({
     app.route("/api/creators", creatorEventRoutes);
   },
   beforeEach: () => {
-    // SELECT chain
+    // SELECT chain with leftJoin support
     mockSelect.mockReturnValue({ from: mockSelectFrom });
-    mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+    mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
+    mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
     mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue([]);
@@ -139,10 +170,10 @@ describe("creator event routes", () => {
     it("returns paginated events for the creator", async () => {
       const event = makeMockCalendarEvent({ creatorId: "creator_1" });
 
-      // Creator lookup resolves to a creator
+      // Creator lookup resolves to a creator (uses .where directly)
       mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
-      // Events query returns events via limit
-      mockLimit.mockResolvedValueOnce([event]);
+      // Events query returns events via limit (uses leftJoin chain)
+      mockLimit.mockResolvedValueOnce([wrapEventRow(event)]);
 
       const res = await ctx.app.request(
         "/api/creators/creator_1/events",
@@ -206,7 +237,7 @@ describe("creator event routes", () => {
           body: JSON.stringify({
             title: "Recording Session",
             startAt: "2026-03-20T14:00:00.000Z",
-            category: "recording-session",
+            eventType: "recording-session",
           }),
         },
       );
@@ -234,7 +265,7 @@ describe("creator event routes", () => {
           body: JSON.stringify({
             title: "Recording Session",
             startAt: "2026-03-20T14:00:00.000Z",
-            category: "recording-session",
+            eventType: "recording-session",
           }),
         },
       );
@@ -254,7 +285,7 @@ describe("creator event routes", () => {
           body: JSON.stringify({
             title: "Recording Session",
             startAt: "2026-03-20T14:00:00.000Z",
-            category: "recording-session",
+            eventType: "recording-session",
           }),
         },
       );
@@ -273,10 +304,11 @@ describe("creator event routes", () => {
         title: "Updated Title",
       });
 
-      // findActiveEvent select
+      // findActiveEvent select (uses .where directly — no leftJoin)
       mockSelectWhere.mockResolvedValueOnce([event]);
-      // Update returning
-      mockUpdateReturning.mockResolvedValue([updated]);
+      // Update resolves (no returning)
+      // Re-fetch with leftJoin after update
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]);
 
       const res = await ctx.app.request(
         "/api/creators/creator_1/events/evt_test001",
@@ -334,7 +366,7 @@ describe("creator event routes", () => {
     it("soft-deletes event and returns 204", async () => {
       const event = makeMockCalendarEvent({ creatorId: "creator_1" });
 
-      // findActiveEvent
+      // findActiveEvent (uses .where directly — no leftJoin)
       mockSelectWhere.mockResolvedValueOnce([event]);
 
       const res = await ctx.app.request(

@@ -33,6 +33,7 @@ vi.mock("@tanstack/react-router", () =>
 vi.mock("../../../src/lib/calendar.js", () => ({
   fetchCreatorEvents: mockFetchCreatorEvents,
   deleteCreatorEvent: mockDeleteCreatorEvent,
+  fetchEventTypes: vi.fn().mockResolvedValue({ items: [] }),
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({

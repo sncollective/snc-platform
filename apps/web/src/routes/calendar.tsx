@@ -1,13 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
-import type { CalendarEvent, CalendarEventsResponse, FeedTokenResponse, EventCategory } from "@snc/shared";
-import { EVENT_CATEGORIES } from "@snc/shared";
+import type { CalendarEvent, CalendarEventsResponse, FeedTokenResponse } from "@snc/shared";
+import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchAuthStateServer, fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
-import { fetchCalendarEvents, deleteCalendarEvent } from "../lib/calendar.js";
+import { fetchCalendarEvents, deleteCalendarEvent, fetchEventTypes } from "../lib/calendar.js";
 import { EventList } from "../components/calendar/event-list.js";
 import { EventForm } from "../components/calendar/event-form.js";
 import { FeedUrlCard } from "../components/calendar/feed-url-card.js";
@@ -20,15 +20,6 @@ export interface CalendarLoaderData {
   readonly events: CalendarEventsResponse;
   readonly feedToken: FeedTokenResponse | null;
 }
-
-// ── Private Constants ──
-
-const CATEGORY_OPTIONS: { value: EventCategory; label: string }[] = [
-  { value: "recording-session", label: "Recording" },
-  { value: "album-milestone", label: "Milestone" },
-  { value: "show", label: "Show" },
-  { value: "meeting", label: "Meeting" },
-];
 
 // ── Route ──
 
@@ -76,9 +67,28 @@ function CalendarPage(): React.ReactElement {
   const [events, setEvents] = useState<CalendarEvent[]>([...initialEvents.items]);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [eventTypeOptions, setEventTypeOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    fetchEventTypes()
+      .then((res) => {
+        setEventTypeOptions(
+          res.items.map((et) => ({ value: et.slug, label: et.label })),
+        );
+      })
+      .catch(() => {
+        // Fallback to default labels
+        setEventTypeOptions(
+          Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({
+            value: slug,
+            label,
+          })),
+        );
+      });
+  }, []);
 
   // ── Date range navigation ──
   const [monthOffset, setMonthOffset] = useState(0);
@@ -99,7 +109,7 @@ function CalendarPage(): React.ReactElement {
         from: from.toISOString(),
         to: to.toISOString(),
       };
-      if (categoryFilter) params.category = categoryFilter;
+      if (eventTypeFilter) params.eventType = eventTypeFilter;
 
       const result = await fetchCalendarEvents(params);
       setEvents(result.items);
@@ -119,8 +129,8 @@ function CalendarPage(): React.ReactElement {
     setTimeout(loadEvents, 0);
   };
 
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
+  const handleEventTypeChange = (value: string) => {
+    setEventTypeFilter(value);
     setTimeout(loadEvents, 0);
   };
 
@@ -156,8 +166,8 @@ function CalendarPage(): React.ReactElement {
     setShowForm(true);
   };
 
-  const filteredEvents = categoryFilter
-    ? events.filter((e) => e.category === categoryFilter)
+  const filteredEvents = eventTypeFilter
+    ? events.filter((e) => e.eventType === eventTypeFilter)
     : events;
 
   return (
@@ -188,15 +198,15 @@ function CalendarPage(): React.ReactElement {
         </button>
       </div>
 
-      {/* ── Category Filter ── */}
+      {/* ── Event Type Filter ── */}
       <div className={styles.filterRow}>
         <select
-          value={categoryFilter}
-          onChange={(e) => handleCategoryChange(e.target.value)}
+          value={eventTypeFilter}
+          onChange={(e) => handleEventTypeChange(e.target.value)}
           className={styles.filterSelect}
         >
-          <option value="">All categories</option>
-          {CATEGORY_OPTIONS.map((opt) => (
+          <option value="">All event types</option>
+          {eventTypeOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
