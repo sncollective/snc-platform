@@ -6,3 +6,51 @@
   gap: var(--space-lg);
   animation: fadeIn 0.3s ease-out both;
 }
+
+/* ── Page Header ── */
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+/* ── View Toggle ── */
+
+.viewToggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  align-self: flex-end;
+}
+
+.viewToggleButton {
+  padding: var(--space-xs) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.viewToggleButton:hover {
+  background: var(--color-bg-input);
+}
+
+.viewToggleActive {
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* ── List Layout ── */
+
+.listLayout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

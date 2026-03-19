@@ -119,6 +119,48 @@ describe("CreatorCard", () => {
     expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
   });
 
+  it("renders subscribed star when isSubscribed is true", () => {
+    const creator = makeMockCreatorListItem({ isSubscribed: true });
+    render(<CreatorCard creator={creator} />);
+    expect(screen.getByLabelText("Subscribed")).toBeInTheDocument();
+    expect(screen.getByText("★")).toBeInTheDocument();
+  });
+
+  it("does not render star when isSubscribed is false", () => {
+    const creator = makeMockCreatorListItem({ isSubscribed: false });
+    render(<CreatorCard creator={creator} />);
+    expect(screen.queryByLabelText("Subscribed")).toBeNull();
+  });
+
+  it("does not render star when isSubscribed is undefined", () => {
+    const creator = makeMockCreatorListItem();
+    render(<CreatorCard creator={creator} />);
+    expect(screen.queryByLabelText("Subscribed")).toBeNull();
+  });
+
+  it("renders list view layout when viewMode is list", () => {
+    const creator = makeMockCreatorListItem();
+    const { container } = render(<CreatorCard creator={creator} viewMode="list" />);
+    expect(container.querySelector('[class*="listItem"]')).not.toBeNull();
+    expect(container.querySelector('[class*="card"]')).toBeNull();
+  });
+
+  it("renders grid view layout by default", () => {
+    const creator = makeMockCreatorListItem();
+    const { container } = render(<CreatorCard creator={creator} />);
+    expect(container.querySelector('[class*="card"]')).not.toBeNull();
+    expect(container.querySelector('[class*="listItem"]')).toBeNull();
+  });
+
+  it("renders stakeholder KPIs in list view", () => {
+    const creator = makeMockCreatorListItem({
+      subscriberCount: 42,
+      lastPublishedAt: "2026-03-15T00:00:00.000Z",
+    });
+    render(<CreatorCard creator={creator} viewMode="list" />);
+    expect(screen.getByText("42 subscribers")).toBeInTheDocument();
+  });
+
   it("still links to detail page when manage link is present", () => {
     const creator = makeMockCreatorListItem({
       id: "creator-77",

@@ -227,6 +227,19 @@ describe("CreatorHeader", () => {
     expect(screen.queryByRole("link", { name: "Manage" })).toBeNull();
   });
 
+  it("renders subscribed badge when isSubscribed is true", () => {
+    const creator = makeMockCreatorProfileResponse();
+    render(<CreatorHeader creator={creator} isSubscribed={true} />);
+    expect(screen.getByLabelText("You are subscribed to this creator")).toBeInTheDocument();
+    expect(screen.getByText("★ Subscribed")).toBeInTheDocument();
+  });
+
+  it("does not render subscribed badge when isSubscribed is false", () => {
+    const creator = makeMockCreatorProfileResponse();
+    render(<CreatorHeader creator={creator} isSubscribed={false} />);
+    expect(screen.queryByText("★ Subscribed")).toBeNull();
+  });
+
   it("multi-plan subscribe button uses selected plan ID", async () => {
     const user = userEvent.setup();
     const creator = makeMockCreatorProfileResponse();

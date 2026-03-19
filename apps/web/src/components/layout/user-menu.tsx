@@ -67,7 +67,9 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
         aria-label="User menu"
         type="button"
       >
-        <span className={styles.avatar}>{initials}</span>
+        <span className={`${styles.avatar} ${effectiveIsPatron ? styles.patronAvatar : ""}`}>
+          {initials}
+        </span>
       </button>
 
       {isOpen && (

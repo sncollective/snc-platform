@@ -69,6 +69,12 @@ export function CreatorHeader({
 
         <h1 className={styles.displayName}>{creator.displayName}</h1>
 
+        {isSubscribed && (
+          <span className={styles.subscribedBadge} aria-label="You are subscribed to this creator">
+            ★ Subscribed
+          </span>
+        )}
+
         {showFediverseUI && (
           <FediverseAddress
             handle={creator.handle!}

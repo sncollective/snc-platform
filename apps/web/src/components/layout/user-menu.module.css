@@ -150,3 +150,7 @@
   vertical-align: middle;
   text-transform: lowercase;
 }
+
+.patronAvatar {
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+}
