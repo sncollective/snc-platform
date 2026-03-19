@@ -2,21 +2,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { makeMockCreatorListItem } from "../../helpers/creator-fixtures.js";
+import { makeMockCreatorListItem, makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseLoaderData, mockIsFeatureEnabled, mockFetchAuthState } = vi.hoisted(() => ({
+const { mockUseLoaderData, mockIsFeatureEnabled, mockFetchAuthState, mockNavigate, mockCreateCreatorEntity } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
   mockFetchAuthState: vi.fn(),
+  mockNavigate: vi.fn(),
+  mockCreateCreatorEntity: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ useLoaderData: mockUseLoaderData }),
+  createRouterMock({ useLoaderData: mockUseLoaderData, useNavigate: () => mockNavigate }),
 );
+
+vi.mock("../../../src/lib/creator.js", () => ({
+  createCreatorEntity: mockCreateCreatorEntity,
+}));
 
 vi.mock("../../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
@@ -48,6 +54,8 @@ const VIEW_MODE_KEY = "snc-creators-view-mode";
 beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
   mockFetchAuthState.mockResolvedValue({ user: null, roles: [], isPatron: false });
+  mockCreateCreatorEntity.mockResolvedValue(makeMockCreatorProfileResponse());
+  mockNavigate.mockReset();
   localStorage.removeItem(VIEW_MODE_KEY);
   mockUseLoaderData.mockReturnValue({
     items: [
@@ -262,5 +270,63 @@ describe("CreatorsPage", () => {
     // In list mode, the container will use listLayout class instead of content-grid
     const container = document.querySelector('[class*="listLayout"]');
     expect(container).not.toBeNull();
+  });
+
+  it("shows New Creator button for admin users", async () => {
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["admin"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "New Creator" })).toBeInTheDocument();
+    });
+  });
+
+  it("does not show New Creator button for non-stakeholder users", () => {
+    render(<CreatorsPage />);
+    expect(screen.queryByRole("button", { name: "New Creator" })).toBeNull();
+  });
+
+  it("shows CreateCreatorForm when New Creator is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "New Creator" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "New Creator" }));
+    expect(screen.getByLabelText("Display Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Handle (optional)")).toBeInTheDocument();
+  });
+
+  it("hides form when Cancel is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "New Creator" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "New Creator" }));
+    expect(screen.getByLabelText("Display Name")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Display Name")).toBeNull();
+  });
+
+  it("navigates to creator manage page on successful creation", async () => {
+    const user = userEvent.setup();
+    const profile = makeMockCreatorProfileResponse({ id: "creator-new-123" });
+    mockCreateCreatorEntity.mockResolvedValue(profile);
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "New Creator" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "New Creator" }));
+    await user.type(screen.getByLabelText("Display Name"), "My New Band");
+    await user.click(screen.getByRole("button", { name: "Create Creator" }));
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: "/creators/$creatorId/manage",
+        params: { creatorId: "creator-new-123" },
+      });
+    });
   });
 });
