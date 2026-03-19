@@ -6,6 +6,7 @@ export const MAX_PROJECT_DESCRIPTION_LENGTH = 2000;
 export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
+  slug: z.string(),
   description: z.string(),
   creatorId: z.string().nullable(),
   createdBy: z.string(),
@@ -29,6 +30,7 @@ export const UpdateProjectSchema = z.object({
 
 export const ProjectsQuerySchema = z.object({
   creatorId: z.string().optional(),
+  slug: z.string().optional(),
   completed: z.string().transform((v) => v === "true").optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),

@@ -58,6 +58,7 @@ const ctx = setupRouteTest({
       projects: {
         id: {},
         name: {},
+        slug: {},
         description: {},
         creatorId: {},
         createdBy: {},
@@ -82,6 +83,7 @@ const ctx = setupRouteTest({
         creatorId: {},
         projectId: {},
         deletedAt: {},
+        completedAt: {},
         createdAt: {},
         updatedAt: {},
       },
@@ -130,10 +132,14 @@ const ctx = setupRouteTest({
   },
   beforeEach: () => {
     // SELECT chain with leftJoin support
+    // mockSelectWhere uses chainablePromise so it is both directly awaitable
+    // (resolves to []) and supports further .orderBy().limit() chaining.
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
     mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
-    mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
+    mockSelectWhere.mockImplementation(() =>
+      chainablePromise([], { orderBy: mockOrderBy }),
+    );
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue([]);
 
@@ -456,6 +462,20 @@ describe("project routes", () => {
       expect(res.status).toBe(200);
       expect(body.items).toHaveLength(1);
       expect((body.items[0] as { id: string }).id).toBe(event.id);
+    });
+
+    it("includes completedAt in event response", async () => {
+      const project = makeMockProject();
+      const event = makeMockCalendarEvent({ projectId: project.id, completedAt: null });
+
+      mockSelectWhere.mockResolvedValueOnce([project]);
+      mockLimit.mockResolvedValueOnce([{ event, projectName: project.name }]);
+
+      const res = await ctx.app.request("/api/projects/proj_test001/events");
+      const body = (await res.json()) as { items: Array<{ completedAt: string | null }> };
+
+      expect(res.status).toBe(200);
+      expect(body.items[0]!.completedAt).toBeNull();
     });
 
     it("returns 404 for non-existent project", async () => {

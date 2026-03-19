@@ -115,6 +115,11 @@
   font-family: var(--font-heading);
   font-size: var(--font-size-lg);
   color: var(--color-text);
+  text-decoration: none;
+}
+
+.projectName:hover {
+  color: var(--color-accent);
 }
 
 .completedBadge {

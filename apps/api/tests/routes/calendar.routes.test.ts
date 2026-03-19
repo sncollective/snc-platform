@@ -70,6 +70,7 @@ const ctx = setupRouteTest({
         creatorId: {},
         projectId: {},
         deletedAt: {},
+        completedAt: {},
         createdAt: {},
         updatedAt: {},
       },
@@ -399,6 +400,90 @@ describe("calendar routes", () => {
       });
 
       expect(res.status).toBe(403);
+    });
+  });
+
+  // ── PATCH /api/calendar/events/:id/complete ──
+
+  describe("PATCH /api/calendar/events/:id/complete", () => {
+    it("completes an incomplete task event", async () => {
+      const event = makeMockCalendarEvent({ eventType: "task", completedAt: null });
+      const now = new Date("2026-03-19T12:00:00.000Z");
+
+      // First select: find event (plain select)
+      mockSelectWhere.mockResolvedValueOnce([event]);
+      // Update resolves
+      // Second select: re-fetch with leftJoin
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow({
+        ...event,
+        completedAt: now,
+        updatedAt: now,
+      })]);
+
+      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+        method: "PATCH",
+      });
+      const body = (await res.json()) as { event: { completedAt: string | null } };
+
+      expect(res.status).toBe(200);
+      expect(body.event.completedAt).toBeTruthy();
+    });
+
+    it("uncompletes a completed task event", async () => {
+      const completedDate = new Date("2026-03-18T10:00:00.000Z");
+      const event = makeMockCalendarEvent({ eventType: "task", completedAt: completedDate });
+      const now = new Date("2026-03-19T12:00:00.000Z");
+
+      // First select: find event
+      mockSelectWhere.mockResolvedValueOnce([event]);
+      // Second select: re-fetch
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow({
+        ...event,
+        completedAt: null,
+        updatedAt: now,
+      })]);
+
+      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+        method: "PATCH",
+      });
+      const body = (await res.json()) as { event: { completedAt: string | null } };
+
+      expect(res.status).toBe(200);
+      expect(body.event.completedAt).toBeNull();
+    });
+
+    it("returns 400 for non-task event", async () => {
+      const event = makeMockCalendarEvent({ eventType: "recording-session" });
+
+      mockSelectWhere.mockResolvedValueOnce([event]);
+
+      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+        method: "PATCH",
+      });
+      const body = (await res.json()) as { error: { code: string } };
+
+      expect(res.status).toBe(400);
+      expect(body.error.code).toBe("INVALID_EVENT_TYPE");
+    });
+
+    it("returns 404 for missing event", async () => {
+      mockSelectWhere.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/calendar/events/nonexistent/complete", {
+        method: "PATCH",
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+        method: "PATCH",
+      });
+
+      expect(res.status).toBe(401);
     });
   });
 

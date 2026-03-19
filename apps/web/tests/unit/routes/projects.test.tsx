@@ -83,6 +83,7 @@ vi.mock("../../../src/routes/projects.module.css", () => ({
     projectItemHeader: "projectItemHeader",
     projectItemMeta: "projectItemMeta",
     projectName: "projectName",
+    projectNameLink: "projectNameLink",
     completedBadge: "completedBadge",
     projectItemActions: "projectItemActions",
     actionButton: "actionButton",

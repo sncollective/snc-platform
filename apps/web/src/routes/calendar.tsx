@@ -7,7 +7,7 @@ import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchAuthStateServer, fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
-import { fetchCalendarEvents, deleteCalendarEvent, fetchEventTypes } from "../lib/calendar.js";
+import { fetchCalendarEvents, deleteCalendarEvent, fetchEventTypes, toggleEventComplete } from "../lib/calendar.js";
 import { EventList } from "../components/calendar/event-list.js";
 import { EventForm } from "../components/calendar/event-form.js";
 import { FeedUrlCard } from "../components/calendar/feed-url-card.js";
@@ -161,6 +161,18 @@ function CalendarPage(): React.ReactElement {
     }
   };
 
+  const handleToggleComplete = async (id: string) => {
+    setError(null);
+    try {
+      const updated = await toggleEventComplete(id);
+      setEvents((prev) =>
+        prev.map((e) => (e.id === id ? updated : e)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update task");
+    }
+  };
+
   const handleNewEvent = () => {
     setEditingEvent(undefined);
     setShowForm(true);
@@ -233,6 +245,7 @@ function CalendarPage(): React.ReactElement {
         events={filteredEvents}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onToggleComplete={(id) => { void handleToggleComplete(id); }}
       />
 
       {/* ── Feed URL Card ── */}

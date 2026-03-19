@@ -72,6 +72,7 @@ const toISOString = (date: string, time: string): string => {
 export interface EventFormProps {
   readonly event?: CalendarEvent | undefined;
   readonly creatorId?: string | undefined;
+  readonly defaultProjectId?: string | undefined;
   readonly onSuccess: () => void;
   readonly onCancel: () => void;
 }
@@ -81,6 +82,7 @@ export interface EventFormProps {
 export function EventForm({
   event,
   creatorId,
+  defaultProjectId,
   onSuccess,
   onCancel,
 }: EventFormProps): React.ReactElement {
@@ -104,7 +106,7 @@ export function EventForm({
   const [eventType, setEventType] = useState(event?.eventType ?? "");
   const [customEventTypeLabel, setCustomEventTypeLabel] = useState("");
   const [location, setLocation] = useState(event?.location ?? "");
-  const [projectId, setProjectId] = useState<string>(event?.projectId ?? "");
+  const [projectId, setProjectId] = useState<string>(event?.projectId ?? defaultProjectId ?? "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

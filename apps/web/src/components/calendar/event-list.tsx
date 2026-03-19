@@ -11,6 +11,7 @@ export interface EventListProps {
   readonly events: readonly CalendarEvent[];
   readonly onEdit?: (id: string) => void;
   readonly onDelete?: (id: string) => void;
+  readonly onToggleComplete?: ((id: string) => void) | undefined;
 }
 
 // ── Private Helpers ──
@@ -37,6 +38,7 @@ export function EventList({
   events,
   onEdit,
   onDelete,
+  onToggleComplete,
 }: EventListProps): React.ReactElement {
   if (events.length === 0) {
     return <p className={styles.empty}>No events found.</p>;
@@ -58,6 +60,7 @@ export function EventList({
                 event={event}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onToggleComplete={onToggleComplete}
               />
             ))}
           </div>

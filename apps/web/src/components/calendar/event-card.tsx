@@ -17,6 +17,7 @@ export interface EventCardProps {
   readonly event: CalendarEvent;
   readonly onEdit?: ((id: string) => void) | undefined;
   readonly onDelete?: ((id: string) => void) | undefined;
+  readonly onToggleComplete?: ((id: string) => void) | undefined;
 }
 
 // ── Public API ──
@@ -25,7 +26,11 @@ export function EventCard({
   event,
   onEdit,
   onDelete,
+  onToggleComplete,
 }: EventCardProps): React.ReactElement {
+  const isTask = event.eventType === "task";
+  const isCompleted = event.completedAt !== null;
+
   const timeDisplay = event.allDay
     ? "All day"
     : new Date(event.startAt).toLocaleTimeString("en-US", {
@@ -34,7 +39,7 @@ export function EventCard({
       });
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card}${isCompleted ? ` ${styles.taskCompleted}` : ""}`}>
       <div className={styles.header}>
         <span className={styles.time}>{timeDisplay}</span>
         <div className={styles.badges}>
@@ -46,7 +51,18 @@ export function EventCard({
           )}
         </div>
       </div>
-      <h3 className={styles.title}>{event.title}</h3>
+      <div className={styles.titleRow}>
+        {isTask && (
+          <input
+            type="checkbox"
+            className={styles.taskCheckbox}
+            checked={isCompleted}
+            onChange={() => onToggleComplete?.(event.id)}
+            aria-label={isCompleted ? `Mark "${event.title}" incomplete` : `Complete "${event.title}"`}
+          />
+        )}
+        <h3 className={styles.title}>{event.title}</h3>
+      </div>
       {event.location && (
         <span className={styles.location}>{event.location}</span>
       )}

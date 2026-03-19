@@ -12,6 +12,9 @@ vi.mock("../../../src/components/calendar/event-card.module.css", () => ({
     badges: "badges",
     badge: "badge",
     projectBadge: "projectBadge",
+    titleRow: "titleRow",
+    taskCheckbox: "taskCheckbox",
+    taskCompleted: "taskCompleted",
     title: "title",
     location: "location",
     description: "description",
@@ -99,5 +102,58 @@ describe("EventCard", () => {
     render(<EventCard event={event} />);
     expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+  });
+
+  it("renders checkbox for task events", () => {
+    const event = makeMockCalendarEvent({ eventType: "task", completedAt: null });
+    render(<EventCard event={event} />);
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("does not render checkbox for non-task events", () => {
+    const event = makeMockCalendarEvent({ eventType: "show", completedAt: null });
+    render(<EventCard event={event} />);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("checkbox is checked when task is completed", () => {
+    const event = makeMockCalendarEvent({
+      eventType: "task",
+      completedAt: "2026-03-19T00:00:00.000Z",
+    });
+    render(<EventCard event={event} />);
+    expect(screen.getByRole("checkbox")).toBeChecked();
+  });
+
+  it("checkbox is unchecked when task is incomplete", () => {
+    const event = makeMockCalendarEvent({ eventType: "task", completedAt: null });
+    render(<EventCard event={event} />);
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("calls onToggleComplete with event id when checkbox is clicked", async () => {
+    const user = userEvent.setup();
+    const onToggleComplete = vi.fn();
+    const event = makeMockCalendarEvent({ id: "evt-task-1", eventType: "task", completedAt: null });
+    render(<EventCard event={event} onToggleComplete={onToggleComplete} />);
+
+    await user.click(screen.getByRole("checkbox"));
+
+    expect(onToggleComplete).toHaveBeenCalledWith("evt-task-1");
+  });
+
+  it("completed task card has taskCompleted class", () => {
+    const event = makeMockCalendarEvent({
+      eventType: "task",
+      completedAt: "2026-03-19T00:00:00.000Z",
+    });
+    const { container } = render(<EventCard event={event} />);
+    expect(container.firstChild).toHaveClass("taskCompleted");
+  });
+
+  it("incomplete task card does not have taskCompleted class", () => {
+    const event = makeMockCalendarEvent({ eventType: "task", completedAt: null });
+    const { container } = render(<EventCard event={event} />);
+    expect(container.firstChild).not.toHaveClass("taskCompleted");
   });
 });

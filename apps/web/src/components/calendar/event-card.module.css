@@ -113,3 +113,31 @@
   color: var(--color-error);
   border-color: var(--color-error);
 }
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.taskCheckbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-secondary);
+  cursor: pointer;
+}
+
+.taskCompleted {
+  opacity: 0.55;
+}
+
+.taskCompleted .title {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.badge[data-event-type="task"] {
+  background: rgba(91, 181, 181, 0.15);
+  color: var(--color-secondary);
+}

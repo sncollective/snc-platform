@@ -17,6 +17,7 @@ export const makeMockCalendarEvent = (
   creatorId: null,
   projectId: null,
   projectName: null,
+  completedAt: null,
   createdAt: "2026-03-15T10:00:00.000Z",
   updatedAt: "2026-03-15T10:00:00.000Z",
   ...overrides,

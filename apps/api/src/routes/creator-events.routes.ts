@@ -51,6 +51,7 @@ const toEventResponse = (
   creatorId: row.creatorId ?? null,
   projectId: row.projectId ?? null,
   projectName: projectName ?? null,
+  completedAt: row.completedAt?.toISOString() ?? null,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
