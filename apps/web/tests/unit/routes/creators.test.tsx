@@ -8,9 +8,10 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseLoaderData, mockIsFeatureEnabled } = vi.hoisted(() => ({
+const { mockUseLoaderData, mockIsFeatureEnabled, mockFetchAuthState } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
+  mockFetchAuthState: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
@@ -27,14 +28,27 @@ vi.mock("../../../src/lib/config.js", () => ({
   isFeatureEnabled: mockIsFeatureEnabled,
 }));
 
+vi.mock("../../../src/lib/auth.js", () => ({
+  fetchAuthState: mockFetchAuthState,
+  useSession: vi.fn(() => ({ data: null })),
+  useAuthExtras: vi.fn(() => ({ roles: [], isPatron: false })),
+  hasRole: vi.fn(),
+}));
+
 // ── Component Under Test ──
 
 const CreatorsPage = extractRouteComponent(() => import("../../../src/routes/creators/index.js"));
+
+// ── Private Constants (mirrored from route) ──
+
+const VIEW_MODE_KEY = "snc-creators-view-mode";
 
 // ── Test Lifecycle ──
 
 beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
+  mockFetchAuthState.mockResolvedValue({ user: null, roles: [], isPatron: false });
+  localStorage.removeItem(VIEW_MODE_KEY);
   mockUseLoaderData.mockReturnValue({
     items: [
       makeMockCreatorListItem({
@@ -214,5 +228,39 @@ describe("CreatorsPage", () => {
       screen.getByRole("heading", { level: 1, name: "Creators — Coming Soon" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
+  });
+
+  it("renders view toggle for stakeholder users", async () => {
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Grid view" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "List view" })).toBeInTheDocument();
+    });
+  });
+
+  it("does not render view toggle for non-stakeholder users", () => {
+    render(<CreatorsPage />);
+    expect(screen.queryByRole("button", { name: "Grid view" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "List view" })).toBeNull();
+  });
+
+  it("persists view mode to localStorage when toggled", async () => {
+    const user = userEvent.setup();
+    mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
+    render(<CreatorsPage />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "List view" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "List view" }));
+    expect(localStorage.getItem("snc-creators-view-mode")).toBe("list");
+  });
+
+  it("restores list view from localStorage", () => {
+    localStorage.setItem("snc-creators-view-mode", "list");
+    render(<CreatorsPage />);
+    // In list mode, the container will use listLayout class instead of content-grid
+    const container = document.querySelector('[class*="listLayout"]');
+    expect(container).not.toBeNull();
   });
 });

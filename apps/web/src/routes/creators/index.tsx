@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem, CreatorListResponse } from "@snc/shared";
@@ -7,6 +8,7 @@ import { CreatorCard } from "../../components/creator/creator-card.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { fetchAuthState } from "../../lib/auth.js";
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
@@ -24,6 +26,39 @@ export const Route = createFileRoute("/creators/")({
   component: CreatorsPage,
 });
 
+// ── Private Types ──
+
+type ViewMode = "grid" | "list";
+
+// ── Private Constants ──
+
+const VIEW_MODE_KEY = "snc-creators-view-mode";
+
+// ── Private Helpers ──
+
+function getInitialViewMode(): ViewMode {
+  if (typeof window === "undefined") return "grid";
+  const stored = localStorage.getItem(VIEW_MODE_KEY);
+  return stored === "list" ? "list" : "grid";
+}
+
+function buildCreatorsUrl({
+  cursor,
+  limit,
+}: {
+  cursor: string | null;
+  limit: number;
+}): string {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
+  return `/api/creators?${params.toString()}`;
+}
+
+// ── Page Component ──
+
 function CreatorsPage(): React.ReactElement {
   if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
 
@@ -36,18 +71,57 @@ function CreatorsPage(): React.ReactElement {
       initialData: loaderData,
     });
 
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+  const [canManage, setCanManage] = useState(false);
+
+  useEffect(() => {
+    void fetchAuthState().then((auth) => {
+      const manage = auth.roles.includes("stakeholder") || auth.roles.includes("admin");
+      setCanManage(manage);
+    });
+  }, []);
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+  };
+
   return (
     <div className={styles.creatorsPage}>
-      <h1 className={listingStyles.heading}>Creators</h1>
+      <div className={styles.pageHeader}>
+        <h1 className={listingStyles.heading}>Creators</h1>
+        {canManage && (
+          <div className={styles.viewToggle}>
+            <button
+              type="button"
+              className={`${styles.viewToggleButton} ${viewMode === "grid" ? styles.viewToggleActive : ""}`}
+              onClick={() => handleViewModeChange("grid")}
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
+            >
+              Grid
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewToggleButton} ${viewMode === "list" ? styles.viewToggleActive : ""}`}
+              onClick={() => handleViewModeChange("list")}
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
+            >
+              List
+            </button>
+          </div>
+        )}
+      </div>
       {isLoading && items.length === 0 ? (
         <p className={listingStyles.status}>Loading...</p>
       ) : items.length === 0 ? (
         <p className={listingStyles.status}>No creators found.</p>
       ) : (
         <>
-          <div className="content-grid">
+          <div className={viewMode === "grid" ? "content-grid" : styles.listLayout}>
             {items.map((creator) => (
-              <CreatorCard key={creator.id} creator={creator} />
+              <CreatorCard key={creator.id} creator={creator} viewMode={viewMode} />
             ))}
           </div>
           {nextCursor && (
@@ -66,21 +140,4 @@ function CreatorsPage(): React.ReactElement {
       )}
     </div>
   );
-}
-
-// ── Private Helpers ──
-
-function buildCreatorsUrl({
-  cursor,
-  limit,
-}: {
-  cursor: string | null;
-  limit: number;
-}): string {
-  const params = new URLSearchParams();
-  params.set("limit", String(limit));
-  if (cursor) {
-    params.set("cursor", cursor);
-  }
-  return `/api/creators?${params.toString()}`;
 }

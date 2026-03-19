@@ -257,6 +257,30 @@ describe("UserMenu", () => {
     expect(button).toHaveTextContent("SU");
   });
 
+  it("renders patron avatar ring when user is patron", () => {
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Patron User" }),
+    );
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: true });
+
+    render(<UserMenu />);
+
+    const avatar = screen.getByText("PU");
+    expect(avatar.className).toContain("patronAvatar");
+  });
+
+  it("does not render patron avatar ring for non-patron", () => {
+    mockUseSession.mockReturnValue(
+      makeLoggedInSessionResult({ name: "Regular User" }),
+    );
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<UserMenu />);
+
+    const avatar = screen.getByText("RU");
+    expect(avatar.className).not.toContain("patronAvatar");
+  });
+
   it("uses serverAuth roles for menu items when session pending", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue({
