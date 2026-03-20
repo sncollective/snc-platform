@@ -2,11 +2,13 @@
 
 ## Claude Skills
 
-Platform skills (`platform-*`, `drizzle-v0`, `hono-v4`, `tanstack-*`, `zod-v4`) live in the
-**parent monorepo** at `.claude/skills/` (repo root), not in this submodule.
+**Project-specific skills** (patterns, status, audit) live in this repo at `.claude/skills/`:
+- `platform-patterns` — code pattern index and detailed pattern files for this codebase
+- `platform-status` — project health checks (build, tests)
 
-Work from the monorepo root (`/workspaces/SNC`) to access them. Standalone clones of
-`snc-platform` won't have these skills — clone the full monorepo for Claude skill support.
+**Pipeline skills** (design, implement, review, refactor) and **tech reference skills** (hono-v4, drizzle-v0, tanstack-*, zod-v4) live in the **parent monorepo** at root `.claude/skills/`. Work from the monorepo root (`/workspaces/SNC`) to access them.
+
+Standalone clones of `snc-platform` get project-specific skills (patterns, conventions) but not the pipeline orchestration or tech references.
 
 ---
 
@@ -237,4 +239,20 @@ Work from the monorepo root (`/workspaces/SNC`) to access them. Standalone clone
 - `pnpm --filter @snc/api dev` — start API dev server (Node 24+ with `--experimental-strip-types`)
 - `pnpm --filter @snc/web dev` — start web dev server (TanStack Start on port 3001)
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL (with claude-net)
+
+## Agent Commands
+
+Structured commands for pipeline skills to discover automatically. These run from the monorepo root.
+
+- build-shared: `pnpm --filter @snc/shared build`
+- test-shared: `pnpm --filter @snc/shared test`
+- build-api: `pnpm --filter @snc/api build`
+- test-api: `pnpm --filter @snc/api test`
+- build-web: `pnpm --filter @snc/web build`
+- test-web: `pnpm --filter @snc/web test`
+- test-all: `pnpm --filter @snc/shared test && pnpm --filter @snc/api test && pnpm --filter @snc/web test`
+- db-generate: `pnpm --filter @snc/api db:generate`
+- db-migrate: `pnpm --filter @snc/api db:migrate`
+- dev-restart: `pm2 restart all`
+- dev-status: `pm2 status`
 
