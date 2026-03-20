@@ -36,14 +36,14 @@ export const ALL_FEATURES_ON: FeatureFlags = {
 
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
   content: false,
-  creator: false,
+  creator: true,
   subscription: false,
   merch: false,
   booking: false,
   dashboard: false,
   admin: true,
   emissions: false,
-  calendar: false,
+  calendar: true,
   federation: false,
   streaming: false,
 };
@@ -73,8 +73,8 @@ export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
     description: "Merchandise from our creators and the collective.",
   },
   booking: {
-    name: "Services",
-    description: "Studio and label services available for booking.",
+    name: "Studio",
+    description: "Recording studio, podcast production, practice space, and venue hire.",
   },
   dashboard: {
     name: "Dashboard",

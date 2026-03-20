@@ -141,3 +141,14 @@
   background: rgba(91, 181, 181, 0.15);
   color: var(--color-secondary);
 }
+
+.creatorBadge {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  color: var(--color-accent);
+}

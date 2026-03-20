@@ -47,17 +47,17 @@ describe("ALL_FEATURES_ON", () => {
 });
 
 describe("PRODUCTION_DEFAULTS", () => {
-  it("enables only admin by default", () => {
+  it("enables admin, calendar, and creator by default", () => {
     const expected: FeatureFlags = {
       content: false,
-      creator: false,
+      creator: true,
       subscription: false,
       merch: false,
       booking: false,
       dashboard: false,
       admin: true,
       emissions: false,
-      calendar: false,
+      calendar: true,
       federation: false,
       streaming: false,
     };

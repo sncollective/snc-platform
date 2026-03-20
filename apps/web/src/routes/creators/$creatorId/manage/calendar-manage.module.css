@@ -1,4 +1,4 @@
-.eventsManage {
+.calendarManage {
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);

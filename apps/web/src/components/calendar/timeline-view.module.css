@@ -1,0 +1,6 @@
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow: hidden;
+}

@@ -33,6 +33,7 @@ export const ENV_SCHEMA = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default("S/NC <noreply@s-nc.org>"),
+  STUDIO_INQUIRY_EMAIL: z.string().email().optional(),
   // Feature flags (default ON — set "false" to disable a domain)
   FEATURE_CONTENT: booleanFlag,
   FEATURE_CREATOR: booleanFlag,

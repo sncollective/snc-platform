@@ -12,6 +12,7 @@ vi.mock("../../../src/components/calendar/event-card.module.css", () => ({
     badges: "badges",
     badge: "badge",
     projectBadge: "projectBadge",
+    creatorBadge: "creatorBadge",
     titleRow: "titleRow",
     taskCheckbox: "taskCheckbox",
     taskCompleted: "taskCompleted",
@@ -61,6 +62,19 @@ describe("EventCard", () => {
     render(<EventCard event={event} />);
     // No project badge element with the CSS class
     expect(screen.queryByText(/Animal Future/i)).not.toBeInTheDocument();
+  });
+
+  it("shows creator badge when creatorName is present", () => {
+    const event = makeMockCalendarEvent({ creatorName: "Jane Smith" });
+    render(<EventCard event={event} />);
+    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+  });
+
+  it("does not show creator badge when creatorName is null", () => {
+    const event = makeMockCalendarEvent({ creatorName: null });
+    render(<EventCard event={event} />);
+    // Ensure no creator badge renders for common creator name patterns
+    expect(screen.queryByText(/Jane Smith/i)).not.toBeInTheDocument();
   });
 
   it("shows location when present", () => {

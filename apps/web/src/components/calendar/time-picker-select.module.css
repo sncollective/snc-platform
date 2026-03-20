@@ -1,0 +1,12 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.separator {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}

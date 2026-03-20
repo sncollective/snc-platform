@@ -1,7 +1,7 @@
 import type React from "react";
 import type { CalendarEvent } from "@snc/shared";
 
-import { formatDate } from "../../lib/format.js";
+import { formatLocalDate, toLocalDateKey } from "../../lib/format.js";
 import { EventCard } from "./event-card.js";
 import styles from "./event-list.module.css";
 
@@ -21,7 +21,7 @@ function groupByDate(
 ): Map<string, CalendarEvent[]> {
   const groups = new Map<string, CalendarEvent[]>();
   for (const event of events) {
-    const dateKey = event.startAt.slice(0, 10);
+    const dateKey = toLocalDateKey(event.startAt);
     const existing = groups.get(dateKey);
     if (existing) {
       existing.push(event);
@@ -51,7 +51,7 @@ export function EventList({
       {[...grouped.entries()].map(([dateKey, dayEvents]) => (
         <div key={dateKey} className={styles.dateGroup}>
           <h3 className={styles.dateHeading}>
-            {formatDate(dateKey + "T00:00:00.000Z")}
+            {formatLocalDate(dateKey)}
           </h3>
           <div className={styles.dayEvents}>
             {dayEvents.map((event) => (
