@@ -2,9 +2,10 @@
 
 ## Claude Skills
 
-**Project-specific skills** (patterns, status, audit) live in this repo at `.claude/skills/`:
+**Project-specific skills** live in this repo at `.claude/skills/`:
 - `platform-patterns` — code pattern index and detailed pattern files for this codebase
-- `platform-status` — project health checks (build, tests)
+- `platform-design-principles` — architectural principles (Ports & Adapters, SSOT, Generated Contracts)
+- `platform-implementation-principles` — code-level principles (Fail Fast, guard clauses, validation)
 
 **Pipeline skills** (design, implement, review, refactor) and **tech reference skills** (hono-v4, drizzle-v0, tanstack-*, zod-v4) live in the **parent monorepo** at root `.claude/skills/`. Work from the monorepo root (`/workspaces/SNC`) to access them.
 
