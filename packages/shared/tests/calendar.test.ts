@@ -31,6 +31,7 @@ const VALID_EVENT = {
   location: "Studio A",
   createdBy: "user_abc",
   creatorId: null,
+  creatorName: null,
   projectId: null,
   projectName: null,
   completedAt: null,
@@ -348,6 +349,13 @@ describe("CalendarEventsQuerySchema", () => {
       projectId: "proj_123",
     });
     expect(result.projectId).toBe("proj_123");
+  });
+
+  it("accepts optional creatorId filter", () => {
+    const result = CalendarEventsQuerySchema.parse({
+      creatorId: "creator_abc",
+    });
+    expect(result.creatorId).toBe("creator_abc");
   });
 
   it("accepts optional cursor", () => {

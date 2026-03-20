@@ -1,10 +1,9 @@
+import { formatDistanceToNow, format, parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+
 // ── Constants ──
 
-const MINUTE = 60;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
-const WEEK = 7 * DAY;
-const MONTH = 30 * DAY;
+const DEFAULT_TIMEZONE = "America/Denver";
 
 // ── Public API ──
 
@@ -13,59 +12,29 @@ const MONTH = 30 * DAY;
  *
  * Rules (evaluated in order):
  *   < 60 seconds  → "just now"
- *   < 60 minutes  → "{n}m ago"
- *   < 24 hours    → "{n}h ago"
- *   < 7 days      → "{n}d ago"
- *   < 30 days     → "{n}w ago"
+ *   < 30 days     → natural language relative ("5 minutes ago", "3 days ago")
  *   >= 30 days    → formatted date (e.g. "Feb 26, 2026")
  */
 export function formatRelativeDate(isoDateString: string): string {
-  const diffMs = Date.now() - new Date(isoDateString).getTime();
+  const date = parseISO(isoDateString);
+  const diffMs = Date.now() - date.getTime();
 
-  if (diffMs < 0) {
+  if (diffMs < 0 || diffMs < 60_000) {
     return "just now";
   }
 
-  const seconds = Math.floor(diffMs / 1000);
-
-  if (seconds < MINUTE) {
-    return "just now";
+  // Under 30 days: use relative ("5 minutes ago", "3 days ago")
+  if (diffMs < 30 * 24 * 60 * 60 * 1000) {
+    return formatDistanceToNow(date, { addSuffix: true });
   }
 
-  if (seconds < HOUR) {
-    return `${Math.floor(seconds / MINUTE)}m ago`;
-  }
-
-  if (seconds < DAY) {
-    return `${Math.floor(seconds / HOUR)}h ago`;
-  }
-
-  if (seconds < WEEK) {
-    return `${Math.floor(seconds / DAY)}d ago`;
-  }
-
-  if (seconds < MONTH) {
-    return `${Math.floor(seconds / WEEK)}w ago`;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(isoDateString));
+  // 30+ days: absolute date
+  return format(date, "MMM d, yyyy");
 }
 
 export function formatDate(isoDateString: string): string {
-  // Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the Date
-  // constructor.  Intl.DateTimeFormat then formats in the local timezone,
-  // which shifts the displayed day backwards for western-hemisphere users.
-  // Forcing timeZone: "UTC" keeps the calendar date stable.
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(isoDateString));
+  // Date-only strings (YYYY-MM-DD) need UTC to avoid timezone shift
+  return formatInTimeZone(parseISO(isoDateString), "UTC", "MMM d, yyyy");
 }
 
 export function formatTime(seconds: number): string {
@@ -118,4 +87,26 @@ export function formatCo2(kg: number): string {
   if (kg === 0) return "0 g";
   if (Math.abs(kg) < 1) return `${(kg * 1000).toFixed(1)} g`;
   return `${kg.toFixed(1)} kg`;
+}
+
+// ── Timezone Helpers ──
+
+/** Resolve the user's IANA timezone, falling back to Denver. */
+export function getUserTimezone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return tz || DEFAULT_TIMEZONE;
+  } catch {
+    return DEFAULT_TIMEZONE;
+  }
+}
+
+/** Extract a YYYY-MM-DD date key from an ISO string in the user's local timezone. */
+export function toLocalDateKey(isoString: string): string {
+  return formatInTimeZone(parseISO(isoString), getUserTimezone(), "yyyy-MM-dd");
+}
+
+/** Format a YYYY-MM-DD date key in the user's local timezone. */
+export function formatLocalDate(dateKey: string): string {
+  return formatInTimeZone(parseISO(dateKey + "T12:00:00"), getUserTimezone(), "MMM d, yyyy");
 }

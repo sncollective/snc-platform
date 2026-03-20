@@ -109,7 +109,12 @@ projectRoutes.get(
     const conditions = [];
 
     if (creatorId !== undefined) {
-      conditions.push(eq(projects.creatorId, creatorId));
+      conditions.push(
+        or(
+          eq(projects.creatorId, creatorId),
+          isNull(projects.creatorId),
+        )!,
+      );
     }
     if (completed !== undefined) {
       conditions.push(eq(projects.completed, completed));

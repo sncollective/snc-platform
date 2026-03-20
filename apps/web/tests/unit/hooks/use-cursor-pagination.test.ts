@@ -157,7 +157,7 @@ describe("useCursorPagination", () => {
     });
   });
 
-  it("forwards fetchOptions to fetch call", async () => {
+  it("forwards fetchOptions to fetch call (merged with AbortSignal)", async () => {
     const mockFetch = vi.fn().mockImplementation(() =>
       Promise.resolve(makeResponse({ items: [], nextCursor: null })),
     );
@@ -176,8 +176,72 @@ describe("useCursorPagination", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost/api/items",
-      { credentials: "include" },
+      expect.objectContaining({ credentials: "include", signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it("aborts in-flight request when deps change (rapid filter changes)", async () => {
+    let resolveFirst: ((v: Response) => void) | null = null;
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // First fetch never resolves on its own — we control it
+        return new Promise<Response>((resolve) => { resolveFirst = resolve; });
+      }
+      return Promise.resolve(makeResponse({ items: ["fresh"], nextCursor: null }));
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result, rerender } = renderHook(
+      ({ filter }: { filter: string }) =>
+        useCursorPagination<string>({
+          buildUrl: () => `http://localhost/api/items?filter=${filter}`,
+          deps: [filter],
+        }),
+      { initialProps: { filter: "a" } },
+    );
+
+    // First fetch is in-flight; now change deps to trigger abort + new fetch
+    rerender({ filter: "b" });
+
+    await waitFor(() => {
+      expect(result.current.items).toEqual(["fresh"]);
+    });
+
+    // Resolve the first (now-aborted) fetch — should not overwrite state
+    act(() => {
+      resolveFirst?.(makeResponse({ items: ["stale"], nextCursor: null }));
+    });
+
+    // Items should still be the fresh result
+    expect(result.current.items).toEqual(["fresh"]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does not set error state when fetch is aborted", async () => {
+    const mockFetch = vi.fn().mockImplementation((_url: string, opts: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        if (opts.signal) {
+          opts.signal.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        }
+      });
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result, unmount } = renderHook(() =>
+      useCursorPagination<string>({
+        buildUrl: () => "http://localhost/api/items",
+      }),
+    );
+
+    // Unmount triggers cleanup which aborts the fetch
+    act(() => { unmount(); });
+
+    // Error should never be set
+    expect(result.current.error).toBeNull();
   });
 
   it("appends items on loadMore", async () => {

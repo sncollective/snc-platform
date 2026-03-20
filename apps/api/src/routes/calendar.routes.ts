@@ -30,6 +30,7 @@ import {
   customEventTypes,
 } from "../db/schema/calendar.schema.js";
 import { projects } from "../db/schema/project.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -51,6 +52,7 @@ type CalendarEventRow = typeof calendarEvents.$inferSelect;
 const toEventResponse = (
   row: CalendarEventRow,
   projectName: string | null,
+  creatorName: string | null,
 ): CalendarEvent => ({
   id: row.id,
   title: row.title,
@@ -62,6 +64,7 @@ const toEventResponse = (
   location: row.location,
   createdBy: row.createdBy,
   creatorId: row.creatorId ?? null,
+  creatorName: creatorName ?? null,
   projectId: row.projectId ?? null,
   projectName: projectName ?? null,
   completedAt: row.completedAt?.toISOString() ?? null,
@@ -99,15 +102,29 @@ calendarRoutes.get(
   }),
   validator("query", CalendarEventsQuerySchema),
   async (c) => {
-    const { from, to, eventType, projectId, cursor, limit } =
+    const { from, to, eventType, projectId, creatorId, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
-    const conditions = [isNull(calendarEvents.deletedAt), isNull(calendarEvents.creatorId)];
+    const conditions = [isNull(calendarEvents.deletedAt)];
 
-    if (from) {
-      conditions.push(gte(calendarEvents.startAt, new Date(from)));
-    }
-    if (to) {
+    if (from && to) {
+      // Event is visible if it overlaps the date range:
+      // startAt <= to AND (endAt >= from OR (endAt IS NULL AND startAt >= from))
+      conditions.push(lte(calendarEvents.startAt, new Date(to)));
+      conditions.push(
+        or(
+          gte(calendarEvents.endAt, new Date(from)),
+          and(isNull(calendarEvents.endAt), gte(calendarEvents.startAt, new Date(from))),
+        )!,
+      );
+    } else if (from) {
+      conditions.push(
+        or(
+          gte(calendarEvents.startAt, new Date(from)),
+          gte(calendarEvents.endAt, new Date(from)),
+        )!,
+      );
+    } else if (to) {
       conditions.push(lte(calendarEvents.startAt, new Date(to)));
     }
     if (eventType) {
@@ -115,6 +132,9 @@ calendarRoutes.get(
     }
     if (projectId) {
       conditions.push(eq(calendarEvents.projectId, projectId));
+    }
+    if (creatorId) {
+      conditions.push(eq(calendarEvents.creatorId, creatorId));
     }
 
     if (cursor) {
@@ -137,9 +157,11 @@ calendarRoutes.get(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(and(...conditions))
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
       .limit(limit + 1);
@@ -154,7 +176,7 @@ calendarRoutes.get(
     );
 
     return c.json({
-      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null)),
+      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null, row.creatorName ?? null)),
       nextCursor,
     });
   },
@@ -190,16 +212,18 @@ calendarRoutes.get(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(and(eq(calendarEvents.id, id), isNull(calendarEvents.deletedAt)));
 
     if (!row) {
       throw new NotFoundError("Event not found");
     }
 
-    return c.json({ event: toEventResponse(row.event, row.projectName ?? null) });
+    return c.json({ event: toEventResponse(row.event, row.projectName ?? null, row.creatorName ?? null) });
   },
 );
 
@@ -253,7 +277,7 @@ calendarRoutes.post(
       })
       .returning();
 
-    return c.json({ event: toEventResponse(event!, null) }, 201);
+    return c.json({ event: toEventResponse(event!, null, null) }, 201);
   },
 );
 
@@ -317,12 +341,14 @@ calendarRoutes.patch(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(eq(calendarEvents.id, id));
 
-    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null) });
+    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null, row!.creatorName ?? null) });
   },
 );
 
@@ -417,12 +443,14 @@ calendarRoutes.patch(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(eq(calendarEvents.id, id));
 
-    return c.json({ event: toEventResponse(updated!.event, updated!.projectName ?? null) });
+    return c.json({ event: toEventResponse(updated!.event, updated!.projectName ?? null, updated!.creatorName ?? null) });
   },
 );
 
@@ -540,12 +568,15 @@ calendarRoutes.get("/feed.ics", async (c) => {
   to.setMonth(to.getMonth() + 6);
 
   const events = await db
-    .select()
+    .select({
+      event: calendarEvents,
+      creatorName: creatorProfiles.displayName,
+    })
     .from(calendarEvents)
+    .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
     .where(
       and(
         isNull(calendarEvents.deletedAt),
-        isNull(calendarEvents.creatorId),
         gte(calendarEvents.startAt, from),
         lte(calendarEvents.startAt, to),
       ),
@@ -558,13 +589,15 @@ calendarRoutes.get("/feed.ics", async (c) => {
     method: ICalCalendarMethod.PUBLISH,
   });
 
-  for (const event of events) {
+  for (const row of events) {
+    const event = row.event;
+    const summary = row.creatorName ? `${event.title} (${row.creatorName})` : event.title;
     const icalEvent = calendar.createEvent({
       id: event.id,
       start: event.startAt,
       end: event.endAt ?? null,
       allDay: event.allDay,
-      summary: event.title,
+      summary,
       description: event.description ?? null,
       location: event.location ?? null,
     });

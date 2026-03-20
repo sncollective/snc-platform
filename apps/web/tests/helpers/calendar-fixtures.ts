@@ -15,6 +15,7 @@ export const makeMockCalendarEvent = (
   location: "Studio A",
   createdBy: "user_test123",
   creatorId: null,
+  creatorName: null,
   projectId: null,
   projectName: null,
   completedAt: null,

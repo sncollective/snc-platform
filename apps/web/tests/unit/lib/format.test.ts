@@ -8,6 +8,9 @@ import {
   formatInterval,
   formatIntervalShort,
   formatCo2,
+  getUserTimezone,
+  toLocalDateKey,
+  formatLocalDate,
 } from "../../../src/lib/format.js";
 
 const NOW = new Date("2026-02-26T12:00:00.000Z");
@@ -27,26 +30,26 @@ describe("formatRelativeDate", () => {
     expect(formatRelativeDate(thirtySecondsAgo)).toBe("just now");
   });
 
-  it("returns 'Xm ago' for dates less than 60 minutes ago", () => {
+  it("returns natural language for dates less than 60 minutes ago", () => {
     const fiveMinutesAgo = new Date(NOW.getTime() - 5 * 60 * 1000).toISOString();
-    expect(formatRelativeDate(fiveMinutesAgo)).toBe("5m ago");
+    expect(formatRelativeDate(fiveMinutesAgo)).toBe("5 minutes ago");
   });
 
-  it("returns 'Xh ago' for dates less than 24 hours ago", () => {
+  it("returns natural language for dates less than 24 hours ago", () => {
     const threeHoursAgo = new Date(NOW.getTime() - 3 * 60 * 60 * 1000).toISOString();
-    expect(formatRelativeDate(threeHoursAgo)).toBe("3h ago");
+    expect(formatRelativeDate(threeHoursAgo)).toBe("about 3 hours ago");
   });
 
-  it("returns 'Xd ago' for dates less than 7 days ago", () => {
+  it("returns natural language for dates less than 7 days ago", () => {
     const twoDaysAgo = new Date(NOW.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
-    expect(formatRelativeDate(twoDaysAgo)).toBe("2d ago");
+    expect(formatRelativeDate(twoDaysAgo)).toBe("2 days ago");
   });
 
-  it("returns 'Xw ago' for dates less than 30 days ago", () => {
+  it("returns natural language for dates less than 30 days ago", () => {
     const oneWeekAgo = new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const twoWeeksAgo = new Date(NOW.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    expect(formatRelativeDate(oneWeekAgo)).toBe("1w ago");
-    expect(formatRelativeDate(twoWeeksAgo)).toBe("2w ago");
+    expect(formatRelativeDate(oneWeekAgo)).toBe("7 days ago");
+    expect(formatRelativeDate(twoWeeksAgo)).toBe("14 days ago");
   });
 
   it("returns formatted date for dates 30 or more days ago", () => {
@@ -168,5 +171,51 @@ describe("formatIntervalShort", () => {
 
   it("returns 'yr' for year", () => {
     expect(formatIntervalShort("year")).toBe("yr");
+  });
+});
+
+describe("getUserTimezone", () => {
+  it("returns a non-empty string", () => {
+    const tz = getUserTimezone();
+    expect(typeof tz).toBe("string");
+    expect(tz.length).toBeGreaterThan(0);
+  });
+
+  it("falls back to America/Denver when Intl throws", () => {
+    const original = Intl.DateTimeFormat;
+    vi.stubGlobal("Intl", {
+      ...Intl,
+      DateTimeFormat: () => { throw new Error("not supported"); },
+    });
+    const tz = getUserTimezone();
+    expect(tz).toBe("America/Denver");
+    vi.stubGlobal("Intl", { ...Intl, DateTimeFormat: original });
+  });
+});
+
+describe("toLocalDateKey", () => {
+  it("returns a YYYY-MM-DD string for an ISO date", () => {
+    // 2026-03-20T14:00:00Z is some date — just check the format
+    const key = toLocalDateKey("2026-03-20T14:00:00.000Z");
+    expect(key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("returns different keys for different ISO timestamps", () => {
+    const key1 = toLocalDateKey("2026-01-01T00:00:00.000Z");
+    const key2 = toLocalDateKey("2026-06-15T00:00:00.000Z");
+    expect(key1).not.toBe(key2);
+  });
+});
+
+describe("formatLocalDate", () => {
+  it("returns a human-readable date string from a YYYY-MM-DD key", () => {
+    // The result includes month, day, year — just verify the shape
+    const result = formatLocalDate("2026-03-20");
+    expect(result).toMatch(/\w+\s+\d+,\s+\d{4}/);
+  });
+
+  it("includes the correct year", () => {
+    const result = formatLocalDate("2026-07-04");
+    expect(result).toContain("2026");
   });
 });

@@ -7,10 +7,11 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
-// SELECT with leftJoin: db.select().from(table).leftJoin(...).where(...).orderBy(...).limit(...)
+// SELECT with leftJoin: db.select().from(table).leftJoin(...).leftJoin(...).where(...).orderBy(...).limit(...)
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn();
 const mockSelectWhere = vi.fn();
+const mockLeftJoin2 = vi.fn();
 const mockLeftJoin = vi.fn();
 const mockSelectFrom = vi.fn();
 const mockSelect = vi.fn();
@@ -46,6 +47,7 @@ const mockRequireCreatorPermission = vi.fn();
 const wrapEventRow = (event: ReturnType<typeof makeMockCalendarEvent>) => ({
   event,
   projectName: null,
+  creatorName: null,
 });
 
 // ── Test Setup ──
@@ -98,7 +100,7 @@ const ctx = setupRouteTest({
     }));
 
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
-      creatorProfiles: { id: {} },
+      creatorProfiles: { id: {}, displayName: {} },
       creatorMembers: {},
     }));
 
@@ -131,10 +133,11 @@ const ctx = setupRouteTest({
     app.route("/api/creators", creatorEventRoutes);
   },
   beforeEach: () => {
-    // SELECT chain with leftJoin support
+    // SELECT chain with leftJoin support (two leftJoins: projects + creatorProfiles)
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
-    mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
+    mockLeftJoin.mockReturnValue({ leftJoin: mockLeftJoin2, where: mockSelectWhere });
+    mockLeftJoin2.mockReturnValue({ where: mockSelectWhere });
     mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue([]);
@@ -215,6 +218,56 @@ describe("creator event routes", () => {
       );
 
       expect(res.status).toBe(403);
+    });
+
+    it("filters events by projectId when provided", async () => {
+      const matchingEvent = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        projectId: "proj_test001",
+      });
+      const otherEvent = makeMockCalendarEvent({
+        id: "evt_test002",
+        creatorId: "creator_1",
+        projectId: "proj_other",
+      });
+
+      // Creator lookup
+      mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
+      // Events query — only return the matching event (projectId filter applied by DB)
+      mockLimit.mockResolvedValueOnce([wrapEventRow(matchingEvent)]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events?projectId=proj_test001",
+      );
+      const body = (await res.json()) as { items: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(1);
+      expect((body.items[0] as { projectId: string | null }).projectId).toBe("proj_test001");
+      // Verify the other event is not present
+      expect(body.items.find((i) => (i as { id: string }).id === otherEvent.id)).toBeUndefined();
+    });
+
+    it("returns all events when no projectId is provided", async () => {
+      const event1 = makeMockCalendarEvent({ id: "evt_1", creatorId: "creator_1" });
+      const event2 = makeMockCalendarEvent({
+        id: "evt_2",
+        creatorId: "creator_1",
+        projectId: "proj_test001",
+      });
+
+      // Creator lookup
+      mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
+      // Events query — returns both events
+      mockLimit.mockResolvedValueOnce([wrapEventRow(event1), wrapEventRow(event2)]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events",
+      );
+      const body = (await res.json()) as { items: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(2);
     });
   });
 

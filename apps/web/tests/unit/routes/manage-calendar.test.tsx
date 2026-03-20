@@ -36,6 +36,10 @@ vi.mock("../../../src/lib/calendar.js", () => ({
   fetchEventTypes: vi.fn().mockResolvedValue({ items: [] }),
 }));
 
+vi.mock("../../../src/lib/project.js", () => ({
+  fetchProjects: vi.fn().mockResolvedValue({ items: [] }),
+}));
+
 vi.mock("../../../src/lib/config.js", () => ({
   DEMO_MODE: false,
   features: {},
@@ -58,9 +62,22 @@ vi.mock("../../../src/components/calendar/event-form.js", () => ({
   ),
 }));
 
-vi.mock("../../../src/components/calendar/event-list.js", () => ({
-  EventList: ({ events }: { events: unknown[] }) => (
-    <div data-testid="event-list" data-count={events.length} />
+vi.mock("../../../src/components/calendar/calendar-grid.js", () => ({
+  CalendarGrid: ({ events }: { events: unknown[] }) => (
+    <div data-testid="calendar-grid" data-count={events.length} />
+  ),
+}));
+
+vi.mock("../../../src/components/calendar/timeline-view.js", () => ({
+  TimelineView: () => <div data-testid="timeline-view" />,
+}));
+
+vi.mock("../../../src/components/calendar/view-toggle.js", () => ({
+  ViewToggle: ({ onViewChange }: { onViewChange: (v: string) => void }) => (
+    <div data-testid="view-toggle">
+      <button type="button" onClick={() => onViewChange("month")}>Month</button>
+      <button type="button" onClick={() => onViewChange("timeline")}>Timeline</button>
+    </div>
   ),
 }));
 
@@ -69,10 +86,10 @@ vi.mock("../../../src/styles/detail-section.module.css", () => ({
 }));
 
 vi.mock(
-  "../../../src/routes/creators/$creatorId/manage/events-manage.module.css",
+  "../../../src/routes/creators/$creatorId/manage/calendar-manage.module.css",
   () => ({
     default: {
-      eventsManage: "eventsManage",
+      calendarManage: "calendarManage",
       headerRow: "headerRow",
       newEventButton: "newEventButton",
       error: "error",
@@ -92,7 +109,7 @@ vi.mock(
 const ManageEventsPage = extractRouteComponent(
   () =>
     import(
-      "../../../src/routes/creators/$creatorId/manage/events.js"
+      "../../../src/routes/creators/$creatorId/manage/calendar.js"
     ),
 );
 
@@ -116,10 +133,10 @@ beforeEach(() => {
 // ── Tests ──
 
 describe("ManageEventsPage", () => {
-  it("renders the Events heading", () => {
+  it("renders the Calendar heading", () => {
     render(<ManageEventsPage />);
     expect(
-      screen.getByRole("heading", { name: "Events" }),
+      screen.getByRole("heading", { name: "Calendar" }),
     ).toBeInTheDocument();
   });
 
@@ -138,22 +155,16 @@ describe("ManageEventsPage", () => {
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
   });
 
-  it("renders a category filter select", () => {
+  it("renders filter selects for event type and project", () => {
     render(<ManageEventsPage />);
-    expect(
-      screen.getByRole("combobox"),
-    ).toBeInTheDocument();
+    const selects = screen.getAllByRole("combobox");
+    expect(selects).toHaveLength(2);
   });
 
-  it("shows loading state initially", () => {
-    render(<ManageEventsPage />);
-    expect(screen.getByText(/loading events/i)).toBeInTheDocument();
-  });
-
-  it("shows the event list after loading", async () => {
+  it("renders the calendar grid in month view", async () => {
     render(<ManageEventsPage />);
     await waitFor(() => {
-      expect(screen.getByTestId("event-list")).toBeInTheDocument();
+      expect(screen.getByTestId("calendar-grid")).toBeInTheDocument();
     });
   });
 

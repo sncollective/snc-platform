@@ -16,6 +16,7 @@ import { subscriptionRoutes } from "./routes/subscription.routes.js";
 import { webhookRoutes } from "./routes/webhook.routes.js";
 import { merchRoutes } from "./routes/merch.routes.js";
 import { bookingRoutes } from "./routes/booking.routes.js";
+import { studioRoutes } from "./routes/studio.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { emissionsRoutes } from "./routes/emissions.routes.js";
@@ -87,6 +88,7 @@ if (features.subscription) {
 }
 if (features.merch) app.route("/api/merch", merchRoutes);
 if (features.booking) app.route("/api", bookingRoutes);
+if (features.booking) app.route("/api/studio", studioRoutes);
 if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
 if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);

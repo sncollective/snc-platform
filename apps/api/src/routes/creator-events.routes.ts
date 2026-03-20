@@ -38,6 +38,7 @@ type CalendarEventRow = typeof calendarEvents.$inferSelect;
 const toEventResponse = (
   row: CalendarEventRow,
   projectName: string | null,
+  creatorName: string | null,
 ): CalendarEvent => ({
   id: row.id,
   title: row.title,
@@ -49,6 +50,7 @@ const toEventResponse = (
   location: row.location,
   createdBy: row.createdBy,
   creatorId: row.creatorId ?? null,
+  creatorName: creatorName ?? null,
   projectId: row.projectId ?? null,
   projectName: projectName ?? null,
   completedAt: row.completedAt?.toISOString() ?? null,
@@ -58,7 +60,7 @@ const toEventResponse = (
 
 const findCreator = async (creatorId: string) => {
   const rows = await db
-    .select({ id: creatorProfiles.id })
+    .select({ id: creatorProfiles.id, displayName: creatorProfiles.displayName })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.id, creatorId));
   return rows[0];
@@ -110,7 +112,7 @@ creatorEventRoutes.get(
   validator("query", CalendarEventsQuerySchema),
   async (c) => {
     const { creatorId } = c.req.param();
-    const { from, to, eventType, cursor, limit } =
+    const { from, to, eventType, projectId, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
     const creator = await findCreator(creatorId);
@@ -123,14 +125,31 @@ creatorEventRoutes.get(
       eq(calendarEvents.creatorId, creatorId),
     ];
 
-    if (from) {
-      conditions.push(gte(calendarEvents.startAt, new Date(from)));
-    }
-    if (to) {
+    if (from && to) {
+      // Event is visible if it overlaps the date range:
+      // startAt <= to AND (endAt >= from OR (endAt IS NULL AND startAt >= from))
+      conditions.push(lte(calendarEvents.startAt, new Date(to)));
+      conditions.push(
+        or(
+          gte(calendarEvents.endAt, new Date(from)),
+          and(isNull(calendarEvents.endAt), gte(calendarEvents.startAt, new Date(from))),
+        )!,
+      );
+    } else if (from) {
+      conditions.push(
+        or(
+          gte(calendarEvents.startAt, new Date(from)),
+          gte(calendarEvents.endAt, new Date(from)),
+        )!,
+      );
+    } else if (to) {
       conditions.push(lte(calendarEvents.startAt, new Date(to)));
     }
     if (eventType) {
       conditions.push(eq(calendarEvents.eventType, eventType));
+    }
+    if (projectId) {
+      conditions.push(eq(calendarEvents.projectId, projectId));
     }
 
     if (cursor) {
@@ -153,9 +172,11 @@ creatorEventRoutes.get(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(and(...conditions))
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
       .limit(limit + 1);
@@ -170,7 +191,7 @@ creatorEventRoutes.get(
     );
 
     return c.json({
-      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null)),
+      items: rawItems.map((row) => toEventResponse(row.event, row.projectName ?? null, row.creatorName ?? null)),
       nextCursor,
     });
   },
@@ -233,7 +254,7 @@ creatorEventRoutes.post(
       })
       .returning();
 
-    return c.json({ event: toEventResponse(event!, null) }, 201);
+    return c.json({ event: toEventResponse(event!, null, creator.displayName) }, 201);
   },
 );
 
@@ -292,12 +313,14 @@ creatorEventRoutes.patch(
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(eq(calendarEvents.id, eventId));
 
-    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null) });
+    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null, row!.creatorName ?? null) });
   },
 );
 

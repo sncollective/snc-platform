@@ -17,6 +17,53 @@
   gap: var(--space-md);
 }
 
+/* When not all-day, expand to 4 columns for date+time pairs */
+.dateRowWithTime {
+  display: grid;
+  grid-template-columns: 3fr 2fr 3fr 2fr;
+  gap: var(--space-md);
+}
+
+/* When not all-day and no end date, 2 columns for start date + start time */
+.dateRowStartOnly {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--space-md);
+}
+
+.addEndButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.addEndButton:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.removeEndButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  align-self: end;
+}
+
+.removeEndButton:hover {
+  color: var(--color-error);
+}
+
 .checkboxRow {
   display: flex;
   align-items: center;
@@ -47,4 +94,54 @@
 .cancelButton:hover {
   color: var(--color-text);
   border-color: var(--color-text-muted);
+}
+
+.deleteGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.deleteButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.deleteConfirmLabel {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+}
+
+.deleteConfirmButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  cursor: pointer;
+}
+
+.deleteConfirmButton:hover {
+  background: var(--color-error);
+  color: var(--color-surface);
+}
+
+.deleteConfirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

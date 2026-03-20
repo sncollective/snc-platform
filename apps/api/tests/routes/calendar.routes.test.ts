@@ -10,10 +10,11 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock DB Chains ──
 
-// SELECT with leftJoin: db.select().from(table).leftJoin(...).where(...).orderBy(...).limit(...)
+// SELECT with leftJoin: db.select().from(table).leftJoin(...).leftJoin(...).where(...).orderBy(...).limit(...)
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn();
 const mockSelectWhere = vi.fn();
+const mockLeftJoin2 = vi.fn();
 const mockLeftJoin = vi.fn();
 const mockSelectFrom = vi.fn();
 const mockSelect = vi.fn();
@@ -45,6 +46,7 @@ const mockDb = {
 const wrapEventRow = (event: ReturnType<typeof makeMockCalendarEvent>) => ({
   event,
   projectName: null,
+  creatorName: null,
 });
 
 // ── Test Setup ──
@@ -103,6 +105,20 @@ const ctx = setupRouteTest({
       },
     }));
 
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorProfiles: {
+        id: {},
+        userId: {},
+        displayName: {},
+        bio: {},
+        avatarKey: {},
+        bannerKey: {},
+        socialLinks: {},
+        createdAt: {},
+        updatedAt: {},
+      },
+    }));
+
     vi.doMock("../../src/db/schema/user.schema.js", () => ({
       users: {
         id: {},
@@ -126,10 +142,11 @@ const ctx = setupRouteTest({
     app.route("/api/calendar", calendarRoutes);
   },
   beforeEach: () => {
-    // SELECT chain with leftJoin support
+    // SELECT chain with leftJoin support (two leftJoins: projects + creatorProfiles)
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
-    mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
+    mockLeftJoin.mockReturnValue({ leftJoin: mockLeftJoin2, where: mockSelectWhere });
+    mockLeftJoin2.mockReturnValue({ where: mockSelectWhere });
     mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue([]);
@@ -193,6 +210,72 @@ describe("calendar routes", () => {
       const res = await ctx.app.request("/api/calendar/events");
 
       expect(res.status).toBe(403);
+    });
+
+    it("accepts creatorId query param and returns events", async () => {
+      const event = makeMockCalendarEvent({ creatorId: "creator_abc" });
+      mockLimit.mockResolvedValue([wrapEventRow(event)]);
+
+      const res = await ctx.app.request("/api/calendar/events?creatorId=creator_abc");
+      const body = (await res.json()) as { items: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(1);
+    });
+
+    it("includes creatorName in event response", async () => {
+      const event = makeMockCalendarEvent({ creatorId: "creator_abc" });
+      mockLimit.mockResolvedValue([{ event, projectName: null, creatorName: "Alice" }]);
+
+      const res = await ctx.app.request("/api/calendar/events");
+      const body = (await res.json()) as { items: Array<{ creatorName: string | null }> };
+
+      expect(res.status).toBe(200);
+      expect(body.items[0]?.creatorName).toBe("Alice");
+    });
+
+    it("includes multi-day event with endAt after from when both from and to are provided", async () => {
+      // Event starting before 'from' but endAt after 'from' — should be included (overlap)
+      const event = makeMockCalendarEvent({
+        startAt: new Date("2026-03-28T00:00:00.000Z"),
+        endAt: new Date("2026-04-05T00:00:00.000Z"),
+      });
+      mockLimit.mockResolvedValue([wrapEventRow(event)]);
+
+      const res = await ctx.app.request(
+        "/api/calendar/events?from=2026-04-01T00:00:00.000Z&to=2026-04-30T00:00:00.000Z",
+      );
+      const body = (await res.json()) as { items: unknown[] };
+
+      // The route should succeed and return the DB results as-is (filter logic is in SQL)
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(1);
+    });
+
+    it("returns 200 with from-only query param", async () => {
+      const event = makeMockCalendarEvent();
+      mockLimit.mockResolvedValue([wrapEventRow(event)]);
+
+      const res = await ctx.app.request(
+        "/api/calendar/events?from=2026-03-01T00:00:00.000Z",
+      );
+      const body = (await res.json()) as { items: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(1);
+    });
+
+    it("returns 200 with to-only query param", async () => {
+      const event = makeMockCalendarEvent();
+      mockLimit.mockResolvedValue([wrapEventRow(event)]);
+
+      const res = await ctx.app.request(
+        "/api/calendar/events?to=2026-03-31T23:59:59.000Z",
+      );
+      const body = (await res.json()) as { items: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.items).toHaveLength(1);
     });
   });
 
@@ -579,8 +662,8 @@ describe("calendar routes", () => {
 
       // Token lookup
       mockSelectWhere.mockResolvedValueOnce([token]);
-      // Events query (no leftJoin in feed.ics)
-      mockOrderBy.mockResolvedValueOnce([event]);
+      // Events query (leftJoin + where + orderBy chain)
+      mockOrderBy.mockResolvedValueOnce([{ event, creatorName: null }]);
 
       const res = await ctx.app.request(
         `/api/calendar/feed.ics?token=${token.token}`,

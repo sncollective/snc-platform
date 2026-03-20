@@ -36,10 +36,10 @@ describe("ComingSoon", () => {
     const { unmount } = render(<ComingSoon feature="booking" />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Services — Coming Soon" }),
+      screen.getByRole("heading", { level: 1, name: "Studio — Coming Soon" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Studio and label services available for booking."),
+      screen.getByText("Recording studio, podcast production, practice space, and venue hire."),
     ).toBeInTheDocument();
 
     unmount();

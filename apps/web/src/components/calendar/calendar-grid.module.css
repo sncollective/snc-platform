@@ -1,0 +1,134 @@
+.grid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dayHeader {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-elevated);
+  text-align: center;
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: relative;
+  min-height: 100px;
+}
+
+.weekRow:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cell {
+  min-height: 100px;
+  min-width: 0;
+  padding: var(--space-xs);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+}
+
+.cell:nth-child(7n) {
+  border-right: none;
+}
+
+.cellOtherMonth {
+  background: var(--color-bg-elevated);
+  opacity: 0.5;
+}
+
+.cellDay {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.cellEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  /* overflow: hidden removed — expanded cells need to show all events */
+}
+
+.eventPill {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(245, 166, 35, 0.15);
+  color: var(--color-accent);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  transition: background 0.1s;
+}
+
+.eventPill:hover {
+  background: rgba(245, 166, 35, 0.3);
+}
+
+.spanBar {
+  position: absolute;
+  z-index: 1;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(91, 181, 181, 0.25);
+  color: var(--color-secondary);
+  border: 1px solid rgba(91, 181, 181, 0.4);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  transition: background 0.1s;
+}
+
+.spanBar:hover {
+  background: rgba(91, 181, 181, 0.4);
+}
+
+.overflow {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding: 1px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.overflow:hover {
+  color: var(--color-accent);
+}

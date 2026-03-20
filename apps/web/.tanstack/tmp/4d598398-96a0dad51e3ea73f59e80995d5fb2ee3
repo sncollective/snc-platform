@@ -5,13 +5,17 @@ import type { CalendarEvent } from "@snc/shared";
 import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
 import { EventForm } from "../../../../components/calendar/event-form.js";
-import { EventList } from "../../../../components/calendar/event-list.js";
+import { CalendarGrid } from "../../../../components/calendar/calendar-grid.js";
+import { TimelineView } from "../../../../components/calendar/timeline-view.js";
+import { ViewToggle } from "../../../../components/calendar/view-toggle.js";
+import type { CalendarViewMode } from "../../../../components/calendar/view-toggle.js";
 import { isFeatureEnabled } from "../../../../lib/config.js";
 import {
   fetchCreatorEvents,
   deleteCreatorEvent,
   fetchEventTypes,
 } from "../../../../lib/calendar.js";
+import { fetchProjects } from "../../../../lib/project.js";
 import sectionStyles from "../../../../styles/detail-section.module.css";
 import styles from "./events-manage.module.css";
 
@@ -19,7 +23,7 @@ import styles from "./events-manage.module.css";
 
 const manageRoute = getRouteApi("/creators/$creatorId/manage");
 
-export const Route = createFileRoute("/creators/$creatorId/manage/events")({
+export const Route = createFileRoute("/creators/$creatorId/manage/calendar")({
   beforeLoad: () => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
   },
@@ -33,14 +37,25 @@ function ManageEventsPage(): React.ReactElement {
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(
-    undefined,
-  );
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
+  const [projectFilter, setProjectFilter] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [eventTypeOptions, setEventTypeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [projectOptions, setProjectOptions] = useState<{ id: string; name: string }[]>([]);
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // ── Date range navigation ──
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  const currentMonth = new Date();
+  currentMonth.setMonth(currentMonth.getMonth() + monthOffset);
+  const monthLabel = currentMonth.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   useEffect(() => {
     fetchEventTypes()
@@ -59,72 +74,56 @@ function ManageEventsPage(): React.ReactElement {
       });
   }, []);
 
-  // ── Date range navigation ──
-  const [monthOffset, setMonthOffset] = useState(0);
+  useEffect(() => {
+    fetchProjects({ completed: "false", creatorId: creator.id })
+      .then((res) => {
+        setProjectOptions(res.items.map((p) => ({ id: p.id, name: p.name })));
+      })
+      .catch(() => {});
+  }, [creator.id]);
 
-  const currentMonth = new Date();
-  currentMonth.setMonth(currentMonth.getMonth() + monthOffset);
-  const monthLabel = currentMonth.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (viewMode === "timeline") return;
 
-  const loadEvents = async () => {
-    const from = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      1,
-    );
-    const to = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-    );
+    const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
+    const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1, 23, 59, 59);
 
-    try {
-      const params: Record<string, string> = {
-        from: from.toISOString(),
-        to: to.toISOString(),
-      };
-      if (eventTypeFilter) params.eventType = eventTypeFilter;
+    const params: Record<string, string> = {
+      from: from.toISOString(),
+      to: to.toISOString(),
+    };
+    if (eventTypeFilter) params.eventType = eventTypeFilter;
+    if (projectFilter) params.projectId = projectFilter;
 
-      const result = await fetchCreatorEvents(creator.id, params);
-      setEvents(result.items);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load events");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    let cancelled = false;
+    fetchCreatorEvents(creator.id, params)
+      .then((result) => {
+        if (!cancelled) setEvents(result.items);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load events");
+      });
 
-  // Load events on mount
-  // biome-ignore lint/correctness/useExhaustiveDependencies: monthOffset drives currentMonth
-  useState(() => {
-    void loadEvents();
-  });
+    return () => { cancelled = true; };
+  }, [monthOffset, eventTypeFilter, projectFilter, viewMode, reloadKey, creator.id]);
 
   const handlePrev = () => {
     setMonthOffset((o) => o - 1);
-    setTimeout(loadEvents, 0);
   };
 
   const handleNext = () => {
     setMonthOffset((o) => o + 1);
-    setTimeout(loadEvents, 0);
   };
 
   const handleEventTypeChange = (value: string) => {
     setEventTypeFilter(value);
-    setTimeout(loadEvents, 0);
   };
 
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingEvent(undefined);
-    void loadEvents();
+    setReloadKey((k) => k + 1);
   };
 
   const handleEdit = (id: string) => {
@@ -153,15 +152,11 @@ function ManageEventsPage(): React.ReactElement {
     setShowForm(true);
   };
 
-  const filteredEvents = eventTypeFilter
-    ? events.filter((e) => e.eventType === eventTypeFilter)
-    : events;
-
   return (
     <div className={styles.eventsManage}>
       <section className={sectionStyles.section}>
         <div className={styles.headerRow}>
-          <h2 className={sectionStyles.sectionHeading}>Events</h2>
+          <h2 className={sectionStyles.sectionHeading}>Calendar</h2>
           <button
             type="button"
             className={styles.newEventButton}
@@ -177,26 +172,10 @@ function ManageEventsPage(): React.ReactElement {
           </div>
         )}
 
-        {/* Month Navigation */}
-        <div className={styles.navRow}>
-          <button
-            type="button"
-            className={styles.navButton}
-            onClick={handlePrev}
-          >
-            Previous
-          </button>
-          <span className={styles.monthLabel}>{monthLabel}</span>
-          <button
-            type="button"
-            className={styles.navButton}
-            onClick={handleNext}
-          >
-            Next
-          </button>
-        </div>
+        {/* View Toggle */}
+        <ViewToggle activeView={viewMode} onViewChange={setViewMode} />
 
-        {/* Event Type Filter */}
+        {/* Filters */}
         <div className={styles.filterRow}>
           <select
             value={eventTypeFilter}
@@ -210,6 +189,16 @@ function ManageEventsPage(): React.ReactElement {
               </option>
             ))}
           </select>
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className={styles.filterSelect}
+          >
+            <option value="">All projects</option>
+            {projectOptions.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Event Form */}
@@ -218,6 +207,8 @@ function ManageEventsPage(): React.ReactElement {
             <EventForm
               event={editingEvent}
               creatorId={creator.id}
+              defaultProjectId={projectFilter || undefined}
+              defaultEventType={eventTypeFilter || undefined}
               onSuccess={handleFormSuccess}
               onCancel={() => {
                 setShowForm(false);
@@ -227,14 +218,44 @@ function ManageEventsPage(): React.ReactElement {
           </div>
         )}
 
-        {/* Event List */}
-        {isLoading ? (
-          <p className={styles.status}>Loading events...</p>
-        ) : (
-          <EventList
-            events={filteredEvents}
+        {/* Month View */}
+        {viewMode === "month" && (
+          <>
+            <div className={styles.navRow}>
+              <button
+                type="button"
+                className={styles.navButton}
+                onClick={handlePrev}
+              >
+                Previous
+              </button>
+              <span className={styles.monthLabel}>{monthLabel}</span>
+              <button
+                type="button"
+                className={styles.navButton}
+                onClick={handleNext}
+              >
+                Next
+              </button>
+            </div>
+            <CalendarGrid
+              events={events}
+              year={currentMonth.getFullYear()}
+              month={currentMonth.getMonth()}
+              onEventClick={handleEdit}
+            />
+          </>
+        )}
+
+        {/* Timeline View */}
+        {viewMode === "timeline" && (
+          <TimelineView
+            eventTypeFilter={eventTypeFilter}
+            creatorFilter=""
+            projectFilter={projectFilter}
+            creatorId={creator.id}
             onEdit={handleEdit}
-            {...(!isDeleting && { onDelete: (id: string) => { void handleDelete(id); } })}
+            onDelete={(id) => { void handleDelete(id); }}
           />
         )}
       </section>

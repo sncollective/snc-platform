@@ -21,6 +21,7 @@
   font-family: var(--font-ui);
   font-size: var(--font-size-base);
   transition: border-color 0.15s;
+  color-scheme: dark;
 }
 
 .input:focus {
@@ -54,6 +55,7 @@
   font-family: var(--font-ui);
   font-size: var(--font-size-base);
   transition: border-color 0.15s;
+  color-scheme: dark;
 }
 
 .select:focus {

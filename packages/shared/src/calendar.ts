@@ -37,6 +37,7 @@ export const CalendarEventSchema = z.object({
   location: z.string(),
   createdBy: z.string(),
   creatorId: z.string().nullable(),
+  creatorName: z.string().nullable(),
   projectId: z.string().nullable(),
   projectName: z.string().nullable(),
   completedAt: z.iso.datetime().nullable(),
@@ -71,6 +72,7 @@ export const CalendarEventsQuerySchema = z.object({
   to: z.iso.datetime().optional(),
   eventType: z.string().optional(),
   projectId: z.string().optional(),
+  creatorId: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });

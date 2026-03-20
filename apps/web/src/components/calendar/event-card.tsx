@@ -49,6 +49,9 @@ export function EventCard({
           {event.projectName && (
             <span className={styles.projectBadge}>{event.projectName}</span>
           )}
+          {event.creatorName && (
+            <span className={styles.creatorBadge}>{event.creatorName}</span>
+          )}
         </div>
       </div>
       <div className={styles.titleRow}>
