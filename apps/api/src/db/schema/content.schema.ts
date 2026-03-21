@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 
-import type { ContentType, Visibility } from "@snc/shared";
+import type { ContentType, Visibility, SourceType } from "@snc/shared";
 
 import { creatorProfiles } from "./creator.schema.js";
 
@@ -18,6 +18,7 @@ export const content = pgTable(
     body: text("body"),
     description: text("description"),
     visibility: text("visibility").$type<Visibility>().notNull().default("public"),
+    sourceType: text("source_type").$type<SourceType>().notNull().default("upload"),
     thumbnailKey: text("thumbnail_key"),
     mediaKey: text("media_key"),
     coverArtKey: text("cover_art_key"),

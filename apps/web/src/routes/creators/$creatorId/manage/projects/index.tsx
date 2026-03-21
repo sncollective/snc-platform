@@ -1,23 +1,21 @@
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, redirect, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
-import type { Project, CreatorListItem } from "@snc/shared";
+import type { Project } from "@snc/shared";
 import { MAX_PROJECT_NAME_LENGTH, MAX_PROJECT_DESCRIPTION_LENGTH } from "@snc/shared";
 
 import { z, minLength, maxLength, safeParse } from "zod/mini";
-import { fetchAuthStateServer } from "../lib/api-server.js";
-import { isFeatureEnabled } from "../lib/config.js";
 import {
   fetchProjects,
   createProject,
   updateProject,
   deleteProject,
-} from "../lib/project.js";
-import { fetchAllCreators } from "../lib/creator.js";
-import { extractFieldErrors } from "../lib/form-utils.js";
-import formStyles from "../styles/form.module.css";
-import listingStyles from "../styles/listing-page.module.css";
-import styles from "./projects.module.css";
+} from "../../../../../lib/project.js";
+import { isFeatureEnabled } from "../../../../../lib/config.js";
+import { extractFieldErrors } from "../../../../../lib/form-utils.js";
+import formStyles from "../../../../../styles/form.module.css";
+import sectionStyles from "../../../../../styles/detail-section.module.css";
+import styles from "./projects-manage.module.css";
 
 // ── Private Schemas ──
 
@@ -40,37 +38,28 @@ type FieldErrors = Partial<Record<ProjectFormFields, string>>;
 
 // ── Route ──
 
-export const Route = createFileRoute("/projects")({
-  beforeLoad: async () => {
+const manageRoute = getRouteApi("/creators/$creatorId/manage");
+
+export const Route = createFileRoute("/creators/$creatorId/manage/projects/")({
+  beforeLoad: () => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-
-    const { user, roles } = await fetchAuthStateServer();
-
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-
-    if (!roles.includes("stakeholder")) {
-      throw redirect({ to: "/feed" });
-    }
   },
-  component: ProjectsPage,
+  component: ManageProjectsPage,
 });
 
 // ── Inline Project Form ──
 
 interface ProjectFormProps {
   readonly project?: Project | undefined;
-  readonly creators: readonly CreatorListItem[];
+  readonly creatorId: string;
   readonly onSuccess: (project: Project) => void;
   readonly onCancel: () => void;
 }
 
-function ProjectForm({ project, creators, onSuccess, onCancel }: ProjectFormProps): React.ReactElement {
+function ProjectForm({ project, creatorId, onSuccess, onCancel }: ProjectFormProps): React.ReactElement {
   const isEdit = project !== undefined;
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
-  const [creatorId, setCreatorId] = useState(project?.creatorId ?? "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,7 +93,7 @@ function ProjectForm({ project, creators, onSuccess, onCancel }: ProjectFormProp
         const created = await createProject({
           name: data.name,
           description: data.description,
-          creatorId: creatorId || null,
+          creatorId,
         });
         onSuccess(created);
       }
@@ -163,23 +152,6 @@ function ProjectForm({ project, creators, onSuccess, onCancel }: ProjectFormProp
           </span>
         )}
       </div>
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="project-creator" className={formStyles.label}>
-          Creator
-        </label>
-        <select
-          id="project-creator"
-          value={creatorId}
-          onChange={(e) => setCreatorId(e.target.value)}
-          className={formStyles.input}
-          disabled={isEdit}
-        >
-          <option value="">None (org-level)</option>
-          {creators.map((c) => (
-            <option key={c.id} value={c.id}>{c.displayName}</option>
-          ))}
-        </select>
-      </div>
       <div className={styles.formActions}>
         <button
           type="submit"
@@ -204,20 +176,21 @@ function ProjectForm({ project, creators, onSuccess, onCancel }: ProjectFormProp
 
 interface ProjectItemProps {
   readonly project: Project;
+  readonly creatorId: string;
   readonly onEdit: (project: Project) => void;
   readonly onToggleComplete: (project: Project) => void;
   readonly onDelete: (id: string) => void;
 }
 
-function ProjectItem({ project, onEdit, onToggleComplete, onDelete }: ProjectItemProps): React.ReactElement {
+function ProjectItem({ project, creatorId, onEdit, onToggleComplete, onDelete }: ProjectItemProps): React.ReactElement {
   return (
     <div className={styles.projectItem}>
       <div className={styles.projectItemHeader}>
         <div className={styles.projectItemMeta}>
           <Link
-            to="/projects/$projectSlug"
-            params={{ projectSlug: project.slug }}
-            className={styles.projectNameLink}
+            to="/creators/$creatorId/manage/projects/$projectSlug"
+            params={{ creatorId, projectSlug: project.slug }}
+            className={styles.projectName}
           >
             {project.name}
           </Link>
@@ -258,28 +231,19 @@ function ProjectItem({ project, onEdit, onToggleComplete, onDelete }: ProjectIte
 
 // ── Component ──
 
-function ProjectsPage(): React.ReactElement {
-  if (!isFeatureEnabled("calendar")) {
-    return <div>Projects are not available.</div>;
-  }
+function ManageProjectsPage(): React.ReactElement {
+  const { creator } = manageRoute.useLoaderData();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [creators, setCreators] = useState<CreatorListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
   const [showCompleted, setShowCompleted] = useState(false);
 
-  useEffect(() => {
-    void fetchAllCreators().then((all) => {
-      setCreators(all.filter((c) => c.canManage === true));
-    });
-  }, []);
-
   const loadProjects = async () => {
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { creatorId: creator.id };
       if (!showCompleted) params.completed = "false";
       const result = await fetchProjects(params);
       setProjects(result.items);
@@ -336,64 +300,69 @@ function ProjectsPage(): React.ReactElement {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <h1 className={listingStyles.heading}>Projects</h1>
-        <button
-          type="button"
-          className={styles.newButton}
-          onClick={handleNewProject}
-        >
-          New Project
-        </button>
-      </div>
-
-      {error !== null && (
-        <div className={styles.error} role="alert">{error}</div>
-      )}
-
-      <div className={styles.filterRow}>
-        <label className={styles.filterLabel}>
-          <input
-            type="checkbox"
-            checked={showCompleted}
-            onChange={(e) => setShowCompleted(e.target.checked)}
-          />
-          {" "}Show completed
-        </label>
-      </div>
-
-      {showForm && (
-        <div className={styles.formWrapper}>
-          <ProjectForm
-            project={editingProject}
-            creators={creators}
-            onSuccess={handleFormSuccess}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingProject(undefined);
-            }}
-          />
+    <div className={styles.projectsManage}>
+      <section className={sectionStyles.section}>
+        <div className={styles.headerRow}>
+          <h2 className={sectionStyles.sectionHeading}>Projects</h2>
+          <button
+            type="button"
+            className={styles.newButton}
+            onClick={handleNewProject}
+          >
+            New Project
+          </button>
         </div>
-      )}
 
-      {isLoading ? (
-        <p className={listingStyles.status}>Loading projects...</p>
-      ) : projects.length === 0 ? (
-        <p className={listingStyles.status}>No projects yet. Create one to get started.</p>
-      ) : (
-        <div className={styles.projectList}>
-          {projects.map((project) => (
-            <ProjectItem
-              key={project.id}
-              project={project}
-              onEdit={handleEdit}
-              onToggleComplete={(p) => { void handleToggleComplete(p); }}
-              onDelete={(id) => { void handleDelete(id); }}
+        {error !== null && (
+          <div className={styles.error} role="alert">
+            {error}
+          </div>
+        )}
+
+        <div className={styles.filterRow}>
+          <label className={styles.filterLabel}>
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(e) => setShowCompleted(e.target.checked)}
             />
-          ))}
+            {" "}Show completed
+          </label>
         </div>
-      )}
+
+        {showForm && (
+          <div className={styles.formWrapper}>
+            <ProjectForm
+              project={editingProject}
+              creatorId={creator.id}
+              onSuccess={handleFormSuccess}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingProject(undefined);
+              }}
+            />
+          </div>
+        )}
+
+        {isLoading ? (
+          <p className={styles.status}>Loading projects...</p>
+        ) : projects.length === 0 ? (
+          <p className={styles.status}>No projects yet. Create one to get started.</p>
+        ) : (
+          <div className={styles.projectList}>
+            {projects.map((project) => (
+              <ProjectItem
+                key={project.id}
+                project={project}
+                creatorId={creator.id}
+                onEdit={handleEdit}
+                onToggleComplete={(p) => { void handleToggleComplete(p); }}
+                onDelete={(id) => { void handleDelete(id); }}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -33,6 +33,16 @@ export type StorageProvider = {
     key: string,
     expiresInSeconds: number,
   ): Promise<Result<string, AppError>>;
+
+  /** Get object metadata (size, content type) without downloading. */
+  head(key: string): Promise<Result<{ size: number; contentType: string }, AppError>>;
+
+  /** Generate a presigned PUT URL for direct-to-storage uploads. */
+  getPresignedUploadUrl(
+    key: string,
+    contentType: string,
+    expiresInSeconds: number,
+  ): Promise<Result<string, AppError>>;
 };
 
 // ── Public Constants ──

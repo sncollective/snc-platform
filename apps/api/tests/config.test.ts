@@ -29,6 +29,7 @@ describe("parseConfig", () => {
       BETTER_AUTH_URL: "http://localhost:3080",
       STORAGE_TYPE: "local",
       STORAGE_LOCAL_DIR: "./uploads",
+      S3_REGION: "garage",
       STRIPE_SECRET_KEY: TEST_STRIPE_SECRET_KEY,
       STRIPE_WEBHOOK_SECRET: TEST_STRIPE_WEBHOOK_SECRET,
       SMTP_PORT: 587,
@@ -142,8 +143,13 @@ describe("parseConfig", () => {
 
   it("throws ZodError when STORAGE_TYPE is invalid", () => {
     expect(() =>
-      parseConfig({ ...BASE_ENV, STORAGE_TYPE: "s3" }),
+      parseConfig({ ...BASE_ENV, STORAGE_TYPE: "gcs" }),
     ).toThrow();
+  });
+
+  it("accepts STORAGE_TYPE of 's3'", () => {
+    const result = parseConfig({ ...BASE_ENV, STORAGE_TYPE: "s3" });
+    expect(result.STORAGE_TYPE).toBe("s3");
   });
 
   it("applies default STORAGE_LOCAL_DIR when omitted", () => {

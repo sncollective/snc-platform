@@ -134,6 +134,13 @@
       "when": 1773958334185,
       "tag": "0018_snapshot-sync",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774053048742,
+      "tag": "0019_bent_mauler",
+      "breakpoints": true
     }
   ]
 }

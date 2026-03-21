@@ -16,8 +16,14 @@ export const ENV_SCHEMA = z.object({
   CORS_ORIGIN: z.string().default("http://localhost:3080"),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3080"),
-  STORAGE_TYPE: z.enum(["local"]).default("local"),
+  STORAGE_TYPE: z.enum(["local", "s3"]).default("local"),
   STORAGE_LOCAL_DIR: z.string().default("./uploads"),
+  // S3-compatible storage (required when STORAGE_TYPE is "s3")
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default("garage"),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
   // Phase 7: Stripe (optional — API returns 503 BILLING_NOT_CONFIGURED when absent)
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),

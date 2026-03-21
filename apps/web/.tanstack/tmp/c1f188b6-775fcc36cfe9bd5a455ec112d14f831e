@@ -40,7 +40,7 @@ type FieldErrors = Partial<Record<ProjectFormFields, string>>;
 
 const manageRoute = getRouteApi("/creators/$creatorId/manage");
 
-export const Route = createFileRoute("/creators/$creatorId/manage/projects")({
+export const Route = createFileRoute("/creators/$creatorId/manage/projects/")({
   beforeLoad: () => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
   },
@@ -176,19 +176,20 @@ function ProjectForm({ project, creatorId, onSuccess, onCancel }: ProjectFormPro
 
 interface ProjectItemProps {
   readonly project: Project;
+  readonly creatorId: string;
   readonly onEdit: (project: Project) => void;
   readonly onToggleComplete: (project: Project) => void;
   readonly onDelete: (id: string) => void;
 }
 
-function ProjectItem({ project, onEdit, onToggleComplete, onDelete }: ProjectItemProps): React.ReactElement {
+function ProjectItem({ project, creatorId, onEdit, onToggleComplete, onDelete }: ProjectItemProps): React.ReactElement {
   return (
     <div className={styles.projectItem}>
       <div className={styles.projectItemHeader}>
         <div className={styles.projectItemMeta}>
           <Link
-            to="/projects/$projectSlug"
-            params={{ projectSlug: project.slug }}
+            to="/creators/$creatorId/manage/projects/$projectSlug"
+            params={{ creatorId, projectSlug: project.slug }}
             className={styles.projectName}
           >
             {project.name}
@@ -353,6 +354,7 @@ function ManageProjectsPage(): React.ReactElement {
               <ProjectItem
                 key={project.id}
                 project={project}
+                creatorId={creator.id}
                 onEdit={handleEdit}
                 onToggleComplete={(p) => { void handleToggleComplete(p); }}
                 onDelete={(id) => { void handleDelete(id); }}

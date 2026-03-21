@@ -17,6 +17,8 @@
     "seed:demo": "ALLOW_DEMO_SEED=true tsx --import ./src/env.ts src/scripts/seed-demo.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/s3-request-presigner": "^3.1014.0",
     "@fedify/fedify": "^2.0.5",
     "@fedify/hono": "^2.0.5",
     "@fedify/postgres": "^2.0.5",

@@ -1,0 +1,130 @@
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.backLink {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: var(--space-lg);
+}
+
+.backLink:hover {
+  color: var(--color-accent);
+}
+
+.projectHeader {
+  margin-bottom: var(--space-xl);
+}
+
+.projectTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.completedBadge {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(91, 181, 181, 0.2);
+  color: var(--color-secondary);
+}
+
+.projectDescription {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: var(--space-sm) 0 0;
+}
+
+.projectActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.actionButton,
+.deleteButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.actionButton:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.deleteButton:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.error {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: rgba(239, 83, 80, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.timelineSection {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-lg);
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.timelineHeading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.addEventButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.addEventButton:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.formWrapper {
+  margin-bottom: var(--space-lg);
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}

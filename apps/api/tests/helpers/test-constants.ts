@@ -27,6 +27,11 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   BETTER_AUTH_URL: "http://localhost:3080",
   STORAGE_TYPE: "local",
   STORAGE_LOCAL_DIR: "/tmp/snc-test-uploads",
+  S3_ENDPOINT: undefined as string | undefined,
+  S3_REGION: "garage",
+  S3_BUCKET: undefined as string | undefined,
+  S3_ACCESS_KEY_ID: undefined as string | undefined,
+  S3_SECRET_ACCESS_KEY: undefined as string | undefined,
   STRIPE_SECRET_KEY: "sk_test_mock_key_for_testing_only" as string | undefined,
   STRIPE_WEBHOOK_SECRET: "whsec_mock_webhook_secret_for_testing" as
     | string
@@ -42,6 +47,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   FEATURE_DASHBOARD: true,
   FEATURE_ADMIN: true,
   FEATURE_EMISSIONS: true,
+  FEATURE_CALENDAR: true,
   SEAFILE_OIDC_CLIENT_ID: undefined as string | undefined,
   SEAFILE_OIDC_CLIENT_SECRET: undefined as string | undefined,
   STUDIO_INQUIRY_EMAIL: undefined as string | undefined,
