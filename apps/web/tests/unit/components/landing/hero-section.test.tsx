@@ -89,7 +89,7 @@ describe("HeroSection", () => {
       render(<HeroSection plans={DEFAULT_PLANS} />);
 
       expect(
-        screen.getByText(/We cut through the noise/),
+        screen.getByText(/We boost the signal/),
       ).toBeInTheDocument();
     });
 
