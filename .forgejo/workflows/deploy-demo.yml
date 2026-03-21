@@ -148,7 +148,8 @@ jobs:
           set_env S3_SECRET_ACCESS_KEY "${S3_SECRET_ACCESS_KEY}"
 
           # ── Build & deploy ──
-          git pull origin main
+          git fetch origin main
+          git reset --hard origin/main
           corepack enable
           pnpm install --frozen-lockfile
           pnpm build
