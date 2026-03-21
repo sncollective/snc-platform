@@ -76,9 +76,12 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
       creatorProfiles: {
         id: {},
-        userId: {},
         avatarKey: {},
         bannerKey: {},
+      },
+      creatorMembers: {
+        creatorId: {},
+        userId: {},
       },
     }));
   },
@@ -215,7 +218,7 @@ describe("upload routes", () => {
       // Content belongs to a different user
       mockSelectLimit
         .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "different-user-id" }]);
+        .mockResolvedValueOnce([]);
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
@@ -283,7 +286,7 @@ describe("upload routes", () => {
     it("returns 403 for non-owner", async () => {
       mockSelectLimit
         .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "different-user-id" }]);
+        .mockResolvedValueOnce([]);
 
       const res = await ctx.app.request("/api/uploads/s3/multipart", {
         method: "POST",
@@ -491,7 +494,7 @@ describe("upload routes", () => {
     it("returns 403 for non-owner", async () => {
       mockSelectLimit
         .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "different-user-id" }]);
+        .mockResolvedValueOnce([]);
 
       const res = await ctx.app.request("/api/uploads/complete", {
         method: "POST",
@@ -631,8 +634,8 @@ describe("upload routes", () => {
       expect(body.method).toBe("PUT");
     });
 
-    it("POST /presign returns 404 when creator profile not found", async () => {
-      mockSelectLimit.mockResolvedValueOnce([]); // profile not found
+    it("POST /presign returns 403 when user is not a member of the creator profile", async () => {
+      mockSelectLimit.mockResolvedValueOnce([]); // no membership found
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
@@ -646,7 +649,7 @@ describe("upload routes", () => {
         }),
       });
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
     });
   });
 });
