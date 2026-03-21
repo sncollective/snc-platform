@@ -140,5 +140,51 @@ export const runStorageContractTests = (
         expect(result.error).toBeInstanceOf(NotFoundError);
       }
     });
+
+    it("head returns size and contentType for existing file", async () => {
+      const content = "head test content";
+      await provider.upload(
+        "test/head-test.txt",
+        textToStream(content),
+        { contentType: "text/plain" },
+      );
+
+      const result = await provider.head("test/head-test.txt");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.size).toBe(
+          new TextEncoder().encode(content).byteLength,
+        );
+        expect(typeof result.value.contentType).toBe("string");
+        expect(result.value.contentType.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("head returns NotFoundError for non-existent key", async () => {
+      const result = await provider.head(
+        "test/never-uploaded-head-" + Date.now() + ".txt",
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(NotFoundError);
+      }
+    });
+
+    it("getPresignedUploadUrl returns a Result", async () => {
+      const result = await provider.getPresignedUploadUrl(
+        "test/presign-test.mp4",
+        "video/mp4",
+        3600,
+      );
+
+      // Result may be ok (S3) or err (local storage) — both are valid
+      expect(typeof result.ok).toBe("boolean");
+      if (result.ok) {
+        expect(typeof result.value).toBe("string");
+        expect(result.value.length).toBeGreaterThan(0);
+      }
+    });
   });
 };

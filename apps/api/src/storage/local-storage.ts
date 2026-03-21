@@ -118,10 +118,62 @@ export const createLocalStorage = (
     return ok(`/api/storage/${key}`);
   };
 
+  const head = async (
+    key: string,
+  ): Promise<Result<{ size: number; contentType: string }, AppError>> => {
+    try {
+      const filePath = resolvePath(key);
+      let fileStat: Awaited<ReturnType<typeof stat>>;
+      try {
+        fileStat = await stat(filePath);
+      } catch (statError) {
+        if (isEnoent(statError)) {
+          return err(new NotFoundError("File not found"));
+        }
+        throw statError;
+      }
+      const dot = key.lastIndexOf(".");
+      const ext = dot === -1 ? "" : key.slice(dot).toLowerCase();
+      const MIME_MAP: Record<string, string> = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".mp3": "audio/mpeg",
+        ".wav": "audio/wav",
+        ".flac": "audio/flac",
+        ".ogg": "audio/ogg",
+        ".aac": "audio/aac",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+      };
+      const contentType = MIME_MAP[ext] ?? "application/octet-stream";
+      return ok({ size: fileStat.size, contentType });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return err(error);
+      }
+      return toStorageError(error);
+    }
+  };
+
+  const getPresignedUploadUrl = async (
+    _key: string,
+    _contentType: string,
+    _expiresInSeconds: number,
+  ): Promise<Result<string, AppError>> => {
+    return err(
+      new AppError("PRESIGN_UPLOAD_NOT_SUPPORTED", "Direct uploads require S3 storage", 501),
+    );
+  };
+
   return {
     upload,
     download,
     delete: deleteFile,
     getSignedUrl,
+    head,
+    getPresignedUploadUrl,
   };
 };

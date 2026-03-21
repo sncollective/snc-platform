@@ -66,7 +66,7 @@ vi.mock("../../../src/styles/form.module.css", () => ({
 }));
 
 vi.mock(
-  "../../../src/routes/creators/$creatorId/manage/projects-manage.module.css",
+  "../../../src/routes/creators/$creatorId/manage/projects/projects-manage.module.css",
   () => ({
     default: {
       projectsManage: "projectsManage",
@@ -99,7 +99,7 @@ vi.mock(
 const ManageProjectsPage = extractRouteComponent(
   () =>
     import(
-      "../../../src/routes/creators/$creatorId/manage/projects.js"
+      "../../../src/routes/creators/$creatorId/manage/projects/index.js"
     ),
 );
 
@@ -191,5 +191,16 @@ describe("ManageProjectsPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/no projects yet/i)).toBeInTheDocument();
     });
+  });
+
+  it("links project name to manage project detail route", async () => {
+    render(<ManageProjectsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Animal Future LP")).toBeInTheDocument();
+    });
+
+    const link = screen.getByRole("link", { name: "Animal Future LP" });
+    expect(link).toHaveAttribute("href", expect.stringContaining("/creators/creator-uuid-123/manage/projects/"));
   });
 });

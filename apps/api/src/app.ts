@@ -24,6 +24,7 @@ import { calendarRoutes } from "./routes/calendar.routes.js";
 import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
+import { uploadRoutes } from "./routes/upload.routes.js";
 // federation.routes uses @fedify/fedify which may not be installed;
 // imported dynamically below so the server boots even without it.
 
@@ -75,9 +76,10 @@ app.get(
   (c) => c.json({ status: "ok" as const }),
 );
 
-// Always-on routes (auth, me)
+// Always-on routes (auth, me, uploads)
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
+app.route("/api/uploads", uploadRoutes);
 
 // Feature-gated routes
 if (features.content) app.route("/api/content", contentRoutes);

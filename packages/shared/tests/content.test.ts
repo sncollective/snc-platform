@@ -31,6 +31,7 @@ const VALID_CONTENT_RESPONSE = {
   body: "This is the body of the post.",
   description: "A test post description",
   visibility: "public" as const,
+  sourceType: "upload" as const,
   thumbnailUrl: null,
   mediaUrl: null,
   coverArtUrl: null,

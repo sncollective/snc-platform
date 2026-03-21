@@ -14,6 +14,7 @@ const {
   mockUpdateProject,
   mockDeleteProject,
   mockFetchAuthStateServer,
+  mockFetchAllCreators,
   mockIsFeatureEnabled,
   mockRedirect,
 } = vi.hoisted(() => ({
@@ -22,6 +23,7 @@ const {
   mockUpdateProject: vi.fn(),
   mockDeleteProject: vi.fn(),
   mockFetchAuthStateServer: vi.fn(),
+  mockFetchAllCreators: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
   mockRedirect: vi.fn(),
 }));
@@ -35,6 +37,10 @@ vi.mock("../../../src/lib/project.js", () => ({
   createProject: mockCreateProject,
   updateProject: mockUpdateProject,
   deleteProject: mockDeleteProject,
+}));
+
+vi.mock("../../../src/lib/creator.js", () => ({
+  fetchAllCreators: mockFetchAllCreators,
 }));
 
 vi.mock("../../../src/lib/api-server.js", () => ({
@@ -111,6 +117,10 @@ beforeEach(() => {
     items: [makeMockProject()],
     nextCursor: null,
   });
+  mockFetchAllCreators.mockResolvedValue([
+    { id: "cr1", displayName: "Creator One", canManage: true },
+    { id: "cr2", displayName: "Creator Two", canManage: false },
+  ]);
   mockCreateProject.mockResolvedValue(makeMockProject({ id: "new-proj" }));
   mockUpdateProject.mockResolvedValue(makeMockProject({ completed: true }));
   mockDeleteProject.mockResolvedValue(undefined);
@@ -192,5 +202,87 @@ describe("ProjectsPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/no projects yet/i)).toBeInTheDocument();
     });
+  });
+
+  it("shows creator selector in new project form", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await user.click(screen.getByRole("button", { name: "New Project" }));
+
+    expect(screen.getByLabelText(/creator/i)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /creator/i })).toBeInTheDocument();
+  });
+
+  it("only shows manageable creators in selector", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await user.click(screen.getByRole("button", { name: "New Project" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "Creator One" })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("option", { name: "Creator Two" })).not.toBeInTheDocument();
+  });
+
+  it("shows None option in creator selector", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await user.click(screen.getByRole("button", { name: "New Project" }));
+
+    expect(screen.getByRole("option", { name: "None (org-level)" })).toBeInTheDocument();
+  });
+
+  it("creates project with selected creator", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await user.click(screen.getByRole("button", { name: "New Project" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "Creator One" })).toBeInTheDocument();
+    });
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /creator/i }), "cr1");
+    await user.type(screen.getByLabelText(/^name/i), "My Project");
+    await user.click(screen.getByRole("button", { name: /create project/i }));
+
+    await waitFor(() => {
+      expect(mockCreateProject).toHaveBeenCalledWith(
+        expect.objectContaining({ creatorId: "cr1" }),
+      );
+    });
+  });
+
+  it("creates project with null creatorId when None selected", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await user.click(screen.getByRole("button", { name: "New Project" }));
+    await user.type(screen.getByLabelText(/^name/i), "My Project");
+    await user.click(screen.getByRole("button", { name: /create project/i }));
+
+    await waitFor(() => {
+      expect(mockCreateProject).toHaveBeenCalledWith(
+        expect.objectContaining({ creatorId: null }),
+      );
+    });
+  });
+
+  it("disables creator selector when editing", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Animal Future LP")).toBeInTheDocument();
+    });
+
+    const editButtons = screen.getAllByRole("button", { name: /edit/i });
+    await user.click(editButtons[0]);
+
+    const select = screen.getByRole("combobox", { name: /creator/i });
+    expect(select).toBeDisabled();
   });
 });

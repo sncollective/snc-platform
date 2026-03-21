@@ -242,7 +242,10 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
           id="content-title"
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: undefined }));
+          }}
           className={
             fieldErrors.title
               ? `${formStyles.input} ${formStyles.inputError}`
@@ -266,7 +269,10 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
         <textarea
           id="content-description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            if (fieldErrors.description) setFieldErrors((prev) => ({ ...prev, description: undefined }));
+          }}
           className={`${formStyles.textarea} ${styles.textarea}`}
           disabled={isSubmitting}
           maxLength={MAX_DESCRIPTION_LENGTH}
@@ -313,7 +319,10 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
           <textarea
             id="content-body"
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              if (fieldErrors.body) setFieldErrors((prev) => ({ ...prev, body: undefined }));
+            }}
             className={
               fieldErrors.body
                 ? `${formStyles.textarea} ${styles.textarea} ${formStyles.inputError}`

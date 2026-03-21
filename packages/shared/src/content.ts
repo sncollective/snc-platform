@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SOURCE_TYPES, SourceTypeSchema } from "./uploads.js";
+
 // ── Public Constants ──
 
 export const CONTENT_TYPES = ["video", "audio", "written"] as const;
@@ -19,6 +21,7 @@ export const CreateContentSchema = z.object({
   description: z.string().max(MAX_DESCRIPTION_LENGTH).optional(),
   visibility: VisibilitySchema.default("public"),
   body: z.string().optional(),
+  sourceType: SourceTypeSchema.default("upload"),
 });
 
 export const UpdateContentSchema = z.object({
@@ -36,6 +39,7 @@ export const ContentResponseSchema = z.object({
   body: z.string().nullable(),
   description: z.string().nullable(),
   visibility: VisibilitySchema,
+  sourceType: z.enum(SOURCE_TYPES),
   thumbnailUrl: z.string().nullable(),
   mediaUrl: z.string().nullable(),
   coverArtUrl: z.string().nullable(),
