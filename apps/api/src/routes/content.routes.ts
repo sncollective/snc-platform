@@ -243,7 +243,7 @@ contentRoutes.get(
       or(
         eq(content.type, "written"),
         isNotNull(content.mediaKey),
-      ),
+      )!,
     );
 
     // Decode cursor for keyset pagination
@@ -272,6 +272,7 @@ contentRoutes.get(
         body: content.body,
         description: content.description,
         visibility: content.visibility,
+        sourceType: content.sourceType,
         thumbnailKey: content.thumbnailKey,
         mediaKey: content.mediaKey,
         coverArtKey: content.coverArtKey,

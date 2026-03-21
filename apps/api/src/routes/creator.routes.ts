@@ -319,7 +319,7 @@ const handleImageStream = async (
   c: Context,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const profile = await findCreatorProfile(c.req.param("creatorId"));
+  const profile = await findCreatorProfile(c.req.param("creatorId") ?? "");
   const key = field === "avatar" ? profile?.avatarKey : profile?.bannerKey;
   if (!profile || !key) throw new NotFoundError(`${field} not found`);
   return streamFile(c, storage, key, `${field} file not found`);

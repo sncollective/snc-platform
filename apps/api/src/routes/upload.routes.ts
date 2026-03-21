@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import {
   AppError,
@@ -33,7 +33,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { storage, s3Multipart } from "../storage/index.js";
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
-import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { sanitizeFilename } from "./file-utils.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "./openapi-errors.js";
 
@@ -138,25 +138,30 @@ const verifyOwnership = async (
       .limit(1);
     if (!row) throw new NotFoundError("Content not found");
 
-    const [profile] = await db
-      .select({ userId: creatorProfiles.userId })
-      .from(creatorProfiles)
-      .where(eq(creatorProfiles.id, row.creatorId))
+    const [member] = await db
+      .select({ userId: creatorMembers.userId })
+      .from(creatorMembers)
+      .where(and(
+        eq(creatorMembers.creatorId, row.creatorId),
+        eq(creatorMembers.userId, userId),
+      ))
       .limit(1);
-    if (!profile || profile.userId !== userId) {
+    if (!member) {
       throw new AppError("FORBIDDEN", "Not the content owner", 403);
     }
     return { contentType: row.type };
   }
 
   if (purpose.startsWith("creator-")) {
-    const [profile] = await db
-      .select({ userId: creatorProfiles.userId })
-      .from(creatorProfiles)
-      .where(eq(creatorProfiles.id, resourceId))
+    const [member] = await db
+      .select({ userId: creatorMembers.userId })
+      .from(creatorMembers)
+      .where(and(
+        eq(creatorMembers.creatorId, resourceId),
+        eq(creatorMembers.userId, userId),
+      ))
       .limit(1);
-    if (!profile) throw new NotFoundError("Creator profile not found");
-    if (profile.userId !== userId) {
+    if (!member) {
       throw new AppError("FORBIDDEN", "Not the profile owner", 403);
     }
     return {};
@@ -459,11 +464,11 @@ uploadRoutes.post(
     const column = PURPOSE_DB_COLUMN[body.purpose];
     if (body.purpose.startsWith("content-")) {
       const [existing] = await db
-        .select({ [column!]: (content as never as Record<string, unknown>)[column!] })
+        .select()
         .from(content)
         .where(eq(content.id, body.resourceId))
         .limit(1);
-      const oldKey = (existing as Record<string, unknown> | undefined)?.[column!] as
+      const oldKey = existing?.[column! as keyof typeof existing] as
         | string
         | null;
       if (oldKey && oldKey !== body.key) {
