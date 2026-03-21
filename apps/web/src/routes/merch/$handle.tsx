@@ -2,6 +2,7 @@ import type React from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { MerchProductDetail } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ProductDetail } from "../../components/merch/product-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
@@ -10,6 +11,7 @@ import { isFeatureEnabled } from "../../lib/config.js";
 // ── Route ──
 
 export const Route = createFileRoute("/merch/$handle")({
+  errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<MerchProductDetail | null> => {
     if (!isFeatureEnabled("merch")) return null;
     try {

@@ -4,6 +4,7 @@ import { app } from "./app.js";
 import { seedOidcClients } from "./auth/seed-oidc-clients.js";
 import { config } from "./config.js";
 import { sql } from "./db/connection.js";
+import { rootLogger } from "./logging/logger.js";
 
 // ── Server ──
 
@@ -12,10 +13,13 @@ const server = serve({
   port: config.PORT,
 });
 
-console.log(`Server running on port ${config.PORT}`);
+rootLogger.info({ port: config.PORT }, "Server started");
 
 seedOidcClients().catch((err) =>
-  console.error("Failed to seed OIDC clients:", err),
+  rootLogger.error(
+    { error: err instanceof Error ? err.message : String(err) },
+    "Failed to seed OIDC clients",
+  ),
 );
 
 // ── Graceful Shutdown ──
@@ -23,7 +27,10 @@ seedOidcClients().catch((err) =>
 const shutdown = () => {
   server.close(async (err) => {
     if (err) {
-      console.error("Error during server shutdown:", err);
+      rootLogger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        "Error during server shutdown",
+      );
       process.exit(1);
     }
     await sql.end();

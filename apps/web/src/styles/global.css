@@ -37,6 +37,7 @@
   --content-max-width: 1200px;
   --nav-height: 64px;
   --mini-player-height: 0px;
+  --mini-upload-height: 0px;
 
   /* Borders */
   --radius-sm: 4px;
@@ -161,7 +162,7 @@ a:hover {
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md);
-  padding-bottom: calc(var(--space-lg) + var(--mini-player-height));
+  padding-bottom: calc(var(--space-lg) + var(--mini-player-height) + var(--mini-upload-height));
   min-height: calc(100vh - var(--nav-height) - 120px);
 }
 

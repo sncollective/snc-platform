@@ -4,6 +4,7 @@ import type { ContentResponse } from "@snc/shared";
 
 import {
   createContent,
+  updateContent,
   uploadContentFile,
 } from "../../../src/lib/content.js";
 import { setupFetchMock } from "../../helpers/fetch-mock.js";
@@ -162,5 +163,58 @@ describe("uploadContentFile", () => {
     await expect(
       uploadContentFile("content_test_001", "media", file),
     ).rejects.toThrow("Unauthorized");
+  });
+});
+
+// ── updateContent ──
+
+describe("updateContent", () => {
+  it("sends PATCH to correct URL with body and credentials", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(JSON.stringify(MOCK_CONTENT), { status: 200 }),
+    );
+
+    const result = await updateContent("content_test_001", {
+      title: "Updated Title",
+      visibility: "subscribers",
+    });
+
+    expect(getMockFetch()).toHaveBeenCalledWith(
+      "/api/content/content_test_001",
+      {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Updated Title",
+          visibility: "subscribers",
+        }),
+      },
+    );
+    expect(result).toEqual(MOCK_CONTENT);
+  });
+
+  it("encodes content ID in URL", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(JSON.stringify(MOCK_CONTENT), { status: 200 }),
+    );
+
+    await updateContent("content/with/slashes", { title: "Updated" });
+
+    const [url] = getMockFetch().mock.calls[0]!;
+    expect(url).toBe("/api/content/content%2Fwith%2Fslashes");
+  });
+
+  it("throws on 403 forbidden", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: "Forbidden" } }),
+        { status: 403 },
+      ),
+    );
+
+    await expect(
+      updateContent("content_test_001", { title: "Updated" }),
+    ).rejects.toThrow("Forbidden");
   });
 });

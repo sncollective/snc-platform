@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { EmissionsBreakdown } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
@@ -16,6 +17,7 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./emissions.module.css";
 
 export const Route = createFileRoute("/emissions")({
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<EmissionsBreakdown | null> => {
     if (!isFeatureEnabled("emissions")) return null;
     return (await fetchApiServer({

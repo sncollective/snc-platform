@@ -13,6 +13,7 @@ const booleanFlag = z
 export const ENV_SCHEMA = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().default(3000),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   CORS_ORIGIN: z.string().default("http://localhost:3080"),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3080"),

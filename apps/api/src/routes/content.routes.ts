@@ -20,8 +20,9 @@ import {
   FeedQuerySchema,
   FeedResponseSchema,
   FeedItemSchema,
+  DraftQuerySchema,
 } from "@snc/shared";
-import type { ContentResponse, ContentType, FeedItem, FeedQuery } from "@snc/shared";
+import type { ContentResponse, ContentType, FeedItem, FeedQuery, DraftQuery } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
@@ -30,7 +31,8 @@ import { auth } from "../auth/auth.js";
 import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { storage } from "../storage/index.js";
-import { requireCreatorPermission } from "../services/creator-team.js";
+import { requireCreatorPermission, checkCreatorPermission } from "../services/creator-team.js";
+import { getUserRoles } from "../auth/user-roles.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
@@ -67,6 +69,7 @@ const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   body: row.body ?? null,
   description: row.description ?? null,
   visibility: row.visibility,
+  sourceType: row.sourceType,
   thumbnailUrl: row.thumbnailKey
     ? `/api/content/${row.id}/thumbnail`
     : null,
@@ -235,6 +238,14 @@ contentRoutes.get(
       conditions.push(eq(content.creatorId, creatorIdFilter));
     }
 
+    // Belt-and-suspenders: exclude video/audio without mediaKey from feed
+    conditions.push(
+      or(
+        eq(content.type, "written"),
+        isNotNull(content.mediaKey),
+      ),
+    );
+
     // Decode cursor for keyset pagination
     if (cursor) {
       const decoded = decodeCursor(cursor, {
@@ -339,7 +350,7 @@ contentRoutes.post(
       body: body.body ?? null,
       description: body.description ?? null,
       visibility: body.visibility,
-      publishedAt: now,
+      publishedAt: body.type === "written" && body.publishImmediately !== false ? now : null,
       createdAt: now,
       updatedAt: now,
     }).returning();
@@ -349,6 +360,97 @@ contentRoutes.post(
     }
 
     return c.json(resolveContentUrls(inserted), 201);
+  },
+);
+
+// GET /drafts — List unpublished draft content for a creator
+contentRoutes.get(
+  "/drafts",
+  requireAuth,
+  describeRoute({
+    description: "List unpublished draft content for a creator",
+    tags: ["content"],
+    responses: {
+      200: {
+        description: "Paginated list of draft content",
+        content: {
+          "application/json": { schema: resolver(FeedResponseSchema) },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  validator("query", DraftQuerySchema),
+  async (c) => {
+    const {
+      creatorId,
+      limit,
+      cursor,
+    } = c.req.valid("query" as never) as DraftQuery;
+    const user = c.get("user");
+
+    await requireCreatorPermission(user.id, creatorId, "manageContent");
+
+    const conditions = [
+      isNull(content.deletedAt),
+      isNull(content.publishedAt),
+      eq(content.creatorId, creatorId),
+    ];
+
+    if (cursor) {
+      const decoded = decodeCursor(cursor, {
+        timestampField: "createdAt",
+        idField: "id",
+      });
+      const cursorCondition = or(
+        lt(content.createdAt, decoded.timestamp),
+        and(
+          eq(content.createdAt, decoded.timestamp),
+          lt(content.id, decoded.id),
+        ),
+      );
+      if (cursorCondition) conditions.push(cursorCondition);
+    }
+
+    const rows = await db
+      .select({
+        id: content.id,
+        creatorId: content.creatorId,
+        type: content.type,
+        title: content.title,
+        body: content.body,
+        description: content.description,
+        visibility: content.visibility,
+        sourceType: content.sourceType,
+        thumbnailKey: content.thumbnailKey,
+        mediaKey: content.mediaKey,
+        coverArtKey: content.coverArtKey,
+        publishedAt: content.publishedAt,
+        deletedAt: content.deletedAt,
+        createdAt: content.createdAt,
+        updatedAt: content.updatedAt,
+        creatorName: creatorProfiles.displayName,
+      })
+      .from(content)
+      .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
+      .where(and(...conditions))
+      .orderBy(desc(content.createdAt), desc(content.id))
+      .limit(limit + 1);
+
+    const { items: rawItems, nextCursor } = buildPaginatedResponse(
+      rows,
+      limit,
+      (last) => ({
+        createdAt: last.createdAt.toISOString(),
+        id: last.id,
+      }),
+    );
+
+    const items = rawItems.map((row) => resolveFeedItem(row));
+
+    return c.json({ items, nextCursor });
   },
 );
 
@@ -374,6 +476,29 @@ contentRoutes.get(
 
     if (!row) {
       throw new NotFoundError("Content not found");
+    }
+
+    // Draft access control: only authorized users can preview drafts
+    if (!row.publishedAt) {
+      const session = await auth.api.getSession({
+        headers: c.req.raw.headers,
+      });
+      const userId = session?.user?.id ?? null;
+      if (!userId) {
+        throw new NotFoundError("Content not found");
+      }
+      const roles = await getUserRoles(userId);
+      const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
+      if (!isAdmin) {
+        const hasPermission = await checkCreatorPermission(
+          userId,
+          row.creatorId,
+          "manageContent",
+        );
+        if (!hasPermission) {
+          throw new NotFoundError("Content not found");
+        }
+      }
     }
 
     const response = resolveContentUrls(row);
@@ -482,6 +607,102 @@ contentRoutes.delete(
     }
 
     return c.body(null, 204);
+  },
+);
+
+// POST /:id/publish — Publish content
+contentRoutes.post(
+  "/:id/publish",
+  requireAuth,
+  describeRoute({
+    description: "Publish a draft content item",
+    tags: ["content"],
+    responses: {
+      200: {
+        description: "Content published",
+        content: {
+          "application/json": { schema: resolver(ContentResponseSchema) },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  async (c) => {
+    const id = c.req.param("id");
+    const user = c.get("user");
+
+    const existing = await requireContentOwnership(id, user.id);
+
+    if (existing.publishedAt) {
+      throw new ValidationError("Content is already published");
+    }
+
+    if (existing.type !== "written" && !existing.mediaKey) {
+      throw new ValidationError(
+        "Video and audio content requires media to be uploaded before publishing",
+      );
+    }
+
+    const now = new Date();
+    const [updated] = await db
+      .update(content)
+      .set({ publishedAt: now, updatedAt: now })
+      .where(eq(content.id, id))
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundError("Content not found");
+    }
+
+    return c.json(resolveContentUrls(updated));
+  },
+);
+
+// POST /:id/unpublish — Unpublish content (revert to draft)
+contentRoutes.post(
+  "/:id/unpublish",
+  requireAuth,
+  describeRoute({
+    description: "Unpublish content (revert to draft)",
+    tags: ["content"],
+    responses: {
+      200: {
+        description: "Content unpublished",
+        content: {
+          "application/json": { schema: resolver(ContentResponseSchema) },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  async (c) => {
+    const id = c.req.param("id");
+    const user = c.get("user");
+
+    const existing = await requireContentOwnership(id, user.id);
+
+    if (!existing.publishedAt) {
+      throw new ValidationError("Content is already a draft");
+    }
+
+    const now = new Date();
+    const [updated] = await db
+      .update(content)
+      .set({ publishedAt: null, updatedAt: now })
+      .where(eq(content.id, id))
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundError("Content not found");
+    }
+
+    return c.json(resolveContentUrls(updated));
   },
 );
 

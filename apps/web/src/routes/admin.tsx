@@ -3,8 +3,11 @@ import { useState } from "react";
 import type React from "react";
 import type { AdminUser, Role } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 import { assignRole, revokeRole } from "../lib/admin.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import { UserRoleManager } from "../components/admin/user-role-manager.js";
@@ -14,19 +17,20 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./admin.module.css";
 
 export const Route = createFileRoute("/admin")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("admin")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
     if (!roles.includes("admin")) {
-      throw redirect({ to: "/feed" });
+      throw new AccessDeniedError();
     }
   },
+  errorComponent: RouteErrorBoundary,
   component: AdminPage,
 });
 

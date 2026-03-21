@@ -6,6 +6,7 @@ import { SOURCE_TYPES, SourceTypeSchema } from "./uploads.js";
 
 export const CONTENT_TYPES = ["video", "audio", "written"] as const;
 export const VISIBILITY = ["public", "subscribers"] as const;
+export const CONTENT_STATUSES = ["draft", "published"] as const;
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_DESCRIPTION_LENGTH = 2000;
 
@@ -13,6 +14,7 @@ export const MAX_DESCRIPTION_LENGTH = 2000;
 
 export const ContentTypeSchema = z.enum(CONTENT_TYPES);
 export const VisibilitySchema = z.enum(VISIBILITY);
+export const ContentStatusSchema = z.enum(CONTENT_STATUSES);
 
 export const CreateContentSchema = z.object({
   creatorId: z.string(),
@@ -22,6 +24,7 @@ export const CreateContentSchema = z.object({
   visibility: VisibilitySchema.default("public"),
   body: z.string().optional(),
   sourceType: SourceTypeSchema.default("upload"),
+  publishImmediately: z.boolean().optional(),
 });
 
 export const UpdateContentSchema = z.object({
@@ -52,9 +55,31 @@ export const ContentResponseSchema = z.object({
 
 export type ContentType = z.infer<typeof ContentTypeSchema>;
 export type Visibility = z.infer<typeof VisibilitySchema>;
+export type ContentStatus = z.infer<typeof ContentStatusSchema>;
 export type CreateContent = z.infer<typeof CreateContentSchema>;
 export type UpdateContent = z.infer<typeof UpdateContentSchema>;
 export type ContentResponse = z.infer<typeof ContentResponseSchema>;
+
+/** Derive display status from a content response. */
+export const getContentStatus = (item: {
+  publishedAt: string | null;
+  type: "video" | "audio" | "written";
+  mediaUrl: string | null;
+}): ContentStatus => {
+  if (item.publishedAt) return "published";
+  return "draft";
+};
+
+export const DraftQuerySchema = z.object({
+  creatorId: z.string().min(1),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number.parseInt(v, 10) : 12))
+    .pipe(z.number().int().min(1).max(50)),
+  cursor: z.string().optional(),
+});
+export type DraftQuery = z.infer<typeof DraftQuerySchema>;
 
 // ── Feed Schemas ──
 

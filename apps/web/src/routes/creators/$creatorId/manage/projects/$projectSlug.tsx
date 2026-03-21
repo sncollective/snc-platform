@@ -3,6 +3,7 @@ import { createFileRoute, redirect, Link, getRouteApi } from "@tanstack/react-ro
 import { useState } from "react";
 import type { Project, CalendarEvent, CalendarEventsResponse } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../../../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../../../../lib/api-server.js";
 import { isFeatureEnabled } from "../../../../../lib/config.js";
 import {
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/creators/$creatorId/manage/projects/$proj
   beforeLoad: () => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
   },
+  errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<ManageProjectDetailLoaderData> => {
     const [projectRes, events] = await Promise.all([
       fetchApiServer({

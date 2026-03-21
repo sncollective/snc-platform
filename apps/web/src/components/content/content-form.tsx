@@ -10,10 +10,11 @@ import {
   MAX_TITLE_LENGTH,
   MAX_DESCRIPTION_LENGTH,
 } from "@snc/shared";
-import type { ContentType, Visibility } from "@snc/shared";
+import type { ContentType, UploadPurpose, Visibility } from "@snc/shared";
 
 import { extractFieldErrors } from "../../lib/form-utils.js";
-import { createContent, uploadContentFile } from "../../lib/content.js";
+import { createContent } from "../../lib/content.js";
+import { useUpload } from "../../contexts/upload-context.js";
 import formStyles from "../../styles/form.module.css";
 import successStyles from "../../styles/success-alert.module.css";
 import styles from "./content-form.module.css";
@@ -88,17 +89,24 @@ function FileInputField({
 
 export interface ContentFormProps {
   readonly creatorId: string;
-  readonly onCreated: () => void;
+  readonly onSuccess: () => void;
+  readonly onCancel?: () => void;
+  readonly onUploadComplete?: () => void; // called after background uploads finish
 }
 
 // ── Public API ──
 
-export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.ReactElement {
+export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }: ContentFormProps): React.ReactElement {
+  const { actions: uploadActions } = useUpload();
+  const onUploadCompleteRef = useRef(onUploadComplete);
+  onUploadCompleteRef.current = onUploadComplete;
+
   const [type, setType] = useState<ContentType>("audio");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [body, setBody] = useState("");
+  const [saveAsDraft, setSaveAsDraft] = useState(false);
 
   const mediaRef = useRef<HTMLInputElement>(null);
   const coverArtRef = useRef<HTMLInputElement>(null);
@@ -141,6 +149,7 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
       description: description.trim() || undefined,
       visibility,
       body: type === "written" ? body : undefined,
+      publishImmediately: type === "written" && !saveAsDraft ? true : undefined,
     };
 
     const result = safeParse(FormSchema, formData);
@@ -161,29 +170,47 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
       setSubmitStatus("Creating...");
       const created = await createContent(formData);
 
-      // Step 2: Upload files
+      // Step 2: Fire-and-forget uploads via global context
+      const filesToUpload: Array<{ file: File; purpose: UploadPurpose }> = [];
+
       const mediaFile = mediaRef.current?.files?.[0];
-      const coverArtFile = coverArtRef.current?.files?.[0];
-      const thumbnailFile = thumbnailRef.current?.files?.[0];
-
       if (mediaFile) {
-        setSubmitStatus("Uploading media...");
-        await uploadContentFile(created.id, "media", mediaFile);
+        filesToUpload.push({ file: mediaFile, purpose: "content-media" });
       }
 
+      const coverArtFile = coverArtRef.current?.files?.[0];
       if (coverArtFile) {
-        setSubmitStatus("Uploading cover art...");
-        await uploadContentFile(created.id, "coverArt", coverArtFile);
+        filesToUpload.push({ file: coverArtFile, purpose: "content-cover-art" });
       }
 
+      const thumbnailFile = thumbnailRef.current?.files?.[0];
       if (thumbnailFile) {
-        setSubmitStatus("Uploading thumbnail...");
-        await uploadContentFile(created.id, "thumbnail", thumbnailFile);
+        filesToUpload.push({ file: thumbnailFile, purpose: "content-thumbnail" });
       }
 
-      setSuccessMessage("Content created successfully");
+      if (filesToUpload.length > 0) {
+        let completedCount = 0;
+        const totalCount = filesToUpload.length;
+        for (const { file, purpose } of filesToUpload) {
+          uploadActions.startUpload({
+            file,
+            purpose,
+            resourceId: created.id,
+            onComplete: () => {
+              completedCount++;
+              if (completedCount === totalCount) {
+                // Safe: reads ref, not form state — survives unmount
+                onUploadCompleteRef.current?.();
+              }
+            },
+          });
+        }
+      }
+
+      // Form resets immediately — uploads continue in background
+      setSuccessMessage("Content created — uploads in progress");
       resetForm();
-      onCreated();
+      onSuccess(); // refresh lists to show new draft immediately
     } catch (err) {
       setServerError(
         err instanceof Error ? err.message : "Failed to create content",
@@ -339,6 +366,21 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
         </div>
       )}
 
+      {/* Save as draft (written only) */}
+      {type === "written" && (
+        <div className={formStyles.fieldGroup}>
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={saveAsDraft}
+              onChange={(e) => setSaveAsDraft(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            Save as draft (don&apos;t publish immediately)
+          </label>
+        </div>
+      )}
+
       {/* Media file (audio/video only) */}
       {type !== "written" && (
         <FileInputField
@@ -390,14 +432,26 @@ export function ContentForm({ creatorId, onCreated }: ContentFormProps): React.R
         />
       )}
 
-      {/* Submit */}
-      <button
-        type="submit"
-        className={`${formStyles.submitButton} ${styles.submitButton}`}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? submitStatus || "Creating..." : "Create Content"}
-      </button>
+      {/* Submit / Cancel */}
+      <div className={styles.formActions}>
+        <button
+          type="submit"
+          className={`${formStyles.submitButton} ${styles.submitButton}`}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? submitStatus || "Creating..." : "Create Content"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            className={styles.cancelButton}
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

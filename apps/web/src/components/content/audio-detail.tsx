@@ -56,7 +56,30 @@ export function AudioDetail({
     );
   }
 
-  const mediaSrc = item.mediaUrl ?? "";
+  if (item.mediaUrl === null) {
+    return (
+      <div className={styles.audioDetail}>
+        <div className={styles.header}>
+          {coverArtSrc !== null ? (
+            <img className={styles.coverArt} src={coverArtSrc} alt={`Cover art for ${item.title}`} />
+          ) : (
+            <div className={styles.coverArtPlaceholder} />
+          )}
+          <div className={styles.trackInfo}>
+            <ContentMeta
+              title={item.title}
+              creatorName={item.creatorName}
+              publishedAt={item.publishedAt}
+            />
+            <p className={styles.mediaUnavailableText}>Media not yet available</p>
+          </div>
+        </div>
+        <ContentFooter description={item.description} />
+      </div>
+    );
+  }
+
+  const mediaSrc = item.mediaUrl;
 
   return (
     <div className={styles.audioDetail}>

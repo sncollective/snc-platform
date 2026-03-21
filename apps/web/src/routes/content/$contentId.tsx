@@ -2,6 +2,7 @@ import type React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ContentDetail } from "../../components/content/content-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
@@ -23,6 +24,7 @@ function isContentLocked(item: FeedItem): boolean {
 // ── Route ──
 
 export const Route = createFileRoute("/content/$contentId")({
+  errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
     if (!isFeatureEnabled("content")) return { item: null, plans: [] };
 

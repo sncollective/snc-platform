@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   CONTENT_TYPES,
   VISIBILITY,
+  CONTENT_STATUSES,
   ContentTypeSchema,
   VisibilitySchema,
   CreateContentSchema,
@@ -11,14 +12,18 @@ import {
   FeedQuerySchema,
   FeedItemSchema,
   FeedResponseSchema,
+  DraftQuerySchema,
+  getContentStatus,
   type ContentType,
   type Visibility,
+  type ContentStatus,
   type CreateContent,
   type UpdateContent,
   type ContentResponse,
   type FeedQuery,
   type FeedItem,
   type FeedResponse,
+  type DraftQuery,
 } from "../src/index.js";
 
 // ── Test Fixtures ──
@@ -209,6 +214,35 @@ describe("CreateContentSchema", () => {
         visibility: "private",
       }),
     ).toThrow();
+  });
+
+  it("accepts publishImmediately: false", () => {
+    const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
+      title: "Draft Post",
+      type: "written",
+      publishImmediately: false,
+    });
+    expect(result.publishImmediately).toBe(false);
+  });
+
+  it("accepts publishImmediately: true", () => {
+    const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
+      title: "Published Post",
+      type: "written",
+      publishImmediately: true,
+    });
+    expect(result.publishImmediately).toBe(true);
+  });
+
+  it("accepts without publishImmediately (field is optional)", () => {
+    const result = CreateContentSchema.parse({
+      creatorId: CREATOR_ID,
+      title: "Post",
+      type: "written",
+    });
+    expect(result.publishImmediately).toBeUndefined();
   });
 });
 
@@ -504,10 +538,105 @@ describe("FeedResponseSchema", () => {
   });
 });
 
+describe("CONTENT_STATUSES", () => {
+  it("contains exactly draft and published", () => {
+    expect(CONTENT_STATUSES).toStrictEqual(["draft", "published"]);
+  });
+});
+
+describe("getContentStatus", () => {
+  it('returns "draft" when publishedAt is null', () => {
+    const status = getContentStatus({
+      publishedAt: null,
+      type: "video",
+      mediaUrl: null,
+    });
+    expect(status).toBe("draft");
+  });
+
+  it('returns "published" when publishedAt is a non-null string', () => {
+    const status = getContentStatus({
+      publishedAt: "2026-01-01T00:00:00.000Z",
+      type: "video",
+      mediaUrl: "/api/content/abc/media",
+    });
+    expect(status).toBe("published");
+  });
+
+  it('returns "draft" for written content with null publishedAt', () => {
+    const status = getContentStatus({
+      publishedAt: null,
+      type: "written",
+      mediaUrl: null,
+    });
+    expect(status).toBe("draft");
+  });
+
+  it('returns "published" for written content with publishedAt set', () => {
+    const status = getContentStatus({
+      publishedAt: "2026-03-01T12:00:00.000Z",
+      type: "written",
+      mediaUrl: null,
+    });
+    expect(status).toBe("published");
+  });
+});
+
+describe("DraftQuerySchema", () => {
+  it("parses a minimal valid input with creatorId", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "creator-1" });
+    expect(result.creatorId).toBe("creator-1");
+    expect(result.limit).toBe(12); // default
+    expect(result.cursor).toBeUndefined();
+  });
+
+  it("parses limit from string", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1", limit: "25" });
+    expect(result.limit).toBe(25);
+  });
+
+  it("defaults limit to 12 when omitted", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1" });
+    expect(result.limit).toBe(12);
+  });
+
+  it("accepts optional cursor", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1", cursor: "abc123" });
+    expect(result.cursor).toBe("abc123");
+  });
+
+  it("rejects when creatorId is missing", () => {
+    expect(() => DraftQuerySchema.parse({})).toThrow();
+  });
+
+  it("rejects when creatorId is empty string", () => {
+    expect(() => DraftQuerySchema.parse({ creatorId: "" })).toThrow();
+  });
+
+  it("rejects limit below minimum (0)", () => {
+    expect(() => DraftQuerySchema.parse({ creatorId: "c1", limit: "0" })).toThrow();
+  });
+
+  it("rejects limit above maximum (51)", () => {
+    expect(() => DraftQuerySchema.parse({ creatorId: "c1", limit: "51" })).toThrow();
+  });
+
+  it("accepts limit at minimum (1)", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1", limit: "1" });
+    expect(result.limit).toBe(1);
+  });
+
+  it("accepts limit at maximum (50)", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1", limit: "50" });
+    expect(result.limit).toBe(50);
+  });
+});
+
 // ── Type-level assertions (compile-time only) ──
 
 const _contentTypeCheck: ContentType = "video";
 const _visibilityCheck: Visibility = "public";
+const _contentStatusCheck: ContentStatus = "draft";
 const _createContentCheck: CreateContent = {
   title: "Test",
   type: "written",
@@ -517,3 +646,4 @@ const _contentResponseCheck: ContentResponse = VALID_CONTENT_RESPONSE;
 const _feedQueryCheck: FeedQuery = { limit: 12 };
 const _feedItemCheck: FeedItem = { ...VALID_CONTENT_RESPONSE, creatorName: "A" };
 const _feedResponseCheck: FeedResponse = { items: [], nextCursor: null };
+const _draftQueryCheck: DraftQuery = { creatorId: "c1", limit: 12 };

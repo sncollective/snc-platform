@@ -2,8 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import type React from "react";
 import type { BookingWithService } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { buildLoginRedirect } from "../../lib/return-to.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { BookingList } from "../../components/booking/booking-list.js";
 import errorStyles from "../../styles/error-alert.module.css";
@@ -11,14 +13,15 @@ import listingStyles from "../../styles/listing-page.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/bookings")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("booking")) throw redirect({ to: "/" });
 
     const { user } = await fetchAuthStateServer();
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
   },
+  errorComponent: RouteErrorBoundary,
   component: BookingManagementPage,
 });
 

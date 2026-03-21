@@ -65,9 +65,51 @@
   border-color: var(--color-text-muted);
 }
 
+/* ── Checkbox Label ── */
+
+.checkboxLabel {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+}
+
+/* ── Form Actions ── */
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 /* ── Submit Button Override ── */
 
 .submitButton {
-  align-self: flex-start;
+  align-self: auto;
+}
+
+.cancelButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.cancelButton:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 

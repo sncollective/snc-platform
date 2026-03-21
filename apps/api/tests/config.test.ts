@@ -24,6 +24,7 @@ describe("parseConfig", () => {
     expect(result).toStrictEqual({
       DATABASE_URL: TEST_DATABASE_URL,
       PORT: 3000,
+      LOG_LEVEL: "info",
       CORS_ORIGIN: "http://localhost:3080",
       BETTER_AUTH_SECRET: TEST_BETTER_AUTH_SECRET,
       BETTER_AUTH_URL: "http://localhost:3080",
@@ -222,6 +223,22 @@ describe("parseConfig", () => {
         ...BASE_ENV,
         SEAFILE_OIDC_CLIENT_SECRET: "too-short",
       }),
+    ).toThrow();
+  });
+
+  it("applies default LOG_LEVEL when omitted", () => {
+    const result = parseConfig(BASE_ENV);
+    expect(result.LOG_LEVEL).toBe("info");
+  });
+
+  it("accepts custom LOG_LEVEL", () => {
+    const result = parseConfig({ ...BASE_ENV, LOG_LEVEL: "debug" });
+    expect(result.LOG_LEVEL).toBe("debug");
+  });
+
+  it("throws ZodError when LOG_LEVEL is invalid", () => {
+    expect(() =>
+      parseConfig({ ...BASE_ENV, LOG_LEVEL: "verbose" }),
     ).toThrow();
   });
 });
