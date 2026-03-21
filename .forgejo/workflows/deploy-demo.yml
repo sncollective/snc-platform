@@ -129,7 +129,7 @@ jobs:
           # Unquoted heredoc: $VAR expands locally (CI), \$VAR expands on remote
           ssh ${DEPLOY_USER}@${DEPLOY_HOST} bash <<DEPLOY
           set -euo pipefail
-          cd /opt/snc/platform
+          cd /opt/snc
 
           # ── Inject Forgejo-managed secrets into .env ──
           set_env() {
