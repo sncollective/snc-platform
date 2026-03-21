@@ -61,7 +61,25 @@ export function VideoDetail({
     );
   }
 
-  const mediaSrc = item.mediaUrl ?? "";
+  if (item.mediaUrl === null) {
+    return (
+      <div className={styles.videoDetail}>
+        <div className={styles.mediaUnavailable}>
+          <p className={styles.mediaUnavailableText}>Media not yet available</p>
+        </div>
+        <div className={styles.meta}>
+          <ContentMeta
+            title={item.title}
+            creatorName={item.creatorName}
+            publishedAt={item.publishedAt}
+          />
+        </div>
+        <ContentFooter description={item.description} />
+      </div>
+    );
+  }
+
+  const mediaSrc = item.mediaUrl;
 
   return (
     <div className={styles.videoDetail}>

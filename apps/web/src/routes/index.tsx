@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListResponse, FeedResponse, SubscriptionPlan } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { HeroSection } from "../components/landing/hero-section.js";
@@ -16,6 +17,7 @@ export interface LandingData {
 }
 
 export const Route = createFileRoute("/")({
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<LandingData> => {
     const [creators, recentContent, plans] = await Promise.all([
       isFeatureEnabled("creator")

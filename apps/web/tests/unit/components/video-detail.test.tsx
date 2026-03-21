@@ -167,4 +167,34 @@ describe("VideoDetail", () => {
     render(<VideoDetail item={item} locked={true} />);
     expect(screen.queryByRole("img")).toBeNull();
   });
+
+  it('renders "Media not yet available" when mediaUrl is null and not locked', () => {
+    const item = makeMockFeedItem({
+      type: "video",
+      mediaUrl: null,
+    });
+    render(<VideoDetail item={item} />);
+    expect(screen.getByText("Media not yet available")).toBeInTheDocument();
+    expect(screen.queryByTestId("video-player")).toBeNull();
+  });
+
+  it("does not render media unavailable when mediaUrl is present", () => {
+    const item = makeMockFeedItem({
+      type: "video",
+      mediaUrl: "/api/content/c1/media",
+    });
+    render(<VideoDetail item={item} />);
+    expect(screen.queryByText("Media not yet available")).toBeNull();
+    expect(screen.getByTestId("video-player")).toBeInTheDocument();
+  });
+
+  it("renders ContentMeta in media unavailable state", () => {
+    const item = makeMockFeedItem({
+      type: "video",
+      title: "Draft Video",
+      mediaUrl: null,
+    });
+    render(<VideoDetail item={item} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Draft Video");
+  });
 });

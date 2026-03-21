@@ -22,6 +22,7 @@ export const TEST_SHOPIFY_STOREFRONT_TOKEN = "test-storefront-token";
 export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   DATABASE_URL: TEST_DATABASE_URL,
   PORT: 3000,
+  LOG_LEVEL: "info" as const,
   CORS_ORIGIN: "http://localhost:3080",
   BETTER_AUTH_SECRET: TEST_BETTER_AUTH_SECRET,
   BETTER_AUTH_URL: "http://localhost:3080",

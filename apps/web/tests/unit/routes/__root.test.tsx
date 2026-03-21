@@ -30,8 +30,20 @@ vi.mock("../../../src/contexts/audio-player-context.js", async () => {
   };
 });
 
+vi.mock("../../../src/contexts/upload-context.js", async () => {
+  const React = await import("react");
+  return {
+    UploadProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+  };
+});
+
 vi.mock("../../../src/components/media/mini-player.js", () => ({
   MiniPlayer: () => null,
+}));
+
+vi.mock("../../../src/components/upload/mini-upload-indicator.js", () => ({
+  MiniUploadIndicator: () => null,
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({

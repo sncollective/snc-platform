@@ -33,6 +33,7 @@ describe("AudioDetail", () => {
   it("renders cover art image when coverArtUrl is present", () => {
     const item = makeMockFeedItem({
       type: "audio",
+      mediaUrl: "/api/content/c1/media",
       coverArtUrl: "/api/content/c1/cover-art",
     });
     render(<AudioDetail item={item} />);
@@ -42,7 +43,7 @@ describe("AudioDetail", () => {
   });
 
   it("renders placeholder when no cover art", () => {
-    const item = makeMockFeedItem({ type: "audio", coverArtUrl: null });
+    const item = makeMockFeedItem({ type: "audio", mediaUrl: "/api/content/c1/media", coverArtUrl: null });
     const { container } = render(<AudioDetail item={item} />);
     expect(screen.queryByRole("img")).toBeNull();
     // Placeholder div should exist (check for the CSS class)
@@ -184,5 +185,35 @@ describe("AudioDetail", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "My Track",
     );
+  });
+
+  it('renders "Media not yet available" when mediaUrl is null and not locked', () => {
+    const item = makeMockFeedItem({
+      type: "audio",
+      mediaUrl: null,
+    });
+    render(<AudioDetail item={item} />);
+    expect(screen.getByText("Media not yet available")).toBeInTheDocument();
+    expect(screen.queryByTestId("audio-player")).toBeNull();
+  });
+
+  it("does not render media unavailable when mediaUrl is present", () => {
+    const item = makeMockFeedItem({
+      type: "audio",
+      mediaUrl: "/api/content/c1/media",
+    });
+    render(<AudioDetail item={item} />);
+    expect(screen.queryByText("Media not yet available")).toBeNull();
+    expect(screen.getByTestId("audio-player")).toBeInTheDocument();
+  });
+
+  it("renders ContentMeta in media unavailable state", () => {
+    const item = makeMockFeedItem({
+      type: "audio",
+      title: "Draft Track",
+      mediaUrl: null,
+    });
+    render(<AudioDetail item={item} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Draft Track");
   });
 });

@@ -4,9 +4,12 @@ import type React from "react";
 import type { CalendarEvent, CalendarEventsResponse, FeedTokenResponse } from "@snc/shared";
 import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchAuthStateServer, fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 import { fetchCalendarEvents, deleteCalendarEvent, fetchEventTypes, toggleEventComplete } from "../lib/calendar.js";
 import { fetchProjects } from "../lib/project.js";
 import { apiGet } from "../lib/fetch-utils.js";
@@ -29,19 +32,20 @@ export interface CalendarLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/calendar")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
     if (!roles.includes("stakeholder")) {
-      throw redirect({ to: "/feed" });
+      throw new AccessDeniedError();
     }
   },
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<CalendarLoaderData> => {
     // Load current month's events
     const now = new Date();

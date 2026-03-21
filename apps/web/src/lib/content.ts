@@ -1,6 +1,6 @@
-import type { ContentResponse, CreateContent } from "@snc/shared";
+import type { ContentResponse, CreateContent, UpdateContent } from "@snc/shared";
 
-import { apiMutate, apiUpload } from "./fetch-utils.js";
+import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
 
 // ── Public API ──
 
@@ -21,4 +21,35 @@ export async function uploadContentFile(
     `/api/content/${contentId}/upload?field=${field}`,
     formData,
   );
+}
+
+export async function updateContent(
+  id: string,
+  data: UpdateContent,
+): Promise<ContentResponse> {
+  return apiMutate<ContentResponse>(
+    `/api/content/${encodeURIComponent(id)}`,
+    { method: "PATCH", body: data },
+  );
+}
+
+export async function fetchDrafts(
+  creatorId: string,
+  cursor?: string,
+): Promise<{ items: ContentResponse[]; nextCursor: string | null }> {
+  const params: Record<string, string> = { creatorId, limit: "12" };
+  if (cursor) params.cursor = cursor;
+  return apiGet("/api/content/drafts", params);
+}
+
+export async function publishContent(id: string): Promise<ContentResponse> {
+  return apiMutate<ContentResponse>(`/api/content/${encodeURIComponent(id)}/publish`, {
+    method: "POST",
+  });
+}
+
+export async function unpublishContent(id: string): Promise<ContentResponse> {
+  return apiMutate<ContentResponse>(`/api/content/${encodeURIComponent(id)}/unpublish`, {
+    method: "POST",
+  });
 }

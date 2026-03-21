@@ -77,7 +77,10 @@ vi.mock("../../../src/lib/dashboard.js", () => ({
 // ── Component Under Test ──
 
 const { component: DashboardPage, route: routeObject } = extractRoute(() => import("../../../src/routes/dashboard.js"));
-const routeBeforeLoad = () => (routeObject.beforeLoad as () => Promise<void>)();
+const routeBeforeLoad = (pathname = "/dashboard") =>
+  (routeObject.beforeLoad as (ctx: { location: { pathname: string } }) => Promise<void>)({
+    location: { pathname },
+  });
 
 // ── Lifecycle ──
 
@@ -105,17 +108,20 @@ describe("DashboardPage", () => {
   // ── beforeLoad guard tests ──
 
   describe("beforeLoad", () => {
-    it("redirects to /login when user is not authenticated", async () => {
+    it("redirects to /login with returnTo when user is not authenticated", async () => {
       mockFetchAuthStateServer.mockResolvedValue({ user: null, roles: [] });
-      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/login" });
+      await expect(routeBeforeLoad()).rejects.toEqual({
+        to: "/login",
+        search: { returnTo: "/dashboard" },
+      });
     });
 
-    it("redirects to /feed when user lacks stakeholder role", async () => {
+    it("throws AccessDeniedError when user lacks stakeholder role", async () => {
       mockFetchAuthStateServer.mockResolvedValue({
         user: { id: "u1" },
         roles: [],
       });
-      await expect(routeBeforeLoad()).rejects.toEqual({ to: "/feed" });
+      await expect(routeBeforeLoad()).rejects.toThrow("You don't have access to this page");
     });
   });
 

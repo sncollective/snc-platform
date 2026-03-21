@@ -3,8 +3,11 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Project, CalendarEvent, CalendarEventsResponse } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchAuthStateServer, fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 import {
   updateProject,
   deleteProject,
@@ -25,19 +28,20 @@ export interface ProjectDetailLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/projects_/$projectSlug")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
     if (!roles.includes("stakeholder")) {
-      throw redirect({ to: "/feed" });
+      throw new AccessDeniedError();
     }
   },
+  errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<ProjectDetailLoaderData> => {
     const [projectRes, events] = await Promise.all([
       fetchApiServer({

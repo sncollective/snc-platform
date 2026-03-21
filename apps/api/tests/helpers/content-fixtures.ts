@@ -1,4 +1,4 @@
-import type { ContentResponse, ContentType, Visibility } from "@snc/shared";
+import type { ContentResponse, ContentType, Visibility, SourceType } from "@snc/shared";
 
 // ── Private Types ──
 
@@ -10,6 +10,7 @@ type DbContentRow = {
   body: string | null;
   description: string | null;
   visibility: Visibility;
+  sourceType: SourceType;
   thumbnailKey: string | null;
   mediaKey: string | null;
   coverArtKey: string | null;
@@ -31,6 +32,7 @@ export const makeMockContent = (
   body: "Test body content",
   description: "A test post",
   visibility: "public",
+  sourceType: "upload",
   thumbnailUrl: null,
   mediaUrl: null,
   coverArtUrl: null,
@@ -50,6 +52,7 @@ export const makeMockDbContent = (
   body: "Test body content",
   description: "A test post",
   visibility: "public",
+  sourceType: "upload",
   thumbnailKey: null,
   mediaKey: null,
   coverArtKey: null,

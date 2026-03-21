@@ -4,8 +4,11 @@ import type React from "react";
 import type { CreatorProfileResponse, CreatorMemberRole, CreatorPermission } from "@snc/shared";
 import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
 import { isFeatureEnabled } from "../../../lib/config.js";
+import { AccessDeniedError } from "../../../lib/errors.js";
+import { buildLoginRedirect } from "../../../lib/return-to.js";
 import styles from "./manage.module.css";
 
 // ── Types ──
@@ -37,17 +40,18 @@ const MANAGE_TABS: readonly ManageTab[] = [
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId/manage")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
-    if (!user) throw redirect({ to: "/login" });
+    if (!user) throw redirect(buildLoginRedirect(location.pathname));
     if (!roles.includes("stakeholder") && !roles.includes("admin")) {
-      throw redirect({ to: "/creators" });
+      throw new AccessDeniedError();
     }
 
     return { userId: user.id, platformRoles: roles };
   },
+  errorComponent: RouteErrorBoundary,
   loader: async ({ params, context }): Promise<ManageLoaderData> => {
     const creator = (await fetchApiServer({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}`,

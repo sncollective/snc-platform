@@ -5,8 +5,11 @@ import type { Project, CreatorListItem } from "@snc/shared";
 import { MAX_PROJECT_NAME_LENGTH, MAX_PROJECT_DESCRIPTION_LENGTH } from "@snc/shared";
 
 import { z, minLength, maxLength, safeParse } from "zod/mini";
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 import {
   fetchProjects,
   createProject,
@@ -41,19 +44,20 @@ type FieldErrors = Partial<Record<ProjectFormFields, string>>;
 // ── Route ──
 
 export const Route = createFileRoute("/projects")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
     if (!roles.includes("stakeholder")) {
-      throw redirect({ to: "/feed" });
+      throw new AccessDeniedError();
     }
   },
+  errorComponent: RouteErrorBoundary,
   component: ProjectsPage,
 });
 

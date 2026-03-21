@@ -1,17 +1,20 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
+import { buildLoginRedirect } from "../../lib/return-to.js";
 import { ChangePasswordForm } from "../../components/auth/change-password-form.js";
 import settingsStyles from "../../styles/settings-page.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
 export const Route = createFileRoute("/settings/")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { user } = await fetchAuthStateServer();
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
   },
+  errorComponent: RouteErrorBoundary,
   component: SettingsPage,
 });
 

@@ -8,6 +8,7 @@ import { features } from "./config.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { rateLimiter } from "./middleware/rate-limit.js";
+import { requestIdMiddleware, requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
@@ -42,6 +43,8 @@ export const app = new Hono();
 
 app.use("*", corsMiddleware);
 app.use("*", secureHeaders());
+app.use("*", requestIdMiddleware);
+app.use("*", requestLogger);
 const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
 const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
 app.use("/api/auth/*", (c, next) => {

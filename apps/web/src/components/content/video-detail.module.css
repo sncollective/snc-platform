@@ -58,3 +58,21 @@
   font-weight: 600;
   color: var(--color-text);
 }
+
+/* ── Media Unavailable ── */
+
+.mediaUnavailable {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-elevated) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mediaUnavailableText {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+}

@@ -12,6 +12,7 @@ export function makeMockFeedItem(overrides?: Partial<FeedItem>): FeedItem {
     body: "Test body content",
     description: "A test post",
     visibility: "public",
+    sourceType: "upload",
     thumbnailUrl: null,
     mediaUrl: null,
     coverArtUrl: null,

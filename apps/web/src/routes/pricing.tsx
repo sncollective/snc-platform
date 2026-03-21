@@ -3,6 +3,7 @@ import { useState } from "react";
 import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { PlanCard } from "../components/subscription/plan-card.js";
 import { fetchApiServer } from "../lib/api-server.js";
@@ -14,6 +15,7 @@ import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./pricing.module.css";
 
 export const Route = createFileRoute("/pricing")({
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<SubscriptionPlan[]> => {
     if (!isFeatureEnabled("subscription")) return [];
     try {

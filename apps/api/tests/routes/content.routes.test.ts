@@ -10,8 +10,9 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 let mockGateRoles: string[];
 
-// Creator team permission mock
+// Creator team permission mocks
 const mockRequireCreatorPermission = vi.fn();
+const mockCheckCreatorPermission = vi.fn();
 // Holds the ForbiddenError class from the same module instance as the error handler
 let TestForbiddenError: new (msg?: string) => Error;
 
@@ -101,6 +102,7 @@ const ctx = setupRouteTest({
 
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
+      checkCreatorPermission: mockCheckCreatorPermission,
     }));
 
     vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
@@ -144,6 +146,8 @@ const ctx = setupRouteTest({
 
     // Default: permission check passes (no throw)
     mockRequireCreatorPermission.mockResolvedValue(undefined);
+    // Default: checkCreatorPermission returns true (allowed)
+    mockCheckCreatorPermission.mockResolvedValue(true);
 
     // Default db mock responses
     // mockSelectWhere returns a chainable promise so .limit() works for
@@ -1108,6 +1112,493 @@ describe("content routes", () => {
       expect(res.status).toBe(404);
       const body = await res.json();
       expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+
+  // ── POST /api/content — Unit 1: auto-publish behavior ──
+
+  describe("POST /api/content (auto-publish behavior)", () => {
+    it("creates written content with publishedAt set (auto-published)", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "written",
+        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Post",
+          type: "written",
+          body: "Content here",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.publishedAt).not.toBeNull();
+      // Verify the inserted values passed publishedAt as non-null
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).not.toBeNull();
+    });
+
+    it("creates video content with publishedAt = null (starts as draft)", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "video",
+        body: null,
+        publishedAt: null,
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Video",
+          type: "video",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.publishedAt).toBeNull();
+      // Verify the inserted values passed publishedAt as null
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).toBeNull();
+    });
+
+    it("creates audio content with publishedAt = null (starts as draft)", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "audio",
+        body: null,
+        publishedAt: null,
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Audio",
+          type: "audio",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.publishedAt).toBeNull();
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).toBeNull();
+    });
+
+    it("creates written content with publishedAt = null when publishImmediately: false", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "written",
+        publishedAt: null,
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Draft Post",
+          type: "written",
+          body: "Content here",
+          publishImmediately: false,
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).toBeNull();
+    });
+
+    it("creates written content with publishedAt set when publishImmediately is omitted (backward compat)", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "written",
+        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Post",
+          type: "written",
+          body: "Content here",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).not.toBeNull();
+    });
+
+    it("creates video content with publishedAt = null even when publishImmediately: true", async () => {
+      const insertedRow = makeMockDbContent({
+        type: "video",
+        body: null,
+        publishedAt: null,
+      });
+      mockInsertReturning.mockResolvedValue([insertedRow]);
+
+      const res = await ctx.app.request("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "user_test123",
+          title: "My Video",
+          type: "video",
+          publishImmediately: true,
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      expect(insertCall.publishedAt).toBeNull();
+    });
+  });
+
+  // ── POST /api/content/:id/publish — Unit 2 ──
+
+  describe("POST /api/content/:id/publish", () => {
+    it("publishes a draft video with media and returns 200", async () => {
+      const draft = makeMockDbContent({
+        type: "video",
+        publishedAt: null,
+        mediaKey: "content/content-test-1/media/video.mp4",
+      });
+      const published = makeMockDbContent({
+        type: "video",
+        publishedAt: new Date("2026-03-21T00:00:00.000Z"),
+        mediaKey: "content/content-test-1/media/video.mp4",
+      });
+      mockSelectWhere.mockResolvedValue([draft]);
+      mockUpdateReturning.mockResolvedValue([published]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.publishedAt).not.toBeNull();
+      expect(mockUpdateSet).toHaveBeenCalledOnce();
+    });
+
+    it("returns 400 if content is already published", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ publishedAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("returns 400 for video without mediaKey", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ type: "video", publishedAt: null, mediaKey: null }),
+      ]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("returns 400 for audio without mediaKey", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ type: "audio", publishedAt: null, mediaKey: null }),
+      ]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("publishes written content without media", async () => {
+      const draft = makeMockDbContent({
+        type: "written",
+        publishedAt: null,
+        mediaKey: null,
+      });
+      const published = makeMockDbContent({
+        type: "written",
+        publishedAt: new Date("2026-03-21T00:00:00.000Z"),
+      });
+      mockSelectWhere.mockResolvedValue([draft]);
+      mockUpdateReturning.mockResolvedValue([published]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.publishedAt).not.toBeNull();
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ── POST /api/content/:id/unpublish — Unit 3 ──
+
+  describe("POST /api/content/:id/unpublish", () => {
+    it("unpublishes published content and returns 200 with null publishedAt", async () => {
+      const publishedContent = makeMockDbContent({
+        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      });
+      const draftContent = makeMockDbContent({ publishedAt: null });
+      mockSelectWhere.mockResolvedValue([publishedContent]);
+      mockUpdateReturning.mockResolvedValue([draftContent]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.publishedAt).toBeNull();
+      expect(mockUpdateSet).toHaveBeenCalledOnce();
+    });
+
+    it("returns 400 if content is already a draft", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ publishedAt: null }),
+      ]);
+
+      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ── GET /api/content/drafts — Unit 4 ──
+
+  describe("GET /api/content/drafts", () => {
+    const makeDraftRow = (overrides?: Record<string, unknown>) => ({
+      ...makeMockDbContent({ publishedAt: null }),
+      creatorName: "Test Creator",
+      ...overrides,
+    });
+
+    it("returns drafts list for the authenticated creator", async () => {
+      const drafts = [
+        makeDraftRow({ id: "draft-1", title: "Draft One" }),
+        makeDraftRow({ id: "draft-2", title: "Draft Two" }),
+      ];
+      mockLimit.mockResolvedValue(drafts);
+
+      const res = await ctx.app.request(
+        "/api/content/drafts?creatorId=user_test123",
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+      expect(body.items[0].title).toBe("Draft One");
+      expect(body.items[0].publishedAt).toBeNull();
+      expect(mockRequireCreatorPermission).toHaveBeenCalledWith(
+        expect.any(String),
+        "user_test123",
+        "manageContent",
+      );
+    });
+
+    it("returns 403 if user lacks creator permission", async () => {
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Missing creator permission: manageContent"),
+      );
+
+      const res = await ctx.app.request(
+        "/api/content/drafts?creatorId=other-creator",
+      );
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request(
+        "/api/content/drafts?creatorId=user_test123",
+      );
+
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 400 when creatorId is missing", async () => {
+      const res = await ctx.app.request("/api/content/drafts");
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns null nextCursor on last page", async () => {
+      mockLimit.mockResolvedValue([makeDraftRow()]);
+
+      const res = await ctx.app.request(
+        "/api/content/drafts?creatorId=user_test123&limit=12",
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.nextCursor).toBeNull();
+    });
+  });
+
+  // ── GET /api/content (feed) — Unit 5: media filter ──
+
+  describe("GET /api/content (feed media filter)", () => {
+    const makeFeedRow = (overrides?: Record<string, unknown>) => ({
+      ...makeMockDbContent(),
+      creatorName: "Test Creator",
+      ...overrides,
+    });
+
+    it("passes media filter condition to where clause (or/isNotNull for video/audio)", async () => {
+      mockLimit.mockResolvedValue([]);
+
+      const res = await ctx.app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      // Verify the where clause was called (filter was applied)
+      expect(mockFeedWhere).toHaveBeenCalledOnce();
+    });
+
+    it("returns written content with null mediaKey in feed", async () => {
+      mockLimit.mockResolvedValue([
+        makeFeedRow({ type: "written", mediaKey: null, publishedAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ]);
+
+      const res = await ctx.app.request("/api/content");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].type).toBe("written");
+    });
+  });
+
+  // ── GET /api/content/:id — Unit 6: draft preview access ──
+
+  describe("GET /api/content/:id (draft access control)", () => {
+    it("returns 200 for draft when user is creator team member", async () => {
+      const draft = makeMockDbContent({ publishedAt: null });
+      // First call: findActiveContent; second call: fetchCreatorName
+      mockSelectWhere
+        .mockResolvedValueOnce([draft])
+        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockGetSession.mockResolvedValue({
+        user: makeMockUser({ id: "user_test123" }),
+        session: makeMockSession(),
+      });
+      mockCheckCreatorPermission.mockResolvedValue(true);
+
+      const res = await ctx.app.request("/api/content/content-test-1");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.publishedAt).toBeNull();
+    });
+
+    it("returns 404 for draft when user is not creator team member", async () => {
+      const draft = makeMockDbContent({ publishedAt: null, creatorId: "other-creator" });
+      mockSelectWhere.mockResolvedValue([draft]);
+      mockGetSession.mockResolvedValue({
+        user: makeMockUser({ id: "random-user" }),
+        session: makeMockSession(),
+      });
+      mockCheckCreatorPermission.mockResolvedValue(false);
+
+      const res = await ctx.app.request("/api/content/content-test-1");
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 404 for draft when unauthenticated", async () => {
+      const draft = makeMockDbContent({ publishedAt: null });
+      mockSelectWhere.mockResolvedValue([draft]);
+      mockGetSession.mockResolvedValue(null);
+
+      const res = await ctx.app.request("/api/content/content-test-1");
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 200 for draft when user has admin role", async () => {
+      const draft = makeMockDbContent({ publishedAt: null });
+      mockSelectWhere
+        .mockResolvedValueOnce([draft])
+        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockGetSession.mockResolvedValue({
+        user: makeMockUser({ id: "admin-user" }),
+        session: makeMockSession(),
+      });
+      // getUserRoles mock returns admin role
+      mockGateRoles = ["admin"];
+
+      const res = await ctx.app.request("/api/content/content-test-1");
+
+      expect(res.status).toBe(200);
+    });
+
+    it("allows access to published content without draft access check", async () => {
+      // Published content should still work for unauthenticated users
+      const published = makeMockDbContent({
+        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      });
+      mockSelectWhere
+        .mockResolvedValueOnce([published])
+        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockGetSession.mockResolvedValue(null);
+
+      const res = await ctx.app.request("/api/content/content-test-1");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.publishedAt).not.toBeNull();
     });
   });
 });

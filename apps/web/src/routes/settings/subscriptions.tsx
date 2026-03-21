@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import type React from "react";
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { buildLoginRedirect } from "../../lib/return-to.js";
 import {
   fetchMySubscriptions,
   cancelSubscription,
@@ -15,14 +17,15 @@ import listingStyles from "../../styles/listing-page.module.css";
 import settingsStyles from "../../styles/settings-page.module.css";
 
 export const Route = createFileRoute("/settings/subscriptions")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
 
     const { user } = await fetchAuthStateServer();
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
   },
+  errorComponent: RouteErrorBoundary,
   component: SubscriptionManagementPage,
 });
 

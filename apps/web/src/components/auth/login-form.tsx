@@ -6,6 +6,7 @@ import { z, email as zodEmail, minLength, safeParse } from "zod/mini";
 
 import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import { getValidReturnTo } from "../../lib/return-to.js";
 import { navigateExternal } from "../../lib/url.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
@@ -25,8 +26,10 @@ type FieldErrors = Partial<Record<"email" | "password", string>>;
 
 export function LoginForm({
   oidcAuthorizeUrl,
+  returnTo,
 }: {
   oidcAuthorizeUrl?: string | null;
+  returnTo?: string;
 }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -72,7 +75,7 @@ export function LoginForm({
       if (oidcAuthorizeUrl) {
         navigateExternal(oidcAuthorizeUrl);
       } else {
-        void navigate({ to: "/feed" });
+        void navigate({ to: getValidReturnTo(returnTo) });
       }
     } catch {
       // In OIDC flow, the after-hook 302 redirect causes a fetch error,

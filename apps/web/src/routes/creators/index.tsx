@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem, CreatorListResponse, CreatorProfileResponse } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { CreatorCard } from "../../components/creator/creator-card.js";
 import { CreateCreatorForm } from "../../components/creator/create-creator-form.js";
@@ -15,6 +16,7 @@ import listingStyles from "../../styles/listing-page.module.css";
 import buttonStyles from "../../styles/button.module.css";
 
 export const Route = createFileRoute("/creators/")({
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<CreatorListResponse> => {
     if (!isFeatureEnabled("creator")) return { items: [], nextCursor: null };
     try {

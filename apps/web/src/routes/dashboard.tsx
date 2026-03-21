@@ -10,8 +10,11 @@ import type {
   ReviewBookingRequest,
 } from "@snc/shared";
 
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer, fetchAuthStateServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 import { reviewBooking } from "../lib/dashboard.js";
 import { formatPrice, formatCo2 } from "../lib/format.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
@@ -36,19 +39,20 @@ export interface DashboardLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (!isFeatureEnabled("dashboard")) throw redirect({ to: "/" });
 
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
     if (!roles.includes("stakeholder")) {
-      throw redirect({ to: "/feed" });
+      throw new AccessDeniedError();
     }
   },
+  errorComponent: RouteErrorBoundary,
   loader: async (): Promise<DashboardLoaderData> => {
     const [revenue, subscribers, bookingSummary, emissionsSummary] =
       await Promise.all([
