@@ -152,7 +152,7 @@ jobs:
           git reset --hard origin/main
           corepack enable
           pnpm install --frozen-lockfile
-          pnpm build
+          NODE_OPTIONS="--max-old-space-size=2048" pnpm build
           pnpm --filter @snc/api db:migrate
           sudo systemctl restart snc-api snc-web
           sleep 3
