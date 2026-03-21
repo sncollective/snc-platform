@@ -36,11 +36,11 @@ module.exports = {
       name: "web-staging",
       cwd: "./apps/web",
       script: "./node_modules/.bin/vite",
-      args: "--mode staging --port 3002 --strictPort",
+      args: "--port 3002 --strictPort",
       interpreter: "bash",
       env: {
         NODE_ENV: "development",
-        VITE_FEATURE_CONTENT: "false",
+        VITE_FEATURE_CONTENT: "true",
         VITE_FEATURE_CREATOR: "true",
         VITE_FEATURE_SUBSCRIPTION: "false",
         VITE_FEATURE_MERCH: "false",
