@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
 import type { UploadPurpose } from "@snc/shared";
-import { MULTIPART_THRESHOLD } from "@snc/shared";
+import { MULTIPART_THRESHOLD, MULTIPART_CHUNK_SIZE } from "@snc/shared";
 
 import {
   presignUpload,
@@ -194,6 +194,7 @@ export function UploadProvider({
       autoProceed: true,
     }).use(AwsS3, {
       shouldUseMultipart: (file) => (file.size ?? 0) > MULTIPART_THRESHOLD,
+      getChunkSize: () => MULTIPART_CHUNK_SIZE,
 
       async getUploadParameters(file) {
         const resp = await presignUpload({
@@ -249,7 +250,10 @@ export function UploadProvider({
     const onProgress = (file: any, progress: any) => {
       if (file?.id && progress?.bytesUploaded != null && progress?.bytesTotal) {
         const pct = Math.round((progress.bytesUploaded / progress.bytesTotal) * 100);
-        dispatch({ type: "UPDATE_PROGRESS", id: file.id, progress: pct });
+        const current = stateRef.current.activeUploads.find((u) => u.id === file.id);
+        if (!current || pct > current.progress) {
+          dispatch({ type: "UPDATE_PROGRESS", id: file.id, progress: pct });
+        }
       }
     };
 

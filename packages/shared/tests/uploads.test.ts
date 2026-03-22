@@ -4,6 +4,7 @@ import {
   SOURCE_TYPES,
   UPLOAD_PURPOSES,
   MULTIPART_THRESHOLD,
+  MULTIPART_CHUNK_SIZE,
   SourceTypeSchema,
   UploadPurposeSchema,
   PresignRequestSchema,
@@ -50,6 +51,12 @@ describe("UPLOAD_PURPOSES", () => {
 describe("MULTIPART_THRESHOLD", () => {
   it("is 50MB", () => {
     expect(MULTIPART_THRESHOLD).toBe(50 * 1024 * 1024);
+  });
+});
+
+describe("MULTIPART_CHUNK_SIZE", () => {
+  it("is 50MB", () => {
+    expect(MULTIPART_CHUNK_SIZE).toBe(50 * 1024 * 1024);
   });
 });
 
