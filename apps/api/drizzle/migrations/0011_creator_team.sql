@@ -30,11 +30,11 @@ INSERT INTO "creator_members"("creator_id","user_id","role","created_at")
 SELECT "id", "owner_id", 'owner', now() FROM "creator_profiles";
 
 -- 5. Repoint content FK
-ALTER TABLE "content" DROP CONSTRAINT "content_creator_id_users_id_fk";
+ALTER TABLE "content" DROP CONSTRAINT IF EXISTS "content_creator_id_users_id_fk";
 ALTER TABLE "content" ADD CONSTRAINT "content_creator_id_creator_profiles_id_fk"
   FOREIGN KEY ("creator_id") REFERENCES "creator_profiles"("id") ON DELETE CASCADE;
 
 -- 6. Repoint subscription_plans FK
-ALTER TABLE "subscription_plans" DROP CONSTRAINT "subscription_plans_creator_id_users_id_fk";
+ALTER TABLE "subscription_plans" DROP CONSTRAINT IF EXISTS "subscription_plans_creator_id_users_id_fk";
 ALTER TABLE "subscription_plans" ADD CONSTRAINT "subscription_plans_creator_id_creator_profiles_id_fk"
   FOREIGN KEY ("creator_id") REFERENCES "creator_profiles"("id") ON DELETE SET NULL;
