@@ -54,7 +54,7 @@ export const ACCEPTED_MIME_TYPES = {
 } as const;
 
 export const MAX_FILE_SIZES = {
-  video: 500 * 1024 * 1024,
+  video: 20 * 1024 * 1024 * 1024,
   audio: 100 * 1024 * 1024,
   image: 10 * 1024 * 1024,
 } as const;
