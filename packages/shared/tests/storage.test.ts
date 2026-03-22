@@ -47,8 +47,8 @@ describe("ACCEPTED_MIME_TYPES", () => {
 });
 
 describe("MAX_FILE_SIZES", () => {
-  it("video is 500 MB", () => {
-    expect(MAX_FILE_SIZES.video).toBe(500 * 1024 * 1024);
+  it("video is 20 GB", () => {
+    expect(MAX_FILE_SIZES.video).toBe(20 * 1024 * 1024 * 1024);
   });
 
   it("audio is 100 MB", () => {
