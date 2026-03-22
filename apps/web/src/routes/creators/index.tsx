@@ -93,7 +93,7 @@ function CreatorsPage(): React.ReactElement {
   };
 
   const handleCreated = (profile: CreatorProfileResponse) => {
-    void navigate({ to: "/creators/$creatorId/manage", params: { creatorId: profile.id } });
+    void navigate({ to: "/creators/$creatorId/manage", params: { creatorId: profile.handle ?? profile.id } });
   };
 
   return (

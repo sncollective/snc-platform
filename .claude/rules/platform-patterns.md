@@ -32,6 +32,7 @@ One line per pattern. Read the linked file for full details and code examples.
 - **use-cursor-pagination**: Generic `useCursorPagination<T>({ buildUrl, deps? })` hook accumulates items across pages; `deps` triggers full reset+refetch when filters change; used in feed, creators list, creator detail → [use-cursor-pagination.md]
 - **upload-replace-workflow**: Parameterized `handleImageUpload(c, field)` private handler enforces: ownership → Content-Length pre-check → parse multipart → MIME validate → sanitize → delete-old → upload-new → DB-update → response → [upload-replace-workflow.md]
 - **listing-page-shared-css**: `listing-page.module.css` provides shared `.heading`, `.status`, `.loadMoreWrapper`, `.loadMoreButton` for all listing pages; import alongside page-specific module → [listing-page-shared-css.md]
+- **human-readable-url-slug**: Prefer `handle ?? id` in user-facing URL params; backend dual-mode resolver accepts both; keep UUID for API data fetches and React keys → [human-readable-url-slug.md]
 
 ## Subscriptions & Content Gating
 - **stripe-service-layer**: Module-level `stripe` singleton + `wrapStripeError` (via `wrapExternalError` factory) converts Stripe exceptions to `AppError`(502); all exports return `Result<T, AppError>`; mocked wholesale in tests via `vi.doMock` → [stripe-service-layer.md]

@@ -129,19 +129,94 @@ export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
                 </Link>
               </li>
             )}
+
+            {session.data && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
+              <li>
+                <a
+                  href="https://files.s-nc.org"
+                  className={styles.menuLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleClose}
+                >
+                  Files
+                </a>
+              </li>
+            )}
           </ul>
 
           <div className={styles.divider} />
 
           {session.data ? (
             <div className={styles.authSection}>
+              {isFeatureEnabled("admin") && hasRole(effectiveRoles, "admin") && (
+                <Link
+                  to="/admin"
+                  className={
+                    currentPath.startsWith("/admin")
+                      ? `${styles.menuLink} ${styles.menuLinkActive}`
+                      : styles.menuLink
+                  }
+                  onClick={handleClose}
+                >
+                  Admin
+                </Link>
+              )}
+
+              {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
+                <Link
+                  to="/projects"
+                  className={
+                    currentPath.startsWith("/projects")
+                      ? `${styles.menuLink} ${styles.menuLinkActive}`
+                      : styles.menuLink
+                  }
+                  onClick={handleClose}
+                >
+                  Projects
+                </Link>
+              )}
+
               <Link
                 to="/settings"
-                className={styles.menuLink}
+                className={
+                  currentPath === "/settings"
+                    ? `${styles.menuLink} ${styles.menuLinkActive}`
+                    : styles.menuLink
+                }
                 onClick={handleClose}
               >
                 Settings
               </Link>
+
+              {isFeatureEnabled("subscription") && (
+                <Link
+                  to="/settings/subscriptions"
+                  className={
+                    currentPath.startsWith("/settings/subscriptions")
+                      ? `${styles.menuLink} ${styles.menuLinkActive}`
+                      : styles.menuLink
+                  }
+                  onClick={handleClose}
+                >
+                  Subscriptions
+                </Link>
+              )}
+
+              {isFeatureEnabled("booking") && (
+                <Link
+                  to="/settings/bookings"
+                  className={
+                    currentPath.startsWith("/settings/bookings")
+                      ? `${styles.menuLink} ${styles.menuLinkActive}`
+                      : styles.menuLink
+                  }
+                  onClick={handleClose}
+                >
+                  My Bookings
+                </Link>
+              )}
+
               <button
                 className={styles.logoutButton}
                 onClick={handleLogout}

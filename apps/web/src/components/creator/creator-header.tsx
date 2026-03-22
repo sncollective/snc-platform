@@ -101,7 +101,7 @@ export function CreatorHeader({
         {canManage && (
           <Link
             to="/creators/$creatorId/manage"
-            params={{ creatorId: creator.id }}
+            params={{ creatorId: creator.handle ?? creator.id }}
             className={styles.manageLink}
           >
             Manage
