@@ -106,7 +106,6 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [body, setBody] = useState("");
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
 
   const mediaRef = useRef<HTMLInputElement>(null);
   const coverArtRef = useRef<HTMLInputElement>(null);
@@ -149,7 +148,6 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
       description: description.trim() || undefined,
       visibility,
       body: type === "written" ? body : undefined,
-      publishImmediately: type === "written" && !saveAsDraft ? true : undefined,
     };
 
     const result = safeParse(FormSchema, formData);
@@ -180,7 +178,7 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
 
       const coverArtFile = coverArtRef.current?.files?.[0];
       if (coverArtFile) {
-        filesToUpload.push({ file: coverArtFile, purpose: "content-cover-art" });
+        filesToUpload.push({ file: coverArtFile, purpose: "content-thumbnail" });
       }
 
       const thumbnailFile = thumbnailRef.current?.files?.[0];
@@ -208,7 +206,11 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
       }
 
       // Form resets immediately — uploads continue in background
-      setSuccessMessage("Content created — uploads in progress");
+      setSuccessMessage(
+        filesToUpload.length > 0
+          ? "Draft created — uploads in progress"
+          : "Draft created",
+      );
       resetForm();
       onSuccess(); // refresh lists to show new draft immediately
     } catch (err) {
@@ -366,21 +368,6 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         </div>
       )}
 
-      {/* Save as draft (written only) */}
-      {type === "written" && (
-        <div className={formStyles.fieldGroup}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={saveAsDraft}
-              onChange={(e) => setSaveAsDraft(e.target.checked)}
-              disabled={isSubmitting}
-            />
-            Save as draft (don&apos;t publish immediately)
-          </label>
-        </div>
-      )}
-
       {/* Media file (audio/video only) */}
       {type !== "written" && (
         <FileInputField
@@ -415,8 +402,8 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         />
       )}
 
-      {/* Thumbnail (video only) */}
-      {type === "video" && (
+      {/* Thumbnail (video and written) */}
+      {(type === "video" || type === "written") && (
         <FileInputField
           label="Thumbnail (optional)"
           inputId="content-thumbnail"

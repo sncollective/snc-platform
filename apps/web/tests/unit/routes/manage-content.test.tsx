@@ -45,15 +45,18 @@ vi.mock("../../../src/components/content/content-form.js", () => ({
 vi.mock("../../../src/components/content/draft-content-list.js", () => ({
   DraftContentList: ({
     creatorId,
+    creatorHandle,
     refreshKey,
   }: {
     creatorId: string;
+    creatorHandle: string | null;
     refreshKey: number;
     onPublished: () => void;
   }) => (
     <div
       data-testid="draft-content-list"
       data-creator-id={creatorId}
+      data-creator-handle={creatorHandle ?? ""}
       data-refresh-key={refreshKey}
     />
   ),
@@ -66,6 +69,7 @@ vi.mock("../../../src/components/content/my-content-list.js", () => ({
   }: {
     creatorId: string;
     refreshKey: number;
+    onDeleted?: () => void;
   }) => (
     <div
       data-testid="content-list"
@@ -85,7 +89,7 @@ const ManageContentPage = extractRouteComponent(
 
 beforeEach(() => {
   mockUseLoaderData.mockReturnValue({
-    creator: { id: "creator-uuid-123", displayName: "Test Creator" },
+    creator: { id: "creator-uuid-123", displayName: "Test Creator", handle: "test-creator" },
     memberRole: "owner",
     isAdmin: false,
     userId: "user-1",

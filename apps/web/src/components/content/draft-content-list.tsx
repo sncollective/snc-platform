@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import type React from "react";
-import type { ContentResponse, Visibility } from "@snc/shared";
+import type { ContentResponse } from "@snc/shared";
+import { Link } from "@tanstack/react-router";
 
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { publishContent, updateContent } from "../../lib/content.js";
+import { publishContent, deleteContent } from "../../lib/content.js";
 import { useUpload } from "../../contexts/upload-context.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./draft-content-list.module.css";
@@ -12,6 +13,7 @@ import styles from "./draft-content-list.module.css";
 
 export interface DraftContentListProps {
   readonly creatorId: string;
+  readonly creatorHandle: string | null;
   readonly refreshKey: number;
   readonly onPublished: () => void;
 }
@@ -33,56 +35,27 @@ function canPublish(item: ContentResponse): boolean {
 
 interface DraftItemProps {
   readonly item: ContentResponse;
+  readonly creatorHandle: string | null;
   readonly onPublished: () => void;
-  readonly onUpdated: () => void;
+  readonly onDeleted: () => void;
 }
 
 function DraftItem({
   item,
+  creatorHandle,
   onPublished,
-  onUpdated,
+  onDeleted,
 }: DraftItemProps): React.ReactElement {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(item.title);
-  const [editDescription, setEditDescription] = useState(item.description ?? "");
-  const [editVisibility, setEditVisibility] = useState<Visibility>(item.visibility);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
-
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
   const { actions: uploadActions } = useUpload();
 
   const mediaStatus = item.mediaUrl !== null ? "Media ready" : "No media";
   const publishEnabled = canPublish(item) && !isPublishing;
   const needsMedia = mediaRequiredForPublish(item.type) && item.mediaUrl === null;
-
-  const handleSave = async () => {
-    setEditError(null);
-    setIsSaving(true);
-    try {
-      await updateContent(item.id, {
-        title: editTitle.trim(),
-        description: editDescription.trim() || undefined,
-        visibility: editVisibility,
-      });
-      setIsEditing(false);
-      onUpdated();
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditTitle(item.title);
-    setEditDescription(item.description ?? "");
-    setEditVisibility(item.visibility);
-    setEditError(null);
-  };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -104,6 +77,36 @@ function DraftItem({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    uploadActions.startUpload({
+      file,
+      purpose: "content-thumbnail",
+      resourceId: item.id,
+      onComplete: () => onPublished(),
+      onError: (err) => setError(err.message),
+    });
+
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this content?")) return;
+    setError(null);
+    setIsDeleting(true);
+    try {
+      await deleteContent(item.id);
+      onDeleted();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handlePublish = async () => {
     setError(null);
     setIsPublishing(true);
@@ -116,66 +119,6 @@ function DraftItem({
       setIsPublishing(false);
     }
   };
-
-  if (isEditing) {
-    return (
-      <div className={styles.editForm}>
-        <div className={styles.editField}>
-          <label className={styles.editLabel} htmlFor={`edit-title-${item.id}`}>Title</label>
-          <input
-            id={`edit-title-${item.id}`}
-            className={styles.editInput}
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            disabled={isSaving}
-          />
-        </div>
-        <div className={styles.editField}>
-          <label className={styles.editLabel} htmlFor={`edit-desc-${item.id}`}>Description</label>
-          <textarea
-            id={`edit-desc-${item.id}`}
-            className={styles.editTextarea}
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            disabled={isSaving}
-            rows={3}
-          />
-        </div>
-        <div className={styles.editField}>
-          <label className={styles.editLabel} htmlFor={`edit-vis-${item.id}`}>Visibility</label>
-          <select
-            id={`edit-vis-${item.id}`}
-            className={styles.editInput}
-            value={editVisibility}
-            onChange={(e) => setEditVisibility(e.target.value as Visibility)}
-            disabled={isSaving}
-          >
-            <option value="public">Public</option>
-            <option value="subscribers">Subscribers Only</option>
-          </select>
-        </div>
-        {editError && <p className={styles.draftError} role="alert">{editError}</p>}
-        <div className={styles.editActions}>
-          <button
-            type="button"
-            className={styles.editCancelButton}
-            onClick={handleCancelEdit}
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.editSaveButton}
-            onClick={handleSave}
-            disabled={isSaving || !editTitle.trim()}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.draftItem}>
@@ -205,14 +148,25 @@ function DraftItem({
       )}
 
       <div className={styles.draftActions}>
-        <button
-          type="button"
-          className={styles.editButton}
-          onClick={() => setIsEditing(true)}
-          disabled={isPublishing}
-        >
-          Edit
-        </button>
+        {item.slug && creatorHandle ? (
+          <Link
+            to="/content/$creatorSlug/$contentSlug"
+            params={{ creatorSlug: creatorHandle, contentSlug: item.slug }}
+            search={{ edit: true }}
+            className={styles.editButton}
+          >
+            Edit
+          </Link>
+        ) : (
+          <Link
+            to="/content/$contentId"
+            params={{ contentId: item.id }}
+            search={{ edit: true }}
+            className={styles.editButton}
+          >
+            Edit
+          </Link>
+        )}
 
         {needsMedia && (
           <>
@@ -234,8 +188,28 @@ function DraftItem({
           </>
         )}
 
+        <input
+          ref={thumbnailInputRef}
+          type="file"
+          className={styles.hiddenFileInput}
+          accept="image/*"
+          onChange={handleThumbnailChange}
+        />
+        <button
+          type="button"
+          className={styles.uploadButton}
+          onClick={() => thumbnailInputRef.current?.click()}
+          disabled={isPublishing || isDeleting}
+        >
+          {item.thumbnailUrl ? "Replace Thumbnail" : "Upload Thumbnail"}
+        </button>
+
         <a
-          href={`/content/${item.id}`}
+          href={
+            item.slug && creatorHandle
+              ? `/content/${creatorHandle}/${item.slug}`
+              : `/content/${item.id}`
+          }
           className={styles.previewLink}
           target="_blank"
           rel="noreferrer"
@@ -251,6 +225,15 @@ function DraftItem({
         >
           {isPublishing ? "Publishing..." : "Publish"}
         </button>
+
+        <button
+          type="button"
+          className={styles.deleteButton}
+          onClick={handleDelete}
+          disabled={isPublishing || isDeleting}
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
       </div>
     </div>
   );
@@ -260,6 +243,7 @@ function DraftItem({
 
 export function DraftContentList({
   creatorId,
+  creatorHandle,
   refreshKey,
   onPublished,
 }: DraftContentListProps): React.ReactElement {
@@ -295,8 +279,9 @@ export function DraftContentList({
           <DraftItem
             key={item.id}
             item={item}
+            creatorHandle={creatorHandle}
             onPublished={onPublished}
-            onUpdated={onPublished}
+            onDeleted={onPublished}
           />
         ))}
       </div>

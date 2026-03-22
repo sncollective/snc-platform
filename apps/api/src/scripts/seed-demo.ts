@@ -359,7 +359,6 @@ try {
     description: string;
     visibility: Visibility;
     publishedAt: Date;
-    coverArtKey?: string;
     mediaKey?: string;
     thumbnailKey?: string;
     body?: string;
@@ -373,7 +372,7 @@ try {
       description: "A late-night ambient session recorded live in one take.",
       visibility: "public",
       publishedAt: daysAgo(90),
-      coverArtKey: "content/seed_content_01/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_01/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_01/media/midnight-frequencies.wav",
     },
     {
@@ -384,7 +383,7 @@ try {
       description: "Exploring granular synthesis techniques with modular gear.",
       visibility: "subscribers",
       publishedAt: daysAgo(60),
-      coverArtKey: "content/seed_content_02/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_02/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_02/media/synthesis-lab-ep3.wav",
     },
     {
@@ -418,7 +417,7 @@ try {
       description: "Raw demo recorded on a four-track in the backyard.",
       visibility: "public",
       publishedAt: daysAgo(85),
-      coverArtKey: "content/seed_content_05/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_05/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_05/media/backyard-demo.wav",
     },
     {
@@ -429,7 +428,7 @@ try {
       description: "New single from the upcoming album.",
       visibility: "subscribers",
       publishedAt: daysAgo(40),
-      coverArtKey: "content/seed_content_06/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_06/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_06/media/kitchen-floor.wav",
     },
     {
@@ -463,7 +462,7 @@ try {
       description: "Spoken word piece over lo-fi beats about city life.",
       visibility: "public",
       publishedAt: daysAgo(70),
-      coverArtKey: "content/seed_content_09/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_09/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_09/media/concrete-hymns.wav",
     },
     {
@@ -496,7 +495,7 @@ try {
       description: "Collaborative track featuring spoken word from community members.",
       visibility: "public",
       publishedAt: daysAgo(3),
-      coverArtKey: "content/seed_content_12/cover-art/cover.jpg",
+      thumbnailKey: "content/seed_content_12/thumbnail/cover.jpg",
       mediaKey: "content/seed_content_12/media/brick-by-brick.wav",
     },
   ];
@@ -517,7 +516,6 @@ try {
           body: c.body ?? null,
           visibility: c.visibility,
           thumbnailKey: c.thumbnailKey ?? null,
-          coverArtKey: c.coverArtKey ?? null,
           mediaKey: c.mediaKey ?? null,
           updatedAt: now,
         },
@@ -713,19 +711,19 @@ try {
     { picsumId: 1039, width: 1200, height: 400, key: creatorRows[1]!.bannerKey },
     { picsumId: 1042, width: 1200, height: 400, key: creatorRows[2]!.bannerKey },
     { picsumId: 1044, width: 1200, height: 400, key: creatorRows[3]!.bannerKey },
-    // Content thumbnails/cover art (16:9 for thumbnails, square for cover art)
-    { picsumId: 1062, width: 600, height: 600, key: "content/seed_content_01/cover-art/cover.jpg" },
-    { picsumId: 1067, width: 600, height: 600, key: "content/seed_content_02/cover-art/cover.jpg" },
+    // Content thumbnails (square for audio, 16:9 for video/written)
+    { picsumId: 1062, width: 600, height: 600, key: "content/seed_content_01/thumbnail/cover.jpg" },
+    { picsumId: 1067, width: 600, height: 600, key: "content/seed_content_02/thumbnail/cover.jpg" },
     { picsumId: 1069, width: 800, height: 450, key: "content/seed_content_03/thumbnail/thumb.jpg" },
     { picsumId: 1073, width: 800, height: 450, key: "content/seed_content_04/thumbnail/thumb.jpg" },
-    { picsumId: 1074, width: 600, height: 600, key: "content/seed_content_05/cover-art/cover.jpg" },
-    { picsumId: 1076, width: 600, height: 600, key: "content/seed_content_06/cover-art/cover.jpg" },
+    { picsumId: 1074, width: 600, height: 600, key: "content/seed_content_05/thumbnail/cover.jpg" },
+    { picsumId: 1076, width: 600, height: 600, key: "content/seed_content_06/thumbnail/cover.jpg" },
     { picsumId: 1080, width: 800, height: 450, key: "content/seed_content_07/thumbnail/thumb.jpg" },
     { picsumId: 1082, width: 800, height: 450, key: "content/seed_content_08/thumbnail/thumb.jpg" },
-    { picsumId: 1083, width: 600, height: 600, key: "content/seed_content_09/cover-art/cover.jpg" },
+    { picsumId: 1083, width: 600, height: 600, key: "content/seed_content_09/thumbnail/cover.jpg" },
     { picsumId: 1084, width: 800, height: 450, key: "content/seed_content_10/thumbnail/thumb.jpg" },
     { picsumId: 1057, width: 800, height: 450, key: "content/seed_content_11/thumbnail/thumb.jpg" },
-    { picsumId: 1059, width: 600, height: 600, key: "content/seed_content_12/cover-art/cover.jpg" },
+    { picsumId: 1059, width: 600, height: 600, key: "content/seed_content_12/thumbnail/cover.jpg" },
   ];
 
   let downloaded = 0;

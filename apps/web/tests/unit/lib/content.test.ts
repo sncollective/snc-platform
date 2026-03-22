@@ -4,6 +4,7 @@ import type { ContentResponse } from "@snc/shared";
 
 import {
   createContent,
+  deleteContent,
   updateContent,
   uploadContentFile,
 } from "../../../src/lib/content.js";
@@ -18,14 +19,15 @@ const { getMockFetch } = setupFetchMock();
 const MOCK_CONTENT: ContentResponse = {
   id: "content_test_001",
   creatorId: "user-1",
+  slug: "test-track",
   type: "audio",
   title: "Test Track",
   body: null,
   description: "A test audio track",
   visibility: "subscribers",
+  sourceType: "upload",
   thumbnailUrl: null,
   mediaUrl: "/storage/media/test.mp3",
-  coverArtUrl: null,
   publishedAt: "2026-03-01T00:00:00.000Z",
   createdAt: "2026-03-01T00:00:00.000Z",
   updatedAt: "2026-03-01T00:00:00.000Z",
@@ -125,17 +127,6 @@ describe("uploadContentFile", () => {
     expect(url).toBe("/api/content/content_test_001/upload?field=thumbnail");
   });
 
-  it("posts to correct URL for coverArt field", async () => {
-    getMockFetch().mockResolvedValue(
-      new Response(JSON.stringify(MOCK_CONTENT), { status: 200 }),
-    );
-
-    const file = new File(["img-data"], "cover.jpg", { type: "image/jpeg" });
-    await uploadContentFile("content_test_001", "coverArt", file);
-
-    const [url] = getMockFetch().mock.calls[0]!;
-    expect(url).toBe("/api/content/content_test_001/upload?field=coverArt");
-  });
 
   it("throws on 413 payload too large", async () => {
     getMockFetch().mockResolvedValue(
@@ -216,5 +207,55 @@ describe("updateContent", () => {
     await expect(
       updateContent("content_test_001", { title: "Updated" }),
     ).rejects.toThrow("Forbidden");
+  });
+});
+
+// ── deleteContent ──
+
+describe("deleteContent", () => {
+  it("sends DELETE to correct URL with credentials and no body", async () => {
+    getMockFetch().mockResolvedValue(new Response(null, { status: 204 }));
+
+    await deleteContent("content_test_001");
+
+    expect(getMockFetch()).toHaveBeenCalledWith(
+      "/api/content/content_test_001",
+      {
+        method: "DELETE",
+        credentials: "include",
+        headers: {},
+      },
+    );
+  });
+
+  it("encodes content ID in URL", async () => {
+    getMockFetch().mockResolvedValue(new Response(null, { status: 204 }));
+
+    await deleteContent("content/with/slashes");
+
+    const [url] = getMockFetch().mock.calls[0]!;
+    expect(url).toBe("/api/content/content%2Fwith%2Fslashes");
+  });
+
+  it("throws on 403 forbidden", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: "Forbidden" } }),
+        { status: 403 },
+      ),
+    );
+
+    await expect(deleteContent("content_test_001")).rejects.toThrow("Forbidden");
+  });
+
+  it("throws on 404 not found", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: "Not found" } }),
+        { status: 404 },
+      ),
+    );
+
+    await expect(deleteContent("content_test_001")).rejects.toThrow("Not found");
   });
 });

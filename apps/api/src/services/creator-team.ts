@@ -8,6 +8,7 @@ import type { CreatorMemberRole, CreatorPermission } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { creatorMembers } from "../db/schema/creator.schema.js";
+import { getUserRoles } from "../auth/user-roles.js";
 
 /**
  * Get all creator IDs the user is a member of (with roles).
@@ -32,7 +33,8 @@ export const checkCreatorPermission = async (
   permission: CreatorPermission,
   userRoles?: string[],
 ): Promise<boolean> => {
-  if (userRoles?.includes("admin")) return true;
+  const roles = userRoles ?? await getUserRoles(userId);
+  if (roles.includes("admin")) return true;
 
   const rows = await db
     .select({ role: creatorMembers.role })

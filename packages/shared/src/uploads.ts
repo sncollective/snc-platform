@@ -7,7 +7,6 @@ export const SOURCE_TYPES = ["upload", "stream-recording"] as const;
 export const UPLOAD_PURPOSES = [
   "content-media",
   "content-thumbnail",
-  "content-cover-art",
   "creator-avatar",
   "creator-banner",
 ] as const;

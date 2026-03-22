@@ -7,14 +7,15 @@ import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseLoaderData, mockIsFeatureEnabled, mockContentDetail } = vi.hoisted(() => ({
+const { mockUseLoaderData, mockUseSearch, mockIsFeatureEnabled, mockContentDetail } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
+  mockUseSearch: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
   mockContentDetail: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ useLoaderData: mockUseLoaderData }),
+  createRouterMock({ useLoaderData: mockUseLoaderData, useSearch: mockUseSearch }),
 );
 
 vi.mock("../../../src/lib/api-server.js", () => ({
@@ -46,9 +47,11 @@ const ContentDetailPage = extractRouteComponent(() => import("../../../src/route
 
 beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
+  mockUseSearch.mockReturnValue({ edit: false });
   mockUseLoaderData.mockReturnValue({
     item: makeMockFeedItem({ id: "c1", title: "Test Post" }),
     plans: [],
+    canManage: false,
   });
 });
 

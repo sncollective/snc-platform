@@ -41,7 +41,6 @@ describe("UPLOAD_PURPOSES", () => {
     expect(UPLOAD_PURPOSES).toStrictEqual([
       "content-media",
       "content-thumbnail",
-      "content-cover-art",
       "creator-avatar",
       "creator-banner",
     ]);

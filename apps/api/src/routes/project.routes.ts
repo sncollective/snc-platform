@@ -33,19 +33,13 @@ import {
 } from "./openapi-errors.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { generateUniqueSlug } from "../services/slug.js";
 
 // ── Private Types ──
 
 type ProjectRow = typeof projects.$inferSelect;
 
 // ── Private Helpers ──
-
-const toSlug = (name: string): string =>
-  name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-");
 
 const toProjectResponse = (row: ProjectRow): Project => ({
   id: row.id,
@@ -226,19 +220,10 @@ projectRoutes.post(
     const id = randomUUID();
     const now = new Date();
 
-    // Generate unique slug — append numeric suffix on conflict
-    const baseSlug = toSlug(data.name);
-    let slug = baseSlug;
-    let attempt = 0;
-    while (true) {
-      const [existing] = await db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(eq(projects.slug, slug));
-      if (!existing) break;
-      attempt += 1;
-      slug = `${baseSlug}-${attempt + 1}`;
-    }
+    const slug = await generateUniqueSlug(data.name, {
+      table: projects,
+      slugColumn: projects.slug,
+    });
 
     const [project] = await db
       .insert(projects)
@@ -295,20 +280,12 @@ projectRoutes.patch(
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (data.name !== undefined) {
       updates.name = data.name;
-      // Regenerate slug when name changes
-      const baseSlug = toSlug(data.name);
-      let slug = baseSlug;
-      let attempt = 0;
-      while (true) {
-        const [conflict] = await db
-          .select({ id: projects.id })
-          .from(projects)
-          .where(and(eq(projects.slug, slug), ne(projects.id, existing.id)));
-        if (!conflict) break;
-        attempt += 1;
-        slug = `${baseSlug}-${attempt + 1}`;
-      }
-      updates.slug = slug;
+      updates.slug = await generateUniqueSlug(data.name, {
+        table: projects,
+        slugColumn: projects.slug,
+        excludeId: existing.id,
+        idColumn: projects.id,
+      });
     }
     if (data.description !== undefined) updates.description = data.description;
     if (data.completed !== undefined) {

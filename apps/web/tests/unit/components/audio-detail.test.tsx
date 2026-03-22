@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { stubComponent } from "../../helpers/component-stubs.js";
@@ -30,20 +30,20 @@ import { AudioDetail } from "../../../src/components/content/audio-detail.js";
 // ── Tests ──
 
 describe("AudioDetail", () => {
-  it("renders cover art image when coverArtUrl is present", () => {
+  it("renders cover art image when thumbnailUrl is present", () => {
     const item = makeMockFeedItem({
       type: "audio",
       mediaUrl: "/api/content/c1/media",
-      coverArtUrl: "/api/content/c1/cover-art",
+      thumbnailUrl: "/api/content/c1/thumbnail",
     });
     render(<AudioDetail item={item} />);
     const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("src", "/api/content/c1/cover-art");
+    expect(img).toHaveAttribute("src", "/api/content/c1/thumbnail");
     expect(img).toHaveAttribute("alt", expect.stringContaining(item.title));
   });
 
-  it("renders placeholder when no cover art", () => {
-    const item = makeMockFeedItem({ type: "audio", mediaUrl: "/api/content/c1/media", coverArtUrl: null });
+  it("renders placeholder when no thumbnail", () => {
+    const item = makeMockFeedItem({ type: "audio", mediaUrl: "/api/content/c1/media", thumbnailUrl: null });
     const { container } = render(<AudioDetail item={item} />);
     expect(screen.queryByRole("img")).toBeNull();
     // Placeholder div should exist (check for the CSS class)
@@ -57,7 +57,7 @@ describe("AudioDetail", () => {
       title: "Track One",
       creatorName: "Artist A",
       mediaUrl: "/api/content/audio-1/media",
-      coverArtUrl: "/api/content/audio-1/cover-art",
+      thumbnailUrl: "/api/content/audio-1/thumbnail",
     });
     render(<AudioDetail item={item} />);
 
@@ -66,7 +66,7 @@ describe("AudioDetail", () => {
         src: "/api/content/audio-1/media",
         title: "Track One",
         creator: "Artist A",
-        coverArtUrl: "/api/content/audio-1/cover-art",
+        coverArtUrl: "/api/content/audio-1/thumbnail",
         contentId: "audio-1",
       }),
     );
@@ -155,18 +155,18 @@ describe("AudioDetail", () => {
     );
   });
 
-  it("renders cover art when locked and coverArtUrl exists", () => {
+  it("renders cover art when locked and thumbnailUrl exists", () => {
     const item = makeMockFeedItem({
       type: "audio",
       visibility: "subscribers",
       mediaUrl: null,
-      coverArtUrl: "/api/content/c1/cover-art",
+      thumbnailUrl: "/api/content/c1/thumbnail",
     });
     render(<AudioDetail item={item} locked={true} />);
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute(
       "src",
-      "/api/content/c1/cover-art",
+      "/api/content/c1/thumbnail",
     );
   });
 
@@ -215,5 +215,138 @@ describe("AudioDetail", () => {
     });
     render(<AudioDetail item={item} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Draft Track");
+  });
+
+  describe("edit mode upload placeholders", () => {
+    const makeEditCallbacks = (overrides?: Partial<{
+      onTitleChange: (v: string) => void;
+      onDescriptionChange: (v: string) => void;
+      onVisibilityChange: (v: string) => void;
+      onMediaUpload: (f: File) => void;
+      onThumbnailUpload: (f: File) => void;
+      onMediaRemove: () => void;
+      onThumbnailRemove: () => void;
+    }>) => ({
+      onTitleChange: vi.fn(),
+      onDescriptionChange: vi.fn(),
+      onVisibilityChange: vi.fn(),
+      onMediaUpload: vi.fn(),
+      onThumbnailUpload: vi.fn(),
+      onMediaRemove: vi.fn(),
+      onThumbnailRemove: vi.fn(),
+      ...overrides,
+    });
+
+    it("renders Upload Audio placeholder when editing and mediaUrl is null", () => {
+      const item = makeMockFeedItem({ type: "audio", mediaUrl: null, thumbnailUrl: null });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Audio" })).toBeInTheDocument();
+    });
+
+    it("does not render media unavailable text when editing and onMediaUpload provided", () => {
+      const item = makeMockFeedItem({ type: "audio", mediaUrl: null, thumbnailUrl: null });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByText("Media not yet available")).toBeNull();
+    });
+
+    it("renders Upload Thumbnail placeholder when editing and thumbnailUrl is null", () => {
+      const item = makeMockFeedItem({ type: "audio", mediaUrl: null, thumbnailUrl: null });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("does not render Upload Thumbnail when thumbnailUrl is present", () => {
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByRole("button", { name: "Upload Thumbnail" })).toBeNull();
+    });
+
+    it("calls onMediaUpload when audio file selected", () => {
+      const onMediaUpload = vi.fn();
+      const item = makeMockFeedItem({ type: "audio", mediaUrl: null, thumbnailUrl: null });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onMediaUpload })} />);
+
+      const inputs = document.querySelectorAll('input[type="file"]');
+      // audio/* input
+      const audioInput = Array.from(inputs).find((i) => (i as HTMLInputElement).accept === "audio/*") as HTMLInputElement;
+      const file = new File(["data"], "track.mp3", { type: "audio/mpeg" });
+      fireEvent.change(audioInput, { target: { files: [file] } });
+
+      expect(onMediaUpload).toHaveBeenCalledWith(file);
+    });
+
+    it("calls onThumbnailUpload when image file selected", () => {
+      const onThumbnailUpload = vi.fn();
+      const item = makeMockFeedItem({ type: "audio", mediaUrl: null, thumbnailUrl: null });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailUpload })} />);
+
+      const inputs = document.querySelectorAll('input[type="file"]');
+      const imageInput = Array.from(inputs).find((i) => (i as HTMLInputElement).accept === "image/*") as HTMLInputElement;
+      const file = new File(["img"], "cover.jpg", { type: "image/jpeg" });
+      fireEvent.change(imageInput, { target: { files: [file] } });
+
+      expect(onThumbnailUpload).toHaveBeenCalledWith(file);
+    });
+
+    it("renders Replace Thumbnail and Remove Thumbnail when thumbnail exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("calls onThumbnailRemove when Remove Thumbnail is clicked", () => {
+      const onThumbnailRemove = vi.fn();
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailRemove })} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Thumbnail" }));
+      expect(onThumbnailRemove).toHaveBeenCalledOnce();
+    });
+
+    it("renders Replace Audio and Remove Audio buttons when media exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: null,
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Audio" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Audio" })).toBeInTheDocument();
+    });
+
+    it("calls onMediaRemove when Remove Audio is clicked", () => {
+      const onMediaRemove = vi.fn();
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: null,
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onMediaRemove })} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Audio" }));
+      expect(onMediaRemove).toHaveBeenCalledOnce();
+    });
+
+    it("renders Replace Thumbnail in no-media branch when thumbnail exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "audio",
+        mediaUrl: null,
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<AudioDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Thumbnail" })).toBeInTheDocument();
+    });
   });
 });

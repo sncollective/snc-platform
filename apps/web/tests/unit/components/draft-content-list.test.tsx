@@ -3,21 +3,25 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import type { ContentResponse } from "@snc/shared";
 
+import { createRouterMock } from "../../helpers/router-mock.js";
+
 // ── Hoisted Mocks ──
 
 const {
   mockUseCursorPagination,
   mockPublishContent,
-  mockUpdateContent,
+  mockDeleteContent,
   mockStartUpload,
   mockUseUpload,
 } = vi.hoisted(() => ({
   mockUseCursorPagination: vi.fn(),
   mockPublishContent: vi.fn(),
-  mockUpdateContent: vi.fn(),
+  mockDeleteContent: vi.fn(),
   mockStartUpload: vi.fn(),
   mockUseUpload: vi.fn(),
 }));
+
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 vi.mock("../../../src/hooks/use-cursor-pagination.js", () => ({
   useCursorPagination: mockUseCursorPagination,
@@ -25,7 +29,7 @@ vi.mock("../../../src/hooks/use-cursor-pagination.js", () => ({
 
 vi.mock("../../../src/lib/content.js", () => ({
   publishContent: mockPublishContent,
-  updateContent: mockUpdateContent,
+  deleteContent: mockDeleteContent,
 }));
 
 vi.mock("../../../src/contexts/upload-context.js", () => ({
@@ -42,6 +46,7 @@ function makeMockDraft(overrides?: Partial<ContentResponse>): ContentResponse {
   return {
     id: "draft-1",
     creatorId: "creator-1",
+    slug: null,
     type: "video",
     title: "My Draft Video",
     body: null,
@@ -50,7 +55,6 @@ function makeMockDraft(overrides?: Partial<ContentResponse>): ContentResponse {
     sourceType: "upload",
     thumbnailUrl: null,
     mediaUrl: null,
-    coverArtUrl: null,
     publishedAt: null,
     createdAt: "2026-03-01T00:00:00.000Z",
     updatedAt: "2026-03-01T00:00:00.000Z",
@@ -76,7 +80,7 @@ function makePaginationResult(
 beforeEach(() => {
   mockUseCursorPagination.mockReset();
   mockPublishContent.mockReset();
-  mockUpdateContent.mockReset();
+  mockDeleteContent.mockReset();
   mockStartUpload.mockReset();
   mockUseUpload.mockReturnValue({
     state: { activeUploads: [], isUploading: false, isExpanded: false },
@@ -86,6 +90,7 @@ beforeEach(() => {
 
 const defaultProps = {
   creatorId: "creator-1",
+  creatorHandle: "creator-handle",
   refreshKey: 0,
   onPublished: vi.fn(),
 };
@@ -261,84 +266,38 @@ describe("DraftContentList", () => {
     expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
   });
 
-  it("shows Edit button for draft items", () => {
+  it("shows Edit link for draft items linking to content detail page in edit mode (slug URL when slug and handle present)", () => {
     mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ type: "written", mediaUrl: null })]),
+      makePaginationResult([makeMockDraft({ id: "draft-1", slug: "my-post", type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} />);
+    render(<DraftContentList {...defaultProps} creatorHandle="creator-handle" />);
 
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    const editLink = screen.getByRole("link", { name: "Edit" });
+    expect(editLink).toBeInTheDocument();
+    expect(editLink).toHaveAttribute("href", "/content/creator-handle/my-post?edit=true");
   });
 
-  it("clicking Edit shows inline edit form with fields", () => {
+  it("Edit link falls back to ID URL with ?edit=true when slug is null", () => {
     mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ title: "My Draft", type: "written", mediaUrl: null })]),
+      makePaginationResult([makeMockDraft({ id: "draft-1", slug: null, type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} />);
+    render(<DraftContentList {...defaultProps} creatorHandle="creator-handle" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-
-    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/visibility/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    const editLink = screen.getByRole("link", { name: "Edit" });
+    expect(editLink).toHaveAttribute("href", "/content/draft-1?edit=true");
   });
 
-  it("clicking Cancel in edit mode reverts state", () => {
+  it("Edit link falls back to ID URL with ?edit=true when creatorHandle is null", () => {
     mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ title: "My Draft", type: "written", mediaUrl: null })]),
+      makePaginationResult([makeMockDraft({ id: "draft-1", slug: "my-post", type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} />);
+    render(<DraftContentList {...defaultProps} creatorHandle={null} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-  });
-
-  it("clicking Save calls updateContent with correct args", async () => {
-    mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ id: "draft-1", title: "My Draft", type: "written", mediaUrl: null })]),
-    );
-    mockUpdateContent.mockResolvedValue({ id: "draft-1", title: "Updated Title" });
-
-    render(<DraftContentList {...defaultProps} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-
-    const titleInput = screen.getByLabelText(/title/i);
-    fireEvent.change(titleInput, { target: { value: "Updated Title" } });
-
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(mockUpdateContent).toHaveBeenCalledWith(
-        "draft-1",
-        expect.objectContaining({ title: "Updated Title" }),
-      );
-    });
-  });
-
-  it("Save button disabled when title is empty", () => {
-    mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ type: "written", mediaUrl: null })]),
-    );
-
-    render(<DraftContentList {...defaultProps} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-
-    const titleInput = screen.getByLabelText(/title/i);
-    fireEvent.change(titleInput, { target: { value: "" } });
-
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    const editLink = screen.getByRole("link", { name: "Edit" });
+    expect(editLink).toHaveAttribute("href", "/content/draft-1?edit=true");
   });
 
   it("upload calls startUpload with purpose content-media for video", () => {
@@ -379,5 +338,170 @@ describe("DraftContentList", () => {
         resourceId: "draft-audio",
       }),
     );
+  });
+
+  it("shows Delete button for draft items", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ type: "written", mediaUrl: null })]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("calls deleteContent when Delete button clicked and user confirms", async () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ id: "draft-1", type: "written", mediaUrl: null })]),
+    );
+    mockDeleteContent.mockResolvedValue(undefined);
+    vi.stubGlobal("confirm", () => true);
+
+    render(<DraftContentList {...defaultProps} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(mockDeleteContent).toHaveBeenCalledWith("draft-1");
+    });
+
+    vi.unstubAllGlobals();
+  });
+
+  it("does not call deleteContent when user cancels confirm", async () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ type: "written", mediaUrl: null })]),
+    );
+    vi.stubGlobal("confirm", () => false);
+
+    render(<DraftContentList {...defaultProps} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(mockDeleteContent).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("shows Upload Thumbnail button for audio drafts", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ type: "audio", thumbnailUrl: null })]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+  });
+
+  it("shows Replace Thumbnail when audio draft already has thumbnail", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({ type: "audio", thumbnailUrl: "/api/content/draft-1/thumbnail" }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+  });
+
+  it("shows Upload Thumbnail button for video drafts", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({ type: "video", mediaUrl: "/api/content/draft-1/media", thumbnailUrl: null }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+  });
+
+  it("shows Replace Thumbnail when video draft already has thumbnail", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({
+          type: "video",
+          mediaUrl: "/api/content/draft-1/media",
+          thumbnailUrl: "/api/content/draft-1/thumbnail",
+        }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+  });
+
+  it("shows Upload Thumbnail button for written drafts", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ type: "written", thumbnailUrl: null })]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+  });
+
+  it("cover art upload calls startUpload with purpose content-thumbnail", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([makeMockDraft({ id: "draft-1", type: "audio", mediaUrl: null })]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    // There are two file inputs for audio: media + cover art
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    // Second input is cover art
+    const coverArtInput = fileInputs[1] as HTMLInputElement;
+    const file = new File(["img"], "cover.jpg", { type: "image/jpeg" });
+    fireEvent.change(coverArtInput, { target: { files: [file] } });
+
+    expect(mockStartUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        file,
+        purpose: "content-thumbnail",
+        resourceId: "draft-1",
+      }),
+    );
+  });
+
+  it("preview link uses slug URL when slug and creatorHandle are present", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({ id: "draft-1", type: "written", slug: "my-draft", mediaUrl: null }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} creatorHandle="my-creator" />);
+
+    const previewLink = screen.getByRole("link", { name: "Preview" });
+    expect(previewLink).toHaveAttribute("href", "/content/my-creator/my-draft");
+  });
+
+  it("preview link falls back to ID URL when slug is null", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({ id: "draft-1", type: "written", slug: null, mediaUrl: null }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} />);
+
+    const previewLink = screen.getByRole("link", { name: "Preview" });
+    expect(previewLink).toHaveAttribute("href", "/content/draft-1");
+  });
+
+  it("preview link falls back to ID URL when creatorHandle is null", () => {
+    mockUseCursorPagination.mockReturnValue(
+      makePaginationResult([
+        makeMockDraft({ id: "draft-1", type: "written", slug: "my-draft", mediaUrl: null }),
+      ]),
+    );
+
+    render(<DraftContentList {...defaultProps} creatorHandle={null} />);
+
+    const previewLink = screen.getByRole("link", { name: "Preview" });
+    expect(previewLink).toHaveAttribute("href", "/content/draft-1");
   });
 });

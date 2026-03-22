@@ -1,0 +1,1 @@
+ALTER TABLE "content" DROP COLUMN "cover_art_key";

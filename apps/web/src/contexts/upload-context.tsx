@@ -152,9 +152,6 @@ async function uploadLegacy(
     case "content-thumbnail":
       await uploadContentFile(resourceId, "thumbnail", file);
       break;
-    case "content-cover-art":
-      await uploadContentFile(resourceId, "coverArt", file);
-      break;
     case "creator-avatar": {
       const fd = new FormData();
       fd.append("file", file);

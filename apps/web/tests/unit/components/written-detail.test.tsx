@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { stubComponent } from "../../helpers/component-stubs.js";
@@ -19,6 +19,27 @@ vi.mock("../../../src/lib/format.js", async (importOriginal) => {
 vi.mock("../../../src/components/content/subscribe-cta.js", () =>
   stubComponent("SubscribeCta", "subscribe-cta", mockSubscribeCta),
 );
+
+// ── Helpers ──
+
+function makeEditCallbacks(overrides?: Partial<{
+  onTitleChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+  onVisibilityChange: (v: string) => void;
+  onBodyChange: (v: string) => void;
+  onThumbnailUpload: (f: File) => void;
+  onThumbnailRemove: () => void;
+}>) {
+  return {
+    onTitleChange: vi.fn(),
+    onDescriptionChange: vi.fn(),
+    onVisibilityChange: vi.fn(),
+    onBodyChange: vi.fn(),
+    onThumbnailUpload: vi.fn(),
+    onThumbnailRemove: vi.fn(),
+    ...overrides,
+  };
+}
 
 // ── Component Under Test ──
 
@@ -129,5 +150,77 @@ describe("WrittenDetail", () => {
     render(<WrittenDetail item={item} locked={true} />);
     expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+  });
+
+  describe("edit mode", () => {
+    it("renders Body label above textarea when editing and onBodyChange is provided", () => {
+      const item = makeMockFeedItem({ body: "Hello world" });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByText("Body")).toBeInTheDocument();
+    });
+
+    it("renders textarea with body value when editing", () => {
+      const item = makeMockFeedItem({ body: "Hello world" });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("textbox", { name: "Body" })).toHaveValue("Hello world");
+    });
+
+    it("renders textarea with empty string when body is null", () => {
+      const item = makeMockFeedItem({ body: null });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("textbox", { name: "Body" })).toHaveValue("");
+    });
+
+    it("renders thumbnail upload placeholder when editing and no thumbnail and onThumbnailUpload provided", () => {
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: null });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("does not render thumbnail upload placeholder when thumbnailUrl is present", () => {
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: "/api/content/c1/thumbnail" });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByRole("button", { name: "Upload Thumbnail" })).toBeNull();
+    });
+
+    it("does not render thumbnail upload placeholder when onThumbnailUpload is not provided", () => {
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: null });
+      const callbacks = makeEditCallbacks({ onThumbnailUpload: undefined });
+      render(<WrittenDetail item={item} isEditing editCallbacks={callbacks} />);
+      expect(screen.queryByRole("button", { name: "Upload Thumbnail" })).toBeNull();
+    });
+
+    it("calls onThumbnailUpload when file is selected", () => {
+      const onThumbnailUpload = vi.fn();
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: null });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailUpload })} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(["img"], "thumb.jpg", { type: "image/jpeg" });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(onThumbnailUpload).toHaveBeenCalledWith(file);
+    });
+
+    it("renders Replace Thumbnail and Remove Thumbnail when thumbnail exists and editing", () => {
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: "/api/content/c1/thumbnail" });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("does not render Replace Thumbnail when thumbnail is null", () => {
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: null });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByRole("button", { name: "Replace Thumbnail" })).toBeNull();
+    });
+
+    it("calls onThumbnailRemove when Remove Thumbnail is clicked", () => {
+      const onThumbnailRemove = vi.fn();
+      const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: "/api/content/c1/thumbnail" });
+      render(<WrittenDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailRemove })} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Thumbnail" }));
+      expect(onThumbnailRemove).toHaveBeenCalledOnce();
+    });
   });
 });

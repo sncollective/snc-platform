@@ -44,7 +44,6 @@ const PRESIGN_EXPIRY_SECONDS = 3600; // 1 hour
 const PURPOSE_KEY_PREFIX: Record<UploadPurpose, string> = {
   "content-media": "content",
   "content-thumbnail": "content",
-  "content-cover-art": "content",
   "creator-avatar": "creators",
   "creator-banner": "creators",
 };
@@ -52,7 +51,6 @@ const PURPOSE_KEY_PREFIX: Record<UploadPurpose, string> = {
 const PURPOSE_FIELD: Record<UploadPurpose, string> = {
   "content-media": "media",
   "content-thumbnail": "thumbnail",
-  "content-cover-art": "coverArt",
   "creator-avatar": "avatar",
   "creator-banner": "banner",
 };
@@ -60,7 +58,6 @@ const PURPOSE_FIELD: Record<UploadPurpose, string> = {
 const PURPOSE_DB_COLUMN: Record<string, string> = {
   "content-media": "mediaKey",
   "content-thumbnail": "thumbnailKey",
-  "content-cover-art": "coverArtKey",
   "creator-avatar": "avatarKey",
   "creator-banner": "bannerKey",
 };
@@ -103,7 +100,6 @@ const validateUpload = (
     maxSize = MAX_FILE_SIZES[typeKey as keyof typeof MAX_FILE_SIZES] ?? 0;
   } else if (
     purpose === "content-thumbnail" ||
-    purpose === "content-cover-art" ||
     purpose === "creator-avatar" ||
     purpose === "creator-banner"
   ) {
@@ -446,8 +442,7 @@ uploadRoutes.post(
         ? "media"
         : body.purpose.includes("thumbnail") ||
             body.purpose.includes("avatar") ||
-            body.purpose.includes("banner") ||
-            body.purpose.includes("cover-art")
+            body.purpose.includes("banner")
           ? "image"
           : "media";
 

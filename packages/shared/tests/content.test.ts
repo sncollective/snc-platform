@@ -31,6 +31,7 @@ import {
 const VALID_CONTENT_RESPONSE = {
   id: "content_abc123",
   creatorId: "user_creator1",
+  slug: "test-post",
   type: "written" as const,
   title: "Test Post",
   body: "This is the body of the post.",
@@ -39,7 +40,6 @@ const VALID_CONTENT_RESPONSE = {
   sourceType: "upload" as const,
   thumbnailUrl: null,
   mediaUrl: null,
-  coverArtUrl: null,
   publishedAt: "2026-01-01T00:00:00.000Z",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -48,6 +48,7 @@ const VALID_CONTENT_RESPONSE = {
 const VALID_FEED_ITEM = {
   ...VALID_CONTENT_RESPONSE,
   creatorName: "Test Creator",
+  creatorHandle: "test-creator",
 };
 
 // ── Tests ──
@@ -216,33 +217,13 @@ describe("CreateContentSchema", () => {
     ).toThrow();
   });
 
-  it("accepts publishImmediately: false", () => {
-    const result = CreateContentSchema.parse({
-      creatorId: CREATOR_ID,
-      title: "Draft Post",
-      type: "written",
-      publishImmediately: false,
-    });
-    expect(result.publishImmediately).toBe(false);
-  });
-
-  it("accepts publishImmediately: true", () => {
-    const result = CreateContentSchema.parse({
-      creatorId: CREATOR_ID,
-      title: "Published Post",
-      type: "written",
-      publishImmediately: true,
-    });
-    expect(result.publishImmediately).toBe(true);
-  });
-
-  it("accepts without publishImmediately (field is optional)", () => {
+  it("creates content as draft (no publishImmediately field)", () => {
     const result = CreateContentSchema.parse({
       creatorId: CREATOR_ID,
       title: "Post",
       type: "written",
     });
-    expect(result.publishImmediately).toBeUndefined();
+    expect(result).not.toHaveProperty("publishImmediately");
   });
 });
 
@@ -297,6 +278,28 @@ describe("UpdateContentSchema", () => {
       UpdateContentSchema.parse({ visibility: "private" }),
     ).toThrow();
   });
+
+  it("accepts clearThumbnail: true", () => {
+    const result = UpdateContentSchema.parse({ clearThumbnail: true });
+    expect(result.clearThumbnail).toBe(true);
+  });
+
+  it("accepts clearMedia: true", () => {
+    const result = UpdateContentSchema.parse({ clearMedia: true });
+    expect(result.clearMedia).toBe(true);
+  });
+
+  it("accepts clearThumbnail and clearMedia together", () => {
+    const result = UpdateContentSchema.parse({ clearThumbnail: true, clearMedia: true });
+    expect(result.clearThumbnail).toBe(true);
+    expect(result.clearMedia).toBe(true);
+  });
+
+  it("omits clearThumbnail when not provided", () => {
+    const result = UpdateContentSchema.parse({});
+    expect(result.clearThumbnail).toBeUndefined();
+    expect(result.clearMedia).toBeUndefined();
+  });
 });
 
 describe("ContentResponseSchema", () => {
@@ -315,14 +318,12 @@ describe("ContentResponseSchema", () => {
       description: null,
       thumbnailUrl: null,
       mediaUrl: null,
-      coverArtUrl: null,
       publishedAt: null,
     });
     expect(result.body).toBeNull();
     expect(result.description).toBeNull();
     expect(result.thumbnailUrl).toBeNull();
     expect(result.mediaUrl).toBeNull();
-    expect(result.coverArtUrl).toBeNull();
     expect(result.publishedAt).toBeNull();
   });
 
@@ -331,11 +332,9 @@ describe("ContentResponseSchema", () => {
       ...VALID_CONTENT_RESPONSE,
       thumbnailUrl: "/api/content/abc/thumbnail",
       mediaUrl: "/api/content/abc/media",
-      coverArtUrl: "/api/content/abc/cover-art",
     });
     expect(result.thumbnailUrl).toBe("/api/content/abc/thumbnail");
     expect(result.mediaUrl).toBe("/api/content/abc/media");
-    expect(result.coverArtUrl).toBe("/api/content/abc/cover-art");
   });
 
   it("rejects empty object", () => {
@@ -469,7 +468,6 @@ describe("FeedItemSchema", () => {
       body: null,
       thumbnailUrl: null,
       mediaUrl: null,
-      coverArtUrl: null,
       publishedAt: null,
     });
     expect(result.body).toBeNull();
@@ -641,9 +639,9 @@ const _createContentCheck: CreateContent = {
   title: "Test",
   type: "written",
 };
-const _updateContentCheck: UpdateContent = {};
+const _updateContentCheck: UpdateContent = { clearThumbnail: true, clearMedia: false };
 const _contentResponseCheck: ContentResponse = VALID_CONTENT_RESPONSE;
 const _feedQueryCheck: FeedQuery = { limit: 12 };
-const _feedItemCheck: FeedItem = { ...VALID_CONTENT_RESPONSE, creatorName: "A" };
+const _feedItemCheck: FeedItem = { ...VALID_CONTENT_RESPONSE, creatorName: "A", creatorHandle: null };
 const _feedResponseCheck: FeedResponse = { items: [], nextCursor: null };
 const _draftQueryCheck: DraftQuery = { creatorId: "c1", limit: 12 };

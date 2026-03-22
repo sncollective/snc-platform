@@ -782,6 +782,10 @@ describe("creator routes", () => {
 
       // findCreatorProfile → existing profile
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
+      // generateUniqueSlug — like query returns no conflicts
+      mockSelectWhere.mockResolvedValueOnce([]);
+      // handle uniqueness check — no handle conflict
+      mockSelectWhere.mockResolvedValueOnce([]);
       // update returning
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
       // getContentCount

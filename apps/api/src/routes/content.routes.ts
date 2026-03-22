@@ -37,13 +37,14 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { generateUniqueSlug } from "../services/slug.js";
 
 // ── Private Types ──
 
 type ContentRow = typeof content.$inferSelect;
-type FeedRow = ContentRow & { creatorName: string | null };
+type FeedRow = ContentRow & { creatorName: string | null; creatorHandle: string | null };
 
-const UPLOAD_FIELDS = ["media", "thumbnail", "coverArt"] as const;
+const UPLOAD_FIELDS = ["media", "thumbnail"] as const;
 type UploadField = (typeof UPLOAD_FIELDS)[number];
 
 type UploadConstraints = {
@@ -56,7 +57,6 @@ type UploadConstraints = {
 const FIELD_KEY_MAP = {
   media: "mediaKey",
   thumbnail: "thumbnailKey",
-  coverArt: "coverArtKey",
 } as const;
 
 // ── Private Helpers ──
@@ -64,6 +64,7 @@ const FIELD_KEY_MAP = {
 const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   id: row.id,
   creatorId: row.creatorId,
+  slug: row.slug ?? null,
   type: row.type,
   title: row.title,
   body: row.body ?? null,
@@ -75,9 +76,6 @@ const resolveContentUrls = (row: ContentRow): ContentResponse => ({
     : null,
   mediaUrl: row.mediaKey
     ? `/api/content/${row.id}/media`
-    : null,
-  coverArtUrl: row.coverArtKey
-    ? `/api/content/${row.id}/cover-art`
     : null,
   publishedAt: row.publishedAt?.toISOString() ?? null,
   createdAt: row.createdAt.toISOString(),
@@ -94,12 +92,17 @@ const findActiveContent = async (
   return rows[0];
 };
 
-const fetchCreatorName = async (creatorId: string): Promise<string> => {
+const fetchCreatorInfo = async (
+  creatorId: string,
+): Promise<{ name: string; handle: string | null }> => {
   const rows = await db
-    .select({ name: creatorProfiles.displayName })
+    .select({
+      name: creatorProfiles.displayName,
+      handle: creatorProfiles.handle,
+    })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.id, creatorId));
-  return rows[0]?.name ?? "Unknown";
+  return { name: rows[0]?.name ?? "Unknown", handle: rows[0]?.handle ?? null };
 };
 
 const requireContentOwnership = async (
@@ -117,9 +120,10 @@ const requireContentOwnership = async (
 const resolveFeedItem = (row: FeedRow): FeedItem => ({
   ...resolveContentUrls(row),
   creatorName: row.creatorName ?? "",
+  creatorHandle: row.creatorHandle ?? null,
 });
 
-type ContentKeyField = "mediaKey" | "thumbnailKey" | "coverArtKey";
+type ContentKeyField = "mediaKey" | "thumbnailKey";
 
 const requireContentFile = async (
   id: string,
@@ -159,7 +163,7 @@ const getUploadConstraints = (
   contentType: ContentType,
   field: UploadField,
 ): UploadConstraints => {
-  if (field === "thumbnail" || field === "coverArt") {
+  if (field === "thumbnail") {
     return {
       maxSize: MAX_FILE_SIZES.image,
       acceptedTypes: ACCEPTED_MIME_TYPES.image,
@@ -262,25 +266,26 @@ contentRoutes.get(
       if (cursorCondition) conditions.push(cursorCondition);
     }
 
-    // Query with JOIN to get creatorName
+    // Query with JOIN to get creatorName and creatorHandle
     const rows = (await db
       .select({
         id: content.id,
         creatorId: content.creatorId,
         type: content.type,
         title: content.title,
+        slug: content.slug,
         body: content.body,
         description: content.description,
         visibility: content.visibility,
         sourceType: content.sourceType,
         thumbnailKey: content.thumbnailKey,
         mediaKey: content.mediaKey,
-        coverArtKey: content.coverArtKey,
         publishedAt: content.publishedAt,
         deletedAt: content.deletedAt,
         createdAt: content.createdAt,
         updatedAt: content.updatedAt,
         creatorName: creatorProfiles.displayName,
+        creatorHandle: creatorProfiles.handle,
       })
       .from(content)
       .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
@@ -343,15 +348,24 @@ contentRoutes.post(
     const id = randomUUID();
     const now = new Date();
 
+    const slug = await generateUniqueSlug(body.title, {
+      table: content,
+      slugColumn: content.slug,
+      scopeColumn: content.creatorId,
+      scopeValue: body.creatorId,
+      fallbackPrefix: "content",
+    });
+
     const [inserted] = await db.insert(content).values({
       id,
       creatorId: body.creatorId,
       type: body.type,
       title: body.title,
+      slug,
       body: body.body ?? null,
       description: body.description ?? null,
       visibility: body.visibility,
-      publishedAt: body.type === "written" && body.publishImmediately !== false ? now : null,
+      publishedAt: null,
       createdAt: now,
       updatedAt: now,
     }).returning();
@@ -421,18 +435,19 @@ contentRoutes.get(
         creatorId: content.creatorId,
         type: content.type,
         title: content.title,
+        slug: content.slug,
         body: content.body,
         description: content.description,
         visibility: content.visibility,
         sourceType: content.sourceType,
         thumbnailKey: content.thumbnailKey,
         mediaKey: content.mediaKey,
-        coverArtKey: content.coverArtKey,
         publishedAt: content.publishedAt,
         deletedAt: content.deletedAt,
         createdAt: content.createdAt,
         updatedAt: content.updatedAt,
         creatorName: creatorProfiles.displayName,
+        creatorHandle: creatorProfiles.handle,
       })
       .from(content)
       .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
@@ -452,6 +467,99 @@ contentRoutes.get(
     const items = rawItems.map((row) => resolveFeedItem(row));
 
     return c.json({ items, nextCursor });
+  },
+);
+
+// GET /by-creator/:creatorIdentifier/:contentIdentifier — Resolve content by creator+slug
+contentRoutes.get(
+  "/by-creator/:creatorIdentifier/:contentIdentifier",
+  describeRoute({
+    description: "Resolve content by creator handle/ID and content slug/ID",
+    tags: ["content"],
+    responses: {
+      200: {
+        description: "Content detail",
+        content: {
+          "application/json": { schema: resolver(FeedItemSchema) },
+        },
+      },
+      404: ERROR_404,
+    },
+  }),
+  async (c) => {
+    const creatorIdentifier = c.req.param("creatorIdentifier");
+    const contentIdentifier = c.req.param("contentIdentifier");
+
+    // Resolve creator by handle or ID
+    const creatorRows = await db
+      .select({
+        id: creatorProfiles.id,
+        name: creatorProfiles.displayName,
+        handle: creatorProfiles.handle,
+      })
+      .from(creatorProfiles)
+      .where(
+        or(
+          eq(creatorProfiles.id, creatorIdentifier),
+          eq(creatorProfiles.handle, creatorIdentifier),
+        ),
+      );
+    const creator = creatorRows[0];
+    if (!creator) throw new NotFoundError("Content not found");
+
+    // Resolve content by slug or ID within that creator
+    const rows = await db
+      .select()
+      .from(content)
+      .where(
+        and(
+          eq(content.creatorId, creator.id),
+          isNull(content.deletedAt),
+          or(
+            eq(content.id, contentIdentifier),
+            eq(content.slug, contentIdentifier),
+          ),
+        ),
+      );
+    const row = rows[0];
+    if (!row) throw new NotFoundError("Content not found");
+
+    // Draft access control (same as GET /:id)
+    if (!row.publishedAt) {
+      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const userId = session?.user?.id ?? null;
+      if (!userId) throw new NotFoundError("Content not found");
+      const roles = await getUserRoles(userId);
+      const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
+      if (!isAdmin) {
+        const hasPermission = await checkCreatorPermission(
+          userId,
+          row.creatorId,
+          "manageContent",
+          roles,
+        );
+        if (!hasPermission) throw new NotFoundError("Content not found");
+      }
+    }
+
+    const response = resolveContentUrls(row);
+
+    // Content gating (same as GET /:id)
+    if (row.visibility === "subscribers") {
+      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const userId = session?.user?.id ?? null;
+      const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
+      if (!gate.allowed) {
+        response.mediaUrl = null;
+        response.body = null;
+      }
+    }
+
+    return c.json({
+      ...response,
+      creatorName: creator.name ?? "",
+      creatorHandle: creator.handle ?? null,
+    });
   },
 );
 
@@ -495,6 +603,7 @@ contentRoutes.get(
           userId,
           row.creatorId,
           "manageContent",
+          roles,
         );
         if (!hasPermission) {
           throw new NotFoundError("Content not found");
@@ -503,7 +612,7 @@ contentRoutes.get(
     }
 
     const response = resolveContentUrls(row);
-    const creatorName = await fetchCreatorName(row.creatorId);
+    const creatorInfo = await fetchCreatorInfo(row.creatorId);
 
     if (row.visibility === "subscribers") {
       const session = await auth.api.getSession({
@@ -521,7 +630,11 @@ contentRoutes.get(
       }
     }
 
-    return c.json({ ...response, creatorName });
+    return c.json({
+      ...response,
+      creatorName: creatorInfo.name,
+      creatorHandle: creatorInfo.handle,
+    });
   },
 );
 
@@ -552,9 +665,45 @@ contentRoutes.patch(
 
     const existing = await requireContentOwnership(id, user.id);
 
+    const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
+
+    if (body.clearThumbnail) {
+      if (existing.thumbnailKey) {
+        const deleteResult = await storage.delete(existing.thumbnailKey);
+        if (!deleteResult.ok) {
+          console.error("Failed to delete thumbnail:", deleteResult.error.message);
+        }
+      }
+      updates.thumbnailKey = null;
+      delete updates.clearThumbnail;
+    }
+
+    if (body.clearMedia) {
+      if (existing.mediaKey) {
+        const deleteResult = await storage.delete(existing.mediaKey);
+        if (!deleteResult.ok) {
+          console.error("Failed to delete media:", deleteResult.error.message);
+        }
+      }
+      updates.mediaKey = null;
+      delete updates.clearMedia;
+    }
+
+    if (body.title && body.title !== existing.title) {
+      updates.slug = await generateUniqueSlug(body.title, {
+        table: content,
+        slugColumn: content.slug,
+        scopeColumn: content.creatorId,
+        scopeValue: existing.creatorId,
+        excludeId: existing.id,
+        idColumn: content.id,
+        fallbackPrefix: "content",
+      });
+    }
+
     const [updated] = await db
       .update(content)
-      .set({ ...body, updatedAt: new Date() })
+      .set(updates)
       .where(eq(content.id, id))
       .returning();
 
@@ -595,7 +744,6 @@ contentRoutes.delete(
     const keysToDelete = [
       existing.thumbnailKey,
       existing.mediaKey,
-      existing.coverArtKey,
     ].filter((key): key is string => key !== null);
 
     const deleteResults = await Promise.all(
@@ -712,7 +860,7 @@ contentRoutes.post(
   "/:id/upload",
   requireAuth,
   describeRoute({
-    description: "Upload a media file, thumbnail, or cover art for content",
+    description: "Upload a media file or thumbnail for content",
     tags: ["content"],
     responses: {
       200: {
@@ -892,26 +1040,3 @@ contentRoutes.get(
   },
 );
 
-// GET /:id/cover-art — Stream cover art image
-contentRoutes.get(
-  "/:id/cover-art",
-  describeRoute({
-    description: "Stream the cover art image for content",
-    tags: ["content"],
-    responses: {
-      200: {
-        description: "Cover art image stream",
-        content: {
-          "application/octet-stream": {
-            schema: { type: "string", format: "binary" },
-          },
-        },
-      },
-      404: ERROR_404,
-    },
-  }),
-  async (c) => {
-    const id = c.req.param("id");
-    return streamContentFile(c, id, "coverArtKey", "No cover art uploaded for this content", "Cover art file not found", "public, max-age=86400");
-  },
-);

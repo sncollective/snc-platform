@@ -12,7 +12,7 @@ export async function createContent(
 
 export async function uploadContentFile(
   contentId: string,
-  field: "media" | "thumbnail" | "coverArt",
+  field: "media" | "thumbnail",
   file: File,
 ): Promise<ContentResponse> {
   const formData = new FormData();
@@ -51,5 +51,11 @@ export async function publishContent(id: string): Promise<ContentResponse> {
 export async function unpublishContent(id: string): Promise<ContentResponse> {
   return apiMutate<ContentResponse>(`/api/content/${encodeURIComponent(id)}/unpublish`, {
     method: "POST",
+  });
+}
+
+export async function deleteContent(id: string): Promise<void> {
+  await apiMutate<void>(`/api/content/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
 }

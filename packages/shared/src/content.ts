@@ -24,7 +24,6 @@ export const CreateContentSchema = z.object({
   visibility: VisibilitySchema.default("public"),
   body: z.string().optional(),
   sourceType: SourceTypeSchema.default("upload"),
-  publishImmediately: z.boolean().optional(),
 });
 
 export const UpdateContentSchema = z.object({
@@ -32,11 +31,14 @@ export const UpdateContentSchema = z.object({
   description: z.string().max(MAX_DESCRIPTION_LENGTH).optional(),
   visibility: VisibilitySchema.optional(),
   body: z.string().optional(),
+  clearThumbnail: z.boolean().optional(),
+  clearMedia: z.boolean().optional(),
 });
 
 export const ContentResponseSchema = z.object({
   id: z.string(),
   creatorId: z.string(),
+  slug: z.string().nullable(),
   type: ContentTypeSchema,
   title: z.string(),
   body: z.string().nullable(),
@@ -45,7 +47,6 @@ export const ContentResponseSchema = z.object({
   sourceType: z.enum(SOURCE_TYPES),
   thumbnailUrl: z.string().nullable(),
   mediaUrl: z.string().nullable(),
-  coverArtUrl: z.string().nullable(),
   publishedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -92,6 +93,7 @@ export const FeedQuerySchema = z.object({
 
 export const FeedItemSchema = ContentResponseSchema.extend({
   creatorName: z.string(),
+  creatorHandle: z.string().nullable(),
 });
 
 export const FeedResponseSchema = z.object({

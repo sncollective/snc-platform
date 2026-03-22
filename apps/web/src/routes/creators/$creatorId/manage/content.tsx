@@ -56,6 +56,7 @@ export function ManageContentPage(): React.ReactElement {
         <h2 className={sectionStyles.sectionHeading}>Drafts</h2>
         <DraftContentList
           creatorId={creator.id}
+          creatorHandle={creator.handle ?? null}
           refreshKey={refreshKey}
           onPublished={refresh}
         />
@@ -63,7 +64,7 @@ export function ManageContentPage(): React.ReactElement {
 
       <section className={sectionStyles.section}>
         <h2 className={sectionStyles.sectionHeading}>Published</h2>
-        <MyContentList creatorId={creator.id} refreshKey={refreshKey} />
+        <MyContentList creatorId={creator.id} refreshKey={refreshKey} onDeleted={refresh} />
       </section>
     </div>
   );

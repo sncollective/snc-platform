@@ -112,3 +112,26 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* ── No-Thumbnail Variant ── */
+
+.cardNoThumbnail {
+  border-left: 3px solid var(--color-accent);
+}
+
+.noThumbnailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) 0;
+}
+
+.badgeInline {
+  position: static;
+}
+
+.lockInline {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}

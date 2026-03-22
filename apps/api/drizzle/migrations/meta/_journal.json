@@ -148,6 +148,34 @@
       "when": 1774153889541,
       "tag": "0020_short_ogun",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1774202250232,
+      "tag": "0021_elite_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1774202256458,
+      "tag": "0022_illegal_stepford_cuckoos",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774217597985,
+      "tag": "0023_closed_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1774217612202,
+      "tag": "0024_panoramic_purifiers",
+      "breakpoints": true
     }
   ]
 }

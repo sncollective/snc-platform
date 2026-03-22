@@ -85,3 +85,75 @@
   font-style: italic;
   margin-top: var(--space-sm);
 }
+
+/* ── Upload Placeholder (Edit Mode) ── */
+
+.uploadPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-bg);
+  width: 280px;
+  height: 280px;
+  flex-shrink: 0;
+}
+
+.uploadPlaceholderButton {
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.uploadPlaceholderButton:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+/* ── Replace/Remove Actions (Edit Mode) ── */
+
+.editMediaActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.replaceButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.replaceButton:hover {
+  background: var(--color-bg-alt);
+}
+
+.removeButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-error);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.removeButton:hover {
+  background: var(--color-error);
+  color: var(--color-bg);
+}

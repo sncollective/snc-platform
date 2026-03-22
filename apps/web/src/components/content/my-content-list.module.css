@@ -1,0 +1,24 @@
+/* ── Content Item Wrapper ── */
+
+.contentItemWrapper {
+  position: relative;
+}
+
+/* ── Delete Button ── */
+
+.deleteButton {
+  margin-top: var(--space-xs);
+  background: none;
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  width: 100%;
+}
+
+.deleteButton:hover {
+  background: var(--color-error);
+  color: var(--color-bg);
+}

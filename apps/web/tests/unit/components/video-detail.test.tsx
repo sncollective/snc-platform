@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { stubComponent } from "../../helpers/component-stubs.js";
@@ -196,5 +196,156 @@ describe("VideoDetail", () => {
     });
     render(<VideoDetail item={item} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Draft Video");
+  });
+
+  describe("edit mode upload placeholders", () => {
+    const makeEditCallbacks = (overrides?: Partial<{
+      onTitleChange: (v: string) => void;
+      onDescriptionChange: (v: string) => void;
+      onVisibilityChange: (v: string) => void;
+      onMediaUpload: (f: File) => void;
+      onThumbnailUpload: (f: File) => void;
+      onMediaRemove: () => void;
+      onThumbnailRemove: () => void;
+    }>) => ({
+      onTitleChange: vi.fn(),
+      onDescriptionChange: vi.fn(),
+      onVisibilityChange: vi.fn(),
+      onMediaUpload: vi.fn(),
+      onThumbnailUpload: vi.fn(),
+      onMediaRemove: vi.fn(),
+      onThumbnailRemove: vi.fn(),
+      ...overrides,
+    });
+
+    it("renders Upload Video placeholder when editing and mediaUrl is null", () => {
+      const item = makeMockFeedItem({ type: "video", mediaUrl: null });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Video" })).toBeInTheDocument();
+    });
+
+    it("does not render media unavailable text when editing and onMediaUpload provided", () => {
+      const item = makeMockFeedItem({ type: "video", mediaUrl: null });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByText("Media not yet available")).toBeNull();
+    });
+
+    it("renders Upload Thumbnail placeholder when editing, media exists, and thumbnailUrl is null", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: null,
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("does not render Upload Thumbnail when thumbnailUrl is present", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.queryByRole("button", { name: "Upload Thumbnail" })).toBeNull();
+    });
+
+    it("calls onMediaUpload when video file selected", () => {
+      const onMediaUpload = vi.fn();
+      const item = makeMockFeedItem({ type: "video", mediaUrl: null });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onMediaUpload })} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(["data"], "video.mp4", { type: "video/mp4" });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(onMediaUpload).toHaveBeenCalledWith(file);
+    });
+
+    it("calls onThumbnailUpload when image file selected for thumbnail", () => {
+      const onThumbnailUpload = vi.fn();
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: null,
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailUpload })} />);
+
+      const inputs = document.querySelectorAll('input[type="file"]');
+      const imageInput = Array.from(inputs).find((i) => (i as HTMLInputElement).accept === "image/*") as HTMLInputElement;
+      const file = new File(["img"], "thumb.jpg", { type: "image/jpeg" });
+      fireEvent.change(imageInput, { target: { files: [file] } });
+
+      expect(onThumbnailUpload).toHaveBeenCalledWith(file);
+    });
+
+    it("renders Replace Video and Remove Video buttons when media exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: null,
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Video" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Video" })).toBeInTheDocument();
+    });
+
+    it("does not render Replace Video button in non-edit mode", () => {
+      const item = makeMockFeedItem({ type: "video", mediaUrl: "/api/content/c1/media" });
+      render(<VideoDetail item={item} />);
+      expect(screen.queryByRole("button", { name: "Replace Video" })).toBeNull();
+    });
+
+    it("calls onMediaRemove when Remove Video is clicked", () => {
+      const onMediaRemove = vi.fn();
+      const item = makeMockFeedItem({ type: "video", mediaUrl: "/api/content/c1/media" });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onMediaRemove })} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Video" }));
+      expect(onMediaRemove).toHaveBeenCalledOnce();
+    });
+
+    it("renders Replace Thumbnail and Remove Thumbnail buttons when thumbnail exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("calls onThumbnailRemove when Remove Thumbnail is clicked", () => {
+      const onThumbnailRemove = vi.fn();
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: "/api/content/c1/media",
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks({ onThumbnailRemove })} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Thumbnail" }));
+      expect(onThumbnailRemove).toHaveBeenCalledOnce();
+    });
+
+    it("renders Replace Thumbnail in no-media branch when thumbnail exists and editing", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: null,
+        thumbnailUrl: "/api/content/c1/thumbnail",
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Replace Thumbnail" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove Thumbnail" })).toBeInTheDocument();
+    });
+
+    it("renders Upload Thumbnail in no-media branch when no thumbnail and editing", () => {
+      const item = makeMockFeedItem({
+        type: "video",
+        mediaUrl: null,
+        thumbnailUrl: null,
+      });
+      render(<VideoDetail item={item} isEditing editCallbacks={makeEditCallbacks()} />);
+      expect(screen.getByRole("button", { name: "Upload Thumbnail" })).toBeInTheDocument();
+    });
   });
 });

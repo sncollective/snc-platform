@@ -133,31 +133,88 @@ describe("ContentCard", () => {
     );
   });
 
-  it("falls back to coverArtUrl for audio items without thumbnailUrl", () => {
+  it("shows no image for audio items without thumbnailUrl", () => {
     mockFormatRelativeDate.mockReturnValue("1d ago");
     const item = makeMockFeedItem({
       title: "Audio Track",
       type: "audio",
       thumbnailUrl: null,
-      coverArtUrl: "/api/content/1/cover-art",
+    });
+
+    const { container } = render(<ContentCard item={item} />);
+
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("links to slug URL when slug and creatorHandle are present", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      id: "content-42",
+      slug: "my-post",
+      creatorHandle: "alice",
     });
 
     render(<ContentCard item={item} />);
 
-    const img = screen.getByRole("img", { name: "Audio Track" });
-    expect(img).toHaveAttribute(
-      "src",
-      "/api/content/1/cover-art",
-    );
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/content/alice/my-post");
   });
 
-  it("links to the content detail page", () => {
+  it("falls back to UUID URL when slug is null", () => {
     mockFormatRelativeDate.mockReturnValue("1d ago");
-    const item = makeMockFeedItem({ id: "content-42" });
+    const item = makeMockFeedItem({ id: "content-42", slug: null, creatorHandle: "alice" });
 
     render(<ContentCard item={item} />);
 
     const link = screen.getByRole("link");
     expect(link).toHaveAttribute("href", "/content/content-42");
+  });
+
+  it("falls back to UUID URL when creatorHandle is null", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({ id: "content-42", slug: "my-post", creatorHandle: null });
+
+    render(<ContentCard item={item} />);
+
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/content/content-42");
+  });
+
+  it("renders thumbnailWrapper when thumbnailUrl is present", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      title: "Has Thumbnail",
+      thumbnailUrl: "/api/content/1/thumbnail",
+    });
+
+    const { container } = render(<ContentCard item={item} />);
+
+    expect(container.querySelector("img")).not.toBeNull();
+  });
+
+  it("does not render img when no thumbnail", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      title: "No Thumbnail",
+      type: "written",
+      thumbnailUrl: null,
+    });
+
+    const { container } = render(<ContentCard item={item} />);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("POST")).toBeInTheDocument();
+  });
+
+  it("renders type badge in no-thumbnail card", () => {
+    mockFormatRelativeDate.mockReturnValue("1d ago");
+    const item = makeMockFeedItem({
+      type: "written",
+      thumbnailUrl: null,
+    });
+
+    render(<ContentCard item={item} />);
+
+    expect(screen.getByText("POST")).toBeInTheDocument();
   });
 });

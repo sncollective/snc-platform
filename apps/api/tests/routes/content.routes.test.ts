@@ -337,13 +337,12 @@ describe("content routes", () => {
       expect(body.items[0].creatorName).toBe("Jane Doe");
     });
 
-    it("resolves content URLs (thumbnail, media, coverArt) in items", async () => {
+    it("resolves content URLs (thumbnail, media) in items", async () => {
       mockLimit.mockResolvedValue([
         makeFeedRow({
           id: "content-x",
           thumbnailKey: "content/content-x/thumbnail/thumb.jpg",
           mediaKey: "content/content-x/media/video.mp4",
-          coverArtKey: "content/content-x/cover-art/cover.jpg",
         }),
       ]);
 
@@ -355,9 +354,6 @@ describe("content routes", () => {
         "/api/content/content-x/thumbnail",
       );
       expect(body.items[0].mediaUrl).toBe("/api/content/content-x/media");
-      expect(body.items[0].coverArtUrl).toBe(
-        "/api/content/content-x/cover-art",
-      );
     });
 
     it("returns 400 for invalid type filter", async () => {
@@ -511,7 +507,6 @@ describe("content routes", () => {
       expect(body.body).toBe("Content here");
       expect(body.thumbnailUrl).toBeNull();
       expect(body.mediaUrl).toBeNull();
-      expect(body.coverArtUrl).toBeNull();
       expect(body.publishedAt).not.toBeNull();
       expect(mockInsertValues).toHaveBeenCalledOnce();
     });
@@ -603,7 +598,6 @@ describe("content routes", () => {
       // Storage keys must not appear in response; null keys -> null URLs
       expect(body.thumbnailUrl).toBeNull();
       expect(body.mediaUrl).toBeNull();
-      expect(body.coverArtUrl).toBeNull();
       expect(body.creatorName).toBeDefined();
     });
 
@@ -792,6 +786,82 @@ describe("content routes", () => {
       });
 
       expect(res.status).toBe(404);
+    });
+
+    it("clears thumbnailKey and deletes storage file when clearThumbnail is true", async () => {
+      const existing = makeMockDbContent({
+        thumbnailKey: "content/content-test-1/thumbnail/thumb.jpg",
+      });
+      const updated = makeMockDbContent({ thumbnailKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/content-test-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearThumbnail: true }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/content-test-1/thumbnail/thumb.jpg");
+      expect(mockUpdateSet).toHaveBeenCalledOnce();
+      const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
+      expect(setArg.thumbnailKey).toBeNull();
+      expect(setArg).not.toHaveProperty("clearThumbnail");
+    });
+
+    it("does not call storage delete when clearThumbnail is true but thumbnailKey is null", async () => {
+      const existing = makeMockDbContent({ thumbnailKey: null });
+      const updated = makeMockDbContent({ thumbnailKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/content-test-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearThumbnail: true }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalled();
+    });
+
+    it("clears mediaKey and deletes storage file when clearMedia is true", async () => {
+      const existing = makeMockDbContent({
+        mediaKey: "content/content-test-1/media/video.mp4",
+      });
+      const updated = makeMockDbContent({ mediaKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/content-test-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearMedia: true }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/content-test-1/media/video.mp4");
+      expect(mockUpdateSet).toHaveBeenCalledOnce();
+      const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
+      expect(setArg.mediaKey).toBeNull();
+      expect(setArg).not.toHaveProperty("clearMedia");
+    });
+
+    it("does not call storage delete when clearMedia is true but mediaKey is null", async () => {
+      const existing = makeMockDbContent({ mediaKey: null });
+      const updated = makeMockDbContent({ mediaKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/content-test-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearMedia: true }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalled();
     });
   });
 
@@ -1115,13 +1185,13 @@ describe("content routes", () => {
     });
   });
 
-  // ── POST /api/content — Unit 1: auto-publish behavior ──
+  // ── POST /api/content — draft creation behavior ──
 
-  describe("POST /api/content (auto-publish behavior)", () => {
-    it("creates written content with publishedAt set (auto-published)", async () => {
+  describe("POST /api/content (draft creation behavior)", () => {
+    it("creates written content as draft (publishedAt = null)", async () => {
       const insertedRow = makeMockDbContent({
         type: "written",
-        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+        publishedAt: null,
       });
       mockInsertReturning.mockResolvedValue([insertedRow]);
 
@@ -1138,13 +1208,13 @@ describe("content routes", () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.publishedAt).not.toBeNull();
-      // Verify the inserted values passed publishedAt as non-null
+      expect(body.publishedAt).toBeNull();
+      // Verify the inserted values always pass publishedAt as null
       const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
-      expect(insertCall.publishedAt).not.toBeNull();
+      expect(insertCall.publishedAt).toBeNull();
     });
 
-    it("creates video content with publishedAt = null (starts as draft)", async () => {
+    it("creates video content as draft (publishedAt = null)", async () => {
       const insertedRow = makeMockDbContent({
         type: "video",
         body: null,
@@ -1165,12 +1235,11 @@ describe("content routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.publishedAt).toBeNull();
-      // Verify the inserted values passed publishedAt as null
       const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
       expect(insertCall.publishedAt).toBeNull();
     });
 
-    it("creates audio content with publishedAt = null (starts as draft)", async () => {
+    it("creates audio content as draft (publishedAt = null)", async () => {
       const insertedRow = makeMockDbContent({
         type: "audio",
         body: null,
@@ -1195,34 +1264,12 @@ describe("content routes", () => {
       expect(insertCall.publishedAt).toBeNull();
     });
 
-    it("creates written content with publishedAt = null when publishImmediately: false", async () => {
+    it("generates and stores a slug from the title on creation", async () => {
       const insertedRow = makeMockDbContent({
         type: "written",
+        title: "My Post",
+        slug: "my-post",
         publishedAt: null,
-      });
-      mockInsertReturning.mockResolvedValue([insertedRow]);
-
-      const res = await ctx.app.request("/api/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          creatorId: "user_test123",
-          title: "My Draft Post",
-          type: "written",
-          body: "Content here",
-          publishImmediately: false,
-        }),
-      });
-
-      expect(res.status).toBe(201);
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
-      expect(insertCall.publishedAt).toBeNull();
-    });
-
-    it("creates written content with publishedAt set when publishImmediately is omitted (backward compat)", async () => {
-      const insertedRow = makeMockDbContent({
-        type: "written",
-        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
       });
       mockInsertReturning.mockResolvedValue([insertedRow]);
 
@@ -1239,31 +1286,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(201);
       const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
-      expect(insertCall.publishedAt).not.toBeNull();
-    });
-
-    it("creates video content with publishedAt = null even when publishImmediately: true", async () => {
-      const insertedRow = makeMockDbContent({
-        type: "video",
-        body: null,
-        publishedAt: null,
-      });
-      mockInsertReturning.mockResolvedValue([insertedRow]);
-
-      const res = await ctx.app.request("/api/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          creatorId: "user_test123",
-          title: "My Video",
-          type: "video",
-          publishImmediately: true,
-        }),
-      });
-
-      expect(res.status).toBe(201);
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
-      expect(insertCall.publishedAt).toBeNull();
+      expect(insertCall.slug).toBe("my-post");
     });
   });
 

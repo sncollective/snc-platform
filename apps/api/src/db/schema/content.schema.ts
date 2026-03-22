@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 import type { ContentType, Visibility, SourceType } from "@snc/shared";
 
@@ -15,13 +15,13 @@ export const content = pgTable(
       .references(() => creatorProfiles.id, { onDelete: "cascade" }),
     type: text("type").$type<ContentType>().notNull(),
     title: text("title").notNull(),
+    slug: text("slug"),
     body: text("body"),
     description: text("description"),
     visibility: text("visibility").$type<Visibility>().notNull().default("public"),
     sourceType: text("source_type").$type<SourceType>().notNull().default("upload"),
     thumbnailKey: text("thumbnail_key"),
     mediaKey: text("media_key"),
-    coverArtKey: text("cover_art_key"),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -39,5 +39,6 @@ export const content = pgTable(
       table.deletedAt,
       table.publishedAt,
     ),
+    uniqueIndex("content_creator_slug_idx").on(table.creatorId, table.slug),
   ],
 );

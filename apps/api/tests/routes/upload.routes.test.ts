@@ -69,7 +69,6 @@ const ctx = setupRouteTest({
         type: {},
         mediaKey: {},
         thumbnailKey: {},
-        coverArtKey: {},
       },
     }));
 

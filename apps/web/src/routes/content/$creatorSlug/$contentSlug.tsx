@@ -1,17 +1,17 @@
 import type React from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
-import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
-import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
-import { ContentDetail } from "../../components/content/content-detail.js";
-import { fetchApiServer } from "../../lib/api-server.js";
-import { isFeatureEnabled } from "../../lib/config.js";
+import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
+import { ComingSoon } from "../../../components/coming-soon/coming-soon.js";
+import { ContentDetail } from "../../../components/content/content-detail.js";
+import { fetchApiServer } from "../../../lib/api-server.js";
+import { isFeatureEnabled } from "../../../lib/config.js";
 
 // ── Private Types ──
 
-export interface ContentDetailLoaderData {
+export interface SlugContentDetailLoaderData {
   readonly item: FeedItem | null;
   readonly plans: readonly SubscriptionPlan[];
   readonly canManage: boolean;
@@ -25,26 +25,17 @@ function isContentLocked(item: FeedItem): boolean {
 
 // ── Route ──
 
-export const Route = createFileRoute("/content/$contentId")({
+export const Route = createFileRoute("/content/$creatorSlug/$contentSlug")({
   errorComponent: RouteErrorBoundary,
   validateSearch: (search: Record<string, unknown>) => ({
     edit: search["edit"] === "true" || search["edit"] === true,
   }),
-  loader: async ({ params }): Promise<ContentDetailLoaderData> => {
+  loader: async ({ params }): Promise<SlugContentDetailLoaderData> => {
     if (!isFeatureEnabled("content")) return { item: null, plans: [], canManage: false };
 
     const item = (await fetchApiServer({
-      data: `/api/content/${encodeURIComponent(params.contentId)}`,
+      data: `/api/content/by-creator/${encodeURIComponent(params.creatorSlug)}/${encodeURIComponent(params.contentSlug)}`,
     })) as FeedItem;
-
-    if (item.creatorHandle && item.slug) {
-      throw redirect({
-        to: "/content/$creatorSlug/$contentSlug",
-        params: { creatorSlug: item.creatorHandle, contentSlug: item.slug },
-        search: (prev: Record<string, unknown>) => prev,
-        statusCode: 301,
-      });
-    }
 
     let plans: SubscriptionPlan[] = [];
     if (isContentLocked(item)) {
@@ -88,12 +79,12 @@ export const Route = createFileRoute("/content/$contentId")({
 
     return { item, plans, canManage };
   },
-  component: ContentDetailPage,
+  component: SlugContentDetailPage,
 });
 
 // ── Component ──
 
-function ContentDetailPage(): React.ReactElement {
+function SlugContentDetailPage(): React.ReactElement {
   const { item, plans, canManage } = Route.useLoaderData();
   const { edit } = Route.useSearch();
   if (!isFeatureEnabled("content") || item === null) return <ComingSoon feature="content" />;

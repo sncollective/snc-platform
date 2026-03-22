@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, like, notInArray, sql } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, notInArray, sql } from "drizzle-orm";
 
 import {
   CreatorProfileResponseSchema,
@@ -48,40 +48,13 @@ import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js"
 import { sanitizeFilename, streamFile } from "./file-utils.js";
 import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { generateUniqueSlug } from "../services/slug.js";
 
 // ── Private Types ──
 
 type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
 
 // ── Private Helpers ──
-
-const toHandle = (name: string): string =>
-  name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9_-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 30);
-
-const generateUniqueHandle = async (displayName: string): Promise<string> => {
-  const base = toHandle(displayName);
-  if (base.length < 3) {
-    // Handle too short after sanitizing — pad with random suffix
-    const fallback = `creator-${randomUUID().slice(0, 8)}`;
-    return fallback;
-  }
-  const existing = await db
-    .select({ handle: creatorProfiles.handle })
-    .from(creatorProfiles)
-    .where(like(creatorProfiles.handle, `${base}%`));
-  const taken = new Set(existing.map((r) => r.handle));
-  if (!taken.has(base)) return base;
-  for (let i = 2; ; i++) {
-    const candidate = `${base}-${i}`.slice(0, 30);
-    if (!taken.has(candidate)) return candidate;
-  }
-};
 
 const resolveCreatorUrls = (
   profile: CreatorProfileRow,
@@ -535,7 +508,12 @@ creatorRoutes.post(
       .values({
         id,
         displayName: body.displayName,
-        handle: body.handle ?? await generateUniqueHandle(body.displayName),
+        handle: body.handle ?? await generateUniqueSlug(body.displayName, {
+          table: creatorProfiles,
+          slugColumn: creatorProfiles.handle,
+          maxLength: 30,
+          fallbackPrefix: "creator",
+        }),
         createdAt: now,
         updatedAt: now,
       })
@@ -1060,20 +1038,34 @@ creatorRoutes.patch(
 
     await requireCreatorPermission(user.id, profile.id, "editProfile");
 
+    // Regenerate handle when displayName changes and no explicit handle is provided
+    let patchBody = body;
+    if (patchBody.displayName && patchBody.displayName !== profile.displayName && !patchBody.handle) {
+      const newHandle = await generateUniqueSlug(patchBody.displayName, {
+        table: creatorProfiles,
+        slugColumn: creatorProfiles.handle,
+        excludeId: profile.id,
+        idColumn: creatorProfiles.id,
+        maxLength: 30,
+        fallbackPrefix: "creator",
+      });
+      patchBody = { ...patchBody, handle: newHandle };
+    }
+
     // Validate handle uniqueness before update
-    if (body.handle && body.handle !== profile.handle) {
+    if (patchBody.handle && patchBody.handle !== profile.handle) {
       const existing = await db
         .select({ id: creatorProfiles.id })
         .from(creatorProfiles)
-        .where(eq(creatorProfiles.handle, body.handle));
+        .where(eq(creatorProfiles.handle, patchBody.handle));
       if (existing.length > 0) {
-        throw new ValidationError(`Handle '${body.handle}' is already taken`);
+        throw new ValidationError(`Handle '${patchBody.handle}' is already taken`);
       }
     }
 
     const [updated] = await db
       .update(creatorProfiles)
-      .set({ ...body, updatedAt: new Date() })
+      .set({ ...patchBody, updatedAt: new Date() })
       .where(eq(creatorProfiles.id, profile.id))
       .returning();
 

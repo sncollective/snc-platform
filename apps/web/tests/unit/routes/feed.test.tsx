@@ -192,11 +192,13 @@ describe("FeedPage", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
-  it("content cards link to /content/:id", () => {
+  it("content cards link to slug URL when slug and creatorHandle are present", () => {
     render(<FeedPage />);
 
     const links = screen.getAllByRole("link");
-    expect(links.some((link) => link.getAttribute("href") === "/content/c1")).toBe(true);
+    expect(
+      links.some((link) => link.getAttribute("href") === "/content/test-creator/test-slug"),
+    ).toBe(true);
   });
 
   it("renders Coming Soon when content feature is disabled", () => {

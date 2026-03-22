@@ -1,15 +1,19 @@
+import { useState } from "react";
 import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { ContentCard } from "./content-card.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
+import { deleteContent } from "../../lib/content.js";
 import listingStyles from "../../styles/listing-page.module.css";
+import styles from "./my-content-list.module.css";
 
 // ── Public Types ──
 
 export interface MyContentListProps {
   readonly creatorId: string;
   readonly refreshKey: number;
+  readonly onDeleted?: () => void;
 }
 
 // ── Public API ──
@@ -17,7 +21,22 @@ export interface MyContentListProps {
 export function MyContentList({
   creatorId,
   refreshKey,
+  onDeleted,
 }: MyContentListProps): React.ReactElement {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this content?")) return;
+    setDeletingId(id);
+    try {
+      await deleteContent(id);
+      onDeleted?.();
+    } catch {
+      // Silently ignore — list will still refresh
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<FeedItem>({
       buildUrl: (cursor) => {
@@ -46,7 +65,17 @@ export function MyContentList({
     <>
       <div className="content-grid">
         {items.map((item) => (
-          <ContentCard key={item.id} item={item} />
+          <div key={item.id} className={styles.contentItemWrapper}>
+            <ContentCard item={item} />
+            <button
+              type="button"
+              className={styles.deleteButton}
+              onClick={() => handleDelete(item.id)}
+              disabled={deletingId === item.id}
+            >
+              {deletingId === item.id ? "Deleting..." : "Delete"}
+            </button>
+          </div>
         ))}
       </div>
       {nextCursor && (
