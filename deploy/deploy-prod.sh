@@ -18,7 +18,7 @@ corepack enable
 pnpm install --frozen-lockfile
 
 echo "==> Building..."
-NODE_OPTIONS="--max-old-space-size=2048" pnpm build
+NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
 echo "==> Running database migrations..."
 pnpm --filter @snc/api db:migrate
@@ -37,7 +37,7 @@ else
   echo "==> Health check failed! Rolling back..."
   git checkout "$BACKUP_TAG"
   pnpm install --frozen-lockfile
-  NODE_OPTIONS="--max-old-space-size=2048" pnpm build
+  NODE_OPTIONS="--max-old-space-size=4096" pnpm build
   sudo systemctl restart snc-api
   sudo systemctl restart snc-web
   echo "==> Rolled back to $BACKUP_TAG"
