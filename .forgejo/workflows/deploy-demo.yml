@@ -98,6 +98,8 @@ jobs:
 
       - name: Build
         run: pnpm build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
   # ── Deploy to demo server ──
   deploy-demo:
@@ -152,7 +154,7 @@ jobs:
           git reset --hard origin/main
           corepack enable
           pnpm install --frozen-lockfile
-          NODE_OPTIONS="--max-old-space-size=2048" pnpm build
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm build
           pnpm --filter @snc/api db:migrate
           sudo systemctl restart snc-api snc-web
           sleep 3
