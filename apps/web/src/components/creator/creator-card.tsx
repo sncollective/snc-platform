@@ -33,6 +33,8 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
               className={styles.listAvatar!}
               placeholderClassName={styles.listAvatarPlaceholder!}
               loading="lazy"
+              width={40}
+              height={40}
             />
           </div>
           <span className={styles.listDisplayName}>
@@ -84,6 +86,8 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
             className={styles.avatar!}
             placeholderClassName={styles.avatarPlaceholder!}
             loading="lazy"
+            width={80}
+            height={80}
           />
         </div>
         <div className={styles.info}>

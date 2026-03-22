@@ -8,6 +8,8 @@ export interface OptionalImageProps {
   readonly className: string;
   readonly placeholderClassName: string;
   readonly loading?: "lazy" | "eager";
+  readonly width?: number;
+  readonly height?: number;
 }
 
 // ── Public API ──
@@ -18,6 +20,8 @@ export function OptionalImage({
   className,
   placeholderClassName,
   loading,
+  width,
+  height,
 }: OptionalImageProps): React.ReactElement {
   if (src) {
     return (
@@ -26,6 +30,8 @@ export function OptionalImage({
         alt={alt}
         className={className}
         loading={loading}
+        width={width}
+        height={height}
       />
     );
   }

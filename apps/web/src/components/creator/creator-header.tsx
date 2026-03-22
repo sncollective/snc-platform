@@ -53,6 +53,8 @@ export function CreatorHeader({
           alt={`${creator.displayName} banner`}
           className={styles.banner!}
           placeholderClassName={styles.bannerPlaceholder!}
+          width={800}
+          height={200}
         />
       </div>
 
@@ -64,6 +66,8 @@ export function CreatorHeader({
             alt={`${creator.displayName} avatar`}
             className={styles.avatar!}
             placeholderClassName={styles.avatarPlaceholder!}
+            width={96}
+            height={96}
           />
         </div>
 
