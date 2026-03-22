@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, notInArray, sql } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, or, count, inArray, ilike, like, notInArray, sql } from "drizzle-orm";
 
 import {
   CreatorProfileResponseSchema,
@@ -54,6 +54,34 @@ import { requireCreatorPermission } from "../services/creator-team.js";
 type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
 
 // ── Private Helpers ──
+
+const toHandle = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9_-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 30);
+
+const generateUniqueHandle = async (displayName: string): Promise<string> => {
+  const base = toHandle(displayName);
+  if (base.length < 3) {
+    // Handle too short after sanitizing — pad with random suffix
+    const fallback = `creator-${randomUUID().slice(0, 8)}`;
+    return fallback;
+  }
+  const existing = await db
+    .select({ handle: creatorProfiles.handle })
+    .from(creatorProfiles)
+    .where(like(creatorProfiles.handle, `${base}%`));
+  const taken = new Set(existing.map((r) => r.handle));
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i++) {
+    const candidate = `${base}-${i}`.slice(0, 30);
+    if (!taken.has(candidate)) return candidate;
+  }
+};
 
 const resolveCreatorUrls = (
   profile: CreatorProfileRow,
@@ -507,7 +535,7 @@ creatorRoutes.post(
       .values({
         id,
         displayName: body.displayName,
-        handle: body.handle ?? null,
+        handle: body.handle ?? await generateUniqueHandle(body.displayName),
         createdAt: now,
         updatedAt: now,
       })

@@ -13,6 +13,7 @@ export const UPLOAD_PURPOSES = [
 ] as const;
 
 export const MULTIPART_THRESHOLD = 50 * 1024 * 1024;
+export const MULTIPART_CHUNK_SIZE = 50 * 1024 * 1024;
 
 // ── Public Schemas ──
 

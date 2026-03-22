@@ -697,6 +697,79 @@ describe("creator routes", () => {
     });
   });
 
+  // ── POST /api/creators ──
+
+  describe("POST /api/creators", () => {
+    it("auto-generates handle from displayName when not provided", async () => {
+      const createdProfile = makeMockDbCreatorProfile({
+        displayName: "My Cool Band",
+        handle: "my-cool-band",
+      });
+
+      // generateUniqueHandle: SELECT existing handles matching base
+      mockSelectWhere.mockResolvedValueOnce([]);
+      // INSERT creator profile
+      mockInsertReturning.mockResolvedValueOnce([createdProfile]);
+      // INSERT creator member (owner row) — void
+      mockInsertReturning.mockResolvedValueOnce([]);
+      // content count for toProfileResponse
+      mockSelectWhere.mockReturnValueOnce(
+        chainablePromise([{ count: 0 }], { groupBy: mockGroupBy }),
+      );
+
+      const res = await ctx.app.request("/api/creators", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ displayName: "My Cool Band" }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.handle).toBe("my-cool-band");
+    });
+
+    it("uses explicitly provided handle instead of auto-generating", async () => {
+      const createdProfile = makeMockDbCreatorProfile({
+        displayName: "My Band",
+        handle: "custom-slug",
+      });
+
+      // Uniqueness check for provided handle
+      mockSelectWhere.mockResolvedValueOnce([]);
+      // INSERT creator profile
+      mockInsertReturning.mockResolvedValueOnce([createdProfile]);
+      // INSERT creator member (owner row)
+      mockInsertReturning.mockResolvedValueOnce([]);
+      // content count
+      mockSelectWhere.mockReturnValueOnce(
+        chainablePromise([{ count: 0 }], { groupBy: mockGroupBy }),
+      );
+
+      const res = await ctx.app.request("/api/creators", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ displayName: "My Band", handle: "custom-slug" }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.handle).toBe("custom-slug");
+    });
+
+    it("returns 400 when handle is already taken", async () => {
+      // Uniqueness check returns existing row
+      mockSelectWhere.mockResolvedValueOnce([{ id: "existing-id" }]);
+
+      const res = await ctx.app.request("/api/creators", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ displayName: "Any Name", handle: "taken-handle" }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   // ── PATCH /api/creators/:creatorId ──
 
   describe("PATCH /api/creators/:creatorId", () => {
