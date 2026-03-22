@@ -46,6 +46,7 @@ Available patterns:
 
 ### Creator Pages & Profiles (continued)
 - [listing-page-shared-css.md](listing-page-shared-css.md) — `listing-page.module.css` provides shared .heading, .status, .loadMoreWrapper, .loadMoreButton; import alongside page-specific module in all listing routes
+- [human-readable-url-slug.md](human-readable-url-slug.md) — Prefer `handle ?? id` in user-facing URL params; backend dual-mode resolver accepts both; keep UUID for API data fetches and React keys
 
 ### Subscriptions & Content Gating
 - [stripe-service-layer.md](stripe-service-layer.md) — Module-level Stripe singleton + wrapStripeError via wrapExternalError factory + all exports return Result<T, AppError>; mocked wholesale in tests

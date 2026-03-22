@@ -125,6 +125,98 @@ describe("MobileMenu", () => {
     expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
   });
 
+  it("shows Files link for stakeholder", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    const filesLink = screen.getByRole("link", { name: "Files" });
+    expect(filesLink).toHaveAttribute("href", "https://files.s-nc.org");
+    expect(filesLink).toHaveAttribute("target", "_blank");
+  });
+
+  it("hides Files link for user without stakeholder role", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.queryByRole("link", { name: "Files" })).toBeNull();
+  });
+
+  it("hides Files link when not authenticated", async () => {
+    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.queryByRole("link", { name: "Files" })).toBeNull();
+  });
+
+  it("shows Admin link for admin role", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["admin"], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
+  });
+
+  it("hides Admin link for non-admin", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+  });
+
+  it("shows Projects link for stakeholder", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/projects");
+  });
+
+  it("shows Subscriptions and My Bookings when authenticated", async () => {
+    mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.getByRole("link", { name: "Subscriptions" })).toHaveAttribute("href", "/settings/subscriptions");
+    expect(screen.getByRole("link", { name: "My Bookings" })).toHaveAttribute("href", "/settings/bookings");
+  });
+
+  it("hides Subscriptions and My Bookings when not authenticated", async () => {
+    mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
+    mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
+
+    render(<MobileMenu currentPath="/" />);
+
+    await openMenu();
+
+    expect(screen.queryByRole("link", { name: "Subscriptions" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "My Bookings" })).toBeNull();
+  });
+
   it("shows Log in and Sign up when not authenticated", async () => {
     mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
 

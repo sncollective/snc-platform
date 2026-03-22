@@ -17,13 +17,14 @@ export interface CreatorCardProps {
 
 export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): React.ReactElement {
   const avatarSrc = creator.avatarUrl;
+  const creatorSlug = creator.handle ?? creator.id;
 
   if (viewMode === "list") {
     return (
       <div className={styles.listItem}>
         <Link
           to="/creators/$creatorId"
-          params={{ creatorId: creator.id }}
+          params={{ creatorId: creatorSlug }}
           className={styles.listItemLink}
         >
           <div className={styles.listAvatarWrapper}>
@@ -62,7 +63,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
         {creator.canManage && (
           <Link
             to="/creators/$creatorId/manage"
-            params={{ creatorId: creator.id }}
+            params={{ creatorId: creatorSlug }}
             className={styles.manageLink}
           >
             Manage
@@ -76,7 +77,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
     <div className={styles.card}>
       <Link
         to="/creators/$creatorId"
-        params={{ creatorId: creator.id }}
+        params={{ creatorId: creatorSlug }}
         className={styles.cardLink}
       >
         <div className={styles.avatarWrapper}>
@@ -110,7 +111,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
       {creator.canManage && (
         <Link
           to="/creators/$creatorId/manage"
-          params={{ creatorId: creator.id }}
+          params={{ creatorId: creatorSlug }}
           className={styles.manageLink}
         >
           Manage
