@@ -223,8 +223,9 @@ webhookRoutes.post(
       // Stripe.Event.Data.Object is a union of 80+ specific types;
       // handlers use Record<string, unknown> to extract fields generically.
       await handler(event.data.object as unknown as Record<string, unknown>);
+    } else {
+      rootLogger.warn({ eventType: event.type, eventId: event.id }, "Unhandled Stripe webhook event type");
     }
-    // Unknown event types are silently acknowledged
 
     return c.json({ received: true as const });
   },

@@ -1,6 +1,7 @@
 import { AppError, ok, err, type Result, CREATOR_TAG_PREFIX } from "@snc/shared";
 
 import { config } from "../config.js";
+import { rootLogger } from "../logging/logger.js";
 import { wrapExternalError } from "./external-error.js";
 
 // ── Public Types ──
@@ -118,10 +119,11 @@ const query = async <T>(
     const json = (await response.json()) as GraphQLResponse<T>;
 
     if (json.errors !== undefined && json.errors.length > 0) {
+      rootLogger.error({ errors: json.errors.map((e) => e.message) }, "Shopify GraphQL request failed");
       return err(
         new AppError(
           "SHOPIFY_ERROR",
-          json.errors.map((e) => e.message).join("; "),
+          "Shopify request failed",
           502,
         ),
       );
