@@ -279,10 +279,7 @@ const handleImageUpload = async (
   if (oldKey) {
     const deleteResult = await storage.delete(oldKey);
     if (!deleteResult.ok) {
-      console.error(
-        `Failed to delete old ${field}:`,
-        deleteResult.error.message,
-      );
+      c.var.logger.warn({ error: deleteResult.error.message, field }, "Failed to delete old file");
     }
   }
 

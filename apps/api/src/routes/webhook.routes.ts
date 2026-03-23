@@ -14,6 +14,7 @@ import {
   paymentEvents,
 } from "../db/schema/subscription.schema.js";
 import { verifyWebhookSignature } from "../services/stripe.js";
+import { rootLogger } from "../logging/logger.js";
 import { ERROR_400 } from "./openapi-errors.js";
 
 // ── Private Constants ──
@@ -41,9 +42,9 @@ const handleCheckoutCompleted = async (
   const stripeCustomerId = data.customer as string | undefined;
 
   if (!userId || !planId || !stripeSubscriptionId || !stripeCustomerId) {
-    console.error(
-      "checkout.session.completed missing required fields:",
+    rootLogger.error(
       { userId, planId, stripeSubscriptionId, stripeCustomerId },
+      "checkout.session.completed missing required fields",
     );
     return;
   }

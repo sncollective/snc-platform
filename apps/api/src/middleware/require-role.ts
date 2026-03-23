@@ -3,6 +3,8 @@ import type { MiddlewareHandler } from "hono";
 import type { Role } from "@snc/shared";
 import { ForbiddenError, UnauthorizedError } from "@snc/shared";
 
+import { rootLogger } from "../logging/logger.js";
+
 import type { AuthEnv } from "./auth-env.js";
 
 // ── Public API ──
@@ -32,6 +34,18 @@ export const requireRole = (
     );
 
     if (!hasRole) {
+      const logger = c.var?.logger ?? rootLogger;
+      logger.warn(
+        {
+          event: "authz_denial",
+          userId: user.id,
+          requiredRoles: roles,
+          userRoles: userRoleValues,
+          path: c.req.path,
+          method: c.req.method,
+        },
+        "Authorization denied — insufficient permissions",
+      );
       throw new ForbiddenError("Insufficient permissions");
     }
 

@@ -4,6 +4,7 @@ import { UnauthorizedError } from "@snc/shared";
 
 import { auth } from "../auth/auth.js";
 import { getUserRoles } from "../auth/user-roles.js";
+import { rootLogger } from "../logging/logger.js";
 
 import type { AuthEnv } from "./auth-env.js";
 
@@ -22,6 +23,15 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
   });
 
   if (!session) {
+    const logger = c.var?.logger ?? rootLogger;
+    logger.warn(
+      {
+        event: "auth_failure",
+        path: c.req.path,
+        method: c.req.method,
+      },
+      "Authentication failed — no valid session",
+    );
     throw new UnauthorizedError();
   }
 

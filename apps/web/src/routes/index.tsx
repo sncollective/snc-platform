@@ -5,6 +5,7 @@ import type { CreatorListResponse, FeedResponse, SubscriptionPlan } from "@snc/s
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+import { ssrLogger } from "../lib/logger.js";
 import { HeroSection } from "../components/landing/hero-section.js";
 import { FeaturedCreators } from "../components/landing/featured-creators.js";
 import { RecentContent } from "../components/landing/recent-content.js";
@@ -27,7 +28,10 @@ export const Route = createFileRoute("/")({
             }) as Promise<CreatorListResponse>
           )
             .then((r) => r.items)
-            .catch(() => [] as CreatorListResponse["items"])
+            .catch((e: unknown) => {
+              ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load featured creators");
+              return [] as CreatorListResponse["items"];
+            })
         : ([] as CreatorListResponse["items"]),
       isFeatureEnabled("content")
         ? (
@@ -36,7 +40,10 @@ export const Route = createFileRoute("/")({
             }) as Promise<FeedResponse>
           )
             .then((r) => r.items)
-            .catch(() => [] as FeedResponse["items"])
+            .catch((e: unknown) => {
+              ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load recent content");
+              return [] as FeedResponse["items"];
+            })
         : ([] as FeedResponse["items"]),
       isFeatureEnabled("subscription")
         ? (
@@ -45,7 +52,10 @@ export const Route = createFileRoute("/")({
             }) as Promise<{ plans: SubscriptionPlan[] }>
           )
             .then((r) => r.plans)
-            .catch(() => [] as SubscriptionPlan[])
+            .catch((e: unknown) => {
+              ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load pricing plans");
+              return [] as SubscriptionPlan[];
+            })
         : ([] as SubscriptionPlan[]),
     ]);
     return { creators, recentContent, plans };

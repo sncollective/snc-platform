@@ -172,4 +172,22 @@ describe("requireAuth middleware", () => {
     expect(res.status).toBe(401);
     expect(mockGetUserRoles).not.toHaveBeenCalled();
   });
+
+  it("logs auth_failure event via pino when session is invalid", async () => {
+    const { rootLogger } = await import("../../src/logging/logger.js");
+    const warnSpy = vi.spyOn(rootLogger, "warn").mockImplementation(() => {});
+
+    mockGetSession.mockResolvedValue(null);
+    await app.request("/protected");
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      {
+        event: "auth_failure",
+        path: "/protected",
+        method: "GET",
+      },
+      "Authentication failed — no valid session",
+    );
+    warnSpy.mockRestore();
+  });
 });

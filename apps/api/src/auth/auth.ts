@@ -10,6 +10,7 @@ import * as userSchema from "../db/schema/user.schema.js";
 import * as oidcSchema from "../db/schema/oidc.schema.js";
 import { getUserRoles } from "./user-roles.js";
 import { sendEmail } from "../email/send.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Private Helpers ──
 
@@ -39,7 +40,7 @@ export const auth = betterAuth({
         subject: "Verify your S/NC email",
         html: `<p>Click <a href="${url}">here</a> to verify your email address.</p>`,
         text: `Verify your email: ${url}`,
-      }).catch((e: unknown) => console.error("Failed to send verification email:", e));
+      }).catch((e: unknown) => rootLogger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send verification email"));
     },
   },
   trustedOrigins: parseOrigins(config.CORS_ORIGIN),
@@ -84,7 +85,7 @@ export const auth = betterAuth({
             subject: "Your S/NC password reset code",
             html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
             text: `Your password reset code is: ${otp}\n\nThis code expires in 10 minutes.`,
-          }).catch((e: unknown) => console.error("Failed to send password reset OTP:", e));
+          }).catch((e: unknown) => rootLogger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send password reset OTP"));
         }
       },
     }),

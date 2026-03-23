@@ -12,6 +12,7 @@ import type { StudioInquiry } from "@snc/shared";
 import { sendEmail, isEmailConfigured } from "../email/send.js";
 import { config } from "../config.js";
 import { rateLimiter } from "../middleware/rate-limit.js";
+import { rootLogger } from "../logging/logger.js";
 import { ERROR_400, ERROR_502 } from "./openapi-errors.js";
 
 // ── Private Helpers ──
@@ -77,10 +78,7 @@ studioRoutes.post(
     const inquiry = c.req.valid("json");
 
     if (!isEmailConfigured()) {
-      console.warn(
-        "[studio] SMTP not configured — skipping email send for inquiry from",
-        inquiry.email,
-      );
+      (c.var?.logger ?? rootLogger).warn("SMTP not configured — skipping email send for studio inquiry");
       return c.json({ success: true as const });
     }
 

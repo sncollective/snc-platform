@@ -6,6 +6,10 @@ import {
 } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
+
+import { logClientError } from "../lib/client-logger.js";
+import { installGlobalErrorHandlers } from "../lib/global-error-handlers.js";
 
 import { ErrorPage } from "../components/error/error-page.js";
 import { NavBar } from "../components/layout/nav-bar.js";
@@ -52,6 +56,10 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useEffect(() => {
+    installGlobalErrorHandlers();
+  }, []);
+
   return (
     <RootDocument>
       <RootLayout />
@@ -98,6 +106,14 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 function RootErrorFallback({ error, reset }: ErrorComponentProps) {
+  logClientError({
+    source: "error-boundary",
+    location: "RootErrorFallback",
+    error: error instanceof Error ? error.message : String(error),
+    errorType: error instanceof Error ? error.name : undefined,
+    url: typeof window !== "undefined" ? window.location.href : undefined,
+  });
+
   const message =
     error instanceof Error
       ? error.message

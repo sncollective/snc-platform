@@ -147,4 +147,25 @@ describe("requireRole middleware", () => {
     const body = await res.json();
     expect(body.error.code).toBe("UNAUTHORIZED");
   });
+
+  it("logs authz_denial event via pino when role check fails", async () => {
+    const { rootLogger } = await import("../../src/logging/logger.js");
+    const warnSpy = vi.spyOn(rootLogger, "warn").mockImplementation(() => {});
+
+    const app = await setupRoleApp(["stakeholder"], []);
+    await app.request("/protected");
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      {
+        event: "authz_denial",
+        userId: MOCK_USER.id,
+        requiredRoles: ["stakeholder"],
+        userRoles: [],
+        path: "/protected",
+        method: "GET",
+      },
+      "Authorization denied — insufficient permissions",
+    );
+    warnSpy.mockRestore();
+  });
 });

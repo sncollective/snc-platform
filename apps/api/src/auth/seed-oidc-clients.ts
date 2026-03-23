@@ -1,6 +1,7 @@
 import { db } from "../db/connection.js";
 import { oauthApplications } from "../db/schema/oidc.schema.js";
 import { config } from "../config.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Public API ──
 
@@ -43,5 +44,5 @@ export async function seedOidcClients(): Promise<void> {
       },
     });
 
-  console.log("OIDC client seeded: Seafile");
+  rootLogger.info("OIDC client seeded: Seafile");
 }

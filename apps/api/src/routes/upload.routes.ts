@@ -469,7 +469,7 @@ uploadRoutes.post(
       if (oldKey && oldKey !== body.key) {
         const deleteResult = await storage.delete(oldKey);
         if (!deleteResult.ok) {
-          console.error("Failed to delete old file:", deleteResult.error.message);
+          c.var.logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old file");
         }
       }
     }

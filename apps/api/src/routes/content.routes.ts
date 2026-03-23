@@ -671,7 +671,7 @@ contentRoutes.patch(
       if (existing.thumbnailKey) {
         const deleteResult = await storage.delete(existing.thumbnailKey);
         if (!deleteResult.ok) {
-          console.error("Failed to delete thumbnail:", deleteResult.error.message);
+          c.var.logger.warn({ error: deleteResult.error.message, key: existing.thumbnailKey }, "Failed to delete thumbnail");
         }
       }
       updates.thumbnailKey = null;
@@ -682,7 +682,7 @@ contentRoutes.patch(
       if (existing.mediaKey) {
         const deleteResult = await storage.delete(existing.mediaKey);
         if (!deleteResult.ok) {
-          console.error("Failed to delete media:", deleteResult.error.message);
+          c.var.logger.warn({ error: deleteResult.error.message, key: existing.mediaKey }, "Failed to delete media");
         }
       }
       updates.mediaKey = null;
@@ -751,7 +751,7 @@ contentRoutes.delete(
     );
     for (const result of deleteResults) {
       if (!result.ok) {
-        console.error("Failed to delete storage file:", result.error.message);
+        c.var.logger.warn({ error: result.error.message }, "Failed to delete storage file");
       }
     }
 
@@ -933,10 +933,7 @@ contentRoutes.post(
     if (oldKey) {
       const deleteResult = await storage.delete(oldKey);
       if (!deleteResult.ok) {
-        console.error(
-          "Failed to delete old storage file:",
-          deleteResult.error.message,
-        );
+        c.var.logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old storage file");
       }
     }
 

@@ -5,6 +5,7 @@ import { describeRoute, openAPIRouteHandler, resolver } from "hono-openapi";
 import { z } from "zod";
 
 import { features } from "./config.js";
+import { rootLogger } from "./logging/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { rateLimiter } from "./middleware/rate-limit.js";
@@ -107,7 +108,7 @@ if (features.streaming) app.route("/api/streaming", streamingRoutes);
 if (features.federation) {
   import("./routes/federation.routes.js")
     .then(({ federationRoutes }) => app.route("/", federationRoutes))
-    .catch((err) => console.error("Failed to load federation routes:", err.message));
+    .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load federation routes"));
 }
 
 // ── OpenAPI (non-production only) ──

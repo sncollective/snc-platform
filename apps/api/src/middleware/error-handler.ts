@@ -3,6 +3,8 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { AppError } from "@snc/shared";
 
+import { rootLogger } from "../logging/logger.js";
+
 // ── Public Types ──
 
 export interface ErrorResponseBody {
@@ -41,7 +43,15 @@ export const errorHandler: ErrorHandler = (e, c) => {
     return c.json(toErrorBody(e.code, e.message, details), e.statusCode as ContentfulStatusCode);
   }
 
-  console.error("Unhandled error:", e);
+  const logger = c.var?.logger ?? rootLogger;
+  logger.error(
+    {
+      error: e instanceof Error ? e.message : String(e),
+      path: c.req.path,
+      method: c.req.method,
+    },
+    "Unhandled error",
+  );
 
   return c.json(toErrorBody("INTERNAL_ERROR", "Internal server error"), 500);
 };

@@ -85,15 +85,36 @@ describe("errorHandler middleware", () => {
     });
   });
 
-  it("logs unknown errors to stderr", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("logs unknown errors via pino with request context", async () => {
+    const { rootLogger } = await import("../../src/logging/logger.js");
+    const errorSpy = vi.spyOn(rootLogger, "error").mockImplementation(() => {});
+
     const thrownError = new Error("unexpected");
     const app = createTestApp(thrownError);
 
     await app.request("/test");
 
-    expect(consoleSpy).toHaveBeenCalledWith("Unhandled error:", thrownError);
-    consoleSpy.mockRestore();
+    expect(errorSpy).toHaveBeenCalledWith(
+      {
+        error: "unexpected",
+        path: "/test",
+        method: "GET",
+      },
+      "Unhandled error",
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("does not log AppError instances", async () => {
+    const { rootLogger } = await import("../../src/logging/logger.js");
+    const errorSpy = vi.spyOn(rootLogger, "error").mockImplementation(() => {});
+
+    const app = createTestApp(new NotFoundError("gone"));
+
+    await app.request("/test");
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it("includes details when AppError has a details property", async () => {

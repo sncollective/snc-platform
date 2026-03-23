@@ -7,6 +7,7 @@ import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchAuthStateServer, fetchApiServer } from "../lib/api-server.js";
+import { ssrLogger } from "../lib/logger.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { AccessDeniedError } from "../lib/errors.js";
 import { buildLoginRedirect } from "../lib/return-to.js";
@@ -57,7 +58,10 @@ export const Route = createFileRoute("/calendar")({
         data: `/api/calendar/events?from=${from.toISOString()}&to=${to.toISOString()}`,
       }) as Promise<CalendarEventsResponse>,
       (fetchApiServer({ data: "/api/calendar/feed-token" }) as Promise<FeedTokenResponse>).catch(
-        () => null,
+        (e: unknown) => {
+          ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load calendar feed token");
+          return null;
+        },
       ),
     ]);
 

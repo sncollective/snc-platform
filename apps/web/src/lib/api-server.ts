@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 
 import type { AuthState } from "./auth.js";
+import { ssrLogger } from "./logger.js";
 
 /** Resolve the API base URL from server-only env vars with fallback. */
 function getServerBaseUrl(): string {
@@ -53,6 +54,10 @@ export const fetchApiServer = createServerFn({ method: "GET" })
       const message =
         (body as { error?: { message?: string } } | null)?.error?.message ??
         res.statusText;
+      ssrLogger.warn(
+        { endpoint, statusCode: res.status, error: message },
+        "SSR API fetch failed",
+      );
       throw new Error(message);
     }
     return res.json();
@@ -70,7 +75,11 @@ export const fetchAuthStateServer = createServerFn({ method: "GET" })
       res = await fetch(`${getServerBaseUrl()}/api/me`, {
         headers: forwardCookies(),
       });
-    } catch {
+    } catch (e) {
+      ssrLogger.warn(
+        { error: e instanceof Error ? e.message : String(e) },
+        "SSR auth state fetch failed — network error",
+      );
       return { user: null, roles: [], isPatron: false };
     }
 
