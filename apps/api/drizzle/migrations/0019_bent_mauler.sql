@@ -1,1 +1,0 @@
-ALTER TABLE "content" ADD COLUMN "source_type" text DEFAULT 'upload' NOT NULL;

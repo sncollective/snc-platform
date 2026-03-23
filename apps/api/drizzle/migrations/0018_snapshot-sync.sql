@@ -1,1 +1,0 @@
--- no-op: snapshot metadata sync (changes already applied in migrations 0011-0017)

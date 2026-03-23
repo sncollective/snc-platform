@@ -210,13 +210,15 @@ export function UploadProvider({
       },
 
       async createMultipartUpload(file) {
-        return createMultipartUpload({
+        const resp = await createMultipartUpload({
           purpose: file.meta.purpose as UploadPurpose,
           resourceId: file.meta.resourceId as string,
           filename: file.name ?? "upload",
           contentType: file.type ?? "application/octet-stream",
           size: file.size ?? 0,
         });
+        uppyRef.current?.setFileMeta(file.id, { key: resp.key });
+        return resp;
       },
 
       async signPart(_file, opts) {
