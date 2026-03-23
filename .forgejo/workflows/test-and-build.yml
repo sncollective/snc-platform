@@ -77,11 +77,21 @@ jobs:
       - name: Test @snc/web
         run: pnpm --filter @snc/web test
 
+  # ── Validate migrations ──
+  validate-migrations:
+    runs-on: docker
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate migration artifacts
+        run: bash scripts/validate-migrations.sh
+
   # ── Build ──
   build:
     runs-on: docker
     container: node:24
-    needs: [test-shared, test-api, test-web]
+    needs: [test-shared, test-api, test-web, validate-migrations]
     steps:
       - uses: actions/checkout@v4
 
