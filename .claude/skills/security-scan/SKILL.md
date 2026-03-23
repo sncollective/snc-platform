@@ -1,5 +1,5 @@
 ---
-name: security-refactor
+name: security-scan
 description: >
   Scan the platform codebase for security issues and populate the security board.
   Places findings on the correct board and lane based on complexity and domain.

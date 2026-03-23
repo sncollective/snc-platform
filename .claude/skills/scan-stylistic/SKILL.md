@@ -1,5 +1,5 @@
 ---
-name: stylistic-refactor
+name: scan-stylistic
 description: >
   Platform stylistic refactoring rules for TypeScript/React/Hono. Scans for refactoring
   opportunities and produces a prioritized backlog. Defines the team's preferred coding style.
@@ -24,7 +24,7 @@ Each style has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Write the refactoring backlog to `docs/stylistic-refactor-backlog.md`.
+Write the refactoring backlog to `docs/scan-stylistic-backlog.md`.
 
 The document should be a **prioritized refactoring backlog** with three tiers:
 

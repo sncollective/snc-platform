@@ -1,5 +1,5 @@
 ---
-name: structural-refactor
+name: scan-structural
 description: >
   Project structural organization rules for the SNC platform (Hono API + TanStack Start + pnpm monorepo).
   Proactively scans for organizational issues and produces a prioritized backlog.
