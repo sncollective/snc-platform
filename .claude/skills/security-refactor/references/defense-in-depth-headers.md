@@ -55,4 +55,4 @@ app.use("/embed/*", secureHeaders({
 ## Scope
 
 - Applies to: `apps/api/src/app.ts` global middleware setup
-- Does NOT apply to: Caddy configuration (that's the infra-security board)
+- Does NOT apply to: Caddy configuration (that's the infra board at `boards/infra/BOARD.md`)

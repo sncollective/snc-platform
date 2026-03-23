@@ -37,7 +37,7 @@ Each rule has a reference file in `${CLAUDE_SKILL_DIR}/references/` with rationa
 2. Read the rule reference files relevant to the scan scope. If `$ARGUMENTS` specifies a scope (e.g., "routes", "auth", "storage"), read only the rules that apply. If no scope, read all rules.
 3. Read the target boards:
    - **Security board**: `boards/platform/security/BOARD.md` (must have `pipeline: security`)
-   - **Infra-security board**: `boards/infra-security/BOARD.md` (generic, for infra/cross-cutting findings)
+   - **Infra board**: `boards/infra/BOARD.md` (generic, for infra/cross-cutting findings)
 4. Note existing items on both boards to avoid duplicating findings already tracked.
 
 ## Step 2: Scan
@@ -94,7 +94,7 @@ For each code finding, append a checklist item to the appropriate lane:
 - [ ] **[S{n}] {Rule}: {Issue}** — {why this needs discussion before it's ready}
 ```
 
-### Infra-security board (`boards/infra-security/BOARD.md`)
+### Infra board (`boards/infra/BOARD.md`)
 
 For infra and cross-cutting findings, append to the **Backlog** lane:
 ```
@@ -120,7 +120,7 @@ Update `updated:` in both boards' frontmatter to today's date.
 Tell the user:
 
 - **Findings placed**: count per severity tier (S0/S1/S2/S3) and per lane (Implement/Design/Backlog)
-- **Infra findings**: count routed to infra-security board
+- **Infra findings**: count routed to infra board
 - **Accepted risk**: count with brief rationale for each
 - **Skipped (duplicates)**: count of findings already tracked on the board
 - **Top priority**: the highest-severity findings with one-line summaries
@@ -138,5 +138,5 @@ After reporting, offer to invoke the next pipeline skill based on what was place
 - **NEVER implement fixes** — this skill scans and places findings. `/security-fix` implements.
 - **NEVER place items on a board without checking for duplicates** — existing items should not be re-added.
 - **NEVER flag documented exceptions** — read the rule's reference file for exception conditions.
-- **NEVER place infra findings on the security board** — they go to the infra-security board.
+- **NEVER place infra findings on the security board** — they go to the infra board (`boards/infra/BOARD.md`).
 - **NEVER skip accepted-risk reporting** — the user needs to see what was intentionally not flagged.
