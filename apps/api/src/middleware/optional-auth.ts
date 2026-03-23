@@ -3,7 +3,8 @@ import type { MiddlewareHandler } from "hono";
 import type { User, Session, Role } from "@snc/shared";
 
 import { auth } from "../auth/auth.js";
-import { getUserRoles } from "../auth/user-roles.js";
+
+import { hydrateAuthContext } from "./auth-helpers.js";
 
 // ── Public Types ──
 
@@ -50,19 +51,10 @@ export const optionalAuth: MiddlewareHandler<OptionalAuthEnv> = async (
   }
 
   if (session) {
-    c.set("user", {
-      ...session.user,
-      image: session.user.image ?? null,
-      createdAt: session.user.createdAt.toISOString(),
-      updatedAt: session.user.updatedAt.toISOString(),
-    });
-    c.set("session", {
-      ...session.session,
-      expiresAt: session.session.expiresAt.toISOString(),
-    });
-
-    const roles = await getUserRoles(session.user.id);
-    c.set("roles", roles);
+    const hydrated = await hydrateAuthContext(session);
+    c.set("user", hydrated.user);
+    c.set("session", hydrated.session);
+    c.set("roles", hydrated.roles);
   } else {
     c.set("user", null);
     c.set("session", null);

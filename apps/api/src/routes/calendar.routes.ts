@@ -40,7 +40,7 @@ import {
   ERROR_403,
   ERROR_404,
 } from "./openapi-errors.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { config } from "../config.js";
 
 // ── Private Types ──
@@ -143,13 +143,12 @@ calendarRoutes.get(
         idField: "id",
       });
       conditions.push(
-        or(
-          gt(calendarEvents.startAt, decoded.timestamp),
-          and(
-            eq(calendarEvents.startAt, decoded.timestamp),
-            gt(calendarEvents.id, decoded.id),
-          ),
-        )!,
+        buildCursorCondition(
+          calendarEvents.startAt,
+          calendarEvents.id,
+          decoded,
+          "asc",
+        ),
       );
     }
 

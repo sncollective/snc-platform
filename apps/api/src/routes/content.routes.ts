@@ -36,7 +36,7 @@ import { getUserRoles } from "../auth/user-roles.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { generateUniqueSlug } from "../services/slug.js";
 
 // ── Private Types ──
@@ -256,14 +256,9 @@ contentRoutes.get(
         timestampField: "publishedAt",
         idField: "id",
       });
-      const cursorCondition = or(
-        lt(content.publishedAt, decoded.timestamp),
-        and(
-          eq(content.publishedAt, decoded.timestamp),
-          lt(content.id, decoded.id),
-        ),
+      conditions.push(
+        buildCursorCondition(content.publishedAt, content.id, decoded, "desc"),
       );
-      if (cursorCondition) conditions.push(cursorCondition);
     }
 
     // Query with JOIN to get creatorName and creatorHandle
@@ -419,14 +414,9 @@ contentRoutes.get(
         timestampField: "createdAt",
         idField: "id",
       });
-      const cursorCondition = or(
-        lt(content.createdAt, decoded.timestamp),
-        and(
-          eq(content.createdAt, decoded.timestamp),
-          lt(content.id, decoded.id),
-        ),
+      conditions.push(
+        buildCursorCondition(content.createdAt, content.id, decoded, "desc"),
       );
-      if (cursorCondition) conditions.push(cursorCondition);
     }
 
     const rows = await db

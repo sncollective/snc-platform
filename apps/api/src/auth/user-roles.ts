@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import type { Role } from "@snc/shared";
 
@@ -15,3 +15,20 @@ export const getUserRoles = async (userId: string): Promise<Role[]> => {
 
   return rows.map((r) => r.role) as Role[];
 };
+
+export async function batchGetUserRoles(
+  userIds: string[],
+): Promise<Map<string, Role[]>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ userId: userRoles.userId, role: userRoles.role })
+    .from(userRoles)
+    .where(inArray(userRoles.userId, userIds));
+  const map = new Map<string, Role[]>();
+  for (const row of rows) {
+    const existing = map.get(row.userId) ?? [];
+    existing.push(row.role as Role);
+    map.set(row.userId, existing);
+  }
+  return map;
+}

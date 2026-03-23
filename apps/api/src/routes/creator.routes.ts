@@ -46,7 +46,8 @@ import { storage } from "../storage/index.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
 import { sanitizeFilename, streamFile } from "./file-utils.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { batchGetUserRoles } from "../auth/user-roles.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { generateUniqueSlug } from "../services/slug.js";
 
@@ -383,12 +384,11 @@ creatorRoutes.get(
         timestampField: "createdAt",
         idField: "id",
       });
-      whereCondition = or(
-        lt(creatorProfiles.createdAt, decoded.timestamp),
-        and(
-          eq(creatorProfiles.createdAt, decoded.timestamp),
-          lt(creatorProfiles.id, decoded.id),
-        ),
+      whereCondition = buildCursorCondition(
+        creatorProfiles.createdAt,
+        creatorProfiles.id,
+        decoded,
+        "desc",
       );
     }
 
@@ -943,20 +943,7 @@ creatorRoutes.get(
       .limit(limit);
 
     // Batch-fetch roles for matched users
-    const userIds = rows.map((r) => r.id);
-    const roleRows =
-      userIds.length > 0
-        ? await db
-            .select({ userId: userRoles.userId, role: userRoles.role })
-            .from(userRoles)
-            .where(inArray(userRoles.userId, userIds))
-        : [];
-    const roleMap = new Map<string, string[]>();
-    for (const r of roleRows) {
-      const existing = roleMap.get(r.userId) ?? [];
-      existing.push(r.role);
-      roleMap.set(r.userId, existing);
-    }
+    const roleMap = await batchGetUserRoles(rows.map((r) => r.id));
 
     const candidates = rows.map((r) => ({
       id: r.id,

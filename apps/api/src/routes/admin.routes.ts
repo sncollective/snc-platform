@@ -15,7 +15,7 @@ import type { AdminUsersQuery, AdminUser, Role } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
-import { getUserRoles } from "../auth/user-roles.js";
+import { batchGetUserRoles, getUserRoles } from "../auth/user-roles.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -25,7 +25,7 @@ import {
   ERROR_403,
   ERROR_404,
 } from "./openapi-errors.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
 
 // ── Private Types ──
 
@@ -46,23 +46,6 @@ const toAdminUserResponse = (
   updatedAt: row.updatedAt.toISOString(),
   roles,
 });
-
-async function batchGetUserRoles(
-  userIds: string[],
-): Promise<Map<string, Role[]>> {
-  if (userIds.length === 0) return new Map();
-  const rows = await db
-    .select({ userId: userRoles.userId, role: userRoles.role })
-    .from(userRoles)
-    .where(inArray(userRoles.userId, userIds));
-  const map = new Map<string, Role[]>();
-  for (const row of rows) {
-    const existing = map.get(row.userId) ?? [];
-    existing.push(row.role as Role);
-    map.set(row.userId, existing);
-  }
-  return map;
-}
 
 async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
   const [user] = await db
@@ -114,14 +97,9 @@ adminRoutes.get(
         timestampField: "createdAt",
         idField: "id",
       });
-      const cursorCondition = or(
-        lt(users.createdAt, decoded.timestamp),
-        and(
-          eq(users.createdAt, decoded.timestamp),
-          lt(users.id, decoded.id),
-        ),
+      conditions.push(
+        buildCursorCondition(users.createdAt, users.id, decoded, "desc"),
       );
-      if (cursorCondition) conditions.push(cursorCondition);
     }
 
     const userRows = await db

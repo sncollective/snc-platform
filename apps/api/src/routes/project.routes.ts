@@ -31,7 +31,7 @@ import {
   ERROR_403,
   ERROR_404,
 } from "./openapi-errors.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { generateUniqueSlug } from "../services/slug.js";
 
@@ -120,13 +120,7 @@ projectRoutes.get(
         idField: "id",
       });
       conditions.push(
-        or(
-          gt(projects.createdAt, decoded.timestamp),
-          and(
-            eq(projects.createdAt, decoded.timestamp),
-            gt(projects.id, decoded.id),
-          ),
-        )!,
+        buildCursorCondition(projects.createdAt, projects.id, decoded, "asc"),
       );
     }
 

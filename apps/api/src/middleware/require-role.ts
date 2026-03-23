@@ -20,7 +20,7 @@ import type { AuthEnv } from "./auth-env.js";
  * Usage: `app.post("/path", requireAuth, requireRole("stakeholder"), handler)`
  */
 export const requireRole = (
-  ...roles: Role[]
+  ...roles: readonly Role[]
 ): MiddlewareHandler<AuthEnv> => {
   return async (c, next) => {
     const user = c.get("user");

@@ -43,7 +43,7 @@ import {
   ERROR_403,
   ERROR_404,
 } from "./openapi-errors.js";
-import { buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
 
 // ── Private Types ──
 
@@ -284,13 +284,12 @@ bookingRoutes.get(
         idField: "id",
       });
       conditions.push(
-        or(
-          lt(bookingRequests.createdAt, decoded.timestamp),
-          and(
-            eq(bookingRequests.createdAt, decoded.timestamp),
-            lt(bookingRequests.id, decoded.id),
-          ),
-        )!,
+        buildCursorCondition(
+          bookingRequests.createdAt,
+          bookingRequests.id,
+          decoded,
+          "desc",
+        ),
       );
     }
 
@@ -358,13 +357,12 @@ bookingRoutes.get(
         idField: "id",
       });
       conditions.push(
-        or(
-          gt(bookingRequests.createdAt, decoded.timestamp),
-          and(
-            eq(bookingRequests.createdAt, decoded.timestamp),
-            gt(bookingRequests.id, decoded.id),
-          ),
-        )!,
+        buildCursorCondition(
+          bookingRequests.createdAt,
+          bookingRequests.id,
+          decoded,
+          "asc",
+        ),
       );
     }
 

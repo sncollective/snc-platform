@@ -5,8 +5,8 @@ import { RateLimitError } from "@snc/shared";
 // ── Public Types ──
 
 export type RateLimitOptions = {
-  windowMs: number;
-  max: number;
+  readonly windowMs: number;
+  readonly max: number;
 };
 
 // ── Private State ──

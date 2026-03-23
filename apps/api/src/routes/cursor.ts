@@ -1,3 +1,6 @@
+import type { Column, SQL } from "drizzle-orm";
+import { and, eq, gt, lt, or } from "drizzle-orm";
+
 import { ValidationError } from "@snc/shared";
 
 export const encodeCursor = (data: Record<string, string>): string =>
@@ -48,6 +51,25 @@ export const decodeCursor = (
     throw new ValidationError("Invalid cursor");
   }
 };
+
+/**
+ * Builds the keyset pagination WHERE condition for a timestamp + id cursor.
+ *
+ * DESC order (newest-first): rows where timestamp < decoded OR (timestamp = decoded AND id < decoded)
+ * ASC order (oldest-first):  rows where timestamp > decoded OR (timestamp = decoded AND id > decoded)
+ */
+export function buildCursorCondition(
+  timestampCol: Column,
+  idCol: Column,
+  decoded: { timestamp: Date; id: string },
+  direction: "asc" | "desc",
+): SQL {
+  const cmp = direction === "desc" ? lt : gt;
+  return or(
+    cmp(timestampCol, decoded.timestamp),
+    and(eq(timestampCol, decoded.timestamp), cmp(idCol, decoded.id)),
+  ) as SQL;
+}
 
 /**
  * Given rows fetched with limit+1, determine if there's a next page,
