@@ -78,6 +78,7 @@ CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-gene
 - **Node.js** >= 24.0.0
 - **pnpm** >= 10.0.0
 - **Docker** (for PostgreSQL)
+- **Caddy** (optional — reverse proxy for unified `:3080` entry point; without it, access API on `:3000` and web on `:3001` directly)
 
 ## Getting Started
 
@@ -148,6 +149,16 @@ VITE_API_URL=http://localhost:3000
 pnpm --filter @snc/api db:migrate
 ```
 
+### 4b. Seed demo data (optional)
+
+To populate the database with demo creators, content, users, and subscription plans:
+
+```bash
+pnpm --filter @snc/api seed:demo
+```
+
+This creates three demo users (admin, stakeholder, subscriber) with sample content — useful for seeing the full app working. Skip this if you prefer to start with an empty database and seed manually (see [Seeding Data](#seeding-data) below).
+
 ### 5. Start development servers
 
 Start all three processes — API, web, and Caddy reverse proxy:
@@ -163,7 +174,7 @@ pnpm --filter @snc/web dev
 caddy run --config Caddyfile.dev
 ```
 
-Or start API + web together with `pnpm dev`, plus Caddy in a separate terminal.
+Or start API + web together with `pnpm dev`, plus Caddy in a separate terminal. There's also `pnpm start` which runs Docker, installs dependencies, migrates, and starts dev servers in one command (still needs `.env` configured first, and doesn't start Caddy).
 
 The API runs with `--watch` for automatic restarts. The web server uses Vite HMR. Caddy routes `/api`, `/health`, and `/uploads` to the API and everything else to the web server.
 
@@ -191,9 +202,10 @@ pnpm --filter @snc/api test -- --watch
 
 Unit tests mock all external services (Stripe, Shopify, database). No running services are needed.
 
-E2E tests use Playwright against a running dev environment:
+E2E tests use Playwright against a running dev environment. Install browsers first (one-time):
 
 ```bash
+npx playwright install
 pnpm --filter @snc/e2e test
 ```
 

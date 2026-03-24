@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sncollective/snc-platform.git"
+    "url": "https://code.s-nc.org/sncollective/snc-platform.git"
   },
   "homepage": "https://s-nc.org",
   "private": true,

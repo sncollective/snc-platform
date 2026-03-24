@@ -692,7 +692,6 @@ try {
     { picsumId: 1036, width: 1200, height: 400, key: creatorRows[0]!.bannerKey },
     { picsumId: 1039, width: 1200, height: 400, key: creatorRows[1]!.bannerKey },
     { picsumId: 1042, width: 1200, height: 400, key: creatorRows[2]!.bannerKey },
-    { picsumId: 1044, width: 1200, height: 400, key: creatorRows[3]!.bannerKey },
     // Content thumbnails (square for audio, 16:9 for video/written)
     { picsumId: 1062, width: 600, height: 600, key: "content/seed_content_01/thumbnail/cover.jpg" },
     { picsumId: 1067, width: 600, height: 600, key: "content/seed_content_02/thumbnail/cover.jpg" },
