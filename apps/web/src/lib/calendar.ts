@@ -12,12 +12,14 @@ import { apiGet, apiMutate } from "./fetch-utils.js";
 
 // ── Public API ──
 
+/** Fetch calendar events with optional query filters. */
 export async function fetchCalendarEvents(
   params?: Record<string, string | number | undefined>,
 ): Promise<CalendarEventsResponse> {
   return apiGet<CalendarEventsResponse>("/api/calendar/events", params);
 }
 
+/** Create a new calendar event. */
 export async function createCalendarEvent(
   data: CreateCalendarEvent,
 ): Promise<CalendarEvent> {
@@ -28,6 +30,7 @@ export async function createCalendarEvent(
   return result.event;
 }
 
+/** Update an existing calendar event by ID. */
 export async function updateCalendarEvent(
   id: string,
   data: UpdateCalendarEvent,
@@ -39,6 +42,7 @@ export async function updateCalendarEvent(
   return result.event;
 }
 
+/** Toggle the completion status of a calendar event. */
 export async function toggleEventComplete(
   id: string,
 ): Promise<CalendarEvent> {
@@ -49,22 +53,26 @@ export async function toggleEventComplete(
   return result.event;
 }
 
+/** Delete a calendar event by ID. */
 export async function deleteCalendarEvent(id: string): Promise<void> {
   await apiMutate<undefined>(`/api/calendar/events/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 }
 
+/** Fetch the current user's iCal feed token. */
 export async function fetchFeedToken(): Promise<FeedTokenResponse> {
   return apiGet<FeedTokenResponse>("/api/calendar/feed-token");
 }
 
+/** Generate a new iCal feed token, replacing any existing one. */
 export async function generateFeedToken(): Promise<FeedTokenResponse> {
   return apiMutate<FeedTokenResponse>("/api/calendar/feed-token", {});
 }
 
 // ── Creator-Scoped Events ──
 
+/** Fetch calendar events scoped to a specific creator. */
 export async function fetchCreatorEvents(
   creatorId: string,
   params?: Record<string, string | number | undefined>,
@@ -75,6 +83,7 @@ export async function fetchCreatorEvents(
   );
 }
 
+/** Create a calendar event scoped to a specific creator. */
 export async function createCreatorEvent(
   creatorId: string,
   data: CreateCalendarEvent,
@@ -86,6 +95,7 @@ export async function createCreatorEvent(
   return result.event;
 }
 
+/** Update a creator-scoped calendar event. */
 export async function updateCreatorEvent(
   creatorId: string,
   eventId: string,
@@ -98,10 +108,12 @@ export async function updateCreatorEvent(
   return result.event;
 }
 
+/** Fetch all available calendar event types. */
 export async function fetchEventTypes(): Promise<EventTypesResponse> {
   return apiGet<EventTypesResponse>("/api/calendar/event-types");
 }
 
+/** Create a custom calendar event type with the given label. */
 export async function createCustomEventType(label: string): Promise<CustomEventType> {
   const result = await apiMutate<{ eventType: CustomEventType }>(
     "/api/calendar/event-types",
@@ -110,6 +122,7 @@ export async function createCustomEventType(label: string): Promise<CustomEventT
   return result.eventType;
 }
 
+/** Delete a creator-scoped calendar event. */
 export async function deleteCreatorEvent(
   creatorId: string,
   eventId: string,

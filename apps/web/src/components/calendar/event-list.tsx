@@ -17,6 +17,7 @@ export interface EventListProps {
 
 // ── Public API ──
 
+/** Render events grouped by date, each date section containing EventCard items. Shows an empty message when no events are provided. */
 export function EventList({
   events,
   onEdit,

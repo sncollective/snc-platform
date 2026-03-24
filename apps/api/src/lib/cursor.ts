@@ -3,6 +3,7 @@ import { and, eq, gt, lt, or } from "drizzle-orm";
 
 import { ValidationError } from "@snc/shared";
 
+/** Encode a keyset cursor object as a base64url string. */
 export const encodeCursor = (data: Readonly<Record<string, string>>): string =>
   Buffer.from(JSON.stringify(data)).toString("base64url");
 
@@ -27,6 +28,11 @@ export const decodeRawCursor = (cursor: string): Record<string, string> => {
   }
 };
 
+/**
+ * Decode a base64url cursor into a typed keyset pair.
+ *
+ * @throws {ValidationError} When the cursor is malformed or missing expected fields
+ */
 export const decodeCursor = (
   cursor: string,
   fields: { timestampField: string; idField: string },

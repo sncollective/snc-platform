@@ -22,6 +22,7 @@ export const EXTENSION_TO_MIME: Record<string, string> = {
   ".webp": "image/webp",
 };
 
+/** Normalize a filename to lowercase alphanumeric with dashes, truncated to 100 chars. */
 export const sanitizeFilename = (name: string): string =>
   name
     .toLowerCase()
@@ -29,6 +30,7 @@ export const sanitizeFilename = (name: string): string =>
     .replace(/[^a-z0-9\-_.]/g, "")
     .slice(0, 100);
 
+/** Infer MIME type from a storage key's file extension, defaulting to `application/octet-stream`. */
 export const inferContentType = (key: string): string => {
   const dot = key.lastIndexOf(".");
   if (dot === -1) return "application/octet-stream";
@@ -36,6 +38,11 @@ export const inferContentType = (key: string): string => {
   return EXTENSION_TO_MIME[ext] ?? "application/octet-stream";
 };
 
+/**
+ * Download a file from storage and stream it as an HTTP response with appropriate headers.
+ *
+ * @throws {NotFoundError} When the storage key does not exist
+ */
 export const streamFile = async (
   c: Context<AuthEnv>,
   storage: StorageProvider,

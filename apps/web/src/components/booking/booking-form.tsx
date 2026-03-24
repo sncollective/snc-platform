@@ -41,6 +41,7 @@ export interface BookingFormProps {
 
 // ── Public API ──
 
+/** Booking request form that collects preferred dates and notes for a given service, validates with Zod, and submits via the booking API. */
 export function BookingForm({
   serviceId,
   serviceName,

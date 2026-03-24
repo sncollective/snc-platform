@@ -18,6 +18,7 @@ type ClientRecord = {
 
 // ── Public API ──
 
+/** Create an in-memory per-IP rate limiter with sliding window cleanup. */
 export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
   const { windowMs, max } = options;
   const clients = new Map<string, ClientRecord>();

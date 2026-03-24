@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ── Public Constants ──
 
+/** Platform-wide authorization roles assignable to users. */
 export const ROLES = [
   "stakeholder",
   "admin",

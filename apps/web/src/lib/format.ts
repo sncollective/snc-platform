@@ -33,11 +33,13 @@ export function formatRelativeDate(isoDateString: string): string {
   return format(date, "MMM d, yyyy");
 }
 
+/** Format an ISO date string as "Mon d, yyyy" in UTC (safe for date-only strings). */
 export function formatDate(isoDateString: string): string {
   // Date-only strings (YYYY-MM-DD) need UTC to avoid timezone shift
   return formatInTimeZone(parseISO(isoDateString), "UTC", "MMM d, yyyy");
 }
 
+/** Format a duration in seconds as "m:ss". */
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "0:00";
@@ -47,18 +49,22 @@ export function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+/** Format a price in cents as a dollar string (e.g., "$12.99"). */
 export function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/** Format a billing interval as "/ month" or "/ year". */
 export function formatInterval(interval: "month" | "year"): string {
   return `/ ${interval}`;
 }
 
+/** Format a billing interval as "mo" or "yr". */
 export function formatIntervalShort(interval: "month" | "year"): string {
   return interval === "month" ? "mo" : "yr";
 }
 
+/** Truncate text to the first N words, dropping trailing words without ellipsis. */
 export function truncateToWords(text: string, maxWords: number): string {
   const words = text.split(/\s+/);
   if (words.length <= maxWords) {
@@ -67,6 +73,7 @@ export function truncateToWords(text: string, maxWords: number): string {
   return words.slice(0, maxWords).join(" ");
 }
 
+/** Extract up to two uppercase initials from a display name. */
 export function getInitials(name: string): string {
   return name
     .split(" ")

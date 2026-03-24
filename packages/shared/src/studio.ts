@@ -7,8 +7,10 @@ export const STUDIO_SERVICES = [
   "venue-hire",
 ] as const;
 
+/** A bookable studio service category. */
 export type StudioService = (typeof STUDIO_SERVICES)[number];
 
+/** Human-readable labels for each studio service type. */
 export const STUDIO_SERVICE_LABELS: Readonly<Record<StudioService, string>> = {
   recording: "Recording",
   podcast: "Podcast Production",

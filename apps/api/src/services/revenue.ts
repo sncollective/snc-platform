@@ -5,6 +5,12 @@ import { getStripe } from "./stripe-client.js";
 
 // ── Public API ──
 
+/**
+ * Aggregate paid Stripe invoices into zero-filled monthly revenue buckets.
+ *
+ * Returns most-recent-first array spanning the requested month count.
+ * Errors when Stripe is not configured (503) or the API call fails.
+ */
 export const getMonthlyRevenue = async (
   months: number,
 ): Promise<Result<MonthlyRevenue[], AppError>> => {

@@ -1,3 +1,4 @@
+/** Client-side 403 error thrown by route guards when the user lacks required permissions. */
 export class AccessDeniedError extends Error {
   readonly statusCode = 403;
 

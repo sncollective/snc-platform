@@ -241,6 +241,7 @@ function DraftItem({
 
 // ── Public API ──
 
+/** Paginated list of a creator's unpublished draft content with per-item actions for editing, media/thumbnail upload, preview, publish, and delete. */
 export function DraftContentList({
   creatorId,
   creatorHandle,

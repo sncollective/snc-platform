@@ -19,8 +19,10 @@ export const SOCIAL_PLATFORMS = [
   "website",
 ] as const;
 
+/** A supported external platform for creator social links. */
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
+/** Display names and optional URL validation patterns per social platform. */
 export const PLATFORM_CONFIG: Record<
   SocialPlatform,
   { readonly displayName: string; readonly urlPattern?: RegExp }
@@ -69,6 +71,7 @@ export const PLATFORM_CONFIG: Record<
   website: { displayName: "Website" },
 };
 
+/** Maximum number of social links per creator profile. */
 export const MAX_SOCIAL_LINKS = 20;
 
 export const SocialLinkSchema = z.object({
@@ -82,19 +85,23 @@ export type SocialLink = z.infer<typeof SocialLinkSchema>;
 // ── Creator Member Roles ──
 
 export const CREATOR_MEMBER_ROLES = ["owner", "editor", "viewer"] as const;
+/** Role a user holds within a creator team (owner, editor, or viewer). */
 export type CreatorMemberRole = (typeof CREATOR_MEMBER_ROLES)[number];
 export const CreatorMemberRoleSchema = z.enum(CREATOR_MEMBER_ROLES);
 
+/** Permission matrix mapping each creator member role to its allowed actions. */
 export const CREATOR_ROLE_PERMISSIONS = {
   owner:  { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: true,  viewPrivate: true  },
   editor: { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: false, viewPrivate: true  },
   viewer: { editProfile: false, manageContent: false, manageScheduling: false, manageMembers: false, viewPrivate: true  },
 } as const satisfies Record<CreatorMemberRole, Record<string, boolean>>;
 
+/** An individual permission that can be checked against a creator member role. */
 export type CreatorPermission = keyof (typeof CREATOR_ROLE_PERMISSIONS)["owner"];
 
 // ── Public Schemas ──
 
+/** Validation pattern for creator handles: 3-30 lowercase alphanumeric, underscore, or hyphen. */
 export const HANDLE_REGEX = /^[a-z0-9_-]{3,30}$/;
 
 export const UpdateCreatorProfileSchema = z.object({

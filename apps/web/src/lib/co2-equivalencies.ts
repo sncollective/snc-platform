@@ -38,6 +38,7 @@ function formatDuration(days: number): { value: string; unit: string } {
 
 // ── Public API ──
 
+/** Convert a CO2 kg value into EPA-based real-world equivalencies (miles driven, smartphone charges, etc.). */
 export function computeEquivalencies(co2Kg: number): Co2Equivalency[] {
   if (co2Kg <= 0) return [];
 

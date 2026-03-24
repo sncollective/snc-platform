@@ -22,6 +22,7 @@ export interface DayDetailPopoverProps {
 
 // ── Public API ──
 
+/** Popover listing all events for a specific day, dismissed on outside click or escape. */
 export function DayDetailPopover({
   dateKey,
   events,

@@ -31,6 +31,7 @@ export interface AudioDetailProps {
 
 // ── Public API ──
 
+/** Detail view for audio content showing cover art, metadata, and an inline audio player. Supports locked (subscribe-gated), missing-media, and editing states with media/thumbnail upload controls. */
 export function AudioDetail({
   item,
   locked,

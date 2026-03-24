@@ -35,6 +35,12 @@ const ensureConfigured = (): Result<void, AppError> => {
 
 // ── Public API ──
 
+/**
+ * Fetch live stream status from Owncast.
+ *
+ * Returns the current online state, viewer count, and connect/disconnect times.
+ * Errors when Owncast is not configured (503) or the upstream API fails (502).
+ */
 export const getStreamStatus = async (): Promise<
   Result<OwncastStatus, AppError>
 > => {

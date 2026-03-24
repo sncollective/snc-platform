@@ -51,6 +51,7 @@ function mapBookingToRow(booking: PendingBookingItem): BookingRowData {
 
 // ── Public API ──
 
+/** Render pending booking requests in a responsive table (desktop) and card list (mobile) with approve/deny actions. Deny includes an optional review note input. */
 export function PendingBookingsTable({
   bookings,
   onReview,

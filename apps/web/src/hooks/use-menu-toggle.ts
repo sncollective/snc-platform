@@ -12,6 +12,7 @@ export interface UseMenuToggleReturn {
 
 // ── Public API ──
 
+/** Manage menu open/close state with Escape key and click-outside dismissal. */
 export function useMenuToggle(
   menuRef: React.RefObject<HTMLElement | null>,
 ): UseMenuToggleReturn {

@@ -26,6 +26,7 @@ function isContentLocked(item: FeedItem): boolean {
 
 // ── Public API ──
 
+/** Dispatch content detail rendering to VideoDetail, AudioDetail, or WrittenDetail based on content type. Provides owner actions (edit, publish/unpublish, delete) when the user can manage the content. */
 export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDetailProps): React.ReactElement {
   const locked = isContentLocked(item);
   const mgmt = useContentManagement(item, initialEdit);

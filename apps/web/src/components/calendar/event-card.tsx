@@ -24,6 +24,7 @@ export interface EventCardProps {
 
 // ── Public API ──
 
+/** Render a single calendar event with time, type badge, title, optional location/description, and edit/delete/complete actions. Tasks display a completion checkbox. */
 export function EventCard({
   event,
   onEdit,

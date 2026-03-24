@@ -32,6 +32,7 @@ const isNoSuchKey = (e: unknown): boolean =>
 
 // ── Public API ──
 
+/** Create a StorageProvider backed by S3-compatible object storage. */
 export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
   const { client, bucket } = options;
 

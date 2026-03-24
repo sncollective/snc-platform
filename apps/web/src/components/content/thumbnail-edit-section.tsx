@@ -17,6 +17,7 @@ export interface ThumbnailEditSectionProps {
 
 // ── Public API ──
 
+/** Render a thumbnail image with optional replace/remove controls in edit mode, an upload placeholder when no thumbnail exists, or a static image/placeholder in read-only mode. */
 export function ThumbnailEditSection({
   thumbnailSrc,
   title,

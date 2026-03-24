@@ -7,6 +7,7 @@ import { userRoles } from "../db/schema/user.schema.js";
 
 // ── Public API ──
 
+/** Fetch all roles assigned to a user. */
 export const getUserRoles = async (userId: string): Promise<Role[]> => {
   const rows = await db
     .select({ role: userRoles.role })
@@ -16,6 +17,7 @@ export const getUserRoles = async (userId: string): Promise<Role[]> => {
   return rows.map((r) => r.role);
 };
 
+/** Fetch roles for multiple users in a single query. */
 export async function batchGetUserRoles(
   userIds: string[],
 ): Promise<Map<string, Role[]>> {

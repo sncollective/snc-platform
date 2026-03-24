@@ -144,6 +144,7 @@ export const federationRoutes = createFederationApp();
 
 // ── Test helper ──
 
+/** Create a federation Hono app with an in-memory KV store for testing. */
 export function createTestFederationApp(): Hono {
   return createFederationApp(new MemoryKvStore());
 }

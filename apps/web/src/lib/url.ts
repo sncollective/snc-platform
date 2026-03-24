@@ -1,5 +1,6 @@
 // ── Public API ──
 
+/** Navigate to an external URL via full page load. */
 export function navigateExternal(url: string): void {
   window.location.href = url;
 }

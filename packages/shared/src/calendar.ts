@@ -12,6 +12,7 @@ export const DEFAULT_EVENT_TYPES = [
   "other",
 ] as const;
 
+/** Human-readable labels for built-in calendar event types. */
 export const DEFAULT_EVENT_TYPE_LABELS: Readonly<Record<(typeof DEFAULT_EVENT_TYPES)[number], string>> = {
   "recording-session": "Recording Session",
   "show": "Show",
@@ -20,8 +21,11 @@ export const DEFAULT_EVENT_TYPE_LABELS: Readonly<Record<(typeof DEFAULT_EVENT_TY
   "other": "Other",
 };
 
+/** Maximum calendar event title length. */
 export const MAX_EVENT_TITLE_LENGTH = 200;
+/** Maximum calendar event description length. */
 export const MAX_EVENT_DESCRIPTION_LENGTH = 5000;
+/** Maximum calendar event location length. */
 export const MAX_EVENT_LOCATION_LENGTH = 500;
 
 // ── Public Schemas ──

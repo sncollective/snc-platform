@@ -23,6 +23,7 @@ export interface EmissionsBreakdownResult {
 
 // ── Public API ──
 
+/** Aggregate gross, projected, offset, and net CO2 totals across all emission entries. */
 export async function fetchEmissionsSummary(): Promise<EmissionsSummary> {
   const entryCountExpr = sql<number>`count(case when ${emissions.scope} != 0 and ${emissions.projected} = false then 1 end)`;
   const latestDateExpr = sql<string | null>`max(case when ${emissions.scope} != 0 and ${emissions.projected} = false then ${emissions.date} end)`;
@@ -57,6 +58,7 @@ export async function fetchEmissionsSummary(): Promise<EmissionsSummary> {
   };
 }
 
+/** Fetch full emissions breakdown: summary totals, by-scope, by-category, monthly time series, and all entries. */
 export async function fetchEmissionsBreakdown(): Promise<EmissionsBreakdownResult> {
   const monthCol = sql<string>`substring(${emissions.date} from 1 for 7)`;
 

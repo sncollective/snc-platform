@@ -33,6 +33,7 @@ const TRUNCATE_WORD_COUNT = 200;
 
 // ── Public API ──
 
+/** Detail view for written content rendering paragraphs from the body text. Locked mode shows a truncated preview with a subscribe CTA; edit mode provides inline title, description, visibility, thumbnail, and body editing. */
 export function WrittenDetail({
   item,
   locked,

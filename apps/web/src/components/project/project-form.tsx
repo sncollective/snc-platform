@@ -41,6 +41,7 @@ export interface ProjectFormProps {
 
 // ── Public API ──
 
+/** Create/edit form for a project with name, description, and optional creator assignment. Used on the org-level projects page. */
 export function ProjectForm({ project, creators, onSuccess, onCancel }: ProjectFormProps): React.ReactElement {
   const isEdit = project !== undefined;
   const [name, setName] = useState(project?.name ?? "");

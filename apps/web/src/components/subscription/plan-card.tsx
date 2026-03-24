@@ -18,6 +18,7 @@ export interface PlanCardProps {
 
 // ── Public API ──
 
+/** Render a subscription plan card with name, formatted price/interval, and a subscribe button that disables when already subscribed or loading. */
 export function PlanCard({
   plan,
   onSubscribe,

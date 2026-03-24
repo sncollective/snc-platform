@@ -39,11 +39,13 @@ export function formatCo2AxisLabel(kg: number): string {
   return `${Math.round(kg)} kg`;
 }
 
+/** Format a "YYYY-MM" string into "Mon YYYY" (e.g., "Jan 2026"). */
 export function formatMonthLabel(month: string): string {
   const [year = "", m = ""] = month.split("-");
   return `${MONTH_LABELS[Number(m) - 1] ?? ""} ${year}`;
 }
 
+/** Format a "YYYY-MM" string into abbreviated "Mon 'YY" (e.g., "Jan '26"). */
 export function formatMonthShort(month: string): string {
   const [year = "", m = ""] = month.split("-");
   return `${MONTH_LABELS[Number(m) - 1] ?? ""} '${year.slice(2)}`;
@@ -51,6 +53,7 @@ export function formatMonthShort(month: string): string {
 
 // ── Chart Line Computation ──
 
+/** Compute cumulative chart lines (actual, projected, offsets, net) from monthly data. */
 export function computeChartLines(data: readonly MonthlyDataItem[]): ChartLines {
   const months: string[] = [];
   const actualUse: number[] = [];
@@ -79,6 +82,7 @@ export function computeChartLines(data: readonly MonthlyDataItem[]): ChartLines 
 
 // ── Nice Axis Ticks ──
 
+/** Find the nearest "nice" number (1, 2, 5, or 10 scaled) for axis labeling. */
 export function niceNum(value: number, round: boolean): number {
   const exp = Math.floor(Math.log10(value));
   const frac = value / 10 ** exp;
@@ -91,6 +95,7 @@ export function niceNum(value: number, round: boolean): number {
   return nice * 10 ** exp;
 }
 
+/** Compute nice axis tick bounds and step size for the given data range. */
 export function niceTicks(
   rawMin: number,
   rawMax: number,

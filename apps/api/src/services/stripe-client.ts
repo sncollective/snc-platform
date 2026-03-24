@@ -12,6 +12,11 @@ const STRIPE_KEY: string | null = config.STRIPE_SECRET_KEY ?? null;
 
 let stripeInstance: Stripe | null = null;
 
+/**
+ * Return the lazily-initialized Stripe client singleton.
+ *
+ * Errors with BILLING_NOT_CONFIGURED (503) when the Stripe secret key is not set.
+ */
 export const getStripe = (): Result<Stripe, AppError> => {
   if (STRIPE_KEY === null) {
     return err(

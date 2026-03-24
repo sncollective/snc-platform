@@ -5,7 +5,9 @@ import { createPaginationQuery } from "./pagination.js";
 // ── Public Constants ──
 
 export const BOOKING_STATUSES = ["pending", "approved", "denied"] as const;
+/** Maximum number of preferred dates per booking request. */
 export const MAX_PREFERRED_DATES = 5;
+/** Maximum booking notes length. */
 export const MAX_BOOKING_NOTES_LENGTH = 2000;
 
 // ── Public Schemas ──

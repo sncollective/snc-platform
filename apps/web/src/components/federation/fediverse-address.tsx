@@ -15,6 +15,7 @@ export interface FediverseAddressProps {
 
 // ── Public API ──
 
+/** Display a fediverse address (`@handle@domain`) as a pill with a copy-to-clipboard button. */
 export function FediverseAddress({
   handle,
   domain,

@@ -13,6 +13,7 @@ export interface CreatorSelectorProps {
 
 // ── Public API ──
 
+/** Dropdown for switching between creator profiles. Renders nothing when the user has only one creator page. */
 export function CreatorSelector({
   creators,
   selectedId,

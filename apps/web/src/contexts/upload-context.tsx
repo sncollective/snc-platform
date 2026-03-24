@@ -192,6 +192,7 @@ const UploadContext = createContext<UploadContextValue | null>(null);
 
 // ── Provider ──
 
+/** Manage file uploads via Uppy with S3 multipart support and legacy fallback. Tracks per-file progress, completion, and errors. Consume with `useUpload`. */
 export function UploadProvider({
   children,
 }: Readonly<{ children: ReactNode }>): React.ReactElement {

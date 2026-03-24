@@ -43,6 +43,7 @@ const DEBOUNCE_MS = 300;
 
 // ── Public API ──
 
+/** Manage a creator page's team members: list current members with role badges, search and add new members, change roles, and remove members. Only owners and admins see management controls. */
 export function TeamSection({
   creatorId,
   currentUserId,

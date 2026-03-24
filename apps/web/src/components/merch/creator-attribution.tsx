@@ -12,6 +12,7 @@ export interface CreatorAttributionProps {
 
 // ── Public API ──
 
+/** Render a creator's name as a link to their profile page, with an optional text prefix. Falls back to plain text when no creatorId is available. */
 export function CreatorAttribution({
   creatorId,
   creatorName,

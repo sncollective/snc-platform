@@ -15,6 +15,7 @@ export interface ProjectItemProps {
 
 // ── Public API ──
 
+/** Render a single project row on the org-level projects page with a link to the project detail, completion badge, and edit/complete/delete actions. */
 export function ProjectItem({ project, onEdit, onToggleComplete, onDelete }: ProjectItemProps): React.ReactElement {
   return (
     <div className={styles.projectItem}>

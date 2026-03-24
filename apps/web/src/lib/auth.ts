@@ -19,6 +19,7 @@ export interface AuthState {
   readonly isPatron: boolean;
 }
 
+/** Fetch the current user's authentication state, returning null user on failure. */
 export async function fetchAuthState(): Promise<AuthState> {
   try {
     const body = await apiGet<{ user: User | null; roles?: Role[]; isPatron?: boolean }>("/api/me");
@@ -30,6 +31,7 @@ export async function fetchAuthState(): Promise<AuthState> {
 
 // ── Public API: hasRole ──
 
+/** Check whether the given roles array includes a specific role. */
 export function hasRole(roles: readonly Role[], role: Role): boolean {
   return roles.includes(role);
 }
@@ -41,6 +43,7 @@ interface AuthExtras {
   readonly isPatron: boolean;
 }
 
+/** Manage the current user's roles and patron status, re-fetching when the session changes. */
 export function useAuthExtras(): AuthExtras {
   const session = useSession();
   const [extras, setExtras] = useState<AuthExtras>({ roles: [], isPatron: false });

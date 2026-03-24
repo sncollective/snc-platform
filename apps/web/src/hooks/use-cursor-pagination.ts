@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { throwIfNotOk } from "../lib/fetch-utils.js";
 
+/** Manage cursor-based pagination with automatic reset on dependency changes and append-on-load-more. */
 export function useCursorPagination<T>({
   buildUrl,
   deps = [],

@@ -78,6 +78,7 @@ export interface ContentFormProps {
 
 // ── Public API ──
 
+/** Create new content (audio, video, or written) with title, description, visibility, media/thumbnail file inputs, and Zod validation. Media uploads run in the background after the content record is created. */
 export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }: ContentFormProps): React.ReactElement {
   const fields = useContentFormFields();
   const submitCallbacks = onUploadComplete

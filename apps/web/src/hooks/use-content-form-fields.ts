@@ -43,6 +43,7 @@ export interface ContentFormFields {
 
 // ── Public API ──
 
+/** Manage content creation form field state, file input refs, and reset logic. */
 export function useContentFormFields(): ContentFormFields {
   const [type, setType] = useState<ContentType>("audio");
   const [title, setTitle] = useState("");

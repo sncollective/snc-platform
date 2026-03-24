@@ -8,7 +8,9 @@ import { SOURCE_TYPES, SourceTypeSchema } from "./uploads.js";
 export const CONTENT_TYPES = ["video", "audio", "written"] as const;
 export const VISIBILITY = ["public", "subscribers"] as const;
 export const CONTENT_STATUSES = ["draft", "published"] as const;
+/** Maximum content title length. */
 export const MAX_TITLE_LENGTH = 200;
+/** Maximum content description length. */
 export const MAX_DESCRIPTION_LENGTH = 2000;
 
 // ── Public Schemas ──

@@ -92,6 +92,7 @@ const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 
 // ── Provider ──
 
+/** Manage global audio playback state (current track, play/pause, seek, volume) via a reducer and hidden `<audio>` element. Consume with `useAudioPlayer`. */
 export function AudioPlayerProvider({
   children,
 }: Readonly<{ children: ReactNode }>): React.ReactElement {

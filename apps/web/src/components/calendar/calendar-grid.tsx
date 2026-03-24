@@ -191,6 +191,7 @@ function buildSpanBars(
 
 // ── Public API ──
 
+/** Render a month-view calendar grid with weekday headers, day cells, and multi-day event span bars. Clicking a day with overflow events opens a detail popover. */
 export function CalendarGrid({
   events,
   year,

@@ -18,6 +18,7 @@ export interface MyContentListProps {
 
 // ── Public API ──
 
+/** Paginated grid of a creator's published content with per-item delete action and cursor-based load-more. */
 export function MyContentList({
   creatorId,
   refreshKey,

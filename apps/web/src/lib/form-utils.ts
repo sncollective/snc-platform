@@ -1,5 +1,6 @@
 // ── Public API ──
 
+/** Extract the first validation error per field from a Zod issues array. */
 export function extractFieldErrors<K extends string>(
   issues: ReadonlyArray<{ path?: ReadonlyArray<PropertyKey>; message: string }>,
   validFields: readonly K[],

@@ -14,6 +14,7 @@ export interface OptionalImageProps {
 
 // ── Public API ──
 
+/** Render an `<img>` when a src URL is provided, or a styled placeholder `<div>` when src is null/undefined. */
 export function OptionalImage({
   src,
   alt,

@@ -10,6 +10,7 @@ type ContentRow = typeof content.$inferSelect;
 
 export type { ContentRow };
 
+/** Map a content DB row to an API response, converting storage keys to serving URLs. */
 export const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   id: row.id,
   creatorId: row.creatorId,
@@ -31,6 +32,7 @@ export const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   updatedAt: toISO(row.updatedAt),
 });
 
+/** Find a content row by ID, excluding soft-deleted records. */
 export const findActiveContent = async (
   id: string,
 ): Promise<ContentRow | undefined> => {

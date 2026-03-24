@@ -16,6 +16,7 @@ export interface ContentFooterProps {
 
 // ── Public API ──
 
+/** Render an optional description paragraph and subscribe CTA below content detail views. Returns null when neither is applicable. */
 export function ContentFooter({
   description,
   creatorId,

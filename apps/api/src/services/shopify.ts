@@ -247,6 +247,11 @@ type CartCreateData = {
 
 // ── Public API ──
 
+/**
+ * Fetch a paginated list of Shopify products, optionally filtered by creator tag.
+ *
+ * Errors when Shopify is not configured (503) or the Storefront API fails (502).
+ */
 export const getProducts = async (
   params?: GetProductsParams,
 ): Promise<Result<GetProductsResult, AppError>> => {
@@ -269,6 +274,11 @@ export const getProducts = async (
   return ok({ products, pageInfo });
 };
 
+/**
+ * Fetch a single Shopify product by its URL handle, or null if not found.
+ *
+ * Errors when Shopify is not configured (503) or the Storefront API fails (502).
+ */
 export const getProductByHandle = async (
   handle: string,
 ): Promise<Result<ShopifyProductNode | null, AppError>> => {
@@ -280,6 +290,12 @@ export const getProductByHandle = async (
   return ok(result.value.product);
 };
 
+/**
+ * Create a Shopify cart and return its checkout URL.
+ *
+ * Errors when Shopify is not configured (503), the Storefront API fails (502),
+ * or cart creation returns user errors or warnings (502/422).
+ */
 export const createCheckoutUrl = async (
   params: CreateCheckoutParams,
 ): Promise<Result<string, AppError>> => {

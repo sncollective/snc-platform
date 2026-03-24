@@ -14,12 +14,15 @@ export const FEATURE_FLAGS = [
   "streaming",
 ] as const;
 
+/** A toggleable platform capability (content, creator, merch, etc.). */
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
 
+/** Complete set of feature flags with their enabled/disabled state. */
 export type FeatureFlags = Readonly<Record<FeatureFlag, boolean>>;
 
 // ── Presets ──
 
+/** Preset with every feature enabled — used in development and testing. */
 export const ALL_FEATURES_ON: FeatureFlags = {
   content: true,
   creator: true,
@@ -34,6 +37,7 @@ export const ALL_FEATURES_ON: FeatureFlags = {
   streaming: true,
 };
 
+/** Preset with only production-ready features enabled. */
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
   content: false,
   creator: true,
@@ -50,11 +54,13 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
 
 // ── Labels ──
 
+/** Human-readable name and description for a feature flag. */
 export interface FeatureLabelInfo {
   readonly name: string;
   readonly description: string;
 }
 
+/** Display labels and descriptions for each feature flag, used in the admin UI. */
 export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
   content: {
     name: "Content",

@@ -18,6 +18,7 @@ export interface OffsetImpactCard {
 
 // ── Public API ──
 
+/** Compute Pika Project donation amount and grassland area protected from CO2 offset kilograms. */
 export function computeOffsetImpact(offsetCo2Kg: number): OffsetImpactCard[] {
   if (offsetCo2Kg <= 0) return [];
 

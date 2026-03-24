@@ -10,6 +10,7 @@ interface ErrorPageProps {
   readonly onRetry?: () => void;
 }
 
+/** Full-page error display with status code, title, description, and navigation actions (retry, go back, go home). */
 export function ErrorPage({
   statusCode,
   title,

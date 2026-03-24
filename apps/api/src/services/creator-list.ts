@@ -6,6 +6,7 @@ import { userSubscriptions, subscriptionPlans } from "../db/schema/subscription.
 
 // ── Batch KPI helpers for the creator list endpoint ──
 
+/** Aggregate published content counts for a batch of creators, keyed by creator ID. */
 export const batchGetContentCounts = async (
   creatorIds: string[],
 ): Promise<Map<string, number>> => {
@@ -66,6 +67,7 @@ export const batchGetSubscribedCreatorIds = async (
   return new Set(rows.map((r) => r.creatorId).filter((id): id is string => id !== null));
 };
 
+/** Aggregate active subscriber counts for a batch of creators, keyed by creator ID. */
 export const batchGetSubscriberCounts = async (
   creatorIds: string[],
 ): Promise<Map<string, number>> => {
@@ -92,6 +94,7 @@ export const batchGetSubscriberCounts = async (
   );
 };
 
+/** Aggregate most recent publish date for a batch of creators, keyed by creator ID (ISO string values). */
 export const batchGetLastPublished = async (
   creatorIds: string[],
 ): Promise<Map<string, string>> => {

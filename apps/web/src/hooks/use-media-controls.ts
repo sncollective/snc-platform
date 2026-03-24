@@ -13,6 +13,7 @@ export interface UseMediaControlsReturn {
 
 // ── Public API ──
 
+/** Manage seek and volume controls for the audio player. */
 export function useMediaControls(actions: AudioPlayerActions): UseMediaControlsReturn {
   const [volume, setVolume] = useState(1);
 

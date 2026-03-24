@@ -16,6 +16,7 @@ export interface KpiCardProps {
 
 // ── Public API ──
 
+/** Dashboard KPI card displaying a label, formatted value, and optional sublabel. Shows a loading placeholder when data is pending. */
 export function KpiCard({
   label,
   value,

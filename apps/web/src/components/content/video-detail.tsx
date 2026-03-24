@@ -33,6 +33,7 @@ export interface VideoDetailProps {
 
 // ── Public API ──
 
+/** Detail view for video content with an inline video player, thumbnail, and metadata. Supports locked (subscribe-gated), missing-media, and editing states with media/thumbnail upload controls. */
 export function VideoDetail({
   item,
   locked,

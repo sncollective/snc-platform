@@ -4,6 +4,7 @@ import { createPaginationQuery } from "./pagination.js";
 
 // ── Public Constants ──
 
+/** Shopify product tag prefix used to associate merch with a creator. */
 export const CREATOR_TAG_PREFIX = "snc-creator:" as const;
 
 // ── Public Schemas ──

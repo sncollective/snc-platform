@@ -16,6 +16,7 @@ export interface ManageProjectItemProps {
 
 // ── Public API ──
 
+/** Render a single project row in the creator management view with a link to the project detail page, completion badge, and edit/complete/delete actions. */
 export function ManageProjectItem({ project, creatorId, onEdit, onToggleComplete, onDelete }: ManageProjectItemProps): React.ReactElement {
   return (
     <div className={styles.projectItem}>

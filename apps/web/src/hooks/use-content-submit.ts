@@ -35,6 +35,7 @@ export interface ContentSubmitState {
 
 // ── Public API ──
 
+/** Manage content creation form submission: validate, create draft, and enqueue file uploads. */
 export function useContentSubmit(
   fields: ContentFormFields,
   creatorId: string,

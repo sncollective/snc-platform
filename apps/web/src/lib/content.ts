@@ -4,12 +4,14 @@ import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
 
 // ── Public API ──
 
+/** Create a new content draft. */
 export async function createContent(
   data: CreateContent,
 ): Promise<ContentResponse> {
   return apiMutate<ContentResponse>("/api/content", { body: data });
 }
 
+/** Upload a media or thumbnail file for a content item. */
 export async function uploadContentFile(
   contentId: string,
   field: "media" | "thumbnail",
@@ -23,6 +25,7 @@ export async function uploadContentFile(
   );
 }
 
+/** Update a content item's metadata. */
 export async function updateContent(
   id: string,
   data: UpdateContent,
@@ -33,6 +36,7 @@ export async function updateContent(
   );
 }
 
+/** Fetch paginated draft content for a creator. */
 export async function fetchDrafts(
   creatorId: string,
   cursor?: string,
@@ -42,18 +46,21 @@ export async function fetchDrafts(
   return apiGet<{ items: ContentResponse[]; nextCursor: string | null }>("/api/content/drafts", params);
 }
 
+/** Publish a draft content item. */
 export async function publishContent(id: string): Promise<ContentResponse> {
   return apiMutate<ContentResponse>(`/api/content/${encodeURIComponent(id)}/publish`, {
     method: "POST",
   });
 }
 
+/** Revert a published content item back to draft. */
 export async function unpublishContent(id: string): Promise<ContentResponse> {
   return apiMutate<ContentResponse>(`/api/content/${encodeURIComponent(id)}/unpublish`, {
     method: "POST",
   });
 }
 
+/** Delete a content item by ID. */
 export async function deleteContent(id: string): Promise<void> {
   await apiMutate<void>(`/api/content/${encodeURIComponent(id)}`, {
     method: "DELETE",

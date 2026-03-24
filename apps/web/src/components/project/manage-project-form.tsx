@@ -41,6 +41,7 @@ export interface ManageProjectFormProps {
 
 // ── Public API ──
 
+/** Create/edit form for a project scoped to a specific creator, with name and description fields and Zod validation. */
 export function ManageProjectForm({ project, creatorId, onSuccess, onCancel }: ManageProjectFormProps): React.ReactElement {
   const isEdit = project !== undefined;
   const [name, setName] = useState(project?.name ?? "");

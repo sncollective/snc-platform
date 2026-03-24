@@ -87,6 +87,7 @@ export interface UseCalendarStateReturn {
 
 // ── Public API ──
 
+/** Manage calendar page state: event fetching, month navigation, filters, form visibility, and CRUD actions. */
 export function useCalendarState(options: UseCalendarStateOptions = {}): UseCalendarStateReturn {
   const { creatorId, includeCreatorFilter = false, initialEvents } = options;
 

@@ -24,6 +24,7 @@ export interface EditableContentMetaProps {
 
 // ── Public API ──
 
+/** Render content metadata (title, creator, date, description, visibility) as either inline edit fields or read-only text based on the editing state. */
 export function EditableContentMeta({
   title,
   creatorName,

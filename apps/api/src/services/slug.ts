@@ -5,6 +5,7 @@ import { db } from "../db/connection.js";
 
 // ── Public Helpers ──
 
+/** Convert a display name to a URL-safe kebab-case slug, truncated to maxLength. */
 export const toSlug = (name: string, maxLength = 80): string =>
   name
     .toLowerCase()
@@ -14,6 +15,7 @@ export const toSlug = (name: string, maxLength = 80): string =>
     .replace(/^-|-$/g, "")
     .slice(0, maxLength);
 
+/** Generate a collision-safe slug by querying the DB for existing matches and appending a numeric suffix if needed. */
 export const generateUniqueSlug = async (
   name: string,
   options: Readonly<{

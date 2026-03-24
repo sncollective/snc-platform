@@ -29,6 +29,7 @@ export type LocalStorageOptions = {
 
 // ── Public API ──
 
+/** Create a StorageProvider backed by the local filesystem with path-traversal protection. */
 export const createLocalStorage = (
   options: LocalStorageOptions,
 ): StorageProvider => {

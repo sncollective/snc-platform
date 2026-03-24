@@ -93,6 +93,7 @@ export interface EventFormProps {
 
 // ── Public API ──
 
+/** Create/edit form for calendar events with date/time pickers, event type selection (including custom types), optional project and creator association, and delete confirmation. */
 export function EventForm({
   event,
   creatorId: defaultCreatorId,

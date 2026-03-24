@@ -11,6 +11,7 @@ export interface UseFileInputResult {
 
 // ── Public API ──
 
+/** Manage a hidden file input: expose a ref, trigger selection programmatically, and forward selected files. */
 export function useFileInput(onFile?: (file: File) => void): UseFileInputResult {
   const inputRef = useRef<HTMLInputElement | null>(null);
 

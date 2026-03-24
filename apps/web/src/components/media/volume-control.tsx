@@ -12,6 +12,7 @@ export interface VolumeControlProps {
 
 // ── Public API ──
 
+/** Volume slider with a speaker icon, accepting a 0-1 value. */
 export function VolumeControl({
   volume,
   onVolumeChange,

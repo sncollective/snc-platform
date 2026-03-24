@@ -15,6 +15,7 @@ export interface FollowFediverseDialogProps {
 
 // ── Public API ──
 
+/** Modal dialog that shows a creator's fediverse address and lets the user enter their Mastodon instance to initiate a remote follow via `authorize_interaction`. */
 export function FollowFediverseDialog({
   handle,
   domain,

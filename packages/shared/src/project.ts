@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import { createPaginationQuery } from "./pagination.js";
 
+/** Maximum project name length. */
 export const MAX_PROJECT_NAME_LENGTH = 200;
+/** Maximum project description length. */
 export const MAX_PROJECT_DESCRIPTION_LENGTH = 2000;
 
 export const ProjectSchema = z.object({

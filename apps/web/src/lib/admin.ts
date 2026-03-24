@@ -8,6 +8,7 @@ import { apiMutate } from "./fetch-utils.js";
 
 // ── Public API ──
 
+/** Assign a role to a user via the admin API. */
 export async function assignRole(
   userId: string,
   data: AssignRoleRequest,
@@ -18,6 +19,7 @@ export async function assignRole(
   );
 }
 
+/** Revoke a role from a user via the admin API. */
 export async function revokeRole(
   userId: string,
   data: RevokeRoleRequest,

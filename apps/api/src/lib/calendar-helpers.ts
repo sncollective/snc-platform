@@ -6,6 +6,7 @@ import { toISO, toISOOrNull } from "./response-helpers.js";
 
 type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
+/** Map a calendar event DB row to an API response with resolved project and creator names. */
 export const toEventResponse = (
   row: CalendarEventRow,
   projectName: string | null,

@@ -11,7 +11,9 @@ export const UPLOAD_PURPOSES = [
   "creator-banner",
 ] as const;
 
+/** File size above which uploads switch to multipart (bytes). */
 export const MULTIPART_THRESHOLD = 50 * 1024 * 1024;
+/** Size of each part in a multipart upload (bytes). */
 export const MULTIPART_CHUNK_SIZE = 50 * 1024 * 1024;
 
 // ── Public Schemas ──

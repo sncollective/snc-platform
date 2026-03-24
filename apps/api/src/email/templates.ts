@@ -12,6 +12,7 @@ const escapeHtml = (str: string): string =>
 
 // ── Public API ──
 
+/** Format a studio inquiry into subject, HTML, and plain-text email parts. */
 export const formatInquiryEmail = (
   inquiry: StudioInquiry,
 ): { subject: string; html: string; text: string } => {

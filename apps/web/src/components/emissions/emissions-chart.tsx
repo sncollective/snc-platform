@@ -45,6 +45,7 @@ const LEGEND_ITEMS = [
 
 // ── Public API ──
 
+/** SVG line chart showing cumulative CO2 emissions over time with actual use, projected use, offset, and net lines. Includes hover tooltips, a legend, and loading/empty states. */
 export function EmissionsChart({
   data,
   isLoading,

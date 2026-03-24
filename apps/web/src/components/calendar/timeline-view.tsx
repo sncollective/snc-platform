@@ -21,6 +21,7 @@ export interface TimelineViewProps {
 
 // ── Public API ──
 
+/** Paginated chronological event list starting from today, with cursor-based load-more and support for event type, creator, and project filters. */
 export function TimelineView({
   eventTypeFilter,
   creatorFilter,

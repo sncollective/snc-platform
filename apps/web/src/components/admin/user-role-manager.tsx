@@ -16,6 +16,7 @@ export interface UserRoleManagerProps {
 
 // ── Public API ──
 
+/** Render a single user row with their current role badges and controls to assign or revoke roles. */
 export function UserRoleManager({
   user,
   onAssignRole,

@@ -59,6 +59,7 @@ export type S3MultipartService = {
 
 // ── Public API ──
 
+/** Create an S3MultipartService for managing chunked uploads via presigned part URLs. */
 export const createS3Multipart = (
   options: S3MultipartOptions,
 ): S3MultipartService => {

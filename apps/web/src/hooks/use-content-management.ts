@@ -41,6 +41,7 @@ export interface ContentManagement {
 
 // ── Public API ──
 
+/** Manage inline editing, publishing, unpublishing, and deletion of a single content item. */
 export function useContentManagement(item: FeedItem, initialEdit?: boolean): ContentManagement {
   const navigate = useNavigate();
   const { actions: uploadActions } = useUpload();

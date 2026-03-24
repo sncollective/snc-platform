@@ -21,6 +21,7 @@ export interface AudioPlayerProps {
 
 // ── Public API ──
 
+/** Inline audio player with play/pause, seek bar, time display, and volume control. Delegates playback to the global AudioPlayerProvider so only one track plays at a time. */
 export function AudioPlayer({
   src,
   title,

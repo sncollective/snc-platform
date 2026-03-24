@@ -5,6 +5,7 @@ import { NotFoundError } from "./errors.js";
 
 // ── Public Helpers ──
 
+/** Convert a string to a ReadableStream for storage upload tests. */
 export const textToStream = (text: string): ReadableStream<Uint8Array> => {
   const encoder = new TextEncoder();
   return new ReadableStream({
@@ -15,6 +16,7 @@ export const textToStream = (text: string): ReadableStream<Uint8Array> => {
   });
 };
 
+/** Consume a ReadableStream and return its contents as a string. */
 export const streamToText = async (
   stream: ReadableStream<Uint8Array>,
 ): Promise<string> => {
@@ -33,6 +35,7 @@ const emptyStream = (): ReadableStream<Uint8Array> => {
 
 // ── Public API ──
 
+/** Run the standard StorageProvider compliance test suite against any implementation. */
 export const runStorageContractTests = (
   createProvider: () => StorageProvider,
   cleanup: () => Promise<void>,

@@ -27,6 +27,7 @@ export interface CreatorHeaderProps {
 
 // ── Public API ──
 
+/** Render a creator's profile header with banner, avatar, display name, bio, subscription actions, fediverse follow button, and a manage link for authorized users. */
 export function CreatorHeader({
   creator,
   plans,

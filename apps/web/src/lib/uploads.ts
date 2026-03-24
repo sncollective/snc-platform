@@ -8,6 +8,7 @@ import type {
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
 
+/** Obtain a presigned URL for a single-part upload. */
 export async function presignUpload(
   request: PresignRequest,
 ): Promise<PresignResponse> {
@@ -16,6 +17,7 @@ export async function presignUpload(
   });
 }
 
+/** Initiate a multipart upload and return the upload ID and key. */
 export async function createMultipartUpload(
   request: CreateMultipartRequest,
 ): Promise<CreateMultipartResponse> {
@@ -24,6 +26,7 @@ export async function createMultipartUpload(
   });
 }
 
+/** Obtain a presigned URL for a single part of a multipart upload. */
 export async function signPart(
   uploadId: string,
   partNumber: number,
@@ -35,6 +38,7 @@ export async function signPart(
   );
 }
 
+/** Finalize a multipart upload by submitting the completed parts manifest. */
 export async function completeMultipartUpload(
   uploadId: string,
   key: string,
@@ -45,6 +49,7 @@ export async function completeMultipartUpload(
   });
 }
 
+/** Abort a multipart upload and discard uploaded parts. */
 export async function abortMultipartUpload(
   uploadId: string,
   key: string,
@@ -57,6 +62,7 @@ export async function abortMultipartUpload(
   );
 }
 
+/** List already-uploaded parts for a multipart upload (used for resumption). */
 export async function listParts(
   uploadId: string,
   key: string,
@@ -64,12 +70,14 @@ export async function listParts(
   return apiGet<Array<{ PartNumber: number; Size: number; ETag: string }>>(`/api/uploads/s3/multipart/${uploadId}`, { key });
 }
 
+/** Notify the API that a file upload is complete and ready for processing. */
 export async function completeUpload(
   request: CompleteUploadRequest,
 ): Promise<void> {
   await apiMutate<void>("/api/uploads/complete", { body: request });
 }
 
+/** Retry an async function with exponential backoff, throwing the last error on exhaustion. */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxAttempts: number,
