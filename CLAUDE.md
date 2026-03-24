@@ -7,7 +7,7 @@ Project-specific skills live at `.claude/skills/`:
 - `platform-design-principles` — architectural principles (Ports & Adapters, SSOT, Generated Contracts)
 - `platform-implementation-principles` — code-level principles (Fail Fast, guard clauses, validation)
 
-Scan rule libraries (auto-discovered by refactor workflows):
+Scan rule libraries (auto-discovered by refactor pipeline skills):
 - `scan-stylistic` · `scan-structural` · `scan-quality` · `scan-performance` · `scan-accessibility` · `scan-documentation`
 - `security-scan` — security-focused scan rules
 
@@ -138,7 +138,7 @@ Playwright end-to-end tests covering the production-enabled feature surface. Sco
 - Uses demo seed data (seeded by `seed:demo`) — no separate test database needed
 - Global setup logs in as three demo users (admin, stakeholder, subscriber) and caches auth cookies as Playwright storage states
 - Tests use `getByRole`/`getByText`/`getByLabel` selectors — resilient to CSS and component refactors
-- CI job in `.forgejo/workflows/test-and-build.yml` runs with a disposable Postgres, migrations, and demo seed
+
 
 **Test coverage:**
 | Area | Tests | Auth |
