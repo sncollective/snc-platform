@@ -76,7 +76,7 @@ Scan rule libraries (auto-discovered by refactor workflows):
 
 ## Docker Networking
 - You are running inside a Docker container on the shared `claude-net` Docker network
-- Postgres starts automatically on container boot via `scripts/start-dev.sh`
+- Postgres starts automatically on container boot via `scripts/platform/start-dev.sh` (in the parent monorepo)
 - To restart Postgres manually:
   `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d`
 - Use the container name to reach services — Docker DNS resolves them automatically:

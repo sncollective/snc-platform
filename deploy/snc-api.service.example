@@ -1,0 +1,21 @@
+# S/NC API Server — systemd unit template
+# Replace APP_DIR with the platform install path (e.g. /opt/snc/platform)
+# Replace APP_USER with the service account user (e.g. snc)
+
+[Unit]
+Description=S/NC API Server
+After=network.target
+
+[Service]
+Type=simple
+User=APP_USER
+Group=APP_USER
+WorkingDirectory=APP_DIR/apps/api
+EnvironmentFile=APP_DIR/.env
+ExecStart=/usr/bin/node --import tsx src/index.ts
+Restart=on-failure
+RestartSec=5
+
+
+[Install]
+WantedBy=multi-user.target

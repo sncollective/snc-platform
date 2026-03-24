@@ -36,16 +36,22 @@ snc/
 │   │   │   ├── config.ts     # Zod-validated env config
 │   │   │   ├── auth/         # Better Auth instance + role service
 │   │   │   ├── db/           # Drizzle connection + schema definitions
+│   │   │   ├── email/        # Email sending + templates
+│   │   │   ├── lib/          # Shared helpers (cursor, file utils, OpenAPI errors)
+│   │   │   ├── logging/      # Structured pino logger
 │   │   │   ├── middleware/    # Auth, CORS, error handler, content gating
 │   │   │   ├── routes/       # Domain-grouped route handlers
+│   │   │   ├── scripts/      # Seed scripts (admin, demo data)
 │   │   │   ├── services/     # Stripe, Shopify, revenue integrations
 │   │   │   └── storage/      # Pluggable StorageProvider (local or S3)
 │   │   ├── tests/            # API tests
 │   │   └── drizzle/          # SQL migrations
+│   ├── e2e/                  # Playwright end-to-end tests
 │   └── web/                  # TanStack Start frontend
 │       ├── src/
 │       │   ├── routes/       # File-based routes
 │       │   ├── components/   # React components by domain
+│       │   ├── config/       # Navigation links + route config
 │       │   ├── contexts/     # Audio player context (reducer + provider)
 │       │   ├── hooks/        # Shared hooks (pagination, auth guards, etc.)
 │       │   ├── lib/          # API clients, auth, formatting utilities
@@ -55,10 +61,16 @@ snc/
 │   └── shared/               # Zod schemas, types, error classes, Result<T,E>
 │       ├── src/
 │       └── tests/
+├── deploy/                   # Example production configs (Caddy, systemd)
+├── docs/                     # Platform documentation
+├── scripts/                  # CI scripts (migration validation)
 ├── docker-compose.yml        # PostgreSQL 16
+├── Caddyfile.dev             # Dev reverse proxy (localhost ports)
 ├── .env.example              # Environment template
 └── CLAUDE.md                 # Coding conventions
 ```
+
+CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-generic; deploy workflows (`deploy-prod.yml`, `deploy-demo.yml`) are environment-specific and require Forgejo secrets to be configured.
 
 ## Prerequisites
 

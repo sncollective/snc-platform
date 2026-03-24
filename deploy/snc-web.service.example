@@ -1,0 +1,22 @@
+# S/NC Web SSR Server — systemd unit template
+# Replace APP_DIR with the platform install path (e.g. /opt/snc/platform)
+# Replace APP_USER with the service account user (e.g. snc)
+
+[Unit]
+Description=S/NC Web SSR Server
+After=snc-api.service
+
+[Service]
+Type=simple
+User=APP_USER
+Group=APP_USER
+WorkingDirectory=APP_DIR/apps/web
+EnvironmentFile=APP_DIR/.env
+Environment=PORT=3001 NITRO_PORT=3001
+ExecStart=/usr/bin/node .output/server/index.mjs
+Restart=on-failure
+RestartSec=5
+
+
+[Install]
+WantedBy=multi-user.target
