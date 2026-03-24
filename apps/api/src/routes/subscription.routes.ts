@@ -46,6 +46,7 @@ import {
   cancelSubscriptionAtPeriodEnd,
 } from "../services/stripe.js";
 import { getFrontendBaseUrl } from "../lib/route-utils.js";
+import { toISO, toISOOrNull } from "../lib/response-helpers.js";
 
 // ── Private Types ──
 
@@ -66,8 +67,8 @@ const toPlanResponse = (row: PlanRow): SubscriptionPlan => ({
   price: row.price,
   interval: row.interval as PlanInterval,
   active: row.active,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
+  createdAt: toISO(row.createdAt),
+  updatedAt: toISO(row.updatedAt),
 });
 
 /**
@@ -82,10 +83,10 @@ const toSubscriptionWithPlanResponse = (
   userId: sub.userId,
   planId: sub.planId,
   status: sub.status as SubscriptionStatus,
-  currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+  currentPeriodEnd: toISOOrNull(sub.currentPeriodEnd),
   cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-  createdAt: sub.createdAt.toISOString(),
-  updatedAt: sub.updatedAt.toISOString(),
+  createdAt: toISO(sub.createdAt),
+  updatedAt: toISO(sub.updatedAt),
   plan: toPlanResponse(plan),
 });
 

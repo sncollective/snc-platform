@@ -6,6 +6,12 @@ Mock Drizzle ORM's fluent query builder using `vi.fn()` stubs wired in a chain. 
 
 Drizzle queries are built via method chaining (`.select().from().where().orderBy().limit()`). Mocking the `db` object requires matching the chain shape exactly. Declaring each node as a separate `vi.fn()` lets tests override individual nodes (e.g., only the terminal `.limit()`) without touching the rest of the chain.
 
+## Trade-offs
+
+- **Tight coupling to query structure**: Chain mocks break when queries are refactored (e.g., adding `.leftJoin()` or reordering `.where()` and `.orderBy()`), even if behavior is unchanged. This is inherent to mocking fluent APIs.
+- **Prefer integration tests for query correctness**: Tests using a real PostgreSQL container (in `tests/integration/`) verify actual query behavior without chain mocking. Use chain mocks only when a unit test needs to isolate route handler logic from the DB layer.
+- **Consider the cost**: For new routes, evaluate whether an integration test would be simpler than wiring up the full mock chain. The chain mock pattern is most valuable when the test is primarily verifying handler logic (auth, validation, response shaping) rather than query correctness.
+
 ## Examples
 
 ### Example 1: SELECT + JOIN + INSERT chains

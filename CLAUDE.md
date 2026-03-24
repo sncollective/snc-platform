@@ -64,6 +64,16 @@ Standalone clones of `snc-platform` get project-specific skills (patterns, conve
 - All Hono route handlers must be typed with `zValidator` input validation —
   never access `c.req.json()` without schema validation
 
+## Documentation
+- JSDoc (`/** */`) required on exported functions in shared packages, services, and middleware
+- Focus on intent and contracts, not type restatement — see `.claude/rules/inline-documentation.md`
+- `@throws` required when a function throws (vs returning `Result`)
+- Skip docs on schema declarations, re-exports, test files, and self-documenting constants
+
+## CSS
+- Use design tokens from `apps/web/src/styles/global.css` via `var(--token-name)` — never hardcode hex values or pixel sizes
+- Import only your own component's `.module.css` — never import another component's CSS module
+
 ## Docker Networking
 - You are running inside a Docker container on the shared `claude-net` Docker network
 - Postgres starts automatically on container boot via `scripts/start-dev.sh`
@@ -241,6 +251,39 @@ Standalone clones of `snc-platform` get project-specific skills (patterns, conve
 - `pnpm --filter @snc/web dev` — start web dev server (TanStack Start on port 3001)
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL (with claude-net)
 
+### Golden Path E2E (`apps/e2e/`)
+
+Playwright end-to-end tests covering the production-enabled feature surface. Scoped to the three live feature flags: **creator**, **admin**, **calendar**.
+
+- `pnpm --filter @snc/e2e test` — run the full suite (24 tests, ~6s)
+- `pnpm --filter @snc/e2e test:headed` — run with visible browser
+- `pnpm --filter @snc/e2e test:debug` — step-through debugger
+- `pnpm --filter @snc/e2e report` — view last HTML report
+
+**How it works:**
+- Runs against the **staging environment** locally (`localhost:3082` via Caddy) which mirrors production feature flags
+- Uses demo seed data (seeded by `seed:demo`) — no separate test database needed
+- Global setup logs in as three demo users (admin, stakeholder, subscriber) and caches auth cookies as Playwright storage states
+- Tests use `getByRole`/`getByText`/`getByLabel` selectors — resilient to CSS and component refactors
+- CI job in `.forgejo/workflows/test-and-build.yml` runs with a disposable Postgres, migrations, and demo seed
+
+**Test coverage:**
+| Area | Tests | Auth |
+|------|-------|------|
+| Landing page | hero, featured creators, nav | anonymous |
+| Creator browsing | listing, view toggle, profile, bio, social links | anonymous |
+| Auth flow | register, logout, login | anonymous → authenticated |
+| Feature gates | disabled routes redirect | anonymous |
+| Auth guards | protected routes → login with returnTo | anonymous |
+| Admin panel | user list, role badges | admin |
+| Calendar | grid, filters, view toggle | stakeholder |
+| Creator management | tabbed dashboard, settings | stakeholder |
+| Settings | change password form | subscriber |
+| Navigation | page links, user menu, route access | stakeholder |
+| Accessibility | skip link, keyboard nav, aria attributes | anonymous |
+
+**When to update:** Add tests when a new feature flag is enabled in production. The suite intentionally stays small and stable — it tests what real users can reach, not internal implementation.
+
 ## Agent Commands
 
 Structured commands for pipeline skills to discover automatically. These run from the monorepo root.
@@ -254,6 +297,7 @@ Structured commands for pipeline skills to discover automatically. These run fro
 - test-all: `pnpm --filter @snc/shared test && pnpm --filter @snc/api test && pnpm --filter @snc/web test`
 - db-generate: `pnpm --filter @snc/api db:generate`
 - db-migrate: `pnpm --filter @snc/api db:migrate`
+- test-e2e: `pnpm --filter @snc/e2e test`
 - dev-restart: `pm2 restart all`
 - dev-status: `pm2 status`
 

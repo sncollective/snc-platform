@@ -221,7 +221,7 @@ describe("project routes", () => {
       const project = makeMockProject();
       mockSelectWhere.mockResolvedValue([project]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041");
       const body = (await res.json()) as { project: { id: string } };
 
       expect(res.status).toBe(200);
@@ -231,7 +231,7 @@ describe("project routes", () => {
     it("returns 404 for non-existent project", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/projects/nonexistent");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-ffffffffffff");
 
       expect(res.status).toBe(404);
     });
@@ -239,7 +239,7 @@ describe("project routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/projects/proj_test001");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041");
 
       expect(res.status).toBe(401);
     });
@@ -324,7 +324,7 @@ describe("project routes", () => {
       mockSelectWhere.mockResolvedValueOnce([project]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Updated Name" }),
@@ -345,7 +345,7 @@ describe("project routes", () => {
       mockSelectWhere.mockResolvedValueOnce([project]);
       mockUpdateReturning.mockResolvedValue([completed]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: true }),
@@ -367,7 +367,7 @@ describe("project routes", () => {
       mockSelectWhere.mockResolvedValueOnce([completed]);
       mockUpdateReturning.mockResolvedValue([reopened]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: false }),
@@ -382,7 +382,7 @@ describe("project routes", () => {
     it("returns 404 for non-existent project", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/projects/nonexistent", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-ffffffffffff", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Updated" }),
@@ -394,7 +394,7 @@ describe("project routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Updated" }),
@@ -411,7 +411,7 @@ describe("project routes", () => {
       const project = makeMockProject();
       mockSelectWhere.mockResolvedValueOnce([project]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "DELETE",
       });
 
@@ -421,7 +421,7 @@ describe("project routes", () => {
     it("returns 404 for non-existent project", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/projects/nonexistent", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-ffffffffffff", {
         method: "DELETE",
       });
 
@@ -431,7 +431,7 @@ describe("project routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "DELETE",
       });
 
@@ -441,7 +441,7 @@ describe("project routes", () => {
     it("returns 403 for non-stakeholder", async () => {
       ctx.auth.roles = [];
 
-      const res = await ctx.app.request("/api/projects/proj_test001", {
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041", {
         method: "DELETE",
       });
 
@@ -461,7 +461,7 @@ describe("project routes", () => {
       // Events query via leftJoin
       mockLimit.mockResolvedValueOnce([{ event, projectName: project.name }]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001/events");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041/events");
       const body = (await res.json()) as { items: unknown[]; nextCursor: string | null };
 
       expect(res.status).toBe(200);
@@ -476,7 +476,7 @@ describe("project routes", () => {
       mockSelectWhere.mockResolvedValueOnce([project]);
       mockLimit.mockResolvedValueOnce([{ event, projectName: project.name }]);
 
-      const res = await ctx.app.request("/api/projects/proj_test001/events");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041/events");
       const body = (await res.json()) as { items: Array<{ completedAt: string | null }> };
 
       expect(res.status).toBe(200);
@@ -486,7 +486,7 @@ describe("project routes", () => {
     it("returns 404 for non-existent project", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/projects/nonexistent/events");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-ffffffffffff/events");
 
       expect(res.status).toBe(404);
     });
@@ -494,7 +494,7 @@ describe("project routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/projects/proj_test001/events");
+      const res = await ctx.app.request("/api/projects/00000000-0000-4000-a000-000000000041/events");
 
       expect(res.status).toBe(401);
     });

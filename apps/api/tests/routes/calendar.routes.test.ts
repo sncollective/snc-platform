@@ -294,7 +294,7 @@ describe("calendar routes", () => {
       const event = makeMockCalendarEvent();
       mockSelectWhere.mockResolvedValue([wrapEventRow(event)]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001");
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031");
       const body = (await res.json()) as { event: { id: string } };
 
       expect(res.status).toBe(200);
@@ -304,7 +304,7 @@ describe("calendar routes", () => {
     it("returns 404 for non-existent event", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/calendar/events/nonexistent");
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-ffffffffffff");
 
       expect(res.status).toBe(404);
     });
@@ -312,7 +312,7 @@ describe("calendar routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001");
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031");
 
       expect(res.status).toBe(401);
     });
@@ -413,7 +413,7 @@ describe("calendar routes", () => {
       // Second select: re-fetch with leftJoin after update
       mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated Title" }),
@@ -427,7 +427,7 @@ describe("calendar routes", () => {
     it("returns 404 for non-existent event", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/calendar/events/nonexistent", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-ffffffffffff", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated" }),
@@ -439,7 +439,7 @@ describe("calendar routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated" }),
@@ -456,7 +456,7 @@ describe("calendar routes", () => {
       const event = makeMockCalendarEvent();
       mockSelectWhere.mockResolvedValueOnce([event]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031", {
         method: "DELETE",
       });
 
@@ -466,7 +466,7 @@ describe("calendar routes", () => {
     it("returns 404 for non-existent event", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/calendar/events/nonexistent", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-ffffffffffff", {
         method: "DELETE",
       });
 
@@ -476,7 +476,7 @@ describe("calendar routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031", {
         method: "DELETE",
       });
 
@@ -486,7 +486,7 @@ describe("calendar routes", () => {
     it("returns 403 for non-stakeholder", async () => {
       ctx.auth.roles = [];
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031", {
         method: "DELETE",
       });
 
@@ -511,7 +511,7 @@ describe("calendar routes", () => {
         updatedAt: now,
       })]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031/complete", {
         method: "PATCH",
       });
       const body = (await res.json()) as { event: { completedAt: string | null } };
@@ -534,7 +534,7 @@ describe("calendar routes", () => {
         updatedAt: now,
       })]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031/complete", {
         method: "PATCH",
       });
       const body = (await res.json()) as { event: { completedAt: string | null } };
@@ -548,7 +548,7 @@ describe("calendar routes", () => {
 
       mockSelectWhere.mockResolvedValueOnce([event]);
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031/complete", {
         method: "PATCH",
       });
       const body = (await res.json()) as { error: { code: string } };
@@ -560,7 +560,7 @@ describe("calendar routes", () => {
     it("returns 404 for missing event", async () => {
       mockSelectWhere.mockResolvedValueOnce([]);
 
-      const res = await ctx.app.request("/api/calendar/events/nonexistent/complete", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-ffffffffffff/complete", {
         method: "PATCH",
       });
 
@@ -570,7 +570,7 @@ describe("calendar routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/calendar/events/evt_test001/complete", {
+      const res = await ctx.app.request("/api/calendar/events/00000000-0000-4000-a000-000000000031/complete", {
         method: "PATCH",
       });
 

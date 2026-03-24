@@ -1,16 +1,33 @@
 # Pattern: Web Fetch Client
 
-Thin async functions in `apps/web/src/lib/` wrap each API endpoint using `apiGet<T>()` / `apiMutate<T>()` / `apiUpload<T>()` generic helpers from `fetch-utils.ts`. All three helpers handle session-cookie forwarding (`credentials: "include"`) and structured error extraction.
+Thin async functions in `apps/web/src/lib/` wrap each API endpoint using `apiGet<T>()` / `apiMutate<T>()` / `apiUpload<T>()` generic helpers from `fetch-utils.ts`. All three helpers handle session-cookie forwarding (`credentials: "include"`) and structured error extraction via `extractErrorMessage()` / `throwIfNotOk()`.
 
 ## Rationale
 
-All API calls from the frontend need consistent session-cookie forwarding (`credentials: "include"`), URL construction with optional query params, and structured error extraction matching the `{ error: { message } }` response body shape. `apiGet`/`apiMutate`/`apiUpload` eliminate per-caller boilerplate; `throwIfNotOk` underlies all three and can still be imported directly for edge cases.
+All API calls from the frontend need consistent session-cookie forwarding (`credentials: "include"`), URL construction with optional query params, and structured error extraction matching the `{ error: { message } }` response body shape. `extractErrorMessage` parses the error body and `throwIfNotOk` delegates to it — together they underlie all three helpers. `extractErrorMessage` can also be imported independently for cases that need the message without throwing (e.g., SSR fetch in `api-server.ts`).
 
 ## Examples
 
-### Example 1: apiGet, apiMutate, and apiUpload helpers in fetch-utils.ts
+### Example 1: Error extraction foundation + apiGet/apiMutate/apiUpload
 **File**: `apps/web/src/lib/fetch-utils.ts`
 ```typescript
+/** Extracts error message from a non-OK response. Tries JSON body, falls back to statusText. */
+export async function extractErrorMessage(response: Response): Promise<string> {
+  const body = await response.json().catch(() => null);
+  return (
+    (body as { error?: { message?: string } } | null)?.error?.message ??
+    response.statusText
+  );
+}
+
+/** Throws if response is not OK, using extractErrorMessage for the message. */
+export async function throwIfNotOk(response: Response): Promise<void> {
+  if (!response.ok) {
+    const message = await extractErrorMessage(response);
+    throw new Error(message);
+  }
+}
+
 /** GET with optional query params and optional AbortSignal. Always sends session cookie. */
 export async function apiGet<T>(
   endpoint: string,
@@ -149,12 +166,14 @@ await apiMutate<void>("/api/some-endpoint", { method: "DELETE" });
 - Use `apiUpload<T>(endpoint, formData)` for multipart file uploads (avatar, banner, content media)
 
 ## When NOT to Use
-- TanStack Start `loader` functions that construct their own fetch — `apiGet`/`apiMutate`/`apiUpload` are for lib modules consumed by hooks/components
+- TanStack Start `loader` functions that use `fetchApiServer()` from `lib/api-server.ts` for SSR — `apiGet`/`apiMutate`/`apiUpload` are for client-side lib modules consumed by hooks/components
 - Server-side fetch calls (Node.js API layer) — those return `Result<T, AppError>` instead
 - `useCursorPagination` hook constructs its own URL via `buildUrl()` callback — use `fetchOptions: { credentials: "include" }` there instead
 
+Note: `extractErrorMessage` is independently importable for cases that need the error message without throwing — e.g., `lib/api-server.ts` uses it in the SSR fetch handler for logging.
+
 ## Common Violations
 - Forgetting `credentials: "include"` — session cookie won't be sent, causing 401 on protected endpoints
-- Importing `throwIfNotOk` directly when `apiGet`/`apiMutate`/`apiUpload` would suffice — adds unnecessary boilerplate
+- Importing `throwIfNotOk` directly when `apiGet`/`apiMutate`/`apiUpload` would suffice — adds unnecessary boilerplate. Use `extractErrorMessage` directly only when you need the message without throwing (e.g., logging in SSR).
 - Reading `response.json()` before calling `throwIfNotOk` — body stream is consumed and error message extraction fails
 - Using raw `fetch()` instead of `apiMutate` for mutation endpoints — bypasses consistent error handling and 204 support

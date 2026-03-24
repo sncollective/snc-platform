@@ -27,6 +27,8 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { batchGetUserRoles } from "../auth/user-roles.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { toISO } from "../lib/response-helpers.js";
+import { CreatorIdParam, CreatorMemberParams } from "./route-params.js";
 
 // ── Private Helpers ──
 
@@ -63,7 +65,7 @@ const getMembersResponse = async (
     userId: m.userId,
     displayName: m.displayName,
     role: m.role,
-    joinedAt: m.joinedAt.toISOString(),
+    joinedAt: toISO(m.joinedAt),
   }));
 
   return { members };
@@ -97,8 +99,9 @@ creatorMemberRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
 
     const profile = await findCreatorProfile(creatorId);
@@ -148,9 +151,10 @@ creatorMemberRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   validator("json", AddCreatorMemberSchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const body = c.req.valid("json") as AddCreatorMember;
     const roles = getRoles(c);
@@ -215,10 +219,10 @@ creatorMemberRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorMemberParams),
   validator("json", UpdateCreatorMemberSchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
-    const memberId = c.req.param("memberId");
+    const { creatorId, memberId } = c.req.valid("param" as never) as { creatorId: string; memberId: string };
     const user = c.get("user");
     const body = c.req.valid("json") as UpdateCreatorMember;
     const roles = getRoles(c);
@@ -275,9 +279,9 @@ creatorMemberRoutes.delete(
       422: { description: "Cannot remove last owner" },
     },
   }),
+  validator("param", CreatorMemberParams),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
-    const memberId = c.req.param("memberId");
+    const { creatorId, memberId } = c.req.valid("param" as never) as { creatorId: string; memberId: string };
     const user = c.get("user");
     const roles = getRoles(c);
 
@@ -347,9 +351,10 @@ creatorMemberRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   validator("query", CandidatesQuerySchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const { q, limit } = c.req.valid("query" as never) as { q?: string; limit: number };
     const roles = getRoles(c);

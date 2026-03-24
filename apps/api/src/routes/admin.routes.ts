@@ -26,6 +26,9 @@ import {
   ERROR_404,
 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
+import { toISO } from "../lib/response-helpers.js";
+import { UserIdParam } from "./route-params.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Private Types ──
 
@@ -42,8 +45,8 @@ const toAdminUserResponse = (
   email: row.email,
   emailVerified: row.emailVerified,
   image: row.image,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
+  createdAt: toISO(row.createdAt),
+  updatedAt: toISO(row.updatedAt),
   roles,
 });
 
@@ -148,10 +151,12 @@ adminRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", UserIdParam),
   validator("json", AssignRoleRequestSchema),
   async (c) => {
-    const { userId } = c.req.param();
+    const { userId } = c.req.valid("param" as never) as { userId: string };
     const { role } = c.req.valid("json" as never) as { role: Role };
+    const actor = c.get("user");
 
     // Idempotent insert
     await db
@@ -161,6 +166,18 @@ adminRoutes.post(
 
     const user = await getUserWithRoles(userId);
     if (!user) throw new NotFoundError("User not found");
+
+    const logger = c.var?.logger ?? rootLogger;
+    logger.info(
+      {
+        event: "role_assigned",
+        actorId: actor.id,
+        targetUserId: userId,
+        role,
+        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+      },
+      "Admin assigned role",
+    );
 
     return c.json({ user });
   },
@@ -188,9 +205,10 @@ adminRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", UserIdParam),
   validator("json", RevokeRoleRequestSchema),
   async (c) => {
-    const { userId } = c.req.param();
+    const { userId } = c.req.valid("param" as never) as { userId: string };
     const { role } = c.req.valid("json" as never) as { role: Role };
     const currentUser = c.get("user");
 
@@ -205,6 +223,18 @@ adminRoutes.delete(
 
     const user = await getUserWithRoles(userId);
     if (!user) throw new NotFoundError("User not found");
+
+    const logger = c.var?.logger ?? rootLogger;
+    logger.info(
+      {
+        event: "role_revoked",
+        actorId: currentUser.id,
+        targetUserId: userId,
+        role,
+        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+      },
+      "Admin revoked role",
+    );
 
     return c.json({ user });
   },

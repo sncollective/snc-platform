@@ -8,6 +8,7 @@ module.exports = {
       interpreter: "bash",
       env: {
         NODE_ENV: "development",
+        CORS_ORIGIN: "http://localhost:3080,http://localhost:3082",
       },
       // Logging
       log_date_format: "YYYY-MM-DD HH:mm:ss",

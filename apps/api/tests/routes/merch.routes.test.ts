@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockShopifyProductNode } from "../helpers/merch-fixtures.js";
+import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 
 // ── Mock Shopify Service ──
 
@@ -12,9 +13,7 @@ const mockCreateCheckoutUrl = vi.fn();
 // ── Test Setup ──
 
 const ctx = setupRouteTest({
-  mockAuth: false,
   mockRole: false,
-  defaultAuth: { user: null, session: null, roles: [] },
   mocks: () => {
     vi.doMock("../../src/services/shopify.js", () => ({
       getProducts: mockGetProducts,
@@ -301,6 +300,25 @@ describe("merch routes", () => {
   // ── POST /api/merch/checkout ──
 
   describe("POST /api/merch/checkout", () => {
+    beforeEach(() => {
+      ctx.auth.user = makeMockUser();
+      ctx.auth.session = makeMockSession();
+    });
+
+    it("returns 401 for unauthenticated request", async () => {
+      ctx.auth.user = null;
+      ctx.auth.session = null;
+      const res = await ctx.app.request("/api/merch/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variantId: "gid://shopify/ProductVariant/1001",
+          quantity: 1,
+        }),
+      });
+      expect(res.status).toBe(401);
+    });
+
     it("returns checkout URL for valid input", async () => {
       const res = await ctx.app.request("/api/merch/checkout", {
         method: "POST",

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import type { Visibility } from "@snc/shared";
+import type { ContentResponse, Visibility } from "@snc/shared";
 
 import { TEST_CONFIG } from "../helpers/test-constants.js";
 
@@ -32,6 +32,7 @@ const mockDb = {
 };
 
 const mockGetUserRoles = vi.fn();
+const mockCheckCreatorPermission = vi.fn();
 
 // ── Test App Factory ──
 
@@ -47,6 +48,10 @@ const setupContentGate = async () => {
 
   vi.doMock("../../src/auth/user-roles.js", () => ({
     getUserRoles: mockGetUserRoles,
+  }));
+
+  vi.doMock("../../src/services/creator-team.js", () => ({
+    checkCreatorPermission: mockCheckCreatorPermission,
   }));
 
   vi.doMock("../../src/db/schema/subscription.schema.js", () => ({
@@ -438,5 +443,136 @@ describe("hasContentAccess", () => {
 
   it("denies regular user with no subscriptions", () => {
     expect(hasContentAccess(baseCtx, "creator_456", "subscribers")).toBe(false);
+  });
+});
+
+describe("requireDraftAccess", () => {
+  let requireDraftAccess: (
+    row: { publishedAt: Date | null; creatorId: string },
+    userId: string | null,
+    prefetchedRoles?: string[],
+  ) => Promise<void>;
+
+  beforeEach(async () => {
+    mockMemberWhere.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue([]);
+    mockCheckCreatorPermission.mockResolvedValue(false);
+    const mod = await setupContentGate();
+    requireDraftAccess = mod.requireDraftAccess;
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it("returns without error for published content", async () => {
+    const row = { publishedAt: new Date(), creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, null)).resolves.toBeUndefined();
+    expect(mockCheckCreatorPermission).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError for unpublished content when userId is null", async () => {
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, null)).rejects.toThrow("Content not found");
+  });
+
+  it("allows access when user has admin role", async () => {
+    mockGetUserRoles.mockResolvedValue(["admin"]);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
+    expect(mockCheckCreatorPermission).not.toHaveBeenCalled();
+  });
+
+  it("allows access when user has stakeholder role", async () => {
+    mockGetUserRoles.mockResolvedValue(["stakeholder"]);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
+    expect(mockCheckCreatorPermission).not.toHaveBeenCalled();
+  });
+
+  it("allows access when user is creator team member with manageContent", async () => {
+    mockGetUserRoles.mockResolvedValue([]);
+    mockCheckCreatorPermission.mockResolvedValue(true);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
+    expect(mockCheckCreatorPermission).toHaveBeenCalledWith("user_123", "creator_123", "manageContent", []);
+  });
+
+  it("throws NotFoundError when user is not a team member with manageContent", async () => {
+    mockGetUserRoles.mockResolvedValue([]);
+    mockCheckCreatorPermission.mockResolvedValue(false);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).rejects.toThrow("Content not found");
+  });
+
+  it("uses prefetchedRoles and skips getUserRoles", async () => {
+    mockCheckCreatorPermission.mockResolvedValue(true);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123", ["admin"])).resolves.toBeUndefined();
+    expect(mockGetUserRoles).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyContentGate", () => {
+  let applyContentGate: (
+    row: { creatorId: string; visibility: Visibility },
+    userId: string | null,
+    response: ContentResponse,
+    prefetchedRoles?: string[],
+  ) => Promise<ContentResponse>;
+
+  const makeResponse = (overrides?: Partial<ContentResponse>): ContentResponse => ({
+    id: "content_123",
+    creatorId: "creator_123",
+    slug: null,
+    type: "written",
+    title: "Test",
+    body: "Body text",
+    description: null,
+    visibility: "subscribers",
+    sourceType: "upload",
+    thumbnailUrl: null,
+    mediaUrl: "/api/content/content_123/media",
+    publishedAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    mockMemberWhere.mockResolvedValue([]);
+    mockGetUserRoles.mockResolvedValue([]);
+    mockSubscriptionWhere.mockResolvedValue([]);
+    const mod = await setupContentGate();
+    applyContentGate = mod.applyContentGate;
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it("returns response unmodified for non-subscriber visibility", async () => {
+    const row = { creatorId: "creator_123", visibility: "public" as Visibility };
+    const response = makeResponse({ visibility: "public" });
+    const result = await applyContentGate(row, null, response);
+    expect(result.mediaUrl).toBe("/api/content/content_123/media");
+    expect(result.body).toBe("Body text");
+  });
+
+  it("returns response unmodified for subscriber content when access is allowed", async () => {
+    mockMemberWhere.mockResolvedValue([{ creatorId: "creator_123" }]);
+    const row = { creatorId: "creator_123", visibility: "subscribers" as Visibility };
+    const response = makeResponse();
+    const result = await applyContentGate(row, "user_123", response);
+    expect(result.mediaUrl).toBe("/api/content/content_123/media");
+    expect(result.body).toBe("Body text");
+  });
+
+  it("nullifies mediaUrl and body for subscriber content when access is denied", async () => {
+    const row = { creatorId: "creator_123", visibility: "subscribers" as Visibility };
+    const response = makeResponse();
+    const result = await applyContentGate(row, null, response);
+    expect(result.mediaUrl).toBeNull();
+    expect(result.body).toBeNull();
   });
 });

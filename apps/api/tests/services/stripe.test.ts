@@ -125,7 +125,7 @@ describe("stripe service", () => {
         expect(result.error).toBeInstanceOf(Error);
         expect(result.error.code).toBe("STRIPE_ERROR");
         expect(result.error.statusCode).toBe(502);
-        expect(result.error.message).toBe("Stripe network error");
+        expect(result.error.message).toBe("Payment service error");
       }
     });
 
@@ -282,6 +282,7 @@ describe("stripe service", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("WEBHOOK_SIGNATURE_ERROR");
+        expect(result.error.message).toBe("Webhook signature verification failed");
         expect(result.error.statusCode).toBe(400);
       }
     });

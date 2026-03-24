@@ -192,7 +192,7 @@ describe("booking routes", () => {
       // GET /services/:id uses .where() without chaining — resolve directly
       mockSelectWhere.mockResolvedValue([service]);
 
-      const res = await ctx.app.request("/api/services/svc_test_recording");
+      const res = await ctx.app.request("/api/services/00000000-0000-4000-a000-000000000011");
       const body = (await res.json()) as { service: { id: string } };
 
       expect(res.status).toBe(200);
@@ -202,7 +202,7 @@ describe("booking routes", () => {
     it("returns 404 for non-existent or inactive service", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/services/nonexistent");
+      const res = await ctx.app.request("/api/services/00000000-0000-4000-a000-ffffffffffff");
 
       expect(res.status).toBe(404);
     });
@@ -345,9 +345,9 @@ describe("booking routes", () => {
     it("supports cursor pagination", async () => {
       const service = makeMockService();
       // Create limit+1 rows to trigger cursor generation
-      const booking1 = makeMockBookingRequest({ id: "bk_1" });
+      const booking1 = makeMockBookingRequest({ id: "00000000-0000-4000-a000-000000000022" });
       const booking2 = makeMockBookingRequest({
-        id: "bk_2",
+        id: "00000000-0000-4000-a000-000000000023",
         createdAt: new Date("2026-02-19T10:00:00.000Z"),
       });
 
@@ -410,7 +410,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021");
       const body = (await res.json()) as {
         booking: { id: string; service: { id: string } };
       };
@@ -423,7 +423,7 @@ describe("booking routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021");
 
       expect(res.status).toBe(401);
     });
@@ -438,7 +438,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001");
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021");
 
       expect(res.status).toBe(403);
     });
@@ -446,7 +446,7 @@ describe("booking routes", () => {
     it("returns 404 for non-existent booking", async () => {
       mockJoinWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/bookings/nonexistent");
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-ffffffffffff");
 
       expect(res.status).toBe(404);
     });
@@ -499,10 +499,10 @@ describe("booking routes", () => {
     it("supports cursor-based pagination", async () => {
       ctx.auth.roles = ["stakeholder"];
       const row1 = makeMockBookingWithUser({
-        booking: { id: "bk_older", createdAt: new Date("2026-02-01T10:00:00.000Z") },
+        booking: { id: "00000000-0000-4000-a000-000000000024", createdAt: new Date("2026-02-01T10:00:00.000Z") },
       });
       const row2 = makeMockBookingWithUser({
-        booking: { id: "bk_newer", createdAt: new Date("2026-02-10T10:00:00.000Z") },
+        booking: { id: "00000000-0000-4000-a000-000000000025", createdAt: new Date("2026-02-10T10:00:00.000Z") },
       });
 
       // limit=1, returning 2 rows triggers cursor generation
@@ -522,10 +522,10 @@ describe("booking routes", () => {
     it("returns items ordered by createdAt ASC (oldest first)", async () => {
       ctx.auth.roles = ["stakeholder"];
       const olderRow = makeMockBookingWithUser({
-        booking: { id: "bk_older", createdAt: new Date("2026-01-01T10:00:00.000Z") },
+        booking: { id: "00000000-0000-4000-a000-000000000024", createdAt: new Date("2026-01-01T10:00:00.000Z") },
       });
       const newerRow = makeMockBookingWithUser({
-        booking: { id: "bk_newer", createdAt: new Date("2026-02-01T10:00:00.000Z") },
+        booking: { id: "00000000-0000-4000-a000-000000000025", createdAt: new Date("2026-02-01T10:00:00.000Z") },
       });
 
       // Mock returns older first (ASC order from DB)
@@ -539,8 +539,8 @@ describe("booking routes", () => {
 
       expect(res.status).toBe(200);
       expect(body.items).toHaveLength(2);
-      expect(body.items[0]!.id).toBe("bk_older");
-      expect(body.items[1]!.id).toBe("bk_newer");
+      expect(body.items[0]!.id).toBe("00000000-0000-4000-a000-000000000024");
+      expect(body.items[1]!.id).toBe("00000000-0000-4000-a000-000000000025");
     });
 
     it("returns 403 for non-stakeholder", async () => {
@@ -577,7 +577,7 @@ describe("booking routes", () => {
       ]);
       mockUpdateReturning.mockResolvedValue([updatedBooking]);
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -606,7 +606,7 @@ describe("booking routes", () => {
       ]);
       mockUpdateReturning.mockResolvedValue([updatedBooking]);
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -631,7 +631,7 @@ describe("booking routes", () => {
       ctx.auth.roles = ["stakeholder"];
       mockJoinWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/bookings/nonexistent/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-ffffffffffff/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -649,7 +649,7 @@ describe("booking routes", () => {
         { booking_requests: booking, services: service },
       ]);
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "denied" }),
@@ -661,7 +661,7 @@ describe("booking routes", () => {
     it("returns 400 for invalid status value", async () => {
       ctx.auth.roles = ["stakeholder"];
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "pending" }),
@@ -673,7 +673,7 @@ describe("booking routes", () => {
     it("returns 403 for non-stakeholder", async () => {
       // ctx.auth.roles = [] (default from factory)
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -685,7 +685,7 @@ describe("booking routes", () => {
     it("returns 401 for unauthenticated request", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/bookings/bk_test_001/review", {
+      const res = await ctx.app.request("/api/bookings/00000000-0000-4000-a000-000000000021/review", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),

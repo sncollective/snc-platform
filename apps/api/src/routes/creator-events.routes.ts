@@ -29,6 +29,7 @@ import {
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { toEventResponse } from "../lib/calendar-helpers.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { CreatorIdParam, CreatorEventParams } from "./route-params.js";
 
 // ── Private Types ──
 
@@ -85,9 +86,10 @@ creatorEventRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   validator("query", CalendarEventsQuerySchema),
   async (c) => {
-    const { creatorId } = c.req.param();
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const { from, to, eventType, projectId, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
 
@@ -193,9 +195,10 @@ creatorEventRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   validator("json", CreateCalendarEventSchema),
   async (c) => {
-    const { creatorId } = c.req.param();
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const data = c.req.valid("json");
     const user = c.get("user");
     const roles = (c.get("roles") as string[] | undefined) ?? [];
@@ -254,9 +257,10 @@ creatorEventRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorEventParams),
   validator("json", UpdateCalendarEventSchema),
   async (c) => {
-    const { creatorId, eventId } = c.req.param();
+    const { creatorId, eventId } = c.req.valid("param" as never) as { creatorId: string; eventId: string };
     const data = c.req.valid("json");
     const user = c.get("user");
     const roles = (c.get("roles") as string[] | undefined) ?? [];
@@ -313,8 +317,9 @@ creatorEventRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorEventParams),
   async (c) => {
-    const { creatorId, eventId } = c.req.param();
+    const { creatorId, eventId } = c.req.valid("param" as never) as { creatorId: string; eventId: string };
     const user = c.get("user");
     const roles = (c.get("roles") as string[] | undefined) ?? [];
 

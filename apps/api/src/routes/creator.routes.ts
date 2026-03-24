@@ -43,6 +43,8 @@ import {
   batchGetSubscriberCounts,
   batchGetLastPublished,
 } from "../services/creator-list.js";
+import { toISO } from "../lib/response-helpers.js";
+import { CreatorIdParam } from "./route-params.js";
 
 // ── Private Types ──
 
@@ -104,8 +106,8 @@ const toProfileResponse = (
     bannerUrl: urls.bannerUrl,
     socialLinks: profile.socialLinks ?? [],
     contentCount,
-    createdAt: profile.createdAt.toISOString(),
-    updatedAt: profile.updatedAt.toISOString(),
+    createdAt: toISO(profile.createdAt),
+    updatedAt: toISO(profile.updatedAt),
   };
 };
 
@@ -113,7 +115,7 @@ const handleImageUpload = async (
   c: Context<AuthEnv>,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const identifier = c.req.param("creatorId") ?? "";
+  const identifier = c.req.param("creatorId") ?? ""; // validated-upstream
   const user = c.get("user");
 
   // Pre-check Content-Length header before any DB lookup
@@ -204,7 +206,7 @@ const handleImageStream = async (
   c: Context,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const profile = await findCreatorProfile(c.req.param("creatorId") ?? "");
+  const profile = await findCreatorProfile(c.req.param("creatorId") ?? ""); // validated-upstream
   const key = field === "avatar" ? profile?.avatarKey : profile?.bannerKey;
   if (!profile || !key) throw new NotFoundError(`${field} not found`);
   return streamFile(c, storage, key, `${field} file not found`);
@@ -415,6 +417,7 @@ creatorRoutes.post(
       403: ERROR_403,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => handleImageUpload(c, "avatar"),
 );
 
@@ -439,6 +442,7 @@ creatorRoutes.post(
       403: ERROR_403,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => handleImageUpload(c, "banner"),
 );
 
@@ -460,6 +464,7 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => handleImageStream(c, "avatar"),
 );
 
@@ -481,6 +486,7 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => handleImageStream(c, "banner"),
 );
 
@@ -502,8 +508,9 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", CreatorIdParam),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const profile = await findCreatorProfile(creatorId);
 
     if (!profile) {
@@ -537,9 +544,10 @@ creatorRoutes.patch(
       403: ERROR_403,
     },
   }),
+  validator("param", CreatorIdParam),
   validator("json", UpdateCreatorProfileSchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const body = c.req.valid("json") as UpdateCreatorProfile;
 

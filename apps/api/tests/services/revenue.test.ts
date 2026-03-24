@@ -189,7 +189,7 @@ describe("revenue service", () => {
       if (!result.ok) {
         expect(result.error.code).toBe("STRIPE_ERROR");
         expect(result.error.statusCode).toBe(502);
-        expect(result.error.message).toBe("Stripe connection failure");
+        expect(result.error.message).toBe("Payment service error");
       }
     });
 

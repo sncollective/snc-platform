@@ -30,6 +30,23 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          rootLogger.info(
+            {
+              event: "user_signup",
+              userId: user.id,
+              email: user.email,
+              roles: ["subscriber"],
+            },
+            "New user registered",
+          );
+        },
+      },
+    },
+  },
   emailVerification: {
     sendOnSignUp: true,
     requireEmailVerification: false,

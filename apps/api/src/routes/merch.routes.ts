@@ -23,9 +23,12 @@ import {
   createCheckoutUrl,
 } from "../services/shopify.js";
 import { getFrontendBaseUrl } from "../lib/route-utils.js";
+import { requireAuth } from "../middleware/require-auth.js";
 import type { ShopifyProductNode } from "../services/shopify.js";
+import { HandleParam } from "./route-params.js";
 import {
   ERROR_400,
+  ERROR_401,
   ERROR_404,
   ERROR_502,
   ERROR_503,
@@ -140,8 +143,9 @@ merchRoutes.get(
       503: ERROR_503,
     },
   }),
+  validator("param", HandleParam),
   async (c) => {
-    const handle = c.req.param("handle");
+    const { handle } = c.req.valid("param" as never) as { handle: string };
 
     const result = await getProductByHandle(handle);
     if (!result.ok) throw result.error;
@@ -171,10 +175,12 @@ merchRoutes.post(
         },
       },
       400: ERROR_400,
+      401: ERROR_401,
       502: ERROR_502,
       503: ERROR_503,
     },
   }),
+  requireAuth,
   validator("json", MerchCheckoutRequestSchema),
   async (c) => {
     const { variantId, quantity } = c.req.valid("json");

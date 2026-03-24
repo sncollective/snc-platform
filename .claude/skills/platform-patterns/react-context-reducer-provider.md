@@ -24,7 +24,9 @@ export interface AudioPlayerState {
 export interface AudioPlayerActions {
   readonly playTrack: (track: AudioTrack) => void;
   readonly pause: () => void;
+  readonly resume: () => void;
   readonly seek: (time: number) => void;
+  readonly setVolume: (volume: number) => void;
   readonly clearTrack: () => void;
 }
 
@@ -44,14 +46,17 @@ type AudioAction =
   | { readonly type: "PLAY" }
   | { readonly type: "PAUSE" }
   | { readonly type: "SET_PROGRESS"; readonly currentTime: number }
+  | { readonly type: "SET_DURATION"; readonly duration: number }
   | { readonly type: "CLEAR" };
 
 export function audioReducer(state: AudioPlayerState, action: AudioAction): AudioPlayerState {
   switch (action.type) {
-    case "SET_TRACK": return { track: action.track, isPlaying: true, currentTime: 0, duration: 0 };
-    case "PLAY":      return { ...state, isPlaying: true };
-    case "PAUSE":     return { ...state, isPlaying: false };
-    case "CLEAR":     return INITIAL_STATE;
+    case "SET_TRACK":    return { track: action.track, isPlaying: true, currentTime: 0, duration: 0 };
+    case "PLAY":         return { ...state, isPlaying: true };
+    case "PAUSE":        return { ...state, isPlaying: false };
+    case "SET_PROGRESS": return { ...state, currentTime: action.currentTime };
+    case "SET_DURATION": return { ...state, duration: action.duration };
+    case "CLEAR":        return INITIAL_STATE;
   }
 }
 
@@ -61,34 +66,59 @@ const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 export function AudioPlayerProvider({ children }: Readonly<{ children: ReactNode }>): React.ReactElement {
   const [state, dispatch] = useReducer(audioReducer, INITIAL_STATE);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
 
   // Bridge DOM element events → reducer dispatches
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    const onTimeUpdate = () => dispatch({ type: "SET_PROGRESS", currentTime: audio.currentTime });
+    const onLoadedMetadata = () => dispatch({ type: "SET_DURATION", duration: audio.duration });
+    const onEnded = () => dispatch({ type: "PAUSE" });
     const onPlay = () => dispatch({ type: "PLAY" });
     const onPause = () => dispatch({ type: "PAUSE" });
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("ended", onEnded);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
-    return () => {
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-    };
+    return () => { /* removeEventListener for all */ };
   }, []);
 
   // Stable actions object — does NOT depend on state
   const actions = useMemo<AudioPlayerActions>(() => ({
-    playTrack(track) {
-      dispatch({ type: "SET_TRACK", track });
+    async playTrack(track) {
       const audio = audioRef.current;
-      if (audio) { audio.src = track.mediaUrl; void audio.play(); }
+      if (!audio) return;
+      // Lazily create AudioContext + GainNode on first play (requires user gesture)
+      if (!audioCtxRef.current && typeof AudioContext !== "undefined") {
+        const ctx = new AudioContext();
+        const source = ctx.createMediaElementSource(audio);
+        const gain = ctx.createGain();
+        source.connect(gain); gain.connect(ctx.destination);
+        audioCtxRef.current = ctx; gainRef.current = gain;
+        audio.volume = 1; // Element volume stays at 1; GainNode controls output
+      }
+      dispatch({ type: "SET_TRACK", track });
+      audio.src = track.mediaUrl;
+      try { await audio.play(); } catch { dispatch({ type: "PAUSE" }); }
     },
     pause()  { audioRef.current?.pause(); },
     resume() { void audioRef.current?.play(); },
-    seek(time)   { if (audioRef.current) audioRef.current.currentTime = time; },
+    seek(time) { if (audioRef.current) audioRef.current.currentTime = time; },
+    setVolume(volume) {
+      const ctx = audioCtxRef.current, gain = gainRef.current;
+      if (ctx && gain) {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
+        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.02);
+      } else if (audioRef.current) { audioRef.current.volume = volume; }
+    },
     clearTrack() {
       const audio = audioRef.current;
-      if (audio) { audio.pause(); audio.src = ""; dispatch({ type: "CLEAR" }); }
+      if (!audio) return;
+      audio.pause(); audio.src = ""; dispatch({ type: "CLEAR" });
     },
   }), []);
 
@@ -178,6 +208,7 @@ const { result } = renderHook(() => useAudioPlayer(), { wrapper });
 
 - Global media/playback state that persists across route transitions
 - State where the source of truth is a DOM element (audio, video) that must stay mounted
+- Web Audio API integration (lazy AudioContext/GainNode for smooth volume control)
 - State with both read (state display) and write (action dispatch) consumers that need isolation
 
 ## When NOT to Use

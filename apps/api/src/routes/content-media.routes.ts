@@ -18,18 +18,19 @@ import type { ContentType } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
-import { auth } from "../auth/auth.js";
 import { checkContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
 import { storage } from "../storage/index.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
+import { resolveContentUrls, findActiveContent } from "../lib/content-helpers.js";
+import type { ContentRow } from "../lib/content-helpers.js";
+import { IdParam } from "./route-params.js";
 
 // ── Private Types ──
-
-type ContentRow = typeof content.$inferSelect;
 
 const UPLOAD_FIELDS = ["media", "thumbnail"] as const;
 type UploadField = (typeof UPLOAD_FIELDS)[number];
@@ -45,39 +46,6 @@ const FIELD_KEY_MAP = {
   media: "mediaKey",
   thumbnail: "thumbnailKey",
 } as const;
-
-// ── Private Helpers ──
-
-const resolveContentUrls = (row: ContentRow) => ({
-  id: row.id,
-  creatorId: row.creatorId,
-  slug: row.slug ?? null,
-  type: row.type,
-  title: row.title,
-  body: row.body ?? null,
-  description: row.description ?? null,
-  visibility: row.visibility,
-  sourceType: row.sourceType,
-  thumbnailUrl: row.thumbnailKey
-    ? `/api/content/${row.id}/thumbnail`
-    : null,
-  mediaUrl: row.mediaKey
-    ? `/api/content/${row.id}/media`
-    : null,
-  publishedAt: row.publishedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});
-
-const findActiveContent = async (
-  id: string,
-): Promise<ContentRow | undefined> => {
-  const rows = await db
-    .select()
-    .from(content)
-    .where(and(eq(content.id, id), isNull(content.deletedAt)));
-  return rows[0];
-};
 
 const requireContentOwnership = async (
   id: string,
@@ -178,10 +146,11 @@ contentMediaRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("query", UploadQuerySchema),
   async (c) => {
     const { field } = c.req.valid("query" as never) as { field: UploadField };
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
 
     // Look up content and verify ownership
@@ -289,20 +258,21 @@ contentMediaRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
+  optionalAuth,
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const { row, key } = await requireContentFile(id, "mediaKey", "No media uploaded for this content");
 
     // Access check: subscribers-only requires active subscription
     if (row.visibility === "subscribers") {
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
-      const userId = session?.user?.id ?? null;
+      const user = c.get("user");
+      const roles = c.get("roles") as string[];
       const gate = await checkContentAccess(
-        userId,
+        user?.id ?? null,
         row.creatorId,
         row.visibility,
+        roles,
       );
       if (!gate.allowed) {
         if (gate.reason === "AUTHENTICATION_REQUIRED") {
@@ -334,8 +304,9 @@ contentMediaRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     return streamContentFile(c, id, "thumbnailKey", "No thumbnail uploaded for this content", "Thumbnail file not found", "public, max-age=86400");
   },
 );

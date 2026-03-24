@@ -8,8 +8,6 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 // ── Mock State ──
 
-let mockGateRoles: string[];
-
 // Creator team permission mocks
 const mockRequireCreatorPermission = vi.fn();
 const mockCheckCreatorPermission = vi.fn();
@@ -78,8 +76,6 @@ const mockStorage = {
 const mockDownloadResult = (text: string) =>
   ok({ stream: textToStream(text), size: new TextEncoder().encode(text).byteLength });
 
-// Auth session mock — for GET /:id and GET /:id/media visibility checks
-const mockGetSession = vi.fn();
 
 // ── Test Setup ──
 
@@ -123,12 +119,13 @@ const ctx = setupRouteTest({
       },
     }));
 
-    vi.doMock("../../src/auth/auth.js", () => ({
-      auth: { api: { getSession: mockGetSession } },
-    }));
-
-    vi.doMock("../../src/auth/user-roles.js", () => ({
-      getUserRoles: vi.fn().mockImplementation(() => Promise.resolve(mockGateRoles)),
+    vi.doMock("../../src/middleware/optional-auth.js", () => ({
+      optionalAuth: async (c: any, next: any) => {
+        c.set("user", ctx.auth.user);
+        c.set("session", ctx.auth.session);
+        c.set("roles", ctx.auth.roles);
+        await next();
+      },
     }));
 
     vi.doMock("../../src/storage/index.js", () => ({
@@ -147,10 +144,6 @@ const ctx = setupRouteTest({
     app.route("/api/content", contentMediaRoutes);
   },
   beforeEach: () => {
-    // Content gate role check defaults to empty so subscription
-    // tests exercise the subscription path rather than the creator bypass
-    mockGateRoles = [];
-
     // Default: permission check passes (no throw)
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     // Default: checkCreatorPermission returns true (allowed)
@@ -168,7 +161,6 @@ const ctx = setupRouteTest({
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
     mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
-    mockGetSession.mockResolvedValue(null);
 
     // Feed chain defaults
     mockLimit.mockResolvedValue([]);
@@ -311,6 +303,7 @@ describe("content routes", () => {
       // The handler filters deletedAt IS NULL; the mock returns an empty
       // result set to prove the handler called the correct query conditions.
       mockLimit.mockResolvedValue([]);
+      ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/content");
 
@@ -325,6 +318,7 @@ describe("content routes", () => {
       // Same approach: the isNotNull(content.publishedAt) filter is
       // applied in the WHERE clause. Mock returns empty to confirm filtering.
       mockLimit.mockResolvedValue([]);
+      ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/content");
 
@@ -378,7 +372,7 @@ describe("content routes", () => {
           creatorId: "creator_other",
         }),
       ]);
-      // Default: mockGetSession returns null (unauthenticated)
+      ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/content");
 
@@ -402,17 +396,13 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.items[0].mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.items[0].mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(body.items[0].body).toBe("Public content");
     });
 
     it("preserves mediaUrl and body for subscriber content when user has stakeholder role", async () => {
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
-      // getUserRoles inside buildContentAccessContext returns stakeholder role
-      mockGateRoles = ["stakeholder"];
+      ctx.auth.user = makeMockUser();
+      ctx.auth.roles = ["stakeholder"];
       mockLimit.mockResolvedValue([
         makeFeedRow({
           visibility: "subscribers",
@@ -426,7 +416,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.items[0].mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.items[0].mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(body.items[0].body).toBe("Subscriber content");
     });
 
@@ -457,8 +447,8 @@ describe("content routes", () => {
       expect(body.items[1].body).toBeNull();
     });
 
-    it("treats session failure as unauthenticated and gates subscriber content", async () => {
-      mockGetSession.mockRejectedValue(new Error("Session error"));
+    it("treats missing session as unauthenticated and gates subscriber content", async () => {
+      // optionalAuth handles session errors gracefully; no-auth is the default (ctx.auth.user = null)
       mockLimit.mockResolvedValue([
         makeFeedRow({
           visibility: "subscribers",
@@ -595,11 +585,11 @@ describe("content routes", () => {
     it("returns 200 with metadata for public content (no auth required)", async () => {
       mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.id).toBe("content-test-1");
+      expect(body.id).toBe("00000000-0000-4000-a000-000000000001");
       expect(body.type).toBe("written");
       expect(body.title).toBe("Test Post");
       // Storage keys must not appear in response; null keys -> null URLs
@@ -613,7 +603,7 @@ describe("content routes", () => {
         { ...makeMockDbContent({ creatorId: "user_test123" }), creatorName: "Test Creator", creatorHandle: null },
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -624,80 +614,69 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
-        headers: { Cookie: "better-auth.session_token=valid_token" },
-      });
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns metadata with mediaUrl null for subscribers-only when unauthenticated", async () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
         }),
       ]);
-      mockGetSession.mockResolvedValue(null);
+      ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.mediaUrl).toBeNull();
-      expect(body.id).toBe("content-test-1");
+      expect(body.id).toBe("00000000-0000-4000-a000-000000000001");
     });
 
     it("returns mediaUrl for subscribers-only content when user has active subscription", async () => {
       mockSelectWhere.mockResolvedValueOnce([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
           creatorId: "creator_different",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
       // buildContentAccessContext subscription query awaits innerJoin().where() directly
       // (no .limit()); return a platform subscription row so hasPlatformSubscription = true
       mockFeedWhere.mockReturnValueOnce(
         Promise.resolve([{ planType: "platform", planCreatorId: null }]),
       );
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns mediaUrl null for subscribers-only content when user has no subscription", async () => {
       mockSelectWhere.mockResolvedValueOnce([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
           creatorId: "creator_different",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
       // mockSubLimit defaults to [] (no subscription)
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -709,28 +688,25 @@ describe("content routes", () => {
         .mockResolvedValueOnce([
           makeMockDbContent({
             visibility: "subscribers",
-            mediaKey: "content/content-test-1/media/video.mp4",
+            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
             creatorId: "user_test123",
           }),
         ])
         .mockResolvedValueOnce([{ role: "owner" }]); // creatorMembers check in checkContentAccess
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser({ id: "user_test123" }),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser({ id: "user_test123" });
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns 404 for soft-deleted content", async () => {
       // findActiveContent filters deleted rows; empty array means not found
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -740,7 +716,7 @@ describe("content routes", () => {
     it("returns 404 for non-existent content ID", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/content/does-not-exist");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-ffffffffffff");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -757,7 +733,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated Title" }),
@@ -775,7 +751,7 @@ describe("content routes", () => {
         new TestForbiddenError("Missing creator permission: manageContent"),
       );
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Hack" }),
@@ -789,7 +765,7 @@ describe("content routes", () => {
     it("returns 404 when content does not exist", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/content/no-such-id", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-ffffffffffff", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Update" }),
@@ -800,20 +776,20 @@ describe("content routes", () => {
 
     it("clears thumbnailKey and deletes storage file when clearThumbnail is true", async () => {
       const existing = makeMockDbContent({
-        thumbnailKey: "content/content-test-1/thumbnail/thumb.jpg",
+        thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
       });
       const updated = makeMockDbContent({ thumbnailKey: null });
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearThumbnail: true }),
       });
 
       expect(res.status).toBe(200);
-      expect(mockStorageDelete).toHaveBeenCalledWith("content/content-test-1/thumbnail/thumb.jpg");
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg");
       expect(mockUpdateSet).toHaveBeenCalledOnce();
       const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
       expect(setArg.thumbnailKey).toBeNull();
@@ -826,7 +802,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearThumbnail: true }),
@@ -838,20 +814,20 @@ describe("content routes", () => {
 
     it("clears mediaKey and deletes storage file when clearMedia is true", async () => {
       const existing = makeMockDbContent({
-        mediaKey: "content/content-test-1/media/video.mp4",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
       });
       const updated = makeMockDbContent({ mediaKey: null });
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearMedia: true }),
       });
 
       expect(res.status).toBe(200);
-      expect(mockStorageDelete).toHaveBeenCalledWith("content/content-test-1/media/video.mp4");
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
       expect(mockUpdateSet).toHaveBeenCalledOnce();
       const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
       expect(setArg.mediaKey).toBeNull();
@@ -864,7 +840,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([existing]);
       mockUpdateReturning.mockResolvedValue([updated]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearMedia: true }),
@@ -881,12 +857,12 @@ describe("content routes", () => {
     it("returns 204 and removes storage files when owner deletes", async () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
-          mediaKey: "content/content-test-1/media/video.mp4",
-          thumbnailKey: "content/content-test-1/thumbnail/thumb.jpg",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+          thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
         }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "DELETE",
       });
 
@@ -896,10 +872,10 @@ describe("content routes", () => {
       // Storage delete called for each non-null key
       expect(mockStorageDelete).toHaveBeenCalledTimes(2);
       expect(mockStorageDelete).toHaveBeenCalledWith(
-        "content/content-test-1/media/video.mp4",
+        "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
       );
       expect(mockStorageDelete).toHaveBeenCalledWith(
-        "content/content-test-1/thumbnail/thumb.jpg",
+        "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
       );
     });
 
@@ -909,7 +885,7 @@ describe("content routes", () => {
         new TestForbiddenError("Missing creator permission: manageContent"),
       );
 
-      const res = await ctx.app.request("/api/content/content-test-1", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
         method: "DELETE",
       });
 
@@ -919,7 +895,7 @@ describe("content routes", () => {
     it("returns 404 when content does not exist (including already deleted)", async () => {
       mockSelectWhere.mockResolvedValue([]);
 
-      const res = await ctx.app.request("/api/content/does-not-exist", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-ffffffffffff", {
         method: "DELETE",
       });
 
@@ -933,12 +909,12 @@ describe("content routes", () => {
     it("returns 200 with updated metadata when owner uploads media", async () => {
       mockSelectWhere.mockResolvedValue([makeMockDbContent({ type: "video" })]);
       mockStorageUpload.mockResolvedValue(
-        ok({ key: "content/content-test-1/media/video.mp4", size: 100 }),
+        ok({ key: "content/00000000-0000-4000-a000-000000000001/media/video.mp4", size: 100 }),
       );
       mockUpdateReturning.mockResolvedValue([
         makeMockDbContent({
           type: "video",
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
         }),
       ]);
 
@@ -949,7 +925,7 @@ describe("content routes", () => {
       );
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/upload?field=media",
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=media",
         {
           method: "POST",
           body: formData,
@@ -958,10 +934,10 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/content-test-1/media");
+      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(mockStorageUpload).toHaveBeenCalledOnce();
       const [uploadKey] = mockStorageUpload.mock.calls[0] as [string, ...unknown[]];
-      expect(uploadKey).toBe("content/content-test-1/media/video.mp4");
+      expect(uploadKey).toBe("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
     });
 
     it("returns 403 when non-owner tries to upload", async () => {
@@ -977,7 +953,7 @@ describe("content routes", () => {
       );
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/upload?field=media",
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=media",
         {
           method: "POST",
           body: formData,
@@ -995,7 +971,7 @@ describe("content routes", () => {
       );
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/upload?field=invalid",
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=invalid",
         {
           method: "POST",
           body: formData,
@@ -1016,7 +992,7 @@ describe("content routes", () => {
       );
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/upload?field=media",
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=media",
         {
           method: "POST",
           body: formData,
@@ -1041,7 +1017,7 @@ describe("content routes", () => {
       );
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/upload?field=media",
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=media",
         {
           method: "POST",
           body: formData,
@@ -1060,13 +1036,13 @@ describe("content routes", () => {
     it("streams media for public content without auth", async () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
-          mediaKey: "content/content-test-1/media/video.mp4",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
         }),
       ]);
       mockStorageDownload.mockResolvedValue(mockDownloadResult("file data"));
 
       const res = await ctx.app.request(
-        "/api/content/content-test-1/media",
+        "/api/content/00000000-0000-4000-a000-000000000001/media",
       );
 
       expect(res.status).toBe(200);
@@ -1082,18 +1058,13 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/audio.mp3",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await ctx.app.request("/api/content/content-test-1/media", {
-        headers: { Cookie: "better-auth.session_token=valid_token" },
-      });
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -1104,12 +1075,12 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/audio.mp3",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
         }),
       ]);
-      mockGetSession.mockResolvedValue(null);
+      ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(401);
       const body = await res.json();
@@ -1121,17 +1092,14 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValueOnce([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/audio.mp3",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
           creatorId: "creator_different",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
       // mockSubLimit defaults to [] (no subscription)
 
-      const res = await ctx.app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(403);
       const body = await res.json();
@@ -1143,18 +1111,15 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/audio.mp3",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
           creatorId: "creator_different",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser(),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser();
       mockSubLimit.mockResolvedValue([{ id: "sub_123" }]);
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await ctx.app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -1165,17 +1130,14 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([
         makeMockDbContent({
           visibility: "subscribers",
-          mediaKey: "content/content-test-1/media/audio.mp3",
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
           creatorId: "user_test123",
         }),
       ]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser({ id: "user_test123" }),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser({ id: "user_test123" });
       mockStorageDownload.mockResolvedValue(mockDownloadResult("audio data"));
 
-      const res = await ctx.app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -1187,7 +1149,7 @@ describe("content routes", () => {
         makeMockDbContent({ mediaKey: null }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/media");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
 
       expect(res.status).toBe(404);
       const body = await res.json();
@@ -1307,17 +1269,17 @@ describe("content routes", () => {
       const draft = makeMockDbContent({
         type: "video",
         publishedAt: null,
-        mediaKey: "content/content-test-1/media/video.mp4",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
       });
       const published = makeMockDbContent({
         type: "video",
         publishedAt: new Date("2026-03-21T00:00:00.000Z"),
-        mediaKey: "content/content-test-1/media/video.mp4",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
       });
       mockSelectWhere.mockResolvedValue([draft]);
       mockUpdateReturning.mockResolvedValue([published]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1332,7 +1294,7 @@ describe("content routes", () => {
         makeMockDbContent({ publishedAt: new Date("2026-01-01T00:00:00.000Z") }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1346,7 +1308,7 @@ describe("content routes", () => {
         makeMockDbContent({ type: "video", publishedAt: null, mediaKey: null }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1360,7 +1322,7 @@ describe("content routes", () => {
         makeMockDbContent({ type: "audio", publishedAt: null, mediaKey: null }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1382,7 +1344,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([draft]);
       mockUpdateReturning.mockResolvedValue([published]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1394,7 +1356,7 @@ describe("content routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/content/content-test-1/publish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/publish", {
         method: "POST",
       });
 
@@ -1413,7 +1375,7 @@ describe("content routes", () => {
       mockSelectWhere.mockResolvedValue([publishedContent]);
       mockUpdateReturning.mockResolvedValue([draftContent]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/unpublish", {
         method: "POST",
       });
 
@@ -1428,7 +1390,7 @@ describe("content routes", () => {
         makeMockDbContent({ publishedAt: null }),
       ]);
 
-      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/unpublish", {
         method: "POST",
       });
 
@@ -1440,7 +1402,7 @@ describe("content routes", () => {
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/content/content-test-1/unpublish", {
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/unpublish", {
         method: "POST",
       });
 
@@ -1532,6 +1494,7 @@ describe("content routes", () => {
 
     it("passes media filter condition to where clause (or/isNotNull for video/audio)", async () => {
       mockLimit.mockResolvedValue([]);
+      ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/content");
 
@@ -1560,13 +1523,10 @@ describe("content routes", () => {
     it("returns 200 for draft when user is creator team member", async () => {
       const draft = makeMockDbContent({ publishedAt: null });
       mockSelectWhere.mockResolvedValue([draft]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser({ id: "user_test123" }),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser({ id: "user_test123" });
       mockCheckCreatorPermission.mockResolvedValue(true);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -1576,13 +1536,10 @@ describe("content routes", () => {
     it("returns 404 for draft when user is not creator team member", async () => {
       const draft = makeMockDbContent({ publishedAt: null, creatorId: "other-creator" });
       mockSelectWhere.mockResolvedValue([draft]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser({ id: "random-user" }),
-        session: makeMockSession(),
-      });
+      ctx.auth.user = makeMockUser({ id: "random-user" });
       mockCheckCreatorPermission.mockResolvedValue(false);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(404);
     });
@@ -1590,9 +1547,9 @@ describe("content routes", () => {
     it("returns 404 for draft when unauthenticated", async () => {
       const draft = makeMockDbContent({ publishedAt: null });
       mockSelectWhere.mockResolvedValue([draft]);
-      mockGetSession.mockResolvedValue(null);
+      ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(404);
     });
@@ -1600,14 +1557,10 @@ describe("content routes", () => {
     it("returns 200 for draft when user has admin role", async () => {
       const draft = makeMockDbContent({ publishedAt: null });
       mockSelectWhere.mockResolvedValue([draft]);
-      mockGetSession.mockResolvedValue({
-        user: makeMockUser({ id: "admin-user" }),
-        session: makeMockSession(),
-      });
-      // getUserRoles mock returns admin role
-      mockGateRoles = ["admin"];
+      ctx.auth.user = makeMockUser({ id: "admin-user" });
+      ctx.auth.roles = ["admin"];
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
     });
@@ -1618,9 +1571,8 @@ describe("content routes", () => {
         publishedAt: new Date("2026-01-01T00:00:00.000Z"),
       });
       mockSelectWhere.mockResolvedValue([published]);
-      mockGetSession.mockResolvedValue(null);
 
-      const res = await ctx.app.request("/api/content/content-test-1");
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
       expect(res.status).toBe(200);
       const body = await res.json();

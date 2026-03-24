@@ -67,6 +67,6 @@ export const requireCreatorPermission = async (
     userRoles,
   );
   if (!allowed) {
-    throw new ForbiddenError(`Missing creator permission: ${permission}`);
+    throw new ForbiddenError("Insufficient permissions");
   }
 };

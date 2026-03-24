@@ -57,7 +57,9 @@ app.use("/api/auth/*", (c, next) => {
   if (
     path.startsWith("/api/auth/sign-in") ||
     path.startsWith("/api/auth/sign-up") ||
-    path.startsWith("/api/auth/email-otp")
+    path.startsWith("/api/auth/email-otp") ||
+    path.startsWith("/api/auth/forget-password") ||
+    path.startsWith("/api/auth/reset-password")
   ) {
     return authStrictLimiter(c, next);
   }

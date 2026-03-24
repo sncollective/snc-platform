@@ -9,49 +9,74 @@ TanStack Router requires every route to declare itself via `createFileRoute()` s
 ## Examples
 
 ### Example 1: Protected route with role-based access
-**File**: `apps/web/src/routes/dashboard.tsx:6`
+**File**: `apps/web/src/routes/dashboard.tsx:41`
 ```typescript
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { fetchAuthState } from "../lib/auth.js";
+import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
+import { fetchApiServer, fetchAuthStateServer } from "../lib/api-server.js";
+import { isFeatureEnabled } from "../lib/config.js";
+import { AccessDeniedError } from "../lib/errors.js";
+import { buildLoginRedirect } from "../lib/return-to.js";
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async () => {
-    const { user, roles } = await fetchAuthState();
+  beforeLoad: async ({ location }) => {
+    if (!isFeatureEnabled("dashboard")) throw redirect({ to: "/" });
+
+    const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
-      throw redirect({ to: "/login" });
+      throw redirect(buildLoginRedirect(location.pathname));
     }
 
-    if (!roles.includes("cooperative-member")) {
-      throw redirect({ to: "/feed" });
+    if (!roles.includes("stakeholder")) {
+      throw new AccessDeniedError();
     }
+  },
+  errorComponent: RouteErrorBoundary,
+  loader: async (): Promise<DashboardLoaderData> => {
+    const [revenue, subscribers, bookingSummary, emissionsSummary] =
+      await Promise.all([
+        fetchApiServer({ data: "/api/dashboard/revenue" }) as Promise<RevenueResponse>,
+        fetchApiServer({ data: "/api/dashboard/subscribers" }) as Promise<SubscriberSummary>,
+        fetchApiServer({ data: "/api/dashboard/bookings" }) as Promise<BookingSummary>,
+        fetchApiServer({ data: "/api/emissions/summary" }) as Promise<EmissionsSummary>,
+      ]);
+    return { revenue, subscribers, bookingSummary, emissionsSummary };
   },
   component: DashboardPage,
 });
-
-function DashboardPage() {
-  return <PlaceholderPage heading="Dashboard" />;
-}
 ```
 
-### Example 2: Guest-only route (redirects authenticated users)
-**File**: `apps/web/src/routes/login.tsx:7`
+### Example 2: Guest-only route with returnTo support
+**File**: `apps/web/src/routes/login.tsx:12`
 ```typescript
+import { useSession } from "../lib/auth.js";
+import { getValidReturnTo } from "../lib/return-to.js";
+
 export const Route = createFileRoute("/login")({
+  validateSearch: z.object({
+    returnTo: z.optional(z.string()),
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
-  const shouldRender = useGuestRedirect(); // redirects if already logged in
+  const { returnTo } = Route.useSearch();
+  const session = useSession();
+  const navigate = useNavigate();
 
-  if (!shouldRender) {
-    return null;
-  }
+  useEffect(() => {
+    if (session.data) {
+      void navigate({ to: getValidReturnTo(returnTo) });
+    }
+  }, [session.data, navigate, returnTo]);
+
+  if (session.isPending || session.data) return null;
 
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>Log in to S/NC</h1>
-      <LoginForm />
+      <LoginForm returnTo={returnTo} />
     </div>
   );
 }
@@ -97,15 +122,24 @@ function ContentDetailPage(): React.ReactElement {
 }
 ```
 
+## Key Supporting Modules
+
+- **`lib/api-server.ts`**: `fetchAuthStateServer()` (server-side auth via `createServerFn`) and `fetchApiServer()` (server-side API fetch with cookie forwarding) — used in `beforeLoad` and `loader` for SSR
+- **`lib/errors.ts`**: `AccessDeniedError` — thrown when a user lacks the required role; caught by `RouteErrorBoundary` to show a friendly error page instead of redirecting
+- **`lib/return-to.ts`**: `buildLoginRedirect(currentPath)` — constructs redirect with `?returnTo=` param so users return to their original page after login; `getValidReturnTo(returnTo)` validates the param to prevent open redirects
+- **`lib/config.ts`**: `isFeatureEnabled(flag)` — feature flag check; routes can gate on feature availability before auth
+
 ## Guest-Only Routes
 
-Guest-only routes (login, register) use `useGuestRedirect()` instead of `beforeLoad` because these are intentionally public — a server-side session check in `beforeLoad` would add latency on every page load. The hook's boolean return value also suppresses the form during `session.isPending`, preventing a flash of form content before the auth state resolves.
+Guest-only routes (login, register) use `useSession()` + `useEffect` redirect instead of `beforeLoad` because these are intentionally public — a server-side session check in `beforeLoad` would add latency on every page load. The session pending check suppresses the form during load, preventing a flash of content before auth state resolves. The `returnTo` search param enables redirect-after-login flows.
 
 ## When to Use
 
 - Every page/route in the app — this is mandatory for TanStack Router
-- Auth-only pages: add `beforeLoad` that calls `fetchAuthState()` and `throw redirect()`
-- Guest-only pages (login, register): use `useGuestRedirect()` hook in the component
+- Auth-only pages: add `beforeLoad` that calls `fetchAuthStateServer()`, `buildLoginRedirect()` for unauthenticated, `AccessDeniedError` for wrong role, and `errorComponent: RouteErrorBoundary`
+- Feature-gated pages: check `isFeatureEnabled(flag)` before auth in `beforeLoad`
+- Loaders that fetch API data: use `fetchApiServer({ data: endpoint })` for server-side fetch with cookie forwarding
+- Guest-only pages (login, register): use `useSession()` + `useEffect` redirect in the component
 
 ## When NOT to Use
 

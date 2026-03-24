@@ -25,7 +25,7 @@ type DbContentRow = {
 export const makeMockContent = (
   overrides?: Partial<ContentResponse>,
 ): ContentResponse => ({
-  id: "content-test-1",
+  id: "00000000-0000-4000-a000-000000000001",
   creatorId: "user_test123",
   slug: "test-post",
   type: "written",
@@ -45,7 +45,7 @@ export const makeMockContent = (
 export const makeMockDbContent = (
   overrides?: Partial<DbContentRow>,
 ): DbContentRow => ({
-  id: "content-test-1",
+  id: "00000000-0000-4000-a000-000000000001",
   creatorId: "user_test123",
   type: "written",
   title: "Test Post",

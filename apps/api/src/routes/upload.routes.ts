@@ -36,6 +36,7 @@ import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { sanitizeFilename } from "../lib/file-utils.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "../lib/openapi-errors.js";
+import { UploadIdParam, UploadPartParams } from "./route-params.js";
 
 // ── Private Constants ──
 
@@ -294,11 +295,12 @@ uploadRoutes.get(
       503: ERROR_503,
     },
   }),
+  validator("param", UploadPartParams),
   validator("query", z.object({ key: z.string().min(1) })),
   async (c) => {
     requireS3();
-    const uploadId = c.req.param("uploadId");
-    const partNumber = parseInt(c.req.param("partNumber"), 10);
+    const { uploadId, partNumber: partNumberStr } = c.req.valid("param" as never) as { uploadId: string; partNumber: string };
+    const partNumber = parseInt(partNumberStr, 10);
     const { key } = c.req.valid("query" as never) as { key: string };
 
     if (Number.isNaN(partNumber) || partNumber < 1) {
@@ -333,10 +335,11 @@ uploadRoutes.post(
       503: ERROR_503,
     },
   }),
+  validator("param", UploadIdParam),
   validator("json", CompleteMultipartRequestSchema),
   async (c) => {
     requireS3();
-    const uploadId = c.req.param("uploadId");
+    const { uploadId } = c.req.valid("param" as never) as { uploadId: string };
     const body = c.req.valid("json" as never) as CompleteMultipartRequest;
 
     const result = await s3Multipart!.completeMultipartUpload(
@@ -365,10 +368,11 @@ uploadRoutes.delete(
       503: ERROR_503,
     },
   }),
+  validator("param", UploadIdParam),
   validator("query", z.object({ key: z.string().min(1) })),
   async (c) => {
     requireS3();
-    const uploadId = c.req.param("uploadId");
+    const { uploadId } = c.req.valid("param" as never) as { uploadId: string };
     const { key } = c.req.valid("query" as never) as { key: string };
 
     const result = await s3Multipart!.abortMultipartUpload(uploadId, key);
@@ -398,10 +402,11 @@ uploadRoutes.get(
       503: ERROR_503,
     },
   }),
+  validator("param", UploadIdParam),
   validator("query", z.object({ key: z.string().min(1) })),
   async (c) => {
     requireS3();
-    const uploadId = c.req.param("uploadId");
+    const { uploadId } = c.req.valid("param" as never) as { uploadId: string };
     const { key } = c.req.valid("query" as never) as { key: string };
 
     const result = await s3Multipart!.listParts(uploadId, key);

@@ -43,7 +43,7 @@ type DbProjectRow = {
 export const makeMockCalendarEvent = (
   overrides?: Partial<DbCalendarEventRow>,
 ): DbCalendarEventRow => ({
-  id: "evt_test001",
+  id: "00000000-0000-4000-a000-000000000031",
   title: "Recording Session",
   description: "Tracking drums for new album",
   startAt: new Date("2026-03-20T14:00:00.000Z"),
@@ -74,7 +74,7 @@ export const makeMockFeedToken = (
 export const makeMockProject = (
   overrides?: Partial<DbProjectRow>,
 ): DbProjectRow => ({
-  id: "proj_test001",
+  id: "00000000-0000-4000-a000-000000000041",
   name: "New Album",
   slug: "new-album",
   description: "Working on the new album",

@@ -18,6 +18,7 @@ import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403 } from "../lib/openapi-errors.js";
 import { fetchEmissionsSummary, fetchEmissionsBreakdown } from "../services/emissions.js";
+import { toISO } from "../lib/response-helpers.js";
 
 // ── Private Types ──
 
@@ -48,8 +49,8 @@ function toEntryResponse(row: EmissionRow): EmissionEntry {
     method: row.method,
     projected: row.projected,
     metadata: stripSessionDates(row.metadata),
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
+    createdAt: toISO(row.createdAt),
+    updatedAt: toISO(row.updatedAt),
   };
 }
 

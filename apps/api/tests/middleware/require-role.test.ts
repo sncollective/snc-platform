@@ -163,6 +163,7 @@ describe("requireRole middleware", () => {
         userRoles: [],
         path: "/protected",
         method: "GET",
+        ip: null,
       },
       "Authorization denied — insufficient permissions",
     );

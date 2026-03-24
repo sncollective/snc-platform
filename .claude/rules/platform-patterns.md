@@ -19,30 +19,29 @@ One line per pattern. Read the linked file for full details and code examples.
 - **route-private-helpers**: Unexported helper functions (findActiveContent, requireContentOwnership, resolveContentUrls) and shared ERROR_4xx constants eliminate handler duplication within a route file → [route-private-helpers.md]
 
 ## Frontend / Auth UI
-- **tanstack-file-route**: Every route exports `Route = createFileRoute(path)(options)`; `beforeLoad` throws `redirect()` for auth/role guards; `loader` fetches data and `Route.useLoaderData()` accesses it type-safely → [tanstack-file-route.md]
+- **tanstack-file-route**: Every route exports `Route = createFileRoute(path)(options)`; `beforeLoad` uses `fetchAuthStateServer()` + `buildLoginRedirect()` + `AccessDeniedError` for auth; `errorComponent: RouteErrorBoundary`; `loader` uses `fetchApiServer()` for SSR data → [tanstack-file-route.md]
 - **zod-mini-form-validation**: Module-level `zod/mini` schema + `useState` per field + `validate()` callback + `extractFieldErrors()` + `isSubmitting` gate → [zod-mini-form-validation.md]
-- **css-modules-design-tokens**: `:root` CSS custom properties in `global.css`; all component `.module.css` files consume via `var(--token-name)` → [css-modules-design-tokens.md]
 - **vi-hoisted-module-mock**: `vi.hoisted()` lifts mock fns before `vi.mock()` factories; component imported after all mocks; `beforeEach` sets defaults, `afterEach` restores → [vi-hoisted-module-mock.md]
 
 ## Content Feed & Media Playback
-- **react-context-reducer-provider**: Separate State/Actions/ContextValue interfaces + exported pure reducer + INITIAL_STATE for testability; Provider bridges DOM ref via useMemo actions; null-guard consumer hook → [react-context-reducer-provider.md]
+- **react-context-reducer-provider**: Separate State/Actions/ContextValue interfaces + exported pure reducer + INITIAL_STATE for testability; Provider bridges DOM ref via useMemo actions + Web Audio API (lazy AudioContext/GainNode for smooth volume); null-guard consumer hook → [react-context-reducer-provider.md]
 - **content-type-dispatch**: `Record<FeedItem["type"], T>` constants for exhaustive per-variant values (labels, CSS); inline `{item.type === "X" && <XVariant />}` dispatch; each variant receives shared FeedItem and extracts its own fields → [content-type-dispatch.md]
 
 ## Creator Pages & Profiles
-- **cursor-encode-decode**: `encodeCursor`/`decodeCursor` in `cursor.ts` encode base64URL keyset tokens; `buildPaginatedResponse<T>(rows, limit, cursorFields)` encapsulates limit+1/pop/encode; `or(lt, and(eq, lt))` SQL for DESC, `or(gt, and(eq, gt))` for ASC → [cursor-encode-decode.md]
+- **cursor-encode-decode**: `encodeCursor`/`decodeCursor`/`decodeRawCursor` in `lib/cursor.ts`; `buildCursorCondition(cols, decoded, direction)` for keyset WHERE clause; `buildPaginatedResponse<T>(rows, limit, cursorFields)` for limit+1/slice/encode → [cursor-encode-decode.md]
 - **use-cursor-pagination**: Generic `useCursorPagination<T>({ buildUrl, deps? })` hook accumulates items across pages; `deps` triggers full reset+refetch when filters change; used in feed, creators list, creator detail → [use-cursor-pagination.md]
 - **upload-replace-workflow**: Parameterized `handleImageUpload(c, field)` private handler enforces: ownership → Content-Length pre-check → parse multipart → MIME validate → sanitize → delete-old → upload-new → DB-update → response → [upload-replace-workflow.md]
 - **listing-page-shared-css**: `listing-page.module.css` provides shared `.heading`, `.status`, `.loadMoreWrapper`, `.loadMoreButton` for all listing pages; import alongside page-specific module → [listing-page-shared-css.md]
 - **human-readable-url-slug**: Prefer `handle ?? id` in user-facing URL params; backend dual-mode resolver accepts both; keep UUID for API data fetches and React keys → [human-readable-url-slug.md]
 
 ## Subscriptions & Content Gating
-- **stripe-service-layer**: Module-level `stripe` singleton + `wrapStripeError` (via `wrapExternalError` factory) converts Stripe exceptions to `AppError`(502); all exports return `Result<T, AppError>`; mocked wholesale in tests via `vi.doMock` → [stripe-service-layer.md]
+- **stripe-service-layer**: `getStripe()` factory from `stripe-client.ts` returns `Result<Stripe, AppError>` (Stripe optional, 503 when unconfigured); `wrapStripeErrorGranular` maps Stripe error subclasses to typed HTTP statuses (400/429/502); all exports return `Result<T, AppError>` → [stripe-service-layer.md]
 - **webhook-idempotent-dispatch**: 4-step flow: raw body text → verify signature (Result) → INSERT idempotency check (duplicate key = 200 OK) → `Record<string, handler | undefined>` dispatch; unknown events silently acknowledged → [webhook-idempotent-dispatch.md]
 - **content-access-gate**: `checkContentAccess(userId, creatorId, visibility): Promise<ContentGateResult>` with 5 priority rules; discriminated union `{ allowed: true } | { allowed: false; reason; creatorId }` lets callers throw 401 vs 403 → [content-access-gate.md]
 
 ## Shopify Merch Storefront
-- **external-error-factory**: `wrapExternalError(code)` factory curries error code → `(e: unknown) => AppError(502)`; both Stripe and Shopify services specialize it at module scope → [external-error-factory.md]
-- **web-fetch-client**: `apiGet<T>(endpoint, params?)` / `apiMutate<T>(endpoint, {method, body})` generic helpers in `fetch-utils.ts`; all lib modules import these instead of raw fetch; `throwIfNotOk` underlies both → [web-fetch-client.md]
+- **external-error-factory**: `wrapExternalError(code)` factory curries error code → `(e: unknown) => AppError(502)` for blanket-502 services (Shopify, Owncast); Stripe uses `wrapStripeErrorGranular` instead (see stripe-service-layer) → [external-error-factory.md]
+- **web-fetch-client**: `extractErrorMessage(response)` + `throwIfNotOk(response)` foundation; `apiGet<T>` / `apiMutate<T>` / `apiUpload<T>` generic helpers in `fetch-utils.ts`; all client-side lib modules import these instead of raw fetch → [web-fetch-client.md]
 
 ## Service Booking
 - **row-to-response-transformer**: Private `toXxxResponse(row)` functions convert DB rows (Date objects, storage keys) to API shapes (ISO strings, URLs); composed for nested objects → [row-to-response-transformer.md]

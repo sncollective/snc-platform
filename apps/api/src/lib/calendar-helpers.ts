@@ -2,6 +2,8 @@ import type { CalendarEvent } from "@snc/shared";
 
 import type { calendarEvents } from "../db/schema/calendar.schema.js";
 
+import { toISO, toISOOrNull } from "./response-helpers.js";
+
 type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
 export const toEventResponse = (
@@ -12,8 +14,8 @@ export const toEventResponse = (
   id: row.id,
   title: row.title,
   description: row.description,
-  startAt: row.startAt.toISOString(),
-  endAt: row.endAt?.toISOString() ?? null,
+  startAt: toISO(row.startAt),
+  endAt: toISOOrNull(row.endAt),
   allDay: row.allDay,
   eventType: row.eventType,
   location: row.location,
@@ -22,7 +24,7 @@ export const toEventResponse = (
   creatorName: creatorName ?? null,
   projectId: row.projectId ?? null,
   projectName: projectName ?? null,
-  completedAt: row.completedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
+  completedAt: toISOOrNull(row.completedAt),
+  createdAt: toISO(row.createdAt),
+  updatedAt: toISO(row.updatedAt),
 });

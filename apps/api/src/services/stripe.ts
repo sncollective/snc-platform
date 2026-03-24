@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { AppError, ok, err, type Result } from "@snc/shared";
 
 import { config } from "../config.js";
+import { rootLogger } from "../logging/logger.js";
 import { wrapStripeErrorGranular } from "./external-error.js";
 import { getStripe } from "./stripe-client.js";
 
@@ -139,10 +140,11 @@ export const verifyWebhookSignature = (
 
     return ok(event);
   } catch (e) {
+    rootLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Webhook signature verification failed");
     return err(
       new AppError(
         "WEBHOOK_SIGNATURE_ERROR",
-        e instanceof Error ? e.message : String(e),
+        "Webhook signature verification failed",
         400,
       ),
     );

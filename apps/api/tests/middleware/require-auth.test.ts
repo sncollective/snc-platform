@@ -185,6 +185,7 @@ describe("requireAuth middleware", () => {
         event: "auth_failure",
         path: "/protected",
         method: "GET",
+        ip: null,
       },
       "Authentication failed — no valid session",
     );

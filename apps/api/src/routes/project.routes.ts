@@ -38,6 +38,8 @@ import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../l
 import { toEventResponse } from "../lib/calendar-helpers.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { generateUniqueSlug } from "../services/slug.js";
+import { toISO, toISOOrNull } from "../lib/response-helpers.js";
+import { IdParam } from "./route-params.js";
 
 // ── Private Types ──
 
@@ -53,9 +55,9 @@ const toProjectResponse = (row: ProjectRow): Project => ({
   creatorId: row.creatorId ?? null,
   createdBy: row.createdBy,
   completed: row.completed,
-  completedAt: row.completedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
+  completedAt: toISOOrNull(row.completedAt),
+  createdAt: toISO(row.createdAt),
+  updatedAt: toISO(row.updatedAt),
 });
 
 const findProjectByIdOrSlug = async (param: string): Promise<ProjectRow | undefined> => {
@@ -171,8 +173,9 @@ projectRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const row = await findProjectByIdOrSlug(id);
 
@@ -264,9 +267,10 @@ projectRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("json", UpdateProjectSchema),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const data = c.req.valid("json");
 
     const existing = await findProjectByIdOrSlug(id);
@@ -319,8 +323,9 @@ projectRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const existing = await findProjectByIdOrSlug(id);
 
@@ -356,9 +361,10 @@ projectRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("query", ProjectEventsQuerySchema),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const { limit, cursor } = c.req.valid("query" as never) as ProjectEventsQuery;
 
     const project = await findProjectByIdOrSlug(id);

@@ -44,6 +44,8 @@ import {
   ERROR_404,
 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
+import { toISO } from "../lib/response-helpers.js";
+import { IdParam } from "./route-params.js";
 
 // ── Private Types ──
 
@@ -64,8 +66,8 @@ const toServiceResponse = (row: ServiceRow): Service => ({
   pricingInfo: row.pricingInfo,
   active: row.active,
   sortOrder: row.sortOrder,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
+  createdAt: toISO(row.createdAt),
+  updatedAt: toISO(row.updatedAt),
 });
 
 /**
@@ -84,8 +86,8 @@ const toBookingWithServiceResponse = (
   status: booking.status,
   reviewedBy: booking.reviewedBy ?? null,
   reviewNote: booking.reviewNote ?? null,
-  createdAt: booking.createdAt.toISOString(),
-  updatedAt: booking.updatedAt.toISOString(),
+  createdAt: toISO(booking.createdAt),
+  updatedAt: toISO(booking.updatedAt),
   service: toServiceResponse(service),
 });
 
@@ -169,8 +171,9 @@ bookingRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const [row] = await db
       .select()
@@ -417,8 +420,9 @@ bookingRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
 
     const [row] = await db
@@ -468,9 +472,10 @@ bookingRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("json", ReviewBookingRequestSchema),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
     const { status, reviewNote } = c.req.valid("json");
 

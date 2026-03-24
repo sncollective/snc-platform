@@ -21,20 +21,27 @@ import type { ContentResponse, FeedItem, FeedQuery, DraftQuery } from "@snc/shar
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
-import { auth } from "../auth/auth.js";
-import { checkContentAccess, buildContentAccessContext, hasContentAccess } from "../services/content-access.js";
+import {
+  buildContentAccessContext,
+  hasContentAccess,
+  requireDraftAccess,
+  applyContentGate,
+} from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
 import { storage } from "../storage/index.js";
-import { requireCreatorPermission, checkCreatorPermission } from "../services/creator-team.js";
-import { getUserRoles } from "../auth/user-roles.js";
+import { requireCreatorPermission } from "../services/creator-team.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { generateUniqueSlug } from "../services/slug.js";
+import { resolveContentUrls, findActiveContent } from "../lib/content-helpers.js";
+import type { ContentRow } from "../lib/content-helpers.js";
+import { toISO, toISOOrNull } from "../lib/response-helpers.js";
+import { IdParam, ContentByCreatorParams } from "./route-params.js";
 
 // ── Private Types ──
 
-type ContentRow = typeof content.$inferSelect;
 type FeedRow = ContentRow & { creatorName: string | null; creatorHandle: string | null };
 
 // ── Private Constants ──
@@ -61,37 +68,6 @@ const CONTENT_FEED_COLUMNS = {
 
 // ── Private Helpers ──
 
-const resolveContentUrls = (row: ContentRow): ContentResponse => ({
-  id: row.id,
-  creatorId: row.creatorId,
-  slug: row.slug ?? null,
-  type: row.type,
-  title: row.title,
-  body: row.body ?? null,
-  description: row.description ?? null,
-  visibility: row.visibility,
-  sourceType: row.sourceType,
-  thumbnailUrl: row.thumbnailKey
-    ? `/api/content/${row.id}/thumbnail`
-    : null,
-  mediaUrl: row.mediaKey
-    ? `/api/content/${row.id}/media`
-    : null,
-  publishedAt: row.publishedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});
-
-const findActiveContent = async (
-  id: string,
-): Promise<ContentRow | undefined> => {
-  const rows = await db
-    .select()
-    .from(content)
-    .where(and(eq(content.id, id), isNull(content.deletedAt)));
-  return rows[0];
-};
-
 const requireContentOwnership = async (
   id: string,
   userId: string,
@@ -109,39 +85,6 @@ const resolveFeedItem = (row: FeedRow): FeedItem => ({
   creatorName: row.creatorName ?? "",
   creatorHandle: row.creatorHandle ?? null,
 });
-
-const requireDraftAccess = async (
-  row: Pick<ContentRow, "publishedAt" | "creatorId">,
-  userId: string | null,
-): Promise<void> => {
-  if (row.publishedAt) return;
-  if (!userId) throw new NotFoundError("Content not found");
-  const roles = await getUserRoles(userId);
-  const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
-  if (!isAdmin) {
-    const hasPermission = await checkCreatorPermission(
-      userId,
-      row.creatorId,
-      "manageContent",
-      roles,
-    );
-    if (!hasPermission) throw new NotFoundError("Content not found");
-  }
-};
-
-const applyContentGate = async (
-  row: Pick<ContentRow, "creatorId" | "visibility">,
-  userId: string | null,
-  response: ContentResponse,
-): Promise<ContentResponse> => {
-  if (row.visibility !== "subscribers") return response;
-  const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
-  if (!gate.allowed) {
-    response.mediaUrl = null;
-    response.body = null;
-  }
-  return response;
-};
 
 // ── Public API ──
 
@@ -163,6 +106,7 @@ contentRoutes.get(
       400: ERROR_400,
     },
   }),
+  optionalAuth,
   validator("query", FeedQuerySchema),
   async (c) => {
     const {
@@ -172,18 +116,9 @@ contentRoutes.get(
       creatorId: creatorIdFilter,
     } = c.req.valid("query" as never) as FeedQuery;
 
-    // Resolve session (best-effort — feed is public, session enables gating)
-    let userId: string | null = null;
-    try {
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
-      userId = session?.user?.id ?? null;
-    } catch {
-      // No session — treat as unauthenticated
-    }
-
-    const accessCtx = await buildContentAccessContext(userId);
+    const user = c.get("user");
+    const roles = c.get("roles") as string[];
+    const accessCtx = await buildContentAccessContext(user?.id ?? null, roles);
 
     // Build WHERE conditions
     const conditions = [
@@ -397,9 +332,12 @@ contentRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", ContentByCreatorParams),
+  optionalAuth,
   async (c) => {
-    const creatorIdentifier = c.req.param("creatorIdentifier");
-    const contentIdentifier = c.req.param("contentIdentifier");
+    const { creatorIdentifier, contentIdentifier } = c.req.valid("param" as never) as { creatorIdentifier: string; contentIdentifier: string };
+    const user = c.get("user");
+    const roles = c.get("roles") as string[];
 
     // Resolve creator by handle or ID
     const creatorRows = await db
@@ -435,18 +373,9 @@ contentRoutes.get(
     const row = rows[0];
     if (!row) throw new NotFoundError("Content not found");
 
-    // Resolve session once — used for both draft access and content gating
-    let userId: string | null = null;
-    try {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
-      userId = session?.user?.id ?? null;
-    } catch {
-      // No session — treat as unauthenticated
-    }
+    await requireDraftAccess(row, user?.id ?? null, roles);
 
-    await requireDraftAccess(row, userId);
-
-    const response = await applyContentGate(row, userId, resolveContentUrls(row));
+    const response = await applyContentGate(row, user?.id ?? null, resolveContentUrls(row), roles);
 
     return c.json({
       ...response,
@@ -472,8 +401,12 @@ contentRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
+  optionalAuth,
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const user = c.get("user");
+    const roles = c.get("roles") as string[];
 
     // Single query: fetch content + creator name/handle via left join
     const joined = await db
@@ -489,20 +422,9 @@ contentRoutes.get(
       throw new NotFoundError("Content not found");
     }
 
-    // Resolve session once — used for both draft access and content gating
-    let userId: string | null = null;
-    try {
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
-      userId = session?.user?.id ?? null;
-    } catch {
-      // No session — treat as unauthenticated
-    }
+    await requireDraftAccess(row, user?.id ?? null, roles);
 
-    await requireDraftAccess(row, userId);
-
-    const response = await applyContentGate(row, userId, resolveContentUrls(row));
+    const response = await applyContentGate(row, user?.id ?? null, resolveContentUrls(row), roles);
 
     return c.json({
       ...response,
@@ -531,9 +453,10 @@ contentRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("json", UpdateContentSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
     const body = c.req.valid("json");
 
@@ -604,8 +527,9 @@ contentRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
 
     const existing = await requireContentOwnership(id, user.id);
@@ -653,8 +577,9 @@ contentRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
 
     const existing = await requireContentOwnership(id, user.id);
@@ -704,8 +629,9 @@ contentRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const id = c.req.param("id");
+    const { id } = c.req.valid("param" as never) as { id: string };
     const user = c.get("user");
 
     const existing = await requireContentOwnership(id, user.id);

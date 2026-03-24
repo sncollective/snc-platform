@@ -39,7 +39,7 @@ type DbUserRow = {
 export const makeMockService = (
   overrides?: Partial<DbServiceRow>,
 ): DbServiceRow => ({
-  id: "svc_test_recording",
+  id: "00000000-0000-4000-a000-000000000011",
   name: "Recording Session",
   description: "Professional studio recording session with engineer.",
   pricingInfo: "$50/hour",
@@ -53,9 +53,9 @@ export const makeMockService = (
 export const makeMockBookingRequest = (
   overrides?: Partial<DbBookingRequestRow>,
 ): DbBookingRequestRow => ({
-  id: "bk_test_001",
+  id: "00000000-0000-4000-a000-000000000021",
   userId: "user_test123",
-  serviceId: "svc_test_recording",
+  serviceId: "00000000-0000-4000-a000-000000000011",
   preferredDates: ["2026-03-15"],
   notes: "",
   status: "pending",
@@ -69,7 +69,7 @@ export const makeMockBookingRequest = (
 export const makeMockUserRow = (
   overrides?: Partial<DbUserRow>,
 ): DbUserRow => ({
-  id: "user_requester1",
+  id: "00000000-0000-4000-b000-000000000001",
   name: "Jane Doe",
   email: "jane@example.com",
   emailVerified: true,

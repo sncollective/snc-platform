@@ -29,6 +29,7 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
         event: "auth_failure",
         path: c.req.path,
         method: c.req.method,
+        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
       },
       "Authentication failed — no valid session",
     );

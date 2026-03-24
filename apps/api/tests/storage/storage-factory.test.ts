@@ -9,6 +9,9 @@ describe("createStorageProvider", () => {
   });
 
   it("returns a StorageProvider for STORAGE_TYPE 'local'", async () => {
+    vi.doMock("../../src/logging/logger.js", () => ({
+      rootLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+    }));
     vi.doMock("../../src/config.js", () => ({
       config: {
         STORAGE_TYPE: "local",
@@ -34,6 +37,9 @@ describe("createStorageProvider", () => {
   });
 
   it("storage singleton is exported and has StorageProvider methods", async () => {
+    vi.doMock("../../src/logging/logger.js", () => ({
+      rootLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+    }));
     vi.doMock("../../src/config.js", () => ({
       config: {
         STORAGE_TYPE: "local",
@@ -53,6 +59,9 @@ describe("createStorageProvider", () => {
   });
 
   it("s3Multipart is null when STORAGE_TYPE is 'local'", async () => {
+    vi.doMock("../../src/logging/logger.js", () => ({
+      rootLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+    }));
     vi.doMock("../../src/config.js", () => ({
       config: {
         STORAGE_TYPE: "local",

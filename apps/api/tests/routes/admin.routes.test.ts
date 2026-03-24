@@ -5,6 +5,12 @@ import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 import { makeMockDbUser } from "../helpers/admin-fixtures.js";
 import { chainablePromise } from "../helpers/db-mock-utils.js";
 
+// ── Test UUIDs ──
+
+const ADMIN_USER_UUID = "00000000-0000-4000-a000-000000000001";
+const TARGET_USER_UUID = "00000000-0000-4000-a000-000000000099";
+const NONEXISTENT_UUID = "00000000-0000-4000-a000-ffffffffffff";
+
 // ── Mock DB Chains ──
 
 const mockSelectWhere = vi.fn();
@@ -61,8 +67,8 @@ function setupDeleteChain() {
 const ctx = setupRouteTest({
   db: mockDb,
   defaultAuth: {
-    user: makeMockUser({ id: "admin_user_001" }),
-    session: makeMockSession({ userId: "admin_user_001" }),
+    user: makeMockUser({ id: ADMIN_USER_UUID }),
+    session: makeMockSession({ userId: ADMIN_USER_UUID }),
     roles: ["admin"],
   },
   mocks: () => {
@@ -191,7 +197,7 @@ describe("admin routes", () => {
 
   describe("POST /api/admin/users/:userId/roles", () => {
     it("assigns role to user", async () => {
-      const targetUser = makeMockDbUser();
+      const targetUser = makeMockDbUser({ id: TARGET_USER_UUID });
 
       let callCount = 0;
       mockSelect.mockImplementation(() => {
@@ -217,7 +223,7 @@ describe("admin routes", () => {
         };
       });
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -234,7 +240,7 @@ describe("admin routes", () => {
         }),
       });
 
-      const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${NONEXISTENT_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -244,7 +250,7 @@ describe("admin routes", () => {
     });
 
     it("returns 400 for invalid role", async () => {
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "superadmin" }),
@@ -254,7 +260,7 @@ describe("admin routes", () => {
     });
 
     it("is idempotent when role already exists", async () => {
-      const targetUser = makeMockDbUser();
+      const targetUser = makeMockDbUser({ id: TARGET_USER_UUID });
 
       let callCount = 0;
       mockSelect.mockImplementation(() => {
@@ -275,7 +281,7 @@ describe("admin routes", () => {
         };
       });
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -288,7 +294,7 @@ describe("admin routes", () => {
     it("returns 403 for non-admin user", async () => {
       ctx.auth.roles = [];
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -300,7 +306,7 @@ describe("admin routes", () => {
     it("returns 401 for unauthenticated request", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -314,7 +320,7 @@ describe("admin routes", () => {
 
   describe("DELETE /api/admin/users/:userId/roles", () => {
     it("revokes role from user", async () => {
-      const targetUser = makeMockDbUser();
+      const targetUser = makeMockDbUser({ id: TARGET_USER_UUID });
 
       let callCount = 0;
       mockSelect.mockImplementation(() => {
@@ -335,7 +341,7 @@ describe("admin routes", () => {
         };
       });
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -347,7 +353,7 @@ describe("admin routes", () => {
 
     it("prevents removing own admin role", async () => {
       const res = await ctx.app.request(
-        "/api/admin/users/admin_user_001/roles",
+        `/api/admin/users/${ADMIN_USER_UUID}/roles`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -367,7 +373,7 @@ describe("admin routes", () => {
         }),
       });
 
-      const res = await ctx.app.request("/api/admin/users/nonexistent/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${NONEXISTENT_UUID}/roles`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -377,7 +383,7 @@ describe("admin routes", () => {
     });
 
     it("returns 400 for invalid role", async () => {
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "superadmin" }),
@@ -389,7 +395,7 @@ describe("admin routes", () => {
     it("returns 403 for non-admin user", async () => {
       ctx.auth.roles = [];
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),
@@ -401,7 +407,7 @@ describe("admin routes", () => {
     it("returns 401 for unauthenticated request", async () => {
       ctx.auth.user = null;
 
-      const res = await ctx.app.request("/api/admin/users/user_target_001/roles", {
+      const res = await ctx.app.request(`/api/admin/users/${TARGET_USER_UUID}/roles`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "stakeholder" }),

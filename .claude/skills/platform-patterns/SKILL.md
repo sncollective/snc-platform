@@ -31,9 +31,8 @@ Available patterns:
 - [route-private-helpers.md](route-private-helpers.md) — Unexported helpers and ERROR_4xx constants eliminate handler duplication within a route file
 
 ### Frontend / Auth UI
-- [tanstack-file-route.md](tanstack-file-route.md) — Every route exports Route = createFileRoute(path)(options); beforeLoad throws redirect() for auth/role guards; loader + Route.useLoaderData() for async data fetching
+- [tanstack-file-route.md](tanstack-file-route.md) — Every route exports Route = createFileRoute(path)(options); beforeLoad uses fetchAuthStateServer() + buildLoginRedirect() + AccessDeniedError for auth; errorComponent: RouteErrorBoundary; loader uses fetchApiServer() for SSR data
 - [zod-mini-form-validation.md](zod-mini-form-validation.md) — Module-level zod/mini schema + useState per field + validate() + extractFieldErrors() + isSubmitting gate
-- [css-modules-design-tokens.md](css-modules-design-tokens.md) — :root CSS custom properties in global.css; all component .module.css files consume via var(--token-name)
 - [vi-hoisted-module-mock.md](vi-hoisted-module-mock.md) — vi.hoisted() lifts mock fns before vi.mock() factories; component imported after mocks; beforeEach sets defaults
 
 ### Content Feed & Media Playback
@@ -41,7 +40,7 @@ Available patterns:
 - [content-type-dispatch.md](content-type-dispatch.md) — Record<FeedItem["type"], T> for exhaustive per-variant values; inline conditional rendering dispatch to variant components; each variant extracts its own fields from shared FeedItem
 
 ### Creator Pages & Profiles
-- [cursor-encode-decode.md](cursor-encode-decode.md) — encodeCursor/decodeCursor in cursor.ts; buildPaginatedResponse<T>(rows, limit, cursorFields) encapsulates limit+1/pop/encode; or(lt, and(eq, lt)) SQL for DESC, or(gt, and(eq, gt)) for ASC
+- [cursor-encode-decode.md](cursor-encode-decode.md) — encodeCursor/decodeCursor/decodeRawCursor in lib/cursor.ts; buildCursorCondition for keyset WHERE clause; buildPaginatedResponse<T> for limit+1/slice/encode
 - [use-cursor-pagination.md](use-cursor-pagination.md) — Generic useCursorPagination<T>({ buildUrl, deps? }) hook; deps array resets on filter change; loadMore() appends next page; used in feed, creators list, creator detail
 - [upload-replace-workflow.md](upload-replace-workflow.md) — Parameterized private handler: ownership → size pre-check → parse → MIME validate → sanitize → delete-old → upload-new → DB-update; used for avatar/banner and content media fields
 
@@ -50,13 +49,13 @@ Available patterns:
 - [human-readable-url-slug.md](human-readable-url-slug.md) — Prefer `handle ?? id` in user-facing URL params; backend dual-mode resolver accepts both; keep UUID for API data fetches and React keys
 
 ### Subscriptions & Content Gating
-- [stripe-service-layer.md](stripe-service-layer.md) — Module-level Stripe singleton + wrapStripeError via wrapExternalError factory + all exports return Result<T, AppError>; mocked wholesale in tests
+- [stripe-service-layer.md](stripe-service-layer.md) — getStripe() factory from stripe-client.ts (Stripe optional, 503 when unconfigured) + wrapStripeErrorGranular for typed HTTP status mapping + all exports return Result<T, AppError>
 - [webhook-idempotent-dispatch.md](webhook-idempotent-dispatch.md) — 4-step flow: raw text → verify signature → INSERT idempotency check → Record<string, handler | undefined> dispatch; unknown events silently acknowledged
 - [content-access-gate.md](content-access-gate.md) — checkContentAccess() returns ContentGateResult discriminated union with 5 priority rules; callers branch on .reason for 401 vs 403
 
 ### Shopify Merch Storefront
-- [external-error-factory.md](external-error-factory.md) — wrapExternalError(code) factory → (e: unknown) => AppError(502); Stripe and Shopify services each specialize it at module scope with their error code
-- [web-fetch-client.md](web-fetch-client.md) — `apiGet<T>(endpoint, params?)` / `apiMutate<T>(endpoint, {method, body})` generic helpers in fetch-utils.ts; all web lib modules import these; throwIfNotOk underlies both
+- [external-error-factory.md](external-error-factory.md) — wrapExternalError(code) factory → (e: unknown) => AppError(502) for blanket-502 services (Shopify, Owncast); Stripe uses wrapStripeErrorGranular for per-error-type statuses
+- [web-fetch-client.md](web-fetch-client.md) — extractErrorMessage + throwIfNotOk foundation; apiGet<T> / apiMutate<T> / apiUpload<T> generic helpers in fetch-utils.ts; all client-side lib modules import these
 
 ### Service Booking
 - [row-to-response-transformer.md](row-to-response-transformer.md) — Private toXxxResponse(row) functions convert DB rows (Date objects, storage keys) to API response shapes (ISO strings, URLs); composed for nested objects

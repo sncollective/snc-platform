@@ -43,6 +43,7 @@ export const requireRole = (
           userRoles: userRoleValues,
           path: c.req.path,
           method: c.req.method,
+          ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
         },
         "Authorization denied — insufficient permissions",
       );

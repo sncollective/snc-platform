@@ -241,10 +241,10 @@ describe("requireCreatorPermission", () => {
         "creator_456",
         "editProfile",
       ),
-    ).rejects.toThrow("Missing creator permission: editProfile");
+    ).rejects.toThrow("Insufficient permissions");
   });
 
-  it("throws ForbiddenError with descriptive message including permission name", async () => {
+  it("throws ForbiddenError when user is not a member of the creator", async () => {
     mockSelectWhere.mockResolvedValue([]);
 
     await expect(
@@ -253,7 +253,7 @@ describe("requireCreatorPermission", () => {
         "creator_456",
         "manageContent",
       ),
-    ).rejects.toThrow("Missing creator permission: manageContent");
+    ).rejects.toThrow("Insufficient permissions");
   });
 
   it("does not throw when user has admin role", async () => {

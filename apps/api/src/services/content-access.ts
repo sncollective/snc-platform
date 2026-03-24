@@ -1,6 +1,7 @@
 import { and, eq, or, gt } from "drizzle-orm";
 
-import type { Visibility } from "@snc/shared";
+import { NotFoundError } from "@snc/shared";
+import type { ContentResponse, Visibility } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { creatorMembers } from "../db/schema/creator.schema.js";
@@ -9,6 +10,7 @@ import {
   subscriptionPlans,
 } from "../db/schema/subscription.schema.js";
 import { getUserRoles } from "../auth/user-roles.js";
+import { checkCreatorPermission } from "./creator-team.js";
 
 // ── Private Helpers ──
 
@@ -186,4 +188,55 @@ export const checkContentAccess = async (
     reason: "SUBSCRIPTION_REQUIRED",
     creatorId: contentCreatorId,
   };
+};
+
+// ── Domain Helpers ──
+
+/**
+ * Enforce draft visibility rules. Unpublished content is only visible to
+ * admins, stakeholders, and creator team members with `manageContent` permission.
+ *
+ * When `prefetchedRoles` is provided (e.g. from Hono context after `optionalAuth`),
+ * the `getUserRoles` DB query is skipped.
+ */
+export const requireDraftAccess = async (
+  row: { publishedAt: Date | null; creatorId: string },
+  userId: string | null,
+  prefetchedRoles?: string[],
+): Promise<void> => {
+  if (row.publishedAt) return;
+  if (!userId) throw new NotFoundError("Content not found");
+  const roles = prefetchedRoles ?? (await getUserRoles(userId));
+  const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
+  if (!isAdmin) {
+    const hasPermission = await checkCreatorPermission(
+      userId,
+      row.creatorId,
+      "manageContent",
+      roles,
+    );
+    if (!hasPermission) throw new NotFoundError("Content not found");
+  }
+};
+
+/**
+ * Soft-gate subscriber content: nullify `mediaUrl` and `body` when access is denied.
+ * Non-subscriber content passes through unmodified.
+ *
+ * When `prefetchedRoles` is provided, it is forwarded to `checkContentAccess`
+ * to avoid a redundant `getUserRoles` query.
+ */
+export const applyContentGate = async (
+  row: { creatorId: string; visibility: Visibility },
+  userId: string | null,
+  response: ContentResponse,
+  prefetchedRoles?: string[],
+): Promise<ContentResponse> => {
+  if (row.visibility !== "subscribers") return response;
+  const gate = await checkContentAccess(userId, row.creatorId, row.visibility, prefetchedRoles);
+  if (!gate.allowed) {
+    response.mediaUrl = null;
+    response.body = null;
+  }
+  return response;
 };

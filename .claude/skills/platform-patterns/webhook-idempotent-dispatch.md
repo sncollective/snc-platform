@@ -127,3 +127,4 @@ export const paymentEvents = pgTable("payment_events", {
 - Throwing inside a handler on missing fields: Stripe retries on non-200 responses, causing infinite retry loops; log and return instead
 - Omitting `paymentEvents` INSERT: without idempotency, concurrent deliveries can create duplicate subscription records
 - Using `switch` instead of the dispatch map: `Record<string, handler | undefined>` makes adding new event types trivial without restructuring the handler
+- **Writing non-idempotent handlers**: If a handler crashes after the event INSERT succeeds, retries are suppressed by the dedup check. Handlers must be independently idempotent (e.g., use INSERT with conflict handling, or check-before-write) so they can be safely re-invoked manually if needed

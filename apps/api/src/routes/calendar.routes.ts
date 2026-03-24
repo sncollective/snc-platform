@@ -30,6 +30,7 @@ import {
 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { toEventResponse } from "../lib/calendar-helpers.js";
+import { IdParam } from "./route-params.js";
 
 // ── Private Types ──
 
@@ -191,8 +192,9 @@ calendarRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const [row] = await db
       .select({
@@ -291,9 +293,10 @@ calendarRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   validator("json", UpdateCalendarEventSchema),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const data = c.req.valid("json");
 
     // Verify event exists
@@ -342,8 +345,9 @@ calendarRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const existing = await findActiveEvent(id);
 
@@ -384,8 +388,9 @@ calendarRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", IdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
 
     const existing = await findActiveEvent(id);
 
