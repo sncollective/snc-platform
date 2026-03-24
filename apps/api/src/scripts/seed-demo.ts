@@ -309,8 +309,10 @@ try {
 
   const roleRows = [
     { userId: USER_IDS.alex, role: "admin" as const },
-    { userId: USER_IDS.alex, role: "stakeholder" as const },
+    { userId: USER_IDS.maya, role: "admin" as const },
     { userId: USER_IDS.maya, role: "stakeholder" as const },
+    { userId: USER_IDS.jordan, role: "stakeholder" as const },
+    { userId: USER_IDS.sam, role: "stakeholder" as const },
   ];
 
   for (const r of roleRows) {
