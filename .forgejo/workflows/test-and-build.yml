@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate migration artifacts
-        run: bash scripts/validate-migrations.sh
+        run: bash apps/api/scripts/validate-migrations.sh
 
   # ── E2E Tests ──
   test-e2e:

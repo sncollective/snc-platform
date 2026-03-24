@@ -1,5 +1,5 @@
 import node_path from "node:path";
-import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -63,23 +63,6 @@ const downloadImage = async (
   const buffer = Buffer.from(await response.arrayBuffer());
   await mkdir(node_path.dirname(filePath), { recursive: true });
   await writeFile(filePath, buffer);
-};
-
-const SEED_ASSETS_DIR = node_path.resolve(
-  import.meta.dirname ?? ".",
-  "./assets",
-);
-
-const copyAsset = async (
-  assetName: string,
-  storageKey: string,
-): Promise<void> => {
-  const dest = node_path.join(UPLOADS_DIR, storageKey);
-  if (await fileExists(dest)) return;
-
-  const src = node_path.join(SEED_ASSETS_DIR, assetName);
-  await mkdir(node_path.dirname(dest), { recursive: true });
-  await copyFile(src, dest);
 };
 
 // ── Audio generation helper ──
@@ -182,7 +165,6 @@ const USER_IDS = {
   jordan: "seed_user_jordan",
   sam: "seed_user_sam",
   pat: "seed_user_pat",
-  animalfuture: "animalfuture",
 } as const;
 
 try {
@@ -200,7 +182,6 @@ try {
     { id: USER_IDS.jordan, name: "Jordan Ellis", email: "jordan@snc.demo" },
     { id: USER_IDS.sam, name: "Sam Okafor", email: "sam@snc.demo" },
     { id: USER_IDS.pat, name: "Pat Morgan", email: "pat@snc.demo" },
-    { id: USER_IDS.animalfuture, name: "Animal Future", email: "animalfuture@snc.demo" },
   ];
 
   for (const u of userRows) {
@@ -298,18 +279,6 @@ try {
       ],
       avatarKey: `creators/${USER_IDS.sam}/avatar/photo.jpg`,
       bannerKey: `creators/${USER_IDS.sam}/banner/photo.jpg`,
-    },
-    {
-      id: USER_IDS.animalfuture,
-      displayName: "Animal Future",
-      bio: "Punk rock and raw energy. Making loud, honest music about the world we're stuck in.",
-      socialLinks: [
-        { platform: "bandcamp", url: "https://animalfuture.bandcamp.com" },
-        { platform: "spotify", url: "https://open.spotify.com/artist/3Z65vDspGDjgs9MZzSrEOI?si=jkaH3Qd2T7udoDPwfUvzVw" },
-        { platform: "instagram", url: "https://www.instagram.com/animalfuturemusic" },
-      ],
-      avatarKey: `creators/${USER_IDS.animalfuture}/avatar/photo.jpg`,
-      bannerKey: `creators/${USER_IDS.animalfuture}/banner/photo.jpg`,
     },
   ];
 
@@ -1042,9 +1011,6 @@ try {
   }
 
   console.log(`  Emissions: ${emissionRows.length} actual + ${projectedRows.length} projected seeded`);
-
-  // Animal Future avatar from their Bandcamp profile (checked into repo)
-  await copyAsset("animalfuture-avatar.jpg", creatorRows[3]!.avatarKey);
 
   console.log("\nDemo seed complete. All users share password: password123");
 } catch (e) {
