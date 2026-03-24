@@ -17,11 +17,11 @@ Built as an alternative to extractive platforms.
 | **Payments** | [Stripe](https://stripe.com) (subscriptions, checkout, webhooks) |
 | **Merch** | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) (headless) |
 | **Validation** | [Zod 4](https://zod.dev) (API + shared), [zod/mini](https://zod.dev) (frontend) |
-| **Testing** | [Vitest](https://vitest.dev), Testing Library, [Playwright](https://playwright.dev) (e2e) |
+| **Testing** | [Vitest](https://vitest.dev), [Testing Library](https://testing-library.com), [Playwright](https://playwright.dev) (e2e) |
 | **Object Storage** | [Garage](https://garagehq.deuxfleurs.fr) (S3-compatible, production) |
 | **Logging** | [pino](https://getpino.io) (structured JSON, request-scoped via hono-pino) |
 | **Styling** | CSS Modules + CSS custom properties (design tokens) |
-| **Package Manager** | pnpm 10+ with workspaces |
+| **Package Manager** | [pnpm](https://pnpm.io) 10+ with workspaces |
 | **Reverse Proxy** | [Caddy](https://caddyserver.com) (dev + production) |
 
 ## Repository Structure
