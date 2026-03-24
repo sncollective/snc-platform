@@ -126,7 +126,7 @@ Scan rule libraries (auto-discovered by refactor pipeline skills):
 
 ### Golden Path E2E (`apps/e2e/`)
 
-Playwright end-to-end tests covering the production-enabled feature surface. Scoped to the three live feature flags: **creator**, **admin**, **calendar**.
+Playwright end-to-end tests covering the production-enabled feature surface. Scoped to the four live feature flags: **creator**, **admin**, **calendar**, **content**.
 
 - `pnpm --filter @snc/e2e test` — run the full suite (24 tests, ~6s)
 - `pnpm --filter @snc/e2e test:headed` — run with visible browser

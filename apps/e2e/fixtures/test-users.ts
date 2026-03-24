@@ -6,14 +6,14 @@
 export const USERS = {
   /** Admin + stakeholder — can access /admin and /calendar. */
   alex: {
-    id: "seed_user_alex",
+    id: "00000000-0000-4000-a000-000000000001",
     name: "Alex Rivera",
     email: "admin@snc.demo",
     password: "password123",
   },
   /** Stakeholder + creator (Maya Chen) — can access /calendar and creator manage. */
   maya: {
-    id: "seed_user_maya",
+    id: "00000000-0000-4000-a000-000000000002",
     name: "Maya Chen",
     email: "maya@snc.demo",
     password: "password123",
@@ -21,7 +21,7 @@ export const USERS = {
   },
   /** Subscriber only — basic authenticated user. */
   pat: {
-    id: "seed_user_pat",
+    id: "00000000-0000-4000-a000-000000000005",
     name: "Pat Morgan",
     email: "pat@snc.demo",
     password: "password123",

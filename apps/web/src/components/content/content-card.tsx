@@ -96,7 +96,6 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
       <Link
         to="/content/$creatorSlug/$contentSlug"
         params={{ creatorSlug: item.creatorHandle, contentSlug: item.slug }}
-        search={{ edit: false }}
         className={cardClass}
       >
         {children}
@@ -108,7 +107,6 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
     <Link
       to="/content/$contentId"
       params={{ contentId: item.id }}
-      search={{ edit: false }}
       className={cardClass}
     >
       {children}

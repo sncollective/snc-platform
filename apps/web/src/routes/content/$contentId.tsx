@@ -1,5 +1,5 @@
 import type React from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, type SearchSchemaInput } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
@@ -21,8 +21,8 @@ export interface ContentDetailLoaderData {
 
 export const Route = createFileRoute("/content/$contentId")({
   errorComponent: RouteErrorBoundary,
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: search["edit"] === "true" || search["edit"] === true,
+  validateSearch: (search: { edit?: string | boolean } & SearchSchemaInput) => ({
+    edit: search.edit === "true" || search.edit === true,
   }),
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
     if (!isFeatureEnabled("content")) return { item: null, plans: [], canManage: false };
@@ -35,7 +35,6 @@ export const Route = createFileRoute("/content/$contentId")({
       throw redirect({
         to: "/content/$creatorSlug/$contentSlug",
         params: { creatorSlug: item.creatorHandle, contentSlug: item.slug },
-        search: { edit: false },
         statusCode: 301,
       });
     }

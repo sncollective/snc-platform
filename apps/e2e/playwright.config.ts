@@ -4,7 +4,7 @@ const IS_CI = !!process.env.CI;
 
 /**
  * Locally: use the staging environment (port 3082 via Caddy) which mirrors
- * production feature flags (creator, admin, calendar ON).
+ * production feature flags (creator, admin, calendar, content ON).
  *
  * CI: start fresh servers with explicit feature flag env vars.
  */

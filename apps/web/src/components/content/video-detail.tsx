@@ -7,6 +7,7 @@ import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
+import { useState } from "react";
 import { clsx } from "clsx/lite";
 
 import styles from "./video-detail.module.css";
@@ -42,6 +43,7 @@ export function VideoDetail({
   editCallbacks,
 }: VideoDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
+  const [lockedImgBroken, setLockedImgBroken] = useState(false);
 
   const posterSrc = item.thumbnailUrl;
 
@@ -49,11 +51,12 @@ export function VideoDetail({
     return (
       <div className={styles.videoDetail}>
         <div className={styles.lockedOverlayContainer}>
-          {posterSrc ? (
+          {posterSrc && !lockedImgBroken ? (
             <img
               src={posterSrc}
               alt={`Thumbnail for ${item.title}`}
               className={styles.lockedThumbnail}
+              onError={() => setLockedImgBroken(true)}
             />
           ) : (
             <div className={styles.lockedThumbnailPlaceholder} />

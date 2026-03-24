@@ -157,7 +157,7 @@ describe("ContentCard", () => {
     render(<ContentCard item={item} />);
 
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/content/alice/my-post?edit=false");
+    expect(link).toHaveAttribute("href", "/content/alice/my-post");
   });
 
   it("falls back to UUID URL when slug is null", () => {
@@ -167,7 +167,7 @@ describe("ContentCard", () => {
     render(<ContentCard item={item} />);
 
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/content/content-42?edit=false");
+    expect(link).toHaveAttribute("href", "/content/content-42");
   });
 
   it("falls back to UUID URL when creatorHandle is null", () => {
@@ -177,7 +177,7 @@ describe("ContentCard", () => {
     render(<ContentCard item={item} />);
 
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/content/content-42?edit=false");
+    expect(link).toHaveAttribute("href", "/content/content-42");
   });
 
   it("renders thumbnailWrapper when thumbnailUrl is present", () => {

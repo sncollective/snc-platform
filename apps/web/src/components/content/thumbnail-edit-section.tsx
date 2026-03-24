@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type React from "react";
 
 import { useFileInput } from "../../hooks/use-file-input.js";
@@ -28,14 +29,16 @@ export function ThumbnailEditSection({
   imgSize,
 }: ThumbnailEditSectionProps): React.ReactElement {
   const { inputRef: thumbnailInputRef, triggerSelect: handleClick, handleChange } = useFileInput(onThumbnailUpload);
+  const [imgBroken, setImgBroken] = useState(false);
 
-  if (isEditing && thumbnailSrc !== null) {
+  if (isEditing && thumbnailSrc !== null && !imgBroken) {
     return (
       <div>
         <img
           src={thumbnailSrc}
           alt={`Thumbnail for ${title}`}
           className={styles.coverArt}
+          onError={() => setImgBroken(true)}
           {...(imgSize ? { width: imgSize.width, height: imgSize.height } : {})}
         />
         <div className={styles.editMediaActions}>
@@ -53,7 +56,7 @@ export function ThumbnailEditSection({
     );
   }
 
-  if (isEditing && thumbnailSrc === null && onThumbnailUpload) {
+  if (isEditing && (thumbnailSrc === null || imgBroken) && onThumbnailUpload) {
     return (
       <div className={styles.uploadPlaceholder}>
         <button
@@ -75,12 +78,13 @@ export function ThumbnailEditSection({
     );
   }
 
-  if (thumbnailSrc !== null) {
+  if (thumbnailSrc !== null && !imgBroken) {
     return (
       <img
         src={thumbnailSrc}
         alt={`Thumbnail for ${title}`}
         className={styles.coverArt}
+        onError={() => setImgBroken(true)}
         {...(imgSize ? { width: imgSize.width, height: imgSize.height } : {})}
       />
     );

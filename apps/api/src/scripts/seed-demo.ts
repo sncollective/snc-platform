@@ -1,5 +1,6 @@
 import node_path from "node:path";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { readFile, unlink, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -19,6 +20,7 @@ if (
 
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { like, or } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 
 import type { BookingStatus, ContentType, SocialLink, Visibility } from "@snc/shared";
@@ -29,22 +31,30 @@ import { content } from "../db/schema/content.schema.js";
 import { subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { services, bookingRequests } from "../db/schema/booking.schema.js";
 import { emissions } from "../db/schema/emission.schema.js";
+import { createSeedStorage, bufferToStream } from "./seed-storage.js";
+
+// ── Storage ──
+
+const storage = createSeedStorage();
+
+const storageExists = async (key: string): Promise<boolean> => {
+  const result = await storage.head(key);
+  return result.ok;
+};
+
+const uploadBuffer = async (
+  key: string,
+  buffer: Buffer,
+  contentType: string,
+): Promise<void> => {
+  const result = await storage.upload(key, bufferToStream(buffer), {
+    contentType,
+    contentLength: buffer.byteLength,
+  });
+  if (!result.ok) throw new Error(`Failed to upload ${key}: ${result.error.message}`);
+};
 
 // ── Image download helper ──
-
-const UPLOADS_DIR = node_path.resolve(
-  import.meta.dirname ?? ".",
-  "../../uploads",
-);
-
-const fileExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 const downloadImage = async (
   picsumId: number,
@@ -52,8 +62,7 @@ const downloadImage = async (
   height: number,
   storageKey: string,
 ): Promise<void> => {
-  const filePath = node_path.join(UPLOADS_DIR, storageKey);
-  if (await fileExists(filePath)) return;
+  if (await storageExists(storageKey)) return;
 
   const url = `https://picsum.photos/id/${picsumId}/${width}/${height}.jpg`;
   const response = await fetch(url);
@@ -61,8 +70,7 @@ const downloadImage = async (
     throw new Error(`Failed to download image: ${url} (${response.status})`);
   }
   const buffer = Buffer.from(await response.arrayBuffer());
-  await mkdir(node_path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, buffer);
+  await uploadBuffer(storageKey, buffer, "image/jpeg");
 };
 
 // ── Audio generation helper ──
@@ -145,6 +153,23 @@ const generateVideo = async (
   ], { timeout: 60_000 });
 };
 
+const generateAndUploadVideo = async (
+  color: string,
+  duration: number,
+  label: string,
+  storageKey: string,
+): Promise<void> => {
+  if (await storageExists(storageKey)) return;
+  const tmpPath = node_path.join(tmpdir(), `seed-${Date.now()}.mp4`);
+  try {
+    await generateVideo(color, duration, label, tmpPath);
+    const buffer = await readFile(tmpPath);
+    await uploadBuffer(storageKey, buffer, "video/mp4");
+  } finally {
+    await unlink(tmpPath).catch(() => {});
+  }
+};
+
 const databaseUrl = process.env["DATABASE_URL"];
 
 if (!databaseUrl) {
@@ -160,15 +185,69 @@ const now = new Date();
 // ── Deterministic IDs ──
 
 const USER_IDS = {
-  alex: "seed_user_alex",
-  maya: "seed_user_maya",
-  jordan: "seed_user_jordan",
-  sam: "seed_user_sam",
-  pat: "seed_user_pat",
+  alex: "00000000-0000-4000-a000-000000000001",
+  maya: "00000000-0000-4000-a000-000000000002",
+  jordan: "00000000-0000-4000-a000-000000000003",
+  sam: "00000000-0000-4000-a000-000000000004",
+  pat: "00000000-0000-4000-a000-000000000005",
+} as const;
+
+const CONTENT_IDS = {
+  c01: "00000000-0000-4000-a000-000000000101",
+  c02: "00000000-0000-4000-a000-000000000102",
+  c03: "00000000-0000-4000-a000-000000000103",
+  c04: "00000000-0000-4000-a000-000000000104",
+  c05: "00000000-0000-4000-a000-000000000105",
+  c06: "00000000-0000-4000-a000-000000000106",
+  c07: "00000000-0000-4000-a000-000000000107",
+  c08: "00000000-0000-4000-a000-000000000108",
+  c09: "00000000-0000-4000-a000-000000000109",
+  c10: "00000000-0000-4000-a000-000000000110",
+  c11: "00000000-0000-4000-a000-000000000111",
+  c12: "00000000-0000-4000-a000-000000000112",
+} as const;
+
+const PLAN_IDS = {
+  platformMonthly: "00000000-0000-4000-a000-000000000201",
+  platformYearly: "00000000-0000-4000-a000-000000000202",
+  mayaMonthly: "00000000-0000-4000-a000-000000000203",
+  jordanMonthly: "00000000-0000-4000-a000-000000000204",
+} as const;
+
+const SERVICE_IDS = {
+  recording: "00000000-0000-4000-a000-000000000301",
+  mixing: "00000000-0000-4000-a000-000000000302",
+  mastering: "00000000-0000-4000-a000-000000000303",
+  video: "00000000-0000-4000-a000-000000000304",
+  podcast: "00000000-0000-4000-a000-000000000305",
+} as const;
+
+const BOOKING_IDS = {
+  b01: "00000000-0000-4000-a000-000000000401",
+  b02: "00000000-0000-4000-a000-000000000402",
+  b03: "00000000-0000-4000-a000-000000000403",
+  b04: "00000000-0000-4000-a000-000000000404",
 } as const;
 
 try {
   console.log("Seeding demo data...\n");
+
+  // ── Clean up legacy seed records (non-UUID IDs from earlier seed versions) ──
+
+  // Order matters: child tables first (FK constraints)
+  await db.delete(bookingRequests).where(like(bookingRequests.id, "seed_%"));
+  await db.delete(emissions).where(or(like(emissions.id, "seed_%"), like(emissions.id, "seed_projected_%")));
+  await db.delete(content).where(like(content.id, "seed_%"));
+  await db.delete(subscriptionPlans).where(like(subscriptionPlans.id, "seed_%"));
+  await db.delete(services).where(like(services.id, "seed_%"));
+  await db.delete(creatorMembers).where(like(creatorMembers.creatorId, "seed_%"));
+  await db.delete(creatorProfiles).where(like(creatorProfiles.id, "seed_%"));
+  await db.delete(accounts).where(like(accounts.id, "seed_%"));
+  await db.delete(userRoles).where(like(userRoles.userId, "seed_%"));
+  const legacyCleanup = await db.delete(users).where(like(users.id, "seed_%"));
+
+  const cleaned = legacyCleanup.length;
+  if (cleaned > 0) console.log(`  Legacy cleanup: ${cleaned} old seed records removed`);
 
   // ── Hash shared password ──
 
@@ -205,7 +284,7 @@ try {
   // ── Accounts (credential provider for login) ──
 
   const accountRows = userRows.map((u) => ({
-    id: `seed_account_${u.id}`,
+    id: `${u.id}_account`,
     userId: u.id,
     accountId: u.id,
     providerId: "credential",
@@ -329,6 +408,7 @@ try {
     creatorId: string;
     type: ContentType;
     title: string;
+    slug: string;
     description: string;
     visibility: Visibility;
     publishedAt: Date;
@@ -338,138 +418,150 @@ try {
   }> = [
     // Maya — audio
     {
-      id: "seed_content_01",
+      id: CONTENT_IDS.c01,
       creatorId: USER_IDS.maya,
       type: "audio",
       title: "Midnight Frequencies",
+      slug: "midnight-frequencies",
       description: "A late-night ambient session recorded live in one take.",
       visibility: "public",
       publishedAt: daysAgo(90),
-      thumbnailKey: "content/seed_content_01/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_01/media/midnight-frequencies.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c01}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c01}/media/midnight-frequencies.wav`,
     },
     {
-      id: "seed_content_02",
+      id: CONTENT_IDS.c02,
       creatorId: USER_IDS.maya,
       type: "audio",
       title: "Synthesis Lab — Episode 3",
+      slug: "synthesis-lab-episode-3",
       description: "Exploring granular synthesis techniques with modular gear.",
       visibility: "subscribers",
       publishedAt: daysAgo(60),
-      thumbnailKey: "content/seed_content_02/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_02/media/synthesis-lab-ep3.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c02}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c02}/media/synthesis-lab-ep3.wav`,
     },
     {
-      id: "seed_content_03",
+      id: CONTENT_IDS.c03,
       creatorId: USER_IDS.maya,
       type: "video",
       title: "Studio Tour 2026",
+      slug: "studio-tour-2026",
       description: "Walk through my updated home studio setup.",
       visibility: "public",
       publishedAt: daysAgo(45),
-      thumbnailKey: "content/seed_content_03/thumbnail/thumb.jpg",
-      mediaKey: "content/seed_content_03/media/studio-tour.mp4",
+      thumbnailKey: `content/${CONTENT_IDS.c03}/thumbnail/thumb.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c03}/media/studio-tour.mp4`,
     },
     {
-      id: "seed_content_04",
+      id: CONTENT_IDS.c04,
       creatorId: USER_IDS.maya,
       type: "written",
       title: "On Co-ops and Creative Freedom",
+      slug: "on-co-ops-and-creative-freedom",
       description: "Why I joined a platform cooperative.",
       body: "I spent years uploading music to platforms that treated me like a line item. The algorithm decided who heard my work, the payout was pennies, and I had zero say in how anything worked.\n\nWhen S/NC started forming, I was skeptical — another platform promising to be different. But the difference is structural: we actually own this thing. Decisions go through the members. Revenue splits are transparent. Nobody is optimizing for engagement metrics at the expense of the art.\n\nIt's not perfect. Building a co-op is slow, messy, and full of meetings. But I'd rather have a seat at the table than be product on someone else's.",
       visibility: "public",
       publishedAt: daysAgo(20),
-      thumbnailKey: "content/seed_content_04/thumbnail/thumb.jpg",
+      thumbnailKey: `content/${CONTENT_IDS.c04}/thumbnail/thumb.jpg`,
     },
     // Jordan — audio/video
     {
-      id: "seed_content_05",
+      id: CONTENT_IDS.c05,
       creatorId: USER_IDS.jordan,
       type: "audio",
       title: "Backyard Demo — Unfinished",
+      slug: "backyard-demo-unfinished",
       description: "Raw demo recorded on a four-track in the backyard.",
       visibility: "public",
       publishedAt: daysAgo(85),
-      thumbnailKey: "content/seed_content_05/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_05/media/backyard-demo.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c05}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c05}/media/backyard-demo.wav`,
     },
     {
-      id: "seed_content_06",
+      id: CONTENT_IDS.c06,
       creatorId: USER_IDS.jordan,
       type: "audio",
       title: "Kitchen Floor (Single)",
+      slug: "kitchen-floor-single",
       description: "New single from the upcoming album.",
       visibility: "subscribers",
       publishedAt: daysAgo(40),
-      thumbnailKey: "content/seed_content_06/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_06/media/kitchen-floor.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c06}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c06}/media/kitchen-floor.wav`,
     },
     {
-      id: "seed_content_07",
+      id: CONTENT_IDS.c07,
       creatorId: USER_IDS.jordan,
       type: "video",
       title: "Live at The Basement — Full Set",
+      slug: "live-at-the-basement-full-set",
       description: "Full 45-minute set from last month's show at The Basement.",
       visibility: "public",
       publishedAt: daysAgo(15),
-      thumbnailKey: "content/seed_content_07/thumbnail/thumb.jpg",
-      mediaKey: "content/seed_content_07/media/live-basement.mp4",
+      thumbnailKey: `content/${CONTENT_IDS.c07}/thumbnail/thumb.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c07}/media/live-basement.mp4`,
     },
     {
-      id: "seed_content_08",
+      id: CONTENT_IDS.c08,
       creatorId: USER_IDS.jordan,
       type: "written",
       title: "Gear Rundown: What I Actually Use",
+      slug: "gear-rundown-what-i-actually-use",
       description: "Honest breakdown of my recording setup — no sponsorships.",
       body: "People ask about my gear a lot, so here it is. Nothing fancy.\n\nGuitar: 2004 Fender Telecaster, sunburst. Bought it used for $600. It does everything I need.\n\nAmp: Fender Blues Junior. Small, loud enough for clubs, takes pedals well.\n\nRecording: Focusrite Scarlett 2i2 into Reaper. I tried the expensive DAWs but Reaper does what I need for $60.\n\nMics: SM57 on the amp, AT2020 for vocals. That's it.\n\nThe point is: you don't need much. Write good songs, record them honestly, and move on.",
       visibility: "public",
       publishedAt: daysAgo(5),
-      thumbnailKey: "content/seed_content_08/thumbnail/thumb.jpg",
+      thumbnailKey: `content/${CONTENT_IDS.c08}/thumbnail/thumb.jpg`,
     },
     // Sam — audio/video/written
     {
-      id: "seed_content_09",
+      id: CONTENT_IDS.c09,
       creatorId: USER_IDS.sam,
       type: "audio",
       title: "Concrete Hymns",
+      slug: "concrete-hymns",
       description: "Spoken word piece over lo-fi beats about city life.",
       visibility: "public",
       publishedAt: daysAgo(70),
-      thumbnailKey: "content/seed_content_09/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_09/media/concrete-hymns.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c09}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c09}/media/concrete-hymns.wav`,
     },
     {
-      id: "seed_content_10",
+      id: CONTENT_IDS.c10,
       creatorId: USER_IDS.sam,
       type: "video",
       title: "Open Mic Night Highlights",
+      slug: "open-mic-night-highlights",
       description: "Best moments from the monthly open mic I host downtown.",
       visibility: "public",
       publishedAt: daysAgo(30),
-      thumbnailKey: "content/seed_content_10/thumbnail/thumb.jpg",
-      mediaKey: "content/seed_content_10/media/open-mic.mp4",
+      thumbnailKey: `content/${CONTENT_IDS.c10}/thumbnail/thumb.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c10}/media/open-mic.mp4`,
     },
     {
-      id: "seed_content_11",
+      id: CONTENT_IDS.c11,
       creatorId: USER_IDS.sam,
       type: "written",
       title: "Writing Process: From Freestyle to Final Draft",
+      slug: "writing-process-from-freestyle-to-final-draft",
       description: "How I develop ideas from improvisation to finished pieces.",
       body: "Every piece starts as a freestyle. I record myself riffing on a theme — sometimes in the car, sometimes walking around. Most of it is garbage. But there's usually one line, one image, one rhythm that sticks.\n\nI pull that thread. Write it out longhand, no editing. Then I read it aloud and cut everything that doesn't earn its place. If a line is there because it sounds clever but doesn't serve the piece, it goes.\n\nThe beat comes last. I find something that matches the energy of the words, not the other way around. The words lead.",
       visibility: "subscribers",
       publishedAt: daysAgo(10),
-      thumbnailKey: "content/seed_content_11/thumbnail/thumb.jpg",
+      thumbnailKey: `content/${CONTENT_IDS.c11}/thumbnail/thumb.jpg`,
     },
     {
-      id: "seed_content_12",
+      id: CONTENT_IDS.c12,
       creatorId: USER_IDS.sam,
       type: "audio",
       title: "Brick by Brick (feat. Local Voices)",
+      slug: "brick-by-brick-feat-local-voices",
       description: "Collaborative track featuring spoken word from community members.",
       visibility: "public",
       publishedAt: daysAgo(3),
-      thumbnailKey: "content/seed_content_12/thumbnail/cover.jpg",
-      mediaKey: "content/seed_content_12/media/brick-by-brick.wav",
+      thumbnailKey: `content/${CONTENT_IDS.c12}/thumbnail/cover.jpg`,
+      mediaKey: `content/${CONTENT_IDS.c12}/media/brick-by-brick.wav`,
     },
   ];
 
@@ -485,6 +577,7 @@ try {
         target: content.id,
         set: {
           title: c.title,
+          slug: c.slug,
           description: c.description,
           body: c.body ?? null,
           visibility: c.visibility,
@@ -501,7 +594,7 @@ try {
 
   const planRows = [
     {
-      id: "seed_plan_platform_monthly",
+      id: PLAN_IDS.platformMonthly,
       name: "S/NC Monthly",
       type: "platform",
       stripePriceId: "price_seed_platform_monthly",
@@ -509,7 +602,7 @@ try {
       interval: "month",
     },
     {
-      id: "seed_plan_platform_yearly",
+      id: PLAN_IDS.platformYearly,
       name: "S/NC Yearly",
       type: "platform",
       stripePriceId: "price_seed_platform_yearly",
@@ -517,7 +610,7 @@ try {
       interval: "year",
     },
     {
-      id: "seed_plan_maya_monthly",
+      id: PLAN_IDS.mayaMonthly,
       name: "Maya Chen Monthly",
       type: "creator",
       creatorId: USER_IDS.maya,
@@ -526,7 +619,7 @@ try {
       interval: "month",
     },
     {
-      id: "seed_plan_jordan_monthly",
+      id: PLAN_IDS.jordanMonthly,
       name: "Jordan Ellis Monthly",
       type: "creator",
       creatorId: USER_IDS.jordan,
@@ -552,7 +645,7 @@ try {
 
   const serviceRows = [
     {
-      id: "seed_service_recording",
+      id: SERVICE_IDS.recording,
       name: "Recording Session",
       description:
         "Professional recording in our studio space. Includes engineer, microphones, and basic mixing. Bring your instruments and ideas.",
@@ -560,7 +653,7 @@ try {
       sortOrder: 1,
     },
     {
-      id: "seed_service_mixing",
+      id: SERVICE_IDS.mixing,
       name: "Mixing",
       description:
         "Full mix of your recorded tracks. We balance levels, EQ, compression, and effects to make your recording sound polished and cohesive.",
@@ -568,7 +661,7 @@ try {
       sortOrder: 2,
     },
     {
-      id: "seed_service_mastering",
+      id: SERVICE_IDS.mastering,
       name: "Mastering",
       description:
         "Final mastering for digital and physical release. Loudness optimization, stereo enhancement, and format delivery.",
@@ -576,7 +669,7 @@ try {
       sortOrder: 3,
     },
     {
-      id: "seed_service_video",
+      id: SERVICE_IDS.video,
       name: "Video Production",
       description:
         "Music videos, live session recordings, and promotional content. Includes filming, editing, and color grading.",
@@ -584,7 +677,7 @@ try {
       sortOrder: 4,
     },
     {
-      id: "seed_service_podcast",
+      id: SERVICE_IDS.podcast,
       name: "Podcast Production",
       description:
         "End-to-end podcast production: recording, editing, mixing, and publishing. Studio space and equipment provided.",
@@ -618,9 +711,9 @@ try {
     reviewNote?: string;
   }> = [
     {
-      id: "seed_booking_01",
+      id: BOOKING_IDS.b01,
       userId: USER_IDS.maya,
-      serviceId: "seed_service_recording",
+      serviceId: SERVICE_IDS.recording,
       preferredDates: ["2026-03-15", "2026-03-16"],
       notes: "Need to record vocals and synth for 4 tracks. Bringing my own controller.",
       status: "approved",
@@ -628,25 +721,25 @@ try {
       reviewNote: "Confirmed — Studio A is available both days.",
     },
     {
-      id: "seed_booking_02",
+      id: BOOKING_IDS.b02,
       userId: USER_IDS.jordan,
-      serviceId: "seed_service_video",
+      serviceId: SERVICE_IDS.video,
       preferredDates: ["2026-03-20"],
       notes: "Live session video for the new single. Acoustic setup, minimal production.",
       status: "pending",
     },
     {
-      id: "seed_booking_03",
+      id: BOOKING_IDS.b03,
       userId: USER_IDS.sam,
-      serviceId: "seed_service_podcast",
+      serviceId: SERVICE_IDS.podcast,
       preferredDates: ["2026-03-10", "2026-03-12", "2026-03-14"],
       notes: "Interview series — 3 episodes with local artists. Need studio and 2 mics.",
       status: "pending",
     },
     {
-      id: "seed_booking_04",
+      id: BOOKING_IDS.b04,
       userId: USER_IDS.pat,
-      serviceId: "seed_service_recording",
+      serviceId: SERVICE_IDS.recording,
       preferredDates: ["2026-04-01"],
       notes: "First time recording. Just want to lay down a few guitar tracks to see how it goes.",
       status: "denied",
@@ -673,7 +766,7 @@ try {
 
   // ── Download images from picsum.photos ──
   // Uses deterministic image IDs so every seed run gets the same photos.
-  // Skips files that already exist on disk.
+  // Skips files that already exist in storage.
 
   console.log("\n  Downloading images (skipping existing)...");
 
@@ -693,26 +786,25 @@ try {
     { picsumId: 1039, width: 1200, height: 400, key: creatorRows[1]!.bannerKey },
     { picsumId: 1042, width: 1200, height: 400, key: creatorRows[2]!.bannerKey },
     // Content thumbnails (square for audio, 16:9 for video/written)
-    { picsumId: 1062, width: 600, height: 600, key: "content/seed_content_01/thumbnail/cover.jpg" },
-    { picsumId: 1067, width: 600, height: 600, key: "content/seed_content_02/thumbnail/cover.jpg" },
-    { picsumId: 1069, width: 800, height: 450, key: "content/seed_content_03/thumbnail/thumb.jpg" },
-    { picsumId: 1073, width: 800, height: 450, key: "content/seed_content_04/thumbnail/thumb.jpg" },
-    { picsumId: 1074, width: 600, height: 600, key: "content/seed_content_05/thumbnail/cover.jpg" },
-    { picsumId: 1076, width: 600, height: 600, key: "content/seed_content_06/thumbnail/cover.jpg" },
-    { picsumId: 1080, width: 800, height: 450, key: "content/seed_content_07/thumbnail/thumb.jpg" },
-    { picsumId: 1082, width: 800, height: 450, key: "content/seed_content_08/thumbnail/thumb.jpg" },
-    { picsumId: 1083, width: 600, height: 600, key: "content/seed_content_09/thumbnail/cover.jpg" },
-    { picsumId: 1084, width: 800, height: 450, key: "content/seed_content_10/thumbnail/thumb.jpg" },
-    { picsumId: 1057, width: 800, height: 450, key: "content/seed_content_11/thumbnail/thumb.jpg" },
-    { picsumId: 1059, width: 600, height: 600, key: "content/seed_content_12/thumbnail/cover.jpg" },
+    { picsumId: 1062, width: 600, height: 600, key: `content/${CONTENT_IDS.c01}/thumbnail/cover.jpg` },
+    { picsumId: 1067, width: 600, height: 600, key: `content/${CONTENT_IDS.c02}/thumbnail/cover.jpg` },
+    { picsumId: 1069, width: 800, height: 450, key: `content/${CONTENT_IDS.c03}/thumbnail/thumb.jpg` },
+    { picsumId: 1073, width: 800, height: 450, key: `content/${CONTENT_IDS.c04}/thumbnail/thumb.jpg` },
+    { picsumId: 1074, width: 600, height: 600, key: `content/${CONTENT_IDS.c05}/thumbnail/cover.jpg` },
+    { picsumId: 1076, width: 600, height: 600, key: `content/${CONTENT_IDS.c06}/thumbnail/cover.jpg` },
+    { picsumId: 1080, width: 800, height: 450, key: `content/${CONTENT_IDS.c07}/thumbnail/thumb.jpg` },
+    { picsumId: 1082, width: 800, height: 450, key: `content/${CONTENT_IDS.c08}/thumbnail/thumb.jpg` },
+    { picsumId: 1083, width: 600, height: 600, key: `content/${CONTENT_IDS.c09}/thumbnail/cover.jpg` },
+    { picsumId: 1084, width: 800, height: 450, key: `content/${CONTENT_IDS.c10}/thumbnail/thumb.jpg` },
+    { picsumId: 1057, width: 800, height: 450, key: `content/${CONTENT_IDS.c11}/thumbnail/thumb.jpg` },
+    { picsumId: 1059, width: 600, height: 600, key: `content/${CONTENT_IDS.c12}/thumbnail/cover.jpg` },
   ];
 
   let downloaded = 0;
   let skipped = 0;
 
   for (const img of IMAGE_DOWNLOADS) {
-    const filePath = node_path.join(UPLOADS_DIR, img.key);
-    if (await fileExists(filePath)) {
+    if (await storageExists(img.key)) {
       skipped++;
       continue;
     }
@@ -733,26 +825,24 @@ try {
     frequency: number;
     duration: number;
   }> = [
-    { key: "content/seed_content_01/media/midnight-frequencies.wav", frequency: 220, duration: 10 },
-    { key: "content/seed_content_02/media/synthesis-lab-ep3.wav", frequency: 330, duration: 15 },
-    { key: "content/seed_content_05/media/backyard-demo.wav", frequency: 196, duration: 8 },
-    { key: "content/seed_content_06/media/kitchen-floor.wav", frequency: 261, duration: 12 },
-    { key: "content/seed_content_09/media/concrete-hymns.wav", frequency: 174, duration: 10 },
-    { key: "content/seed_content_12/media/brick-by-brick.wav", frequency: 293, duration: 15 },
+    { key: `content/${CONTENT_IDS.c01}/media/midnight-frequencies.wav`, frequency: 220, duration: 10 },
+    { key: `content/${CONTENT_IDS.c02}/media/synthesis-lab-ep3.wav`, frequency: 330, duration: 15 },
+    { key: `content/${CONTENT_IDS.c05}/media/backyard-demo.wav`, frequency: 196, duration: 8 },
+    { key: `content/${CONTENT_IDS.c06}/media/kitchen-floor.wav`, frequency: 261, duration: 12 },
+    { key: `content/${CONTENT_IDS.c09}/media/concrete-hymns.wav`, frequency: 174, duration: 10 },
+    { key: `content/${CONTENT_IDS.c12}/media/brick-by-brick.wav`, frequency: 293, duration: 15 },
   ];
 
   let audioGenerated = 0;
   let audioSkipped = 0;
 
   for (const spec of AUDIO_SPECS) {
-    const filePath = node_path.join(UPLOADS_DIR, spec.key);
-    if (await fileExists(filePath)) {
+    if (await storageExists(spec.key)) {
       audioSkipped++;
       continue;
     }
     const wavBuffer = generateWav(spec.frequency, spec.duration);
-    await mkdir(node_path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, wavBuffer);
+    await uploadBuffer(spec.key, wavBuffer, "audio/wav");
     audioGenerated++;
   }
 
@@ -768,9 +858,9 @@ try {
     duration: number;
     label: string;
   }> = [
-    { key: "content/seed_content_03/media/studio-tour.mp4", color: "0x003366", duration: 10, label: "Studio Tour 2026" },
-    { key: "content/seed_content_07/media/live-basement.mp4", color: "0x8B0000", duration: 8, label: "Live at The Basement" },
-    { key: "content/seed_content_10/media/open-mic.mp4", color: "0x006400", duration: 12, label: "Open Mic Night" },
+    { key: `content/${CONTENT_IDS.c03}/media/studio-tour.mp4`, color: "0x003366", duration: 10, label: "Studio Tour 2026" },
+    { key: `content/${CONTENT_IDS.c07}/media/live-basement.mp4`, color: "0x8B0000", duration: 8, label: "Live at The Basement" },
+    { key: `content/${CONTENT_IDS.c10}/media/open-mic.mp4`, color: "0x006400", duration: 12, label: "Open Mic Night" },
   ];
 
   if (await isFfmpegAvailable()) {
@@ -780,12 +870,11 @@ try {
     let videoSkipped = 0;
 
     for (const spec of VIDEO_SPECS) {
-      const filePath = node_path.join(UPLOADS_DIR, spec.key);
-      if (await fileExists(filePath)) {
+      if (await storageExists(spec.key)) {
         videoSkipped++;
         continue;
       }
-      await generateVideo(spec.color, spec.duration, spec.label, filePath);
+      await generateAndUploadVideo(spec.color, spec.duration, spec.label, spec.key);
       videoGenerated++;
     }
 

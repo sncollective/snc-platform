@@ -7,6 +7,7 @@ import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
+import { useState } from "react";
 import styles from "./audio-detail.module.css";
 
 // ── Public Types ──
@@ -40,6 +41,7 @@ export function AudioDetail({
   editCallbacks,
 }: AudioDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
+  const [lockedImgBroken, setLockedImgBroken] = useState(false);
 
   const coverArtSrc = item.thumbnailUrl;
 
@@ -47,13 +49,14 @@ export function AudioDetail({
     return (
       <div className={styles.audioDetail}>
         <div className={styles.header}>
-          {coverArtSrc ? (
+          {coverArtSrc && !lockedImgBroken ? (
             <img
               src={coverArtSrc}
               alt={`Thumbnail for ${item.title}`}
               className={styles.coverArt}
               width={280}
               height={280}
+              onError={() => setLockedImgBroken(true)}
             />
           ) : (
             <div className={styles.coverArtPlaceholder} />
