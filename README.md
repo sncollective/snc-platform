@@ -17,7 +17,9 @@ Built as an alternative to extractive platforms.
 | **Payments** | [Stripe](https://stripe.com) (subscriptions, checkout, webhooks) |
 | **Merch** | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) (headless) |
 | **Validation** | [Zod 4](https://zod.dev) (API + shared), [zod/mini](https://zod.dev) (frontend) |
-| **Testing** | [Vitest](https://vitest.dev), Testing Library (1,298 tests across 3 packages) |
+| **Testing** | [Vitest](https://vitest.dev), Testing Library, [Playwright](https://playwright.dev) (e2e) |
+| **Object Storage** | [Garage](https://garagehq.deuxfleurs.fr) (S3-compatible, production) |
+| **Logging** | [pino](https://getpino.io) (structured JSON, request-scoped via hono-pino) |
 | **Styling** | CSS Modules + CSS custom properties (design tokens) |
 | **Package Manager** | pnpm 10+ with workspaces |
 | **Reverse Proxy** | [Caddy](https://caddyserver.com) (dev + production) |
@@ -37,21 +39,21 @@ snc/
 │   │   │   ├── middleware/    # Auth, CORS, error handler, content gating
 │   │   │   ├── routes/       # Domain-grouped route handlers
 │   │   │   ├── services/     # Stripe, Shopify, revenue integrations
-│   │   │   └── storage/      # Pluggable StorageProvider (local filesystem)
-│   │   ├── tests/            # API tests (344 tests)
+│   │   │   └── storage/      # Pluggable StorageProvider (local or S3)
+│   │   ├── tests/            # API tests
 │   │   └── drizzle/          # SQL migrations
 │   └── web/                  # TanStack Start frontend
 │       ├── src/
-│       │   ├── routes/       # File-based routes (17 pages)
+│       │   ├── routes/       # File-based routes
 │       │   ├── components/   # React components by domain
 │       │   ├── contexts/     # Audio player context (reducer + provider)
 │       │   ├── hooks/        # Shared hooks (pagination, auth guards, etc.)
 │       │   ├── lib/          # API clients, auth, formatting utilities
 │       │   └── styles/       # Global CSS + shared CSS modules
-│       └── tests/            # Web tests (567 tests)
+│       └── tests/            # Web tests
 ├── packages/
 │   └── shared/               # Zod schemas, types, error classes, Result<T,E>
-│       ├── src/              # Shared source (387 tests)
+│       ├── src/
 │       └── tests/
 ├── docker-compose.yml        # PostgreSQL 16
 ├── .env.example              # Environment template
@@ -98,9 +100,16 @@ CORS_ORIGIN=http://localhost:3080
 BETTER_AUTH_SECRET=<your-32+-char-secret>
 BETTER_AUTH_URL=http://localhost:3080
 
-# Storage (defaults work for local dev)
+# Storage (local for dev, s3 for production)
 STORAGE_TYPE=local
 STORAGE_LOCAL_DIR=./uploads
+
+# S3-compatible storage (required when STORAGE_TYPE=s3)
+# S3_ENDPOINT=https://your-s3-endpoint
+# S3_REGION=garage
+# S3_BUCKET=your-bucket
+# S3_ACCESS_KEY_ID=your-access-key
+# S3_SECRET_ACCESS_KEY=your-secret-key
 
 # Stripe (optional) — get from https://dashboard.stripe.com/apikeys
 # Subscription/billing features return 503 when not set. The rest of the app works.
@@ -155,19 +164,25 @@ The API runs with `--watch` for automatic restarts. The web server uses Vite HMR
 ## Running Tests
 
 ```bash
-# All tests (1,298 total)
+# All unit tests
 pnpm test
 
 # By workspace
-pnpm --filter @snc/api test       # 344 API tests
-pnpm --filter @snc/web test       # 567 web tests
-pnpm --filter @snc/shared test    # 387 shared tests
+pnpm --filter @snc/api test
+pnpm --filter @snc/web test
+pnpm --filter @snc/shared test
 
 # Watch mode
 pnpm --filter @snc/api test -- --watch
 ```
 
-Tests mock all external services (Stripe, Shopify, database). No running services are needed to run the test suite.
+Unit tests mock all external services (Stripe, Shopify, database). No running services are needed.
+
+E2E tests use Playwright against a running dev environment:
+
+```bash
+pnpm --filter @snc/e2e test
+```
 
 ## Available Scripts
 
@@ -195,14 +210,31 @@ Tests mock all external services (Stripe, Shopify, database). No running service
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | API server port |
+| `LOG_LEVEL` | `info` | pino log level (`debug`, `info`, `warn`, `error`) |
 | `CORS_ORIGIN` | `http://localhost:3080` | Allowed CORS origin(s), comma-separated |
 | `BETTER_AUTH_URL` | `http://localhost:3080` | Auth service base URL |
-| `STORAGE_TYPE` | `local` | Storage backend (`local`) |
+| `STORAGE_TYPE` | `local` | Storage backend (`local` or `s3`) |
 | `STORAGE_LOCAL_DIR` | `./uploads` | Upload directory for local storage |
+| `S3_ENDPOINT` | — | S3-compatible endpoint URL (required when `STORAGE_TYPE=s3`) |
+| `S3_REGION` | `garage` | S3 region |
+| `S3_BUCKET` | — | S3 bucket name |
+| `S3_ACCESS_KEY_ID` | — | S3 access key |
+| `S3_SECRET_ACCESS_KEY` | — | S3 secret key |
 | `STRIPE_SECRET_KEY` | — | Stripe API key (billing returns 503 without it) |
 | `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook secret (billing returns 503 without it) |
 | `SHOPIFY_STORE_DOMAIN` | — | Shopify `.myshopify.com` domain (merch returns 503 without it) |
 | `SHOPIFY_STOREFRONT_TOKEN` | — | Shopify Storefront API token (merch returns 503 without it) |
+| `OWNCAST_URL` | — | Owncast instance URL (streaming returns 503 without it) |
+| `FEDERATION_DOMAIN` | `s-nc.org` | ActivityPub federation domain |
+| `SEAFILE_OIDC_CLIENT_ID` | — | Seafile OIDC client ID (OIDC provider inactive without it) |
+| `SEAFILE_OIDC_CLIENT_SECRET` | — | Seafile OIDC client secret |
+| `SMTP_HOST` | — | SMTP server (email features degrade gracefully without it) |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USER` | — | SMTP username |
+| `SMTP_PASS` | — | SMTP password |
+| `EMAIL_FROM` | `S/NC <noreply@s-nc.org>` | Sender address for outbound email |
+| `STUDIO_INQUIRY_EMAIL` | — | Email address for studio booking inquiries |
+| `FEATURE_*` | `true` | Feature flags — see [Feature Flags](docs/feature-flags.md) |
 | `VITE_API_URL` | `http://localhost:3000` | API URL for the frontend (in `apps/web/.env.local`) |
 
 ## API Endpoints
@@ -214,24 +246,30 @@ The API serves OpenAPI 3.1 documentation at `/api/openapi`. Key endpoint groups:
 | Health | `GET /api/health` | Public | Health check |
 | Auth | `/api/auth/*` | Public | Sign up, sign in, sign out (Better Auth) |
 | Me | `GET /api/me` | Authenticated | Current user + session + roles |
+| Admin | `/api/admin/*` | Admin | User management, role assignment |
 | Content | `/api/content/*` | Mixed | CRUD, upload, feed, media streaming |
-| Creators | `/api/creators/*` | Mixed | Profiles, avatar/banner upload, listing |
+| Creators | `/api/creators/*` | Mixed | Profiles, avatar/banner, team members, events |
+| Projects | `/api/projects/*` | Mixed | Creator project/series management |
+| Calendar | `/api/calendar/*` | Stakeholder | Cooperative calendar, event types, iCal feed |
 | Subscriptions | `/api/subscriptions/*` | Mixed | Plans, checkout, cancel |
 | Webhooks | `POST /api/webhooks/stripe` | Stripe signature | Payment event processing |
 | Merch | `/api/merch/*` | Public | Product listing, detail, checkout |
 | Bookings | `/api/bookings/*` | Mixed | Services, booking requests, review |
-| Dashboard | `/api/dashboard/*` | Cooperative member | Revenue, subscribers, bookings KPIs |
+| Dashboard | `/api/dashboard/*` | Stakeholder | Revenue, subscribers, bookings KPIs |
+| Studio | `/api/studio/*` | Stakeholder | Studio dashboard |
+| Emissions | `/api/emissions/*` | Stakeholder | Carbon tracking and reporting |
+| Streaming | `/api/streaming/*` | Mixed | Owncast streaming integration |
+| Federation | `/api/federation/*` | Public | ActivityPub federation endpoints |
+| Upload | `/api/upload/*` | Authenticated | Multipart/presigned upload handling |
 
 ## User Roles
 
-The platform has four roles, assigned via the `user_roles` join table:
+Platform roles are assigned via the `user_roles` join table. Users without a role are registered users; paying users with an active subscription are patrons. "Creator" is an entity type, not a role — users participate in creator teams (see [Creators](docs/creators.md)).
 
 | Role | Capabilities |
 |------|-------------|
-| `subscriber` | Browse content, manage subscriptions, book services (default on signup) |
-| `creator` | Publish content, manage profile/Bandcamp, sell merch |
-| `cooperative-member` | Access dashboard, approve/deny booking requests, view revenue |
-| `service-client` | Request service bookings |
+| `stakeholder` | Cooperative member — access dashboard, calendar, revenue, booking management |
+| `admin` | User management, role assignment, platform administration |
 
 ## Seeding Data
 
@@ -270,7 +308,7 @@ The webhook handler processes these events:
 - `checkout.session.completed`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
-- `invoice.payment_succeeded`
+- `invoice.paid`
 - `invoice.payment_failed`
 
 ## Shopify Merch Setup
@@ -299,7 +337,7 @@ See [CLAUDE.md](./CLAUDE.md) for the full coding conventions reference.
 
 - **Monorepo** — pnpm workspaces, no Turborepo/Nx. Root scripts run across all packages.
 - **Shared package** — `@snc/shared` contains all Zod schemas, TypeScript types, error classes, and the `Result<T, E>` type. Both API and web import from it for end-to-end type safety.
-- **Storage abstraction** — The `StorageProvider` interface allows swapping local filesystem for S3/WebDAV in the future without changing route handlers.
+- **Storage abstraction** — The `StorageProvider` interface supports local filesystem (dev) and S3-compatible storage (production) without changing route handlers.
 - **Content gating** — `checkContentAccess()` middleware enforces 5 priority rules (public, unauth, owner bypass, active subscription, reject) for subscription-based access control.
 - **Cursor pagination** — Keyset pagination via base64-encoded cursors, with a reusable `useCursorPagination<T>` hook on the frontend.
 - **No external charting library** — The dashboard revenue chart is pure CSS.
