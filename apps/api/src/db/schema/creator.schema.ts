@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, jsonb, index, primaryKey } from "drizzle-orm/pg-core";
 
-import type { SocialLink } from "@snc/shared";
+import type { SocialLink, CreatorMemberRole } from "@snc/shared";
 
 import { users } from "./user.schema.js";
 
@@ -36,7 +36,7 @@ export const creatorMembers = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    role: text("role").notNull(), // "owner" | "editor" | "viewer"
+    role: text("role").$type<CreatorMemberRole>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

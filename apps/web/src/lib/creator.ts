@@ -16,7 +16,7 @@ import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
  * users receive `canManage: true` on items they have access to.
  */
 export async function fetchAllCreators(): Promise<CreatorListItem[]> {
-  const res = await apiGet<{ items: CreatorListItem[] }>("/api/creators?limit=50");
+  const res = await apiGet<{ items: CreatorListItem[] }>("/api/creators", { limit: 50 });
   return res.items;
 }
 

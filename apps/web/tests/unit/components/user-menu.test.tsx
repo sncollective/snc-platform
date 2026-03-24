@@ -92,11 +92,11 @@ describe("UserMenu", () => {
 
     render(<UserMenu />);
 
-    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.queryByText("Log out")).toBeNull();
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getByText("Log out")).toBeInTheDocument();
   });
 
   it("does not show 'Creator Settings' link", async () => {
@@ -111,7 +111,7 @@ describe("UserMenu", () => {
     await user.click(screen.getByLabelText("User menu"));
 
     expect(
-      screen.queryByRole("menuitem", { name: "Creator Settings" }),
+      screen.queryByText("Creator Settings"),
     ).toBeNull();
   });
 
@@ -154,7 +154,7 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("menuitem", { name: "Dashboard" });
+    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 
@@ -170,7 +170,7 @@ describe("UserMenu", () => {
     await user.click(screen.getByLabelText("User menu"));
 
     expect(
-      screen.queryByRole("menuitem", { name: "Dashboard" }),
+      screen.queryByRole("link", { name: "Dashboard" }),
     ).toBeNull();
   });
 
@@ -184,15 +184,15 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
       "/settings",
     );
     expect(
-      screen.getByRole("menuitem", { name: "Subscriptions" }),
+      screen.getByRole("link", { name: "Subscriptions" }),
     ).toHaveAttribute("href", "/settings/subscriptions");
     expect(
-      screen.getByRole("menuitem", { name: "My Bookings" }),
+      screen.getByRole("link", { name: "My Bookings" }),
     ).toHaveAttribute("href", "/settings/bookings");
   });
 
@@ -299,7 +299,7 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("menuitem", { name: "Dashboard" });
+    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 });

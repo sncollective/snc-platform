@@ -1,21 +1,12 @@
 import { createFileRoute, getRouteApi, redirect } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
 import type React from "react";
-import type { CalendarEvent } from "@snc/shared";
-import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
 import { EventForm } from "../../../../components/calendar/event-form.js";
 import { CalendarGrid } from "../../../../components/calendar/calendar-grid.js";
 import { TimelineView } from "../../../../components/calendar/timeline-view.js";
 import { ViewToggle } from "../../../../components/calendar/view-toggle.js";
-import type { CalendarViewMode } from "../../../../components/calendar/view-toggle.js";
 import { isFeatureEnabled } from "../../../../lib/config.js";
-import {
-  fetchCreatorEvents,
-  deleteCreatorEvent,
-  fetchEventTypes,
-} from "../../../../lib/calendar.js";
-import { fetchProjects } from "../../../../lib/project.js";
+import { useCalendarState } from "../../../../hooks/use-calendar-state.js";
 import sectionStyles from "../../../../styles/detail-section.module.css";
 import styles from "./calendar-manage.module.css";
 
@@ -35,136 +26,7 @@ export const Route = createFileRoute("/creators/$creatorId/manage/calendar")({
 function ManageCalendarPage(): React.ReactElement {
   const { creator } = manageRoute.useLoaderData();
 
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
-  const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
-  const [projectFilter, setProjectFilter] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [eventTypeOptions, setEventTypeOptions] = useState<{ value: string; label: string }[]>([]);
-  const [projectOptions, setProjectOptions] = useState<{ id: string; name: string }[]>([]);
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
-  const [reloadKey, setReloadKey] = useState(0);
-
-  // ── Date range navigation ──
-  const [monthOffset, setMonthOffset] = useState(0);
-
-  // Derive display values from monthOffset (no mutation)
-  const monthLabel = (() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + monthOffset);
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  })();
-
-  const currentYear = (() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + monthOffset);
-    return d.getFullYear();
-  })();
-
-  const currentMonthIndex = (() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + monthOffset);
-    return d.getMonth();
-  })();
-
-  useEffect(() => {
-    fetchEventTypes()
-      .then((res) => {
-        setEventTypeOptions(
-          res.items.map((et) => ({ value: et.slug, label: et.label })),
-        );
-      })
-      .catch(() => {
-        setEventTypeOptions(
-          Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({
-            value: slug,
-            label,
-          })),
-        );
-      });
-  }, []);
-
-  useEffect(() => {
-    fetchProjects({ completed: "false", creatorId: creator.id })
-      .then((res) => {
-        setProjectOptions(res.items.map((p) => ({ id: p.id, name: p.name })));
-      })
-      .catch(() => {});
-  }, [creator.id]);
-
-  useEffect(() => {
-    if (viewMode === "timeline") return;
-
-    // Derive date range from monthOffset directly
-    const ref = new Date();
-    ref.setMonth(ref.getMonth() + monthOffset);
-    const from = new Date(ref.getFullYear(), ref.getMonth(), 0);
-    const to = new Date(ref.getFullYear(), ref.getMonth() + 1, 1, 23, 59, 59);
-
-    const params: Record<string, string> = {
-      from: from.toISOString(),
-      to: to.toISOString(),
-    };
-    if (eventTypeFilter) params.eventType = eventTypeFilter;
-    if (projectFilter) params.projectId = projectFilter;
-
-    let cancelled = false;
-    fetchCreatorEvents(creator.id, params)
-      .then((result) => {
-        if (!cancelled) setEvents(result.items);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load events");
-      });
-
-    return () => { cancelled = true; };
-  }, [monthOffset, eventTypeFilter, projectFilter, viewMode, reloadKey, creator.id]);
-
-  const handlePrev = () => {
-    setMonthOffset((o) => o - 1);
-  };
-
-  const handleNext = () => {
-    setMonthOffset((o) => o + 1);
-  };
-
-  const handleEventTypeChange = (value: string) => {
-    setEventTypeFilter(value);
-  };
-
-  const handleFormSuccess = () => {
-    setShowForm(false);
-    setEditingEvent(undefined);
-    setReloadKey((k) => k + 1);
-  };
-
-  const handleEdit = (id: string) => {
-    const event = events.find((e) => e.id === id);
-    if (event) {
-      setEditingEvent(event);
-      setShowForm(true);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    try {
-      await deleteCreatorEvent(creator.id, id);
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete event");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleNewEvent = () => {
-    setEditingEvent(undefined);
-    setShowForm(true);
-  };
+  const cal = useCalendarState({ creatorId: creator.id });
 
   return (
     <div className={styles.calendarManage}>
@@ -174,109 +36,102 @@ function ManageCalendarPage(): React.ReactElement {
           <button
             type="button"
             className={styles.newEventButton}
-            onClick={handleNewEvent}
+            onClick={cal.handleNewEvent}
           >
             New Event
           </button>
         </div>
 
-        {error !== null && (
+        {cal.error !== null && (
           <div className={styles.error} role="alert">
-            {error}
+            {cal.error}
           </div>
         )}
 
         {/* View Toggle */}
-        <ViewToggle activeView={viewMode} onViewChange={setViewMode} />
+        <ViewToggle activeView={cal.viewMode} onViewChange={cal.setViewMode} />
 
         {/* Filters */}
         <div className={styles.filterRow}>
           <select
-            value={eventTypeFilter}
-            onChange={(e) => handleEventTypeChange(e.target.value)}
+            value={cal.eventTypeFilter}
+            onChange={(e) => cal.setEventTypeFilter(e.target.value)}
             className={styles.filterSelect}
+            aria-label="Filter by event type"
           >
             <option value="">All event types</option>
-            {eventTypeOptions.map((opt) => (
+            {cal.eventTypeOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </select>
           <select
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
+            value={cal.projectFilter}
+            onChange={(e) => cal.setProjectFilter(e.target.value)}
             className={styles.filterSelect}
+            aria-label="Filter by project"
           >
             <option value="">All projects</option>
-            {projectOptions.map((p) => (
+            {cal.projectOptions.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
 
         {/* Event Form */}
-        {showForm && (
+        {cal.showForm && (
           <div className={styles.formWrapper}>
             <EventForm
-              event={editingEvent}
+              event={cal.editingEvent}
               creatorId={creator.id}
-              defaultProjectId={projectFilter || undefined}
-              defaultEventType={eventTypeFilter || undefined}
-              onSuccess={handleFormSuccess}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingEvent(undefined);
-              }}
-              onDeleted={() => {
-                if (editingEvent) {
-                  setEvents((prev) => prev.filter((e) => e.id !== editingEvent.id));
-                }
-                setShowForm(false);
-                setEditingEvent(undefined);
-              }}
+              defaultProjectId={cal.projectFilter || undefined}
+              defaultEventType={cal.eventTypeFilter || undefined}
+              onSuccess={cal.handleFormSuccess}
+              onCancel={cal.handleFormCancel}
+              onDeleted={cal.handleFormDeleted}
             />
           </div>
         )}
 
         {/* Month View */}
-        {viewMode === "month" && (
+        {cal.viewMode === "month" && (
           <>
             <div className={styles.navRow}>
               <button
                 type="button"
                 className={styles.navButton}
-                onClick={handlePrev}
+                onClick={cal.handlePrev}
               >
                 Previous
               </button>
-              <span className={styles.monthLabel}>{monthLabel}</span>
+              <span className={styles.monthLabel}>{cal.monthLabel}</span>
               <button
                 type="button"
                 className={styles.navButton}
-                onClick={handleNext}
+                onClick={cal.handleNext}
               >
                 Next
               </button>
             </div>
             <CalendarGrid
-              events={events}
-              year={currentYear}
-              month={currentMonthIndex}
-              onEventClick={handleEdit}
+              events={cal.events}
+              year={cal.currentYear}
+              month={cal.currentMonthIndex}
+              onEventClick={cal.handleEdit}
             />
           </>
         )}
 
         {/* Timeline View */}
-        {viewMode === "timeline" && (
+        {cal.viewMode === "timeline" && (
           <TimelineView
-            eventTypeFilter={eventTypeFilter}
+            eventTypeFilter={cal.eventTypeFilter}
             creatorFilter=""
-            projectFilter={projectFilter}
+            projectFilter={cal.projectFilter}
             creatorId={creator.id}
-            onEdit={handleEdit}
-            onDelete={(id) => { void handleDelete(id); }}
+            onEdit={cal.handleEdit}
+            onDelete={(id) => { void cal.handleDelete(id); }}
           />
         )}
       </section>

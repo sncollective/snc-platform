@@ -21,7 +21,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { hashPassword } from "better-auth/crypto";
 
-import type { ContentType, SocialLink, Visibility } from "@snc/shared";
+import type { BookingStatus, ContentType, SocialLink, Visibility } from "@snc/shared";
 
 import { users, accounts, userRoles } from "../db/schema/user.schema.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
@@ -248,9 +248,9 @@ try {
   // ── User Roles ──
 
   const roleRows = [
-    { userId: USER_IDS.alex, role: "admin" },
-    { userId: USER_IDS.alex, role: "stakeholder" },
-    { userId: USER_IDS.maya, role: "stakeholder" },
+    { userId: USER_IDS.alex, role: "admin" as const },
+    { userId: USER_IDS.alex, role: "stakeholder" as const },
+    { userId: USER_IDS.maya, role: "stakeholder" as const },
   ];
 
   for (const r of roleRows) {
@@ -634,7 +634,16 @@ try {
 
   // ── Booking Requests ──
 
-  const bookingRows = [
+  const bookingRows: Array<{
+    id: string;
+    userId: string;
+    serviceId: string;
+    preferredDates: string[];
+    notes: string;
+    status: BookingStatus;
+    reviewedBy?: string;
+    reviewNote?: string;
+  }> = [
     {
       id: "seed_booking_01",
       userId: USER_IDS.maya,

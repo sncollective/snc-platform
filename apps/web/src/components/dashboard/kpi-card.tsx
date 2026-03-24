@@ -1,5 +1,7 @@
 import type React from "react";
 
+import { clsx } from "clsx/lite";
+
 import styles from "./kpi-card.module.css";
 
 // ── Public Types ──
@@ -21,9 +23,7 @@ export function KpiCard({
   isLoading,
   valueClassName,
 }: KpiCardProps): React.ReactElement {
-  const valueClass = valueClassName
-    ? `${styles.value} ${valueClassName}`
-    : styles.value;
+  const valueClass = clsx(styles.value, valueClassName);
   return (
     <div className={styles.card}>
       <p className={styles.label}>{label}</p>

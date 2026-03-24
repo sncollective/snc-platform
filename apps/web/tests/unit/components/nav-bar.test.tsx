@@ -117,7 +117,7 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("menuitem", { name: "Dashboard" });
+    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
   });
 
@@ -130,7 +130,7 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.queryByRole("menuitem", { name: "Dashboard" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
   });
 
 });

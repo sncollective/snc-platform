@@ -15,7 +15,7 @@ const LOADING_HEIGHTS = [60, 80, 45, 90, 70, 55, 85, 65, 75, 50, 95, 40]; // per
 // ── Public Types ──
 
 export interface RevenueChartProps {
-  readonly data: MonthlyRevenue[];
+  readonly data: readonly MonthlyRevenue[];
   readonly isLoading?: boolean;
 }
 

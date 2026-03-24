@@ -39,7 +39,7 @@ export async function fetchDrafts(
 ): Promise<{ items: ContentResponse[]; nextCursor: string | null }> {
   const params: Record<string, string> = { creatorId, limit: "12" };
   if (cursor) params.cursor = cursor;
-  return apiGet("/api/content/drafts", params);
+  return apiGet<{ items: ContentResponse[]; nextCursor: string | null }>("/api/content/drafts", params);
 }
 
 export async function publishContent(id: string): Promise<ContentResponse> {

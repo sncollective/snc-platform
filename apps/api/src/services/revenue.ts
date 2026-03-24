@@ -1,22 +1,18 @@
 import { AppError, ok, err, type Result, type MonthlyRevenue } from "@snc/shared";
 
 import { wrapStripeErrorGranular } from "./external-error.js";
-import { getStripe, ensureConfigured } from "./stripe-client.js";
-
-// ── Private Helpers ──
-
-const wrapRevenueError = wrapStripeErrorGranular;
+import { getStripe } from "./stripe-client.js";
 
 // ── Public API ──
 
 export const getMonthlyRevenue = async (
   months: number,
 ): Promise<Result<MonthlyRevenue[], AppError>> => {
-  const configured = ensureConfigured();
-  if (!configured.ok) return err(configured.error);
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return err(stripeResult.error);
+  const stripe = stripeResult.value;
 
   try {
-    const stripe = getStripe();
     const now = new Date();
     const startDate = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1),
@@ -53,6 +49,6 @@ export const getMonthlyRevenue = async (
     result.reverse();
     return ok(result);
   } catch (e) {
-    return err(wrapRevenueError(e));
+    return err(wrapStripeErrorGranular(e));
   }
 };

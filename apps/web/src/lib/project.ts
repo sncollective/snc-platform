@@ -18,7 +18,7 @@ export async function fetchProjects(
 }
 
 export async function fetchProject(id: string): Promise<ProjectResponse> {
-  return apiGet<ProjectResponse>(`/api/projects/${id}`);
+  return apiGet<ProjectResponse>(`/api/projects/${encodeURIComponent(id)}`);
 }
 
 export async function createProject(data: CreateProject): Promise<Project> {
@@ -32,7 +32,7 @@ export async function updateProject(
   id: string,
   data: UpdateProject,
 ): Promise<Project> {
-  const result = await apiMutate<{ project: Project }>(`/api/projects/${id}`, {
+  const result = await apiMutate<{ project: Project }>(`/api/projects/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: data,
   });
@@ -40,12 +40,12 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  await apiMutate<undefined>(`/api/projects/${id}`, { method: "DELETE" });
+  await apiMutate<undefined>(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function fetchProjectEvents(
   id: string,
   params?: Record<string, string | number | undefined>,
 ): Promise<CalendarEventsResponse> {
-  return apiGet<CalendarEventsResponse>(`/api/projects/${id}/events`, params);
+  return apiGet<CalendarEventsResponse>(`/api/projects/${encodeURIComponent(id)}/events`, params);
 }

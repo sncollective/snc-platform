@@ -10,6 +10,7 @@ import { getValidReturnTo } from "../../lib/return-to.js";
 import { navigateExternal } from "../../lib/url.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
+import { FormField } from "./form-field.js";
 
 // ── Private Constants ──
 
@@ -22,15 +23,19 @@ type LoginFields = z.infer<typeof LOGIN_SCHEMA>;
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
+// ── Public Types ──
+
+export interface LoginFormProps {
+  readonly oidcAuthorizeUrl?: string | null;
+  readonly returnTo?: string | undefined;
+}
+
 // ── Public API ──
 
 export function LoginForm({
   oidcAuthorizeUrl,
   returnTo,
-}: {
-  oidcAuthorizeUrl?: string | null;
-  returnTo?: string;
-}) {
+}: LoginFormProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -98,56 +103,30 @@ export function LoginForm({
         </div>
       )}
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="login-email" className={formStyles.label}>
-          Email
-        </label>
-        <input
-          id="login-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={
-            fieldErrors.email
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="email"
-          required
-        />
-        {fieldErrors.email && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.email}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="login-email"
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        error={fieldErrors.email}
+        autoComplete="email"
+        required
+      />
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="login-password" className={formStyles.label}>
-          Password
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={
-            fieldErrors.password
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="current-password"
-          required
-        />
-        {fieldErrors.password && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.password}
-          </span>
-        )}
-        <Link to="/forgot-password" className={styles.forgotLink}>
-          Forgot password?
-        </Link>
-      </div>
+      <FormField
+        id="login-password"
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        error={fieldErrors.password}
+        autoComplete="current-password"
+        required
+      />
+      <Link to="/forgot-password" className={styles.forgotLink}>
+        Forgot password?
+      </Link>
 
       <button
         type="submit"

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
+
 // ── Public Constants ──
 
 export const SOCIAL_PLATFORMS = [
@@ -21,7 +23,7 @@ export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 export const PLATFORM_CONFIG: Record<
   SocialPlatform,
-  { displayName: string; urlPattern?: RegExp }
+  { readonly displayName: string; readonly urlPattern?: RegExp }
 > = {
   bandcamp: {
     displayName: "Bandcamp",
@@ -150,10 +152,7 @@ export const CreatorListItemSchema = CreatorProfileResponseSchema.extend({
   lastPublishedAt: z.string().nullable().optional(),
 });
 
-export const CreatorListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(24),
-  cursor: z.string().optional(),
-});
+export const CreatorListQuerySchema = createPaginationQuery({ max: 50, default: 24 });
 
 export const CreatorListResponseSchema = z.object({
   items: z.array(CreatorListItemSchema),
@@ -192,10 +191,9 @@ export const CreatorMemberCandidateSchema = z.object({
   roles: z.array(z.string()),
 });
 
-export const CandidatesQuerySchema = z.object({
-  q: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-});
+export const CandidatesQuerySchema = createPaginationQuery({ max: 50, default: 20 })
+  .omit({ cursor: true })
+  .extend({ q: z.string().optional() });
 
 export const CandidatesResponseSchema = z.object({
   candidates: z.array(CreatorMemberCandidateSchema),

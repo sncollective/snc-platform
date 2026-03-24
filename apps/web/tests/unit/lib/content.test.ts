@@ -46,6 +46,7 @@ describe("createContent", () => {
       type: "audio",
       title: "Test Track",
       visibility: "subscribers",
+      sourceType: "upload",
     });
 
     expect(getMockFetch()).toHaveBeenCalledWith(
@@ -59,6 +60,7 @@ describe("createContent", () => {
           type: "audio",
           title: "Test Track",
           visibility: "subscribers",
+          sourceType: "upload",
         }),
       },
     );
@@ -74,7 +76,7 @@ describe("createContent", () => {
     );
 
     await expect(
-      createContent({ creatorId: "test_creator", type: "audio", title: "Test", visibility: "public" }),
+      createContent({ creatorId: "test_creator", type: "audio", title: "Test", visibility: "public", sourceType: "upload" }),
     ).rejects.toThrow("Unauthorized");
   });
 
@@ -87,7 +89,7 @@ describe("createContent", () => {
     );
 
     await expect(
-      createContent({ creatorId: "test_creator", type: "audio", title: "", visibility: "public" }),
+      createContent({ creatorId: "test_creator", type: "audio", title: "", visibility: "public", sourceType: "upload" }),
     ).rejects.toThrow("Validation failed");
   });
 });

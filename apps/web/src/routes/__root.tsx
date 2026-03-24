@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 import { logClientError } from "../lib/client-logger.js";
 import { installGlobalErrorHandlers } from "../lib/global-error-handlers.js";
+import { useRouteAnnouncer } from "../hooks/use-route-announcer.js";
 
 import { ErrorPage } from "../components/error/error-page.js";
 import { NavBar } from "../components/layout/nav-bar.js";
@@ -68,6 +69,7 @@ function RootComponent() {
 }
 
 export function RootLayout() {
+  useRouteAnnouncer();
   const { authState } = Route.useLoaderData();
 
   return (

@@ -22,22 +22,22 @@ import {
   getProductByHandle,
   createCheckoutUrl,
 } from "../services/shopify.js";
-import { getFrontendBaseUrl } from "./route-utils.js";
+import { getFrontendBaseUrl } from "../lib/route-utils.js";
 import type { ShopifyProductNode } from "../services/shopify.js";
 import {
   ERROR_400,
   ERROR_404,
   ERROR_502,
   ERROR_503,
-} from "./openapi-errors.js";
-import { encodeCursor, decodeRawCursor } from "./cursor.js";
+} from "../lib/openapi-errors.js";
+import { encodeCursor, decodeRawCursor } from "../lib/cursor.js";
 
 // ── Private Helpers ──
 
 const priceToCents = (amount: string): number =>
   Math.round(parseFloat(amount) * 100);
 
-const extractCreatorId = (tags: string[]): string | null => {
+const extractCreatorId = (tags: readonly string[]): string | null => {
   const tag = tags.find((t) => t.startsWith(CREATOR_TAG_PREFIX));
   return tag !== undefined ? tag.slice(CREATOR_TAG_PREFIX.length) : null;
 };

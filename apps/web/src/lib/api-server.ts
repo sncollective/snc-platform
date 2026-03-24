@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 
 import type { AuthState } from "./auth.js";
+import { extractErrorMessage } from "./fetch-utils.js";
 import { ssrLogger } from "./logger.js";
 
 /** Resolve the API base URL from server-only env vars with fallback. */
@@ -50,10 +51,7 @@ export const fetchApiServer = createServerFn({ method: "GET" })
       headers: forwardCookies(),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      const message =
-        (body as { error?: { message?: string } } | null)?.error?.message ??
-        res.statusText;
+      const message = await extractErrorMessage(res);
       ssrLogger.warn(
         { endpoint, statusCode: res.status, error: message },
         "SSR API fetch failed",

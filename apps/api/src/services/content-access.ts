@@ -53,11 +53,11 @@ export type ContentGateResult =
 // ── Batch Access (for feed gating without N+1 queries) ──
 
 export type ContentAccessContext = {
-  userId: string | null;
-  roles: string[];
-  memberCreatorIds: Set<string>;
-  subscribedCreatorIds: Set<string>;
-  hasPlatformSubscription: boolean;
+  readonly userId: string | null;
+  readonly roles: string[];
+  readonly memberCreatorIds: Set<string>;
+  readonly subscribedCreatorIds: Set<string>;
+  readonly hasPlatformSubscription: boolean;
 };
 
 /**
@@ -157,6 +157,9 @@ export const hasContentAccess = (
 /**
  * When `prefetchedRoles` is provided (e.g. from Hono context after
  * `requireAuth`), the `getUserRoles` DB query is skipped.
+ *
+ * Delegates to `buildContentAccessContext` + `hasContentAccess` to ensure
+ * the 5-priority access rules have a single source of truth.
  */
 export const checkContentAccess = async (
   userId: string | null,
@@ -164,12 +167,7 @@ export const checkContentAccess = async (
   contentVisibility: Visibility,
   prefetchedRoles?: string[],
 ): Promise<ContentGateResult> => {
-  // Rule 1: Public content is always accessible
-  if (contentVisibility === "public") {
-    return { allowed: true };
-  }
-
-  // Rule 2: Unauthenticated users cannot access gated content
+  if (contentVisibility === "public") return { allowed: true };
   if (userId === null) {
     return {
       allowed: false,
@@ -178,67 +176,11 @@ export const checkContentAccess = async (
     };
   }
 
-  // Rule 3: Any creator team member has access to their own creator's content
-  const memberRow = await db
-    .select({ role: creatorMembers.role })
-    .from(creatorMembers)
-    .where(
-      and(
-        eq(creatorMembers.userId, userId),
-        eq(creatorMembers.creatorId, contentCreatorId),
-      ),
-    );
-  if (memberRow.length > 0) {
+  const ctx = await buildContentAccessContext(userId, prefetchedRoles);
+  if (hasContentAccess(ctx, contentCreatorId, contentVisibility)) {
     return { allowed: true };
   }
 
-  // Rule 4: Stakeholders get free access to all content
-  const roles = prefetchedRoles ?? (await getUserRoles(userId));
-  if (roles.includes("stakeholder")) {
-    return { allowed: true };
-  }
-
-  // Rule 4b: Any creator team member (on any creator) gets free access
-  const anyMembership = await db
-    .select({ creatorId: creatorMembers.creatorId })
-    .from(creatorMembers)
-    .where(eq(creatorMembers.userId, userId))
-    .limit(1);
-  if (anyMembership.length > 0) {
-    return { allowed: true };
-  }
-
-  // Rule 5: Check for an active subscription covering this creator
-  const now = new Date();
-
-  const rows = await db
-    .select({ id: userSubscriptions.id })
-    .from(userSubscriptions)
-    .innerJoin(
-      subscriptionPlans,
-      eq(userSubscriptions.planId, subscriptionPlans.id),
-    )
-    .where(
-      and(
-        eq(userSubscriptions.userId, userId),
-        buildSubscriptionStatusCondition(now),
-        // Plan must be platform-wide OR creator-specific for this creator
-        or(
-          eq(subscriptionPlans.type, "platform"),
-          and(
-            eq(subscriptionPlans.type, "creator"),
-            eq(subscriptionPlans.creatorId, contentCreatorId),
-          ),
-        ),
-      ),
-    )
-    .limit(1);
-
-  if (rows.length > 0) {
-    return { allowed: true };
-  }
-
-  // Rule 6: No matching subscription found
   return {
     allowed: false,
     reason: "SUBSCRIPTION_REQUIRED",

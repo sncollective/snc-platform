@@ -271,7 +271,11 @@ describe("webhook routes", () => {
         const event = makeInvoicePaidEvent({
           data: {
             object: {
-              subscription: "sub_test_xxxxxxxxxxxx",
+              parent: {
+                subscription_details: {
+                  subscription: "sub_test_xxxxxxxxxxxx",
+                },
+              },
               lines: { data: [{ period: { end: periodEndUnix } }] },
             },
           },
@@ -324,7 +328,9 @@ describe("webhook routes", () => {
             object: {
               id: "sub_test_xxxxxxxxxxxx",
               status: "canceled",
-              current_period_end: periodEndUnix,
+              items: {
+                data: [{ current_period_end: periodEndUnix }],
+              },
               cancel_at_period_end: true,
             },
           },

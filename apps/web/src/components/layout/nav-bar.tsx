@@ -2,9 +2,11 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
-import { NAV_LINKS } from "../../config/navigation.js";
+import { NAV_LINKS, isNavLinkActive } from "../../config/navigation.js";
 import { UserMenu } from "./user-menu.js";
 import { MobileMenu } from "./mobile-menu.js";
+import { clsx } from "clsx/lite";
+
 import styles from "./nav-bar.module.css";
 
 // ── Public API ──
@@ -32,18 +34,12 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
               return null;
             }
 
-            const pathMatches = !link.external && !link.disabled &&
-              (currentPath === link.to || currentPath.startsWith(`${link.to}/`));
-            const isActive = pathMatches && !NAV_LINKS.some(
-              (other) => other !== link && !other.external && other.to.startsWith(link.to) &&
-                other.to.length > link.to.length &&
-                (currentPath === other.to || currentPath.startsWith(`${other.to}/`)),
-            );
-            const className = [
+            const isActive = isNavLinkActive(link, currentPath, NAV_LINKS);
+            const className = clsx(
               styles.navLink,
               link.disabled && styles.navLinkDisabled,
               isActive && styles.navLinkActive,
-            ].filter(Boolean).join(" ");
+            );
 
             return (
               <li key={link.to}>

@@ -14,7 +14,7 @@ const SCOPE_LABELS: Record<number, string> = {
 // ── Public Types ──
 
 export interface ScopeBreakdownProps {
-  readonly data: { scope: number; co2Kg: number }[];
+  readonly data: readonly { readonly scope: number; readonly co2Kg: number }[];
 }
 
 // ── Public API ──

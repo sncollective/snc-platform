@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
+
 // ── Public Constants ──
 
 export const DEFAULT_EVENT_TYPES = [
@@ -10,7 +12,7 @@ export const DEFAULT_EVENT_TYPES = [
   "other",
 ] as const;
 
-export const DEFAULT_EVENT_TYPE_LABELS: Record<string, string> = {
+export const DEFAULT_EVENT_TYPE_LABELS: Readonly<Record<(typeof DEFAULT_EVENT_TYPES)[number], string>> = {
   "recording-session": "Recording Session",
   "show": "Show",
   "meeting": "Meeting",
@@ -67,14 +69,12 @@ export const UpdateCalendarEventSchema = z.object({
   projectId: z.string().nullable().optional(),
 });
 
-export const CalendarEventsQuerySchema = z.object({
+export const CalendarEventsQuerySchema = createPaginationQuery({ max: 100, default: 50 }).extend({
   from: z.iso.datetime().optional(),
   to: z.iso.datetime().optional(),
   eventType: z.string().optional(),
   projectId: z.string().optional(),
   creatorId: z.string().optional(),
-  cursor: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 export const CalendarEventResponseSchema = z.object({

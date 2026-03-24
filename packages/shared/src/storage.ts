@@ -4,18 +4,18 @@ import type { AppError } from "./errors.js";
 // ── Public Types ──
 
 export type UploadMetadata = {
-  contentType?: string;
-  contentLength?: number;
+  readonly contentType?: string;
+  readonly contentLength?: number;
 };
 
 export type UploadResult = {
-  key: string;
-  size: number;
+  readonly key: string;
+  readonly size: number;
 };
 
 export type DownloadResult = {
-  stream: ReadableStream<Uint8Array>;
-  size: number;
+  readonly stream: ReadableStream<Uint8Array>;
+  readonly size: number;
 };
 
 export type StorageProvider = {

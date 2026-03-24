@@ -8,6 +8,7 @@ import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
+import { FormField } from "./form-field.js";
 
 // ── Private Constants ──
 
@@ -87,77 +88,38 @@ export function RegisterForm() {
         </div>
       )}
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="register-name" className={formStyles.label}>
-          Name
-        </label>
-        <input
-          id="register-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={
-            fieldErrors.name
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="name"
-          required
-        />
-        {fieldErrors.name && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.name}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="register-name"
+        label="Name"
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        error={fieldErrors.name}
+        autoComplete="name"
+        required
+      />
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="register-email" className={formStyles.label}>
-          Email
-        </label>
-        <input
-          id="register-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={
-            fieldErrors.email
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="email"
-          required
-        />
-        {fieldErrors.email && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.email}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="register-email"
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        error={fieldErrors.email}
+        autoComplete="email"
+        required
+      />
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="register-password" className={formStyles.label}>
-          Password
-        </label>
-        <input
-          id="register-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={
-            fieldErrors.password
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="new-password"
-          required
-        />
-        {fieldErrors.password && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.password}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="register-password"
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        error={fieldErrors.password}
+        autoComplete="new-password"
+        required
+      />
 
       <button
         type="submit"

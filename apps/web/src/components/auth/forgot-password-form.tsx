@@ -8,6 +8,7 @@ import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
+import { FormField } from "./form-field.js";
 
 // ── Private Constants ──
 
@@ -29,6 +30,125 @@ type EmailFieldErrors = Partial<Record<"email", string>>;
 type ResetFieldErrors = Partial<
   Record<"otp" | "newPassword" | "confirmPassword", string>
 >;
+
+// ── Private Components ──
+
+interface EmailStepProps {
+  readonly email: string;
+  readonly onEmailChange: (value: string) => void;
+  readonly emailError: string | undefined;
+  readonly serverError: string;
+  readonly isSubmitting: boolean;
+  readonly onSubmit: (e: FormEvent) => void;
+}
+
+function EmailStep({ email, onEmailChange, emailError, serverError, isSubmitting, onSubmit }: EmailStepProps) {
+  return (
+    <form className={styles.form} onSubmit={onSubmit} noValidate>
+      {serverError && (
+        <div className={formStyles.serverError} role="alert">
+          {serverError}
+        </div>
+      )}
+
+      <FormField
+        id="forgot-email"
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => onEmailChange(e.target.value)}
+        error={emailError}
+        autoComplete="email"
+        required
+      />
+
+      <button
+        type="submit"
+        className={formStyles.submitButton}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Sending\u2026" : "Send reset code"}
+      </button>
+    </form>
+  );
+}
+
+interface OtpStepProps {
+  readonly otp: string;
+  readonly onOtpChange: (value: string) => void;
+  readonly newPassword: string;
+  readonly onNewPasswordChange: (value: string) => void;
+  readonly confirmPassword: string;
+  readonly onConfirmPasswordChange: (value: string) => void;
+  readonly resetErrors: ResetFieldErrors;
+  readonly serverError: string;
+  readonly isSubmitting: boolean;
+  readonly onSubmit: (e: FormEvent) => void;
+}
+
+function OtpStep({
+  otp,
+  onOtpChange,
+  newPassword,
+  onNewPasswordChange,
+  confirmPassword,
+  onConfirmPasswordChange,
+  resetErrors,
+  serverError,
+  isSubmitting,
+  onSubmit,
+}: OtpStepProps) {
+  return (
+    <form className={styles.form} onSubmit={onSubmit} noValidate>
+      {serverError && (
+        <div className={formStyles.serverError} role="alert">
+          {serverError}
+        </div>
+      )}
+
+      <FormField
+        id="forgot-otp"
+        label="Reset code"
+        type="text"
+        value={otp}
+        onChange={(e) => onOtpChange(e.target.value)}
+        error={resetErrors.otp}
+        autoComplete="one-time-code"
+        required
+      />
+
+      <FormField
+        id="forgot-new-password"
+        label="New password"
+        type="password"
+        value={newPassword}
+        onChange={(e) => onNewPasswordChange(e.target.value)}
+        error={resetErrors.newPassword}
+        autoComplete="new-password"
+        required
+      />
+
+      <FormField
+        id="forgot-confirm-password"
+        label="Confirm password"
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => onConfirmPasswordChange(e.target.value)}
+        error={resetErrors.confirmPassword}
+        autoComplete="new-password"
+        required
+      />
+
+      <button
+        type="submit"
+        className={formStyles.submitButton}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Resetting\u2026" : "Reset password"}
+      </button>
+    </form>
+  );
+}
 
 // ── Public API ──
 
@@ -141,135 +261,29 @@ export function ForgotPasswordForm() {
 
   if (step === "email") {
     return (
-      <form className={styles.form} onSubmit={handleSendCode} noValidate>
-        {serverError && (
-          <div className={formStyles.serverError} role="alert">
-            {serverError}
-          </div>
-        )}
-
-        <div className={formStyles.fieldGroup}>
-          <label htmlFor="forgot-email" className={formStyles.label}>
-            Email
-          </label>
-          <input
-            id="forgot-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={
-              emailErrors.email
-                ? `${formStyles.input} ${formStyles.inputError}`
-                : formStyles.input
-            }
-            autoComplete="email"
-            required
-          />
-          {emailErrors.email && (
-            <span className={formStyles.fieldError} role="alert">
-              {emailErrors.email}
-            </span>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          className={formStyles.submitButton}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Sending\u2026" : "Send reset code"}
-        </button>
-      </form>
+      <EmailStep
+        email={email}
+        onEmailChange={setEmail}
+        emailError={emailErrors.email}
+        serverError={serverError}
+        isSubmitting={isSubmitting}
+        onSubmit={(e) => void handleSendCode(e)}
+      />
     );
   }
 
   return (
-    <form className={styles.form} onSubmit={handleResetPassword} noValidate>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
-
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="forgot-otp" className={formStyles.label}>
-          Reset code
-        </label>
-        <input
-          id="forgot-otp"
-          type="text"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          className={
-            resetErrors.otp
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="one-time-code"
-          required
-        />
-        {resetErrors.otp && (
-          <span className={formStyles.fieldError} role="alert">
-            {resetErrors.otp}
-          </span>
-        )}
-      </div>
-
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="forgot-new-password" className={formStyles.label}>
-          New password
-        </label>
-        <input
-          id="forgot-new-password"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className={
-            resetErrors.newPassword
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="new-password"
-          required
-        />
-        {resetErrors.newPassword && (
-          <span className={formStyles.fieldError} role="alert">
-            {resetErrors.newPassword}
-          </span>
-        )}
-      </div>
-
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="forgot-confirm-password" className={formStyles.label}>
-          Confirm password
-        </label>
-        <input
-          id="forgot-confirm-password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className={
-            resetErrors.confirmPassword
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="new-password"
-          required
-        />
-        {resetErrors.confirmPassword && (
-          <span className={formStyles.fieldError} role="alert">
-            {resetErrors.confirmPassword}
-          </span>
-        )}
-      </div>
-
-      <button
-        type="submit"
-        className={formStyles.submitButton}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Resetting\u2026" : "Reset password"}
-      </button>
-    </form>
+    <OtpStep
+      otp={otp}
+      onOtpChange={setOtp}
+      newPassword={newPassword}
+      onNewPasswordChange={setNewPassword}
+      confirmPassword={confirmPassword}
+      onConfirmPasswordChange={setConfirmPassword}
+      resetErrors={resetErrors}
+      serverError={serverError}
+      isSubmitting={isSubmitting}
+      onSubmit={(e) => void handleResetPassword(e)}
+    />
   );
 }

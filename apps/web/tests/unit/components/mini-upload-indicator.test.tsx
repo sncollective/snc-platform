@@ -186,7 +186,7 @@ describe("MiniUploadIndicator", () => {
 
     render(<MiniUploadIndicator />);
 
-    const expandBtn = screen.getByRole("button", { name: "▲" });
+    const expandBtn = screen.getByRole("button", { name: /expand upload details/i });
     fireEvent.click(expandBtn);
 
     expect(mockToggleExpanded).toHaveBeenCalledTimes(1);
@@ -218,7 +218,7 @@ describe("MiniUploadIndicator", () => {
 
     render(<MiniUploadIndicator />);
 
-    expect(screen.getByRole("button", { name: "✕" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancel upload for/i })).toBeInTheDocument();
   });
 
   it("per-file cancel button calls cancelUpload with file id", () => {
@@ -232,7 +232,7 @@ describe("MiniUploadIndicator", () => {
 
     render(<MiniUploadIndicator />);
 
-    fireEvent.click(screen.getByRole("button", { name: "✕" }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel upload for/i }));
 
     expect(mockCancelUpload).toHaveBeenCalledWith("u1");
   });

@@ -1,10 +1,8 @@
-import { useState } from "react";
 import type React from "react";
-import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
-import { Link, useNavigate } from "@tanstack/react-router";
+import type { FeedItem, SubscriptionPlan } from "@snc/shared";
+import { Link } from "@tanstack/react-router";
 
-import { deleteContent, updateContent, publishContent, unpublishContent } from "../../lib/content.js";
-import { useUpload } from "../../contexts/upload-context.js";
+import { useContentManagement } from "../../hooks/use-content-management.js";
 import { VideoDetail } from "./video-detail.js";
 import { AudioDetail } from "./audio-detail.js";
 import { WrittenDetail } from "./written-detail.js";
@@ -30,134 +28,7 @@ function isContentLocked(item: FeedItem): boolean {
 
 export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDetailProps): React.ReactElement {
   const locked = isContentLocked(item);
-  const navigate = useNavigate();
-
-  const [isEditing, setIsEditing] = useState(initialEdit ?? false);
-  const [editTitle, setEditTitle] = useState(item.title);
-  const [editDescription, setEditDescription] = useState(item.description ?? "");
-  const [editVisibility, setEditVisibility] = useState<Visibility>(item.visibility);
-  const [editBody, setEditBody] = useState(item.body ?? "");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const { actions: uploadActions } = useUpload();
-
-  const editingItem: FeedItem = isEditing
-    ? { ...item, title: editTitle, description: editDescription, visibility: editVisibility, body: editBody }
-    : item;
-
-  const editCallbacks = isEditing
-    ? {
-        onTitleChange: setEditTitle,
-        onDescriptionChange: setEditDescription,
-        onVisibilityChange: setEditVisibility,
-        ...(item.type === "written" ? { onBodyChange: setEditBody } : {}),
-        onMediaUpload: (file: File) => {
-          uploadActions.startUpload({
-            file,
-            purpose: "content-media",
-            resourceId: item.id,
-            onComplete: () => window.location.reload(),
-            onError: (err) => setSaveError(err.message),
-          });
-        },
-        onThumbnailUpload: (file: File) => {
-          uploadActions.startUpload({
-            file,
-            purpose: "content-thumbnail",
-            resourceId: item.id,
-            onComplete: () => window.location.reload(),
-            onError: (err) => setSaveError(err.message),
-          });
-        },
-        onThumbnailRemove: async () => {
-          try {
-            await updateContent(item.id, { clearThumbnail: true });
-            window.location.reload();
-          } catch (err) {
-            setSaveError(err instanceof Error ? err.message : "Failed to remove thumbnail");
-          }
-        },
-        onMediaRemove: async () => {
-          if (!window.confirm("Remove media file? This cannot be undone.")) return;
-          try {
-            await updateContent(item.id, { clearMedia: true });
-            window.location.reload();
-          } catch (err) {
-            setSaveError(err instanceof Error ? err.message : "Failed to remove media");
-          }
-        },
-      }
-    : undefined;
-
-  const handleSave = async () => {
-    setSaveError(null);
-    setIsSaving(true);
-    try {
-      await updateContent(item.id, {
-        title: editTitle.trim(),
-        description: editDescription.trim() || undefined,
-        visibility: editVisibility,
-        body: item.type === "written" ? editBody : undefined,
-      });
-      setIsEditing(false);
-      window.location.reload();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditTitle(item.title);
-    setEditDescription(item.description ?? "");
-    setEditVisibility(item.visibility);
-    setEditBody(item.body ?? "");
-    setSaveError(null);
-  };
-
-  const handlePublish = async () => {
-    setIsPublishing(true);
-    try {
-      await publishContent(item.id);
-      window.location.reload();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Publish failed");
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const handleUnpublish = async () => {
-    setIsPublishing(true);
-    try {
-      await unpublishContent(item.id);
-      window.location.reload();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Unpublish failed");
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this content?")) return;
-    setDeleteError(null);
-    setIsDeleting(true);
-    try {
-      await deleteContent(item.id);
-      void navigate({ to: "/feed" });
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const mgmt = useContentManagement(item, initialEdit);
 
   return (
     <article className={styles.detailPage}>
@@ -171,21 +42,21 @@ export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDe
             ← Manage
           </Link>
 
-          {isEditing ? (
+          {mgmt.isEditing ? (
             <>
               <button
                 type="button"
                 className={styles.saveButton}
-                onClick={handleSave}
-                disabled={isSaving}
+                onClick={() => void mgmt.save()}
+                disabled={mgmt.isSaving}
               >
-                {isSaving ? "Saving..." : "Save"}
+                {mgmt.isSaving ? "Saving..." : "Save"}
               </button>
               <button
                 type="button"
                 className={styles.cancelEditButton}
-                onClick={handleCancelEdit}
-                disabled={isSaving}
+                onClick={mgmt.cancelEditing}
+                disabled={mgmt.isSaving}
               >
                 Cancel
               </button>
@@ -194,7 +65,7 @@ export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDe
             <button
               type="button"
               className={styles.editButton}
-              onClick={() => setIsEditing(true)}
+              onClick={mgmt.startEditing}
             >
               Edit
             </button>
@@ -204,34 +75,34 @@ export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDe
             <button
               type="button"
               className={styles.unpublishButton}
-              onClick={handleUnpublish}
-              disabled={isPublishing}
+              onClick={() => void mgmt.unpublish()}
+              disabled={mgmt.isPublishing}
             >
-              {isPublishing ? "..." : "Unpublish"}
+              {mgmt.isPublishing ? "..." : "Unpublish"}
             </button>
           ) : (
             <button
               type="button"
               className={styles.publishButton}
-              onClick={handlePublish}
-              disabled={isPublishing || (item.type !== "written" && !item.mediaUrl)}
+              onClick={() => void mgmt.publish()}
+              disabled={mgmt.isPublishing || (item.type !== "written" && !item.mediaUrl)}
             >
-              {isPublishing ? "..." : "Publish"}
+              {mgmt.isPublishing ? "..." : "Publish"}
             </button>
           )}
 
           <button
             type="button"
             className={styles.deleteButton}
-            onClick={handleDelete}
-            disabled={isDeleting}
+            onClick={() => void mgmt.remove()}
+            disabled={mgmt.isDeleting}
           >
-            {isDeleting ? "Deleting..." : "Delete"}
+            {mgmt.isDeleting ? "Deleting..." : "Delete"}
           </button>
 
-          {(saveError ?? deleteError) && (
+          {mgmt.error && (
             <span className={styles.actionError} role="alert">
-              {saveError ?? deleteError}
+              {mgmt.error}
             </span>
           )}
         </div>
@@ -239,29 +110,29 @@ export function ContentDetail({ item, plans, canManage, initialEdit }: ContentDe
 
       {item.type === "video" && (
         <VideoDetail
-          item={editingItem}
+          item={mgmt.editingItem}
           locked={locked}
           plans={plans}
-          isEditing={isEditing}
-          editCallbacks={editCallbacks}
+          isEditing={mgmt.isEditing}
+          {...(mgmt.editCallbacks ? { editCallbacks: mgmt.editCallbacks } : {})}
         />
       )}
       {item.type === "audio" && (
         <AudioDetail
-          item={editingItem}
+          item={mgmt.editingItem}
           locked={locked}
           plans={plans}
-          isEditing={isEditing}
-          editCallbacks={editCallbacks}
+          isEditing={mgmt.isEditing}
+          {...(mgmt.editCallbacks ? { editCallbacks: mgmt.editCallbacks } : {})}
         />
       )}
       {item.type === "written" && (
         <WrittenDetail
-          item={editingItem}
+          item={mgmt.editingItem}
           locked={locked}
           plans={plans}
-          isEditing={isEditing}
-          editCallbacks={editCallbacks}
+          isEditing={mgmt.isEditing}
+          {...(mgmt.editCallbacks ? { editCallbacks: mgmt.editCallbacks } : {})}
         />
       )}
     </article>

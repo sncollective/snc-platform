@@ -137,7 +137,7 @@ export function AudioPlayerProvider({
 
   const actions = useMemo<AudioPlayerActions>(
     () => ({
-      playTrack(track: AudioTrack) {
+      async playTrack(track: AudioTrack) {
         const audio = audioRef.current;
         if (!audio) return;
 
@@ -161,9 +161,11 @@ export function AudioPlayerProvider({
 
         dispatch({ type: "SET_TRACK", track });
         audio.src = track.mediaUrl;
-        audio.play().catch(() => {
+        try {
+          await audio.play();
+        } catch {
           dispatch({ type: "PAUSE" });
-        });
+        }
       },
       pause() {
         audioRef.current?.pause();

@@ -6,7 +6,7 @@ import styles from "./breakdown-table.module.css";
 // ── Public Types ──
 
 export interface CategoryBreakdownProps {
-  readonly data: { category: string; co2Kg: number }[];
+  readonly data: readonly { readonly category: string; readonly co2Kg: number }[];
 }
 
 // ── Public API ──

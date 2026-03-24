@@ -34,8 +34,7 @@ const mockStripeInstance = {
 
 const setupStripeService = async () => {
   vi.doMock("../../src/services/stripe-client.js", () => ({
-    getStripe: () => mockStripeInstance,
-    ensureConfigured: () => ({ ok: true, value: undefined }),
+    getStripe: () => ({ ok: true, value: mockStripeInstance }),
   }));
 
   vi.doMock("../../src/config.js", () => ({
@@ -49,8 +48,7 @@ const setupStripeServiceUnconfigured = async () => {
   const { AppError, err } = await import("@snc/shared");
 
   vi.doMock("../../src/services/stripe-client.js", () => ({
-    getStripe: () => mockStripeInstance,
-    ensureConfigured: () =>
+    getStripe: () =>
       err(
         new AppError(
           "BILLING_NOT_CONFIGURED",

@@ -9,7 +9,7 @@ export const STUDIO_SERVICES = [
 
 export type StudioService = (typeof STUDIO_SERVICES)[number];
 
-export const STUDIO_SERVICE_LABELS: Record<StudioService, string> = {
+export const STUDIO_SERVICE_LABELS: Readonly<Record<StudioService, string>> = {
   recording: "Recording",
   podcast: "Podcast Production",
   "practice-space": "Practice Space",

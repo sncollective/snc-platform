@@ -39,7 +39,7 @@ export const getStreamStatus = async (): Promise<
   Result<OwncastStatus, AppError>
 > => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<OwncastStatus, AppError>;
+  if (!configured.ok) return err(configured.error);
 
   try {
     const response = await fetch(`${OWNCAST_API_URL!}/api/status`);

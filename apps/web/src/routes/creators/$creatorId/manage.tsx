@@ -6,6 +6,8 @@ import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
+import { clsx } from "clsx/lite";
+
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { AccessDeniedError } from "../../../lib/errors.js";
 import { buildLoginRedirect } from "../../../lib/return-to.js";
@@ -13,7 +15,7 @@ import styles from "./manage.module.css";
 
 // ── Types ──
 
-interface ManageLoaderData {
+export interface ManageLoaderData {
   readonly creator: CreatorProfileResponse;
   readonly memberRole: CreatorMemberRole;
   readonly isAdmin: boolean;
@@ -114,7 +116,7 @@ function ManageLayout(): React.ReactElement {
             <Link
               key={tab.to}
               to={tabPath}
-              className={`${styles.tab} ${isActive ? styles.tabActive : ""}`}
+              className={clsx(styles.tab, isActive && styles.tabActive)}
             >
               {tab.label}
             </Link>

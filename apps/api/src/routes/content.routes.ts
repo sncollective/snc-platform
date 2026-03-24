@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
-import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { z } from "zod";
-import { eq, and, isNull, isNotNull, desc, lt, or } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, or } from "drizzle-orm";
 
 import {
   CreateContentSchema,
@@ -12,17 +10,13 @@ import {
   ContentResponseSchema,
   ValidationError,
   NotFoundError,
-  ForbiddenError,
-  UnauthorizedError,
   AppError,
-  ACCEPTED_MIME_TYPES,
-  MAX_FILE_SIZES,
   FeedQuerySchema,
   FeedResponseSchema,
   FeedItemSchema,
   DraftQuerySchema,
 } from "@snc/shared";
-import type { ContentResponse, ContentType, FeedItem, FeedQuery, DraftQuery } from "@snc/shared";
+import type { ContentResponse, FeedItem, FeedQuery, DraftQuery } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
@@ -34,9 +28,8 @@ import { storage } from "../storage/index.js";
 import { requireCreatorPermission, checkCreatorPermission } from "../services/creator-team.js";
 import { getUserRoles } from "../auth/user-roles.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
-import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "./openapi-errors.js";
-import { sanitizeFilename, streamFile } from "./file-utils.js";
-import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { generateUniqueSlug } from "../services/slug.js";
 
 // ── Private Types ──
@@ -44,19 +37,26 @@ import { generateUniqueSlug } from "../services/slug.js";
 type ContentRow = typeof content.$inferSelect;
 type FeedRow = ContentRow & { creatorName: string | null; creatorHandle: string | null };
 
-const UPLOAD_FIELDS = ["media", "thumbnail"] as const;
-type UploadField = (typeof UPLOAD_FIELDS)[number];
-
-type UploadConstraints = {
-  maxSize: number;
-  acceptedTypes: readonly string[];
-};
-
 // ── Private Constants ──
 
-const FIELD_KEY_MAP = {
-  media: "mediaKey",
-  thumbnail: "thumbnailKey",
+const CONTENT_FEED_COLUMNS = {
+  id: content.id,
+  creatorId: content.creatorId,
+  type: content.type,
+  title: content.title,
+  slug: content.slug,
+  body: content.body,
+  description: content.description,
+  visibility: content.visibility,
+  sourceType: content.sourceType,
+  thumbnailKey: content.thumbnailKey,
+  mediaKey: content.mediaKey,
+  publishedAt: content.publishedAt,
+  deletedAt: content.deletedAt,
+  createdAt: content.createdAt,
+  updatedAt: content.updatedAt,
+  creatorName: creatorProfiles.displayName,
+  creatorHandle: creatorProfiles.handle,
 } as const;
 
 // ── Private Helpers ──
@@ -92,19 +92,6 @@ const findActiveContent = async (
   return rows[0];
 };
 
-const fetchCreatorInfo = async (
-  creatorId: string,
-): Promise<{ name: string; handle: string | null }> => {
-  const rows = await db
-    .select({
-      name: creatorProfiles.displayName,
-      handle: creatorProfiles.handle,
-    })
-    .from(creatorProfiles)
-    .where(eq(creatorProfiles.id, creatorId));
-  return { name: rows[0]?.name ?? "Unknown", handle: rows[0]?.handle ?? null };
-};
-
 const requireContentOwnership = async (
   id: string,
   userId: string,
@@ -123,67 +110,37 @@ const resolveFeedItem = (row: FeedRow): FeedItem => ({
   creatorHandle: row.creatorHandle ?? null,
 });
 
-type ContentKeyField = "mediaKey" | "thumbnailKey";
-
-const requireContentFile = async (
-  id: string,
-  keyField: ContentKeyField,
-  notUploadedMsg: string,
-): Promise<{ row: ContentRow; key: string }> => {
-  const row = await findActiveContent(id);
-  if (!row) {
-    throw new NotFoundError("Content not found");
+const requireDraftAccess = async (
+  row: Pick<ContentRow, "publishedAt" | "creatorId">,
+  userId: string | null,
+): Promise<void> => {
+  if (row.publishedAt) return;
+  if (!userId) throw new NotFoundError("Content not found");
+  const roles = await getUserRoles(userId);
+  const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
+  if (!isAdmin) {
+    const hasPermission = await checkCreatorPermission(
+      userId,
+      row.creatorId,
+      "manageContent",
+      roles,
+    );
+    if (!hasPermission) throw new NotFoundError("Content not found");
   }
-
-  const key = row[keyField];
-  if (!key) {
-    throw new NotFoundError(notUploadedMsg);
-  }
-
-  return { row, key };
 };
 
-const streamContentFile = async (
-  c: Context<AuthEnv>,
-  id: string,
-  keyField: ContentKeyField,
-  notUploadedMsg: string,
-  notFoundMsg: string,
-  cacheControl: string,
-): Promise<Response> => {
-  const { key } = await requireContentFile(id, keyField, notUploadedMsg);
-  return streamFile(c, storage, key, notFoundMsg, cacheControl);
-};
-
-const UploadQuerySchema = z.object({
-  field: z.enum(UPLOAD_FIELDS),
-});
-
-const getUploadConstraints = (
-  contentType: ContentType,
-  field: UploadField,
-): UploadConstraints => {
-  if (field === "thumbnail") {
-    return {
-      maxSize: MAX_FILE_SIZES.image,
-      acceptedTypes: ACCEPTED_MIME_TYPES.image,
-    };
+const applyContentGate = async (
+  row: Pick<ContentRow, "creatorId" | "visibility">,
+  userId: string | null,
+  response: ContentResponse,
+): Promise<ContentResponse> => {
+  if (row.visibility !== "subscribers") return response;
+  const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
+  if (!gate.allowed) {
+    response.mediaUrl = null;
+    response.body = null;
   }
-  // field === "media"
-  if (contentType === "video") {
-    return {
-      maxSize: MAX_FILE_SIZES.video,
-      acceptedTypes: ACCEPTED_MIME_TYPES.video,
-    };
-  }
-  if (contentType === "audio") {
-    return {
-      maxSize: MAX_FILE_SIZES.audio,
-      acceptedTypes: ACCEPTED_MIME_TYPES.audio,
-    };
-  }
-  // written content has no media file
-  throw new ValidationError("Written content does not support media uploads");
+  return response;
 };
 
 // ── Public API ──
@@ -263,25 +220,7 @@ contentRoutes.get(
 
     // Query with JOIN to get creatorName and creatorHandle
     const rows = (await db
-      .select({
-        id: content.id,
-        creatorId: content.creatorId,
-        type: content.type,
-        title: content.title,
-        slug: content.slug,
-        body: content.body,
-        description: content.description,
-        visibility: content.visibility,
-        sourceType: content.sourceType,
-        thumbnailKey: content.thumbnailKey,
-        mediaKey: content.mediaKey,
-        publishedAt: content.publishedAt,
-        deletedAt: content.deletedAt,
-        createdAt: content.createdAt,
-        updatedAt: content.updatedAt,
-        creatorName: creatorProfiles.displayName,
-        creatorHandle: creatorProfiles.handle,
-      })
+      .select(CONTENT_FEED_COLUMNS)
       .from(content)
       .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
       .where(and(...conditions))
@@ -420,25 +359,7 @@ contentRoutes.get(
     }
 
     const rows = await db
-      .select({
-        id: content.id,
-        creatorId: content.creatorId,
-        type: content.type,
-        title: content.title,
-        slug: content.slug,
-        body: content.body,
-        description: content.description,
-        visibility: content.visibility,
-        sourceType: content.sourceType,
-        thumbnailKey: content.thumbnailKey,
-        mediaKey: content.mediaKey,
-        publishedAt: content.publishedAt,
-        deletedAt: content.deletedAt,
-        createdAt: content.createdAt,
-        updatedAt: content.updatedAt,
-        creatorName: creatorProfiles.displayName,
-        creatorHandle: creatorProfiles.handle,
-      })
+      .select(CONTENT_FEED_COLUMNS)
       .from(content)
       .innerJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
       .where(and(...conditions))
@@ -514,36 +435,18 @@ contentRoutes.get(
     const row = rows[0];
     if (!row) throw new NotFoundError("Content not found");
 
-    // Draft access control (same as GET /:id)
-    if (!row.publishedAt) {
+    // Resolve session once — used for both draft access and content gating
+    let userId: string | null = null;
+    try {
       const session = await auth.api.getSession({ headers: c.req.raw.headers });
-      const userId = session?.user?.id ?? null;
-      if (!userId) throw new NotFoundError("Content not found");
-      const roles = await getUserRoles(userId);
-      const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
-      if (!isAdmin) {
-        const hasPermission = await checkCreatorPermission(
-          userId,
-          row.creatorId,
-          "manageContent",
-          roles,
-        );
-        if (!hasPermission) throw new NotFoundError("Content not found");
-      }
+      userId = session?.user?.id ?? null;
+    } catch {
+      // No session — treat as unauthenticated
     }
 
-    const response = resolveContentUrls(row);
+    await requireDraftAccess(row, userId);
 
-    // Content gating (same as GET /:id)
-    if (row.visibility === "subscribers") {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
-      const userId = session?.user?.id ?? null;
-      const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
-      if (!gate.allowed) {
-        response.mediaUrl = null;
-        response.body = null;
-      }
-    }
+    const response = await applyContentGate(row, userId, resolveContentUrls(row));
 
     return c.json({
       ...response,
@@ -571,59 +474,40 @@ contentRoutes.get(
   }),
   async (c) => {
     const id = c.req.param("id");
-    const row = await findActiveContent(id);
+
+    // Single query: fetch content + creator name/handle via left join
+    const joined = await db
+      .select({
+        ...CONTENT_FEED_COLUMNS,
+      })
+      .from(content)
+      .leftJoin(creatorProfiles, eq(content.creatorId, creatorProfiles.id))
+      .where(and(eq(content.id, id), isNull(content.deletedAt)));
+    const row = joined[0];
 
     if (!row) {
       throw new NotFoundError("Content not found");
     }
 
-    // Draft access control: only authorized users can preview drafts
-    if (!row.publishedAt) {
+    // Resolve session once — used for both draft access and content gating
+    let userId: string | null = null;
+    try {
       const session = await auth.api.getSession({
         headers: c.req.raw.headers,
       });
-      const userId = session?.user?.id ?? null;
-      if (!userId) {
-        throw new NotFoundError("Content not found");
-      }
-      const roles = await getUserRoles(userId);
-      const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
-      if (!isAdmin) {
-        const hasPermission = await checkCreatorPermission(
-          userId,
-          row.creatorId,
-          "manageContent",
-          roles,
-        );
-        if (!hasPermission) {
-          throw new NotFoundError("Content not found");
-        }
-      }
+      userId = session?.user?.id ?? null;
+    } catch {
+      // No session — treat as unauthenticated
     }
 
-    const response = resolveContentUrls(row);
-    const creatorInfo = await fetchCreatorInfo(row.creatorId);
+    await requireDraftAccess(row, userId);
 
-    if (row.visibility === "subscribers") {
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
-      const userId = session?.user?.id ?? null;
-      const gate = await checkContentAccess(
-        userId,
-        row.creatorId,
-        row.visibility,
-      );
-      if (!gate.allowed) {
-        response.mediaUrl = null;
-        response.body = null;
-      }
-    }
+    const response = await applyContentGate(row, userId, resolveContentUrls(row));
 
     return c.json({
       ...response,
-      creatorName: creatorInfo.name,
-      creatorHandle: creatorInfo.handle,
+      creatorName: row.creatorName ?? "",
+      creatorHandle: row.creatorHandle ?? null,
     });
   },
 );
@@ -845,185 +729,4 @@ contentRoutes.post(
   },
 );
 
-// POST /:id/upload — Upload media file
-contentRoutes.post(
-  "/:id/upload",
-  requireAuth,
-  describeRoute({
-    description: "Upload a media file or thumbnail for content",
-    tags: ["content"],
-    responses: {
-      200: {
-        description: "File uploaded, content metadata updated",
-        content: {
-          "application/json": { schema: resolver(ContentResponseSchema) },
-        },
-      },
-      400: ERROR_400,
-      401: ERROR_401,
-      403: ERROR_403,
-      404: ERROR_404,
-    },
-  }),
-  validator("query", UploadQuerySchema),
-  async (c) => {
-    const { field } = c.req.valid("query" as never) as { field: UploadField };
-    const id = c.req.param("id");
-    const user = c.get("user");
-
-    // Look up content and verify ownership
-    const existing = await requireContentOwnership(id, user.id);
-
-    // Determine constraints for this field + content type
-    const { maxSize, acceptedTypes } = getUploadConstraints(
-      existing.type,
-      field,
-    );
-
-    // Pre-check Content-Length header (reject obviously oversized requests
-    // before parsing the multipart body)
-    const contentLengthHeader = c.req.header("content-length");
-    if (contentLengthHeader) {
-      const contentLength = parseInt(contentLengthHeader, 10);
-      if (!Number.isNaN(contentLength) && contentLength > maxSize) {
-        throw new ValidationError(
-          `File size exceeds the ${maxSize} byte limit for this field`,
-        );
-      }
-    }
-
-    // Parse multipart body
-    const body = await c.req.parseBody();
-    const file = body["file"];
-    if (!(file instanceof File)) {
-      throw new ValidationError("No file provided in 'file' form field");
-    }
-
-    // Validate actual file size
-    if (file.size > maxSize) {
-      throw new ValidationError(
-        `File size ${file.size} exceeds the ${maxSize} byte limit`,
-      );
-    }
-
-    // Validate MIME type
-    if (!(acceptedTypes as readonly string[]).includes(file.type)) {
-      throw new ValidationError(
-        `Invalid MIME type '${file.type}'. Accepted: ${acceptedTypes.join(", ")}`,
-      );
-    }
-
-    // Generate storage key
-    const sanitized = sanitizeFilename(file.name || "upload");
-    const key = `content/${id}/${field}/${sanitized}`;
-
-    // Delete old file if re-uploading
-    const keyColumn = FIELD_KEY_MAP[field];
-    const oldKey = existing[keyColumn];
-    if (oldKey) {
-      const deleteResult = await storage.delete(oldKey);
-      if (!deleteResult.ok) {
-        c.var.logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old storage file");
-      }
-    }
-
-    // Upload new file
-    const stream = file.stream();
-    const uploadResult = await storage.upload(key, stream, {
-      contentType: file.type,
-      contentLength: file.size,
-    });
-
-    if (!uploadResult.ok) {
-      throw new AppError("UPLOAD_ERROR", "Failed to upload file", 500);
-    }
-
-    // Update DB with new storage key
-    const [updated] = await db
-      .update(content)
-      .set({
-        [keyColumn]: key,
-        updatedAt: new Date(),
-      } as Partial<typeof content.$inferInsert>)
-      .where(eq(content.id, id))
-      .returning();
-
-    if (!updated) {
-      throw new NotFoundError("Content not found");
-    }
-
-    return c.json(resolveContentUrls(updated));
-  },
-);
-
-// GET /:id/media — Stream media file
-contentRoutes.get(
-  "/:id/media",
-  describeRoute({
-    description: "Stream the main media file for content",
-    tags: ["content"],
-    responses: {
-      200: {
-        description: "Media file stream",
-        content: {
-          "application/octet-stream": {
-            schema: { type: "string", format: "binary" },
-          },
-        },
-      },
-      401: ERROR_401,
-      403: ERROR_403,
-      404: ERROR_404,
-    },
-  }),
-  async (c) => {
-    const id = c.req.param("id");
-    const { row, key } = await requireContentFile(id, "mediaKey", "No media uploaded for this content");
-
-    // Access check: subscribers-only requires active subscription
-    if (row.visibility === "subscribers") {
-      const session = await auth.api.getSession({
-        headers: c.req.raw.headers,
-      });
-      const userId = session?.user?.id ?? null;
-      const gate = await checkContentAccess(
-        userId,
-        row.creatorId,
-        row.visibility,
-      );
-      if (!gate.allowed) {
-        if (gate.reason === "AUTHENTICATION_REQUIRED") {
-          throw new UnauthorizedError("Authentication required");
-        }
-        throw new ForbiddenError("Subscription required to access this content");
-      }
-    }
-
-    return streamFile(c, storage, key, "Media file not found", "private, max-age=3600");
-  },
-);
-
-// GET /:id/thumbnail — Stream thumbnail image
-contentRoutes.get(
-  "/:id/thumbnail",
-  describeRoute({
-    description: "Stream the thumbnail image for content",
-    tags: ["content"],
-    responses: {
-      200: {
-        description: "Thumbnail image stream",
-        content: {
-          "application/octet-stream": {
-            schema: { type: "string", format: "binary" },
-          },
-        },
-      },
-      404: ERROR_404,
-    },
-  }),
-  async (c) => {
-    const id = c.req.param("id");
-    return streamContentFile(c, id, "thumbnailKey", "No thumbnail uploaded for this content", "Thumbnail file not found", "public, max-age=86400");
-  },
-);
 

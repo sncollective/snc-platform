@@ -6,6 +6,8 @@ import { Link } from "@tanstack/react-router";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { publishContent, deleteContent } from "../../lib/content.js";
 import { useUpload } from "../../contexts/upload-context.js";
+import { clsx } from "clsx/lite";
+
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./draft-content-list.module.css";
 
@@ -124,18 +126,14 @@ function DraftItem({
     <div className={styles.draftItem}>
       <div className={styles.draftItemHeader}>
         <span className={styles.draftTitle}>{item.title}</span>
-        <span className={`${styles.typeBadge} ${styles[`typeBadge_${item.type}`]}`}>
+        <span className={clsx(styles.typeBadge, styles[`typeBadge_${item.type}`])}>
           {item.type}
         </span>
       </div>
 
       <div className={styles.draftMeta}>
         <span
-          className={
-            item.mediaUrl !== null
-              ? `${styles.mediaStatus} ${styles.mediaStatusReady}`
-              : styles.mediaStatus
-          }
+          className={clsx(styles.mediaStatus, item.mediaUrl !== null && styles.mediaStatusReady)}
         >
           {mediaStatus}
         </span>
@@ -175,6 +173,7 @@ function DraftItem({
               type="file"
               className={styles.hiddenFileInput}
               accept={item.type === "audio" ? "audio/*" : "video/*"}
+              aria-label="Upload media file"
               onChange={handleFileChange}
             />
             <button
@@ -193,6 +192,7 @@ function DraftItem({
           type="file"
           className={styles.hiddenFileInput}
           accept="image/*"
+          aria-label="Upload thumbnail"
           onChange={handleThumbnailChange}
         />
         <button
@@ -220,7 +220,7 @@ function DraftItem({
         <button
           type="button"
           className={styles.publishButton}
-          onClick={handlePublish}
+          onClick={() => void handlePublish()}
           disabled={!publishEnabled}
         >
           {isPublishing ? "Publishing..." : "Publish"}
@@ -229,7 +229,7 @@ function DraftItem({
         <button
           type="button"
           className={styles.deleteButton}
-          onClick={handleDelete}
+          onClick={() => void handleDelete()}
           disabled={isPublishing || isDeleting}
         >
           {isDeleting ? "Deleting..." : "Delete"}

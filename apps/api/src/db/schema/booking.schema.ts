@@ -8,6 +8,8 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+import type { BookingStatus } from "@snc/shared";
+
 import { users } from "./user.schema.js";
 
 // ── Services ──
@@ -47,7 +49,7 @@ export const bookingRequests = pgTable(
       .references(() => services.id, { onDelete: "restrict" }),
     preferredDates: jsonb("preferred_dates").$type<string[]>().notNull(),
     notes: text("notes").notNull().default(""),
-    status: text("status").notNull().default("pending"),
+    status: text("status").$type<BookingStatus>().notNull().default("pending"),
     reviewedBy: text("reviewed_by").references(() => users.id, {
       onDelete: "set null",
     }),

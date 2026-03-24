@@ -17,6 +17,8 @@ const {
   mockFetchApiServer,
   mockIsFeatureEnabled,
   mockRedirect,
+  mockNavigate,
+  mockInvalidate,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockUpdateProject: vi.fn(),
@@ -25,11 +27,15 @@ const {
   mockFetchApiServer: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
   mockRedirect: vi.fn(),
+  mockNavigate: vi.fn(),
+  mockInvalidate: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () =>
   createRouterMock({
     redirect: mockRedirect,
+    useNavigate: () => mockNavigate,
+    useRouter: () => ({ invalidate: mockInvalidate }),
     getRouteApi: (routeId: string) => ({
       useLoaderData: routeId === "/creators/$creatorId/manage"
         ? () => ({ creator: { id: "creator-uuid-123", displayName: "Test Creator" }, memberRole: "owner", isAdmin: false, userId: "user-1" })

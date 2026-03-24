@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import type { FeatureFlags } from "@snc/shared";
+import type { NavLink } from "../../../src/config/navigation.js";
 
 afterEach(() => {
   vi.resetModules();
@@ -132,4 +133,110 @@ describe("NAV_LINKS", () => {
     expect(studioLink?.to).toBe("/studio");
   });
 
+});
+
+describe("isNavLinkActive", () => {
+  const makeLink = (overrides: Partial<NavLink> = {}): NavLink => ({
+    to: "/feed",
+    label: "Feed",
+    ...overrides,
+  });
+
+  const allLinks: readonly NavLink[] = [
+    { to: "/feed", label: "Feed" },
+    { to: "/creators", label: "Creators" },
+    { to: "/settings", label: "Settings" },
+    { to: "/settings/subscriptions", label: "Subscriptions" },
+  ];
+
+  it("returns true for exact path match", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const link = makeLink({ to: "/feed" });
+    expect(isNavLinkActive(link, "/feed", allLinks)).toBe(true);
+  });
+
+  it("returns true for prefix match", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const link = makeLink({ to: "/feed" });
+    expect(isNavLinkActive(link, "/feed/123", allLinks)).toBe(true);
+  });
+
+  it("returns false for unrelated path", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const link = makeLink({ to: "/feed" });
+    expect(isNavLinkActive(link, "/creators", allLinks)).toBe(false);
+  });
+
+  it("returns false when a more specific link claims the match", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const settingsLink = makeLink({ to: "/settings", label: "Settings" });
+    expect(isNavLinkActive(settingsLink, "/settings/subscriptions", allLinks)).toBe(false);
+  });
+
+  it("returns true for the more specific link itself", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const subsLink = makeLink({ to: "/settings/subscriptions", label: "Subscriptions" });
+    expect(isNavLinkActive(subsLink, "/settings/subscriptions", allLinks)).toBe(true);
+  });
+
+  it("returns false for external links", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const link = makeLink({ to: "/feed", external: true });
+    expect(isNavLinkActive(link, "/feed", allLinks)).toBe(false);
+  });
+
+  it("returns false for disabled links", async () => {
+    vi.doMock("../../../src/lib/config.js", () => ({
+      DEMO_MODE: false,
+      features: ALL_ON,
+      isFeatureEnabled: (flag: string) => ALL_ON[flag as keyof FeatureFlags],
+    }));
+
+    const { isNavLinkActive } = await import("../../../src/config/navigation.js");
+
+    const link = makeLink({ to: "/feed", disabled: true });
+    expect(isNavLinkActive(link, "/feed", allLinks)).toBe(false);
+  });
 });

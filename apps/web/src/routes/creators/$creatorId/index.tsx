@@ -20,6 +20,8 @@ import { useSession, fetchAuthState } from "../../../lib/auth.js";
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchProducts } from "../../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../../lib/subscription.js";
+import { clsx } from "clsx/lite";
+
 import styles from "../creator-detail.module.css";
 import sectionStyles from "../../../styles/detail-section.module.css";
 import listingStyles from "../../../styles/listing-page.module.css";
@@ -124,8 +126,8 @@ function CreatorDetailPage(): React.ReactElement {
       />
 
       {/* Content Section */}
-      <section className={`${sectionStyles.section} ${styles.section}`}>
-        <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Content</h2>
+      <section className={clsx(sectionStyles.section, styles.section)}>
+        <h2 className={clsx(sectionStyles.sectionHeading, styles.sectionHeading)}>Content</h2>
         <FilterBar
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
@@ -161,8 +163,8 @@ function CreatorDetailPage(): React.ReactElement {
 
       {/* Merch Section */}
       {merchProducts.length > 0 && (
-        <section className={`${sectionStyles.section} ${styles.section}`}>
-          <h2 className={`${sectionStyles.sectionHeading} ${styles.sectionHeading}`}>Merch</h2>
+        <section className={clsx(sectionStyles.section, styles.section)}>
+          <h2 className={clsx(sectionStyles.sectionHeading, styles.sectionHeading)}>Merch</h2>
           <div className="content-grid">
             {merchProducts.map((product) => (
               <ProductCard key={product.handle} product={product} />

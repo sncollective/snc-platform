@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
+
 // ── Public Constants ──
 
 export const BOOKING_STATUSES = ["pending", "approved", "denied"] as const;
@@ -48,10 +50,7 @@ export const ServicesResponseSchema = z.object({
   services: z.array(ServiceSchema),
 });
 
-const BookingPaginationQuerySchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-});
+const BookingPaginationQuerySchema = createPaginationQuery({ max: 50, default: 20 });
 
 export const MyBookingsQuerySchema = BookingPaginationQuerySchema;
 
@@ -87,7 +86,7 @@ export const PendingBookingsResponseSchema = z.object({
 
 export const ReviewBookingRequestSchema = z.object({
   status: z.enum(["approved", "denied"]),
-  reviewNote: z.string().max(2000).optional(),
+  reviewNote: z.string().max(MAX_BOOKING_NOTES_LENGTH).optional(),
 });
 
 // ── Public Types ──

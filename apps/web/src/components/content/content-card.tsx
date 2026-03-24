@@ -2,8 +2,10 @@ import { Link } from "@tanstack/react-router";
 import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
-import { formatRelativeDate } from "../../lib/format.js";
+import { clsx } from "clsx/lite";
+
 import { OptionalImage } from "../ui/optional-image.js";
+import { RelativeTime } from "../ui/relative-time.js";
 import styles from "./content-card.module.css";
 
 // ── Constants ──
@@ -34,22 +36,10 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
   const badgeClass = TYPE_BADGE_CLASSES[item.type];
   const hasThumbnail = thumbnailSrc !== null;
 
-  const linkProps =
-    item.slug && item.creatorHandle
-      ? ({
-          to: "/content/$creatorSlug/$contentSlug",
-          params: { creatorSlug: item.creatorHandle, contentSlug: item.slug },
-        } as const)
-      : ({
-          to: "/content/$contentId",
-          params: { contentId: item.id },
-        } as const);
+  const cardClass = clsx(styles.card, !hasThumbnail && styles.cardNoThumbnail);
 
-  return (
-    <Link
-      {...linkProps}
-      className={hasThumbnail ? styles.card : `${styles.card} ${styles.cardNoThumbnail}`}
-    >
+  const children = (
+    <>
       {hasThumbnail ? (
         <div className={styles.thumbnailWrapper}>
           <OptionalImage
@@ -59,7 +49,7 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
             placeholderClassName={styles.thumbnailPlaceholder!}
             loading="lazy"
           />
-          <span className={`${styles.badge} ${badgeClass}`}>
+          <span className={clsx(styles.badge, badgeClass)}>
             {TYPE_BADGE_LABELS[item.type]}
           </span>
           {item.visibility === "subscribers" && !item.mediaUrl && !item.body && (
@@ -79,7 +69,7 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
         </div>
       ) : (
         <div className={styles.noThumbnailHeader}>
-          <span className={`${styles.badge} ${styles.badgeInline} ${badgeClass}`}>
+          <span className={clsx(styles.badge, styles.badgeInline, badgeClass)}>
             {TYPE_BADGE_LABELS[item.type]}
           </span>
           {item.visibility === "subscribers" && !item.mediaUrl && !item.body && (
@@ -95,11 +85,33 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
         <h3 className={styles.title}>{item.title}</h3>
         <span className={styles.creator}>{item.creatorName}</span>
         {item.publishedAt && (
-          <time className={styles.date} dateTime={item.publishedAt}>
-            {formatRelativeDate(item.publishedAt)}
-          </time>
+          <RelativeTime dateTime={item.publishedAt} className={styles.date} />
         )}
       </div>
+    </>
+  );
+
+  if (item.slug && item.creatorHandle) {
+    return (
+      <Link
+        to="/content/$creatorSlug/$contentSlug"
+        params={{ creatorSlug: item.creatorHandle, contentSlug: item.slug }}
+        search={{ edit: false }}
+        className={cardClass}
+      >
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      to="/content/$contentId"
+      params={{ contentId: item.id }}
+      search={{ edit: false }}
+      className={cardClass}
+    >
+      {children}
     </Link>
   );
 }

@@ -24,7 +24,8 @@ export function formatRelativeDate(isoDateString: string): string {
   }
 
   // Under 30 days: use relative ("5 minutes ago", "3 days ago")
-  if (diffMs < 30 * 24 * 60 * 60 * 1000) {
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  if (diffMs < THIRTY_DAYS_MS) {
     return formatDistanceToNow(date, { addSuffix: true });
   }
 

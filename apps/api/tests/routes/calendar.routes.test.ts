@@ -139,7 +139,15 @@ const ctx = setupRouteTest({
     const { calendarRoutes } = await import(
       "../../src/routes/calendar.routes.js"
     );
+    const { calendarFeedRoutes } = await import(
+      "../../src/routes/calendar-feed.routes.js"
+    );
+    const { calendarEventTypeRoutes } = await import(
+      "../../src/routes/calendar-event-types.routes.js"
+    );
     app.route("/api/calendar", calendarRoutes);
+    app.route("/api/calendar", calendarFeedRoutes);
+    app.route("/api/calendar", calendarEventTypeRoutes);
   },
   beforeEach: () => {
     // SELECT chain with leftJoin support (two leftJoins: projects + creatorProfiles)

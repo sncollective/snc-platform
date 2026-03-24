@@ -24,8 +24,8 @@ import {
   ERROR_401,
   ERROR_403,
   ERROR_404,
-} from "./openapi-errors.js";
-import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+} from "../lib/openapi-errors.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 
 // ── Private Types ──
 
@@ -48,14 +48,12 @@ const toAdminUserResponse = (
 });
 
 async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId));
+  const [[user], roles] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)),
+    getUserRoles(userId),
+  ]);
 
   if (!user) return null;
-
-  const roles = await getUserRoles(userId);
 
   return toAdminUserResponse(user, roles);
 }
@@ -153,17 +151,7 @@ adminRoutes.post(
   validator("json", AssignRoleRequestSchema),
   async (c) => {
     const { userId } = c.req.param();
-    const { role } = c.req.valid("json" as never) as { role: string };
-
-    // Verify user exists
-    const [targetUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    if (!targetUser) {
-      throw new NotFoundError("User not found");
-    }
+    const { role } = c.req.valid("json" as never) as { role: Role };
 
     // Idempotent insert
     await db
@@ -203,22 +191,12 @@ adminRoutes.delete(
   validator("json", RevokeRoleRequestSchema),
   async (c) => {
     const { userId } = c.req.param();
-    const { role } = c.req.valid("json" as never) as { role: string };
+    const { role } = c.req.valid("json" as never) as { role: Role };
     const currentUser = c.get("user");
 
     // Self-protection: cannot remove own admin role
     if (userId === currentUser.id && role === "admin") {
       throw new ForbiddenError("Cannot remove your own admin role");
-    }
-
-    // Verify user exists
-    const [targetUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    if (!targetUser) {
-      throw new NotFoundError("User not found");
     }
 
     await db

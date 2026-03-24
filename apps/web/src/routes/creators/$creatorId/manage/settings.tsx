@@ -21,6 +21,8 @@ import {
   uploadCreatorAvatar,
   uploadCreatorBanner,
 } from "../../../../lib/creator.js";
+import { clsx } from "clsx/lite";
+
 import buttonStyles from "../../../../styles/button.module.css";
 import errorStyles from "../../../../styles/error-alert.module.css";
 import formStyles from "../../../../styles/form.module.css";
@@ -167,39 +169,36 @@ function ManageSettingsPage(): React.ReactElement {
     }
   };
 
-  // ── Avatar Upload Handler ──
-  const handleAvatarUpload = async (): Promise<void> => {
-    if (!avatarFile || !creatorId) return;
-    setIsUploadingAvatar(true);
+  // ── Image Upload Helpers ──
+  const handleImageUpload = async (
+    file: File | null,
+    uploadFn: (id: string, f: File) => Promise<{ avatarUrl?: string | null; bannerUrl?: string | null }>,
+    setUrl: (url: string | null) => void,
+    setFile: (f: File | null) => void,
+    setUploading: (v: boolean) => void,
+    urlKey: "avatarUrl" | "bannerUrl",
+    label: string,
+  ): Promise<void> => {
+    if (!file || !creatorId) return;
+    setUploading(true);
     setServerError("");
     try {
-      const updated = await uploadCreatorAvatar(creatorId, avatarFile);
-      setAvatarUrl(updated.avatarUrl);
-      setAvatarFile(null);
-      setSuccessMessage("Avatar uploaded");
+      const updated = await uploadFn(creatorId, file);
+      setUrl(updated[urlKey] ?? null);
+      setFile(null);
+      setSuccessMessage(`${label} uploaded`);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Failed to upload avatar");
+      setServerError(err instanceof Error ? err.message : `Failed to upload ${label.toLowerCase()}`);
     } finally {
-      setIsUploadingAvatar(false);
+      setUploading(false);
     }
   };
 
-  // ── Banner Upload Handler ──
-  const handleBannerUpload = async (): Promise<void> => {
-    if (!bannerFile || !creatorId) return;
-    setIsUploadingBanner(true);
-    setServerError("");
-    try {
-      const updated = await uploadCreatorBanner(creatorId, bannerFile);
-      setBannerUrl(updated.bannerUrl);
-      setBannerFile(null);
-      setSuccessMessage("Banner uploaded");
-    } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Failed to upload banner");
-    } finally {
-      setIsUploadingBanner(false);
-    }
-  };
+  const handleAvatarUpload = () =>
+    handleImageUpload(avatarFile, uploadCreatorAvatar, setAvatarUrl, setAvatarFile, setIsUploadingAvatar, "avatarUrl", "Avatar");
+
+  const handleBannerUpload = () =>
+    handleImageUpload(bannerFile, uploadCreatorBanner, setBannerUrl, setBannerFile, setIsUploadingBanner, "bannerUrl", "Banner");
 
   return (
     <div className={settingsStyles.page}>
@@ -220,17 +219,18 @@ function ManageSettingsPage(): React.ReactElement {
         <div className={styles.imageField}>
           <span className={formStyles.label}>Avatar</span>
           {avatarUrl && (
-            <img src={avatarUrl} alt="Avatar preview" className={styles.avatarPreview} />
+            <img src={avatarUrl} alt="Avatar preview" className={styles.avatarPreview} width={96} height={96} />
           )}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="Upload avatar image"
             onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
             disabled={isUploadingAvatar}
           />
           <button
             type="button"
-            className={`${buttonStyles.primaryButton} ${styles.uploadButton}`}
+            className={clsx(buttonStyles.primaryButton, styles.uploadButton)}
             onClick={handleAvatarUpload}
             disabled={!avatarFile || isUploadingAvatar}
           >
@@ -241,17 +241,18 @@ function ManageSettingsPage(): React.ReactElement {
         <div className={styles.imageField}>
           <span className={formStyles.label}>Banner</span>
           {bannerUrl && (
-            <img src={bannerUrl} alt="Banner preview" className={styles.bannerPreview} />
+            <img src={bannerUrl} alt="Banner preview" className={styles.bannerPreview} width={300} height={100} />
           )}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="Upload banner image"
             onChange={(e) => setBannerFile(e.target.files?.[0] ?? null)}
             disabled={isUploadingBanner}
           />
           <button
             type="button"
-            className={`${buttonStyles.primaryButton} ${styles.uploadButton}`}
+            className={clsx(buttonStyles.primaryButton, styles.uploadButton)}
             onClick={handleBannerUpload}
             disabled={!bannerFile || isUploadingBanner}
           >
@@ -339,14 +340,11 @@ function ManageSettingsPage(): React.ReactElement {
             <input
               id="link-url"
               type="url"
+              aria-label="Social link URL"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="https://..."
-              className={
-                linkError
-                  ? `${formStyles.input} ${styles.input} ${formStyles.inputError}`
-                  : `${formStyles.input} ${styles.input}`
-              }
+              className={clsx(formStyles.input, styles.input, linkError && formStyles.inputError)}
               disabled={isSubmitting}
             />
             <button
@@ -393,7 +391,7 @@ function ManageSettingsPage(): React.ReactElement {
         {/* Save Button */}
         <button
           type="submit"
-          className={`${buttonStyles.primaryButton} ${styles.saveButton}`}
+          className={clsx(buttonStyles.primaryButton, styles.saveButton)}
           disabled={isSubmitting}
         >
           {isSubmitting ? "Saving\u2026" : "Save Changes"}

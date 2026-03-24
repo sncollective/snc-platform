@@ -15,11 +15,12 @@ import {
 } from "../db/schema/subscription.schema.js";
 import { verifyWebhookSignature } from "../services/stripe.js";
 import { rootLogger } from "../logging/logger.js";
-import { ERROR_400 } from "./openapi-errors.js";
+import { ERROR_400 } from "../lib/openapi-errors.js";
 
 // ── Private Constants ──
 
 const WEBHOOK_OK = z.object({ received: z.literal(true) });
+const SECONDS_TO_MS = 1000;
 
 // ── Private Handler Functions ──
 
@@ -31,15 +32,16 @@ const WEBHOOK_OK = z.object({ received: z.literal(true) });
  * and customer ID come from the checkout session object itself.
  */
 const handleCheckoutCompleted = async (
-  data: Record<string, unknown>,
+  data: Stripe.Checkout.Session,
 ): Promise<void> => {
-  const metadata = data.metadata as
-    | { userId?: string; planId?: string }
-    | undefined;
-  const userId = metadata?.userId;
-  const planId = metadata?.planId;
-  const stripeSubscriptionId = data.subscription as string | undefined;
-  const stripeCustomerId = data.customer as string | undefined;
+  const userId = data.metadata?.userId;
+  const planId = data.metadata?.planId;
+
+  // subscription and customer may be expanded objects rather than bare IDs
+  const sub = data.subscription;
+  const stripeSubscriptionId = typeof sub === "string" ? sub : sub?.id;
+  const cust = data.customer;
+  const stripeCustomerId = typeof cust === "string" ? cust : (cust as Stripe.Customer | Stripe.DeletedCustomer | null)?.id;
 
   if (!userId || !planId || !stripeSubscriptionId || !stripeCustomerId) {
     rootLogger.error(
@@ -62,22 +64,32 @@ const handleCheckoutCompleted = async (
 };
 
 /**
+ * Extract the subscription ID from a Stripe Invoice's parent field (Stripe v20+).
+ * Returns the string ID, or undefined if not a subscription invoice.
+ */
+const getInvoiceSubscriptionId = (
+  data: Stripe.Invoice,
+): string | undefined => {
+  const subDetails = data.parent?.subscription_details;
+  if (!subDetails) return undefined;
+  const sub = subDetails.subscription;
+  return typeof sub === "string" ? sub : sub?.id;
+};
+
+/**
  * Handle `invoice.paid` — update subscription status to "active" and
  * refresh `currentPeriodEnd` from the invoice line item period.
  */
 const handleInvoicePaid = async (
-  data: Record<string, unknown>,
+  data: Stripe.Invoice,
 ): Promise<void> => {
-  const stripeSubscriptionId = data.subscription as string | undefined;
+  const stripeSubscriptionId = getInvoiceSubscriptionId(data);
   if (!stripeSubscriptionId) return;
 
   // Extract period end from first line item
-  const lines = data.lines as
-    | { data: Array<{ period: { end: number } }> }
-    | undefined;
-  const periodEndUnix = lines?.data[0]?.period?.end;
+  const periodEndUnix = data.lines.data[0]?.period?.end;
   const currentPeriodEnd = periodEndUnix
-    ? new Date(periodEndUnix * 1000)
+    ? new Date(periodEndUnix * SECONDS_TO_MS)
     : null;
 
   await db
@@ -94,9 +106,9 @@ const handleInvoicePaid = async (
  * Handle `invoice.payment_failed` — update subscription status to "past_due".
  */
 const handlePaymentFailed = async (
-  data: Record<string, unknown>,
+  data: Stripe.Invoice,
 ): Promise<void> => {
-  const stripeSubscriptionId = data.subscription as string | undefined;
+  const stripeSubscriptionId = getInvoiceSubscriptionId(data);
   if (!stripeSubscriptionId) return;
 
   await db
@@ -108,61 +120,39 @@ const handlePaymentFailed = async (
 /**
  * Handle `customer.subscription.updated` — sync status, currentPeriodEnd,
  * and cancelAtPeriodEnd from the Stripe subscription object.
+ *
+ * In Stripe v20+, `current_period_end` lives on individual subscription
+ * items rather than the top-level subscription object.
  */
 const handleSubscriptionUpdated = async (
-  data: Record<string, unknown>,
+  data: Stripe.Subscription,
 ): Promise<void> => {
-  const stripeSubscriptionId = data.id as string | undefined;
-  if (!stripeSubscriptionId) return;
-
-  const status = data.status as string;
-  const cancelAtPeriodEnd = data.cancel_at_period_end as boolean;
-  const periodEndUnix = data.current_period_end as number | undefined;
-  const currentPeriodEnd = periodEndUnix
-    ? new Date(periodEndUnix * 1000)
+  const periodEnd = data.items.data[0]?.current_period_end;
+  const currentPeriodEnd = periodEnd
+    ? new Date(periodEnd * SECONDS_TO_MS)
     : null;
 
   await db
     .update(userSubscriptions)
     .set({
-      status,
+      status: data.status,
       currentPeriodEnd,
-      cancelAtPeriodEnd,
+      cancelAtPeriodEnd: data.cancel_at_period_end,
       updatedAt: new Date(),
     })
-    .where(eq(userSubscriptions.stripeSubscriptionId, stripeSubscriptionId));
+    .where(eq(userSubscriptions.stripeSubscriptionId, data.id));
 };
 
 /**
  * Handle `customer.subscription.deleted` — set status to "canceled".
  */
 const handleSubscriptionDeleted = async (
-  data: Record<string, unknown>,
+  data: Stripe.Subscription,
 ): Promise<void> => {
-  const stripeSubscriptionId = data.id as string | undefined;
-  if (!stripeSubscriptionId) return;
-
   await db
     .update(userSubscriptions)
     .set({ status: "canceled", updatedAt: new Date() })
-    .where(eq(userSubscriptions.stripeSubscriptionId, stripeSubscriptionId));
-};
-
-// ── Event Dispatch Map ──
-
-/**
- * Maps Stripe event types to their handler functions.
- * Unknown event types are silently ignored (return 200).
- */
-const EVENT_HANDLERS: Record<
-  string,
-  ((data: Record<string, unknown>) => Promise<void>) | undefined
-> = {
-  "checkout.session.completed": handleCheckoutCompleted,
-  "invoice.paid": handleInvoicePaid,
-  "invoice.payment_failed": handlePaymentFailed,
-  "customer.subscription.updated": handleSubscriptionUpdated,
-  "customer.subscription.deleted": handleSubscriptionDeleted,
+    .where(eq(userSubscriptions.stripeSubscriptionId, data.id));
 };
 
 // ── Public API ──
@@ -195,8 +185,7 @@ webhookRoutes.post(
       throw verifyResult.error;
     }
 
-    const event: Pick<Stripe.Event, "id" | "type" | "data"> =
-      verifyResult.value;
+    const event = verifyResult.value;
 
     // 3. Idempotency check: INSERT into payment_events
     //    If the event ID already exists, skip processing
@@ -217,14 +206,25 @@ webhookRoutes.post(
       throw e;
     }
 
-    // 4. Dispatch to event-specific handler
-    const handler = EVENT_HANDLERS[event.type];
-    if (handler) {
-      // Stripe.Event.Data.Object is a union of 80+ specific types;
-      // handlers use Record<string, unknown> to extract fields generically.
-      await handler(event.data.object as unknown as Record<string, unknown>);
-    } else {
-      rootLogger.warn({ eventType: event.type, eventId: event.id }, "Unhandled Stripe webhook event type");
+    // 4. Dispatch to event-specific handler via discriminated switch
+    switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(event.data.object);
+        break;
+      case "invoice.paid":
+        await handleInvoicePaid(event.data.object);
+        break;
+      case "invoice.payment_failed":
+        await handlePaymentFailed(event.data.object);
+        break;
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event.data.object);
+        break;
+      default:
+        rootLogger.warn({ eventType: event.type, eventId: event.id }, "Unhandled Stripe webhook event type");
     }
 
     return c.json({ received: true as const });

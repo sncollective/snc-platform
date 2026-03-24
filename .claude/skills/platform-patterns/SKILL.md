@@ -17,6 +17,7 @@ Available patterns:
 ### API / Shared Layer
 - [app-error-hierarchy.md](app-error-hierarchy.md) — Typed AppError subclasses carry code+statusCode; errorHandler maps them via instanceof
 - [result-type.md](result-type.md) — Result<T, E=AppError> discriminated union; ok()/err() factories; narrowed by .ok boolean
+- [thin-handlers-fat-services.md](thin-handlers-fat-services.md) — Route handlers parse/validate/delegate/respond (~30 lines); business logic lives in services/ returning Result<T, AppError> or typed unions
 - [zod-env-config.md](zod-env-config.md) — ENV_SCHEMA + parseConfig(env) exported for test injection + module-level config singleton
 - [hono-test-app-factory.md](hono-test-app-factory.md) — Local factory builds minimal Hono instance; app.request() for zero-dep HTTP calls in tests
 

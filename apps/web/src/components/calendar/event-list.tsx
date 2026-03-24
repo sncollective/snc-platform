@@ -1,7 +1,8 @@
 import type React from "react";
 import type { CalendarEvent } from "@snc/shared";
 
-import { formatLocalDate, toLocalDateKey } from "../../lib/format.js";
+import { formatLocalDate } from "../../lib/format.js";
+import { groupEventsByDate } from "./calendar-utils.js";
 import { EventCard } from "./event-card.js";
 import styles from "./event-list.module.css";
 
@@ -9,27 +10,9 @@ import styles from "./event-list.module.css";
 
 export interface EventListProps {
   readonly events: readonly CalendarEvent[];
-  readonly onEdit?: (id: string) => void;
-  readonly onDelete?: (id: string) => void;
+  readonly onEdit?: ((id: string) => void) | undefined;
+  readonly onDelete?: ((id: string) => void) | undefined;
   readonly onToggleComplete?: ((id: string) => void) | undefined;
-}
-
-// ── Private Helpers ──
-
-function groupByDate(
-  events: readonly CalendarEvent[],
-): Map<string, CalendarEvent[]> {
-  const groups = new Map<string, CalendarEvent[]>();
-  for (const event of events) {
-    const dateKey = toLocalDateKey(event.startAt);
-    const existing = groups.get(dateKey);
-    if (existing) {
-      existing.push(event);
-    } else {
-      groups.set(dateKey, [event]);
-    }
-  }
-  return groups;
 }
 
 // ── Public API ──
@@ -44,7 +27,7 @@ export function EventList({
     return <p className={styles.empty}>No events found.</p>;
   }
 
-  const grouped = groupByDate(events);
+  const grouped = groupEventsByDate(events);
 
   return (
     <div className={styles.list}>

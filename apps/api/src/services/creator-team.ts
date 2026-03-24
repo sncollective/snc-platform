@@ -20,7 +20,7 @@ export const getCreatorMemberships = async (
     .select({ creatorId: creatorMembers.creatorId, role: creatorMembers.role })
     .from(creatorMembers)
     .where(eq(creatorMembers.userId, userId));
-  return rows as Array<{ creatorId: string; role: CreatorMemberRole }>;
+  return rows;
 };
 
 /**
@@ -47,7 +47,7 @@ export const checkCreatorPermission = async (
     );
 
   if (rows.length === 0) return false;
-  const role = rows[0]!.role as CreatorMemberRole;
+  const role = rows[0]!.role;
   return CREATOR_ROLE_PERMISSIONS[role][permission] === true;
 };
 

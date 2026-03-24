@@ -33,7 +33,7 @@ export function ContentFooter({
   return (
     <>
       {showCta && (
-        <SubscribeCta creatorId={creatorId} contentType={contentType} plans={plans ?? []} />
+        <SubscribeCta contentType={contentType} plans={plans ?? []} />
       )}
       {showDescription && (
         <>

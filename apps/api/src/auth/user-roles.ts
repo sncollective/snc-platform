@@ -13,7 +13,7 @@ export const getUserRoles = async (userId: string): Promise<Role[]> => {
     .from(userRoles)
     .where(eq(userRoles.userId, userId));
 
-  return rows.map((r) => r.role) as Role[];
+  return rows.map((r) => r.role);
 };
 
 export async function batchGetUserRoles(
@@ -27,7 +27,7 @@ export async function batchGetUserRoles(
   const map = new Map<string, Role[]>();
   for (const row of rows) {
     const existing = map.get(row.userId) ?? [];
-    existing.push(row.role as Role);
+    existing.push(row.role);
     map.set(row.userId, existing);
   }
   return map;

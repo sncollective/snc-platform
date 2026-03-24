@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
 import { SOURCE_TYPES, SourceTypeSchema } from "./uploads.js";
 
 // ── Public Constants ──
@@ -63,9 +64,9 @@ export type ContentResponse = z.infer<typeof ContentResponseSchema>;
 
 /** Derive display status from a content response. */
 export const getContentStatus = (item: {
-  publishedAt: string | null;
-  type: "video" | "audio" | "written";
-  mediaUrl: string | null;
+  readonly publishedAt: string | null;
+  readonly type: "video" | "audio" | "written";
+  readonly mediaUrl: string | null;
 }): ContentStatus => {
   if (item.publishedAt) return "published";
   return "draft";
@@ -84,9 +85,7 @@ export type DraftQuery = z.infer<typeof DraftQuerySchema>;
 
 // ── Feed Schemas ──
 
-export const FeedQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(12),
-  cursor: z.string().optional(),
+export const FeedQuerySchema = createPaginationQuery({ max: 50, default: 12 }).extend({
   type: ContentTypeSchema.optional(),
   creatorId: z.string().optional(),
 });

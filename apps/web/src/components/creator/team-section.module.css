@@ -38,15 +38,25 @@
 }
 
 .candidateItem {
+  list-style: none;
+}
+
+.candidateButton {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  background: none;
+  border: none;
   cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   transition: background 0.1s;
 }
 
-.candidateItem:hover {
+.candidateButton:hover {
   background: var(--color-bg-hover);
 }
 

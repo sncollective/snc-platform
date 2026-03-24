@@ -71,6 +71,8 @@ export const StubLink = ({
 interface RouterMockOptions {
   /** Mock for useNavigate — e.g. `() => mockNavigate`. */
   useNavigate?: () => unknown;
+  /** Mock for useRouter — e.g. `() => mockRouter`. */
+  useRouter?: () => unknown;
   /** Mock for useRouterState — pass hoisted fn directly. */
   useRouterState?: unknown;
   /** Mock for useLoaderData — attached to createFileRoute return value. */
@@ -136,6 +138,11 @@ export function createRouterMock(options: RouterMockOptions = {}): Record<string
   // useNavigate
   if (options.useNavigate) {
     mock.useNavigate = options.useNavigate;
+  }
+
+  // useRouter
+  if (options.useRouter) {
+    mock.useRouter = options.useRouter;
   }
 
   // useRouterState

@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type React from "react";
 import type { CalendarEvent } from "@snc/shared";
 
+import { useDismiss } from "../../hooks/use-dismiss.js";
 import { formatLocalDate } from "../../lib/format.js";
 import { EventCard } from "./event-card.js";
 import styles from "./day-detail-popover.module.css";
@@ -28,26 +29,7 @@ export function DayDetailPopover({
   onEventClick,
 }: DayDetailPopoverProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Close on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [onClose]);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  useDismiss(containerRef, onClose);
 
   return (
     <div ref={containerRef} className={styles.popover} role="dialog" aria-label={`Events for ${formatLocalDate(dateKey)}`}>

@@ -116,7 +116,7 @@ describe("ProductDetail", () => {
     const user = userEvent.setup();
     render(<ProductDetail product={makeMockMerchProductDetail()} />);
 
-    await user.click(screen.getByRole("listitem", { name: "Test T-Shirt back" }));
+    await user.click(screen.getByRole("button", { name: "Test T-Shirt back" }));
 
     expect(
       screen.getByRole("img", { name: "Test T-Shirt back" }),

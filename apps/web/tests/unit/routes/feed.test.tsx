@@ -197,7 +197,7 @@ describe("FeedPage", () => {
 
     const links = screen.getAllByRole("link");
     expect(
-      links.some((link) => link.getAttribute("href") === "/content/test-creator/test-slug"),
+      links.some((link) => link.getAttribute("href") === "/content/test-creator/test-slug?edit=false"),
     ).toBe(true);
   });
 

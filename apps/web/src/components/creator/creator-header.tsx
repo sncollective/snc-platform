@@ -11,6 +11,8 @@ import { isFeatureEnabled } from "../../lib/config.js";
 import { FediverseAddress } from "../federation/fediverse-address.js";
 import { FollowFediverseDialog } from "../federation/follow-fediverse-dialog.js";
 import { OptionalImage } from "../ui/optional-image.js";
+import { clsx } from "clsx/lite";
+
 import buttonStyles from "../../styles/button.module.css";
 import styles from "./creator-header.module.css";
 
@@ -112,7 +114,7 @@ export function CreatorHeader({
         {plans && plans.length > 0 && isSubscribed && (
           <button
             type="button"
-            className={`${buttonStyles.primaryButton} ${styles.subscribeButton} ${styles.subscribedButton}`}
+            className={clsx(buttonStyles.primaryButton, styles.subscribeButton, styles.subscribedButton)}
             disabled
             aria-label="Already subscribed to this creator"
           >
@@ -121,7 +123,7 @@ export function CreatorHeader({
         )}
 
         {plans && plans.length > 0 && !isSubscribed && !isAuthenticated && (
-          <Link to="/login" className={`${buttonStyles.primaryButtonLink} ${styles.loginLink}`}>
+          <Link to="/login" className={clsx(buttonStyles.primaryButtonLink, styles.loginLink)}>
             Subscribe
           </Link>
         )}
@@ -129,7 +131,7 @@ export function CreatorHeader({
         {plans && plans.length > 0 && !isSubscribed && isAuthenticated && plans.length === 1 && (
           <button
             type="button"
-            className={`${buttonStyles.primaryButton} ${styles.subscribeButton}`}
+            className={clsx(buttonStyles.primaryButton, styles.subscribeButton)}
             onClick={() => {
               void handleCheckout(plans[0]!.id);
             }}
@@ -159,7 +161,7 @@ export function CreatorHeader({
             </select>
             <button
               type="button"
-              className={`${buttonStyles.primaryButton} ${styles.subscribeButton}`}
+              className={clsx(buttonStyles.primaryButton, styles.subscribeButton)}
               onClick={() => {
                 void handleCheckout(selectedPlanId ?? plans[0]!.id);
               }}

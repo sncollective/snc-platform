@@ -1,8 +1,10 @@
 import type React from "react";
-import type { BookingWithService } from "@snc/shared";
+import type { BookingWithService, BookingStatus } from "@snc/shared";
 
-import { formatRelativeDate } from "../../lib/format.js";
+import { clsx } from "clsx/lite";
+
 import listItemStyles from "../../styles/list-items.module.css";
+import { RelativeTime } from "../ui/relative-time.js";
 import styles from "./booking-list.module.css";
 
 // ── Public Types ──
@@ -13,7 +15,7 @@ export interface BookingListProps {
 
 // ── Private Helpers ──
 
-const STATUS_CLASS: Record<string, string | undefined> = {
+const STATUS_CLASS: Record<BookingStatus, string | undefined> = {
   approved: styles.statusApproved,
   denied: styles.statusDenied,
   pending: styles.statusPending,
@@ -41,7 +43,7 @@ export function BookingList({
           <div className={listItemStyles.itemHeader}>
             <h3 className={styles.serviceName}>{booking.service.name}</h3>
             <span
-              className={`${listItemStyles.statusBadge} ${styles.status} ${STATUS_CLASS[booking.status] ?? styles.statusPending}`}
+              className={clsx(listItemStyles.statusBadge, styles.status, STATUS_CLASS[booking.status] ?? styles.statusPending)}
             >
               {booking.status}
             </span>
@@ -58,9 +60,7 @@ export function BookingList({
               {booking.reviewNote}
             </div>
           )}
-          <div className={styles.submittedDate}>
-            Submitted {formatRelativeDate(booking.createdAt)}
-          </div>
+          <RelativeTime dateTime={booking.createdAt} className={styles.submittedDate} prefix="Submitted " />
         </div>
       ))}
     </div>

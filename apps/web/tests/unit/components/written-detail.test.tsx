@@ -132,7 +132,7 @@ describe("WrittenDetail", () => {
     render(<WrittenDetail item={item} locked={true} />);
     expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
     expect(mockSubscribeCta).toHaveBeenCalledWith(
-      expect.objectContaining({ creatorId: "creator-77", contentType: "written" }),
+      expect.objectContaining({ contentType: "written" }),
     );
   });
 
@@ -185,7 +185,7 @@ describe("WrittenDetail", () => {
 
     it("does not render thumbnail upload placeholder when onThumbnailUpload is not provided", () => {
       const item = makeMockFeedItem({ body: "Hello", thumbnailUrl: null });
-      const callbacks = makeEditCallbacks({ onThumbnailUpload: undefined });
+      const { onThumbnailUpload: _, ...callbacks } = makeEditCallbacks();
       render(<WrittenDetail item={item} isEditing editCallbacks={callbacks} />);
       expect(screen.queryByRole("button", { name: "Upload Thumbnail" })).toBeNull();
     });

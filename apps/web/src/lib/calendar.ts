@@ -33,7 +33,7 @@ export async function updateCalendarEvent(
   data: UpdateCalendarEvent,
 ): Promise<CalendarEvent> {
   const result = await apiMutate<{ event: CalendarEvent }>(
-    `/api/calendar/events/${id}`,
+    `/api/calendar/events/${encodeURIComponent(id)}`,
     { method: "PATCH", body: data },
   );
   return result.event;
@@ -43,14 +43,14 @@ export async function toggleEventComplete(
   id: string,
 ): Promise<CalendarEvent> {
   const result = await apiMutate<{ event: CalendarEvent }>(
-    `/api/calendar/events/${id}/complete`,
+    `/api/calendar/events/${encodeURIComponent(id)}/complete`,
     { method: "PATCH" },
   );
   return result.event;
 }
 
 export async function deleteCalendarEvent(id: string): Promise<void> {
-  await apiMutate<undefined>(`/api/calendar/events/${id}`, {
+  await apiMutate<undefined>(`/api/calendar/events/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 }
@@ -70,7 +70,7 @@ export async function fetchCreatorEvents(
   params?: Record<string, string | number | undefined>,
 ): Promise<CalendarEventsResponse> {
   return apiGet<CalendarEventsResponse>(
-    `/api/creators/${creatorId}/events`,
+    `/api/creators/${encodeURIComponent(creatorId)}/events`,
     params,
   );
 }
@@ -80,7 +80,7 @@ export async function createCreatorEvent(
   data: CreateCalendarEvent,
 ): Promise<CalendarEvent> {
   const result = await apiMutate<{ event: CalendarEvent }>(
-    `/api/creators/${creatorId}/events`,
+    `/api/creators/${encodeURIComponent(creatorId)}/events`,
     { body: data },
   );
   return result.event;
@@ -92,7 +92,7 @@ export async function updateCreatorEvent(
   data: UpdateCalendarEvent,
 ): Promise<CalendarEvent> {
   const result = await apiMutate<{ event: CalendarEvent }>(
-    `/api/creators/${creatorId}/events/${eventId}`,
+    `/api/creators/${encodeURIComponent(creatorId)}/events/${encodeURIComponent(eventId)}`,
     { method: "PATCH", body: data },
   );
   return result.event;
@@ -115,7 +115,7 @@ export async function deleteCreatorEvent(
   eventId: string,
 ): Promise<void> {
   await apiMutate<undefined>(
-    `/api/creators/${creatorId}/events/${eventId}`,
+    `/api/creators/${encodeURIComponent(creatorId)}/events/${encodeURIComponent(eventId)}`,
     { method: "DELETE" },
   );
 }

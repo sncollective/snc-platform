@@ -9,6 +9,8 @@ import { createMerchCheckout } from "../../lib/merch.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import { VariantSelector } from "./variant-selector.js";
 import { CreatorAttribution } from "./creator-attribution.js";
+import { clsx } from "clsx/lite";
+
 import buttonStyles from "../../styles/button.module.css";
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./product-detail.module.css";
@@ -75,17 +77,12 @@ export function ProductDetail({
         </div>
 
         {product.images.length > 1 && (
-          <div className={styles.thumbnails} role="list" aria-label="Product images">
+          <div className={styles.thumbnails} role="group" aria-label="Product images">
             {product.images.map((image, index) => (
               <button
                 key={image.url}
                 type="button"
-                role="listitem"
-                className={
-                  index === selectedImageIndex
-                    ? `${styles.thumbnail} ${styles.thumbnailSelected}`
-                    : styles.thumbnail
-                }
+                className={clsx(styles.thumbnail, index === selectedImageIndex && styles.thumbnailSelected)}
                 onClick={() => setSelectedImageIndex(index)}
                 aria-label={image.altText ?? `Product image ${index + 1}`}
               >
@@ -129,7 +126,7 @@ export function ProductDetail({
 
         <button
           type="button"
-          className={`${buttonStyles.primaryButton} ${styles.buyButton}`}
+          className={clsx(buttonStyles.primaryButton, styles.buyButton)}
           disabled={isUnavailable || isCheckingOut}
           onClick={() => void handleBuy()}
         >

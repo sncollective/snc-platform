@@ -94,7 +94,7 @@ const query = async <T>(
   variables?: Record<string, unknown>,
 ): Promise<Result<T, AppError>> => {
   const configured = ensureConfigured();
-  if (!configured.ok) return configured as Result<T, AppError>;
+  if (!configured.ok) return err(configured.error);
 
   try {
     const response = await fetch(SHOPIFY_STOREFRONT_ENDPOINT!, {

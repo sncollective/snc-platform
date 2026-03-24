@@ -15,6 +15,8 @@ import {
   removeCreatorMember,
   fetchMemberCandidates,
 } from "../../lib/creator.js";
+import { clsx } from "clsx/lite";
+
 import formStyles from "../../styles/form.module.css";
 import listItemStyles from "../../styles/list-items.module.css";
 import errorStyles from "../../styles/error-alert.module.css";
@@ -241,7 +243,7 @@ export function TeamSection({
               <button
                 type="button"
                 className={styles.addButton}
-                onClick={handleAddMember}
+                onClick={() => void handleAddMember()}
                 disabled={isAdding}
               >
                 {isAdding ? "Adding..." : "Add"}
@@ -254,7 +256,7 @@ export function TeamSection({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search users to add..."
-                className={`${formStyles.input} ${styles.searchInput}`}
+                className={clsx(formStyles.input, styles.searchInput)}
                 aria-label="Search users to add"
               />
               {candidates.length > 0 && (
@@ -265,16 +267,15 @@ export function TeamSection({
                       className={styles.candidateItem}
                       role="option"
                       aria-selected={false}
-                      onClick={() => handleSelectCandidate(c)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          handleSelectCandidate(c);
-                        }
-                      }}
-                      tabIndex={0}
                     >
-                      <span className={styles.candidateName}>{c.name}</span>
-                      <span className={styles.candidateEmail}>{c.email}</span>
+                      <button
+                        type="button"
+                        className={styles.candidateButton}
+                        onClick={() => handleSelectCandidate(c)}
+                      >
+                        <span className={styles.candidateName}>{c.name}</span>
+                        <span className={styles.candidateEmail}>{c.email}</span>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -313,7 +314,7 @@ export function TeamSection({
                       <select
                         value={member.role}
                         onChange={(e) =>
-                          handleChangeRole(
+                          void handleChangeRole(
                             member.userId,
                             e.target.value as CreatorMemberRole,
                           )
@@ -330,7 +331,7 @@ export function TeamSection({
                       </select>
                     ) : (
                       <span
-                        className={`${styles.roleBadge} ${ROLE_BADGE_CLASS[member.role]}`}
+                        className={clsx(styles.roleBadge, ROLE_BADGE_CLASS[member.role])}
                       >
                         {member.role}
                       </span>
@@ -341,7 +342,7 @@ export function TeamSection({
                       <button
                         type="button"
                         className={styles.removeButton}
-                        onClick={() => handleRemoveMember(member.userId)}
+                        onClick={() => void handleRemoveMember(member.userId)}
                         disabled={isSoleOwner}
                         aria-label={`Remove ${member.displayName}`}
                       >

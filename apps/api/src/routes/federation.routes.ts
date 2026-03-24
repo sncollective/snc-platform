@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 import {
   createFederation,
   generateCryptoKeyPair,
@@ -15,7 +17,12 @@ import { eq } from "drizzle-orm";
 import { config } from "../config.js";
 import { sql, db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
-import { getFrontendBaseUrl } from "./route-utils.js";
+import { getFrontendBaseUrl } from "../lib/route-utils.js";
+
+// ── Module-level Constants ──
+
+const require = createRequire(import.meta.url);
+const { version: VERSION } = require("../../package.json") as { version: string };
 
 // ── Types ──
 
@@ -52,7 +59,13 @@ export function createFederationApp(
   fed
     .setActorDispatcher("/ap/actors/{identifier}", async (ctx, identifier) => {
       const rows = await db
-        .select()
+        .select({
+          id: creatorProfiles.id,
+          handle: creatorProfiles.handle,
+          displayName: creatorProfiles.displayName,
+          bio: creatorProfiles.bio,
+          avatarKey: creatorProfiles.avatarKey,
+        })
         .from(creatorProfiles)
         .where(eq(creatorProfiles.handle, identifier));
 
@@ -105,7 +118,7 @@ export function createFederationApp(
   fed.setNodeInfoDispatcher("/.well-known/nodeinfo/2.1", async (_ctx) => ({
     software: {
       name: "snc",
-      version: "0.1.0",
+      version: VERSION,
       homepage: new URL("https://s-nc.org"),
     },
     protocols: ["activitypub"],

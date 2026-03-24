@@ -8,6 +8,8 @@ import type { CreatorProfileResponse } from "@snc/shared";
 
 import { createCreatorEntity } from "../../lib/creator.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import { clsx } from "clsx/lite";
+
 import formStyles from "../../styles/form.module.css";
 import buttonStyles from "../../styles/button.module.css";
 import styles from "./create-creator-form.module.css";
@@ -106,11 +108,7 @@ export function CreateCreatorForm({
           defaultValue=""
           onChange={(e) => { displayNameRef.current = e.target.value; }}
           placeholder="e.g. My Band"
-          className={
-            fieldErrors.displayName
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
+          className={clsx(formStyles.input, fieldErrors.displayName && formStyles.inputError)}
           disabled={isSubmitting}
         />
         {fieldErrors.displayName && (
@@ -130,11 +128,7 @@ export function CreateCreatorForm({
           defaultValue=""
           onChange={(e) => { handleRef.current = e.target.value; }}
           placeholder="e.g. my-band"
-          className={
-            fieldErrors.handle
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
+          className={clsx(formStyles.input, fieldErrors.handle && formStyles.inputError)}
           disabled={isSubmitting}
         />
         <span className={styles.helperText}>

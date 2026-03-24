@@ -36,7 +36,7 @@ export const CreateEmissionEntrySchema = z.object({
   co2Kg: z.number().min(0),
   method: z.string().min(1),
   projected: z.boolean().optional().default(false),
-  metadata: z.record(z.string(), z.any()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export const CreateOffsetEntrySchema = z.object({
@@ -47,7 +47,7 @@ export const CreateOffsetEntrySchema = z.object({
   unit: z.string().min(1),
   co2Kg: z.number().min(0),
   method: z.string().min(1),
-  metadata: z.record(z.string(), z.any()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export const EmissionsSummarySchema = z.object({
@@ -88,6 +88,26 @@ export const EmissionsBreakdownSchema = z.object({
   entries: z.array(EmissionEntrySchema),
 });
 
+export const EmissionsFileEntrySchema = z.object({
+  id: z.string(),
+  date: z.iso.date(),
+  scope: z.number().int().min(0).max(3),
+  category: z.string(),
+  subcategory: z.string(),
+  source: z.string(),
+  description: z.string(),
+  amount: z.number(),
+  unit: z.string(),
+  co2_kg: z.number(),
+  method: z.string(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+
+export const EmissionsFileSchema = z.object({
+  year: z.number().int(),
+  entries: z.array(EmissionsFileEntrySchema),
+});
+
 // ── Public Types ──
 
 export type EmissionEntry = z.infer<typeof EmissionEntrySchema>;
@@ -95,3 +115,5 @@ export type CreateEmissionEntry = z.infer<typeof CreateEmissionEntrySchema>;
 export type CreateOffsetEntry = z.infer<typeof CreateOffsetEntrySchema>;
 export type EmissionsSummary = z.infer<typeof EmissionsSummarySchema>;
 export type EmissionsBreakdown = z.infer<typeof EmissionsBreakdownSchema>;
+export type EmissionsFileEntry = z.infer<typeof EmissionsFileEntrySchema>;
+export type EmissionsFile = z.infer<typeof EmissionsFileSchema>;

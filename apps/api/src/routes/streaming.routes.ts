@@ -4,7 +4,7 @@ import { describeRoute, resolver } from "hono-openapi";
 import { StreamStatusSchema, type StreamStatus } from "@snc/shared";
 
 import { getStreamStatus } from "../services/owncast.js";
-import { ERROR_502, ERROR_503 } from "./openapi-errors.js";
+import { ERROR_502, ERROR_503 } from "../lib/openapi-errors.js";
 
 // ── Private Helpers ──
 

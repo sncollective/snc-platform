@@ -280,7 +280,7 @@ describe("ProjectsPage", () => {
     });
 
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
+    await user.click(editButtons[0]!);
 
     const select = screen.getByRole("combobox", { name: /creator/i });
     expect(select).toBeDisabled();

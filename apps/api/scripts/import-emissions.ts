@@ -1,30 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { EmissionsFileSchema } from "@snc/shared";
+
 import { db, sql } from "../src/db/connection.js";
 import { emissions } from "../src/db/schema/emission.schema.js";
-
-// ── Types ──
-
-interface JsonEntry {
-  id: string;
-  date: string;
-  scope: number;
-  category: string;
-  subcategory: string;
-  source: string;
-  description: string;
-  amount: number;
-  unit: string;
-  co2_kg: number;
-  method: string;
-  metadata?: Record<string, unknown> | null;
-}
-
-interface EmissionsFile {
-  year: number;
-  entries: JsonEntry[];
-}
 
 // ── Main ──
 
@@ -58,7 +38,7 @@ async function main(): Promise<void> {
 
   for (const file of files) {
     const raw = readFileSync(join(EMISSIONS_DIR, file), "utf-8");
-    const data = JSON.parse(raw) as EmissionsFile;
+    const data = EmissionsFileSchema.parse(JSON.parse(raw));
     console.log(`\nProcessing ${file} (${data.entries.length} entries)`);
 
     for (const entry of data.entries) {

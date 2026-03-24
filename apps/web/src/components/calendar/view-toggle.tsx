@@ -1,5 +1,7 @@
 import type React from "react";
 
+import { clsx } from "clsx/lite";
+
 import styles from "./view-toggle.module.css";
 
 // ── Public Types ──
@@ -30,11 +32,7 @@ export function ViewToggle({
         <button
           key={option.value}
           type="button"
-          className={
-            option.value === activeView
-              ? `${styles.toggleButton} ${styles.toggleButtonActive}`
-              : styles.toggleButton
-          }
+          className={clsx(styles.toggleButton, option.value === activeView && styles.toggleButtonActive)}
           aria-pressed={option.value === activeView}
           onClick={() => onViewChange(option.value)}
         >

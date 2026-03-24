@@ -1,11 +1,14 @@
-import { useRef } from "react";
 import type React from "react";
 import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
 
+import { useFileInput } from "../../hooks/use-file-input.js";
 import { VideoPlayer } from "../media/video-player.js";
 import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
+import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
+import { clsx } from "clsx/lite";
+
 import styles from "./video-detail.module.css";
 
 // ── Public Types ──
@@ -37,30 +40,7 @@ export function VideoDetail({
   isEditing,
   editCallbacks,
 }: VideoDetailProps): React.ReactElement {
-  const mediaInputRef = useRef<HTMLInputElement | null>(null);
-  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
-
-  const handleMediaClick = () => {
-    mediaInputRef.current?.click();
-  };
-
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    editCallbacks?.onMediaUpload?.(file);
-    e.target.value = "";
-  };
-
-  const handleThumbnailClick = () => {
-    thumbnailInputRef.current?.click();
-  };
-
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    editCallbacks?.onThumbnailUpload?.(file);
-    e.target.value = "";
-  };
+  const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
 
   const posterSrc = item.thumbnailUrl;
 
@@ -106,7 +86,7 @@ export function VideoDetail({
     return (
       <div className={styles.videoDetail}>
         {isEditing && editCallbacks?.onMediaUpload ? (
-          <div className={`${styles.uploadPlaceholder} ${styles.uploadPlaceholderVideo}`}>
+          <div className={clsx(styles.uploadPlaceholder, styles.uploadPlaceholderVideo)}>
             <button
               type="button"
               className={styles.uploadPlaceholderButton}
@@ -119,6 +99,7 @@ export function VideoDetail({
               type="file"
               className={styles.hiddenInput}
               accept="video/*"
+              aria-label="Upload video file"
               onChange={handleMediaChange}
             />
           </div>
@@ -127,36 +108,15 @@ export function VideoDetail({
             <p className={styles.mediaUnavailableText}>Media not yet available</p>
           </div>
         )}
-        {isEditing && item.thumbnailUrl !== null && editCallbacks && (
-          <div className={styles.editMediaActions}>
-            <button type="button" className={styles.replaceButton} onClick={handleThumbnailClick}>
-              Replace Thumbnail
-            </button>
-            <input ref={thumbnailInputRef} type="file" className={styles.hiddenInput} accept="image/*" onChange={handleThumbnailChange} />
-            {editCallbacks.onThumbnailRemove && (
-              <button type="button" className={styles.removeButton} onClick={editCallbacks.onThumbnailRemove}>
-                Remove Thumbnail
-              </button>
-            )}
-          </div>
-        )}
-        {isEditing && item.thumbnailUrl === null && editCallbacks?.onThumbnailUpload && (
-          <div className={styles.uploadPlaceholder}>
-            <button
-              type="button"
-              className={styles.uploadPlaceholderButton}
-              onClick={handleThumbnailClick}
-            >
-              Upload Thumbnail
-            </button>
-            <input
-              ref={thumbnailInputRef}
-              type="file"
-              className={styles.hiddenInput}
-              accept="image/*"
-              onChange={handleThumbnailChange}
-            />
-          </div>
+        {isEditing && editCallbacks && (
+          <ThumbnailEditSection
+            thumbnailSrc={item.thumbnailUrl}
+            title={item.title}
+            isEditing={true}
+            onThumbnailUpload={editCallbacks.onThumbnailUpload}
+            onThumbnailRemove={editCallbacks.onThumbnailRemove}
+            styles={styles}
+          />
         )}
         <div className={styles.meta}>
           {isEditing && editCallbacks ? (
@@ -194,7 +154,7 @@ export function VideoDetail({
           <button type="button" className={styles.replaceButton} onClick={handleMediaClick}>
             Replace Video
           </button>
-          <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="video/*" onChange={handleMediaChange} />
+          <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="video/*" aria-label="Upload video file" onChange={handleMediaChange} />
           {editCallbacks.onMediaRemove && (
             <button type="button" className={styles.removeButton} onClick={editCallbacks.onMediaRemove}>
               Remove Video
@@ -202,36 +162,15 @@ export function VideoDetail({
           )}
         </div>
       )}
-      {isEditing && item.thumbnailUrl !== null && editCallbacks && (
-        <div className={styles.editMediaActions}>
-          <button type="button" className={styles.replaceButton} onClick={handleThumbnailClick}>
-            Replace Thumbnail
-          </button>
-          <input ref={thumbnailInputRef} type="file" className={styles.hiddenInput} accept="image/*" onChange={handleThumbnailChange} />
-          {editCallbacks.onThumbnailRemove && (
-            <button type="button" className={styles.removeButton} onClick={editCallbacks.onThumbnailRemove}>
-              Remove Thumbnail
-            </button>
-          )}
-        </div>
-      )}
-      {isEditing && item.thumbnailUrl === null && editCallbacks?.onThumbnailUpload && (
-        <div className={styles.uploadPlaceholder}>
-          <button
-            type="button"
-            className={styles.uploadPlaceholderButton}
-            onClick={handleThumbnailClick}
-          >
-            Upload Thumbnail
-          </button>
-          <input
-            ref={thumbnailInputRef}
-            type="file"
-            className={styles.hiddenInput}
-            accept="image/*"
-            onChange={handleThumbnailChange}
-          />
-        </div>
+      {isEditing && editCallbacks && (
+        <ThumbnailEditSection
+          thumbnailSrc={item.thumbnailUrl}
+          title={item.title}
+          isEditing={true}
+          onThumbnailUpload={editCallbacks.onThumbnailUpload}
+          onThumbnailRemove={editCallbacks.onThumbnailRemove}
+          styles={styles}
+        />
       )}
       <div className={styles.meta}>
         {isEditing && editCallbacks ? (

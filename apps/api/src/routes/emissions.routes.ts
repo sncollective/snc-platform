@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { and, count, sum, sql, desc, eq, ne } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -10,7 +9,6 @@ import {
   EmissionsSummarySchema,
   EmissionsBreakdownSchema,
   type EmissionEntry,
-  type EmissionsSummary,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -18,7 +16,8 @@ import { emissions } from "../db/schema/emission.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
-import { ERROR_400, ERROR_401, ERROR_403 } from "./openapi-errors.js";
+import { ERROR_400, ERROR_401, ERROR_403 } from "../lib/openapi-errors.js";
+import { fetchEmissionsSummary, fetchEmissionsBreakdown } from "../services/emissions.js";
 
 // ── Private Types ──
 
@@ -54,43 +53,6 @@ function toEntryResponse(row: EmissionRow): EmissionEntry {
   };
 }
 
-async function fetchEmissionsSummary(): Promise<EmissionsSummary> {
-  const grossExpr = sql<string>`sum(case when ${emissions.scope} != 0 and ${emissions.projected} = false then ${emissions.co2Kg} else 0 end)`;
-  const projectedExpr = sql<string>`sum(case when ${emissions.scope} != 0 and ${emissions.projected} = true then ${emissions.co2Kg} else 0 end)`;
-  const offsetExpr = sql<string>`sum(case when ${emissions.scope} = 0 then abs(${emissions.co2Kg}) else 0 end)`;
-  const entryCountExpr = sql<number>`count(case when ${emissions.scope} != 0 and ${emissions.projected} = false then 1 end)`;
-  const latestDateExpr = sql<string | null>`max(case when ${emissions.scope} != 0 and ${emissions.projected} = false then ${emissions.date} end)`;
-
-  const [row] = await db
-    .select({
-      grossCo2Kg: grossExpr,
-      projectedCo2Kg: projectedExpr,
-      offsetCo2Kg: offsetExpr,
-      entryCount: entryCountExpr,
-      latestDate: latestDateExpr,
-    })
-    .from(emissions);
-
-  const grossCo2Kg = Number(row?.grossCo2Kg ?? 0);
-  const projectedGrossAdd = Number(row?.projectedCo2Kg ?? 0);
-  const offsetCo2Kg = Number(row?.offsetCo2Kg ?? 0);
-  const netCo2Kg = grossCo2Kg - offsetCo2Kg;
-  const projectedGrossCo2Kg = grossCo2Kg + projectedGrossAdd;
-  const doubleOffsetTargetCo2Kg = projectedGrossCo2Kg * 2;
-  const additionalOffsetCo2Kg = Math.max(0, doubleOffsetTargetCo2Kg - offsetCo2Kg);
-
-  return {
-    grossCo2Kg,
-    offsetCo2Kg,
-    netCo2Kg,
-    entryCount: Number(row?.entryCount ?? 0),
-    latestDate: row?.latestDate ?? null,
-    projectedGrossCo2Kg,
-    doubleOffsetTargetCo2Kg,
-    additionalOffsetCo2Kg,
-  };
-}
-
 // ── Public API ──
 
 export const emissionsRoutes = new Hono<AuthEnv>();
@@ -110,8 +72,7 @@ emissionsRoutes.get(
     },
   }),
   async (c) => {
-    const summary = await fetchEmissionsSummary();
-    return c.json(summary);
+    return c.json(await fetchEmissionsSummary());
   },
 );
 
@@ -130,67 +91,8 @@ emissionsRoutes.get(
     },
   }),
   async (c) => {
-    const monthCol = sql<string>`substring(${emissions.date} from 1 for 7)`;
-    const actualSumExpr = sql<string>`sum(case when ${emissions.scope} != 0 and ${emissions.projected} = false then ${emissions.co2Kg} else 0 end)`;
-    const projectedSumExpr = sql<string>`sum(case when ${emissions.scope} != 0 and ${emissions.projected} = true then ${emissions.co2Kg} else 0 end)`;
-    const offsetSumExpr = sql<string>`sum(case when ${emissions.scope} = 0 then abs(${emissions.co2Kg}) else 0 end)`;
-
-    const [summary, byScope, byCategory, monthly, entries] = await Promise.all([
-      fetchEmissionsSummary(),
-      db
-        .select({
-          scope: emissions.scope,
-          co2Kg: sum(emissions.co2Kg),
-          entryCount: count(),
-        })
-        .from(emissions)
-        .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)))
-        .groupBy(emissions.scope),
-      db
-        .select({
-          category: emissions.category,
-          co2Kg: sum(emissions.co2Kg),
-          entryCount: count(),
-        })
-        .from(emissions)
-        .where(and(ne(emissions.scope, 0), eq(emissions.projected, false)))
-        .groupBy(emissions.category),
-      db
-        .select({
-          month: monthCol,
-          actualCo2Kg: actualSumExpr,
-          projectedCo2Kg: projectedSumExpr,
-          offsetCo2Kg: offsetSumExpr,
-        })
-        .from(emissions)
-        .groupBy(monthCol)
-        .orderBy(monthCol),
-      db
-        .select()
-        .from(emissions)
-        .orderBy(desc(emissions.date)),
-    ]);
-
-    return c.json({
-      summary,
-      byScope: byScope.map((r) => ({
-        scope: r.scope,
-        co2Kg: Number(r.co2Kg ?? 0),
-        entryCount: r.entryCount,
-      })),
-      byCategory: byCategory.map((r) => ({
-        category: r.category,
-        co2Kg: Number(r.co2Kg ?? 0),
-        entryCount: r.entryCount,
-      })),
-      monthly: monthly.map((r) => ({
-        month: r.month,
-        actualCo2Kg: Number(r.actualCo2Kg ?? 0),
-        projectedCo2Kg: Number(r.projectedCo2Kg ?? 0),
-        offsetCo2Kg: Number(r.offsetCo2Kg ?? 0),
-      })),
-      entries: entries.map(toEntryResponse),
-    });
+    const breakdown = await fetchEmissionsBreakdown();
+    return c.json({ ...breakdown, entries: breakdown.entries.map(toEntryResponse) });
   },
 );
 

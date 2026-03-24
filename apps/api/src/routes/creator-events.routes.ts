@@ -12,7 +12,7 @@ import {
   CalendarEventsResponseSchema,
   NotFoundError,
 } from "@snc/shared";
-import type { CalendarEvent, CalendarEventsQuery } from "@snc/shared";
+import type { CalendarEventsQuery } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { calendarEvents } from "../db/schema/calendar.schema.js";
@@ -25,40 +25,16 @@ import {
   ERROR_401,
   ERROR_403,
   ERROR_404,
-} from "./openapi-errors.js";
-import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+} from "../lib/openapi-errors.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
+import { toEventResponse } from "../lib/calendar-helpers.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 
 // ── Private Types ──
 
 type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
-// ── Private Helpers ──
-
-const toEventResponse = (
-  row: CalendarEventRow,
-  projectName: string | null,
-  creatorName: string | null,
-): CalendarEvent => ({
-  id: row.id,
-  title: row.title,
-  description: row.description,
-  startAt: row.startAt.toISOString(),
-  endAt: row.endAt?.toISOString() ?? null,
-  allDay: row.allDay,
-  eventType: row.eventType,
-  location: row.location,
-  createdBy: row.createdBy,
-  creatorId: row.creatorId ?? null,
-  creatorName: creatorName ?? null,
-  projectId: row.projectId ?? null,
-  projectName: projectName ?? null,
-  completedAt: row.completedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});
-
-const findCreator = async (creatorId: string) => {
+const findCreator = async (creatorId: string): Promise<{ id: string; displayName: string } | undefined> => {
   const rows = await db
     .select({ id: creatorProfiles.id, displayName: creatorProfiles.displayName })
     .from(creatorProfiles)
@@ -66,7 +42,7 @@ const findCreator = async (creatorId: string) => {
   return rows[0];
 };
 
-const findActiveEvent = async (eventId: string, creatorId: string) => {
+const findActiveEvent = async (eventId: string, creatorId: string): Promise<CalendarEventRow | undefined> => {
   const rows = await db
     .select()
     .from(calendarEvents)

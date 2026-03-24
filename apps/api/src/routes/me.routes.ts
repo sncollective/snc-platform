@@ -55,20 +55,21 @@ meRoutes.get(
       return c.json({ user: null });
     }
 
-    const roles = await getUserRoles(sessionResult.user.id);
-
-    const patronRow = await db
-      .select({ id: userSubscriptions.id })
-      .from(userSubscriptions)
-      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(
-        and(
-          eq(userSubscriptions.userId, sessionResult.user.id),
-          eq(userSubscriptions.status, "active"),
-          eq(subscriptionPlans.type, "platform"),
-        ),
-      )
-      .limit(1);
+    const [roles, patronRow] = await Promise.all([
+      getUserRoles(sessionResult.user.id),
+      db
+        .select({ id: userSubscriptions.id })
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(
+          and(
+            eq(userSubscriptions.userId, sessionResult.user.id),
+            eq(userSubscriptions.status, "active"),
+            eq(subscriptionPlans.type, "platform"),
+          ),
+        )
+        .limit(1),
+    ]);
 
     const isPatron = patronRow.length > 0;
 

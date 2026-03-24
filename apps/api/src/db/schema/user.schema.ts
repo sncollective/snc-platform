@@ -1,5 +1,7 @@
 import { pgTable, text, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
 
+import type { Role } from "@snc/shared";
+
 // ── Users (Better Auth core) ──
 
 export const users = pgTable("users", {
@@ -70,7 +72,7 @@ export const userRoles = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    role: text("role").notNull(),
+    role: text("role").$type<Role>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

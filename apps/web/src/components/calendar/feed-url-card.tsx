@@ -66,7 +66,8 @@ export function FeedUrlCard({
             readOnly
             value={feedData.url}
             className={styles.urlInput}
-            onClick={(e) => (e.target as HTMLInputElement).select()}
+            aria-label="Calendar feed URL"
+            onClick={(e) => e.currentTarget.select()}
           />
           <button
             type="button"

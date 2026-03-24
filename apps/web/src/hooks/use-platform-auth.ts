@@ -22,9 +22,9 @@ export function usePlatformAuth(): UsePlatformAuthResult {
   const session = useSession();
   const subscriptions = useSubscriptions();
 
-  const isAuthenticated: boolean =
+  const isAuthenticated =
     session.data !== null && session.data !== undefined;
-  const isSubscribed: boolean = hasPlatformSubscription(subscriptions);
+  const isSubscribed = hasPlatformSubscription(subscriptions);
 
   return { isAuthenticated, isSubscribed };
 }

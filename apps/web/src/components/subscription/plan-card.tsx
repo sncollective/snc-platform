@@ -2,6 +2,8 @@ import type React from "react";
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { formatPrice, formatInterval } from "../../lib/format.js";
+import { clsx } from "clsx/lite";
+
 import buttonStyles from "../../styles/button.module.css";
 import styles from "./plan-card.module.css";
 
@@ -33,11 +35,7 @@ export function PlanCard({
       </div>
       <button
         type="button"
-        className={
-          isSubscribed === true
-            ? `${buttonStyles.primaryButton} ${styles.subscribedButton}`
-            : buttonStyles.primaryButton
-        }
+        className={clsx(buttonStyles.primaryButton, isSubscribed === true && styles.subscribedButton)}
         disabled={isDisabled}
         aria-label={isSubscribed === true ? "Already subscribed" : undefined}
         onClick={isDisabled ? undefined : () => onSubscribe(plan.id)}

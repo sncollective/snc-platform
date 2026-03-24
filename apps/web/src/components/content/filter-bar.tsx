@@ -1,6 +1,8 @@
 import type React from "react";
 import type { ContentType } from "@snc/shared";
 
+import { clsx } from "clsx/lite";
+
 import styles from "./filter-bar.module.css";
 
 // ── Constants ──
@@ -40,11 +42,7 @@ export function FilterBar({
         <button
           key={option.label}
           type="button"
-          className={
-            option.value === activeFilter
-              ? `${styles.filterButton} ${styles.filterButtonActive}`
-              : styles.filterButton
-          }
+          className={clsx(styles.filterButton, option.value === activeFilter && styles.filterButtonActive)}
           aria-pressed={option.value === activeFilter}
           onClick={() => onFilterChange(option.value)}
         >

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { UserSchema, RoleSchema } from "./auth.js";
+import { createPaginationQuery } from "./pagination.js";
 
 // ── Public Schemas ──
 
@@ -8,10 +9,7 @@ export const AdminUserSchema = UserSchema.extend({
   roles: z.array(RoleSchema),
 });
 
-export const AdminUsersQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().optional(),
-});
+export const AdminUsersQuerySchema = createPaginationQuery({ max: 100, default: 20 });
 
 export const AdminUsersResponseSchema = z.object({
   items: z.array(AdminUserSchema),

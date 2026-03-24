@@ -3,6 +3,9 @@ import type React from "react";
 import type { CalendarEvent } from "@snc/shared";
 
 import { toLocalDateKey } from "../../lib/format.js";
+import { groupEventsByDate } from "./calendar-utils.js";
+import { clsx } from "clsx/lite";
+
 import styles from "./calendar-grid.module.css";
 
 // ── Private Constants ──
@@ -41,22 +44,6 @@ interface SpanBar {
 }
 
 // ── Private Helpers ──
-
-function groupEventsByLocalDate(
-  events: readonly CalendarEvent[],
-): Map<string, CalendarEvent[]> {
-  const groups = new Map<string, CalendarEvent[]>();
-  for (const event of events) {
-    const dateKey = toLocalDateKey(event.startAt);
-    const existing = groups.get(dateKey);
-    if (existing) {
-      existing.push(event);
-    } else {
-      groups.set(dateKey, [event]);
-    }
-  }
-  return groups;
-}
 
 function formatCellDate(d: Date): string {
   const y = d.getFullYear();
@@ -213,7 +200,7 @@ export function CalendarGrid({
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
 
   const singleDayEvents = events.filter((e) => !isMultiDay(e));
-  const eventsByDate = groupEventsByLocalDate(singleDayEvents);
+  const eventsByDate = groupEventsByDate(singleDayEvents);
   const cells = buildGridCells(year, month);
   const weekRows = buildWeekRows(cells);
   const spanBars = buildSpanBars(events, weekRows);
@@ -223,11 +210,11 @@ export function CalendarGrid({
   const DAY_NUMBER_HEIGHT = 24;
 
   return (
-    <div className={styles.grid}>
+    <div className={styles.grid} role="table" aria-label="Calendar grid">
       {/* Day headers */}
-      <div className={styles.headerRow}>
+      <div className={styles.headerRow} role="row">
         {WEEKDAY_HEADERS.map((day) => (
-          <div key={day} className={styles.dayHeader}>{day}</div>
+          <div key={day} className={styles.dayHeader} role="columnheader">{day}</div>
         ))}
       </div>
 
@@ -238,7 +225,7 @@ export function CalendarGrid({
         const spanBarSpace = maxLane >= 0 ? (maxLane + 1) * (SPAN_BAR_HEIGHT + SPAN_BAR_GAP) : 0;
 
         return (
-          <div key={row.weekIndex} className={styles.weekRow}>
+          <div key={row.weekIndex} className={styles.weekRow} role="row">
             {/* Span bars */}
             {rowBars.map((bar) => (
               <button
@@ -269,7 +256,8 @@ export function CalendarGrid({
               return (
                 <div
                   key={cell.dateKey}
-                  className={cell.isCurrentMonth ? styles.cell : `${styles.cell} ${styles.cellOtherMonth}`}
+                  role="cell"
+                  className={clsx(styles.cell, !cell.isCurrentMonth && styles.cellOtherMonth)}
                 >
                   <span className={styles.cellDay}>{cell.day}</span>
                   <div

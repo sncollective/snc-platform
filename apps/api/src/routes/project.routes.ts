@@ -8,6 +8,7 @@ import {
   CreateProjectSchema,
   UpdateProjectSchema,
   ProjectsQuerySchema,
+  ProjectEventsQuerySchema,
   ProjectResponseSchema,
   ProjectsResponseSchema,
   CalendarEventsResponseSchema,
@@ -17,11 +18,13 @@ import {
 import type {
   Project,
   ProjectsQuery,
+  ProjectEventsQuery,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { projects } from "../db/schema/project.schema.js";
 import { calendarEvents } from "../db/schema/calendar.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -30,8 +33,9 @@ import {
   ERROR_401,
   ERROR_403,
   ERROR_404,
-} from "./openapi-errors.js";
-import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+} from "../lib/openapi-errors.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
+import { toEventResponse } from "../lib/calendar-helpers.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { generateUniqueSlug } from "../services/slug.js";
 
@@ -346,13 +350,16 @@ projectRoutes.get(
           },
         },
       },
+      400: ERROR_400,
       401: ERROR_401,
       403: ERROR_403,
       404: ERROR_404,
     },
   }),
+  validator("query", ProjectEventsQuerySchema),
   async (c) => {
     const { id } = c.req.param();
+    const { limit, cursor } = c.req.valid("query" as never) as ProjectEventsQuery;
 
     const project = await findProjectByIdOrSlug(id);
 
@@ -360,31 +367,41 @@ projectRoutes.get(
       throw new NotFoundError("Project not found");
     }
 
-    const limit = 50;
-
     const now = new Date();
+
+    const conditions = [
+      eq(calendarEvents.projectId, project.id),
+      isNull(calendarEvents.deletedAt),
+      or(
+        gte(calendarEvents.startAt, now),
+        and(
+          eq(calendarEvents.eventType, "task"),
+          isNull(calendarEvents.completedAt),
+        ),
+      )!,
+    ];
+
+    if (cursor) {
+      const decoded = decodeCursor(cursor, {
+        timestampField: "startAt",
+        idField: "id",
+      });
+      conditions.push(
+        buildCursorCondition(calendarEvents.startAt, calendarEvents.id, decoded, "asc"),
+      );
+    }
 
     const rows = await db
       .select({
         event: calendarEvents,
         projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
       })
       .from(calendarEvents)
       .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
       .where(
-        and(
-          eq(calendarEvents.projectId, project.id),
-          isNull(calendarEvents.deletedAt),
-          or(
-            // Future events (any type)
-            gte(calendarEvents.startAt, now),
-            // Overdue uncompleted tasks
-            and(
-              eq(calendarEvents.eventType, "task"),
-              isNull(calendarEvents.completedAt),
-            ),
-          ),
-        ),
+        and(...conditions),
       )
       .orderBy(asc(calendarEvents.startAt), asc(calendarEvents.id))
       .limit(limit + 1);
@@ -398,23 +415,9 @@ projectRoutes.get(
       }),
     );
 
-    const items = rawItems.map((row) => ({
-      id: row.event.id,
-      title: row.event.title,
-      description: row.event.description,
-      startAt: row.event.startAt.toISOString(),
-      endAt: row.event.endAt?.toISOString() ?? null,
-      allDay: row.event.allDay,
-      eventType: row.event.eventType,
-      location: row.event.location,
-      createdBy: row.event.createdBy,
-      creatorId: row.event.creatorId ?? null,
-      projectId: row.event.projectId ?? null,
-      projectName: row.projectName ?? null,
-      completedAt: row.event.completedAt?.toISOString() ?? null,
-      createdAt: row.event.createdAt.toISOString(),
-      updatedAt: row.event.updatedAt.toISOString(),
-    }));
+    const items = rawItems.map((row) =>
+      toEventResponse(row.event, row.projectName ?? null, row.creatorName ?? null),
+    );
 
     return c.json({ items, nextCursor });
   },

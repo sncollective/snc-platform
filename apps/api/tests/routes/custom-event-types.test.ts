@@ -103,10 +103,10 @@ const ctx = setupRouteTest({
     }));
   },
   mountRoute: async (app) => {
-    const { calendarRoutes } = await import(
-      "../../src/routes/calendar.routes.js"
+    const { calendarEventTypeRoutes } = await import(
+      "../../src/routes/calendar-event-types.routes.js"
     );
-    app.route("/api/calendar", calendarRoutes);
+    app.route("/api/calendar", calendarEventTypeRoutes);
   },
   beforeEach: () => {
     // SELECT chain (no leftJoin needed for event types)

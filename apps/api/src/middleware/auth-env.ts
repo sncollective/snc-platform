@@ -1,3 +1,5 @@
+import type { PinoLogger } from "hono-pino";
+
 import type { User, Session, Role } from "@snc/shared";
 
 // ── Public Types ──
@@ -12,5 +14,6 @@ export type AuthEnv = {
     user: User;
     session: Session;
     roles: Role[];
+    logger: PinoLogger;
   };
 };

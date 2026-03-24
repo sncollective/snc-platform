@@ -1,5 +1,5 @@
 import type React from "react";
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Project, CalendarEvent, CalendarEventsResponse } from "@snc/shared";
 
@@ -62,6 +62,9 @@ export const Route = createFileRoute("/projects_/$projectSlug")({
 function ProjectDetailPage(): React.ReactElement {
   const { project: initialProject, events: initialEvents } = Route.useLoaderData();
 
+  const navigate = useNavigate();
+  const router = useRouter();
+
   const [project, setProject] = useState<Project>(initialProject);
   const [events, setEvents] = useState<CalendarEvent[]>([...initialEvents.items]);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +96,7 @@ function ProjectDetailPage(): React.ReactElement {
     setError(null);
     try {
       await deleteProject(project.id);
-      window.location.href = "/projects";
+      void navigate({ to: "/projects" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete project");
     }
@@ -101,8 +104,7 @@ function ProjectDetailPage(): React.ReactElement {
 
   const handleEventFormSuccess = () => {
     setShowEventForm(false);
-    // Reload events — simplest approach, avoids partial state
-    window.location.reload();
+    void router.invalidate();
   };
 
   return (

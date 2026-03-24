@@ -59,6 +59,7 @@ function BookingManagementPage(): React.ReactElement {
           {nextCursor !== null && (
             <div className={listingStyles.loadMoreWrapper}>
               <button
+                type="button"
                 className={listingStyles.loadMoreButton}
                 onClick={loadMore}
                 disabled={isLoading}

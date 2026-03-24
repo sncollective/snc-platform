@@ -3,6 +3,7 @@ import type React from "react";
 
 import type { AudioTrack } from "../../contexts/audio-player-context.js";
 import { useAudioPlayer } from "../../contexts/audio-player-context.js";
+import { useMediaControls } from "../../hooks/use-media-controls.js";
 import { formatTime } from "../../lib/format.js";
 import styles from "./audio-player.module.css";
 import { PlayPauseButton } from "./play-pause-button.js";
@@ -28,7 +29,7 @@ export function AudioPlayer({
   contentId,
 }: AudioPlayerProps): React.ReactElement {
   const { state, actions } = useAudioPlayer();
-  const [volume, setVolume] = useState(1);
+  const { volume, handleSeek, handleVolumeChange } = useMediaControls(actions);
   const [preloadedDuration, setPreloadedDuration] = useState(0);
   const preloadRef = useRef<HTMLAudioElement>(null);
 
@@ -64,15 +65,6 @@ export function AudioPlayer({
     } else {
       actions.resume();
     }
-  }
-
-  function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
-    actions.seek(Number(e.target.value));
-  }
-
-  function handleVolumeChange(newVolume: number) {
-    setVolume(newVolume);
-    actions.setVolume(newVolume);
   }
 
   return (

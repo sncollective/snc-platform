@@ -40,7 +40,7 @@ export async function completeMultipartUpload(
   key: string,
   parts: Array<{ PartNumber: number; ETag: string }>,
 ): Promise<void> {
-  await apiMutate(`/api/uploads/s3/multipart/${uploadId}/complete`, {
+  await apiMutate<void>(`/api/uploads/s3/multipart/${uploadId}/complete`, {
     body: { key, parts },
   });
 }
@@ -49,7 +49,7 @@ export async function abortMultipartUpload(
   uploadId: string,
   key: string,
 ): Promise<void> {
-  await apiMutate(
+  await apiMutate<void>(
     `/api/uploads/s3/multipart/${uploadId}?key=${encodeURIComponent(key)}`,
     {
       method: "DELETE",
@@ -61,13 +61,13 @@ export async function listParts(
   uploadId: string,
   key: string,
 ): Promise<Array<{ PartNumber: number; Size: number; ETag: string }>> {
-  return apiGet(`/api/uploads/s3/multipart/${uploadId}`, { key });
+  return apiGet<Array<{ PartNumber: number; Size: number; ETag: string }>>(`/api/uploads/s3/multipart/${uploadId}`, { key });
 }
 
 export async function completeUpload(
   request: CompleteUploadRequest,
 ): Promise<void> {
-  await apiMutate("/api/uploads/complete", { body: request });
+  await apiMutate<void>("/api/uploads/complete", { body: request });
 }
 
 export async function retryWithBackoff<T>(
@@ -81,7 +81,8 @@ export async function retryWithBackoff<T>(
     } catch (e) {
       lastError = e;
       if (attempt < maxAttempts - 1) {
-        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+        const BASE_RETRY_DELAY_MS = 1000;
+        await new Promise((r) => setTimeout(r, BASE_RETRY_DELAY_MS * 2 ** attempt));
       }
     }
   }

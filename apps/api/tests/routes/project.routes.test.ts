@@ -102,6 +102,11 @@ const ctx = setupRouteTest({
       },
     }));
 
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorProfiles: { id: {}, displayName: {} },
+      creatorMembers: {},
+    }));
+
     vi.doMock("../../src/db/schema/user.schema.js", () => ({
       users: {
         id: {},
@@ -136,7 +141,7 @@ const ctx = setupRouteTest({
     // (resolves to []) and supports further .orderBy().limit() chaining.
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
-    mockLeftJoin.mockReturnValue({ where: mockSelectWhere });
+    mockLeftJoin.mockReturnValue({ leftJoin: mockLeftJoin, where: mockSelectWhere });
     mockSelectWhere.mockImplementation(() =>
       chainablePromise([], { orderBy: mockOrderBy }),
     );

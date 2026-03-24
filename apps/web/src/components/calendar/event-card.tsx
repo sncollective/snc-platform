@@ -2,13 +2,15 @@ import type React from "react";
 import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import type { CalendarEvent } from "@snc/shared";
 
+import { clsx } from "clsx/lite";
+
 import styles from "./event-card.module.css";
 
 // ── Private Helpers ──
 
 /** Resolve a display label for any event type slug. */
 const resolveEventTypeLabel = (slug: string): string =>
-  DEFAULT_EVENT_TYPE_LABELS[slug] ??
+  (DEFAULT_EVENT_TYPE_LABELS as Readonly<Record<string, string>>)[slug] ??
   slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ── Public Types ──
@@ -39,7 +41,7 @@ export function EventCard({
       });
 
   return (
-    <div className={`${styles.card}${isCompleted ? ` ${styles.taskCompleted}` : ""}`}>
+    <div className={clsx(styles.card, isCompleted && styles.taskCompleted)}>
       <div className={styles.header}>
         <span className={styles.time}>{timeDisplay}</span>
         <div className={styles.badges}>

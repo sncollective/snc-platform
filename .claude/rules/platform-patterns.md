@@ -5,6 +5,7 @@ One line per pattern. Read the linked file for full details and code examples.
 ## API / Shared Layer
 - **app-error-hierarchy**: Typed AppError subclasses carry `code`+`statusCode`; `errorHandler` maps them via `instanceof` → [app-error-hierarchy.md]
 - **result-type**: `Result<T, E=AppError>` discriminated union; `ok()`/`err()` factories; narrowed by `.ok` boolean → [result-type.md]
+- **thin-handlers-fat-services**: Route handlers parse/validate/delegate/respond (~30 lines); business logic lives in `services/` returning `Result<T, AppError>` or typed unions → [thin-handlers-fat-services.md]
 - **zod-env-config**: `ENV_SCHEMA` + `parseConfig(env)` exported for test injection + module-level `config` singleton crashes at startup → [zod-env-config.md]
 - **hono-test-app-factory**: Local `createTestApp()`/`setupCorsApp()` builds minimal Hono instance; `app.request()` for zero-dep HTTP calls in tests → [hono-test-app-factory.md]
 

@@ -50,7 +50,7 @@ describe("ContentFooter", () => {
     );
     expect(screen.getByTestId("subscribe-cta")).toBeInTheDocument();
     expect(mockSubscribeCta).toHaveBeenCalledWith(
-      expect.objectContaining({ creatorId: "creator-1", contentType: "video", plans: [] }),
+      expect.objectContaining({ contentType: "video", plans: [] }),
     );
   });
 

@@ -15,6 +15,16 @@ export interface PendingBookingsTableProps {
 
 // ── Private Helpers ──
 
+interface BookingRowData {
+  readonly id: string;
+  readonly requesterName: string;
+  readonly serviceName: string;
+  readonly datesDisplay: string;
+  readonly datesTitle: string;
+  readonly submittedAt: string;
+  readonly ariaLabel: string;
+}
+
 function formatPreferredDates(dates: readonly string[]): {
   display: string;
   title: string;
@@ -24,6 +34,19 @@ function formatPreferredDates(dates: readonly string[]): {
   const display =
     dates.length === 1 ? first : `${first} (+${dates.length - 1} more)`;
   return { display, title: dates.join(", ") };
+}
+
+function mapBookingToRow(booking: PendingBookingItem): BookingRowData {
+  const dates = formatPreferredDates(booking.preferredDates);
+  return {
+    id: booking.id,
+    requesterName: booking.requester.name,
+    serviceName: booking.service.name,
+    datesDisplay: dates.display,
+    datesTitle: dates.title,
+    submittedAt: booking.createdAt,
+    ariaLabel: `Booking request from ${booking.requester.name} for ${booking.service.name}`,
+  };
 }
 
 // ── Public API ──
@@ -136,13 +159,13 @@ export function PendingBookingsTable({
         </thead>
         <tbody>
           {bookings.map((booking) => {
-            const dates = formatPreferredDates(booking.preferredDates);
+            const row = mapBookingToRow(booking);
             return (
-              <tr key={booking.id} className={styles.row}>
-                <td>{booking.requester.name}</td>
-                <td>{booking.service.name}</td>
-                <td title={dates.title}>{dates.display}</td>
-                <td>{formatRelativeDate(booking.createdAt)}</td>
+              <tr key={row.id} className={styles.row}>
+                <td>{row.requesterName}</td>
+                <td>{row.serviceName}</td>
+                <td title={row.datesTitle}>{row.datesDisplay}</td>
+                <td suppressHydrationWarning>{formatRelativeDate(row.submittedAt)}</td>
                 <td>{renderActions(booking)}</td>
               </tr>
             );
@@ -153,31 +176,31 @@ export function PendingBookingsTable({
       {/* Mobile card layout */}
       <div className={styles.cardList}>
         {bookings.map((booking) => {
-          const dates = formatPreferredDates(booking.preferredDates);
+          const row = mapBookingToRow(booking);
           return (
-            <div key={`card-${booking.id}`} className={styles.card}>
+            <div key={`card-${row.id}`} className={styles.card} role="group" aria-label={row.ariaLabel}>
               <div className={styles.cardField}>
                 <span className={styles.cardLabel}>Requester</span>
                 <span className={styles.cardValue}>
-                  {booking.requester.name}
+                  {row.requesterName}
                 </span>
               </div>
               <div className={styles.cardField}>
                 <span className={styles.cardLabel}>Service</span>
                 <span className={styles.cardValue}>
-                  {booking.service.name}
+                  {row.serviceName}
                 </span>
               </div>
               <div className={styles.cardField}>
                 <span className={styles.cardLabel}>Dates</span>
-                <span className={styles.cardValue} title={dates.title}>
-                  {dates.display}
+                <span className={styles.cardValue} title={row.datesTitle}>
+                  {row.datesDisplay}
                 </span>
               </div>
               <div className={styles.cardField}>
                 <span className={styles.cardLabel}>Submitted</span>
-                <span className={styles.cardValue}>
-                  {formatRelativeDate(booking.createdAt)}
+                <span className={styles.cardValue} suppressHydrationWarning>
+                  {formatRelativeDate(row.submittedAt)}
                 </span>
               </div>
               <div className={styles.cardActions}>

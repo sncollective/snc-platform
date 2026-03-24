@@ -30,7 +30,7 @@ export async function fetchAuthState(): Promise<AuthState> {
 
 // ── Public API: hasRole ──
 
-export function hasRole(roles: Role[], role: Role): boolean {
+export function hasRole(roles: readonly Role[], role: Role): boolean {
   return roles.includes(role);
 }
 

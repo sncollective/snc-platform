@@ -4,7 +4,7 @@ import { AppError, ok, err, type Result } from "@snc/shared";
 
 import { config } from "../config.js";
 import { wrapStripeErrorGranular } from "./external-error.js";
-import { getStripe, ensureConfigured } from "./stripe-client.js";
+import { getStripe } from "./stripe-client.js";
 
 // ── Public Types ──
 
@@ -16,10 +16,6 @@ export type CreateCheckoutSessionParams = {
   successUrl: string;
   cancelUrl: string;
 };
-
-// ── Private Helpers ──
-
-const wrapStripeError = wrapStripeErrorGranular;
 
 // ── Public API ──
 
@@ -33,11 +29,11 @@ export const getOrCreateCustomer = async (
   userId: string,
   email: string,
 ): Promise<Result<string, AppError>> => {
-  const configured = ensureConfigured();
-  if (!configured.ok) return err(configured.error);
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return err(stripeResult.error);
+  const stripe = stripeResult.value;
 
   try {
-    const stripe = getStripe();
     const search = await stripe.customers.search({
       query: `metadata["sncUserId"]:"${userId}"`,
     });
@@ -54,7 +50,7 @@ export const getOrCreateCustomer = async (
 
     return ok(customer.id);
   } catch (e) {
-    return err(wrapStripeError(e));
+    return err(wrapStripeErrorGranular(e));
   }
 };
 
@@ -66,11 +62,11 @@ export const getOrCreateCustomer = async (
 export const createCheckoutSession = async (
   params: CreateCheckoutSessionParams,
 ): Promise<Result<string, AppError>> => {
-  const configured = ensureConfigured();
-  if (!configured.ok) return err(configured.error);
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return err(stripeResult.error);
+  const stripe = stripeResult.value;
 
   try {
-    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       customer: params.customerId,
       mode: "subscription",
@@ -88,7 +84,7 @@ export const createCheckoutSession = async (
 
     return ok(session.url);
   } catch (e) {
-    return err(wrapStripeError(e));
+    return err(wrapStripeErrorGranular(e));
   }
 };
 
@@ -99,18 +95,18 @@ export const createCheckoutSession = async (
 export const cancelSubscriptionAtPeriodEnd = async (
   stripeSubscriptionId: string,
 ): Promise<Result<void, AppError>> => {
-  const configured = ensureConfigured();
-  if (!configured.ok) return configured;
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return stripeResult;
+  const stripe = stripeResult.value;
 
   try {
-    const stripe = getStripe();
     await stripe.subscriptions.update(stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
     return ok(undefined);
   } catch (e) {
-    return err(wrapStripeError(e));
+    return err(wrapStripeErrorGranular(e));
   }
 };
 
@@ -124,8 +120,9 @@ export const verifyWebhookSignature = (
   rawBody: string,
   signature: string,
 ): Result<Stripe.Event, AppError> => {
-  const configured = ensureConfigured();
-  if (!configured.ok) return err(configured.error);
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return err(stripeResult.error);
+  const stripe = stripeResult.value;
 
   if (!config.STRIPE_WEBHOOK_SECRET) {
     return err(
@@ -134,7 +131,6 @@ export const verifyWebhookSignature = (
   }
 
   try {
-    const stripe = getStripe();
     const event = stripe.webhooks.constructEvent(
       rawBody,
       signature,

@@ -50,6 +50,10 @@ vi.mock("../../../src/lib/config.js", () => ({
   DEMO_MODE: false,
 }));
 
+vi.mock("../../../src/hooks/use-route-announcer.js", () => ({
+  useRouteAnnouncer: vi.fn(),
+}));
+
 vi.mock("../../../src/lib/api-server.js", () => ({
   fetchAuthStateServer: vi.fn().mockResolvedValue({ user: null, roles: [] }),
 }));

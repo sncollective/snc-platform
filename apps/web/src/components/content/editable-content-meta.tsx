@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { MAX_TITLE_LENGTH } from "@snc/shared";
+import { MAX_TITLE_LENGTH, VISIBILITY } from "@snc/shared";
 import type { Visibility } from "@snc/shared";
 
 import { formatDate } from "../../lib/format.js";
@@ -69,7 +69,12 @@ export function EditableContentMeta({
         <select
           id="edit-visibility"
           value={visibility}
-          onChange={(e) => onVisibilityChange(e.target.value as Visibility)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if ((VISIBILITY as readonly string[]).includes(value)) {
+              onVisibilityChange(value as Visibility);
+            }
+          }}
           className={styles.visibilitySelect}
         >
           <option value="public">Public</option>

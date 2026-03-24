@@ -53,17 +53,21 @@ export function MiniUploadIndicator(): React.ReactElement | null {
     return null;
   }
 
-  const uploadingCount = activeUploads.filter((u) => u.status === "uploading" || u.status === "completing").length;
-  const completedCount = activeUploads.filter((u) => u.status === "complete").length;
-  const errorCount = activeUploads.filter((u) => u.status === "error").length;
+  const { uploadingCount, completedCount, errorCount, progressSum } = activeUploads.reduce(
+    (acc, u) => {
+      if (u.status === "uploading" || u.status === "completing") {
+        acc.uploadingCount++;
+        acc.progressSum += u.status === "uploading" ? u.progress : 100;
+      } else if (u.status === "complete") acc.completedCount++;
+      else if (u.status === "error") acc.errorCount++;
+      return acc;
+    },
+    { uploadingCount: 0, completedCount: 0, errorCount: 0, progressSum: 0 },
+  );
 
   const avgProgress =
     uploadingCount > 0
-      ? Math.round(
-          activeUploads
-            .filter((u) => u.status === "uploading")
-            .reduce((sum, u) => sum + u.progress, 0) / uploadingCount,
-        )
+      ? Math.round(progressSum / uploadingCount)
       : 100;
 
   // Compact summary text
@@ -103,6 +107,7 @@ export function MiniUploadIndicator(): React.ReactElement | null {
             className={styles.expandButton}
             onClick={actions.toggleExpanded}
             aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Collapse upload details" : "Expand upload details"}
           >
             {isExpanded ? "▼" : "▲"}
           </button>
@@ -117,7 +122,7 @@ export function MiniUploadIndicator(): React.ReactElement | null {
               <div className={styles.progressBar}>
                 <div
                   className={styles.progressFill}
-                  style={{ width: `${upload.progress}%` }}
+                  style={{ transform: `scaleX(${upload.progress / 100})`, transformOrigin: "left" }}
                 />
               </div>
               <span className={styles.fileStatus}>
@@ -131,6 +136,7 @@ export function MiniUploadIndicator(): React.ReactElement | null {
                   type="button"
                   className={styles.fileCancelButton}
                   onClick={() => actions.cancelUpload(upload.id)}
+                  aria-label={`Cancel upload for ${upload.filename}`}
                 >
                   ✕
                 </button>

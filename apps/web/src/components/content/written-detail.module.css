@@ -67,6 +67,18 @@
   outline: none;
 }
 
+/* ── Thumbnail (Edit Mode) ── */
+
+.coverArt {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+.coverArtPlaceholder {
+  display: none;
+}
+
 /* ── Upload Placeholder (Edit Mode) ── */
 
 .uploadPlaceholder {

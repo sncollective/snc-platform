@@ -20,6 +20,14 @@
   margin: 0;
 }
 
+/* ── Dates Fieldset Reset ── */
+
+.datesFieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
 /* ── Textarea Override ── */
 
 .textarea {

@@ -15,7 +15,7 @@ import { bookingRequests } from "../db/schema/booking.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
-import { ERROR_401, ERROR_403, ERROR_502, ERROR_503 } from "./openapi-errors.js";
+import { ERROR_401, ERROR_403, ERROR_502, ERROR_503 } from "../lib/openapi-errors.js";
 import { getMonthlyRevenue } from "../services/revenue.js";
 
 // ── Public API ──
@@ -50,9 +50,9 @@ dashboardRoutes.get(
 
     const monthly = result.value;
     const now = new Date();
-    const currentMonthKey = `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}`;
+    const currentMonthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
     const currentEntry = monthly.find(
-      (m: MonthlyRevenue) => `${m.year}-${m.month}` === currentMonthKey,
+      (m: MonthlyRevenue) => `${m.year}-${String(m.month).padStart(2, "0")}` === currentMonthKey,
     );
     const currentMonth = currentEntry?.amount ?? 0;
 

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type React from "react";
 
 import { useAudioPlayer } from "../../contexts/audio-player-context.js";
+import { useMediaControls } from "../../hooks/use-media-controls.js";
 import { formatTime } from "../../lib/format.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import styles from "./mini-player.module.css";
@@ -17,7 +18,7 @@ const MINI_PLAYER_HEIGHT = "56px";
 export function MiniPlayer(): React.ReactElement | null {
   const { state, actions } = useAudioPlayer();
   const { track, isPlaying, currentTime, duration } = state;
-  const [volume, setVolume] = useState(1);
+  const { volume, handleSeek, handleVolumeChange } = useMediaControls(actions);
 
   useEffect(() => {
     if (track) {
@@ -43,15 +44,6 @@ export function MiniPlayer(): React.ReactElement | null {
     }
   }
 
-  function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
-    actions.seek(Number(e.target.value));
-  }
-
-  function handleVolumeChange(v: number) {
-    setVolume(v);
-    actions.setVolume(v);
-  }
-
   function handleClose() {
     actions.clearTrack();
   }
@@ -65,6 +57,8 @@ export function MiniPlayer(): React.ReactElement | null {
           alt={`Cover art for ${track.title}`}
           className={styles.coverArtImage!}
           placeholderClassName={styles.coverArtPlaceholder!}
+          width={40}
+          height={40}
         />
       </div>
 

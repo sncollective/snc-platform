@@ -1,11 +1,12 @@
-import { useRef } from "react";
 import type React from "react";
 import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
 
+import { useFileInput } from "../../hooks/use-file-input.js";
 import { AudioPlayer } from "../media/audio-player.js";
 import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
+import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
 import styles from "./audio-detail.module.css";
 
 // ── Public Types ──
@@ -37,30 +38,7 @@ export function AudioDetail({
   isEditing,
   editCallbacks,
 }: AudioDetailProps): React.ReactElement {
-  const mediaInputRef = useRef<HTMLInputElement | null>(null);
-  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
-
-  const handleMediaClick = () => {
-    mediaInputRef.current?.click();
-  };
-
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    editCallbacks?.onMediaUpload?.(file);
-    e.target.value = "";
-  };
-
-  const handleThumbnailClick = () => {
-    thumbnailInputRef.current?.click();
-  };
-
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    editCallbacks?.onThumbnailUpload?.(file);
-    e.target.value = "";
-  };
+  const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
 
   const coverArtSrc = item.thumbnailUrl;
 
@@ -73,6 +51,8 @@ export function AudioDetail({
               src={coverArtSrc}
               alt={`Thumbnail for ${item.title}`}
               className={styles.coverArt}
+              width={280}
+              height={280}
             />
           ) : (
             <div className={styles.coverArtPlaceholder} />
@@ -101,47 +81,15 @@ export function AudioDetail({
     return (
       <div className={styles.audioDetail}>
         <div className={styles.header}>
-          {isEditing && coverArtSrc !== null && editCallbacks ? (
-            <div>
-              <img
-                src={coverArtSrc}
-                alt={`Thumbnail for ${item.title}`}
-                className={styles.coverArt}
-              />
-              <div className={styles.editMediaActions}>
-                <button type="button" className={styles.replaceButton} onClick={handleThumbnailClick}>
-                  Replace Thumbnail
-                </button>
-                <input ref={thumbnailInputRef} type="file" className={styles.hiddenInput} accept="image/*" onChange={handleThumbnailChange} />
-                {editCallbacks.onThumbnailRemove && (
-                  <button type="button" className={styles.removeButton} onClick={editCallbacks.onThumbnailRemove}>
-                    Remove Thumbnail
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : isEditing && coverArtSrc === null && editCallbacks?.onThumbnailUpload ? (
-            <div className={styles.uploadPlaceholder}>
-              <button
-                type="button"
-                className={styles.uploadPlaceholderButton}
-                onClick={handleThumbnailClick}
-              >
-                Upload Thumbnail
-              </button>
-              <input
-                ref={thumbnailInputRef}
-                type="file"
-                className={styles.hiddenInput}
-                accept="image/*"
-                onChange={handleThumbnailChange}
-              />
-            </div>
-          ) : coverArtSrc !== null ? (
-            <img className={styles.coverArt} src={coverArtSrc} alt={`Thumbnail for ${item.title}`} />
-          ) : (
-            <div className={styles.coverArtPlaceholder} />
-          )}
+          <ThumbnailEditSection
+            thumbnailSrc={coverArtSrc}
+            title={item.title}
+            isEditing={!!isEditing && !!editCallbacks}
+            onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+            onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+            styles={styles}
+            imgSize={{ width: 280, height: 280 }}
+          />
           <div className={styles.trackInfo}>
             {isEditing && editCallbacks ? (
               <EditableContentMeta
@@ -176,6 +124,7 @@ export function AudioDetail({
                   type="file"
                   className={styles.hiddenInput}
                   accept="audio/*"
+                  aria-label="Upload audio file"
                   onChange={handleMediaChange}
                 />
               </div>
@@ -194,51 +143,15 @@ export function AudioDetail({
   return (
     <div className={styles.audioDetail}>
       <div className={styles.header}>
-        {isEditing && coverArtSrc !== null && editCallbacks ? (
-          <div>
-            <img
-              src={coverArtSrc}
-              alt={`Thumbnail for ${item.title}`}
-              className={styles.coverArt}
-            />
-            <div className={styles.editMediaActions}>
-              <button type="button" className={styles.replaceButton} onClick={handleThumbnailClick}>
-                Replace Thumbnail
-              </button>
-              <input ref={thumbnailInputRef} type="file" className={styles.hiddenInput} accept="image/*" onChange={handleThumbnailChange} />
-              {editCallbacks.onThumbnailRemove && (
-                <button type="button" className={styles.removeButton} onClick={editCallbacks.onThumbnailRemove}>
-                  Remove Thumbnail
-                </button>
-              )}
-            </div>
-          </div>
-        ) : isEditing && coverArtSrc === null && editCallbacks?.onThumbnailUpload ? (
-          <div className={styles.uploadPlaceholder}>
-            <button
-              type="button"
-              className={styles.uploadPlaceholderButton}
-              onClick={handleThumbnailClick}
-            >
-              Upload Thumbnail
-            </button>
-            <input
-              ref={thumbnailInputRef}
-              type="file"
-              className={styles.hiddenInput}
-              accept="image/*"
-              onChange={handleThumbnailChange}
-            />
-          </div>
-        ) : coverArtSrc ? (
-          <img
-            src={coverArtSrc}
-            alt={`Thumbnail for ${item.title}`}
-            className={styles.coverArt}
-          />
-        ) : (
-          <div className={styles.coverArtPlaceholder} />
-        )}
+        <ThumbnailEditSection
+          thumbnailSrc={coverArtSrc}
+          title={item.title}
+          isEditing={!!isEditing && !!editCallbacks}
+          onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+          onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+          styles={styles}
+          imgSize={{ width: 280, height: 280 }}
+        />
         <div className={styles.trackInfo}>
           {isEditing && editCallbacks ? (
             <EditableContentMeta
@@ -273,7 +186,7 @@ export function AudioDetail({
               <button type="button" className={styles.replaceButton} onClick={handleMediaClick}>
                 Replace Audio
               </button>
-              <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="audio/*" onChange={handleMediaChange} />
+              <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="audio/*" aria-label="Upload audio file" onChange={handleMediaChange} />
               {editCallbacks.onMediaRemove && (
                 <button type="button" className={styles.removeButton} onClick={editCallbacks.onMediaRemove}>
                   Remove Audio

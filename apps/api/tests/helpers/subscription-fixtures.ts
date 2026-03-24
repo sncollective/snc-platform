@@ -89,7 +89,11 @@ export const makeInvoicePaidEvent = (overrides?: Record<string, unknown>) => ({
   type: "invoice.paid",
   data: {
     object: {
-      subscription: "sub_test_xxxxxxxxxxxx",
+      parent: {
+        subscription_details: {
+          subscription: "sub_test_xxxxxxxxxxxx",
+        },
+      },
       lines: {
         data: [{ period: { end: Math.floor(Date.now() / 1000) + 2_592_000 } }],
       },
@@ -103,7 +107,15 @@ export const makeInvoicePaymentFailedEvent = (
 ) => ({
   id: "evt_test_payment_failed",
   type: "invoice.payment_failed",
-  data: { object: { subscription: "sub_test_xxxxxxxxxxxx" } },
+  data: {
+    object: {
+      parent: {
+        subscription_details: {
+          subscription: "sub_test_xxxxxxxxxxxx",
+        },
+      },
+    },
+  },
   ...overrides,
 });
 
@@ -116,7 +128,9 @@ export const makeSubscriptionUpdatedEvent = (
     object: {
       id: "sub_test_xxxxxxxxxxxx",
       status: "active",
-      current_period_end: Math.floor(Date.now() / 1000) + 2_592_000,
+      items: {
+        data: [{ current_period_end: Math.floor(Date.now() / 1000) + 2_592_000 }],
+      },
       cancel_at_period_end: false,
     },
   },

@@ -8,18 +8,18 @@ export const MONTH_LABELS: readonly string[] = [
 // ── Types ──
 
 export interface MonthlyDataItem {
-  month: string;
-  actualCo2Kg: number;
-  projectedCo2Kg: number;
-  offsetCo2Kg: number;
+  readonly month: string;
+  readonly actualCo2Kg: number;
+  readonly projectedCo2Kg: number;
+  readonly offsetCo2Kg: number;
 }
 
 export interface ChartLines {
-  months: string[];
-  actualUse: number[];
-  projectedUse: number[];
-  offsets: number[];
-  net: number[];
+  readonly months: readonly string[];
+  readonly actualUse: readonly number[];
+  readonly projectedUse: readonly number[];
+  readonly offsets: readonly number[];
+  readonly net: readonly number[];
 }
 
 // ── Formatting Helpers ──
@@ -51,7 +51,7 @@ export function formatMonthShort(month: string): string {
 
 // ── Chart Line Computation ──
 
-export function computeChartLines(data: MonthlyDataItem[]): ChartLines {
+export function computeChartLines(data: readonly MonthlyDataItem[]): ChartLines {
   const months: string[] = [];
   const actualUse: number[] = [];
   const projectedUse: number[] = [];

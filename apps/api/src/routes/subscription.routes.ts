@@ -39,13 +39,13 @@ import {
   ERROR_404,
   ERROR_502,
   ERROR_503,
-} from "./openapi-errors.js";
+} from "../lib/openapi-errors.js";
 import {
   getOrCreateCustomer,
   createCheckoutSession,
   cancelSubscriptionAtPeriodEnd,
 } from "../services/stripe.js";
-import { getFrontendBaseUrl } from "./route-utils.js";
+import { getFrontendBaseUrl } from "../lib/route-utils.js";
 
 // ── Private Types ──
 

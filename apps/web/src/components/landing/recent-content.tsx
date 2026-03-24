@@ -9,7 +9,7 @@ import styles from "./recent-content.module.css";
 // ── Public API ──
 
 interface RecentContentProps {
-  readonly items: FeedResponse["items"];
+  readonly items: readonly FeedResponse["items"][number][];
 }
 
 export function RecentContent({

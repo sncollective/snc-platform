@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
+
 // ── Public Constants ──
 
 export const CREATOR_TAG_PREFIX = "snc-creator:" as const;
@@ -33,10 +35,8 @@ export const MerchProductDetailSchema = MerchProductSchema.extend({
   variants: z.array(MerchVariantSchema),
 });
 
-export const MerchListQuerySchema = z.object({
+export const MerchListQuerySchema = createPaginationQuery({ max: 50, default: 12 }).extend({
   creatorId: z.string().optional(),
-  cursor: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 
 export const MerchListResponseSchema = z.object({

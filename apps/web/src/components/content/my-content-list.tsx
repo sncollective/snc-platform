@@ -70,7 +70,7 @@ export function MyContentList({
             <button
               type="button"
               className={styles.deleteButton}
-              onClick={() => handleDelete(item.id)}
+              onClick={() => void handleDelete(item.id)}
               disabled={deletingId === item.id}
             >
               {deletingId === item.id ? "Deleting..." : "Delete"}

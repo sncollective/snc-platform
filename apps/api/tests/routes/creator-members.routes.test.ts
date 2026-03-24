@@ -48,18 +48,9 @@ const ctx = setupRouteTest({
       creatorMembers: {},
     }));
 
-    vi.doMock("../../src/db/schema/content.schema.js", () => ({
-      content: {},
-    }));
-
     vi.doMock("../../src/db/schema/user.schema.js", () => ({
       users: {},
       userRoles: {},
-    }));
-
-    vi.doMock("../../src/storage/index.js", () => ({
-      storage: { upload: vi.fn(), download: vi.fn(), delete: vi.fn(), getSignedUrl: vi.fn() },
-      createStorageProvider: vi.fn(),
     }));
 
     vi.doMock("../../src/services/creator-team.js", () => ({
@@ -69,10 +60,10 @@ const ctx = setupRouteTest({
     }));
   },
   mountRoute: async (app) => {
-    const { creatorRoutes } = await import(
-      "../../src/routes/creator.routes.js"
+    const { creatorMemberRoutes } = await import(
+      "../../src/routes/creator-members.routes.js"
     );
-    app.route("/api/creators", creatorRoutes);
+    app.route("/api/creators", creatorMemberRoutes);
   },
   beforeEach: () => {
     // Re-establish SELECT chain
@@ -108,49 +99,6 @@ const ctx = setupRouteTest({
 // ── Tests ──
 
 describe("creator member routes", () => {
-  // ── POST /api/creators ──
-
-  describe("POST /api/creators", () => {
-    it("creates a new creator entity with creator role", async () => {
-      const newProfile = makeMockDbCreatorProfile({ id: "new_creator_id", displayName: "New Band" });
-
-      // Handle uniqueness check (no existing handle)
-      mockSelectWhere.mockResolvedValueOnce([]);
-
-      // INSERT profile returning
-      const mockReturning = vi.fn().mockResolvedValue([newProfile]);
-      const mockOnConflictDoNothing = vi.fn(() => ({ returning: mockReturning }));
-      mockInsertValues.mockReturnValueOnce({
-        returning: mockReturning,
-        onConflictDoNothing: mockOnConflictDoNothing,
-      });
-      // INSERT member row
-      mockInsertValues.mockReturnValueOnce({ returning: vi.fn().mockResolvedValue([]) });
-
-      const res = await ctx.app.request("/api/creators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: "New Band" }),
-      });
-
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body.displayName).toBe("New Band");
-    });
-
-    it("returns 403 without stakeholder or admin role", async () => {
-      ctx.auth.roles = [];
-
-      const res = await ctx.app.request("/api/creators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: "New Band" }),
-      });
-
-      expect(res.status).toBe(403);
-    });
-  });
-
   // ── GET /api/creators/:id/members ──
 
   describe("GET /api/creators/:id/members", () => {

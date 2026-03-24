@@ -12,6 +12,7 @@ import type React from "react";
 import type { ReactNode } from "react";
 
 import Uppy from "@uppy/core";
+import type { Body, Meta, UppyFile } from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
 import type { UploadPurpose } from "@snc/shared";
 import { MULTIPART_THRESHOLD, MULTIPART_CHUNK_SIZE } from "@snc/shared";
@@ -49,8 +50,8 @@ export interface StartUploadOptions {
   readonly file: File;
   readonly purpose: UploadPurpose;
   readonly resourceId: string;
-  readonly onComplete?: (key: string) => void;
-  readonly onError?: (error: Error) => void;
+  readonly onComplete?: ((key: string) => void) | undefined;
+  readonly onError?: ((error: Error) => void) | undefined;
 }
 
 export interface UploadActions {
@@ -84,6 +85,9 @@ type UploadAction =
   | { readonly type: "CLEAR_COMPLETED" }
   | { readonly type: "TOGGLE_EXPANDED" };
 
+const isStillUploading = (uploads: readonly ActiveUpload[]): boolean =>
+  uploads.some((u) => u.status === "uploading" || u.status === "completing");
+
 export function uploadReducer(
   state: UploadState,
   action: UploadAction,
@@ -115,17 +119,11 @@ export function uploadReducer(
           ? { ...u, status: action.status, ...(action.error !== undefined && { error: action.error }) }
           : u,
       );
-      const isUploading = activeUploads.some(
-        (u) => u.status === "uploading" || u.status === "completing",
-      );
-      return { ...state, activeUploads, isUploading };
+      return { ...state, activeUploads, isUploading: isStillUploading(activeUploads) };
     }
     case "REMOVE_UPLOAD": {
       const activeUploads = state.activeUploads.filter((u) => u.id !== action.id);
-      const isUploading = activeUploads.some(
-        (u) => u.status === "uploading" || u.status === "completing",
-      );
-      return { ...state, activeUploads, isUploading };
+      return { ...state, activeUploads, isUploading: isStillUploading(activeUploads) };
     }
     case "CLEAR_COMPLETED": {
       const activeUploads = state.activeUploads.filter(
@@ -136,6 +134,27 @@ export function uploadReducer(
     case "TOGGLE_EXPANDED":
       return { ...state, isExpanded: !state.isExpanded };
   }
+}
+
+// ── Private Helpers ──
+
+async function probeS3Availability(
+  s3AvailableRef: React.MutableRefObject<boolean | null>,
+  params: { purpose: UploadPurpose; resourceId: string; filename: string; contentType: string; size: number },
+): Promise<boolean> {
+  if (s3AvailableRef.current !== null) return s3AvailableRef.current;
+  try {
+    await presignUpload(params);
+    s3AvailableRef.current = true;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    if (message.includes("S3_NOT_CONFIGURED") || message.includes("Direct uploads require S3")) {
+      s3AvailableRef.current = false;
+    } else {
+      throw err; // Real S3 error — don't silently fall back
+    }
+  }
+  return s3AvailableRef.current!;
 }
 
 // ── Private Legacy Helper ──
@@ -182,7 +201,7 @@ export function UploadProvider({
   const uppyRef = useRef<Uppy | null>(null);
   const s3AvailableRef = useRef<boolean | null>(null); // null = unknown
   const callbacksRef = useRef<
-    Map<string, { onComplete?: (key: string) => void; onError?: (error: Error) => void }>
+    Map<string, { onComplete?: ((key: string) => void) | undefined; onError?: ((error: Error) => void) | undefined }>
   >(new Map());
 
   // Lazy Uppy initialization
@@ -227,16 +246,20 @@ export function UploadProvider({
       },
 
       async completeMultipartUpload(_file, opts) {
-        await completeMultipartUpload(opts.uploadId, opts.key, opts.parts);
+        const parts = opts.parts
+          .filter((p): p is typeof p & { PartNumber: number; ETag: string } =>
+            p.PartNumber != null && p.ETag != null,
+          );
+        await completeMultipartUpload(opts.uploadId, opts.key, parts);
         return {};
       },
 
       async abortMultipartUpload(_file, opts) {
-        await abortMultipartUpload(opts.uploadId, opts.key);
+        await abortMultipartUpload(opts.uploadId!, opts.key);
       },
 
       async listParts(_file, opts) {
-        return listParts(opts.uploadId, opts.key);
+        return listParts(opts.uploadId!, opts.key);
       },
     });
   }
@@ -246,8 +269,8 @@ export function UploadProvider({
     const uppy = uppyRef.current;
     if (!uppy) return;
 
-    const onProgress = (file: any, progress: any) => {
-      if (file?.id && progress?.bytesUploaded != null && progress?.bytesTotal) {
+    const onProgress = (file: UppyFile<Meta, Body> | undefined, progress: { bytesUploaded: number; bytesTotal: number | null }) => {
+      if (file?.id && progress.bytesUploaded != null && progress.bytesTotal) {
         const pct = Math.round((progress.bytesUploaded / progress.bytesTotal) * 100);
         const current = stateRef.current.activeUploads.find((u) => u.id === file.id);
         if (!current || pct > current.progress) {
@@ -256,8 +279,8 @@ export function UploadProvider({
       }
     };
 
-    const onSuccess = (file: any, response: any) => {
-      const key = response?.body?.key ?? file?.meta?.key ?? "";
+    const onSuccess = (file: UppyFile<Meta, Body> | undefined, response: NonNullable<UppyFile<Meta, Body>["response"]>) => {
+      const key = (response.body as Record<string, unknown> | undefined)?.key as string ?? file?.meta?.key as string ?? "";
       const fileId = file?.id;
       if (!fileId) return;
 
@@ -279,7 +302,7 @@ export function UploadProvider({
         });
     };
 
-    const onError = (file: any, error: Error) => {
+    const onError = (file: UppyFile<Meta, Body> | undefined, error: Error) => {
       const fileId = file?.id;
       if (!fileId) return;
       dispatch({ type: "SET_STATUS", id: fileId, status: "error", error: error.message });
@@ -324,29 +347,19 @@ export function UploadProvider({
 
       // Probe S3 availability on first call, then fire-and-forget
       const doUpload = async () => {
-        if (s3AvailableRef.current === null) {
-          try {
-            await presignUpload({
-              purpose,
-              resourceId,
-              filename: file.name,
-              contentType: file.type,
-              size: file.size,
-            });
-            s3AvailableRef.current = true;
-          } catch (err) {
-            const message = err instanceof Error ? err.message : "";
-            if (message.includes("S3_NOT_CONFIGURED") || message.includes("Direct uploads require S3")) {
-              s3AvailableRef.current = false;
-            } else {
-              throw err; // Real S3 error — don't silently fall back
-            }
-          }
-        }
+        const s3 = await probeS3Availability(s3AvailableRef, {
+          purpose,
+          resourceId,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        });
 
-        if (s3AvailableRef.current === true) {
+        if (s3) {
           // S3 path: add file to Uppy (autoProceed handles upload start)
-          const fileId = uppyRef.current!.addFile({
+          const uppy = uppyRef.current;
+          if (!uppy) return;
+          const fileId = uppy.addFile({
             name: file.name,
             type: file.type,
             data: file,

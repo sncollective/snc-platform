@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import type React from "react";
 
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { format, parse } from "date-fns";
+
+import { useDismiss } from "../../hooks/use-dismiss.js";
+import { clsx } from "clsx/lite";
 
 import formStyles from "../../styles/form.module.css";
 import styles from "./date-picker-input.module.css";
@@ -47,27 +50,8 @@ export function DatePickerInput({
     setIsOpen(false);
   };
 
-  // Close on outside click
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen]);
+  const handleClose = useCallback(() => setIsOpen(false), []);
+  useDismiss(containerRef, handleClose, isOpen);
 
   const displayValue = selectedDate
     ? format(selectedDate, "MMM d, yyyy")
@@ -88,11 +72,7 @@ export function DatePickerInput({
             setIsOpen(!isOpen);
           }
         }}
-        className={
-          hasError
-            ? `${className ?? formStyles.input} ${formStyles.inputError}`
-            : className ?? formStyles.input
-        }
+        className={clsx(className ?? formStyles.input, hasError && formStyles.inputError)}
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
@@ -103,7 +83,7 @@ export function DatePickerInput({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            defaultMonth={selectedDate}
+            {...(selectedDate !== undefined && { defaultMonth: selectedDate })}
           />
         </div>
       )}

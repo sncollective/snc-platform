@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorListItem } from "@snc/shared";
 
-import { formatRelativeDate } from "../../lib/format.js";
 import { OptionalImage } from "../ui/optional-image.js";
+import { RelativeTime } from "../ui/relative-time.js";
 import styles from "./creator-card.module.css";
 
 // ── Public Types ──
@@ -18,6 +18,14 @@ export interface CreatorCardProps {
 export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): React.ReactElement {
   const avatarSrc = creator.avatarUrl;
   const creatorSlug = creator.handle ?? creator.id;
+
+  const postLabel = `${creator.contentCount} ${creator.contentCount === 1 ? "post" : "posts"}`;
+
+  const subscribedBadge = creator.isSubscribed ? (
+    <span className={styles.subscribedStar} aria-label="Subscribed">
+      ★
+    </span>
+  ) : null;
 
   if (viewMode === "list") {
     return (
@@ -40,14 +48,10 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
           </div>
           <span className={styles.listDisplayName}>
             {creator.displayName}
-            {creator.isSubscribed && (
-              <span className={styles.subscribedStar} aria-label="Subscribed">
-                ★
-              </span>
-            )}
+            {subscribedBadge}
           </span>
           <span className={styles.listContentCount}>
-            {creator.contentCount} {creator.contentCount === 1 ? "post" : "posts"}
+            {postLabel}
           </span>
           {creator.subscriberCount !== undefined && (
             <span className={styles.listMeta}>
@@ -55,9 +59,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
             </span>
           )}
           {creator.lastPublishedAt !== undefined && creator.lastPublishedAt !== null && (
-            <span className={styles.listMeta}>
-              Last post {formatRelativeDate(creator.lastPublishedAt)}
-            </span>
+            <RelativeTime dateTime={creator.lastPublishedAt} className={styles.listMeta} prefix="Last post " />
           )}
         </Link>
         {creator.canManage && (
@@ -94,17 +96,13 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
         <div className={styles.info}>
           <h3 className={styles.displayName}>
             {creator.displayName}
-            {creator.isSubscribed && (
-              <span className={styles.subscribedStar} aria-label="Subscribed">
-                ★
-              </span>
-            )}
+            {subscribedBadge}
           </h3>
           {creator.bio && (
             <p className={styles.bio}>{creator.bio}</p>
           )}
           <span className={styles.contentCount}>
-            {creator.contentCount} {creator.contentCount === 1 ? "post" : "posts"}
+            {postLabel}
           </span>
         </div>
       </Link>

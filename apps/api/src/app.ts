@@ -13,7 +13,9 @@ import { requestIdMiddleware, requestLogger } from "./middleware/request-logger.
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
+import { contentMediaRoutes } from "./routes/content-media.routes.js";
 import { creatorRoutes } from "./routes/creator.routes.js";
+import { creatorMemberRoutes } from "./routes/creator-members.routes.js";
 import { subscriptionRoutes } from "./routes/subscription.routes.js";
 import { webhookRoutes } from "./routes/webhook.routes.js";
 import { merchRoutes } from "./routes/merch.routes.js";
@@ -23,6 +25,8 @@ import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { emissionsRoutes } from "./routes/emissions.routes.js";
 import { calendarRoutes } from "./routes/calendar.routes.js";
+import { calendarFeedRoutes } from "./routes/calendar-feed.routes.js";
+import { calendarEventTypeRoutes } from "./routes/calendar-event-types.routes.js";
 import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
@@ -86,8 +90,14 @@ app.route("/api/me", meRoutes);
 app.route("/api/uploads", uploadRoutes);
 
 // Feature-gated routes
-if (features.content) app.route("/api/content", contentRoutes);
-if (features.creator) app.route("/api/creators", creatorRoutes);
+if (features.content) {
+  app.route("/api/content", contentRoutes);
+  app.route("/api/content", contentMediaRoutes);
+}
+if (features.creator) {
+  app.route("/api/creators", creatorRoutes);
+  app.route("/api/creators", creatorMemberRoutes);
+}
 if (features.subscription) {
   app.route("/api/subscriptions", subscriptionRoutes);
   app.route("/api/webhooks", webhookRoutes);
@@ -99,6 +109,8 @@ if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
 if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);
 if (features.calendar) app.route("/api/calendar", calendarRoutes);
+if (features.calendar) app.route("/api/calendar", calendarFeedRoutes);
+if (features.calendar) app.route("/api/calendar", calendarEventTypeRoutes);
 if (features.calendar && features.creator) {
   app.route("/api/creators", creatorEventRoutes);
 }

@@ -1,13 +1,22 @@
 /**
+ * Extracts the error message from a non-OK response.
+ * Tries to parse JSON body for `error.message`, falls back to `statusText`.
+ */
+export async function extractErrorMessage(response: Response): Promise<string> {
+  const body = await response.json().catch(() => null);
+  return (
+    (body as { error?: { message?: string } } | null)?.error?.message ??
+    response.statusText
+  );
+}
+
+/**
  * Throws an Error if the response is not OK.
  * Extracts the error message from the response body if possible.
  */
 export async function throwIfNotOk(response: Response): Promise<void> {
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const message =
-      (body as { error?: { message?: string } } | null)?.error?.message ??
-      response.statusText;
+    const message = await extractErrorMessage(response);
     throw new Error(message);
   }
 }

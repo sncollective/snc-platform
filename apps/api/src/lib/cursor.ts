@@ -3,7 +3,7 @@ import { and, eq, gt, lt, or } from "drizzle-orm";
 
 import { ValidationError } from "@snc/shared";
 
-export const encodeCursor = (data: Record<string, string>): string =>
+export const encodeCursor = (data: Readonly<Record<string, string>>): string =>
   Buffer.from(JSON.stringify(data)).toString("base64url");
 
 /**
@@ -73,7 +73,7 @@ export function buildCursorCondition(
 
 /**
  * Given rows fetched with limit+1, determine if there's a next page,
- * pop the overflow row, and encode the cursor from the last item.
+ * slice to limit (non-mutating), and encode the cursor from the last item.
  * Returns { items: T[], nextCursor: string | null }.
  */
 export function buildPaginatedResponse<T>(
@@ -81,11 +81,12 @@ export function buildPaginatedResponse<T>(
   limit: number,
   cursorFields: (lastItem: T) => Record<string, string>,
 ): { items: T[]; nextCursor: string | null } {
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
   let nextCursor: string | null = null;
-  if (rows.length > limit) {
-    rows.pop();
-    const lastItem = rows[rows.length - 1]!;
+  if (hasMore) {
+    const lastItem = items[items.length - 1]!;
     nextCursor = encodeCursor(cursorFields(lastItem));
   }
-  return { items: rows, nextCursor };
+  return { items, nextCursor };
 }

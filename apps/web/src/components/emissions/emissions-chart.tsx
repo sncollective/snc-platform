@@ -29,7 +29,7 @@ const LOADING_PLACEHOLDER_COUNT = 6;
 // ── Public Types ──
 
 export interface EmissionsChartProps {
-  readonly data: MonthlyDataItem[];
+  readonly data: readonly MonthlyDataItem[];
   readonly isLoading?: boolean;
 }
 

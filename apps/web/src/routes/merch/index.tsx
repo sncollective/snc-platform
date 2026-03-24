@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
+import * as z from "zod/mini";
 import type { MerchProduct } from "@snc/shared";
 
 import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
@@ -12,7 +13,13 @@ import listingStyles from "../../styles/listing-page.module.css";
 
 // ── Route ──
 
+const MerchSearchSchema = z.object({
+  creatorId: z.optional(z.string()),
+  status: z.optional(z.string()),
+});
+
 export const Route = createFileRoute("/merch/")({
+  validateSearch: MerchSearchSchema,
   component: MerchPage,
 });
 
@@ -21,10 +28,7 @@ export const Route = createFileRoute("/merch/")({
 function MerchPage(): React.ReactElement {
   if (!isFeatureEnabled("merch")) return <ComingSoon feature="merch" />;
 
-  const search = Route.useSearch() as {
-    creatorId?: string;
-    status?: string;
-  };
+  const search = Route.useSearch();
 
   const creatorId = search.creatorId ?? null;
   const status = search.status ?? null;

@@ -11,6 +11,8 @@ import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchAuthState } from "../../lib/auth.js";
+import { clsx } from "clsx/lite";
+
 import styles from "./creators.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 import buttonStyles from "../../styles/button.module.css";
@@ -84,7 +86,7 @@ function CreatorsPage(): React.ReactElement {
     void fetchAuthState().then((auth) => {
       const manage = auth.roles.includes("stakeholder") || auth.roles.includes("admin");
       setCanManage(manage);
-    });
+    }).catch(() => {});
   }, []);
 
   const handleViewModeChange = (mode: ViewMode) => {
@@ -113,7 +115,7 @@ function CreatorsPage(): React.ReactElement {
           <div className={styles.viewToggle}>
             <button
               type="button"
-              className={`${styles.viewToggleButton} ${viewMode === "grid" ? styles.viewToggleActive : ""}`}
+              className={clsx(styles.viewToggleButton, viewMode === "grid" && styles.viewToggleActive)}
               onClick={() => handleViewModeChange("grid")}
               aria-label="Grid view"
               aria-pressed={viewMode === "grid"}
@@ -122,7 +124,7 @@ function CreatorsPage(): React.ReactElement {
             </button>
             <button
               type="button"
-              className={`${styles.viewToggleButton} ${viewMode === "list" ? styles.viewToggleActive : ""}`}
+              className={clsx(styles.viewToggleButton, viewMode === "list" && styles.viewToggleActive)}
               onClick={() => handleViewModeChange("list")}
               aria-label="List view"
               aria-pressed={viewMode === "list"}

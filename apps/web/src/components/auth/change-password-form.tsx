@@ -7,6 +7,7 @@ import { authClient } from "../../lib/auth-client.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
+import { FormField } from "./form-field.js";
 
 // ── Private Constants ──
 
@@ -111,77 +112,38 @@ export function ChangePasswordForm() {
         </div>
       )}
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="current-password" className={formStyles.label}>
-          Current password
-        </label>
-        <input
-          id="current-password"
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          className={
-            fieldErrors.currentPassword
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="current-password"
-          required
-        />
-        {fieldErrors.currentPassword && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.currentPassword}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="current-password"
+        label="Current password"
+        type="password"
+        value={currentPassword}
+        onChange={(e) => setCurrentPassword(e.target.value)}
+        error={fieldErrors.currentPassword}
+        autoComplete="current-password"
+        required
+      />
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="new-password" className={formStyles.label}>
-          New password
-        </label>
-        <input
-          id="new-password"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className={
-            fieldErrors.newPassword
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="new-password"
-          required
-        />
-        {fieldErrors.newPassword && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.newPassword}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="new-password"
+        label="New password"
+        type="password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        error={fieldErrors.newPassword}
+        autoComplete="new-password"
+        required
+      />
 
-      <div className={formStyles.fieldGroup}>
-        <label htmlFor="confirm-password" className={formStyles.label}>
-          Confirm new password
-        </label>
-        <input
-          id="confirm-password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className={
-            fieldErrors.confirmPassword
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          autoComplete="new-password"
-          required
-        />
-        {fieldErrors.confirmPassword && (
-          <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.confirmPassword}
-          </span>
-        )}
-      </div>
+      <FormField
+        id="confirm-password"
+        label="Confirm new password"
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        error={fieldErrors.confirmPassword}
+        autoComplete="new-password"
+        required
+      />
 
       <button
         type="submit"

@@ -9,6 +9,8 @@ import { AppError, NotFoundError } from "@snc/shared";
 import type { StorageProvider, UploadMetadata, UploadResult, DownloadResult } from "@snc/shared";
 import type { Result } from "@snc/shared";
 
+import { inferContentType } from "../lib/file-utils.js";
+
 // ── Private Helpers ──
 
 const isEnoent = (error: unknown): boolean =>
@@ -132,23 +134,7 @@ export const createLocalStorage = (
         }
         throw statError;
       }
-      const dot = key.lastIndexOf(".");
-      const ext = dot === -1 ? "" : key.slice(dot).toLowerCase();
-      const MIME_MAP: Record<string, string> = {
-        ".mp4": "video/mp4",
-        ".webm": "video/webm",
-        ".mov": "video/quicktime",
-        ".mp3": "audio/mpeg",
-        ".wav": "audio/wav",
-        ".flac": "audio/flac",
-        ".ogg": "audio/ogg",
-        ".aac": "audio/aac",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-      };
-      const contentType = MIME_MAP[ext] ?? "application/octet-stream";
+      const contentType = inferContentType(key);
       return ok({ size: fileStat.size, contentType });
     } catch (error) {
       if (error instanceof AppError) {

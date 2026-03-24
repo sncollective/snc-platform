@@ -18,6 +18,8 @@ const {
   mockFetchApiServer,
   mockIsFeatureEnabled,
   mockRedirect,
+  mockNavigate,
+  mockRouter,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockUpdateProject: vi.fn(),
@@ -27,10 +29,17 @@ const {
   mockFetchApiServer: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
   mockRedirect: vi.fn(),
+  mockNavigate: vi.fn(),
+  mockRouter: { invalidate: vi.fn() },
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ redirect: mockRedirect, useLoaderData: mockUseLoaderData }),
+  createRouterMock({
+    redirect: mockRedirect,
+    useLoaderData: mockUseLoaderData,
+    useNavigate: () => mockNavigate,
+    useRouter: () => mockRouter,
+  }),
 );
 
 vi.mock("../../../src/lib/project.js", () => ({

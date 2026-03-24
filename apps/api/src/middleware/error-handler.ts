@@ -8,10 +8,10 @@ import { rootLogger } from "../logging/logger.js";
 // ── Public Types ──
 
 export interface ErrorResponseBody {
-  error: {
-    code: string;
-    message: string;
-    details?: unknown;
+  readonly error: {
+    readonly code: string;
+    readonly message: string;
+    readonly details?: unknown;
   };
 }
 

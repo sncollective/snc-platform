@@ -8,7 +8,7 @@ import styles from "./user-role-manager.module.css";
 
 // ── Types ──
 
-interface UserRoleManagerProps {
+export interface UserRoleManagerProps {
   readonly user: AdminUser;
   readonly onAssignRole: (userId: string, role: Role) => Promise<void>;
   readonly onRevokeRole: (userId: string, role: Role) => Promise<void>;

@@ -42,8 +42,8 @@ import {
   ERROR_401,
   ERROR_403,
   ERROR_404,
-} from "./openapi-errors.js";
-import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "./cursor.js";
+} from "../lib/openapi-errors.js";
+import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 
 // ── Private Types ──
 
@@ -81,7 +81,7 @@ const toBookingWithServiceResponse = (
   serviceId: booking.serviceId,
   preferredDates: booking.preferredDates,
   notes: booking.notes,
-  status: booking.status as BookingStatus,
+  status: booking.status,
   reviewedBy: booking.reviewedBy ?? null,
   reviewNote: booking.reviewNote ?? null,
   createdAt: booking.createdAt.toISOString(),

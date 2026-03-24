@@ -6,12 +6,15 @@ import { RouteErrorBoundary } from "../components/error/route-error-boundary.js"
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
+
 import { formatCo2 } from "../lib/format.js";
 import { EmissionsChart } from "../components/emissions/emissions-chart.js";
 import { ScopeBreakdown } from "../components/emissions/scope-breakdown.js";
 import { CategoryBreakdown } from "../components/emissions/category-breakdown.js";
 import { Co2Equivalencies } from "../components/emissions/co2-equivalencies.js";
 import { OffsetImpact } from "../components/emissions/offset-impact.js";
+import { clsx } from "clsx/lite";
+
 import sectionStyles from "../styles/detail-section.module.css";
 import pageHeadingStyles from "../styles/page-heading.module.css";
 import styles from "./emissions.module.css";
@@ -28,8 +31,9 @@ export const Route = createFileRoute("/emissions")({
 });
 
 function EmissionsPage(): React.ReactElement {
-  const breakdown = Route.useLoaderData();
-  if (!isFeatureEnabled("emissions") || breakdown === null) return <ComingSoon feature="emissions" />;
+  const loaderData = Route.useLoaderData();
+  if (!isFeatureEnabled("emissions") || loaderData == null) return <ComingSoon feature="emissions" />;
+  const breakdown = loaderData as EmissionsBreakdown;
 
   const grossCo2Value = formatCo2(breakdown.summary.grossCo2Kg);
   const offsetCo2Value = formatCo2(breakdown.summary.offsetCo2Kg);
@@ -66,7 +70,7 @@ function EmissionsPage(): React.ReactElement {
       {/* ── Net Summary ── */}
       <div className={styles.summaryCard} data-testid="net-summary">
         <p className={styles.summaryLabel}>Net Emissions</p>
-        <p className={`${styles.summaryValue} ${netValueClass}`}>
+        <p className={clsx(styles.summaryValue, netValueClass)}>
           {netCo2Value}
         </p>
         <p className={styles.summaryMath}>

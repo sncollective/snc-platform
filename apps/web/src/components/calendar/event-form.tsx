@@ -28,6 +28,8 @@ import { fetchProjects } from "../../lib/project.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { DatePickerInput } from "./date-picker-input.js";
 import { TimePickerSelect } from "./time-picker-select.js";
+import { clsx } from "clsx/lite";
+
 import formStyles from "../../styles/form.module.css";
 import styles from "./event-form.module.css";
 
@@ -154,51 +156,52 @@ export function EventForm({
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    // Fetch available event types (defaults + custom)
-    fetchEventTypes()
-      .then((res) => {
+    const loadEventTypes = async () => {
+      try {
+        const res = await fetchEventTypes();
         setKnownEventTypes(
           res.items.map((et) => ({ slug: et.slug, label: et.label })),
         );
-      })
-      .catch(() => {
+      } catch {
         // Fallback: use default labels
         setKnownEventTypes(
           Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({ slug, label })),
         );
-      });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      }
+    };
+    void loadEventTypes();
   }, []);
 
   useEffect(() => {
-    const projectParams: Record<string, string> = { completed: "false" };
-    if (selectedCreatorId) projectParams.creatorId = selectedCreatorId;
-    fetchProjects(projectParams)
-      .then((res) => {
+    const loadProjects = async () => {
+      try {
+        const projectParams: Record<string, string> = { completed: "false" };
+        if (selectedCreatorId) projectParams.creatorId = selectedCreatorId;
+        const res = await fetchProjects(projectParams);
         setProjects(res.items.map((p) => ({ id: p.id, name: p.name })));
-      })
-      .catch(() => {
+      } catch {
         // Projects are optional — silently ignore
-      });
+      }
+    };
+    void loadProjects();
   }, [selectedCreatorId]);
 
   // Once known types load, reconcile: if editing an event whose type is now
   // a known type (custom default), select it directly instead of showing "Other"
+  const eventTypeToReconcile = event?.eventType;
   useEffect(() => {
-    if (!event?.eventType || knownEventTypes.length === 0) return;
-    const match = knownEventTypes.find((et) => et.slug === event.eventType);
+    if (!eventTypeToReconcile || knownEventTypes.length === 0) return;
+    const match = knownEventTypes.find((et) => et.slug === eventTypeToReconcile);
     if (match) {
       setEventType(match.slug);
       setCustomEventTypeLabel("");
     } else {
       setEventType("other");
       setCustomEventTypeLabel(
-        event.eventType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        eventTypeToReconcile.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [knownEventTypes]);
+  }, [eventTypeToReconcile, knownEventTypes]);
 
   const isOtherSelected = eventType === "other";
   const customSlug = toSlug(customEventTypeLabel);
@@ -345,11 +348,7 @@ export function EventForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Event title"
-          className={
-            fieldErrors.title
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
+          className={clsx(formStyles.input, fieldErrors.title && formStyles.inputError)}
         />
         {fieldErrors.title && (
           <span className={formStyles.fieldError} role="alert">
@@ -372,11 +371,7 @@ export function EventForm({
               setSaveAsDefault(false);
             }
           }}
-          className={
-            fieldErrors.eventType
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
+          className={clsx(formStyles.input, fieldErrors.eventType && formStyles.inputError)}
         >
           <option value="">Select event type...</option>
           {knownEventTypes.map((et) => (
@@ -389,6 +384,7 @@ export function EventForm({
           <input
             id="event-custom-type"
             type="text"
+            aria-label="Custom event type"
             value={customEventTypeLabel}
             onChange={(e) => {
               setCustomEventTypeLabel(e.target.value);

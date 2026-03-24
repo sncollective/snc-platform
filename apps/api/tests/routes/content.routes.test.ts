@@ -35,10 +35,13 @@ const mockFeedWhere = vi.fn(() =>
   chainablePromise(mockBatchAccessRows, { orderBy: mockOrderBy, limit: mockSubLimit }),
 );
 const mockInnerJoin = vi.fn(() => ({ where: mockFeedWhere }));
+// GET /:id uses leftJoin instead of innerJoin; routes to same mockSelectWhere
+const mockLeftJoin = vi.fn(() => ({ where: mockSelectWhere }));
 
 const mockSelectFrom = vi.fn(() => ({
   where: mockSelectWhere,
   innerJoin: mockInnerJoin,
+  leftJoin: mockLeftJoin,
 }));
 const mockSelect = vi.fn(() => ({ from: mockSelectFrom }));
 
@@ -137,7 +140,11 @@ const ctx = setupRouteTest({
     const { contentRoutes } = await import(
       "../../src/routes/content.routes.js"
     );
+    const { contentMediaRoutes } = await import(
+      "../../src/routes/content-media.routes.js"
+    );
     app.route("/api/content", contentRoutes);
+    app.route("/api/content", contentMediaRoutes);
   },
   beforeEach: () => {
     // Content gate role check defaults to empty so subscription
@@ -602,9 +609,9 @@ describe("content routes", () => {
     });
 
     it("returns creatorName in the response", async () => {
-      mockSelectWhere
-        .mockResolvedValueOnce([makeMockDbContent({ creatorId: "user_test123" })])
-        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockSelectWhere.mockResolvedValue([
+        { ...makeMockDbContent({ creatorId: "user_test123" }), creatorName: "Test Creator", creatorHandle: null },
+      ]);
 
       const res = await ctx.app.request("/api/content/content-test-1");
 
@@ -663,7 +670,11 @@ describe("content routes", () => {
         user: makeMockUser(),
         session: makeMockSession(),
       });
-      mockSubLimit.mockResolvedValue([{ id: "sub_123" }]);
+      // buildContentAccessContext subscription query awaits innerJoin().where() directly
+      // (no .limit()); return a platform subscription row so hasPlatformSubscription = true
+      mockFeedWhere.mockReturnValueOnce(
+        Promise.resolve([{ planType: "platform", planCreatorId: null }]),
+      );
 
       const res = await ctx.app.request("/api/content/content-test-1");
 
@@ -702,7 +713,6 @@ describe("content routes", () => {
             creatorId: "user_test123",
           }),
         ])
-        .mockResolvedValueOnce([])                   // fetchCreatorName (creatorProfiles lookup)
         .mockResolvedValueOnce([{ role: "owner" }]); // creatorMembers check in checkContentAccess
       mockGetSession.mockResolvedValue({
         user: makeMockUser({ id: "user_test123" }),
@@ -1549,10 +1559,7 @@ describe("content routes", () => {
   describe("GET /api/content/:id (draft access control)", () => {
     it("returns 200 for draft when user is creator team member", async () => {
       const draft = makeMockDbContent({ publishedAt: null });
-      // First call: findActiveContent; second call: fetchCreatorName
-      mockSelectWhere
-        .mockResolvedValueOnce([draft])
-        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockSelectWhere.mockResolvedValue([draft]);
       mockGetSession.mockResolvedValue({
         user: makeMockUser({ id: "user_test123" }),
         session: makeMockSession(),
@@ -1592,9 +1599,7 @@ describe("content routes", () => {
 
     it("returns 200 for draft when user has admin role", async () => {
       const draft = makeMockDbContent({ publishedAt: null });
-      mockSelectWhere
-        .mockResolvedValueOnce([draft])
-        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockSelectWhere.mockResolvedValue([draft]);
       mockGetSession.mockResolvedValue({
         user: makeMockUser({ id: "admin-user" }),
         session: makeMockSession(),
@@ -1612,9 +1617,7 @@ describe("content routes", () => {
       const published = makeMockDbContent({
         publishedAt: new Date("2026-01-01T00:00:00.000Z"),
       });
-      mockSelectWhere
-        .mockResolvedValueOnce([published])
-        .mockResolvedValueOnce([{ name: "Test Creator" }]);
+      mockSelectWhere.mockResolvedValue([published]);
       mockGetSession.mockResolvedValue(null);
 
       const res = await ctx.app.request("/api/content/content-test-1");

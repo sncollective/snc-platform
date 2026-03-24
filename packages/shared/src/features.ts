@@ -16,7 +16,7 @@ export const FEATURE_FLAGS = [
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
 
-export type FeatureFlags = Record<FeatureFlag, boolean>;
+export type FeatureFlags = Readonly<Record<FeatureFlag, boolean>>;
 
 // ── Presets ──
 

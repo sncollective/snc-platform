@@ -34,8 +34,8 @@ import { storage, s3Multipart } from "../storage/index.js";
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
-import { sanitizeFilename } from "./file-utils.js";
-import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "./openapi-errors.js";
+import { sanitizeFilename } from "../lib/file-utils.js";
+import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "../lib/openapi-errors.js";
 
 // ── Private Constants ──
 
@@ -53,13 +53,6 @@ const PURPOSE_FIELD: Record<UploadPurpose, string> = {
   "content-thumbnail": "thumbnail",
   "creator-avatar": "avatar",
   "creator-banner": "banner",
-};
-
-const PURPOSE_DB_COLUMN: Record<string, string> = {
-  "content-media": "mediaKey",
-  "content-thumbnail": "thumbnailKey",
-  "creator-avatar": "avatarKey",
-  "creator-banner": "bannerKey",
 };
 
 // ── Private Helpers ──
@@ -171,19 +164,28 @@ const recordUpload = async (
   resourceId: string,
   key: string,
 ): Promise<void> => {
-  const column = PURPOSE_DB_COLUMN[purpose];
-  if (!column) throw new ValidationError("Invalid purpose for completion");
-
-  if (purpose.startsWith("content-")) {
+  if (purpose === "content-media") {
     await db
       .update(content)
-      .set({ [column]: key, updatedAt: new Date() } as never)
+      .set({ mediaKey: key, updatedAt: new Date() })
       .where(eq(content.id, resourceId));
-  } else if (purpose.startsWith("creator-")) {
+  } else if (purpose === "content-thumbnail") {
+    await db
+      .update(content)
+      .set({ thumbnailKey: key, updatedAt: new Date() })
+      .where(eq(content.id, resourceId));
+  } else if (purpose === "creator-avatar") {
     await db
       .update(creatorProfiles)
-      .set({ [column]: key, updatedAt: new Date() } as never)
+      .set({ avatarKey: key, updatedAt: new Date() })
       .where(eq(creatorProfiles.id, resourceId));
+  } else if (purpose === "creator-banner") {
+    await db
+      .update(creatorProfiles)
+      .set({ bannerKey: key, updatedAt: new Date() })
+      .where(eq(creatorProfiles.id, resourceId));
+  } else {
+    throw new ValidationError("Invalid purpose for completion");
   }
 };
 
@@ -456,16 +458,16 @@ uploadRoutes.post(
       throw new ValidationError("Uploaded file exceeds size limit");
     }
 
-    const column = PURPOSE_DB_COLUMN[body.purpose];
     if (body.purpose.startsWith("content-")) {
       const [existing] = await db
         .select()
         .from(content)
         .where(eq(content.id, body.resourceId))
         .limit(1);
-      const oldKey = existing?.[column! as keyof typeof existing] as
-        | string
-        | null;
+      const oldKey =
+        body.purpose === "content-media"
+          ? (existing?.mediaKey ?? null)
+          : (existing?.thumbnailKey ?? null);
       if (oldKey && oldKey !== body.key) {
         const deleteResult = await storage.delete(oldKey);
         if (!deleteResult.ok) {

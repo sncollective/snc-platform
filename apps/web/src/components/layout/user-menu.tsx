@@ -7,6 +7,8 @@ import { authClient } from "../../lib/auth-client.js";
 import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { clsx } from "clsx/lite";
+
 import { getInitials } from "../../lib/format.js";
 import styles from "./user-menu.module.css";
 
@@ -20,9 +22,13 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
 
   const handleLogout = async () => {
-    await authClient.signOut();
+    try {
+      await authClient.signOut();
+    } catch {
+      // Sign-out failed — navigate to login as fallback
+    }
     handleClose();
-    void navigate({ to: "/" });
+    void navigate({ to: "/login" });
   };
 
   // Resolve user: prefer live session, fall back to server-prefetched
@@ -67,13 +73,13 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
         aria-label="User menu"
         type="button"
       >
-        <span className={`${styles.avatar} ${effectiveIsPatron ? styles.patronAvatar : ""}`}>
+        <span className={clsx(styles.avatar, effectiveIsPatron && styles.patronAvatar)}>
           {initials}
         </span>
       </button>
 
       {isOpen && (
-        <div className={styles.dropdown} role="menu">
+        <div className={styles.dropdown}>
           <div className={styles.userInfo}>
             <span className={styles.userName}>
               {user.name}
@@ -92,7 +98,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/admin"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               Admin
@@ -103,7 +109,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/dashboard"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               Dashboard
@@ -114,7 +120,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/calendar"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               Calendar
@@ -125,7 +131,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/projects"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               Projects
@@ -136,7 +142,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <a
               href="https://files.s-nc.org"
               className={styles.menuItem}
-              role="menuitem"
+
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleClose}
@@ -148,7 +154,6 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
           <Link
             to="/settings"
             className={styles.menuItem}
-            role="menuitem"
             onClick={handleClose}
           >
             Settings
@@ -158,7 +163,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/settings/subscriptions"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               Subscriptions
@@ -169,7 +174,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             <Link
               to="/settings/bookings"
               className={styles.menuItem}
-              role="menuitem"
+
               onClick={handleClose}
             >
               My Bookings
@@ -181,7 +186,6 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
           <button
             className={styles.logoutButton}
             onClick={handleLogout}
-            role="menuitem"
             type="button"
           >
             Log out

@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
+import { AppError } from "@snc/shared";
+
 import { config } from "../config.js";
 
 // ── Private Helpers ──
@@ -51,7 +53,7 @@ export function isEmailConfigured(): boolean {
  */
 export async function sendEmail(opts: SendEmailOptions): Promise<void> {
   if (!isEmailConfigured()) {
-    throw new Error("Email sending is not configured");
+    throw new AppError("EMAIL_NOT_CONFIGURED", "Email sending is not configured", 503);
   }
 
   const domain = config.SMTP_USER?.split("@")[1] ?? "s-nc.org";

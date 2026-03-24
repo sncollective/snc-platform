@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type React from "react";
 
+import { clsx } from "clsx/lite";
+
 import styles from "./fediverse-address.module.css";
 
 // ── Public Types ──
@@ -21,15 +23,18 @@ export function FediverseAddress({
   const [copied, setCopied] = useState(false);
   const address = `@${handle}@${domain}`;
 
-  const handleCopy = (): void => {
-    void navigator.clipboard.writeText(address).then(() => {
+  const handleCopy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {
+      // Clipboard API not available — ignore
+    }
   };
 
   return (
-    <span className={`${styles.pill} ${size === "sm" ? styles.sm : styles.md}`}>
+    <span className={clsx(styles.pill, size === "sm" ? styles.sm : styles.md)}>
       <code className={styles.address}>{address}</code>
       <button
         type="button"

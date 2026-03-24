@@ -12,7 +12,6 @@ import styles from "./subscribe-cta.module.css";
 // ── Public Types ──
 
 export interface SubscribeCtaProps {
-  readonly creatorId: string;
   readonly contentType: ContentType;
   readonly plans: readonly SubscriptionPlan[];
 }

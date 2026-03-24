@@ -12,16 +12,7 @@ const STRIPE_KEY: string | null = config.STRIPE_SECRET_KEY ?? null;
 
 let stripeInstance: Stripe | null = null;
 
-export const getStripe = (): Stripe => {
-  if (stripeInstance === null) {
-    stripeInstance = new Stripe(STRIPE_KEY!);
-  }
-  return stripeInstance;
-};
-
-// ── Guard ──
-
-export const ensureConfigured = (): Result<void, AppError> => {
+export const getStripe = (): Result<Stripe, AppError> => {
   if (STRIPE_KEY === null) {
     return err(
       new AppError(
@@ -31,5 +22,8 @@ export const ensureConfigured = (): Result<void, AppError> => {
       ),
     );
   }
-  return ok(undefined);
+  if (stripeInstance === null) {
+    stripeInstance = new Stripe(STRIPE_KEY);
+  }
+  return ok(stripeInstance);
 };

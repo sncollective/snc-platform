@@ -8,9 +8,9 @@ interface ErrorContext {
   /** Error message */
   error: string;
   /** Error name/type */
-  errorType?: string;
+  errorType?: string | undefined;
   /** URL where the error occurred */
-  url?: string;
+  url?: string | undefined;
 }
 
 // ── Public API ──

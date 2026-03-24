@@ -7,6 +7,8 @@ import { MAX_PREFERRED_DATES, MAX_BOOKING_NOTES_LENGTH } from "@snc/shared";
 
 import { createBooking } from "../../lib/booking.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import { clsx } from "clsx/lite";
+
 import formStyles from "../../styles/form.module.css";
 import styles from "./booking-form.module.css";
 
@@ -111,9 +113,9 @@ export function BookingForm({
   // Render
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      <h4 className={styles.serviceName}>
+      <h3 className={styles.serviceName}>
         Book: {serviceName}
-      </h4>
+      </h3>
 
       {serverError && (
         <div className={formStyles.serverError} role="alert">
@@ -121,8 +123,8 @@ export function BookingForm({
         </div>
       )}
 
-      <div className={formStyles.fieldGroup}>
-        <label className={formStyles.label}>Preferred Dates</label>
+      <fieldset className={clsx(formStyles.fieldGroup, styles.datesFieldset)}>
+        <legend className={formStyles.label}>Preferred Dates</legend>
         {preferredDates.map((date, index) => (
           <div className={styles.dateRow} key={index}>
             <input
@@ -130,11 +132,7 @@ export function BookingForm({
               value={date}
               onChange={(e) => updateDate(index, e.target.value)}
               placeholder={`e.g. March ${15 + index}, 2026`}
-              className={
-                fieldErrors.preferredDates
-                  ? `${formStyles.input} ${styles.dateRowInput} ${formStyles.inputError}`
-                  : `${formStyles.input} ${styles.dateRowInput}`
-              }
+              className={clsx(formStyles.input, styles.dateRowInput, fieldErrors.preferredDates && formStyles.inputError)}
               aria-label={`Preferred date ${index + 1}`}
             />
             <button
@@ -161,7 +159,7 @@ export function BookingForm({
         >
           Add another date
         </button>
-      </div>
+      </fieldset>
 
       <div className={formStyles.fieldGroup}>
         <label htmlFor="booking-notes" className={formStyles.label}>
@@ -172,11 +170,7 @@ export function BookingForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any details about your booking request..."
-          className={
-            fieldErrors.notes
-              ? `${formStyles.textarea} ${styles.textarea} ${formStyles.inputError}`
-              : `${formStyles.textarea} ${styles.textarea}`
-          }
+          className={clsx(formStyles.textarea, styles.textarea, fieldErrors.notes && formStyles.inputError)}
         />
         {fieldErrors.notes && (
           <span className={formStyles.fieldError} role="alert">
@@ -188,7 +182,7 @@ export function BookingForm({
       <div className={styles.actions}>
         <button
           type="submit"
-          className={`${formStyles.submitButton} ${styles.submitButton}`}
+          className={clsx(formStyles.submitButton, styles.submitButton)}
           disabled={isSubmitting}
         >
           {isSubmitting ? "Submitting\u2026" : "Submit Request"}

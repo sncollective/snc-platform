@@ -1,9 +1,11 @@
 import type React from "react";
-import type { UserSubscriptionWithPlan } from "@snc/shared";
+import type { UserSubscriptionWithPlan, SubscriptionStatus, PlanType } from "@snc/shared";
 
 import { Link } from "@tanstack/react-router";
 
 import { formatDate, formatPrice } from "../../lib/format.js";
+
+import { clsx } from "clsx/lite";
 
 import listItemStyles from "../../styles/list-items.module.css";
 import styles from "./subscription-list.module.css";
@@ -17,22 +19,28 @@ export interface SubscriptionListProps {
 
 // ── Private Helpers ──
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   active: "Active",
   canceled: "Canceled",
   past_due: "Past Due",
+  incomplete: "Incomplete",
+};
+
+const PLAN_TYPE_LABELS: Record<PlanType, string> = {
+  platform: "Platform",
+  creator: "Creator",
 };
 
 function getStatusLabel(
-  status: string,
+  status: SubscriptionStatus,
   cancelAtPeriodEnd: boolean,
 ): string {
   if (status === "active" && cancelAtPeriodEnd) return "Canceling";
-  return STATUS_LABELS[status] ?? "Incomplete";
+  return STATUS_LABELS[status];
 }
 
 function getStatusClass(
-  status: string,
+  status: SubscriptionStatus,
   cancelAtPeriodEnd: boolean,
 ): string | undefined {
   if (status === "active" && !cancelAtPeriodEnd) return styles.statusActive;
@@ -49,7 +57,7 @@ export function SubscriptionList({
   if (subscriptions.length === 0) {
     return (
       <div className={listItemStyles.empty}>
-        <p className={`${listItemStyles.emptyText} ${styles.emptyText}`}>No active subscriptions</p>
+        <p className={clsx(listItemStyles.emptyText, styles.emptyText)}>No active subscriptions</p>
         <Link to="/pricing" className={styles.browseLink}>
           Browse plans
         </Link>
@@ -63,15 +71,14 @@ export function SubscriptionList({
         const isCanceling = sub.cancelAtPeriodEnd && sub.status === "active";
         const isActive = sub.status === "active";
         const isCancelDisabled = sub.cancelAtPeriodEnd || sub.status !== "active";
-        const planTypeLabel =
-          sub.plan.type === "platform" ? "Platform" : "Creator";
+        const planTypeLabel = PLAN_TYPE_LABELS[sub.plan.type];
 
         return (
           <div key={sub.id} className={listItemStyles.item}>
             <div className={listItemStyles.itemHeader}>
               <h3 className={styles.planName}>{sub.plan.name}</h3>
               <span
-                className={`${listItemStyles.statusBadge} ${getStatusClass(sub.status, sub.cancelAtPeriodEnd)}`}
+                className={clsx(listItemStyles.statusBadge, getStatusClass(sub.status, sub.cancelAtPeriodEnd))}
               >
                 {getStatusLabel(sub.status, sub.cancelAtPeriodEnd)}
               </span>

@@ -2,22 +2,41 @@ import { describe, it, expect, vi } from "vitest";
 
 import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockEmissionRow } from "../helpers/emissions-fixtures.js";
-import { chainablePromise } from "../helpers/db-mock-utils.js";
 
-// ── Mock DB Chains ──
+// ── Mock Service Fns ──
 
-const mockSelectWhere = vi.fn();
-const mockSelectGroupBy = vi.fn();
-const mockSelectOrderBy = vi.fn();
-const mockSelectFrom = vi.fn();
-const mockSelect = vi.fn();
+const mockFetchEmissionsSummary = vi.fn();
+const mockFetchEmissionsBreakdown = vi.fn();
+
+// ── Mock DB Chains (POST endpoints only) ──
+
 const mockInsertValues = vi.fn();
 const mockInsertReturning = vi.fn();
 const mockInsert = vi.fn();
 
 const mockDb = {
-  select: mockSelect,
   insert: mockInsert,
+};
+
+// ── Default Summary / Breakdown Data ──
+
+const defaultSummary = {
+  grossCo2Kg: 0,
+  offsetCo2Kg: 0,
+  netCo2Kg: 0,
+  entryCount: 0,
+  latestDate: null,
+  projectedGrossCo2Kg: 0,
+  doubleOffsetTargetCo2Kg: 0,
+  additionalOffsetCo2Kg: 0,
+};
+
+const defaultBreakdown = {
+  summary: defaultSummary,
+  byScope: [],
+  byCategory: [],
+  monthly: [],
+  entries: [],
 };
 
 // ── Test Setup ──
@@ -25,6 +44,10 @@ const mockDb = {
 const ctx = setupRouteTest({
   db: mockDb,
   mocks: () => {
+    vi.doMock("../../src/services/emissions.js", () => ({
+      fetchEmissionsSummary: mockFetchEmissionsSummary,
+      fetchEmissionsBreakdown: mockFetchEmissionsBreakdown,
+    }));
     vi.doMock("../../src/db/schema/emission.schema.js", () => ({
       emissions: {
         id: {},
@@ -52,26 +75,9 @@ const ctx = setupRouteTest({
     app.route("/api/emissions", emissionsRoutes);
   },
   beforeEach: () => {
-    // Re-establish SELECT chain after clearAllMocks.
-    // Summary: db.select({...}).from(emissions) -> resolves directly (single aggregation query)
-    // Breakdown queries: .from().where().groupBy(), .from().groupBy().orderBy(), .from().orderBy()
-    mockSelect.mockReturnValue({ from: mockSelectFrom });
-    mockSelectFrom.mockImplementation(() =>
-      chainablePromise(
-        [{ grossCo2Kg: "0", projectedCo2Kg: "0", offsetCo2Kg: "0", entryCount: "0", latestDate: null }],
-        { where: mockSelectWhere, groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
-      ),
-    );
-    mockSelectWhere.mockImplementation(() =>
-      chainablePromise(
-        [],
-        { groupBy: mockSelectGroupBy, orderBy: mockSelectOrderBy },
-      ),
-    );
-    mockSelectGroupBy.mockImplementation(() =>
-      chainablePromise([], { orderBy: mockSelectOrderBy }),
-    );
-    mockSelectOrderBy.mockResolvedValue([]);
+    // Service mock defaults
+    mockFetchEmissionsSummary.mockResolvedValue(defaultSummary);
+    mockFetchEmissionsBreakdown.mockResolvedValue(defaultBreakdown);
 
     // INSERT chain: db.insert(table).values({...}).returning()
     mockInsert.mockReturnValue({ values: mockInsertValues });
@@ -87,18 +93,17 @@ describe("emissions routes", () => {
 
   describe("GET /api/emissions/summary", () => {
     it("returns emissions summary with gross/offset/net and projection fields", async () => {
-      // Single aggregation query returns all summary fields
-      mockSelectFrom.mockImplementationOnce(() =>
-        Promise.resolve([
-          {
-            grossCo2Kg: "0.034443",
-            projectedCo2Kg: "0.5",
-            offsetCo2Kg: "0.01",
-            entryCount: "1",
-            latestDate: "2026-03-31",
-          },
-        ]),
-      );
+      mockFetchEmissionsSummary.mockResolvedValueOnce({
+        grossCo2Kg: 0.034443,
+        projectedCo2Kg: 0.5,
+        offsetCo2Kg: 0.01,
+        netCo2Kg: 0.024443,
+        entryCount: 1,
+        latestDate: "2026-03-31",
+        projectedGrossCo2Kg: 0.534443,
+        doubleOffsetTargetCo2Kg: 1.068886,
+        additionalOffsetCo2Kg: 1.058886,
+      });
 
       const res = await ctx.app.request("/api/emissions/summary");
       const body = await res.json() as Record<string, unknown>;
@@ -145,57 +150,25 @@ describe("emissions routes", () => {
     it("returns full breakdown with projection fields and split monthly data", async () => {
       const row = makeMockEmissionRow();
 
-      // The breakdown handler calls Promise.all with 5 queries:
-      // 1. fetchEmissionsSummary: db.select({...}).from(emissions) -> resolves directly
-      // 2. byScope: db.select({...}).from(emissions).where(...).groupBy(scope)
-      // 3. byCategory: db.select({...}).from(emissions).where(...).groupBy(category)
-      // 4. monthly: db.select({...}).from(emissions).groupBy(month).orderBy(month)
-      // 5. entries: db.select().from(emissions).orderBy(desc(date))
-
-      mockSelectFrom
-        // Summary query (resolves directly from .from())
-        .mockImplementationOnce(() =>
-          Promise.resolve([
-            {
-              grossCo2Kg: "0.034443",
-              projectedCo2Kg: "0.5",
-              offsetCo2Kg: "0.01",
-              entryCount: "1",
-              latestDate: "2026-03-31",
-            },
-          ]),
-        )
-        // By scope query
-        .mockImplementationOnce(() => ({
-          where: () => ({
-            groupBy: () =>
-              Promise.resolve([
-                { scope: 2, co2Kg: "0.034443" },
-              ]),
-          }),
-        }))
-        // By category query
-        .mockImplementationOnce(() => ({
-          where: () => ({
-            groupBy: () =>
-              Promise.resolve([
-                { category: "cloud-compute", co2Kg: "0.034443" },
-              ]),
-          }),
-        }))
-        // Monthly query
-        .mockImplementationOnce(() => ({
-          groupBy: () => ({
-            orderBy: () =>
-              Promise.resolve([
-                { month: "2026-03", actualCo2Kg: "0.034443", projectedCo2Kg: "0", offsetCo2Kg: "0.01" },
-              ]),
-          }),
-        }))
-        // Entries query
-        .mockImplementationOnce(() => ({
-          orderBy: () => Promise.resolve([row]),
-        }));
+      mockFetchEmissionsBreakdown.mockResolvedValueOnce({
+        summary: {
+          grossCo2Kg: 0.034443,
+          projectedCo2Kg: 0.5,
+          offsetCo2Kg: 0.01,
+          netCo2Kg: 0.024443,
+          entryCount: 1,
+          latestDate: "2026-03-31",
+          projectedGrossCo2Kg: 0.534443,
+          doubleOffsetTargetCo2Kg: 1.068886,
+          additionalOffsetCo2Kg: 1.058886,
+        },
+        byScope: [{ scope: 2, co2Kg: 0.034443, entryCount: 1 }],
+        byCategory: [{ category: "cloud-compute", co2Kg: 0.034443, entryCount: 1 }],
+        monthly: [
+          { month: "2026-03", actualCo2Kg: 0.034443, projectedCo2Kg: 0, offsetCo2Kg: 0.01 },
+        ],
+        entries: [row],
+      });
 
       const res = await ctx.app.request("/api/emissions/breakdown");
       const body = await res.json() as Record<string, any>;
@@ -235,41 +208,22 @@ describe("emissions routes", () => {
         },
       });
 
-      mockSelectFrom
-        // Summary query
-        .mockImplementationOnce(() =>
-          Promise.resolve([
-            {
-              grossCo2Kg: "0.01",
-              projectedCo2Kg: "0",
-              offsetCo2Kg: "0",
-              entryCount: "1",
-              latestDate: "2026-03-31",
-            },
-          ]),
-        )
-        // By scope query
-        .mockImplementationOnce(() => ({
-          where: () => ({
-            groupBy: () => Promise.resolve([]),
-          }),
-        }))
-        // By category query
-        .mockImplementationOnce(() => ({
-          where: () => ({
-            groupBy: () => Promise.resolve([]),
-          }),
-        }))
-        // Monthly query
-        .mockImplementationOnce(() => ({
-          groupBy: () => ({
-            orderBy: () => Promise.resolve([]),
-          }),
-        }))
-        // Entries query
-        .mockImplementationOnce(() => ({
-          orderBy: () => Promise.resolve([row]),
-        }));
+      mockFetchEmissionsBreakdown.mockResolvedValueOnce({
+        summary: {
+          grossCo2Kg: 0.01,
+          offsetCo2Kg: 0,
+          netCo2Kg: 0.01,
+          entryCount: 1,
+          latestDate: "2026-03-31",
+          projectedGrossCo2Kg: 0.01,
+          doubleOffsetTargetCo2Kg: 0.02,
+          additionalOffsetCo2Kg: 0.02,
+        },
+        byScope: [],
+        byCategory: [],
+        monthly: [],
+        entries: [row],
+      });
 
       const res = await ctx.app.request("/api/emissions/breakdown");
       const body = await res.json() as Record<string, any>;

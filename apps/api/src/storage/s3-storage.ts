@@ -9,6 +9,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { ok, err } from "@snc/shared";
 import { AppError, NotFoundError } from "@snc/shared";
+import { wrapS3Error } from "./s3-error";
 import type {
   StorageProvider,
   UploadMetadata,
@@ -25,11 +26,6 @@ export type S3StorageOptions = {
 };
 
 // ── Private Helpers ──
-
-const wrapS3Error = (e: unknown): AppError => {
-  const message = e instanceof Error ? e.message : String(e);
-  return new AppError("S3_ERROR", message, 502);
-};
 
 const isNoSuchKey = (e: unknown): boolean =>
   e instanceof Error && "name" in e && e.name === "NoSuchKey";
@@ -59,7 +55,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       );
       return ok({ key, size: headResponse.ContentLength ?? body.byteLength });
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 
@@ -79,7 +75,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       if (isNoSuchKey(e)) {
         return err(new NotFoundError("File not found"));
       }
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 
@@ -92,7 +88,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       );
       return ok(undefined);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 
@@ -105,7 +101,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       const url = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
       return ok(url);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 
@@ -124,7 +120,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       if (isNoSuchKey(e)) {
         return err(new NotFoundError("File not found"));
       }
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 
@@ -142,7 +138,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       const url = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
       return ok(url);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_ERROR"));
     }
   };
 

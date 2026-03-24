@@ -1,5 +1,5 @@
 import { and, eq, like, ne } from "drizzle-orm";
-import type { PgTableWithColumns, TableConfig } from "drizzle-orm/pg-core";
+import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "../db/connection.js";
 
@@ -16,16 +16,16 @@ export const toSlug = (name: string, maxLength = 80): string =>
 
 export const generateUniqueSlug = async (
   name: string,
-  options: {
-    table: PgTableWithColumns<TableConfig>;
-    slugColumn: any;
-    scopeColumn?: any;
+  options: Readonly<{
+    table: PgTable;
+    slugColumn: PgColumn;
+    scopeColumn?: PgColumn;
     scopeValue?: string;
     excludeId?: string;
-    idColumn?: any;
+    idColumn?: PgColumn;
     maxLength?: number;
     fallbackPrefix?: string;
-  },
+  }>,
 ): Promise<string> => {
   const maxLength = options.maxLength ?? 80;
   const fallbackPrefix = options.fallbackPrefix ?? "item";
@@ -49,7 +49,7 @@ export const generateUniqueSlug = async (
     .from(options.table)
     .where(and(...conditions));
 
-  const taken = new Set(existing.map((r: { slug: string }) => r.slug));
+  const taken = new Set(existing.map((r) => r.slug as string));
   if (!taken.has(base)) return base;
 
   for (let i = 2; ; i++) {

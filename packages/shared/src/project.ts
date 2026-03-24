@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { createPaginationQuery } from "./pagination.js";
+
 export const MAX_PROJECT_NAME_LENGTH = 200;
 export const MAX_PROJECT_DESCRIPTION_LENGTH = 2000;
 
@@ -28,12 +30,10 @@ export const UpdateProjectSchema = z.object({
   completed: z.boolean().optional(),
 });
 
-export const ProjectsQuerySchema = z.object({
+export const ProjectsQuerySchema = createPaginationQuery({ max: 100, default: 50 }).extend({
   creatorId: z.string().optional(),
   slug: z.string().optional(),
   completed: z.string().transform((v) => v === "true").optional(),
-  cursor: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 export const ProjectResponseSchema = z.object({
@@ -59,6 +59,8 @@ export const EventTypesResponseSchema = z.object({
   items: z.array(CustomEventTypeSchema),
 });
 
+export const ProjectEventsQuerySchema = createPaginationQuery({ max: 100, default: 50 });
+
 // Types
 export type Project = z.infer<typeof ProjectSchema>;
 export type CreateProject = z.infer<typeof CreateProjectSchema>;
@@ -69,3 +71,4 @@ export type ProjectsResponse = z.infer<typeof ProjectsResponseSchema>;
 export type CustomEventType = z.infer<typeof CustomEventTypeSchema>;
 export type CreateCustomEventType = z.infer<typeof CreateCustomEventTypeSchema>;
 export type EventTypesResponse = z.infer<typeof EventTypesResponseSchema>;
+export type ProjectEventsQuery = z.infer<typeof ProjectEventsQuerySchema>;

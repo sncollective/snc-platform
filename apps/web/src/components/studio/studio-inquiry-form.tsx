@@ -8,6 +8,8 @@ import type { StudioService } from "@snc/shared";
 
 import { apiMutate } from "../../lib/fetch-utils.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
+import { clsx } from "clsx/lite";
+
 import formStyles from "../../styles/form.module.css";
 import styles from "./studio-inquiry-form.module.css";
 
@@ -104,11 +106,7 @@ export function StudioInquiryForm(): React.ReactElement {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={
-              fieldErrors.name
-                ? `${formStyles.input} ${formStyles.inputError}`
-                : formStyles.input
-            }
+            className={clsx(formStyles.input, fieldErrors.name && formStyles.inputError)}
           />
           {fieldErrors.name && (
             <span className={formStyles.fieldError} role="alert">
@@ -126,11 +124,7 @@ export function StudioInquiryForm(): React.ReactElement {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={
-              fieldErrors.email
-                ? `${formStyles.input} ${formStyles.inputError}`
-                : formStyles.input
-            }
+            className={clsx(formStyles.input, fieldErrors.email && formStyles.inputError)}
           />
           {fieldErrors.email && (
             <span className={formStyles.fieldError} role="alert">
@@ -147,11 +141,7 @@ export function StudioInquiryForm(): React.ReactElement {
             id="inquiry-service"
             value={service}
             onChange={(e) => setService(e.target.value as StudioService)}
-            className={
-              fieldErrors.service
-                ? `${formStyles.select} ${formStyles.inputError}`
-                : formStyles.select
-            }
+            className={clsx(formStyles.select, fieldErrors.service && formStyles.inputError)}
           >
             {STUDIO_SERVICES.map((svc) => (
               <option key={svc} value={svc}>
@@ -174,11 +164,7 @@ export function StudioInquiryForm(): React.ReactElement {
             id="inquiry-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className={
-              fieldErrors.message
-                ? `${formStyles.textarea} ${formStyles.inputError}`
-                : formStyles.textarea
-            }
+            className={clsx(formStyles.textarea, fieldErrors.message && formStyles.inputError)}
           />
           {fieldErrors.message && (
             <span className={formStyles.fieldError} role="alert">

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/creators/$creatorId/manage/content")({
 
 // ── Component ──
 
-export function ManageContentPage(): React.ReactElement {
+function ManageContentPage(): React.ReactElement {
   const { creator } = manageRoute.useLoaderData();
   const [showForm, setShowForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);

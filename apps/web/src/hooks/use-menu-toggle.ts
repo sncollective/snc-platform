@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type React from "react";
 
@@ -21,9 +21,9 @@ export function useMenuToggle(
     setIsOpen((prev) => !prev);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsOpen(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,7 +35,7 @@ export function useMenuToggle(
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && e.target instanceof Node && !menuRef.current.contains(e.target)) {
         handleClose();
       }
     };

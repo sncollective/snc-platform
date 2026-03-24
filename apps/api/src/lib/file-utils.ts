@@ -5,6 +5,8 @@ import type { StorageProvider } from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
 
+const DEFAULT_CACHE_CONTROL: string = "public, max-age=86400"; // 1 day
+
 export const EXTENSION_TO_MIME: Record<string, string> = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
@@ -39,7 +41,7 @@ export const streamFile = async (
   storage: StorageProvider,
   key: string,
   errorMsg: string,
-  cacheControl = "public, max-age=86400",
+  cacheControl: string = DEFAULT_CACHE_CONTROL,
 ): Promise<Response> => {
   const result = await storage.download(key);
   if (!result.ok) {

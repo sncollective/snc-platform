@@ -1,35 +1,17 @@
-import { useRef, useState } from "react";
-import type { FormEvent } from "react";
 import type React from "react";
-import { z, safeParse } from "zod/mini";
+import type { RefObject } from "react";
+import { CONTENT_TYPES, VISIBILITY, ACCEPTED_MIME_TYPES, MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from "@snc/shared";
+import type { ContentType, Visibility } from "@snc/shared";
 
-import {
-  CONTENT_TYPES,
-  VISIBILITY,
-  ACCEPTED_MIME_TYPES,
-  MAX_TITLE_LENGTH,
-  MAX_DESCRIPTION_LENGTH,
-} from "@snc/shared";
-import type { ContentType, UploadPurpose, Visibility } from "@snc/shared";
+import { useContentFormFields } from "../../hooks/use-content-form-fields.js";
+import { useContentSubmit } from "../../hooks/use-content-submit.js";
+import { clsx } from "clsx/lite";
 
-import { extractFieldErrors } from "../../lib/form-utils.js";
-import { createContent } from "../../lib/content.js";
-import { useUpload } from "../../contexts/upload-context.js";
 import formStyles from "../../styles/form.module.css";
 import successStyles from "../../styles/success-alert.module.css";
 import styles from "./content-form.module.css";
 
 // ── Private Constants ──
-
-const FORM_FIELDS = ["title", "description", "type", "visibility", "body"] as const;
-
-const FormSchema = z.object({
-  title: z.string().check(z.minLength(1, "Title is required"), z.maxLength(MAX_TITLE_LENGTH)),
-  type: z.enum(CONTENT_TYPES),
-  description: z.optional(z.string().check(z.maxLength(MAX_DESCRIPTION_LENGTH))),
-  visibility: z.enum(VISIBILITY),
-  body: z.optional(z.string()),
-});
 
 const AUDIO_ACCEPT = ACCEPTED_MIME_TYPES.audio.join(",");
 const VIDEO_ACCEPT = ACCEPTED_MIME_TYPES.video.join(",");
@@ -50,7 +32,7 @@ function FileInputField({
   readonly label: string;
   readonly inputId: string;
   readonly accept: string;
-  readonly inputRef: React.RefObject<HTMLInputElement | null>;
+  readonly inputRef: RefObject<HTMLInputElement | null>;
   readonly fileName: string;
   readonly onFileChange: (name: string) => void;
   readonly onClear: () => void;
@@ -97,143 +79,23 @@ export interface ContentFormProps {
 // ── Public API ──
 
 export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }: ContentFormProps): React.ReactElement {
-  const { actions: uploadActions } = useUpload();
-  const onUploadCompleteRef = useRef(onUploadComplete);
-  onUploadCompleteRef.current = onUploadComplete;
-
-  const [type, setType] = useState<ContentType>("audio");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("public");
-  const [body, setBody] = useState("");
-
-  const mediaRef = useRef<HTMLInputElement>(null);
-  const coverArtRef = useRef<HTMLInputElement>(null);
-  const thumbnailRef = useRef<HTMLInputElement>(null);
-
-  const [mediaFileName, setMediaFileName] = useState("");
-  const [coverArtFileName, setCoverArtFileName] = useState("");
-  const [thumbnailFileName, setThumbnailFileName] = useState("");
-
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
-  const [serverError, setServerError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState("");
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setBody("");
-    setVisibility("public");
-    setFieldErrors({});
-    if (mediaRef.current) mediaRef.current.value = "";
-    if (coverArtRef.current) coverArtRef.current.value = "";
-    if (thumbnailRef.current) thumbnailRef.current.value = "";
-    setMediaFileName("");
-    setCoverArtFileName("");
-    setThumbnailFileName("");
-  };
-
-  const handleSubmit = async (e: FormEvent): Promise<void> => {
-    e.preventDefault();
-    setServerError("");
-    setSuccessMessage("");
-    setFieldErrors({});
-
-    const formData = {
-      creatorId,
-      title: title.trim(),
-      type,
-      description: description.trim() || undefined,
-      visibility,
-      body: type === "written" ? body : undefined,
-    };
-
-    const result = safeParse(FormSchema, formData);
-    if (!result.success) {
-      setFieldErrors(extractFieldErrors(result.error.issues, FORM_FIELDS));
-      return;
-    }
-
-    if (type === "written" && !body.trim()) {
-      setFieldErrors({ body: "Body is required for written content" });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Step 1: Create content record
-      setSubmitStatus("Creating...");
-      const created = await createContent(formData);
-
-      // Step 2: Fire-and-forget uploads via global context
-      const filesToUpload: Array<{ file: File; purpose: UploadPurpose }> = [];
-
-      const mediaFile = mediaRef.current?.files?.[0];
-      if (mediaFile) {
-        filesToUpload.push({ file: mediaFile, purpose: "content-media" });
-      }
-
-      const coverArtFile = coverArtRef.current?.files?.[0];
-      if (coverArtFile) {
-        filesToUpload.push({ file: coverArtFile, purpose: "content-thumbnail" });
-      }
-
-      const thumbnailFile = thumbnailRef.current?.files?.[0];
-      if (thumbnailFile) {
-        filesToUpload.push({ file: thumbnailFile, purpose: "content-thumbnail" });
-      }
-
-      if (filesToUpload.length > 0) {
-        let completedCount = 0;
-        const totalCount = filesToUpload.length;
-        for (const { file, purpose } of filesToUpload) {
-          uploadActions.startUpload({
-            file,
-            purpose,
-            resourceId: created.id,
-            onComplete: () => {
-              completedCount++;
-              if (completedCount === totalCount) {
-                // Safe: reads ref, not form state — survives unmount
-                onUploadCompleteRef.current?.();
-              }
-            },
-          });
-        }
-      }
-
-      // Form resets immediately — uploads continue in background
-      setSuccessMessage(
-        filesToUpload.length > 0
-          ? "Draft created — uploads in progress"
-          : "Draft created",
-      );
-      resetForm();
-      onSuccess(); // refresh lists to show new draft immediately
-    } catch (err) {
-      setServerError(
-        err instanceof Error ? err.message : "Failed to create content",
-      );
-    } finally {
-      setIsSubmitting(false);
-      setSubmitStatus("");
-    }
-  };
+  const fields = useContentFormFields();
+  const submitCallbacks = onUploadComplete
+    ? { onSuccess, onUploadComplete }
+    : { onSuccess };
+  const submit = useContentSubmit(fields, creatorId, submitCallbacks);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className={styles.form}>
-      {serverError && (
+    <form onSubmit={submit.handleSubmit} noValidate className={styles.form}>
+      {submit.serverError && (
         <div className={formStyles.serverError} role="alert">
-          {serverError}
+          {submit.serverError}
         </div>
       )}
 
-      {successMessage && (
+      {submit.successMessage && (
         <div className={successStyles.success} role="status">
-          {successMessage}
+          {submit.successMessage}
         </div>
       )}
 
@@ -244,15 +106,15 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         </label>
         <select
           id="content-type"
-          value={type}
+          value={fields.type}
           onChange={(e) => {
             const v = e.target.value;
             if ((CONTENT_TYPES as readonly string[]).includes(v)) {
-              setType(v as ContentType);
+              fields.setType(v as ContentType);
             }
           }}
           className={formStyles.select}
-          disabled={isSubmitting}
+          disabled={submit.isSubmitting}
         >
           {CONTENT_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -270,22 +132,18 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         <input
           id="content-title"
           type="text"
-          value={title}
+          value={fields.title}
           onChange={(e) => {
-            setTitle(e.target.value);
-            if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: undefined }));
+            fields.setTitle(e.target.value);
+            if (submit.fieldErrors.title) submit.setFieldErrors({ ...submit.fieldErrors, title: undefined });
           }}
-          className={
-            fieldErrors.title
-              ? `${formStyles.input} ${formStyles.inputError}`
-              : formStyles.input
-          }
-          disabled={isSubmitting}
+          className={clsx(formStyles.input, submit.fieldErrors.title && formStyles.inputError)}
+          disabled={submit.isSubmitting}
           maxLength={MAX_TITLE_LENGTH}
         />
-        {fieldErrors.title && (
+        {submit.fieldErrors.title && (
           <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.title}
+            {submit.fieldErrors.title}
           </span>
         )}
       </div>
@@ -297,19 +155,19 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         </label>
         <textarea
           id="content-description"
-          value={description}
+          value={fields.description}
           onChange={(e) => {
-            setDescription(e.target.value);
-            if (fieldErrors.description) setFieldErrors((prev) => ({ ...prev, description: undefined }));
+            fields.setDescription(e.target.value);
+            if (submit.fieldErrors.description) submit.setFieldErrors({ ...submit.fieldErrors, description: undefined });
           }}
-          className={`${formStyles.textarea} ${styles.textarea}`}
-          disabled={isSubmitting}
+          className={clsx(formStyles.textarea, styles.textarea)}
+          disabled={submit.isSubmitting}
           maxLength={MAX_DESCRIPTION_LENGTH}
           rows={3}
         />
-        {fieldErrors.description && (
+        {submit.fieldErrors.description && (
           <span className={formStyles.fieldError} role="alert">
-            {fieldErrors.description}
+            {submit.fieldErrors.description}
           </span>
         )}
       </div>
@@ -321,15 +179,15 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
         </label>
         <select
           id="content-visibility"
-          value={visibility}
+          value={fields.visibility}
           onChange={(e) => {
             const v = e.target.value;
             if ((VISIBILITY as readonly string[]).includes(v)) {
-              setVisibility(v as Visibility);
+              fields.setVisibility(v as Visibility);
             }
           }}
           className={formStyles.select}
-          disabled={isSubmitting}
+          disabled={submit.isSubmitting}
         >
           {VISIBILITY.map((v) => (
             <option key={v} value={v}>
@@ -340,82 +198,69 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
       </div>
 
       {/* Body (written only) */}
-      {type === "written" && (
+      {fields.type === "written" && (
         <div className={formStyles.fieldGroup}>
           <label htmlFor="content-body" className={formStyles.label}>
             Body
           </label>
           <textarea
             id="content-body"
-            value={body}
+            value={fields.body}
             onChange={(e) => {
-              setBody(e.target.value);
-              if (fieldErrors.body) setFieldErrors((prev) => ({ ...prev, body: undefined }));
+              fields.setBody(e.target.value);
+              if (submit.fieldErrors.body) submit.setFieldErrors({ ...submit.fieldErrors, body: undefined });
             }}
-            className={
-              fieldErrors.body
-                ? `${formStyles.textarea} ${styles.textarea} ${formStyles.inputError}`
-                : `${formStyles.textarea} ${styles.textarea}`
-            }
-            disabled={isSubmitting}
+            className={clsx(formStyles.textarea, styles.textarea, submit.fieldErrors.body && formStyles.inputError)}
+            disabled={submit.isSubmitting}
             rows={8}
           />
-          {fieldErrors.body && (
+          {submit.fieldErrors.body && (
             <span className={formStyles.fieldError} role="alert">
-              {fieldErrors.body}
+              {submit.fieldErrors.body}
             </span>
           )}
         </div>
       )}
 
       {/* Media file (audio/video only) */}
-      {type !== "written" && (
+      {fields.type !== "written" && (
         <FileInputField
           label="Media File"
           inputId="content-media"
-          accept={type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
-          inputRef={mediaRef}
-          fileName={mediaFileName}
-          onFileChange={setMediaFileName}
-          onClear={() => {
-            if (mediaRef.current) mediaRef.current.value = "";
-            setMediaFileName("");
-          }}
-          disabled={isSubmitting}
+          accept={fields.type === "audio" ? AUDIO_ACCEPT : VIDEO_ACCEPT}
+          inputRef={fields.mediaRef}
+          fileName={fields.mediaFileName}
+          onFileChange={fields.setMediaFileName}
+          onClear={fields.clearMedia}
+          disabled={submit.isSubmitting}
         />
       )}
 
       {/* Cover art (audio only) */}
-      {type === "audio" && (
+      {fields.type === "audio" && (
         <FileInputField
           label="Cover Art (optional)"
           inputId="content-cover-art"
           accept={IMAGE_ACCEPT}
-          inputRef={coverArtRef}
-          fileName={coverArtFileName}
-          onFileChange={setCoverArtFileName}
-          onClear={() => {
-            if (coverArtRef.current) coverArtRef.current.value = "";
-            setCoverArtFileName("");
-          }}
-          disabled={isSubmitting}
+          inputRef={fields.coverArtRef}
+          fileName={fields.coverArtFileName}
+          onFileChange={fields.setCoverArtFileName}
+          onClear={fields.clearCoverArt}
+          disabled={submit.isSubmitting}
         />
       )}
 
       {/* Thumbnail (video and written) */}
-      {(type === "video" || type === "written") && (
+      {(fields.type === "video" || fields.type === "written") && (
         <FileInputField
           label="Thumbnail (optional)"
           inputId="content-thumbnail"
           accept={IMAGE_ACCEPT}
-          inputRef={thumbnailRef}
-          fileName={thumbnailFileName}
-          onFileChange={setThumbnailFileName}
-          onClear={() => {
-            if (thumbnailRef.current) thumbnailRef.current.value = "";
-            setThumbnailFileName("");
-          }}
-          disabled={isSubmitting}
+          inputRef={fields.thumbnailRef}
+          fileName={fields.thumbnailFileName}
+          onFileChange={fields.setThumbnailFileName}
+          onClear={fields.clearThumbnail}
+          disabled={submit.isSubmitting}
         />
       )}
 
@@ -423,17 +268,17 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
       <div className={styles.formActions}>
         <button
           type="submit"
-          className={`${formStyles.submitButton} ${styles.submitButton}`}
-          disabled={isSubmitting}
+          className={clsx(formStyles.submitButton, styles.submitButton)}
+          disabled={submit.isSubmitting}
         >
-          {isSubmitting ? submitStatus || "Creating..." : "Create Content"}
+          {submit.isSubmitting ? submit.submitStatus || "Creating..." : "Create Content"}
         </button>
         {onCancel && (
           <button
             type="button"
             className={styles.cancelButton}
             onClick={onCancel}
-            disabled={isSubmitting}
+            disabled={submit.isSubmitting}
           >
             Cancel
           </button>

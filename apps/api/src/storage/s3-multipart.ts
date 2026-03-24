@@ -10,6 +10,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { ok, err } from "@snc/shared";
 import { AppError } from "@snc/shared";
+import { wrapS3Error } from "./s3-error";
 import type { Result } from "@snc/shared";
 import type { CompletedPart } from "@snc/shared";
 
@@ -56,13 +57,6 @@ export type S3MultipartService = {
   ): Promise<Result<ListedPart[], AppError>>;
 };
 
-// ── Private Helpers ──
-
-const wrapS3Error = (e: unknown): AppError => {
-  const message = e instanceof Error ? e.message : String(e);
-  return new AppError("S3_MULTIPART_ERROR", message, 502);
-};
-
 // ── Public API ──
 
 export const createS3Multipart = (
@@ -87,7 +81,7 @@ export const createS3Multipart = (
       }
       return ok({ uploadId: response.UploadId, key });
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_MULTIPART_ERROR"));
     }
   };
 
@@ -109,7 +103,7 @@ export const createS3Multipart = (
       });
       return ok(url);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_MULTIPART_ERROR"));
     }
   };
 
@@ -134,7 +128,7 @@ export const createS3Multipart = (
       );
       return ok(undefined);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_MULTIPART_ERROR"));
     }
   };
 
@@ -152,7 +146,7 @@ export const createS3Multipart = (
       );
       return ok(undefined);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_MULTIPART_ERROR"));
     }
   };
 
@@ -175,7 +169,7 @@ export const createS3Multipart = (
       }));
       return ok(parts);
     } catch (e) {
-      return err(wrapS3Error(e));
+      return err(wrapS3Error(e, "S3_MULTIPART_ERROR"));
     }
   };
 
