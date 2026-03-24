@@ -1,17 +1,30 @@
-# S/NC Production — add this site block to /etc/caddy/Caddyfile
-# Replace YOUR_DOMAIN with the actual domain and APP_IP with snc-app container IP.
+# S/NC Production Caddyfile
+#
+# Shared security snippet + site blocks for s-nc.org and s-nc.tv.
+# Other service blocks (storage, streaming) are in their deploy guides:
+#   docs/ops/garage-deploy.md         → storage.s-nc.org
+#   boards/infra/guides/streaming-deploy.md → stream/relay.s-nc.tv
+#
+# Replace APP_IP with the snc-app container IP.
 
-YOUR_DOMAIN {
-	# ── Security headers ──
+# ── Shared security headers ──────────────────────────────────────
+# Import in every site block: `import security_headers`
+(security_headers) {
 	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		-Server
 	}
+}
 
-	# ── API + health + uploads → API server ──
+# ── Platform (s-nc.org) ───────────────────────────────────────────
+s-nc.org {
+	import security_headers
+
+	# API + health + uploads → API server
 	handle /api/* {
 		reverse_proxy APP_IP:3000
 	}
@@ -22,8 +35,36 @@ YOUR_DOMAIN {
 		reverse_proxy APP_IP:3000
 	}
 
-	# ── Everything else → Web SSR server ──
+	# Everything else → Web SSR server
 	handle {
 		reverse_proxy APP_IP:3001
+	}
+
+	# Graceful fallback when upstream is down
+	handle_errors {
+		respond {err.status_code}
+	}
+}
+
+# ── Streaming site (s-nc.tv) ─────────────────────────────────────
+# Same app as s-nc.org, different domain entry point.
+s-nc.tv {
+	import security_headers
+
+	handle /api/* {
+		reverse_proxy APP_IP:3000
+	}
+	handle /health {
+		reverse_proxy APP_IP:3000
+	}
+	handle /uploads/* {
+		reverse_proxy APP_IP:3000
+	}
+	handle {
+		reverse_proxy APP_IP:3001
+	}
+
+	handle_errors {
+		respond {err.status_code}
 	}
 }
