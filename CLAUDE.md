@@ -138,7 +138,7 @@ Scan rule libraries (auto-discovered by refactor workflows):
   - `routes/cursor.ts` — Shared `encodeCursor`/`decodeCursor` for keyset pagination + `buildPaginatedResponse` helper
   - `storage/index.ts` — `createStorageProvider` factory + `storage` singleton
   - `storage/local-storage.ts` — Local filesystem `StorageProvider` implementation
-- `apps/api/tests/` — Vitest tests mirroring `src/` structure (344 tests)
+- `apps/api/tests/` — Vitest tests mirroring `src/` structure
   - `helpers/test-constants.ts` — `TEST_CONFIG`, `makeTestConfig(overrides?)`
   - `helpers/auth-fixtures.ts` — `makeMockUser(overrides?)`, `makeMockSession(overrides?)`
   - `helpers/content-fixtures.ts` — `makeMockContent(overrides?)`, `makeMockDbContent(overrides?)`
@@ -202,7 +202,7 @@ Scan rule libraries (auto-discovered by refactor workflows):
   - `styles/settings-page.module.css` — Shared settings page CSS (page, error) for subscriptions, bookings, creator settings
   - `styles/list-items.module.css` — Shared list item CSS (list, item, itemHeader, statusBadge, empty) for booking-list + subscription-list
   - `styles/landing-section.module.css` — Shared landing section CSS (section, heading, loading) for landing components
-- `apps/web/tests/` — Vitest tests for web app (567 tests)
+- `apps/web/tests/` — Vitest tests for web app
   - `helpers/auth-fixtures.ts` — `makeMockUser`, `makeMockSession`, `makeMockSessionResult`,
     `makeLoggedInSessionResult` factories
   - `helpers/content-fixtures.ts` — `makeMockFeedItem(overrides?)` factory
@@ -212,7 +212,7 @@ Scan rule libraries (auto-discovered by refactor workflows):
   - `helpers/merch-fixtures.ts` — `makeMockMerchProduct(overrides?)`, `makeMockMerchProductDetail(overrides?)`
   - `helpers/booking-fixtures.ts` — `makeMockService(overrides?)`, `makeMockBookingWithService(overrides?)`
   - `helpers/dashboard-fixtures.ts` — `makeMockRevenueResponse(overrides?)`, `makeMockSubscriberSummary(overrides?)`, `makeMockBookingSummary(overrides?)`, `makeMockPendingBookingItem(overrides?)`
-- `packages/shared/src/` — shared types and utilities (387 tests)
+- `packages/shared/src/` — shared types and utilities
   - `auth.ts` — `ROLES`, `RoleSchema`, `UserSchema`, `SessionSchema`, `AuthSessionSchema`
     + `Role`, `User`, `Session`, `AuthSession` types
   - `errors.ts` — `AppError` base + `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`
@@ -244,9 +244,9 @@ Scan rule libraries (auto-discovered by refactor workflows):
 - `apps/api/drizzle/migrations/` — SQL migrations (auth tables + content table + creator_profiles table + subscription tables + booking tables)
 
 ### Build & Test
-- `pnpm --filter @snc/api test` — run API unit tests (344 tests)
-- `pnpm --filter @snc/shared test` — run shared package tests (387 tests)
-- `pnpm --filter @snc/web test` — run web unit tests (567 tests)
+- `pnpm --filter @snc/api test` — run API unit tests
+- `pnpm --filter @snc/shared test` — run shared package tests
+- `pnpm --filter @snc/web test` — run web unit tests
 - `pnpm --filter @snc/api dev` — start API dev server (Node 24+ with `--experimental-strip-types`)
 - `pnpm --filter @snc/web dev` — start web dev server (TanStack Start on port 3001)
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL (with claude-net)
