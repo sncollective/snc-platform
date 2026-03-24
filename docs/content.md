@@ -30,7 +30,7 @@ The `checkContentAccess` function in `apps/api/src/services/content-access.ts` e
 |----------|------|--------|
 | 1 | Content visibility is `"public"` | Allowed |
 | 2 | No authenticated user (guest) | Denied -- `AUTHENTICATION_REQUIRED` |
-| 3 | User is a creator team member for this creator, OR user holds the `stakeholder` role, OR user is any creator team member | Allowed (free perk -- stakeholders and creator team members get `hasPlatformSubscription: true` in batch context) |
+| 3 | User holds the `stakeholder` role, or is a member of any creator team | Allowed (free perk -- `hasPlatformSubscription: true` in batch context) |
 | 4 | User has an active subscription covering this creator (platform-wide plan or creator-specific plan) | Allowed |
 | 5 | None of the above | Denied -- `SUBSCRIPTION_REQUIRED` |
 
@@ -41,7 +41,7 @@ The `checkContentAccess` function in `apps/api/src/services/content-access.ts` e
 - **Batch (feed):** `buildContentAccessContext()` pre-fetches memberships and subscriptions once per request, then `hasContentAccess()` runs synchronously per item. Denied items have `mediaUrl` and `body` nullified but remain in the feed.
 - **Per-item (detail/media):** `checkContentAccess()` delegates to the batch path internally, returning a `ContentGateResult` discriminated union (`{ allowed: true } | { allowed: false; reason; creatorId }`).
 
-**Draft access** is separate: unpublished content is only visible to admins, stakeholders, and creator team members with `manageContent` permission. Enforced by `requireDraftAccess()`. Unauthorized users receive a 404 (not 403) to avoid leaking draft existence.
+**Draft access** is separate: unpublished content is only visible to admins and creator team members (any team role: owner, editor, viewer). Stakeholders must be on the creator's team to see drafts -- there is no blanket stakeholder access for unpublished content. Enforced by `requireDraftAccess()`. Unauthorized users receive a 404 (not 403) to avoid leaking draft existence.
 
 See [auth.md](auth.md) for role definitions and session middleware.
 
@@ -229,7 +229,7 @@ Presigned URLs expire after 3600 seconds (1 hour), configured in `upload.routes.
 
 - **Written content cannot have media uploads.** Calling the legacy upload endpoint with `field=media` on written content throws a `ValidationError`. The presign path validates similarly via `getUploadConstraints`.
 
-- **Draft content returns 404, not 403.** `requireDraftAccess` throws `NotFoundError` for unauthorized users to avoid revealing that a draft exists. Only admins, stakeholders, and the creator's team members with `manageContent` permission can see drafts.
+- **Draft content returns 404, not 403.** `requireDraftAccess` throws `NotFoundError` for unauthorized users to avoid revealing that a draft exists. Only admins and the creator's team members (any role) can see drafts.
 
 - **Slug collisions are handled silently.** `generateUniqueSlug` appends a numeric suffix when a slug already exists for the same creator. Renaming content re-generates the slug, which could change the public URL.
 

@@ -42,10 +42,9 @@ export type ContentGateResult =
  *
  * 1. Public content → always allowed
  * 2. No userId (unauthenticated) → not allowed
- * 3. User is a creator team member for this creator → allowed
- * 4. User is a stakeholder or any creator team member → allowed (free perk)
- * 5. User has an active subscription that covers this creator → allowed
- * 6. Otherwise → not allowed (SUBSCRIPTION_REQUIRED)
+ * 3. User is a stakeholder or any creator team member → allowed (free perk)
+ * 4. User has an active subscription that covers this creator → allowed
+ * 5. Otherwise → not allowed (SUBSCRIPTION_REQUIRED)
  *
  * "Active subscription" means:
  * - status = "active" (or "canceled" if currentPeriodEnd is still in the future)
@@ -194,7 +193,8 @@ export const checkContentAccess = async (
 
 /**
  * Enforce draft visibility rules. Unpublished content is only visible to
- * admins, stakeholders, and creator team members with `manageContent` permission.
+ * admins and creator team members with `viewPrivate` permission (all team
+ * roles: owner, editor, viewer). Stakeholders must be on the creator's team.
  *
  * When `prefetchedRoles` is provided (e.g. from Hono context after `optionalAuth`),
  * the `getUserRoles` DB query is skipped.
@@ -207,16 +207,14 @@ export const requireDraftAccess = async (
   if (row.publishedAt) return;
   if (!userId) throw new NotFoundError("Content not found");
   const roles = prefetchedRoles ?? (await getUserRoles(userId));
-  const isAdmin = roles.includes("admin") || roles.includes("stakeholder");
-  if (!isAdmin) {
-    const hasPermission = await checkCreatorPermission(
-      userId,
-      row.creatorId,
-      "manageContent",
-      roles,
-    );
-    if (!hasPermission) throw new NotFoundError("Content not found");
-  }
+  if (roles.includes("admin")) return;
+  const hasPermission = await checkCreatorPermission(
+    userId,
+    row.creatorId,
+    "viewPrivate",
+    roles,
+  );
+  if (!hasPermission) throw new NotFoundError("Content not found");
 };
 
 /**

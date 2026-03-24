@@ -4,7 +4,9 @@
 
 ## Rationale
 
-Content access rules are complex (public / unauthenticated / owner bypass / creator role bypass / platform subscription / creator subscription) and must be applied consistently across multiple route handlers. Extracting the logic into a pure async function with an explicit discriminated union return type keeps each handler focused on its HTTP concerns while reusing the same rules everywhere. The discriminated type forces callers to handle both branches of `allowed`, and the `reason` field lets callers differentiate 401 (authentication required) from 403 (subscription required) without rechecking the same logic.
+Content access rules are complex (public / unauthenticated / stakeholder+team member bypass / platform subscription / creator subscription) and must be applied consistently across multiple route handlers. Extracting the logic into a pure async function with an explicit discriminated union return type keeps each handler focused on its HTTP concerns while reusing the same rules everywhere. The discriminated type forces callers to handle both branches of `allowed`, and the `reason` field lets callers differentiate 401 (authentication required) from 403 (subscription required) without rechecking the same logic.
+
+Draft access is handled separately by `requireDraftAccess()`, which uses the `viewPrivate` creator permission (true for all team roles: owner, editor, viewer). Admins bypass; stakeholders must be on the creator's team.
 
 ## Examples
 

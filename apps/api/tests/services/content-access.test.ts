@@ -483,22 +483,37 @@ describe("requireDraftAccess", () => {
     expect(mockCheckCreatorPermission).not.toHaveBeenCalled();
   });
 
-  it("allows access when user has stakeholder role", async () => {
+  it("denies access when user has stakeholder role but is not a team member", async () => {
     mockGetUserRoles.mockResolvedValue(["stakeholder"]);
+    mockCheckCreatorPermission.mockResolvedValue(false);
     const row = { publishedAt: null, creatorId: "creator_123" };
-    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
-    expect(mockCheckCreatorPermission).not.toHaveBeenCalled();
+    await expect(requireDraftAccess(row, "user_123")).rejects.toThrow("Content not found");
   });
 
-  it("allows access when user is creator team member with manageContent", async () => {
+  it("allows access when stakeholder is a team member", async () => {
+    mockGetUserRoles.mockResolvedValue(["stakeholder"]);
+    mockCheckCreatorPermission.mockResolvedValue(true);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
+    expect(mockCheckCreatorPermission).toHaveBeenCalledWith("user_123", "creator_123", "viewPrivate", ["stakeholder"]);
+  });
+
+  it("allows access when user is creator team member with viewPrivate", async () => {
     mockGetUserRoles.mockResolvedValue([]);
     mockCheckCreatorPermission.mockResolvedValue(true);
     const row = { publishedAt: null, creatorId: "creator_123" };
     await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
-    expect(mockCheckCreatorPermission).toHaveBeenCalledWith("user_123", "creator_123", "manageContent", []);
+    expect(mockCheckCreatorPermission).toHaveBeenCalledWith("user_123", "creator_123", "viewPrivate", []);
   });
 
-  it("throws NotFoundError when user is not a team member with manageContent", async () => {
+  it("allows access for viewer team member", async () => {
+    mockGetUserRoles.mockResolvedValue([]);
+    mockCheckCreatorPermission.mockResolvedValue(true);
+    const row = { publishedAt: null, creatorId: "creator_123" };
+    await expect(requireDraftAccess(row, "user_123")).resolves.toBeUndefined();
+  });
+
+  it("throws NotFoundError when user is not a team member", async () => {
     mockGetUserRoles.mockResolvedValue([]);
     mockCheckCreatorPermission.mockResolvedValue(false);
     const row = { publishedAt: null, creatorId: "creator_123" };
