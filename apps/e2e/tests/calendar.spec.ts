@@ -12,7 +12,7 @@ test.describe("Calendar", () => {
     ).toBeVisible();
 
     // View toggle
-    await expect(page.getByRole("button", { name: "Month" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Month", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Timeline" })).toBeVisible();
 
     // Calendar grid

@@ -245,9 +245,10 @@ try {
 
   // ── Creator Profiles ──
 
-  const creatorRows: Array<{ id: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
+  const creatorRows: Array<{ id: string; handle: string; displayName: string; bio: string; socialLinks: SocialLink[]; avatarKey: string; bannerKey: string }> = [
     {
       id: USER_IDS.maya,
+      handle: "maya-chen",
       displayName: "Maya Chen",
       bio: "Electronic and ambient music producer exploring the intersection of sound design and generative art. Co-op member since day one.",
       socialLinks: [
@@ -260,6 +261,7 @@ try {
     },
     {
       id: USER_IDS.jordan,
+      handle: "jordan-ellis",
       displayName: "Jordan Ellis",
       bio: "Indie rock songwriter and multi-instrumentalist. Writing honest songs about ordinary life.",
       socialLinks: [
@@ -271,6 +273,7 @@ try {
     },
     {
       id: USER_IDS.sam,
+      handle: "sam-okafor",
       displayName: "Sam Okafor",
       bio: "Hip-hop artist and spoken word poet. Using rhythm and language to tell stories that matter.",
       socialLinks: [
@@ -289,6 +292,7 @@ try {
       .onConflictDoUpdate({
         target: creatorProfiles.id,
         set: {
+          handle: row.handle,
           displayName: row.displayName,
           bio: row.bio,
           socialLinks: row.socialLinks,

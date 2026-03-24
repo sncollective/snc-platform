@@ -6,6 +6,7 @@ import type { Transporter } from "nodemailer";
 import { AppError } from "@snc/shared";
 
 import { config } from "../config.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Private Helpers ──
 
@@ -54,6 +55,13 @@ export function isEmailConfigured(): boolean {
 export async function sendEmail(opts: SendEmailOptions): Promise<void> {
   if (!isEmailConfigured()) {
     throw new AppError("EMAIL_NOT_CONFIGURED", "Email sending is not configured", 503);
+  }
+
+  // Never send to reserved test TLDs (RFC 2606)
+  const recipientDomain = opts.to.split("@")[1];
+  if (recipientDomain?.endsWith(".test")) {
+    rootLogger.info({ to: opts.to }, "Skipped email to reserved .test domain");
+    return;
   }
 
   const domain = config.SMTP_USER?.split("@")[1] ?? "s-nc.org";
