@@ -18,86 +18,51 @@ export type ContentGateResult =
   | { allowed: false; reason: string; creatorId: string };
 ```
 
-### Example 2: 6-rule priority logic inside checkContentAccess
-**File**: `apps/api/src/services/content-access.ts:34`
+### Example 2: Two-phase access check (batch context + per-item)
+**File**: `apps/api/src/services/content-access.ts`
+
+The access logic uses a two-phase approach: `buildContentAccessContext()` pre-fetches memberships and subscriptions once, then `hasContentAccess()` runs synchronously per item. `checkContentAccess()` composes both for single-item endpoints.
+
+The 5 priority rules in `hasContentAccess`:
 ```typescript
-export const checkContentAccess = async (
-  userId: string | null,
+export const hasContentAccess = (
+  ctx: ContentAccessContext,
   contentCreatorId: string,
-  contentVisibility: string,
-  prefetchedRoles?: string[],  // skip getUserRoles query when provided
-): Promise<ContentGateResult> => {
-  // Rule 1: Public content → always allowed (no DB query)
-  if (contentVisibility === "public") return { allowed: true };
-
-  // Rule 2: Unauthenticated → not allowed
-  if (userId === null) {
-    return { allowed: false, reason: "AUTHENTICATION_REQUIRED", creatorId: contentCreatorId };
-  }
-
-  // Rule 3: Owner bypass — creator can always access their own content
-  if (userId === contentCreatorId) return { allowed: true };
-
-  // Rule 4: Creator role bypass — contributor members get free access
-  const roles = prefetchedRoles ?? (await getUserRoles(userId));
-  if (roles.includes("creator")) return { allowed: true };
-
-  // Rule 5: Active subscription check (active OR canceled-but-not-expired,
-  //         platform-wide OR creator-specific matching this creator)
-  const rows = await db
-    .select({ id: userSubscriptions.id })
-    .from(userSubscriptions)
-    .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-    .where(
-      and(
-        eq(userSubscriptions.userId, userId),
-        or(
-          eq(userSubscriptions.status, "active"),
-          and(eq(userSubscriptions.status, "canceled"), gt(userSubscriptions.currentPeriodEnd, now)),
-        ),
-        or(
-          eq(subscriptionPlans.type, "platform"),
-          and(eq(subscriptionPlans.type, "creator"), eq(subscriptionPlans.creatorId, contentCreatorId)),
-        ),
-      ),
-    )
-    .limit(1);
-
-  if (rows.length > 0) return { allowed: true };
-
-  // Rule 6: No matching subscription
-  return { allowed: false, reason: "SUBSCRIPTION_REQUIRED", creatorId: contentCreatorId };
+  contentVisibility: Visibility,
+): boolean => {
+  if (contentVisibility === "public") return true;          // 1. Public → allowed
+  if (ctx.userId === null) return false;                    // 2. Unauthenticated → denied
+  if (ctx.memberCreatorIds.has(contentCreatorId)) return true; // 3a. Specific team member
+  if (ctx.roles.includes("stakeholder")) return true;       // 3b. Stakeholder role
+  if (ctx.hasPlatformSubscription) return true;             // 3c. Platform sub or any team member
+  if (ctx.subscribedCreatorIds.has(contentCreatorId)) return true; // 4. Creator subscription
+  return false;                                              // 5. Denied
 };
 ```
 
-### Example 3: Caller hides media URL on metadata endpoint (soft gate)
-**File**: `apps/api/src/routes/content.routes.ts:333`
+Stakeholders and any creator team member get `hasPlatformSubscription: true` in `buildContentAccessContext`, skipping the subscription query entirely.
+
+### Example 3: Feed endpoint soft-gates denied items (batch path)
+**File**: `apps/api/src/routes/content.routes.ts:174`
 ```typescript
-if (row.visibility === "subscribers") {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  const userId = session?.user?.id ?? null;
-  const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
-  if (!gate.allowed) {
-    response.mediaUrl = null;  // Omit URL — don't throw; metadata is still visible
+const items = rawItems.map((row) => {
+  const item = resolveFeedItem(row);
+  if (!hasContentAccess(accessCtx, row.creatorId, row.visibility)) {
+    item.mediaUrl = null;
+    item.body = null;  // Nullify — don't remove; metadata stays in feed
   }
-}
+  return item;
+});
 ```
 
-### Example 4: Caller throws 401 vs 403 on media streaming endpoint (hard gate)
-**File**: `apps/api/src/routes/content.routes.ts:587`
+### Example 4: Detail endpoint uses requireDraftAccess + applyContentGate
+**File**: `apps/api/src/routes/content.routes.ts:376`
 ```typescript
-if (row.visibility === "subscribers") {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  const userId = session?.user?.id ?? null;
-  const gate = await checkContentAccess(userId, row.creatorId, row.visibility);
-  if (!gate.allowed) {
-    if (gate.reason === "AUTHENTICATION_REQUIRED") {
-      throw new UnauthorizedError("Authentication required");   // → 401
-    }
-    throw new ForbiddenError("Subscription required to access this content");  // → 403
-  }
-}
+await requireDraftAccess(row, user?.id ?? null, roles);
+const response = await applyContentGate(row, user?.id ?? null, resolveContentUrls(row), roles);
 ```
+
+`requireDraftAccess` throws 404 for unauthorized draft access (uses `viewPrivate` permission). `applyContentGate` nullifies `mediaUrl`/`body` on denied subscriber content without throwing.
 
 ## When to Use
 - Any route that conditionally exposes or restricts content based on subscription status
