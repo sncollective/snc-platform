@@ -39,7 +39,7 @@ export const ALL_FEATURES_ON: FeatureFlags = {
 
 /** Preset with only production-ready features enabled. */
 export const PRODUCTION_DEFAULTS: FeatureFlags = {
-  content: false,
+  content: true,
   creator: true,
   subscription: false,
   merch: false,

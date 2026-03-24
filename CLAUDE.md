@@ -2,14 +2,14 @@
 
 ## Claude Skills
 
-**Project-specific skills** live in this repo at `.claude/skills/`:
-- `platform-patterns` — code pattern index and detailed pattern files for this codebase
+Project-specific skills live at `.claude/skills/`:
+- `platform-patterns` — code pattern index and detailed pattern files
 - `platform-design-principles` — architectural principles (Ports & Adapters, SSOT, Generated Contracts)
 - `platform-implementation-principles` — code-level principles (Fail Fast, guard clauses, validation)
 
-**Pipeline skills** (design, implement, review, refactor) and **tech reference skills** (hono-v4, drizzle-v0, tanstack-*, zod-v4) live in the **parent monorepo** at root `.claude/skills/`. Work from the monorepo root (`/workspaces/SNC`) to access them.
-
-Standalone clones of `snc-platform` get project-specific skills (patterns, conventions) but not the pipeline orchestration or tech references.
+Scan rule libraries (auto-discovered by refactor workflows):
+- `scan-stylistic` · `scan-structural` · `scan-quality` · `scan-performance` · `scan-accessibility` · `scan-documentation`
+- `security-scan` — security-focused scan rules
 
 ---
 
@@ -286,7 +286,7 @@ Playwright end-to-end tests covering the production-enabled feature surface. Sco
 
 ## Agent Commands
 
-Structured commands for pipeline skills to discover automatically. These run from the monorepo root.
+Structured commands for pipeline skills to discover automatically. These run from the project root.
 
 - build-shared: `pnpm --filter @snc/shared build`
 - test-shared: `pnpm --filter @snc/shared test`

@@ -4,13 +4,15 @@ A worker-cooperative content publishing platform. Creators publish video, audio,
 
 Built as an alternative to extractive platforms.
 
+**Live:** [s-nc.org](https://s-nc.org)
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | **API** | [Hono](https://hono.dev) on Node.js 24+ with OpenAPI 3.1 docs |
 | **Frontend** | [TanStack Start](https://tanstack.com/start) (React 19, SSR, file-based routing) |
-| **Database** | PostgreSQL 16 via [Drizzle ORM](https://orm.drizzle.team) |
+| **Database** | [PostgreSQL 16](https://www.postgresql.org/) via [Drizzle ORM](https://orm.drizzle.team) |
 | **Auth** | [Better Auth](https://www.better-auth.com) (email/password, multi-role) |
 | **Payments** | [Stripe](https://stripe.com) (subscriptions, checkout, webhooks) |
 | **Merch** | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) (headless) |
@@ -18,6 +20,7 @@ Built as an alternative to extractive platforms.
 | **Testing** | [Vitest](https://vitest.dev), Testing Library (1,298 tests across 3 packages) |
 | **Styling** | CSS Modules + CSS custom properties (design tokens) |
 | **Package Manager** | pnpm 10+ with workspaces |
+| **Reverse Proxy** | [Caddy](https://caddyserver.com) (dev + production) |
 
 ## Repository Structure
 
@@ -300,6 +303,19 @@ See [CLAUDE.md](./CLAUDE.md) for the full coding conventions reference.
 - **Content gating** — `checkContentAccess()` middleware enforces 5 priority rules (public, unauth, owner bypass, active subscription, reject) for subscription-based access control.
 - **Cursor pagination** — Keyset pagination via base64-encoded cursors, with a reusable `useCursorPagination<T>` hook on the frontend.
 - **No external charting library** — The dashboard revenue chart is pure CSS.
+
+## Platform Documentation
+
+Domain-specific documentation lives in `docs/`:
+
+| Document | Description |
+|----------|-------------|
+| [Admin](docs/admin.md) | User management and role assignment |
+| [Auth](docs/auth.md) | Authentication, sessions, OIDC provider, roles |
+| [Calendar](docs/calendar.md) | Cooperative calendar, iCal feed |
+| [Content](docs/content.md) | Publishing lifecycle, storage backends, access gating |
+| [Creators](docs/creators.md) | Creator profiles, team membership |
+| [Feature Flags](docs/feature-flags.md) | Domain-level feature flag system |
 
 ## License
 

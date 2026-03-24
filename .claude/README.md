@@ -1,12 +1,18 @@
 # Claude Tooling — Platform
 
-Claude skills and rules for platform development live in the **parent monorepo**, not here.
+## Skills (`.claude/skills/`)
 
-**Skills location:** `.claude/skills/` (repo root)
-**Rules location:** `.claude/rules/` (repo root)
+**Project conventions:**
+- `platform-patterns` — 35+ documented code patterns with examples
+- `platform-design-principles` — architectural design principles
+- `platform-implementation-principles` — code-level implementation principles
 
-If you're working from the monorepo root (`/workspaces/SNC`), all `platform-*` skills and
-framework reference skills (`drizzle-v0`, `hono-v4`, `tanstack-*`, `zod-v4`) are available.
+**Scan rule libraries** (used by refactor workflows):
+- `scan-stylistic` · `scan-structural` · `scan-quality`
+- `scan-performance` · `scan-accessibility` · `scan-documentation`
+- `security-scan`
 
-If you've cloned `snc-platform` as a standalone repo, you won't have these skills.
-Clone the full monorepo for Claude skill support.
+## Rules (`.claude/rules/`)
+
+- `platform-patterns.md` — pattern index for quick lookup
+- `inline-documentation.md` — JSDoc convention and tier system

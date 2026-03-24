@@ -47,9 +47,9 @@ describe("ALL_FEATURES_ON", () => {
 });
 
 describe("PRODUCTION_DEFAULTS", () => {
-  it("enables admin, calendar, and creator by default", () => {
+  it("enables content, creator, admin, and calendar by default", () => {
     const expected: FeatureFlags = {
-      content: false,
+      content: true,
       creator: true,
       subscription: false,
       merch: false,
