@@ -33,16 +33,16 @@ snc/
 │   │   ├── src/
 │   │   │   ├── app.ts        # Hono instance, middleware, route registration
 │   │   │   ├── index.ts      # Server entry point, graceful shutdown
-│   │   │   ├── config.ts     # Zod-validated env config
-│   │   │   ├── auth/         # Better Auth instance + role service
+│   │   │   ├── config.ts     # Zod-validated env config (60+ fields)
+│   │   │   ├── auth/         # Better Auth instance, role service, OIDC seeding
 │   │   │   ├── db/           # Drizzle connection + schema definitions
-│   │   │   ├── email/        # Email sending + templates
+│   │   │   ├── email/        # SMTP sending + inquiry templates
 │   │   │   ├── lib/          # Shared helpers (cursor, file utils, OpenAPI errors)
 │   │   │   ├── logging/      # Structured pino logger
-│   │   │   ├── middleware/    # Auth, CORS, error handler, content gating
+│   │   │   ├── middleware/    # Auth, CORS, error handling, rate limiting, request logging
 │   │   │   ├── routes/       # Domain-grouped route handlers
 │   │   │   ├── scripts/      # Seed scripts (admin, demo data)
-│   │   │   ├── services/     # Stripe, Shopify, revenue integrations
+│   │   │   ├── services/     # Business logic (Stripe, Shopify, Owncast, emissions, creators)
 │   │   │   └── storage/      # Pluggable StorageProvider (local or S3)
 │   │   ├── tests/            # API tests
 │   │   └── drizzle/          # SQL migrations
@@ -52,8 +52,8 @@ snc/
 │       │   ├── routes/       # File-based routes
 │       │   ├── components/   # React components by domain
 │       │   ├── config/       # Navigation links + route config
-│       │   ├── contexts/     # Audio player context (reducer + provider)
-│       │   ├── hooks/        # Shared hooks (pagination, auth guards, etc.)
+│       │   ├── contexts/     # Audio player + upload contexts
+│       │   ├── hooks/        # Shared hooks (pagination, auth, media, forms)
 │       │   ├── lib/          # API clients, auth, formatting utilities
 │       │   └── styles/       # Global CSS + shared CSS modules
 │       └── tests/            # Web tests
@@ -63,8 +63,9 @@ snc/
 │       └── tests/
 ├── deploy/                   # Example production configs (Caddy, systemd)
 ├── docs/                     # Platform documentation
-├── scripts/                  # CI scripts (migration validation)
 ├── docker-compose.yml        # PostgreSQL 16
+├── ecosystem.config.cjs      # PM2 process config
+├── tsconfig.json             # Root TypeScript config
 ├── Caddyfile.dev             # Dev reverse proxy (localhost ports)
 ├── .env.example              # Environment template
 └── CLAUDE.md                 # Coding conventions

@@ -87,161 +87,34 @@ Scan rule libraries (auto-discovered by refactor workflows):
 ## Repository Context
 
 ### Key Directories
-- `apps/api/src/` — Hono API server: app setup, config, middleware, DB connection
-  - `app.ts` — Hono instance with OpenAPI 3.1, health route, auth routes, me route, content routes, creator routes, subscription routes, webhook routes, merch routes, booking routes, dashboard routes, CORS + error handler
+- `apps/api/src/` — Hono API server with OpenAPI 3.1
+  - `app.ts` — Hono instance: middleware stack + route registration for all domain groups
   - `index.ts` — Server entry point with `@hono/node-server`, graceful shutdown
-  - `config.ts` — Zod-validated env config (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`,
-    `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `STORAGE_TYPE`, `STORAGE_LOCAL_DIR`,
-    `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-    `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_TOKEN`); exports `parseOrigins` and `parseConfig`
-  - `auth/auth.ts` — Better Auth instance with Drizzle adapter, email/password provider,
-    database hook assigning default "subscriber" role on signup
-  - `auth/user-roles.ts` — `getUserRoles(userId)` service querying `user_roles` table
-  - `db/connection.ts` — postgres.js client + Drizzle ORM instance
-  - `db/schema/user.schema.ts` — Drizzle tables: `users`, `sessions`, `accounts`,
-    `verifications` (Better Auth core) + `userRoles` (custom join table)
-  - `db/schema/content.schema.ts` — Drizzle `content` table with 14 columns + 3 indexes
-    (FK to `users`, soft-delete via `deletedAt`)
-  - `db/schema/creator.schema.ts` — Drizzle `creator_profiles` table (1:1 with users,
-    FK CASCADE; displayName, bio, avatarKey, bannerKey, socialLinks JSONB as `SocialLink[]`)
-  - `db/schema/subscription.schema.ts` — Drizzle tables: `subscriptionPlans`, `userSubscriptions`,
-    `paymentEvents` (subscription billing + webhook idempotency)
-  - `db/schema/booking.schema.ts` — Drizzle tables: `services` (8 cols + active/sort index),
-    `booking_requests` (10 cols + user/status + status/created indexes, FK to services + users)
-  - `middleware/auth-env.ts` — `AuthEnv` typed Hono env with `user`, `session`, `roles`
-  - `middleware/require-auth.ts` — session validation middleware (401 on failure)
-  - `middleware/require-role.ts` — role authorization middleware factory (403 on failure)
-  - `services/content-access.ts` — `checkContentAccess()` subscription-based content gating
-    (5 priority rules: public, unauth, owner bypass, active subscription, reject)
-  - `middleware/error-handler.ts` — `AppError` → structured JSON error responses
-  - `middleware/cors.ts` — CORS for configured origins
-  - `services/stripe.ts` — Stripe service module: `getOrCreateCustomer`, `createCheckoutSession`,
-    `cancelSubscriptionAtPeriodEnd`, `verifyWebhookSignature` — all return `Result<T, AppError>`
-  - `services/shopify.ts` — Shopify Storefront API client: `getProducts`, `getProductByHandle`,
-    `createCheckoutUrl` — all return `Result<T, AppError>`; GraphQL queries for products + cart
-  - `services/revenue.ts` — Stripe revenue service: `getMonthlyRevenue(months)` returns
-    `Result<MonthlyRevenue[], AppError>`; queries paid invoices, groups by month, zero-fills
-  - `services/external-error.ts` — `wrapExternalError(code)` factory curries error code →
-    `(e: unknown) => AppError(502)`; used by Stripe, Shopify, and revenue services
-  - `routes/auth.routes.ts` — Better Auth handler at `/api/auth/*` with OpenAPI docs
-  - `routes/me.routes.ts` — `GET /api/me` returning user + session + roles (enriched session)
-  - `routes/content.routes.ts` — Content CRUD + upload + media streaming + feed list (9 endpoints, gated via checkContentAccess)
-  - `routes/creator.routes.ts` — Creator profile CRUD + avatar/banner upload/streaming + social links (7 endpoints)
-  - `routes/subscription.routes.ts` — Subscription CRUD + checkout (4 endpoints: GET /plans, POST /checkout, POST /cancel, GET /mine)
-  - `routes/webhook.routes.ts` — Stripe webhook handler (5 event types, idempotent via payment_events)
-  - `routes/merch.routes.ts` — Merch listing + detail + checkout (3 endpoints: GET /merch, GET /merch/:handle, POST /merch/checkout)
-  - `routes/dashboard.routes.ts` — Dashboard KPI endpoints (3 endpoints: GET /revenue, GET /subscribers, GET /bookings — all cooperative-member only)
-  - `routes/booking.routes.ts` — Service listing + booking CRUD + review (7 endpoints: GET /services, GET /services/:id, POST /bookings, GET /bookings/mine, GET /bookings/:id, GET /bookings/pending, PATCH /bookings/:id/review)
-  - `routes/openapi-errors.ts` — Shared `ErrorResponse` schema + `ERROR_4xx`/`ERROR_502`/`ERROR_503` constants
-  - `routes/route-utils.ts` — Shared `getFrontendBaseUrl()` for constructing redirect URLs
-  - `routes/file-utils.ts` — Shared `sanitizeFilename`, `inferContentType`, `streamFile`
-  - `routes/cursor.ts` — Shared `encodeCursor`/`decodeCursor` for keyset pagination + `buildPaginatedResponse` helper
-  - `storage/index.ts` — `createStorageProvider` factory + `storage` singleton
-  - `storage/local-storage.ts` — Local filesystem `StorageProvider` implementation
-- `apps/api/tests/` — Vitest tests mirroring `src/` structure
-  - `helpers/test-constants.ts` — `TEST_CONFIG`, `makeTestConfig(overrides?)`
-  - `helpers/auth-fixtures.ts` — `makeMockUser(overrides?)`, `makeMockSession(overrides?)`
-  - `helpers/content-fixtures.ts` — `makeMockContent(overrides?)`, `makeMockDbContent(overrides?)`
-  - `helpers/creator-fixtures.ts` — `makeMockDbCreatorProfile(overrides?)`
-  - `helpers/subscription-fixtures.ts` — `makeMockPlan(overrides?)`, `makeMockSubscription(overrides?)`, Stripe event factories
-  - `helpers/merch-fixtures.ts` — `makeMockProduct(overrides?)`, `makeMockProductDetail(overrides?)`, `makeMockShopifyProductNode(overrides?)`
-  - `helpers/booking-fixtures.ts` — `makeMockService(overrides?)`, `makeMockBookingRequest(overrides?)`
-  - `helpers/dashboard-fixtures.ts` — `makeMockMonthlyRevenue(overrides?)`, `makeMockStripeInvoice(overrides?)`
+  - `config.ts` — Zod-validated env config (`ENV_SCHEMA`, 60+ fields covering database, auth, S3, Stripe, Shopify, SMTP, Owncast, federation, feature flags); exports `parseConfig`, `getFeatureFlags`, `parseOrigins`
+  - `auth/` — Better Auth instance (Drizzle adapter, email/password, OIDC provider), role service, OIDC client seeding
+  - `db/schema/` — Drizzle schema files: `user`, `content`, `creator`, `subscription`, `booking`, `calendar`, `emission`, `oidc`, `project`
+  - `email/` — SMTP transporter singleton + inquiry email templates
+  - `lib/` — Shared helpers: cursor pagination, file utils, OpenAPI error schemas, route utils, calendar/content/response helpers
+  - `logging/` — Pino logger factory with header redaction + dev pretty-print
+  - `middleware/` — Auth (required, optional, role-based), CORS, error handler, rate limiter, request logger (hono-pino)
+  - `routes/` — Domain-grouped handlers: `admin`, `auth`, `booking`, `calendar` (events, event-types, feed), `content` (CRUD, media), `creator` (profiles, events, members), `dashboard`, `emissions`, `federation`, `me`, `merch`, `project`, `streaming`, `studio`, `subscription`, `upload`, `webhook`
+  - `scripts/` — `seed-admin` (assign admin role), `seed-demo` (full demo dataset)
+  - `services/` — Business logic: content-access (subscription gating), creator-list/team, emissions, external-error, owncast, revenue, shopify, slug, stripe/stripe-client
+  - `storage/` — `StorageProvider` interface with local filesystem and S3-compatible implementations (+ S3 multipart upload)
+- `apps/api/tests/` — Vitest tests mirroring `src/` structure; fixture factories in `tests/helpers/`
 - `apps/web/src/` — TanStack Start frontend: React 19, SSR, file-based routing
-  - `routes/__root.tsx` — Root layout with AudioPlayerProvider, NavBar, MiniPlayer, Footer, Outlet; skip-to-content link, `id="main-content"` on `<main>`
-  - `routes/index.tsx` — Landing page with HeroSection, FeaturedCreators, RecentContent, LandingPricing
-  - `routes/login.tsx` — Login page with guest redirect guard
-  - `routes/register.tsx` — Register page with guest redirect guard
-  - `routes/dashboard.tsx` — Cooperative dashboard: KPI cards, revenue chart, pending bookings table with approve/deny; `beforeLoad` checks session + cooperative-member role
-  - `routes/feed.tsx` — Content feed page with filter bar, content grid, load-more pagination
-  - `routes/content/$contentId.tsx` — Content detail page (video/audio/written dispatch)
-  - `routes/creators/index.tsx` — Creator listing page with grid and cursor pagination
-  - `routes/creators/$creatorId.tsx` — Creator detail page (header, content grid, filter, subscription integration, merch section, social links section)
-  - `routes/pricing.tsx` — Public pricing page with platform plan cards
-  - `routes/checkout/success.tsx` — Post-checkout success page (polls for subscription activation)
-  - `routes/checkout/cancel.tsx` — Post-checkout cancel page
-  - `routes/settings/subscriptions.tsx` — Subscription management page (list + cancel)
-  - `routes/merch/index.tsx` — Merch listing page with product grid, cursor pagination, creatorId filter, success/cancel banners
-  - `routes/merch/$handle.tsx` — Product detail page with loader and ProductDetail component
-  - `routes/services.tsx` — Service listing page with booking request form (inline expand)
-  - `routes/settings/bookings.tsx` — Booking request management page (auth guard + cursor pagination)
-  - `routes/settings/creator.tsx` — Creator settings page (social links management via SOCIAL_PLATFORMS / SocialLink, creator role guard)
-  - `components/layout/` — NavBar, UserMenu (includes Creator Settings link for creators), MobileMenu, Footer
-  - `components/auth/` — LoginForm, RegisterForm
-  - `components/content/` — ContentCard, FilterBar, ContentDetail, ContentMeta,
-    VideoDetail, AudioDetail, WrittenDetail, SubscribeCta (+ CSS modules)
-  - `components/creator/` — CreatorCard, CreatorHeader (+ CSS modules)
-  - `components/media/` — VideoPlayer, AudioPlayer, MiniPlayer (+ CSS modules)
-  - `components/subscription/` — PlanCard, SubscriptionList (+ CSS modules)
-  - `components/merch/` — ProductCard, ProductDetail, VariantSelector (+ CSS modules)
-  - `components/booking/` — ServiceCard, BookingForm, BookingList (+ CSS modules)
-  - `components/social-links/` — SocialLinksSection (+ CSS modules)
-  - `components/dashboard/` — KpiCard, RevenueChart, PendingBookingsTable (+ CSS modules)
-  - `components/landing/` — HeroSection, FeaturedCreators, RecentContent, LandingPricing (+ CSS modules)
-  - `contexts/audio-player-context.tsx` — Global audio playback state (reducer + provider + hook)
-  - `lib/auth-client.ts` — Better Auth client instance (`createAuthClient`)
-  - `lib/auth.ts` — `useSession`, `useRoles`, `fetchAuthState`, `hasRole` exports
-  - `lib/config.ts` — `API_BASE_URL` constant from env
-  - `lib/format.ts` — `formatRelativeDate`, `formatDate`, `formatTime`, `formatPrice`,
-    `formatInterval`, `formatIntervalShort` utilities
-  - `lib/url.ts` — `navigateExternal` utility for external URL navigation
-  - `lib/subscription.ts` — `fetchPlans`, `createCheckout`, `fetchMySubscriptions`, `cancelSubscription`, `hasPlatformSubscription`
-  - `lib/merch.ts` — `fetchProducts`, `fetchProductByHandle`, `createMerchCheckout`
-  - `lib/booking.ts` — `fetchServices`, `fetchServiceById`, `createBooking`, `fetchMyBookings`, `fetchBookingById`
-  - `lib/creator.ts` — `fetchCreatorProfile`, `updateCreatorProfile` API helpers
-  - `lib/dashboard.ts` — `fetchRevenue`, `fetchSubscribers`, `fetchBookingSummary`, `reviewBooking`
-  - `lib/fetch-utils.ts` — `throwIfNotOk(response)`, `apiGet<T>(endpoint, params?)`, `apiMutate<T>(endpoint, {method, body})` shared fetch helpers
-  - `lib/form-utils.ts` — `extractFieldErrors()` generic Zod issue → field error mapper
-  - `hooks/use-menu-toggle.ts` — Shared menu open/close/escape/click-outside hook
-  - `hooks/use-guest-redirect.ts` — Redirect authenticated users away from auth pages
-  - `hooks/use-cursor-pagination.ts` — Generic `useCursorPagination<T>` hook for cursor-based pagination (supports `fetchOptions` for auth + `error` state)
-  - `hooks/use-subscriptions.ts` — `useSubscriptions()` hook returning current user's active subscriptions
-  - `config/navigation.ts` — `NAV_LINKS` constant and `NavLink` type (includes Pricing link)
-  - `styles/global.css` — CSS custom properties (design tokens), base styles, content-grid utility
-  - `styles/listing-page.module.css` — Shared listing page CSS (heading, status, loadMore) for feed, creators, merch, bookings
-  - `styles/settings-page.module.css` — Shared settings page CSS (page, error) for subscriptions, bookings, creator settings
-  - `styles/list-items.module.css` — Shared list item CSS (list, item, itemHeader, statusBadge, empty) for booking-list + subscription-list
-  - `styles/landing-section.module.css` — Shared landing section CSS (section, heading, loading) for landing components
-- `apps/web/tests/` — Vitest tests for web app
-  - `helpers/auth-fixtures.ts` — `makeMockUser`, `makeMockSession`, `makeMockSessionResult`,
-    `makeLoggedInSessionResult` factories
-  - `helpers/content-fixtures.ts` — `makeMockFeedItem(overrides?)` factory
-  - `helpers/audio-player-fixtures.ts` — `makeMockContext`, `TEST_TRACK` factories
-  - `helpers/creator-fixtures.ts` — `makeMockCreatorListItem(overrides?)` factory
-  - `helpers/subscription-fixtures.ts` — `makeMockPlan(overrides?)`, `makeMockUserSubscription(overrides?)`
-  - `helpers/merch-fixtures.ts` — `makeMockMerchProduct(overrides?)`, `makeMockMerchProductDetail(overrides?)`
-  - `helpers/booking-fixtures.ts` — `makeMockService(overrides?)`, `makeMockBookingWithService(overrides?)`
-  - `helpers/dashboard-fixtures.ts` — `makeMockRevenueResponse(overrides?)`, `makeMockSubscriberSummary(overrides?)`, `makeMockBookingSummary(overrides?)`, `makeMockPendingBookingItem(overrides?)`
-- `packages/shared/src/` — shared types and utilities
-  - `auth.ts` — `ROLES`, `RoleSchema`, `UserSchema`, `SessionSchema`, `AuthSessionSchema`
-    + `Role`, `User`, `Session`, `AuthSession` types
-  - `errors.ts` — `AppError` base + `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`
-  - `result.ts` — `Result<T, E>` discriminated union with `ok()`/`err()` helpers
-  - `content.ts` — `CONTENT_TYPES`, `VISIBILITY`, `CreateContentSchema`, `UpdateContentSchema`,
-    `ContentResponseSchema`, `FeedQuerySchema`, `FeedItemSchema`, `FeedResponseSchema` + inferred types
-  - `creator.ts` — `UpdateCreatorProfileSchema`, `CreatorProfileResponseSchema`,
-    `CreatorListQuerySchema`, `CreatorListResponseSchema`, `SOCIAL_PLATFORMS`,
-    `PLATFORM_CONFIG`, `SocialLinkSchema`, `MAX_SOCIAL_LINKS` + inferred types
-  - `subscription.ts` — `PLAN_TYPES`, `PLAN_INTERVALS`, `SUBSCRIPTION_STATUSES`,
-    `SubscriptionPlanSchema`, `CheckoutRequestSchema`, `CancelRequestSchema`,
-    `UserSubscriptionWithPlanSchema`, `MySubscriptionsResponseSchema` + inferred types
-  - `storage.ts` — `StorageProvider` interface, `UploadMetadata`, `UploadResult`,
-    `ACCEPTED_MIME_TYPES`, `MAX_FILE_SIZES`
-  - `storage-contract.ts` — `runStorageContractTests()`, `textToStream`, `streamToText`
-  - `merch.ts` — `CREATOR_TAG_PREFIX`, `MerchProductSchema`, `MerchProductDetailSchema`,
-    `MerchVariantSchema`, `MerchListQuerySchema`, `MerchListResponseSchema`,
-    `MerchCheckoutRequestSchema`, `MerchCheckoutResponseSchema` + inferred types
-  - `booking.ts` — `BOOKING_STATUSES`, `ServiceSchema`, `BookingRequestSchema`,
-    `BookingWithServiceSchema`, `CreateBookingRequestSchema`, `MyBookingsQuerySchema`,
-    `ServicesResponseSchema`, `BookingResponseSchema`, `MyBookingsResponseSchema`,
-    `RequesterSchema`, `PendingBookingItemSchema`, `PendingBookingsQuerySchema`,
-    `PendingBookingsResponseSchema`, `ReviewBookingRequestSchema` + inferred types
-  - `dashboard.ts` — `MonthlyRevenueSchema`, `RevenueResponseSchema`,
-    `SubscriberSummarySchema`, `BookingSummarySchema` + inferred types
-  - `index.ts` — barrel re-exports
+  - `routes/` — File-based routes: landing, auth (login, register, forgot-password), feed, content detail (by ID and by slug), creators (listing, profile, manage with nested tabs for content/calendar/members/projects/settings), admin, calendar, dashboard, emissions, merch, pricing, projects, services, settings (password, subscriptions, bookings), studio, checkout (success/cancel)
+  - `components/` — React components grouped by domain: `admin`, `auth`, `booking`, `calendar`, `coming-soon`, `content`, `creator`, `dashboard`, `emissions`, `error`, `federation`, `landing`, `layout`, `media`, `merch`, `project`, `social-links`, `studio`, `subscription`, `ui`, `upload`
+  - `contexts/` — Audio player (reducer + provider + Web Audio API) and upload (Uppy + S3 multipart)
+  - `hooks/` — Shared hooks: cursor-pagination, calendar-state, checkout, content management (form fields, submit, editing), dismiss, file-input, guest-redirect, media-controls, menu-toggle, platform-auth, route-announcer, subscriptions
+  - `lib/` — API clients per domain (admin, booking, calendar, content, creator, dashboard, emissions, merch, project, subscription, uploads), auth (client + SSR helpers), fetch-utils, form-utils, format, config, errors, logging, co2-equivalencies, offset-impact, chart-math
+  - `config/` — Navigation links constant
+  - `styles/` — CSS custom properties (design tokens) in `global.css` + shared CSS modules (button, detail-section, error-alert, form, landing-section, list-items, listing-page, page-heading, settings-page, success-alert)
+- `apps/web/tests/` — Vitest tests mirroring `src/` structure; fixture factories + shared mocks in `tests/helpers/`
+- `packages/shared/src/` — Zod schemas, TypeScript types, and utilities shared by API and web: `admin`, `auth`, `booking`, `calendar`, `content`, `creator`, `dashboard`, `emissions`, `errors`, `features`, `federation`, `merch`, `pagination`, `project`, `result`, `storage`, `storage-contract`, `streaming`, `studio`, `subscription`, `uploads`
 - `docker-compose.yml` — PostgreSQL 16 (`snc-postgres` container)
 - `apps/api/drizzle.config.ts` — Drizzle Kit migration config
-- `apps/api/drizzle/migrations/` — SQL migrations (auth tables + content table + creator_profiles table + subscription tables + booking tables)
+- `apps/api/drizzle/migrations/` — SQL migrations
 
 ### Build & Test
 - `pnpm --filter @snc/api test` — run API unit tests
