@@ -29,6 +29,7 @@ const ctx = setupRouteTest({
         viewerCount: 42,
         lastConnectTime: "2026-03-18T10:00:00Z",
         lastDisconnectTime: null,
+        hlsUrl: "http://owncast.test:8080/hls/stream.m3u8",
       },
     });
   },
@@ -45,6 +46,7 @@ describe("streaming routes", () => {
         isLive: true,
         viewerCount: 42,
         lastLiveAt: "2026-03-18T10:00:00Z",
+        hlsUrl: "http://owncast.test:8080/hls/stream.m3u8",
       });
     });
 
@@ -56,6 +58,7 @@ describe("streaming routes", () => {
           viewerCount: 0,
           lastConnectTime: "2026-03-18T09:00:00Z",
           lastDisconnectTime: "2026-03-18T10:30:00Z",
+          hlsUrl: null,
         },
       });
 
@@ -67,6 +70,7 @@ describe("streaming routes", () => {
         isLive: false,
         viewerCount: 0,
         lastLiveAt: "2026-03-18T10:30:00Z",
+        hlsUrl: null,
       });
     });
 
@@ -78,6 +82,7 @@ describe("streaming routes", () => {
           viewerCount: 0,
           lastConnectTime: null,
           lastDisconnectTime: null,
+          hlsUrl: null,
         },
       });
 
@@ -89,6 +94,7 @@ describe("streaming routes", () => {
         isLive: false,
         viewerCount: 0,
         lastLiveAt: null,
+        hlsUrl: null,
       });
     });
 

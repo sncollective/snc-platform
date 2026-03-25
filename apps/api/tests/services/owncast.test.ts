@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   TEST_CONFIG,
   TEST_OWNCAST_URL,
+  TEST_OWNCAST_HLS_URL,
   makeTestConfig,
 } from "../helpers/test-constants.js";
 
@@ -136,6 +137,68 @@ describe("owncast service", () => {
       if (result.ok) {
         expect(result.value.lastConnectTime).toBeNull();
         expect(result.value.lastDisconnectTime).toBeNull();
+      }
+    });
+
+    it("includes hlsUrl when stream is online and HLS URL is configured", async () => {
+      mockFetch.mockReturnValue(
+        mockFetchResponse({
+          online: true,
+          viewerCount: 5,
+          lastConnectTime: "2026-03-25T10:00:00Z",
+          lastDisconnectTime: null,
+        }),
+      );
+
+      const { getStreamStatus } = await setupOwncastService();
+      const result = await getStreamStatus();
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hlsUrl).toBe(TEST_OWNCAST_HLS_URL);
+      }
+    });
+
+    it("returns null hlsUrl when stream is offline", async () => {
+      mockFetch.mockReturnValue(
+        mockFetchResponse({
+          online: false,
+          viewerCount: 0,
+          lastConnectTime: null,
+          lastDisconnectTime: "2026-03-25T09:00:00Z",
+        }),
+      );
+
+      const { getStreamStatus } = await setupOwncastService();
+      const result = await getStreamStatus();
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hlsUrl).toBeNull();
+      }
+    });
+
+    it("returns null hlsUrl when HLS URL is not configured", async () => {
+      vi.stubGlobal("fetch", mockFetch);
+      vi.doMock("../../src/config.js", () => ({
+        config: makeTestConfig({ OWNCAST_HLS_URL: undefined }),
+      }));
+      const { getStreamStatus } = await import("../../src/services/owncast.js");
+
+      mockFetch.mockReturnValue(
+        mockFetchResponse({
+          online: true,
+          viewerCount: 5,
+          lastConnectTime: "2026-03-25T10:00:00Z",
+          lastDisconnectTime: null,
+        }),
+      );
+
+      const result = await getStreamStatus();
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hlsUrl).toBeNull();
       }
     });
   });

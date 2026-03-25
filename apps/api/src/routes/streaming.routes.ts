@@ -13,12 +13,14 @@ const toStreamStatus = (owncast: {
   viewerCount: number;
   lastConnectTime: string | null;
   lastDisconnectTime: string | null;
+  hlsUrl: string | null;
 }): StreamStatus => ({
   isLive: owncast.online,
   viewerCount: owncast.viewerCount,
   lastLiveAt: owncast.online
     ? owncast.lastConnectTime
     : owncast.lastDisconnectTime,
+  hlsUrl: owncast.hlsUrl,
 });
 
 // ── Public API ──

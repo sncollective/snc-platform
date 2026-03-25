@@ -34,6 +34,7 @@ describe("NAV_LINKS", () => {
     const labels = NAV_LINKS.map((l) => l.label);
     expect(labels).toContain("Feed");
     expect(labels).toContain("Creators");
+    expect(labels).toContain("Live");
     expect(labels).toContain("Studio");
     expect(labels).toContain("Merch");
     expect(labels).toContain("Pricing");
@@ -112,7 +113,7 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(6);
+    expect(NAV_LINKS).toHaveLength(7);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }

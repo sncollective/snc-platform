@@ -12,6 +12,9 @@ export const TEST_BETTER_AUTH_SECRET =
 /** Owncast URL for unit test config mocks. */
 export const TEST_OWNCAST_URL = "http://owncast.test:8080";
 
+/** Owncast HLS URL for unit test config mocks. */
+export const TEST_OWNCAST_HLS_URL = "http://owncast.test:8080/hls/stream.m3u8";
+
 /** Shopify store domain for unit test config mocks. */
 export const TEST_SHOPIFY_STORE_DOMAIN = "test-store.myshopify.com";
 
@@ -40,6 +43,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   SHOPIFY_STORE_DOMAIN: TEST_SHOPIFY_STORE_DOMAIN,
   SHOPIFY_STOREFRONT_TOKEN: TEST_SHOPIFY_STOREFRONT_TOKEN,
   OWNCAST_URL: TEST_OWNCAST_URL as string | undefined,
+  OWNCAST_HLS_URL: TEST_OWNCAST_HLS_URL as string | undefined,
   FEATURE_CONTENT: true,
   FEATURE_CREATOR: true,
   FEATURE_SUBSCRIPTION: true,

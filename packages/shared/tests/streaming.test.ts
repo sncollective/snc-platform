@@ -8,6 +8,7 @@ describe("StreamStatusSchema", () => {
       isLive: true,
       viewerCount: 42,
       lastLiveAt: "2026-03-18T10:00:00.000Z",
+      hlsUrl: "http://stream.example.com/hls/stream.m3u8",
     });
     expect(result.success).toBe(true);
   });
@@ -17,6 +18,7 @@ describe("StreamStatusSchema", () => {
       isLive: false,
       viewerCount: 0,
       lastLiveAt: null,
+      hlsUrl: null,
     });
     expect(result.success).toBe(true);
   });
@@ -26,6 +28,7 @@ describe("StreamStatusSchema", () => {
       isLive: false,
       viewerCount: -1,
       lastLiveAt: null,
+      hlsUrl: null,
     });
     expect(result.success).toBe(false);
   });
@@ -35,6 +38,7 @@ describe("StreamStatusSchema", () => {
       isLive: false,
       viewerCount: 0,
       lastLiveAt: "not-a-date",
+      hlsUrl: null,
     });
     expect(result.success).toBe(false);
   });

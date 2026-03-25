@@ -53,6 +53,7 @@ export const ENV_SCHEMA = z.object({
   FEATURE_CALENDAR: booleanFlag,
   // Owncast streaming (optional — API returns 503 STREAMING_NOT_CONFIGURED when absent)
   OWNCAST_URL: z.string().url().optional(),
+  OWNCAST_HLS_URL: z.string().url().optional(),
   // Phase 11: ActivityPub federation (off by default — domain must be configured)
   FEDERATION_DOMAIN: z.string().min(1).default("s-nc.org"),
   FEATURE_FEDERATION: z

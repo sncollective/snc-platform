@@ -10,11 +10,13 @@ export type OwncastStatus = {
   viewerCount: number;
   lastConnectTime: string | null;
   lastDisconnectTime: string | null;
+  hlsUrl: string | null;
 };
 
 // ── Module-Level Configuration ──
 
 const OWNCAST_API_URL: string | null = config.OWNCAST_URL ?? null;
+const OWNCAST_HLS_URL: string | null = config.OWNCAST_HLS_URL ?? null;
 
 // ── Private Helpers ──
 
@@ -69,6 +71,7 @@ export const getStreamStatus = async (): Promise<
       viewerCount: data.viewerCount,
       lastConnectTime: data.lastConnectTime ?? null,
       lastDisconnectTime: data.lastDisconnectTime ?? null,
+      hlsUrl: data.online ? OWNCAST_HLS_URL : null,
     });
   } catch (e) {
     return err(wrapOwncastError(e));

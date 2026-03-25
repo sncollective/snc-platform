@@ -29,6 +29,7 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.4",
     "simple-icons": "^16.11.0",
+    "vidstack": "^1.12.13",
     "zod": "^4.3.6"
   },
   "devDependencies": {
