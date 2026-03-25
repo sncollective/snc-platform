@@ -105,7 +105,7 @@ function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactEleme
   } | null>(null);
 
   useEffect(() => {
-    import("vidstack").then((mod) => {
+    import("@vidstack/react").then((mod) => {
       setPlayerModule({
         MediaPlayer: mod.MediaPlayer as React.ComponentType<Record<string, unknown>>,
         MediaProvider: mod.MediaProvider as React.ComponentType,

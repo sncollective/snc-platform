@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", () =>
   createRouterMock({ useLoaderData: mockUseLoaderData }),
 );
 
-vi.mock("vidstack", () => ({
+vi.mock("@vidstack/react", () => ({
   MediaPlayer: (props: Record<string, unknown>) =>
     createElement("div", { "data-testid": "media-player", "data-src": props.src }),
   MediaProvider: () => createElement("div", { "data-testid": "media-provider" }),
