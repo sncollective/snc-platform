@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { StreamStatus } from "@snc/shared";
 
 import "@vidstack/react/player/styles/base.css";
+import "@vidstack/react/player/styles/default/theme.css";
+import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
@@ -101,21 +103,28 @@ function LivePage(): React.ReactElement {
 
 /** Vidstack HLS player with dynamic import to avoid SSR browser-API issues. */
 function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactElement {
-  const [playerModule, setPlayerModule] = useState<
-    typeof import("@vidstack/react") | null
-  >(null);
+  const [modules, setModules] = useState<{
+    core: typeof import("@vidstack/react");
+    layouts: typeof import("@vidstack/react/player/layouts/default");
+  } | null>(null);
 
   useEffect(() => {
-    import("@vidstack/react").then(setPlayerModule).catch(() => {
+    Promise.all([
+      import("@vidstack/react"),
+      import("@vidstack/react/player/layouts/default"),
+    ]).then(([core, layouts]) => {
+      setModules({ core, layouts });
+    }).catch(() => {
       // Silently ignore — skeleton remains visible
     });
   }, []);
 
-  if (playerModule === null) {
+  if (modules === null) {
     return <div className={styles.playerSkeleton} />;
   }
 
-  const { MediaPlayer, MediaProvider } = playerModule;
+  const { MediaPlayer, MediaProvider } = modules.core;
+  const { DefaultVideoLayout, defaultLayoutIcons } = modules.layouts;
 
   return (
     <MediaPlayer
@@ -124,6 +133,7 @@ function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactEleme
       className={styles.player}
     >
       <MediaProvider />
+      <DefaultVideoLayout icons={defaultLayoutIcons} />
     </MediaPlayer>
   );
 }
