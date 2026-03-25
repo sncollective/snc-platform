@@ -79,6 +79,7 @@ describe("owncast service", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${TEST_OWNCAST_URL}/api/status`,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
 
