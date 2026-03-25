@@ -48,7 +48,9 @@ export const getStreamStatus = async (): Promise<
   if (!configured.ok) return err(configured.error);
 
   try {
-    const response = await fetch(`${OWNCAST_API_URL!}/api/status`);
+    const response = await fetch(`${OWNCAST_API_URL!}/api/status`, {
+      signal: AbortSignal.timeout(5_000),
+    });
 
     if (!response.ok) {
       return err(
