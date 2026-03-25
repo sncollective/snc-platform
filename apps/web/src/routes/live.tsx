@@ -3,6 +3,8 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StreamStatus } from "@snc/shared";
 
+import "@vidstack/react/player/styles/base.css";
+
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
@@ -116,7 +118,11 @@ function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactEleme
   const { MediaPlayer, MediaProvider } = playerModule;
 
   return (
-    <MediaPlayer src={{ src: hlsUrl, type: "application/x-mpegurl" }} muted autoPlay className={styles.player}>
+    <MediaPlayer
+      src={{ src: hlsUrl, type: "application/x-mpegurl" }}
+      streamType="live"
+      className={styles.player}
+    >
       <MediaProvider />
     </MediaPlayer>
   );
