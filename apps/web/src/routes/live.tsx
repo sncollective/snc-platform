@@ -99,18 +99,12 @@ function LivePage(): React.ReactElement {
 
 /** Vidstack HLS player with dynamic import to avoid SSR browser-API issues. */
 function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactElement {
-  const [playerModule, setPlayerModule] = useState<{
-    MediaPlayer: React.ComponentType<Record<string, unknown>>;
-    MediaProvider: React.ComponentType;
-  } | null>(null);
+  const [playerModule, setPlayerModule] = useState<
+    typeof import("@vidstack/react") | null
+  >(null);
 
   useEffect(() => {
-    import("@vidstack/react").then((mod) => {
-      setPlayerModule({
-        MediaPlayer: mod.MediaPlayer as React.ComponentType<Record<string, unknown>>,
-        MediaProvider: mod.MediaProvider as React.ComponentType,
-      });
-    }).catch(() => {
+    import("@vidstack/react").then(setPlayerModule).catch(() => {
       // Silently ignore — skeleton remains visible
     });
   }, []);
@@ -122,7 +116,7 @@ function StreamPlayer({ hlsUrl }: { readonly hlsUrl: string }): React.ReactEleme
   const { MediaPlayer, MediaProvider } = playerModule;
 
   return (
-    <MediaPlayer src={hlsUrl} autoPlay className={styles.player}>
+    <MediaPlayer src={{ src: hlsUrl, type: "application/x-mpegurl" }} muted autoPlay className={styles.player}>
       <MediaProvider />
     </MediaPlayer>
   );
