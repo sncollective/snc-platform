@@ -8,6 +8,12 @@ http://localhost:3080 {
 	handle /uploads/* {
 		reverse_proxy localhost:3000
 	}
+	@hls {
+		path /live/*.m3u8 /live/*.ts
+	}
+	handle @hls {
+		reverse_proxy localhost:8080
+	}
 	handle {
 		reverse_proxy localhost:3001
 	}

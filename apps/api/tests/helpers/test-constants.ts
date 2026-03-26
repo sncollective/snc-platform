@@ -9,11 +9,14 @@ export const TEST_DATABASE_URL = "postgres://test:test@localhost:5432/test";
 export const TEST_BETTER_AUTH_SECRET =
   "test-secret-that-is-at-least-thirty-two-characters";
 
-/** Owncast URL for unit test config mocks. */
-export const TEST_OWNCAST_URL = "http://owncast.test:8080";
+/** SRS API URL for unit test config mocks. */
+export const TEST_SRS_API_URL = "http://srs.test:1985";
 
-/** Owncast HLS URL for unit test config mocks. */
-export const TEST_OWNCAST_HLS_URL = "http://owncast.test:8080/hls/stream.m3u8";
+/** SRS HLS URL for unit test config mocks. */
+export const TEST_SRS_HLS_URL = "http://srs.test:8080/live/livestream.m3u8";
+
+/** SRS stream key for unit test config mocks. */
+export const TEST_SRS_STREAM_KEY = "test-stream-key";
 
 /** Shopify store domain for unit test config mocks. */
 export const TEST_SHOPIFY_STORE_DOMAIN = "test-store.myshopify.com";
@@ -42,8 +45,9 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
     | undefined,
   SHOPIFY_STORE_DOMAIN: TEST_SHOPIFY_STORE_DOMAIN,
   SHOPIFY_STOREFRONT_TOKEN: TEST_SHOPIFY_STOREFRONT_TOKEN,
-  OWNCAST_URL: TEST_OWNCAST_URL as string | undefined,
-  OWNCAST_HLS_URL: TEST_OWNCAST_HLS_URL as string | undefined,
+  SRS_API_URL: TEST_SRS_API_URL as string | undefined,
+  SRS_HLS_URL: TEST_SRS_HLS_URL as string | undefined,
+  SRS_STREAM_KEY: TEST_SRS_STREAM_KEY as string | undefined,
   FEATURE_CONTENT: true,
   FEATURE_CREATOR: true,
   FEATURE_SUBSCRIPTION: true,

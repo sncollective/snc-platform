@@ -15,6 +15,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  snc-srs:
+    image: ossrs/srs:6
+    container_name: snc-srs
+    ports:
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
+    volumes:
+      - ./srs.conf:/usr/local/srs/conf/srs.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1985/api/v1/versions"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
 volumes:
   snc-pgdata:

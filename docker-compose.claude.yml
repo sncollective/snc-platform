@@ -3,6 +3,9 @@ services:
     networks:
       - default
       - claude-net
+  snc-srs:
+    networks:
+      - claude-net
 
 networks:
   claude-net:
