@@ -31,6 +31,7 @@ import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
+import { initWebSocket } from "./ws.js";
 // federation.routes uses @fedify/fedify which may not be installed;
 // imported dynamically below so the server boots even without it.
 
@@ -43,6 +44,8 @@ const HealthResponse = z.object({
 // ── App ──
 
 export const app = new Hono();
+
+initWebSocket(app);
 
 // ── Middleware ──
 
@@ -118,6 +121,14 @@ if (features.calendar && features.creator) {
 }
 if (features.calendar) app.route("/api/projects", projectRoutes);
 if (features.streaming) app.route("/api/streaming", streamingRoutes);
+if (features.streaming) {
+  import("./routes/chat.routes.js")
+    .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
+    .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load chat routes"));
+  import("./routes/playout.routes.js")
+    .then(({ playoutRoutes }) => app.route("/api/playout", playoutRoutes))
+    .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout routes"));
+}
 // Federation routes mount at root (not /api/) because /.well-known/* and /ap/* paths live there
 if (features.federation) {
   import("./routes/federation.routes.js")

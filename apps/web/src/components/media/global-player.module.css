@@ -1,0 +1,99 @@
+/* ── Expanded: fills main content area ── */
+
+.expanded {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Collapsed: audio bottom bar ── */
+
+.collapsedBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 200;
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  /* Leave room for action buttons on the right */
+  padding-right: 60px;
+}
+
+/* ── Collapsed: video/live mini overlay ── */
+
+.collapsedOverlay {
+  position: fixed;
+  bottom: calc(var(--space-lg) + var(--mini-upload-height, 0px));
+  right: var(--space-lg);
+  width: 320px;
+  aspect-ratio: 16 / 9;
+  z-index: 200;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
+  background: var(--color-media-bg);
+}
+
+@media (max-width: 768px) {
+  .collapsedOverlay {
+    width: 200px;
+    bottom: calc(var(--space-md) + var(--mini-upload-height, 0px));
+    right: var(--space-md);
+  }
+}
+
+/* ── Hidden ── */
+
+.hidden {
+  display: none;
+}
+
+/* ── Collapsed action buttons ── */
+
+.collapsedActions {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  display: flex;
+  gap: 4px;
+  z-index: 50;
+}
+
+/* Audio bar: actions in the reserved right padding area */
+.collapsedBar .collapsedActions {
+  top: 50%;
+  left: auto;
+  right: var(--space-sm);
+  transform: translateY(-50%);
+}
+
+.expandButton,
+.closeButton {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+
+.expandButton:hover,
+.closeButton:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* No actions in expanded mode */
+.expanded .collapsedActions {
+  display: none;
+}

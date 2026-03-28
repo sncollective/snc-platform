@@ -1,0 +1,158 @@
+/* ── Container ── */
+
+.audioDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ── Header: Cover Art + Track Info ── */
+
+.header {
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-start;
+}
+
+@media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* ── Cover Art ── */
+
+.coverArtWrapper {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-media-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coverArtWrapper:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .coverArtWrapper {
+    width: 240px;
+    height: 240px;
+  }
+}
+
+.coverArt {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.coverArtPlaceholder {
+  width: 280px;
+  height: 280px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-elevated) 100%);
+}
+
+@media (max-width: 767px) {
+  .coverArtPlaceholder {
+    width: 240px;
+    height: 240px;
+  }
+}
+
+/* ── Play overlay on cover art ── */
+
+.playOverlayIcon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  transition: background 0.15s;
+}
+
+.coverArtWrapper:hover .playOverlayIcon {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.playIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  color: var(--color-text);
+  transition: transform 0.15s;
+}
+
+.coverArtWrapper:hover .playIcon {
+  transform: scale(1.08);
+}
+
+/* ── Track Info ── */
+
+.trackInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Play button (text alternative when no cover art) ── */
+
+.playButton {
+  align-self: flex-start;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.playButton:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* ── Locked Text ── */
+
+.lockedText {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: var(--space-sm);
+}
+
+/* ── Media Unavailable ── */
+
+.mediaUnavailableText {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: var(--space-sm);
+}

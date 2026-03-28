@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import type React from "react";
+import { useEffect, useState } from "react";
 
-import type { AudioTrack } from "../../contexts/audio-player-context.js";
-import { useAudioPlayer } from "../../contexts/audio-player-context.js";
-import { useMediaControls } from "../../hooks/use-media-controls.js";
-import { formatTime } from "../../lib/format.js";
+import "@vidstack/react/player/styles/base.css";
+import "@vidstack/react/player/styles/default/theme.css";
+import "@vidstack/react/player/styles/default/layouts/audio.css";
+
 import styles from "./audio-player.module.css";
-import { PlayPauseButton } from "./play-pause-button.js";
-import { VolumeControl } from "./volume-control.js";
 
-// ── Public Types ──
+// ── Types ──
+
+interface VidstackAudioModules {
+  readonly core: typeof import("@vidstack/react");
+  readonly layouts: typeof import("@vidstack/react/player/layouts/default");
+}
 
 export interface AudioPlayerProps {
   readonly src: string;
@@ -21,84 +23,48 @@ export interface AudioPlayerProps {
 
 // ── Public API ──
 
-/** Inline audio player with play/pause, seek bar, time display, and volume control. Delegates playback to the global AudioPlayerProvider so only one track plays at a time. */
+/** Inline audio player for content detail pages. */
 export function AudioPlayer({
   src,
   title,
   creator,
   coverArtUrl,
-  contentId,
-}: AudioPlayerProps): React.ReactElement {
-  const { state, actions } = useAudioPlayer();
-  const { volume, handleSeek, handleVolumeChange } = useMediaControls(actions);
-  const [preloadedDuration, setPreloadedDuration] = useState(0);
-  const preloadRef = useRef<HTMLAudioElement>(null);
+}: AudioPlayerProps) {
+  const [modules, setModules] = useState<VidstackAudioModules | null>(null);
 
+  // Load vidstack modules once
   useEffect(() => {
-    const audio = preloadRef.current;
-    if (!audio) return;
-    const onMeta = () => {
-      if (Number.isFinite(audio.duration)) {
-        setPreloadedDuration(audio.duration);
-      }
-    };
-    audio.addEventListener("loadedmetadata", onMeta);
-    return () => audio.removeEventListener("loadedmetadata", onMeta);
+    Promise.all([
+      import("@vidstack/react"),
+      import("@vidstack/react/player/layouts/default"),
+    ])
+      .then(([core, layouts]) => {
+        setModules({ core, layouts });
+      })
+      .catch(() => {
+        // Skeleton remains visible on import failure
+      });
   }, []);
 
-  const isThisTrack = state.track?.id === contentId;
-  const isPlaying = isThisTrack && state.isPlaying;
-  const currentTime = isThisTrack ? state.currentTime : 0;
-  const duration = isThisTrack ? state.duration : preloadedDuration;
-
-  function handlePlayPause() {
-    if (!isThisTrack) {
-      const track: AudioTrack = {
-        id: contentId,
-        title,
-        creatorName: creator,
-        mediaUrl: src,
-        coverArtUrl: coverArtUrl ?? null,
-      };
-      actions.playTrack(track);
-    } else if (isPlaying) {
-      actions.pause();
-    } else {
-      actions.resume();
-    }
+  if (modules === null) {
+    return <div className={styles.skeleton} />;
   }
+
+  const { MediaPlayer, MediaProvider } = modules.core;
+  const { DefaultAudioLayout, defaultLayoutIcons } = modules.layouts;
 
   return (
     <div className={styles.player}>
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <audio ref={preloadRef} src={src} preload="metadata" hidden />
-      <div className={styles.controls}>
-        <PlayPauseButton
-          isPlaying={isPlaying}
-          onClick={handlePlayPause}
-          className={styles.playButton!}
-        />
-        <input
-          type="range"
-          className={styles.progressBar}
-          aria-label="Seek"
-          aria-valuetext={formatTime(currentTime)}
-          min={0}
-          max={isThisTrack ? duration : 1}
-          value={isThisTrack ? currentTime : 0}
-          step={0.1}
-          disabled={!isThisTrack}
-          onChange={handleSeek}
-        />
-        <span className={styles.time}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
-      </div>
-      <VolumeControl
-        volume={volume}
-        onVolumeChange={handleVolumeChange}
-        className={styles.volumeRow}
-      />
+      <MediaPlayer
+        src={{ src, type: "audio/mpeg" }}
+        viewType="audio"
+        title={title}
+        artist={creator}
+        {...(coverArtUrl !== undefined ? { poster: coverArtUrl } : {})}
+      >
+        <MediaProvider />
+        <DefaultAudioLayout icons={defaultLayoutIcons} />
+      </MediaPlayer>
     </div>
   );
 }

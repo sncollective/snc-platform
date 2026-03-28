@@ -1,5 +1,5 @@
 import type React from "react";
-import { createFileRoute, redirect, type SearchSchemaInput } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
@@ -21,15 +21,17 @@ export interface ContentDetailLoaderData {
 
 export const Route = createFileRoute("/content/$contentId")({
   errorComponent: RouteErrorBoundary,
-  validateSearch: (search: { edit?: string | boolean } & SearchSchemaInput) => ({
-    edit: search.edit === "true" || search.edit === true,
-  }),
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
     if (!isFeatureEnabled("content")) return { item: null, plans: [], canManage: false };
 
     const item = (await fetchApiServer({
       data: `/api/content/${encodeURIComponent(params.contentId)}`,
     })) as FeedItem;
+
+    // Block drafts from public access
+    if (!item.publishedAt) {
+      throw new Error("Not found");
+    }
 
     if (item.creatorHandle && item.slug) {
       throw redirect({
@@ -46,6 +48,23 @@ export const Route = createFileRoute("/content/$contentId")({
 
     return { item, plans, canManage };
   },
+  head: ({ loaderData }) => {
+    if (!loaderData?.item) return {};
+    const { item } = loaderData;
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? "";
+    return {
+      meta: [
+        { title: `${item.title} — S/NC` },
+        { name: "description", content: item.description ?? "" },
+        { property: "og:title", content: item.title },
+        { property: "og:description", content: item.description ?? "" },
+        { property: "og:type", content: "article" },
+        ...(item.thumbnailUrl
+          ? [{ property: "og:image", content: `${siteUrl}${item.thumbnailUrl}` }]
+          : []),
+      ],
+    };
+  },
   component: ContentDetailPage,
 });
 
@@ -53,7 +72,6 @@ export const Route = createFileRoute("/content/$contentId")({
 
 function ContentDetailPage(): React.ReactElement {
   const { item, plans, canManage } = Route.useLoaderData();
-  const { edit } = Route.useSearch();
   if (!isFeatureEnabled("content") || item === null) return <ComingSoon feature="content" />;
-  return <ContentDetail item={item} plans={plans} canManage={canManage} initialEdit={edit && canManage} />;
+  return <ContentDetail item={item} plans={plans} canManage={canManage} />;
 }

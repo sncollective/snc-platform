@@ -6,6 +6,9 @@ services:
   snc-srs:
     networks:
       - claude-net
+  snc-garage:
+    networks:
+      - claude-net
 
 networks:
   claude-net:

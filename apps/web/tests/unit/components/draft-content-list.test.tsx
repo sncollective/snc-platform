@@ -90,7 +90,6 @@ beforeEach(() => {
 
 const defaultProps = {
   creatorId: "creator-1",
-  creatorHandle: "creator-handle",
   refreshKey: 0,
   onPublished: vi.fn(),
 };
@@ -266,38 +265,38 @@ describe("DraftContentList", () => {
     expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
   });
 
-  it("shows Edit link for draft items linking to content detail page in edit mode (slug URL when slug and handle present)", () => {
+  it("shows Edit link for draft items linking to management edit route", () => {
     mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ id: "draft-1", slug: "my-post", type: "written", mediaUrl: null })]),
+      makePaginationResult([makeMockDraft({ id: "draft-1", creatorId: "creator-1", type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} creatorHandle="creator-handle" />);
+    render(<DraftContentList {...defaultProps} />);
 
     const editLink = screen.getByRole("link", { name: "Edit" });
     expect(editLink).toBeInTheDocument();
-    expect(editLink).toHaveAttribute("href", "/content/creator-handle/my-post?edit=true");
+    expect(editLink).toHaveAttribute("href", "/creators/creator-1/manage/content/draft-1");
   });
 
-  it("Edit link falls back to ID URL with ?edit=true when slug is null", () => {
+  it("Edit link uses item.creatorId regardless of slug", () => {
     mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([makeMockDraft({ id: "draft-1", slug: null, type: "written", mediaUrl: null })]),
+      makePaginationResult([makeMockDraft({ id: "draft-1", creatorId: "creator-uuid", slug: null, type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} creatorHandle="creator-handle" />);
+    render(<DraftContentList {...defaultProps} />);
 
     const editLink = screen.getByRole("link", { name: "Edit" });
-    expect(editLink).toHaveAttribute("href", "/content/draft-1?edit=true");
+    expect(editLink).toHaveAttribute("href", "/creators/creator-uuid/manage/content/draft-1");
   });
 
-  it("Edit link falls back to ID URL with ?edit=true when creatorHandle is null", () => {
+  it("does not render Preview link for draft items", () => {
     mockUseCursorPagination.mockReturnValue(
       makePaginationResult([makeMockDraft({ id: "draft-1", slug: "my-post", type: "written", mediaUrl: null })]),
     );
 
-    render(<DraftContentList {...defaultProps} creatorHandle={null} />);
+    render(<DraftContentList {...defaultProps} />);
 
-    const editLink = screen.getByRole("link", { name: "Edit" });
-    expect(editLink).toHaveAttribute("href", "/content/draft-1?edit=true");
+    expect(screen.getByRole("link", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Preview" })).toBeNull();
   });
 
   it("upload calls startUpload with purpose content-media for video", () => {
@@ -466,42 +465,4 @@ describe("DraftContentList", () => {
     );
   });
 
-  it("preview link uses slug URL when slug and creatorHandle are present", () => {
-    mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([
-        makeMockDraft({ id: "draft-1", type: "written", slug: "my-draft", mediaUrl: null }),
-      ]),
-    );
-
-    render(<DraftContentList {...defaultProps} creatorHandle="my-creator" />);
-
-    const previewLink = screen.getByRole("link", { name: "Preview" });
-    expect(previewLink).toHaveAttribute("href", "/content/my-creator/my-draft");
-  });
-
-  it("preview link falls back to ID URL when slug is null", () => {
-    mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([
-        makeMockDraft({ id: "draft-1", type: "written", slug: null, mediaUrl: null }),
-      ]),
-    );
-
-    render(<DraftContentList {...defaultProps} />);
-
-    const previewLink = screen.getByRole("link", { name: "Preview" });
-    expect(previewLink).toHaveAttribute("href", "/content/draft-1");
-  });
-
-  it("preview link falls back to ID URL when creatorHandle is null", () => {
-    mockUseCursorPagination.mockReturnValue(
-      makePaginationResult([
-        makeMockDraft({ id: "draft-1", type: "written", slug: "my-draft", mediaUrl: null }),
-      ]),
-    );
-
-    render(<DraftContentList {...defaultProps} creatorHandle={null} />);
-
-    const previewLink = screen.getByRole("link", { name: "Preview" });
-    expect(previewLink).toHaveAttribute("href", "/content/draft-1");
-  });
 });

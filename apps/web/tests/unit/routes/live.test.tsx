@@ -33,8 +33,44 @@ vi.mock("../../../src/lib/api-server.js", () => ({
 }));
 
 vi.mock("../../../src/lib/fetch-utils.js", () => ({
-  apiGet: vi.fn(),
+  apiGet: vi.fn().mockResolvedValue({ rooms: [] }),
   throwIfNotOk: vi.fn(),
+}));
+
+// Mock GlobalPlayerProvider/useGlobalPlayer — live route calls actions on channel selection
+vi.mock("../../../src/contexts/global-player-context.js", () => ({
+  useGlobalPlayer: () => ({
+    state: { media: null, activeDetailId: null },
+    presentation: "hidden",
+    actions: { play: vi.fn(), clear: vi.fn(), setActiveDetail: vi.fn() },
+  }),
+}));
+
+// Mock ChatProvider to avoid WebSocket connections in tests
+vi.mock("../../../src/contexts/chat-context.js", () => ({
+  ChatProvider: ({ children }: { children: unknown }) =>
+    createElement("div", { "data-testid": "chat-provider" }, children as never),
+  useChat: () => ({
+    state: {
+      rooms: [],
+      activeRoomId: null,
+      messages: [],
+      hasMore: false,
+      isConnected: false,
+    },
+    actions: {
+      joinRoom: vi.fn(),
+      leaveRoom: vi.fn(),
+      sendMessage: vi.fn(),
+      setActiveRoom: vi.fn(),
+      setRooms: vi.fn(),
+    },
+  }),
+}));
+
+// Mock ChatPanel to avoid scrollIntoView and other browser APIs not available in jsdom
+vi.mock("../../../src/components/chat/chat-panel.js", () => ({
+  ChatPanel: () => createElement("div", { "data-testid": "chat-panel" }),
 }));
 
 // ── Component Under Test ──
@@ -51,17 +87,37 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// ── Helpers ──
+
+function makeChannel(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "channel-1",
+    name: "S/NC Radio",
+    type: "playout" as const,
+    thumbnailUrl: null,
+    hlsUrl: "https://stream.example.com/live.m3u8",
+    viewerCount: 42,
+    creator: null,
+    startedAt: null,
+    ...overrides,
+  };
+}
+
+function makeChannelList(overrides: Record<string, unknown> = {}) {
+  const channel = makeChannel();
+  return {
+    channels: [channel],
+    defaultChannelId: channel.id,
+    ...overrides,
+  };
+}
+
 // ── Tests ──
 
 describe("LivePage", () => {
-  it("renders Coming Soon when stream is offline", () => {
+  it("renders Coming Soon when channels is empty", () => {
     mockUseLoaderData.mockReturnValue({
-      initialStatus: {
-        isLive: false,
-        viewerCount: 0,
-        lastLiveAt: null,
-        hlsUrl: null,
-      },
+      initial: { channels: [], defaultChannelId: null },
     });
 
     render(<LivePage />);
@@ -70,43 +126,148 @@ describe("LivePage", () => {
     expect(screen.getByText("Live streaming is on its way. Stay tuned.")).toBeInTheDocument();
   });
 
-  it("renders Coming Soon when initial status is null", () => {
-    mockUseLoaderData.mockReturnValue({ initialStatus: null });
+  it("renders Coming Soon when initial is null", () => {
+    mockUseLoaderData.mockReturnValue({ initial: null });
 
     render(<LivePage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Coming Soon" })).toBeInTheDocument();
   });
 
-  it("renders player when stream is live", () => {
+  it("renders channel selector when channels are active", () => {
     mockUseLoaderData.mockReturnValue({
-      initialStatus: {
-        isLive: true,
-        viewerCount: 42,
-        lastLiveAt: "2026-03-25T20:00:00.000Z",
-        hlsUrl: "https://stream.example.com/live.m3u8",
-      },
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.getByRole("combobox", { name: "Select channel" })).toBeInTheDocument();
+  });
+
+  it("shows viewer count for selected channel", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.getAllByText(/42 viewers/).length).toBeGreaterThan(0);
+  });
+
+  it("shows singular 'viewer' for count of 1", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [makeChannel({ viewerCount: 1 })],
+      }),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.getAllByText(/1 viewer/).length).toBeGreaterThan(0);
+  });
+
+  it("shows LIVE indicator only for live channels", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [makeChannel({ type: "live" })],
+      }),
     });
 
     render(<LivePage />);
 
     expect(screen.getByText("LIVE")).toBeInTheDocument();
-    expect(screen.getByText(/42 viewers/)).toBeInTheDocument();
   });
 
-  it("shows singular 'viewer' for count of 1", () => {
+  it("does not show LIVE indicator for playout channels", () => {
     mockUseLoaderData.mockReturnValue({
-      initialStatus: {
-        isLive: true,
-        viewerCount: 1,
-        lastLiveAt: "2026-03-25T20:00:00.000Z",
-        hlsUrl: "https://stream.example.com/live.m3u8",
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.queryByText("LIVE")).toBeNull();
+  });
+
+  it("shows creator name for live channel with creator", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [
+          makeChannel({
+            type: "live",
+            creator: {
+              id: "creator-1",
+              displayName: "Test Creator",
+              handle: "test",
+              avatarUrl: null,
+            },
+          }),
+        ],
+      }),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.getByText("Test Creator")).toBeInTheDocument();
+  });
+
+  it("does not show creator bar when channel has no creator", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({ channels: [makeChannel({ creator: null })] }),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("shows avatar when creator has avatarUrl", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [
+          makeChannel({
+            type: "live",
+            creator: {
+              id: "creator-1",
+              displayName: "Test Creator",
+              handle: "test",
+              avatarUrl: "/api/creators/creator-1/avatar",
+            },
+          }),
+        ],
+      }),
+    });
+
+    render(<LivePage />);
+
+    // Avatar has alt="" so role is "presentation" — query by src attribute
+    const avatar = document.querySelector("img[src='/api/creators/creator-1/avatar']");
+    expect(avatar).toBeInTheDocument();
+  });
+
+  it("lists all channels in the selector dropdown", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: {
+        channels: [
+          makeChannel({ id: "ch-1", name: "S/NC Radio", viewerCount: 10 }),
+          makeChannel({ id: "ch-2", name: "Live: Maya", type: "live", viewerCount: 5 }),
+        ],
+        defaultChannelId: "ch-1",
       },
     });
 
     render(<LivePage />);
 
-    expect(screen.getByText(/1 viewer/)).toBeInTheDocument();
-    expect(screen.queryByText(/viewers/)).toBeNull();
+    expect(screen.getByRole("option", { name: /S\/NC Radio/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Live: Maya/ })).toBeInTheDocument();
+  });
+
+  it("does not show Also Live section (removed in channel model)", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.queryByText("Also Live")).toBeNull();
   });
 });

@@ -83,6 +83,16 @@ export const Route = createFileRoute("/creators/$creatorId")({
 });
 ```
 
+## SSR Gotchas
+
+Adding `head()` to child routes is not purely additive — it changes SSR behavior.
+See the `tanstack-router-v1` skill's "head() SSR Gotchas" section for details. Key
+points for scan findings:
+
+1. **Property ordering**: `loader` must come before `head` in route options (TypeScript inference)
+2. **Optional chaining**: Always guard `loaderData` with `?.` (TanStack issue #6221)
+3. **Broader module loading**: Adding `head()` causes TanStack Start to load more modules during SSR, which can surface latent import errors in transitively-loaded code (contexts, hooks)
+
 ## Exceptions
 
 - Routes that serve as layout wrappers only (render `<Outlet />` with no visible content) — head should be set by the leaf child route instead

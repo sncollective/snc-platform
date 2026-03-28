@@ -22,6 +22,26 @@ export const Route = createFileRoute("/merch/$handle")({
       throw redirect({ to: "/merch" });
     }
   },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? "";
+    return {
+      meta: [
+        { title: `${loaderData.title} — S/NC` },
+        { name: "description", content: loaderData.description },
+        { property: "og:title", content: loaderData.title },
+        { property: "og:description", content: loaderData.description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: `${siteUrl}/merch/${loaderData.handle}` },
+        ...(loaderData.image
+          ? [{ property: "og:image", content: loaderData.image.url }]
+          : []),
+      ],
+      links: [
+        { rel: "canonical", href: `${siteUrl}/merch/${loaderData.handle}` },
+      ],
+    };
+  },
   component: MerchDetailPage,
 });
 

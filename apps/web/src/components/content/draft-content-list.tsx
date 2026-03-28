@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { publishContent, deleteContent } from "../../lib/content.js";
+import { ProcessingIndicator } from "./processing-indicator.js";
 import { useUpload } from "../../contexts/upload-context.js";
 import { clsx } from "clsx/lite";
 
@@ -15,7 +16,6 @@ import styles from "./draft-content-list.module.css";
 
 export interface DraftContentListProps {
   readonly creatorId: string;
-  readonly creatorHandle: string | null;
   readonly refreshKey: number;
   readonly onPublished: () => void;
 }
@@ -37,14 +37,12 @@ function canPublish(item: ContentResponse): boolean {
 
 interface DraftItemProps {
   readonly item: ContentResponse;
-  readonly creatorHandle: string | null;
   readonly onPublished: () => void;
   readonly onDeleted: () => void;
 }
 
 function DraftItem({
   item,
-  creatorHandle,
   onPublished,
   onDeleted,
 }: DraftItemProps): React.ReactElement {
@@ -137,6 +135,7 @@ function DraftItem({
         >
           {mediaStatus}
         </span>
+        <ProcessingIndicator status={item.processingStatus} />
       </div>
 
       {error && (
@@ -146,25 +145,13 @@ function DraftItem({
       )}
 
       <div className={styles.draftActions}>
-        {item.slug && creatorHandle ? (
-          <Link
-            to="/content/$creatorSlug/$contentSlug"
-            params={{ creatorSlug: creatorHandle, contentSlug: item.slug }}
-            search={{ edit: true }}
-            className={styles.editButton}
-          >
-            Edit
-          </Link>
-        ) : (
-          <Link
-            to="/content/$contentId"
-            params={{ contentId: item.id }}
-            search={{ edit: true }}
-            className={styles.editButton}
-          >
-            Edit
-          </Link>
-        )}
+        <Link
+          to="/creators/$creatorId/manage/content/$contentId"
+          params={{ creatorId: item.creatorId, contentId: item.id }}
+          className={styles.editButton}
+        >
+          Edit
+        </Link>
 
         {needsMedia && (
           <>
@@ -204,19 +191,6 @@ function DraftItem({
           {item.thumbnailUrl ? "Replace Thumbnail" : "Upload Thumbnail"}
         </button>
 
-        <a
-          href={
-            item.slug && creatorHandle
-              ? `/content/${creatorHandle}/${item.slug}`
-              : `/content/${item.id}`
-          }
-          className={styles.previewLink}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Preview
-        </a>
-
         <button
           type="button"
           className={styles.publishButton}
@@ -241,10 +215,9 @@ function DraftItem({
 
 // ── Public API ──
 
-/** Paginated list of a creator's unpublished draft content with per-item actions for editing, media/thumbnail upload, preview, publish, and delete. */
+/** Paginated list of a creator's unpublished draft content with per-item actions for editing, media/thumbnail upload, publish, and delete. */
 export function DraftContentList({
   creatorId,
-  creatorHandle,
   refreshKey,
   onPublished,
 }: DraftContentListProps): React.ReactElement {
@@ -280,7 +253,6 @@ export function DraftContentList({
           <DraftItem
             key={item.id}
             item={item}
-            creatorHandle={creatorHandle}
             onPublished={onPublished}
             onDeleted={onPublished}
           />

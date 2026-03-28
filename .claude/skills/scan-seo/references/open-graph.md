@@ -39,7 +39,7 @@ head: ({ loaderData }) => {
       { property: "og:title", content: item.title },
       { property: "og:description", content: item.description ?? "" },
       { property: "og:type", content: "article" },
-      { property: "og:url", content: `${siteUrl}/content/${item.creatorSlug}/${item.slug}` },
+      { property: "og:url", content: `${siteUrl}/content/${item.creatorHandle}/${item.slug}` },
       ...(item.thumbnailUrl
         ? [{ property: "og:image", content: `${siteUrl}${item.thumbnailUrl}` }]
         : []),

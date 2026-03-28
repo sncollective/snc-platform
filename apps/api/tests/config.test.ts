@@ -44,6 +44,8 @@ describe("parseConfig", () => {
       FEATURE_ADMIN: true,
       FEATURE_EMISSIONS: true,
       FEATURE_CALENDAR: true,
+      MEDIA_TEMP_DIR: "/tmp/snc-media",
+      MEDIA_FFMPEG_CONCURRENCY: 2,
       FEDERATION_DOMAIN: "s-nc.org",
       FEATURE_FEDERATION: false,
       FEATURE_STREAMING: false,

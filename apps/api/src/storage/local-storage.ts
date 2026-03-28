@@ -6,7 +6,7 @@ import { pipeline } from "node:stream/promises";
 
 import { ok, err } from "@snc/shared";
 import { AppError, NotFoundError } from "@snc/shared";
-import type { StorageProvider, UploadMetadata, UploadResult, DownloadResult } from "@snc/shared";
+import type { StorageProvider, UploadMetadata, UploadResult, DownloadResult, RangeDownloadResult } from "@snc/shared";
 import type { Result } from "@snc/shared";
 
 import { inferContentType } from "../lib/file-utils.js";
@@ -91,6 +91,42 @@ export const createLocalStorage = (
     }
   };
 
+  const downloadRange = async (
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<Result<RangeDownloadResult, AppError>> => {
+    try {
+      const filePath = resolvePath(key);
+      let fileSize: number;
+      try {
+        const fileStat = await stat(filePath);
+        fileSize = fileStat.size;
+      } catch (statError) {
+        if (isEnoent(statError)) {
+          return err(new NotFoundError("File not found"));
+        }
+        throw statError;
+      }
+
+      const readStream = createReadStream(filePath, { start, end });
+      const webStream =
+        Readable.toWeb(readStream) as ReadableStream<Uint8Array>;
+
+      return ok({
+        stream: webStream,
+        contentLength: end - start + 1,
+        totalSize: fileSize,
+        range: { start, end },
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return err(error);
+      }
+      return toStorageError(error);
+    }
+  };
+
   const deleteFile = async (
     key: string,
   ): Promise<Result<void, AppError>> => {
@@ -158,6 +194,7 @@ export const createLocalStorage = (
   return {
     upload,
     download,
+    downloadRange,
     delete: deleteFile,
     getSignedUrl,
     head,

@@ -30,6 +30,13 @@ export const resolveContentUrls = (row: ContentRow): ContentResponse => ({
   publishedAt: toISOOrNull(row.publishedAt),
   createdAt: toISO(row.createdAt),
   updatedAt: toISO(row.updatedAt),
+  processingStatus: row.processingStatus ?? null,
+  videoCodec: row.videoCodec ?? null,
+  audioCodec: row.audioCodec ?? null,
+  width: row.width ?? null,
+  height: row.height ?? null,
+  duration: row.duration ?? null,
+  bitrate: row.bitrate ?? null,
 });
 
 /** Find a content row by ID, excluding soft-deleted records. */

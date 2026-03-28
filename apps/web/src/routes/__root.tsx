@@ -16,9 +16,9 @@ import { ErrorPage } from "../components/error/error-page.js";
 import { NavBar } from "../components/layout/nav-bar.js";
 import { Footer } from "../components/layout/footer.js";
 import { DemoBanner } from "../components/layout/demo-banner.js";
-import { AudioPlayerProvider } from "../contexts/audio-player-context.js";
+import { GlobalPlayerProvider } from "../contexts/global-player-context.js";
 import { UploadProvider } from "../contexts/upload-context.js";
-import { MiniPlayer } from "../components/media/mini-player.js";
+import { GlobalPlayer } from "../components/media/global-player.js";
 import { MiniUploadIndicator } from "../components/upload/mini-upload-indicator.js";
 import { DEMO_MODE } from "../lib/config.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
@@ -78,17 +78,17 @@ export function RootLayout() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <AudioPlayerProvider>
+      <GlobalPlayerProvider>
         <UploadProvider>
           <NavBar serverAuth={authState} />
           <main id="main-content" className="main-content">
+            <GlobalPlayer />
             <Outlet />
           </main>
-          <MiniPlayer />
           <MiniUploadIndicator />
           <Footer />
         </UploadProvider>
-      </AudioPlayerProvider>
+      </GlobalPlayerProvider>
     </div>
   );
 }

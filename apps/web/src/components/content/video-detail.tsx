@@ -152,7 +152,7 @@ export function VideoDetail({
 
   return (
     <div className={styles.videoDetail}>
-      <VideoPlayer src={mediaSrc} {...(posterSrc !== null ? { poster: posterSrc } : {})} />
+      <VideoPlayer src={mediaSrc} mimeType="video/mp4" {...(posterSrc !== null ? { poster: posterSrc } : {})} />
       {isEditing && editCallbacks && (
         <div className={styles.editMediaActions}>
           <button type="button" className={styles.replaceButton} onClick={handleMediaClick}>

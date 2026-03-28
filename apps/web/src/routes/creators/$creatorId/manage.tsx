@@ -35,6 +35,7 @@ const MANAGE_TABS: readonly ManageTab[] = [
   { to: "/content", label: "Content", permission: "manageContent" },
   { to: "/calendar", label: "Calendar", permission: "manageScheduling" },
   { to: "/projects", label: "Projects", permission: "manageScheduling" },
+  { to: "/streaming", label: "Streaming" },
   { to: "/settings", label: "Settings", permission: "editProfile" },
   { to: "/members", label: "Members", permission: "manageMembers" },
 ] as const;
@@ -105,6 +106,8 @@ function ManageLayout(): React.ReactElement {
       <nav className={styles.tabs} aria-label="Creator management">
         {MANAGE_TABS.map((tab) => {
           if (tab.permission && !permissions[tab.permission]) return null;
+          // Streaming tab: owner-only (not in permission matrix)
+          if (tab.to === "/streaming" && memberRole !== "owner" && !isAdmin) return null;
 
           const tabPath = `${basePath}${tab.to}`;
           const isActive =

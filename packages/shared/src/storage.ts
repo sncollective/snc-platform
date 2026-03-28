@@ -21,6 +21,14 @@ export type DownloadResult = {
   readonly size: number;
 };
 
+/** Successful partial-content download with range metadata. */
+export type RangeDownloadResult = {
+  readonly stream: ReadableStream<Uint8Array>;
+  readonly contentLength: number;
+  readonly totalSize: number;
+  readonly range: { readonly start: number; readonly end: number };
+};
+
 /** Pluggable storage backend (local filesystem, S3, etc.) for file operations. */
 export type StorageProvider = {
   upload(
@@ -30,6 +38,13 @@ export type StorageProvider = {
   ): Promise<Result<UploadResult, AppError>>;
 
   download(key: string): Promise<Result<DownloadResult, AppError>>;
+
+  /** Download a byte range of a file. Used for HTTP 206 partial content responses. */
+  downloadRange(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<Result<RangeDownloadResult, AppError>>;
 
   delete(key: string): Promise<Result<void, AppError>>;
 
@@ -53,7 +68,7 @@ export type StorageProvider = {
 
 /** Allowed MIME types per media category for upload validation. */
 export const ACCEPTED_MIME_TYPES = {
-  video: ["video/mp4", "video/webm", "video/quicktime"],
+  video: ["video/mp4", "video/webm", "video/quicktime", "video/x-matroska"],
   audio: ["audio/mpeg", "audio/wav", "audio/flac", "audio/ogg", "audio/aac"],
   image: ["image/jpeg", "image/png", "image/webp"],
 } as const;
@@ -61,6 +76,6 @@ export const ACCEPTED_MIME_TYPES = {
 /** Maximum upload size in bytes per media category. */
 export const MAX_FILE_SIZES = {
   video: 20 * 1024 * 1024 * 1024,
-  audio: 100 * 1024 * 1024,
+  audio: 500 * 1024 * 1024,
   image: 10 * 1024 * 1024,
 } as const;

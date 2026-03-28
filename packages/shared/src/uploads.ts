@@ -9,6 +9,7 @@ export const UPLOAD_PURPOSES = [
   "content-thumbnail",
   "creator-avatar",
   "creator-banner",
+  "playout-media",
 ] as const;
 
 /** File size above which uploads switch to multipart (bytes). */

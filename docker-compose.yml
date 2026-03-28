@@ -18,18 +18,40 @@ services:
   snc-srs:
     image: ossrs/srs:6
     container_name: snc-srs
+    command: objs/srs -c conf/srs.conf
     ports:
       - "1935:1935"
       - "1985:1985"
       - "8080:8080"
     volumes:
       - ./srs.conf:/usr/local/srs/conf/srs.conf
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1985/api/v1/versions"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1985"]
       interval: 5s
       timeout: 3s
       retries: 3
 
+  snc-garage:
+    image: dxflrs/garage:v2.2.0
+    container_name: snc-garage
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - snc-garage-meta:/var/lib/garage/meta
+      - snc-garage-data:/var/lib/garage/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/garage", "stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   snc-pgdata:
+  snc-garage-meta:
+  snc-garage-data:

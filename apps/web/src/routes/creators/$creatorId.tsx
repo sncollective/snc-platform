@@ -16,6 +16,27 @@ export const Route = createFileRoute("/creators/$creatorId")({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
     }) as Promise<CreatorProfileResponse>;
   },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? "";
+    const canonicalSlug = loaderData.handle ?? loaderData.id;
+    return {
+      meta: [
+        { title: `${loaderData.displayName} — S/NC` },
+        { name: "description", content: loaderData.bio ?? "" },
+        { property: "og:title", content: loaderData.displayName },
+        { property: "og:description", content: loaderData.bio ?? "" },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: `${siteUrl}/creators/${canonicalSlug}` },
+        ...(loaderData.avatarUrl
+          ? [{ property: "og:image", content: `${siteUrl}${loaderData.avatarUrl}` }]
+          : []),
+      ],
+      links: [
+        { rel: "canonical", href: `${siteUrl}/creators/${canonicalSlug}` },
+      ],
+    };
+  },
   component: CreatorLayout,
 });
 

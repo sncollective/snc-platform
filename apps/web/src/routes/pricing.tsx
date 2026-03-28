@@ -27,6 +27,12 @@ export const Route = createFileRoute("/pricing")({
       return [];
     }
   },
+  head: () => ({
+    meta: [
+      { title: "Pricing — S/NC" },
+      { name: "description", content: "Subscribe to S/NC for access to all content from every creator." },
+    ],
+  }),
   component: PricingPage,
 });
 

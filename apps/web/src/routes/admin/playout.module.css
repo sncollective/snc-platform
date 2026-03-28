@@ -1,0 +1,329 @@
+/* ── Admin Playout Page ── */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ── Section ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.sectionHeading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+/* ── Now-Playing Card ── */
+
+.nowPlayingCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.nowPlayingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.nowPlayingTitle {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+}
+
+.nowPlayingDirector {
+  font-style: italic;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.nowPlayingTime {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.skipButton {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.skipButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+/* ── Playlist Items ── */
+
+.playlistItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.playlistItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Reorder Buttons ── */
+
+.itemReorder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.reorderButton {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.reorderButton:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.reorderButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Item Info ── */
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.itemTitle {
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemYear {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.itemDirector {
+  font-style: italic;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Processing Status ── */
+
+.statusPending {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.statusUploading {
+  font-size: var(--font-size-sm);
+  color: var(--color-info, hsl(210 80% 60%));
+  flex-shrink: 0;
+}
+
+.statusProcessing {
+  font-size: var(--font-size-sm);
+  color: var(--color-warning, hsl(40 90% 55%));
+  flex-shrink: 0;
+}
+
+.statusReady {
+  font-size: var(--font-size-sm);
+  color: var(--color-success, hsl(140 60% 45%));
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.statusFailed {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ── Item Actions ── */
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.enabledLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.playNextButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.playNextButton:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.playNextButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.deleteButton:hover {
+  background: var(--color-error);
+  color: var(--color-bg);
+}
+
+/* ── Add Film Form ── */
+
+.addFilmForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.cancelButton {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.cancelButton:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Upload Prompt ── */
+
+.uploadPrompt {
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+.uploadActions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.fileLabel:hover {
+  background: var(--color-accent-hover);
+}
+
+.fileInput {
+  display: none;
+}

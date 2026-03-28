@@ -62,6 +62,14 @@ const CONTENT_FEED_COLUMNS = {
   deletedAt: content.deletedAt,
   createdAt: content.createdAt,
   updatedAt: content.updatedAt,
+  processingStatus: content.processingStatus,
+  transcodedMediaKey: content.transcodedMediaKey,
+  videoCodec: content.videoCodec,
+  audioCodec: content.audioCodec,
+  width: content.width,
+  height: content.height,
+  duration: content.duration,
+  bitrate: content.bitrate,
   creatorName: creatorProfiles.displayName,
   creatorHandle: creatorProfiles.handle,
 } as const;
@@ -591,6 +599,16 @@ contentRoutes.post(
     if (existing.type !== "written" && !existing.mediaKey) {
       throw new ValidationError(
         "Video and audio content requires media to be uploaded before publishing",
+      );
+    }
+
+    if (
+      existing.type !== "written" &&
+      existing.processingStatus != null &&
+      existing.processingStatus !== "ready"
+    ) {
+      throw new ValidationError(
+        "Media is still being processed. Please wait until processing completes before publishing.",
       );
     }
 

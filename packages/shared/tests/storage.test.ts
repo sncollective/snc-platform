@@ -11,11 +11,12 @@ import {
 // ── Tests ──
 
 describe("ACCEPTED_MIME_TYPES", () => {
-  it("video contains exactly the three accepted formats", () => {
+  it("video contains exactly the four accepted formats", () => {
     expect(ACCEPTED_MIME_TYPES.video).toStrictEqual([
       "video/mp4",
       "video/webm",
       "video/quicktime",
+      "video/x-matroska",
     ]);
   });
 
@@ -51,8 +52,8 @@ describe("MAX_FILE_SIZES", () => {
     expect(MAX_FILE_SIZES.video).toBe(20 * 1024 * 1024 * 1024);
   });
 
-  it("audio is 100 MB", () => {
-    expect(MAX_FILE_SIZES.audio).toBe(100 * 1024 * 1024);
+  it("audio is 500 MB", () => {
+    expect(MAX_FILE_SIZES.audio).toBe(500 * 1024 * 1024);
   });
 
   it("image is 10 MB", () => {

@@ -20,6 +20,12 @@ const MerchSearchSchema = z.object({
 
 export const Route = createFileRoute("/merch/")({
   validateSearch: MerchSearchSchema,
+  head: () => ({
+    meta: [
+      { title: "Merch — S/NC" },
+      { name: "description", content: "Browse merch from S/NC creators." },
+    ],
+  }),
   component: MerchPage,
 });
 

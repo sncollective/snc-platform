@@ -21,4 +21,7 @@ export * from "./federation.js";
 export * from "./streaming.js";
 export * from "./studio.js";
 export * from "./uploads.js";
+export * from "./chat.js";
+export * from "./media-processing.js";
+export * from "./playout.js";
 export { textToStream, streamToText } from "./storage-contract.js";

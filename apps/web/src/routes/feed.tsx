@@ -25,6 +25,12 @@ export const Route = createFileRoute("/feed")({
       return { items: [], nextCursor: null };
     }
   },
+  head: () => ({
+    meta: [
+      { title: "Content Feed — S/NC" },
+      { name: "description", content: "Browse the latest content from S/NC creators." },
+    ],
+  }),
   component: FeedPage,
 });
 

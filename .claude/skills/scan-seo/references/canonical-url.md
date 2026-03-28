@@ -37,7 +37,7 @@ head: ({ loaderData }) => {
       { title: `${item.title} — S/NC` },
     ],
     links: [
-      { rel: "canonical", href: `${siteUrl}/content/${item.creatorSlug}/${item.slug}` },
+      { rel: "canonical", href: `${siteUrl}/content/${item.creatorHandle}/${item.slug}` },
     ],
   };
 },

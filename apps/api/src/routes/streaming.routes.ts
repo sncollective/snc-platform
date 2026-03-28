@@ -1,31 +1,59 @@
+import { createHash } from "node:crypto";
+
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
+import { eq, desc } from "drizzle-orm";
 
-import { StreamStatusSchema, type StreamStatus } from "@snc/shared";
+import {
+  ChannelListResponseSchema,
+  CreateStreamKeySchema,
+  StreamKeysListResponseSchema,
+  StreamKeyCreatedResponseSchema,
+  StreamKeyResponseSchema,
+} from "@snc/shared";
 
-import { getStreamStatus, type SrsStreamStatus } from "../services/srs.js";
+import { getChannelList } from "../services/srs.js";
+import {
+  createStreamKey,
+  listStreamKeys,
+  revokeStreamKey,
+  lookupCreatorByKeyHash,
+} from "../services/stream-keys.js";
+import { openSession, closeSession } from "../services/stream-sessions.js";
+import { createLiveChannel, deactivateLiveChannel } from "../services/channels.js";
+import { createChannelRoom, closeChannelRoom } from "../services/chat.js";
+import { broadcastToRoom } from "../services/chat-rooms.js";
 import { config } from "../config.js";
+import { requireAuth } from "../middleware/require-auth.js";
+import type { AuthEnv } from "../middleware/auth-env.js";
+import { db } from "../db/connection.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { streamSessions } from "../db/schema/streaming.schema.js";
+import { rootLogger } from "../logging/logger.js";
 import {
   ERROR_400,
+  ERROR_401,
   ERROR_403,
+  ERROR_404,
   ERROR_502,
   ERROR_503,
 } from "../lib/openapi-errors.js";
-
-// ── Private Helpers ──
-
-const toStreamStatus = (srs: SrsStreamStatus): StreamStatus => ({
-  isLive: srs.isLive,
-  viewerCount: srs.viewerCount,
-  lastLiveAt: null,
-  hlsUrl: srs.hlsUrl,
-});
 
 // ── Callback Schemas ──
 
 const SrsOnPublishSchema = z.object({
   action: z.literal("on_publish"),
+  client_id: z.string(),
+  ip: z.string(),
+  vhost: z.string(),
+  app: z.string(),
+  stream: z.string(),
+  param: z.string().optional().default(""),
+});
+
+const SrsOnUnpublishSchema = z.object({
+  action: z.literal("on_unpublish"),
   client_id: z.string(),
   ip: z.string(),
   vhost: z.string(),
@@ -43,20 +71,20 @@ const extractStreamKey = (param: string): string | null => {
 
 // ── Public API ──
 
-export const streamingRoutes = new Hono();
+export const streamingRoutes = new Hono<AuthEnv>();
 
 // ── Status Endpoint ──
 
 streamingRoutes.get(
   "/status",
   describeRoute({
-    description: "Get current live stream status",
+    description: "Get active channels with viewer counts and default selection",
     tags: ["streaming"],
     responses: {
       200: {
-        description: "Current stream status",
+        description: "Channel list",
         content: {
-          "application/json": { schema: resolver(StreamStatusSchema) },
+          "application/json": { schema: resolver(ChannelListResponseSchema) },
         },
       },
       502: ERROR_502,
@@ -64,10 +92,24 @@ streamingRoutes.get(
     },
   }),
   async (c) => {
-    const result = await getStreamStatus();
+    const result = await getChannelList();
     if (!result.ok) throw result.error;
 
-    return c.json(toStreamStatus(result.value));
+    const { channels, defaultChannelId } = result.value;
+    return c.json({
+      channels: channels.map((ch) => ({
+        id: ch.id,
+        name: ch.name,
+        type: ch.type,
+        thumbnailUrl: ch.thumbnailUrl,
+        hlsUrl: ch.hlsUrl,
+        viewerCount: ch.viewerCount,
+        creator: ch.creator,
+        startedAt: null, // TODO: populate from session for live channels
+        nowPlaying: ch.nowPlaying,
+      })),
+      defaultChannelId,
+    });
   },
 );
 
@@ -77,7 +119,7 @@ streamingRoutes.post(
   "/callbacks/on-publish",
   describeRoute({
     description:
-      "SRS on_publish callback — validates stream key before allowing publish",
+      "SRS on_publish callback — validates stream key, identifies creator, opens session",
     tags: ["streaming-callbacks"],
     responses: {
       200: { description: "Publish allowed" },
@@ -86,21 +128,222 @@ streamingRoutes.post(
     },
   }),
   validator("json", SrsOnPublishSchema),
-  (c) => {
-    const body = c.req.valid("json" as never) as z.infer<
-      typeof SrsOnPublishSchema
-    >;
-    const streamKey = extractStreamKey(body.param);
-    const expectedKey = config.SRS_STREAM_KEY;
+  async (c) => {
+    const body = c.req.valid("json" as never) as z.infer<typeof SrsOnPublishSchema>;
+    const rawKey = extractStreamKey(body.param);
 
-    if (!expectedKey) {
+    // Playout key: Liquidsoap authenticates with a dedicated key.
+    // No session or channel creation — playout channels are pre-seeded.
+    const playoutKey = config.PLAYOUT_STREAM_KEY;
+    if (playoutKey && rawKey === playoutKey) {
       return c.json({ code: 0 }, 200);
     }
 
-    if (!streamKey || streamKey !== expectedKey) {
+    // Per-creator key validation
+    if (!rawKey) {
       return c.json({ code: 1 }, 403);
     }
 
+    const keyHash = createHash("sha256").update(rawKey).digest("hex");
+    const lookup = await lookupCreatorByKeyHash(keyHash);
+
+    if (!lookup) {
+      return c.json({ code: 1 }, 403);
+    }
+
+    // Open session
+    const session = await openSession({
+      creatorId: lookup.creatorId,
+      streamKeyId: lookup.keyId,
+      srsClientId: body.client_id,
+      srsStreamName: body.stream,
+      callbackPayload: body as unknown as Record<string, unknown>,
+    });
+
+    // Create live channel + channel chat room (best-effort — don't block SRS callback)
+    if (session.ok) {
+      try {
+        const [profile] = await db
+          .select({ displayName: creatorProfiles.displayName })
+          .from(creatorProfiles)
+          .where(eq(creatorProfiles.id, lookup.creatorId));
+
+        if (profile) {
+          const channelResult = await createLiveChannel({
+            creatorId: lookup.creatorId,
+            creatorName: profile.displayName,
+            streamSessionId: session.value.sessionId,
+            srsStreamName: body.stream,
+          });
+
+          if (channelResult.ok) {
+            try {
+              await createChannelRoom(
+                channelResult.value.channelId,
+                `${profile.displayName}'s Stream`,
+              );
+            } catch (chatErr) {
+              rootLogger.error(
+                { error: chatErr instanceof Error ? chatErr.message : String(chatErr) },
+                "Failed to create channel chat room",
+              );
+            }
+          }
+        }
+      } catch (channelErr) {
+        rootLogger.error(
+          { error: channelErr instanceof Error ? channelErr.message : String(channelErr) },
+          "Failed to create live channel",
+        );
+      }
+    }
+
     return c.json({ code: 0 }, 200);
+  },
+);
+
+// ── SRS Callback: on_unpublish ──
+
+streamingRoutes.post(
+  "/callbacks/on-unpublish",
+  describeRoute({
+    description: "SRS on_unpublish callback — closes stream session and deactivates channel",
+    tags: ["streaming-callbacks"],
+    responses: {
+      200: { description: "Unpublish acknowledged" },
+      400: ERROR_400,
+    },
+  }),
+  validator("json", SrsOnUnpublishSchema),
+  async (c) => {
+    const body = c.req.valid("json" as never) as z.infer<typeof SrsOnUnpublishSchema>;
+
+    await closeSession({
+      srsClientId: body.client_id,
+      callbackPayload: body as unknown as Record<string, unknown>,
+    });
+
+    // Deactivate live channel and close channel chat room (best-effort)
+    try {
+      const closedSession = await db
+        .select({ id: streamSessions.id })
+        .from(streamSessions)
+        .where(eq(streamSessions.srsClientId, body.client_id))
+        .orderBy(desc(streamSessions.endedAt))
+        .limit(1);
+
+      if (closedSession.length > 0) {
+        const sessionId = closedSession[0]!.id;
+        const channelResult = await deactivateLiveChannel(sessionId);
+
+        if (channelResult.ok && channelResult.value) {
+          const { channelId } = channelResult.value;
+          try {
+            await closeChannelRoom(channelId);
+            broadcastToRoom(channelId, {
+              type: "room_closed",
+              roomId: channelId,
+            });
+          } catch (chatErr) {
+            rootLogger.error(
+              { error: chatErr instanceof Error ? chatErr.message : String(chatErr) },
+              "Failed to close channel chat room",
+            );
+          }
+        }
+      }
+    } catch (channelErr) {
+      rootLogger.error(
+        { error: channelErr instanceof Error ? channelErr.message : String(channelErr) },
+        "Failed to deactivate live channel",
+      );
+    }
+
+    return c.json({ code: 0 }, 200);
+  },
+);
+
+// ── Stream Key Management (owner-only) ──
+
+streamingRoutes.get(
+  "/keys/:creatorId",
+  describeRoute({
+    description: "List stream keys for a creator (owner only)",
+    tags: ["streaming-keys"],
+    responses: {
+      200: {
+        description: "Stream keys list",
+        content: {
+          "application/json": { schema: resolver(StreamKeysListResponseSchema) },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const result = await listStreamKeys(user.id, creatorId);
+    if (!result.ok) throw result.error;
+    return c.json({ keys: result.value });
+  },
+);
+
+streamingRoutes.post(
+  "/keys/:creatorId",
+  describeRoute({
+    description: "Create a named stream key for a creator (owner only)",
+    tags: ["streaming-keys"],
+    responses: {
+      201: {
+        description: "Stream key created (raw key included once)",
+        content: {
+          "application/json": { schema: resolver(StreamKeyCreatedResponseSchema) },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  requireAuth,
+  validator("json", CreateStreamKeySchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const { name } = c.req.valid("json" as never) as z.infer<typeof CreateStreamKeySchema>;
+    const result = await createStreamKey(user.id, creatorId, name);
+    if (!result.ok) throw result.error;
+    return c.json(result.value, 201);
+  },
+);
+
+streamingRoutes.delete(
+  "/keys/:creatorId/:keyId",
+  describeRoute({
+    description: "Revoke a stream key (owner only)",
+    tags: ["streaming-keys"],
+    responses: {
+      200: {
+        description: "Stream key revoked",
+        content: {
+          "application/json": { schema: resolver(StreamKeyResponseSchema) },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const keyId = c.req.param("keyId");
+    const user = c.get("user");
+    const result = await revokeStreamKey(user.id, creatorId, keyId);
+    if (!result.ok) throw result.error;
+    return c.json(result.value);
   },
 );

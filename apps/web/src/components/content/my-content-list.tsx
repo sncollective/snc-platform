@@ -3,6 +3,7 @@ import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { ContentCard } from "./content-card.js";
+import { ProcessingIndicator } from "./processing-indicator.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { deleteContent } from "../../lib/content.js";
 import listingStyles from "../../styles/listing-page.module.css";
@@ -68,6 +69,7 @@ export function MyContentList({
         {items.map((item) => (
           <div key={item.id} className={styles.contentItemWrapper}>
             <ContentCard item={item} />
+            <ProcessingIndicator status={item.processingStatus} />
             <button
               type="button"
               className={styles.deleteButton}

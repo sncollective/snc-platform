@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import type { FeedItem, Visibility } from "@snc/shared";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 
 import { deleteContent, updateContent, publishContent, unpublishContent } from "../lib/content.js";
 import { useUpload } from "../contexts/upload-context.js";
@@ -44,6 +44,7 @@ export interface ContentManagement {
 /** Manage inline editing, publishing, unpublishing, and deletion of a single content item. */
 export function useContentManagement(item: FeedItem, initialEdit?: boolean): ContentManagement {
   const navigate = useNavigate();
+  const router = useRouter();
   const { actions: uploadActions } = useUpload();
 
   const [isEditing, setIsEditing] = useState(initialEdit ?? false);
@@ -71,7 +72,7 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
             file,
             purpose: "content-media",
             resourceId: item.id,
-            onComplete: () => window.location.reload(),
+            onComplete: () => void router.invalidate(),
             onError: (err) => setError(err.message),
           });
         },
@@ -80,14 +81,14 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
             file,
             purpose: "content-thumbnail",
             resourceId: item.id,
-            onComplete: () => window.location.reload(),
+            onComplete: () => void router.invalidate(),
             onError: (err) => setError(err.message),
           });
         },
         onThumbnailRemove: async () => {
           try {
             await updateContent(item.id, { clearThumbnail: true });
-            window.location.reload();
+            void router.invalidate();
           } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to remove thumbnail");
           }
@@ -96,7 +97,7 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
           if (!window.confirm("Remove media file? This cannot be undone.")) return;
           try {
             await updateContent(item.id, { clearMedia: true });
-            window.location.reload();
+            void router.invalidate();
           } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to remove media");
           }
@@ -128,7 +129,7 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
         body: item.type === "written" ? editBody : undefined,
       });
       setIsEditing(false);
-      window.location.reload();
+      void router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -140,7 +141,7 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
     setIsPublishing(true);
     try {
       await publishContent(item.id);
-      window.location.reload();
+      void router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Publish failed");
     } finally {
@@ -152,7 +153,7 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
     setIsPublishing(true);
     try {
       await unpublishContent(item.id);
-      window.location.reload();
+      void router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unpublish failed");
     } finally {
@@ -166,13 +167,16 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
     setIsDeleting(true);
     try {
       await deleteContent(item.id);
-      void navigate({ to: "/feed" });
+      void navigate({
+        to: "/creators/$creatorId/manage/content",
+        params: { creatorId: item.creatorHandle ?? item.creatorId },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setIsDeleting(false);
     }
-  }, [item.id, navigate]);
+  }, [item.id, item.creatorHandle, item.creatorId, navigate]);
 
   return {
     isEditing,

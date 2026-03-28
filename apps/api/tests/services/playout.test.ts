@@ -1,0 +1,366 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// ── Mock State ──
+
+const mockDbSelect = vi.fn();
+const mockDbInsert = vi.fn();
+const mockDbUpdate = vi.fn();
+const mockDbDelete = vi.fn();
+const mockWriteFile = vi.fn().mockResolvedValue(undefined);
+const mockRename = vi.fn().mockResolvedValue(undefined);
+const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
+const mockSkipTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
+const mockQueueTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
+
+// ── Fixtures ──
+
+const makeItemRow = (overrides: Record<string, unknown> = {}) => ({
+  id: "item-1",
+  title: "Test Film",
+  year: 2020,
+  director: "Test Director",
+  s3KeyPrefix: "playout/item-1",
+  sourceKey: "playout/item-1/source.mp4",
+  sourceWidth: 1920,
+  sourceHeight: 1080,
+  duration: 90.0,
+  rendition1080pKey: "playout/item-1/1080p.mp4",
+  rendition720pKey: null,
+  rendition480pKey: null,
+  renditionAudioKey: null,
+  subtitleKey: null,
+  processingStatus: "ready",
+  position: 0,
+  enabled: true,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  updatedAt: new Date("2026-01-01T00:00:00Z"),
+  ...overrides,
+});
+
+// ── DB Chain Helpers ──
+
+const buildSelectOrderByChain = (rows: unknown[]) => ({
+  from: vi.fn().mockReturnValue({
+    orderBy: vi.fn().mockResolvedValue(rows),
+  }),
+});
+
+const buildSelectWhereChain = (rows: unknown[]) => ({
+  from: vi.fn().mockReturnValue({
+    where: vi.fn().mockResolvedValue(rows),
+  }),
+});
+
+const buildSelectWhereOrderByChain = (rows: unknown[]) => ({
+  from: vi.fn().mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      orderBy: vi.fn().mockResolvedValue(rows),
+    }),
+  }),
+});
+
+const buildSelectWhereOrderByAndChain = (rows: unknown[]) => ({
+  from: vi.fn().mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      orderBy: vi.fn().mockResolvedValue(rows),
+    }),
+  }),
+});
+
+const buildUpdateSetWhereReturningChain = (rows: unknown[]) => ({
+  set: vi.fn().mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue(rows),
+    }),
+  }),
+});
+
+const buildUpdateSetWhereChain = () => ({
+  set: vi.fn().mockReturnValue({
+    where: vi.fn().mockResolvedValue(undefined),
+  }),
+});
+
+const buildInsertValuesReturningChain = (rows: unknown[]) => ({
+  values: vi.fn().mockReturnValue({
+    returning: vi.fn().mockResolvedValue(rows),
+  }),
+});
+
+const buildDeleteWhereReturningChain = (rows: unknown[]) => ({
+  where: vi.fn().mockReturnValue({
+    returning: vi.fn().mockResolvedValue(rows),
+  }),
+});
+
+// ── Setup Factory ──
+
+const setupService = async () => {
+  vi.doMock("../../src/db/connection.js", () => ({
+    db: {
+      select: mockDbSelect,
+      insert: mockDbInsert,
+      update: mockDbUpdate,
+      delete: mockDbDelete,
+    },
+    sql: vi.fn(),
+  }));
+  vi.doMock("../../src/db/schema/playout.schema.js", () => ({
+    playoutItems: {
+      id: "id",
+      title: "title",
+      year: "year",
+      director: "director",
+      s3KeyPrefix: "s3_key_prefix",
+      sourceKey: "source_key",
+      sourceWidth: "source_width",
+      sourceHeight: "source_height",
+      duration: "duration",
+      rendition1080pKey: "rendition_1080p_key",
+      rendition720pKey: "rendition_720p_key",
+      rendition480pKey: "rendition_480p_key",
+      renditionAudioKey: "rendition_audio_key",
+      subtitleKey: "subtitle_key",
+      processingStatus: "processing_status",
+      position: "position",
+      enabled: "enabled",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+      $inferSelect: {},
+    },
+  }));
+  vi.doMock("node:fs/promises", () => ({
+    writeFile: mockWriteFile,
+    rename: mockRename,
+  }));
+  vi.doMock("../../src/services/liquidsoap.js", () => ({
+    getNowPlaying: mockGetLiquidsoapNowPlaying,
+    skipTrack: mockSkipTrack,
+    queueTrack: mockQueueTrack,
+  }));
+  vi.doMock("../../src/logging/logger.js", () => ({
+    rootLogger: {
+      child: vi.fn().mockReturnValue({
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+      }),
+    },
+  }));
+  return await import("../../src/services/playout.js");
+};
+
+// Restore defaults before each test (vitest's mockReset:true runs after afterEach,
+// so defaults must be set in beforeEach to survive into the test body).
+beforeEach(() => {
+  mockWriteFile.mockResolvedValue(undefined);
+  mockRename.mockResolvedValue(undefined);
+  mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
+  mockSkipTrack.mockResolvedValue({ ok: true, value: undefined });
+  mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
+});
+
+afterEach(() => {
+  vi.resetModules();
+});
+
+// ── Tests ──
+
+describe("listPlayoutItems", () => {
+  it("returns all items ordered by position", async () => {
+    const { listPlayoutItems } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectOrderByChain([makeItemRow()]));
+
+    const items = await listPlayoutItems();
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.id).toBe("item-1");
+    expect(items[0]?.title).toBe("Test Film");
+  });
+
+  it("maps renditions correctly", async () => {
+    const { listPlayoutItems } = await setupService();
+    mockDbSelect.mockReturnValue(
+      buildSelectOrderByChain([
+        makeItemRow({ rendition1080pKey: "playout/item-1/1080p.mp4", rendition720pKey: null }),
+      ]),
+    );
+
+    const items = await listPlayoutItems();
+
+    expect(items[0]?.renditions["1080p"]).toBe(true);
+    expect(items[0]?.renditions["720p"]).toBe(false);
+    expect(items[0]?.renditions.source).toBe(true);
+  });
+
+  it("maps hasSubtitles correctly", async () => {
+    const { listPlayoutItems } = await setupService();
+    mockDbSelect.mockReturnValue(
+      buildSelectOrderByChain([makeItemRow({ subtitleKey: "playout/item-1/subtitles.vtt" })]),
+    );
+
+    const items = await listPlayoutItems();
+    expect(items[0]?.hasSubtitles).toBe(true);
+  });
+});
+
+describe("getPlayoutItem", () => {
+  it("returns item when found", async () => {
+    const { getPlayoutItem } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+
+    const result = await getPlayoutItem("item-1");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.id).toBe("item-1");
+    }
+  });
+
+  it("returns NotFoundError when item not found", async () => {
+    const { getPlayoutItem } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([]));
+
+    const result = await getPlayoutItem("nonexistent");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.statusCode).toBe(404);
+    }
+  });
+});
+
+describe("createPlayoutItem", () => {
+  it("creates item with position at end of playlist", async () => {
+    const { createPlayoutItem } = await setupService();
+    // First select is for max position
+    mockDbSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockResolvedValue([{ max: 2 }]),
+      })
+      .mockReturnValue(buildSelectOrderByChain([]));
+    mockDbInsert.mockReturnValue(buildInsertValuesReturningChain([makeItemRow({ position: 3 })]));
+
+    const result = await createPlayoutItem({ title: "Test Film" });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.title).toBe("Test Film");
+    }
+  });
+});
+
+describe("getPlayoutNowPlaying", () => {
+  it("returns null when Liquidsoap returns null", async () => {
+    const { getPlayoutNowPlaying } = await setupService();
+    mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
+
+    const result = await getPlayoutNowPlaying();
+    expect(result).toBeNull();
+  });
+
+  it("enriches now-playing with DB item metadata", async () => {
+    const { getPlayoutNowPlaying } = await setupService();
+    mockGetLiquidsoapNowPlaying.mockResolvedValue({
+      uri: "s3://snc-storage/playout/item-1/1080p.mp4",
+      title: "Raw Title",
+      duration: 90.0,
+      elapsed: 30.0,
+      remaining: 60.0,
+    });
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+
+    const result = await getPlayoutNowPlaying();
+
+    expect(result).not.toBeNull();
+    expect(result?.itemId).toBe("item-1");
+    expect(result?.title).toBe("Test Film"); // DB title preferred over raw
+    expect(result?.year).toBe(2020);
+    expect(result?.director).toBe("Test Director");
+    expect(result?.elapsed).toBe(30.0);
+    expect(result?.remaining).toBe(60.0);
+  });
+
+  it("returns partial data when URI does not match playout pattern", async () => {
+    const { getPlayoutNowPlaying } = await setupService();
+    mockGetLiquidsoapNowPlaying.mockResolvedValue({
+      uri: "file:///some/local/file.mp4",
+      title: "Local File",
+      duration: 30.0,
+      elapsed: 5.0,
+      remaining: 25.0,
+    });
+
+    const result = await getPlayoutNowPlaying();
+
+    expect(result).not.toBeNull();
+    expect(result?.itemId).toBeNull();
+    expect(result?.title).toBe("Local File");
+  });
+});
+
+describe("skipCurrentTrack", () => {
+  it("delegates to skipTrack from liquidsoap service", async () => {
+    const { skipCurrentTrack } = await setupService();
+    const result = await skipCurrentTrack();
+    expect(result.ok).toBe(true);
+    expect(mockSkipTrack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("queuePlayoutItem", () => {
+  it("returns NotFoundError when item not found", async () => {
+    const { queuePlayoutItem } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([]));
+
+    const result = await queuePlayoutItem("nonexistent");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.statusCode).toBe(404);
+    }
+  });
+
+  it("returns error when no rendition available", async () => {
+    const { queuePlayoutItem } = await setupService();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereChain([
+        makeItemRow({
+          rendition1080pKey: null,
+          rendition720pKey: null,
+          rendition480pKey: null,
+          sourceKey: null,
+        }),
+      ]),
+    );
+
+    const result = await queuePlayoutItem("item-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("NO_RENDITION");
+    }
+  });
+
+  it("queues the correct S3 URI (prefers 1080p)", async () => {
+    const { queuePlayoutItem } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+    mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
+
+    await queuePlayoutItem("item-1");
+
+    expect(mockQueueTrack).toHaveBeenCalledWith(
+      "s3://snc-storage/playout/item-1/1080p.mp4",
+    );
+  });
+});
+
+describe("getApplicableRenditions (via import)", () => {
+  it("returns audio only for null resolution", async () => {
+    const { getPlayoutNowPlaying: _ } = await setupService();
+    // Test through shared module instead
+    const { getApplicableRenditions } = await import("../../src/services/media-processing.js");
+    expect(getApplicableRenditions(null, null)).toEqual(["audio"]);
+  });
+});

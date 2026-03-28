@@ -84,6 +84,10 @@ describe("ENV_SCHEMA feature flag defaults", () => {
 
 describe("conditional route registration", () => {
   it("returns 404 for disabled feature routes", async () => {
+    vi.doMock("../src/storage/index.js", () => ({
+      storage: { download: vi.fn(), upload: vi.fn(), delete: vi.fn(), head: vi.fn() },
+      s3Multipart: null,
+    }));
     vi.doMock("../src/config.js", async (importOriginal) => {
       const actual = await importOriginal<typeof import("../src/config.js")>();
       return {
@@ -102,6 +106,10 @@ describe("conditional route registration", () => {
   });
 
   it("keeps health endpoint regardless of feature flags", async () => {
+    vi.doMock("../src/storage/index.js", () => ({
+      storage: { download: vi.fn(), upload: vi.fn(), delete: vi.fn(), head: vi.fn() },
+      s3Multipart: null,
+    }));
     vi.doMock("../src/config.js", async (importOriginal) => {
       const actual = await importOriginal<typeof import("../src/config.js")>();
       return {

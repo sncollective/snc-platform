@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 
 import {
   AppError,
+  UnauthorizedError,
   ValidationError,
   NotFoundError,
   ACCEPTED_MIME_TYPES,
@@ -33,6 +34,9 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { storage, s3Multipart } from "../storage/index.js";
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
+import { playoutItems } from "../db/schema/playout.schema.js";
+import { getBoss } from "../jobs/boss.js";
+import { JOB_QUEUES } from "../jobs/register-workers.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { sanitizeFilename } from "../lib/file-utils.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "../lib/openapi-errors.js";
@@ -47,6 +51,7 @@ const PURPOSE_KEY_PREFIX: Record<UploadPurpose, string> = {
   "content-thumbnail": "content",
   "creator-avatar": "creators",
   "creator-banner": "creators",
+  "playout-media": "playout",
 };
 
 const PURPOSE_FIELD: Record<UploadPurpose, string> = {
@@ -54,6 +59,7 @@ const PURPOSE_FIELD: Record<UploadPurpose, string> = {
   "content-thumbnail": "thumbnail",
   "creator-avatar": "avatar",
   "creator-banner": "banner",
+  "playout-media": "source",
 };
 
 // ── Private Helpers ──
@@ -99,6 +105,9 @@ const validateUpload = (
   ) {
     acceptedTypes = ACCEPTED_MIME_TYPES.image;
     maxSize = MAX_FILE_SIZES.image;
+  } else if (purpose === "playout-media") {
+    acceptedTypes = ACCEPTED_MIME_TYPES.video;
+    maxSize = MAX_FILE_SIZES.video;
   } else {
     throw new ValidationError("Unknown upload purpose");
   }
@@ -119,7 +128,15 @@ const verifyOwnership = async (
   purpose: UploadPurpose,
   resourceId: string,
   userId: string,
+  roles?: string[],
 ): Promise<{ contentType?: string }> => {
+  if (purpose === "playout-media") {
+    if (!roles?.includes("admin")) {
+      throw new UnauthorizedError("Admin role required for playout uploads");
+    }
+    return {};
+  }
+
   if (purpose.startsWith("content-")) {
     const [row] = await db
       .select({ creatorId: content.creatorId, type: content.type })
@@ -185,6 +202,11 @@ const recordUpload = async (
       .update(creatorProfiles)
       .set({ bannerKey: key, updatedAt: new Date() })
       .where(eq(creatorProfiles.id, resourceId));
+  } else if (purpose === "playout-media") {
+    await db
+      .update(playoutItems)
+      .set({ sourceKey: key, updatedAt: new Date() })
+      .where(eq(playoutItems.id, resourceId));
   } else {
     throw new ValidationError("Invalid purpose for completion");
   }
@@ -220,8 +242,9 @@ uploadRoutes.post(
     requireS3();
     const body = c.req.valid("json" as never) as PresignRequest;
     const user = c.get("user");
+    const roles = c.get("roles") ?? [];
 
-    const { contentType } = await verifyOwnership(body.purpose, body.resourceId, user.id);
+    const { contentType } = await verifyOwnership(body.purpose, body.resourceId, user.id, roles);
     validateUpload(body.purpose, body.contentType, body.size, contentType);
 
     const key = generateKey(body.purpose, body.resourceId, body.filename);
@@ -263,8 +286,9 @@ uploadRoutes.post(
     requireS3();
     const body = c.req.valid("json" as never) as CreateMultipartRequest;
     const user = c.get("user");
+    const roles = c.get("roles") ?? [];
 
-    const { contentType } = await verifyOwnership(body.purpose, body.resourceId, user.id);
+    const { contentType } = await verifyOwnership(body.purpose, body.resourceId, user.id, roles);
     validateUpload(body.purpose, body.contentType, body.size, contentType);
 
     const key = generateKey(body.purpose, body.resourceId, body.filename);
@@ -436,22 +460,25 @@ uploadRoutes.post(
   async (c) => {
     const body = c.req.valid("json" as never) as CompleteUploadRequest;
     const user = c.get("user");
+    const roles = c.get("roles") ?? [];
 
     const expectedPrefix = `${PURPOSE_KEY_PREFIX[body.purpose]}/${body.resourceId}/${PURPOSE_FIELD[body.purpose]}/`;
     if (!body.key.startsWith(expectedPrefix)) {
       throw new ValidationError("Key does not match the expected upload path");
     }
 
-    await verifyOwnership(body.purpose, body.resourceId, user.id);
+    await verifyOwnership(body.purpose, body.resourceId, user.id, roles);
 
     const purposeCategory =
       body.purpose === "content-media"
         ? "media"
-        : body.purpose.includes("thumbnail") ||
-            body.purpose.includes("avatar") ||
-            body.purpose.includes("banner")
-          ? "image"
-          : "media";
+        : body.purpose === "playout-media"
+          ? "video"
+          : body.purpose.includes("thumbnail") ||
+              body.purpose.includes("avatar") ||
+              body.purpose.includes("banner")
+            ? "image"
+            : "media";
 
     const headResult = await storage.head(body.key);
     if (!headResult.ok) {
@@ -482,6 +509,34 @@ uploadRoutes.post(
     }
 
     await recordUpload(body.purpose, body.resourceId, body.key);
+
+    if (body.purpose === "content-media") {
+      // Set processing status to "processing"
+      await db
+        .update(content)
+        .set({ processingStatus: "processing", updatedAt: new Date() })
+        .where(eq(content.id, body.resourceId));
+
+      // Queue probe job
+      const boss = getBoss();
+      if (boss) {
+        await boss.send(JOB_QUEUES.PROBE_CODEC, { contentId: body.resourceId });
+      }
+    }
+
+    if (body.purpose === "playout-media") {
+      // Set processing status to "uploading" → ingest job will set it to "processing"
+      await db
+        .update(playoutItems)
+        .set({ processingStatus: "uploading", updatedAt: new Date() })
+        .where(eq(playoutItems.id, body.resourceId));
+
+      // Queue playout ingest job
+      const boss = getBoss();
+      if (boss) {
+        await boss.send(JOB_QUEUES.PLAYOUT_INGEST, { playoutItemId: body.resourceId });
+      }
+    }
 
     return c.json({ ok: true, key: body.key });
   },

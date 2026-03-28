@@ -44,24 +44,12 @@ import {
   batchGetLastPublished,
 } from "../services/creator-list.js";
 import { toISO } from "../lib/response-helpers.js";
+import { resolveCreatorUrls } from "../lib/creator-url.js";
 import { CreatorIdParam } from "./route-params.js";
 
 // ── Private Types ──
 
 type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
-
-// ── Private Helpers ──
-
-const resolveCreatorUrls = (
-  profile: CreatorProfileRow,
-): { avatarUrl: string | null; bannerUrl: string | null } => ({
-  avatarUrl: profile.avatarKey
-    ? `/api/creators/${profile.id}/avatar`
-    : null,
-  bannerUrl: profile.bannerKey
-    ? `/api/creators/${profile.id}/banner`
-    : null,
-});
 
 const findCreatorProfile = async (
   identifier: string,

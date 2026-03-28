@@ -1,6 +1,6 @@
-import { pgTable, text, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, uniqueIndex, integer, real } from "drizzle-orm/pg-core";
 
-import type { ContentType, Visibility, SourceType } from "@snc/shared";
+import type { ContentType, Visibility, SourceType, ProcessingStatus } from "@snc/shared";
 
 import { creatorProfiles } from "./creator.schema.js";
 
@@ -30,6 +30,14 @@ export const content = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    videoCodec: text("video_codec"),
+    audioCodec: text("audio_codec"),
+    width: integer("width"),
+    height: integer("height"),
+    duration: real("duration"),
+    bitrate: integer("bitrate"),
+    processingStatus: text("processing_status").$type<ProcessingStatus>(),
+    transcodedMediaKey: text("transcoded_media_key"),
   },
   (table) => [
     index("content_creator_active_idx").on(table.creatorId, table.deletedAt),
@@ -40,5 +48,6 @@ export const content = pgTable(
       table.publishedAt,
     ),
     uniqueIndex("content_creator_slug_idx").on(table.creatorId, table.slug),
+    index("content_processing_status_idx").on(table.processingStatus),
   ],
 );

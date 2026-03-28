@@ -262,7 +262,12 @@ contentMediaRoutes.get(
   optionalAuth,
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };
-    const { row, key } = await requireContentFile(id, "mediaKey", "No media uploaded for this content");
+    const { row, key: rawKey } = await requireContentFile(id, "mediaKey", "No media uploaded for this content");
+
+    // Prefer transcoded version when processing is complete
+    const key = (row.processingStatus === "ready" && row.transcodedMediaKey)
+      ? row.transcodedMediaKey
+      : rawKey;
 
     // Access check: subscribers-only requires active subscription
     if (row.visibility === "subscribers") {

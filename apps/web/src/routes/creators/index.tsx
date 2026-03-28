@@ -29,6 +29,12 @@ export const Route = createFileRoute("/creators/")({
       return { items: [], nextCursor: null };
     }
   },
+  head: () => ({
+    meta: [
+      { title: "Creators — S/NC" },
+      { name: "description", content: "Discover creators on the S/NC platform." },
+    ],
+  }),
   component: CreatorsPage,
 });
 

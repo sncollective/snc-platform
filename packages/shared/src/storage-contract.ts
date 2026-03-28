@@ -3,6 +3,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { StorageProvider } from "./storage.js";
 import { NotFoundError } from "./errors.js";
 
+// ── Private Helpers ──
+
+const makeNByteContent = (n: number): string => "x".repeat(n);
+
 // ── Public Helpers ──
 
 /** Convert a string to a ReadableStream for storage upload tests. */
@@ -188,6 +192,67 @@ export const runStorageContractTests = (
         expect(typeof result.value).toBe("string");
         expect(result.value.length).toBeGreaterThan(0);
       }
+    });
+
+    describe("downloadRange", () => {
+      it("returns matching partial content after upload", async () => {
+        // 11-byte content: "hello world"
+        const content = "hello world";
+        await provider.upload("test/range.txt", textToStream(content));
+
+        // bytes 0-4 = "hello" (5 bytes)
+        const result = await provider.downloadRange("test/range.txt", 0, 4);
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const text = await streamToText(result.value.stream);
+          expect(text).toBe("hello");
+        }
+      });
+
+      it("returns correct contentLength and totalSize", async () => {
+        const content = "hello world"; // 11 bytes
+        await provider.upload("test/range-sizes.txt", textToStream(content));
+
+        // bytes 0-9 = first 10 bytes
+        const result = await provider.downloadRange("test/range-sizes.txt", 0, 9);
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.value.contentLength).toBe(10);
+          expect(result.value.totalSize).toBe(
+            new TextEncoder().encode(content).byteLength,
+          );
+        }
+      });
+
+      it("range boundaries are inclusive (bytes 0-9 on 11-byte file = first 10 bytes)", async () => {
+        const content = makeNByteContent(11);
+        await provider.upload("test/range-inclusive.txt", textToStream(content));
+
+        const result = await provider.downloadRange("test/range-inclusive.txt", 0, 9);
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          const text = await streamToText(result.value.stream);
+          expect(text).toBe(makeNByteContent(10));
+          expect(result.value.range.start).toBe(0);
+          expect(result.value.range.end).toBe(9);
+        }
+      });
+
+      it("returns NotFoundError for non-existent key", async () => {
+        const result = await provider.downloadRange(
+          "test/never-uploaded-range-" + Date.now() + ".txt",
+          0,
+          99,
+        );
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.error).toBeInstanceOf(NotFoundError);
+        }
+      });
     });
   });
 };

@@ -31,6 +31,7 @@ export function OptionalImage({
         alt={alt}
         className={className}
         loading={loading}
+        decoding="async"
         width={width}
         height={height}
       />

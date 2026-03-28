@@ -43,6 +43,7 @@ describe("UPLOAD_PURPOSES", () => {
       "content-thumbnail",
       "creator-avatar",
       "creator-banner",
+      "playout-media",
     ]);
   });
 });

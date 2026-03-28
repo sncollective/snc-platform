@@ -18,6 +18,14 @@ type DbContentRow = {
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  processingStatus: string | null;
+  transcodedMediaKey: string | null;
+  videoCodec: string | null;
+  audioCodec: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  bitrate: number | null;
 };
 
 // ── Public API ──
@@ -39,6 +47,13 @@ export const makeMockContent = (
   publishedAt: "2026-01-01T00:00:00.000Z",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+  processingStatus: null,
+  videoCodec: null,
+  audioCodec: null,
+  width: null,
+  height: null,
+  duration: null,
+  bitrate: null,
   ...overrides,
 });
 
@@ -60,5 +75,13 @@ export const makeMockDbContent = (
   deletedAt: null,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+  processingStatus: null,
+  transcodedMediaKey: null,
+  videoCodec: null,
+  audioCodec: null,
+  width: null,
+  height: null,
+  duration: null,
+  bitrate: null,
   ...overrides,
 });

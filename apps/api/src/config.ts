@@ -55,6 +55,11 @@ export const ENV_SCHEMA = z.object({
   SRS_API_URL: z.string().url().optional(),
   SRS_HLS_URL: z.string().url().optional(),
   SRS_STREAM_KEY: z.string().min(1).optional(),
+  PLAYOUT_STREAM_KEY: z.string().min(1).optional(),
+  LIQUIDSOAP_API_URL: z.string().url().optional(),
+  // Media processing
+  MEDIA_TEMP_DIR: z.string().default("/tmp/snc-media"),
+  MEDIA_FFMPEG_CONCURRENCY: z.coerce.number().int().min(1).default(2),
   // Phase 11: ActivityPub federation (off by default — domain must be configured)
   FEDERATION_DOMAIN: z.string().min(1).default("s-nc.org"),
   FEATURE_FEDERATION: z

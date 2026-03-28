@@ -16,91 +16,13 @@
   align-items: center;
 }
 
-.editButton,
-.saveButton,
-.cancelEditButton,
-.publishButton,
-.unpublishButton {
-  padding: var(--space-xs) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-}
-
-.editButton:hover,
-.cancelEditButton:hover {
-  background: var(--color-bg-alt);
-}
-
-.saveButton {
-  border-color: var(--color-accent);
+.editLink {
   color: var(--color-accent);
-}
-
-.saveButton:hover {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.publishButton {
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.publishButton:hover {
-  background: var(--color-success);
-  color: var(--color-bg);
-}
-
-.publishButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.unpublishButton {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.unpublishButton:hover {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.deleteButton {
-  background: none;
-  border: 1px solid var(--color-error);
-  color: var(--color-error);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-}
-
-.deleteButton:hover {
-  background: var(--color-error);
-  color: var(--color-bg);
-}
-
-.actionError {
-  color: var(--color-error);
-  font-size: var(--font-size-sm);
-  width: 100%;
-}
-
-.backLink {
-  padding: var(--space-xs) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
   text-decoration: none;
+  font-family: var(--font-ui);
   font-size: var(--font-size-sm);
 }
 
-.backLink:hover {
-  background: var(--color-bg-alt);
-  color: var(--color-text);
+.editLink:hover {
+  text-decoration: underline;
 }

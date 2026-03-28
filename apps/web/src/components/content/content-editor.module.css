@@ -1,0 +1,62 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.saveButton,
+.publishButton,
+.unpublishButton,
+.deleteButton {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.saveButton {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.publishButton {
+  background: var(--color-success);
+  color: var(--color-bg);
+  border-color: var(--color-success);
+}
+
+.unpublishButton {
+  background: transparent;
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.deleteButton {
+  background: transparent;
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.saveButton:disabled,
+.publishButton:disabled,
+.unpublishButton:disabled,
+.deleteButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionError {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}

@@ -48,7 +48,7 @@ vi.mock("../../../src/lib/admin.js", () => ({
 
 // ── Component Under Test ──
 
-const AdminPage = extractRouteComponent(() => import("../../../src/routes/admin.js"));
+const AdminPage = extractRouteComponent(() => import("../../../src/routes/admin/index.js"));
 
 // ── Lifecycle ──
 

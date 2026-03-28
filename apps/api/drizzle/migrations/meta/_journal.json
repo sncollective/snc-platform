@@ -8,6 +8,48 @@
       "when": 1774224016964,
       "tag": "0000_sturdy_donald_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774539216091,
+      "tag": "0001_sudden_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774557640066,
+      "tag": "0002_many_nightcrawler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774559686382,
+      "tag": "0003_blushing_mongu",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774651721173,
+      "tag": "0004_wooden_the_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774651802784,
+      "tag": "0005_parallel_phalanx",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774667645397,
+      "tag": "0006_free_amazoness",
+      "breakpoints": true
     }
   ]
 }

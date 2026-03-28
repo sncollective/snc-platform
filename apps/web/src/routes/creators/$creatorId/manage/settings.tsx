@@ -219,7 +219,7 @@ function ManageSettingsPage(): React.ReactElement {
         <div className={styles.imageField}>
           <span className={formStyles.label}>Avatar</span>
           {avatarUrl && (
-            <img src={avatarUrl} alt="Avatar preview" className={styles.avatarPreview} width={96} height={96} />
+            <img src={avatarUrl} alt="Avatar preview" className={styles.avatarPreview} decoding="async" width={96} height={96} />
           )}
           <input
             type="file"
@@ -241,7 +241,7 @@ function ManageSettingsPage(): React.ReactElement {
         <div className={styles.imageField}>
           <span className={formStyles.label}>Banner</span>
           {bannerUrl && (
-            <img src={bannerUrl} alt="Banner preview" className={styles.bannerPreview} width={300} height={100} />
+            <img src={bannerUrl} alt="Banner preview" className={styles.bannerPreview} decoding="async" width={300} height={100} />
           )}
           <input
             type="file"

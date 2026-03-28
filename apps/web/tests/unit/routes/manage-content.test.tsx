@@ -82,7 +82,7 @@ vi.mock("../../../src/components/content/my-content-list.js", () => ({
 // ── Component Under Test ──
 
 const ManageContentPage = extractRouteComponent(
-  () => import("../../../src/routes/creators/$creatorId/manage/content.js"),
+  () => import("../../../src/routes/creators/$creatorId/manage/content/index.js"),
 );
 
 // ── Lifecycle ──

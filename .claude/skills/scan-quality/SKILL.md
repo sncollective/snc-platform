@@ -20,6 +20,7 @@ contextual judgment about business intent and coupling.
 | Complexity | `complexity` | Overly long/nested/tangled code | [details](references/complexity.md) |
 | Pattern compliance | `pattern` | Deviations from documented project patterns | [details](references/pattern-compliance.md) |
 | Best practices | `practice` | Library usage that could be improved, OSS alternatives | [details](references/best-practices.md) |
+| Import correctness | `import` | Wrong-package imports masked by bundler optimization | [details](references/import-correctness.md) |
 
 ## Confidence Mapping
 
@@ -36,3 +37,4 @@ Quality findings require more judgment than rule-based scans. Use these guidelin
 | Unused abstraction / speculative code | medium | Analyze |
 | Library best practice suggestion | low | Backlog |
 | OSS alternative suggestion | low | Backlog |
+| Wrong-package import (masked by bundler) | high | Fix |

@@ -12,6 +12,12 @@ import { StudioInquiryForm } from "../components/studio/studio-inquiry-form.js";
 import styles from "./studio.module.css";
 
 export const Route = createFileRoute("/studio")({
+  head: () => ({
+    meta: [
+      { title: "Studio — S/NC" },
+      { name: "description", content: "Book recording sessions at the S/NC studio." },
+    ],
+  }),
   component: StudioPage,
 });
 

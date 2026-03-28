@@ -1,0 +1,17 @@
+.uploaded,
+.processing {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.failed {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.default {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

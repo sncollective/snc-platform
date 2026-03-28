@@ -14,7 +14,8 @@
     "db:generate": "node --import tsx node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --import tsx node_modules/drizzle-kit/bin.cjs migrate",
     "seed:admin": "tsx --import ./src/env.ts src/scripts/seed-admin.ts",
-    "seed:demo": "ALLOW_DEMO_SEED=true tsx --import ./src/env.ts src/scripts/seed-demo.ts"
+    "seed:demo": "ALLOW_DEMO_SEED=true tsx --import ./src/env.ts src/scripts/seed-demo.ts",
+    "db:seed-channels": "tsx --import ./src/env.ts src/scripts/seed-channels.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",
@@ -23,6 +24,7 @@
     "@fedify/hono": "^2.0.5",
     "@fedify/postgres": "^2.0.5",
     "@hono/node-server": "^1.19.11",
+    "@hono/node-ws": "^1.3.0",
     "@hono/standard-validator": "^0.2.2",
     "@scalar/hono-api-reference": "^0.9.46",
     "@snc/shared": "workspace:*",
@@ -33,6 +35,7 @@
     "hono-pino": "^0.10.3",
     "ical-generator": "^10.0.0",
     "nodemailer": "^8.0.2",
+    "pg-boss": "^12.14.0",
     "pino": "^10.3.1",
     "postgres": "^3.4.7",
     "stripe": "^20.4.0",

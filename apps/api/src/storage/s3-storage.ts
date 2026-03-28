@@ -15,6 +15,7 @@ import type {
   UploadMetadata,
   UploadResult,
   DownloadResult,
+  RangeDownloadResult,
   Result,
 } from "@snc/shared";
 
@@ -72,6 +73,45 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       }
       const webStream = response.Body.transformToWebStream() as ReadableStream<Uint8Array>;
       return ok({ stream: webStream, size: response.ContentLength ?? 0 });
+    } catch (e) {
+      if (isNoSuchKey(e)) {
+        return err(new NotFoundError("File not found"));
+      }
+      return err(wrapS3Error(e, "S3_ERROR"));
+    }
+  };
+
+  const downloadRange = async (
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<Result<RangeDownloadResult, AppError>> => {
+    try {
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Range: `bytes=${start}-${end}`,
+        }),
+      );
+      if (!response.Body) {
+        return err(new NotFoundError("File not found"));
+      }
+
+      const webStream =
+        response.Body.transformToWebStream() as ReadableStream<Uint8Array>;
+
+      // ContentRange format: "bytes start-end/total"
+      const totalSize = response.ContentRange
+        ? Number(response.ContentRange.split("/")[1])
+        : 0;
+
+      return ok({
+        stream: webStream,
+        contentLength: response.ContentLength ?? end - start + 1,
+        totalSize,
+        range: { start, end },
+      });
     } catch (e) {
       if (isNoSuchKey(e)) {
         return err(new NotFoundError("File not found"));
@@ -146,6 +186,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
   return {
     upload,
     download,
+    downloadRange,
     delete: deleteFile,
     getSignedUrl: getSignedUrlFn,
     head,

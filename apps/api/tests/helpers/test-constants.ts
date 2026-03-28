@@ -48,6 +48,8 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   SRS_API_URL: TEST_SRS_API_URL as string | undefined,
   SRS_HLS_URL: TEST_SRS_HLS_URL as string | undefined,
   SRS_STREAM_KEY: TEST_SRS_STREAM_KEY as string | undefined,
+  PLAYOUT_STREAM_KEY: "pk_test_playout_key" as string | undefined,
+  LIQUIDSOAP_API_URL: undefined as string | undefined,
   FEATURE_CONTENT: true,
   FEATURE_CREATOR: true,
   FEATURE_SUBSCRIPTION: true,

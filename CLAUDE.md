@@ -76,13 +76,23 @@ Scan rule libraries (auto-discovered by refactor pipeline skills):
 
 ## Docker Networking
 - You are running inside a Docker container on the shared `claude-net` Docker network
-- Postgres starts automatically on container boot via `scripts/platform/start-dev.sh` (in the parent monorepo)
-- To restart Postgres manually:
+- Postgres and Garage S3 start automatically on container boot via `scripts/platform/start-dev.sh` (in the parent monorepo)
+- Garage is initialized automatically by `scripts/platform/init-garage.sh` (layout, bucket, API key — idempotent)
+- To restart services manually:
   `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d`
 - Use the container name to reach services — Docker DNS resolves them automatically:
   - `DATABASE_URL=postgres://snc:snc@snc-postgres:5432/snc`
+  - `S3_ENDPOINT=http://snc-garage:3900` (Garage S3 API)
 - Fallback if shared network doesn't work: use `host.docker.internal` with the
   host-mapped port (e.g., `postgres://snc:snc@host.docker.internal:5432/snc`)
+
+## Storage (Dev)
+- Dev uses **Garage S3** (same as production) — configured via `STORAGE_TYPE=s3` in devcontainer.json
+- Garage container: `snc-garage` on port 3900 (S3 API), 3903 (admin API)
+- Bucket: `snc-storage` (created automatically by init script)
+- API key credentials: generated on first boot by `init-garage.sh` — add `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` to `platform/.env`
+- Config: `platform/garage.toml` (dev-friendly defaults, mirrors production structure from `docs/ops/garage-deploy.md`)
+- CORS configured for dev origins (localhost:3080, 3082, 3084)
 
 ## Repository Context
 

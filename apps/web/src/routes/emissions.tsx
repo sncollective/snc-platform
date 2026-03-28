@@ -27,6 +27,12 @@ export const Route = createFileRoute("/emissions")({
       data: "/api/emissions/breakdown",
     })) as EmissionsBreakdown;
   },
+  head: () => ({
+    meta: [
+      { title: "Emissions — S/NC" },
+      { name: "description", content: "Our transparent emissions ledger — what we've emitted, offset, and where we stand." },
+    ],
+  }),
   component: EmissionsPage,
 });
 

@@ -60,6 +60,15 @@ export const Route = createFileRoute("/")({
     ]);
     return { creators, recentContent, plans };
   },
+  head: () => ({
+    meta: [
+      { title: "S/NC — Platform Cooperative for Media" },
+      { name: "description", content: "A multi-stakeholder platform cooperative for media production and distribution." },
+      { property: "og:title", content: "S/NC — Platform Cooperative for Media" },
+      { property: "og:description", content: "A multi-stakeholder platform cooperative for media production and distribution." },
+      { property: "og:type", content: "website" },
+    ],
+  }),
   component: LandingPage,
 });
 
