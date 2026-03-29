@@ -25,7 +25,7 @@ const logger = rootLogger.child({ service: "playout" });
 
 const PLAYLIST_DIR = path.resolve(
   import.meta.dirname,
-  "../../../liquidsoap",
+  "../../../../liquidsoap",
 );
 const PLAYLIST_PATH = path.join(PLAYLIST_DIR, "playlist.m3u");
 

@@ -1,0 +1,254 @@
+/* ── Management List ── */
+
+.managementList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ── Filter Bar ── */
+
+.filterBar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.filterLabel {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.filterSelect {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--color-text);
+}
+
+/* ── Content Section ── */
+
+.contentSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.sectionHeading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ── Grid Header ── */
+
+.gridHeader {
+  display: grid;
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-sm);
+}
+
+/* ── Grid Row ── */
+
+.gridRow {
+  display: grid;
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-sm);
+  transition: background 0.1s;
+  align-items: center;
+}
+
+.gridRow:hover {
+  background: var(--color-bg-elevated);
+}
+
+.gridCell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.gridCell:last-child {
+  overflow: visible;
+}
+
+/* ── Cell: Title ── */
+
+.cellTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+/* ── Type Badge ── */
+
+.typeBadge {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.typeBadge_video {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.typeBadge_audio {
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.typeBadge_written {
+  color: var(--color-text-muted);
+}
+
+/* ── Status Badge ── */
+
+.statusBadge {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: 999px;
+}
+
+.statusDraft {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.statusPublished {
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+}
+
+/* ── Row Actions ── */
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+/* ── Edit Link ── */
+
+.editLink {
+  color: var(--color-secondary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.editLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Kebab Menu ── */
+
+.kebabWrapper {
+  position: relative;
+}
+
+.kebabButton {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-xs);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: color 0.1s;
+}
+
+.kebabButton:hover {
+  color: var(--color-text);
+}
+
+.kebabMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: var(--space-xs);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  min-width: 120px;
+}
+
+.deleteAction {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.deleteAction:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 15%, transparent);
+}
+
+.deleteAction:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Messages ── */
+
+.emptyMessage {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-xl) 0;
+  margin: 0;
+}
+
+.loadingMessage {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-md) 0;
+  margin: 0;
+}
+
+.errorMessage {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  margin: 0;
+}

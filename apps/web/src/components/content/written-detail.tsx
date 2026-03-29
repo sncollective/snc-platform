@@ -25,6 +25,8 @@ export interface WrittenDetailProps {
   readonly plans?: readonly SubscriptionPlan[];
   readonly isEditing?: boolean;
   readonly editCallbacks?: WrittenDetailEditCallbacks;
+  /** When true, skip rendering EditableContentMeta/ContentMeta (metadata handled externally). */
+  readonly hideMetadata?: boolean;
 }
 
 // ── Private Constants ──
@@ -40,6 +42,7 @@ export function WrittenDetail({
   plans,
   isEditing,
   editCallbacks,
+  hideMetadata,
 }: WrittenDetailProps): React.ReactElement {
   if (locked === true) {
     const previewText = item.body
@@ -78,27 +81,29 @@ export function WrittenDetail({
 
   return (
     <div className={styles.writtenDetail}>
-      <header className={styles.header}>
-        {isEditing && editCallbacks ? (
-          <EditableContentMeta
-            title={item.title}
-            creatorName={item.creatorName}
-            publishedAt={item.publishedAt}
-            description={item.description}
-            visibility={item.visibility}
-            isEditing={true}
-            onTitleChange={editCallbacks.onTitleChange}
-            onDescriptionChange={editCallbacks.onDescriptionChange}
-            onVisibilityChange={editCallbacks.onVisibilityChange}
-          />
-        ) : (
-          <ContentMeta
-            title={item.title}
-            creatorName={item.creatorName}
-            publishedAt={item.publishedAt}
-          />
-        )}
-      </header>
+      {!hideMetadata && (
+        <header className={styles.header}>
+          {isEditing && editCallbacks ? (
+            <EditableContentMeta
+              title={item.title}
+              creatorName={item.creatorName}
+              publishedAt={item.publishedAt}
+              description={item.description}
+              visibility={item.visibility}
+              isEditing={true}
+              onTitleChange={editCallbacks.onTitleChange}
+              onDescriptionChange={editCallbacks.onDescriptionChange}
+              onVisibilityChange={editCallbacks.onVisibilityChange}
+            />
+          ) : (
+            <ContentMeta
+              title={item.title}
+              creatorName={item.creatorName}
+              publishedAt={item.publishedAt}
+            />
+          )}
+        </header>
+      )}
       {isEditing && editCallbacks && (
         <ThumbnailEditSection
           thumbnailSrc={item.thumbnailUrl}

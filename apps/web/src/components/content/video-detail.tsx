@@ -30,6 +30,8 @@ export interface VideoDetailProps {
   readonly plans?: readonly SubscriptionPlan[];
   readonly isEditing?: boolean;
   readonly editCallbacks?: VideoDetailEditCallbacks;
+  /** When true, skip rendering EditableContentMeta/ContentMeta/ContentFooter (metadata handled externally). */
+  readonly hideMetadata?: boolean;
 }
 
 // ── Public API ──
@@ -41,6 +43,7 @@ export function VideoDetail({
   plans,
   isEditing,
   editCallbacks,
+  hideMetadata,
 }: VideoDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
   const [lockedImgBroken, setLockedImgBroken] = useState(false);
@@ -122,28 +125,30 @@ export function VideoDetail({
             styles={styles}
           />
         )}
-        <div className={styles.meta}>
-          {isEditing && editCallbacks ? (
-            <EditableContentMeta
-              title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-              description={item.description}
-              visibility={item.visibility}
-              isEditing={true}
-              onTitleChange={editCallbacks.onTitleChange}
-              onDescriptionChange={editCallbacks.onDescriptionChange}
-              onVisibilityChange={editCallbacks.onVisibilityChange}
-            />
-          ) : (
-            <ContentMeta
-              title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-            />
-          )}
-        </div>
-        <ContentFooter description={isEditing ? null : item.description} />
+        {!hideMetadata && (
+          <div className={styles.meta}>
+            {isEditing && editCallbacks ? (
+              <EditableContentMeta
+                title={item.title}
+                creatorName={item.creatorName}
+                publishedAt={item.publishedAt}
+                description={item.description}
+                visibility={item.visibility}
+                isEditing={true}
+                onTitleChange={editCallbacks.onTitleChange}
+                onDescriptionChange={editCallbacks.onDescriptionChange}
+                onVisibilityChange={editCallbacks.onVisibilityChange}
+              />
+            ) : (
+              <ContentMeta
+                title={item.title}
+                creatorName={item.creatorName}
+                publishedAt={item.publishedAt}
+              />
+            )}
+          </div>
+        )}
+        {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
       </div>
     );
   }
@@ -176,28 +181,30 @@ export function VideoDetail({
           styles={styles}
         />
       )}
-      <div className={styles.meta}>
-        {isEditing && editCallbacks ? (
-          <EditableContentMeta
-            title={item.title}
-            creatorName={item.creatorName}
-            publishedAt={item.publishedAt}
-            description={item.description}
-            visibility={item.visibility}
-            isEditing={true}
-            onTitleChange={editCallbacks.onTitleChange}
-            onDescriptionChange={editCallbacks.onDescriptionChange}
-            onVisibilityChange={editCallbacks.onVisibilityChange}
-          />
-        ) : (
-          <ContentMeta
-            title={item.title}
-            creatorName={item.creatorName}
-            publishedAt={item.publishedAt}
-          />
-        )}
-      </div>
-      <ContentFooter description={isEditing ? null : item.description} />
+      {!hideMetadata && (
+        <div className={styles.meta}>
+          {isEditing && editCallbacks ? (
+            <EditableContentMeta
+              title={item.title}
+              creatorName={item.creatorName}
+              publishedAt={item.publishedAt}
+              description={item.description}
+              visibility={item.visibility}
+              isEditing={true}
+              onTitleChange={editCallbacks.onTitleChange}
+              onDescriptionChange={editCallbacks.onDescriptionChange}
+              onVisibilityChange={editCallbacks.onVisibilityChange}
+            />
+          ) : (
+            <ContentMeta
+              title={item.title}
+              creatorName={item.creatorName}
+              publishedAt={item.publishedAt}
+            />
+          )}
+        </div>
+      )}
+      {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
     </div>
   );
 }

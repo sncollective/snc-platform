@@ -1,11 +1,12 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
 import type React from "react";
+import type { ContentType } from "@snc/shared";
+import { CONTENT_TYPES } from "@snc/shared";
 
-import { ContentForm } from "../../../../../components/content/content-form.js";
-import { DraftContentList } from "../../../../../components/content/draft-content-list.js";
-import { MyContentList } from "../../../../../components/content/my-content-list.js";
-import sectionStyles from "../../../../../styles/detail-section.module.css";
+import { ContentManagementList } from "../../../../../components/content/content-management-list.js";
+import { createContent } from "../../../../../lib/content.js";
+
 import styles from "../content-manage.module.css";
 
 // ── Route ──
@@ -16,55 +17,101 @@ export const Route = createFileRoute("/creators/$creatorId/manage/content/")({
   component: ManageContentPage,
 });
 
+// ── Constants ──
+
+const TYPE_LABELS: Record<ContentType, string> = {
+  video: "Video",
+  audio: "Audio",
+  written: "Written Post",
+};
+
 // ── Component ──
 
 function ManageContentPage(): React.ReactElement {
   const { creator } = manageRoute.useLoaderData();
-  const [showForm, setShowForm] = useState(false);
+  const creatorSlug = creator.handle ?? creator.id;
+  const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const typeSelectorRef = useRef<HTMLDivElement>(null);
 
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  // Click-outside dismiss for the type selector
+  useEffect(() => {
+    if (!showTypeSelector) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        typeSelectorRef.current &&
+        !typeSelectorRef.current.contains(e.target as Node)
+      ) {
+        setShowTypeSelector(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showTypeSelector]);
+
+  const handleCreate = async (type: ContentType) => {
+    setIsCreating(true);
+    try {
+      const draft = await createContent({
+        creatorId: creator.id,
+        title: `Untitled ${TYPE_LABELS[type]}`,
+        type,
+        visibility: "public",
+      });
+      void navigate({
+        to: "/creators/$creatorId/manage/content/$contentId",
+        params: {
+          creatorId: creatorSlug,
+          contentId: draft.slug ?? draft.id,
+        },
+      });
+    } catch {
+      setIsCreating(false);
+      setShowTypeSelector(false);
+    }
+  };
 
   return (
     <div className={styles.contentManage}>
       <div className={styles.header}>
         <h2 className={styles.heading}>Content</h2>
-        {!showForm && (
+        <div className={styles.createWrapper} ref={typeSelectorRef}>
           <button
             type="button"
             className={styles.createButton}
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowTypeSelector((v) => !v)}
+            disabled={isCreating}
           >
-            Create New
+            {isCreating ? "Creating..." : "Create New"}
           </button>
-        )}
+          {showTypeSelector && (
+            <div className={styles.typeSelector}>
+              {CONTENT_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={styles.typeSelectorOption}
+                  onClick={() => void handleCreate(type)}
+                  disabled={isCreating}
+                >
+                  {TYPE_LABELS[type]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {showForm && (
-        <ContentForm
-          creatorId={creator.id}
-          onSuccess={() => {
-            setShowForm(false);
-            refresh();
-          }}
-          onCancel={() => setShowForm(false)}
-          onUploadComplete={refresh}
-        />
-      )}
-
-      <section className={sectionStyles.section}>
-        <h2 className={sectionStyles.sectionHeading}>Drafts</h2>
-        <DraftContentList
-          creatorId={creator.id}
-          refreshKey={refreshKey}
-          onPublished={refresh}
-        />
-      </section>
-
-      <section className={sectionStyles.section}>
-        <h2 className={sectionStyles.sectionHeading}>Published</h2>
-        <MyContentList creatorId={creator.id} refreshKey={refreshKey} onDeleted={refresh} />
-      </section>
+      <ContentManagementList
+        creatorId={creator.id}
+        creatorSlug={creatorSlug}
+        refreshKey={refreshKey}
+        onDeleted={refresh}
+      />
     </div>
   );
 }

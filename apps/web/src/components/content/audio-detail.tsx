@@ -28,6 +28,8 @@ export interface AudioDetailProps {
   readonly plans?: readonly SubscriptionPlan[];
   readonly isEditing?: boolean;
   readonly editCallbacks?: AudioDetailEditCallbacks;
+  /** When true, skip rendering EditableContentMeta/ContentMeta/ContentFooter (metadata handled externally). */
+  readonly hideMetadata?: boolean;
 }
 
 // ── Public API ──
@@ -39,6 +41,7 @@ export function AudioDetail({
   plans,
   isEditing,
   editCallbacks,
+  hideMetadata,
 }: AudioDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
   const [lockedImgBroken, setLockedImgBroken] = useState(false);
@@ -95,7 +98,7 @@ export function AudioDetail({
             imgSize={{ width: 280, height: 280 }}
           />
           <div className={styles.trackInfo}>
-            {isEditing && editCallbacks ? (
+            {!hideMetadata && (isEditing && editCallbacks ? (
               <EditableContentMeta
                 title={item.title}
                 creatorName={item.creatorName}
@@ -113,7 +116,7 @@ export function AudioDetail({
                 creatorName={item.creatorName}
                 publishedAt={item.publishedAt}
               />
-            )}
+            ))}
             {isEditing && editCallbacks?.onMediaUpload ? (
               <div className={styles.uploadPlaceholder}>
                 <button
@@ -137,7 +140,7 @@ export function AudioDetail({
             )}
           </div>
         </div>
-        <ContentFooter description={isEditing ? null : item.description} />
+        {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
       </div>
     );
   }
@@ -157,7 +160,7 @@ export function AudioDetail({
           imgSize={{ width: 280, height: 280 }}
         />
         <div className={styles.trackInfo}>
-          {isEditing && editCallbacks ? (
+          {!hideMetadata && (isEditing && editCallbacks ? (
             <EditableContentMeta
               title={item.title}
               creatorName={item.creatorName}
@@ -175,7 +178,7 @@ export function AudioDetail({
               creatorName={item.creatorName}
               publishedAt={item.publishedAt}
             />
-          )}
+          ))}
           <div className={styles.playerWrapper}>
             <AudioPlayer
               src={mediaSrc}
@@ -200,7 +203,7 @@ export function AudioDetail({
           )}
         </div>
       </div>
-      <ContentFooter description={isEditing ? null : item.description} />
+      {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
     </div>
   );
 }

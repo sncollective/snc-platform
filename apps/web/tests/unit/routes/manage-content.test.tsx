@@ -4,12 +4,21 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 
-// ── Mocks ──
+// ── Hoisted Mocks ──
 
-const mockUseLoaderData = vi.hoisted(() => vi.fn());
+const {
+  mockUseLoaderData,
+  mockNavigate,
+  mockCreateContent,
+} = vi.hoisted(() => ({
+  mockUseLoaderData: vi.fn(),
+  mockNavigate: vi.fn(),
+  mockCreateContent: vi.fn(),
+}));
 
 vi.mock("@tanstack/react-router", () =>
   createRouterMock({
+    useNavigate: () => mockNavigate,
     getRouteApi: () => ({
       useLoaderData: mockUseLoaderData,
       useParams: () => ({}),
@@ -18,61 +27,23 @@ vi.mock("@tanstack/react-router", () =>
   }),
 );
 
-vi.mock("../../../src/components/content/content-form.js", () => ({
-  ContentForm: ({
-    creatorId,
-    onSuccess,
-    onCancel,
-  }: {
-    creatorId: string;
-    onSuccess: () => void;
-    onCancel?: () => void;
-    onUploadComplete?: () => void;
-  }) => (
-    <div data-testid="content-form" data-creator-id={creatorId}>
-      <button type="button" data-testid="form-success-trigger" onClick={onSuccess}>
-        Trigger Success
-      </button>
-      {onCancel && (
-        <button type="button" data-testid="form-cancel-trigger" onClick={onCancel}>
-          Trigger Cancel
-        </button>
-      )}
-    </div>
-  ),
+vi.mock("../../../src/lib/content.js", () => ({
+  createContent: mockCreateContent,
+  deleteContent: vi.fn(),
 }));
 
-vi.mock("../../../src/components/content/draft-content-list.js", () => ({
-  DraftContentList: ({
-    creatorId,
-    creatorHandle,
-    refreshKey,
-  }: {
-    creatorId: string;
-    creatorHandle: string | null;
-    refreshKey: number;
-    onPublished: () => void;
-  }) => (
-    <div
-      data-testid="draft-content-list"
-      data-creator-id={creatorId}
-      data-creator-handle={creatorHandle ?? ""}
-      data-refresh-key={refreshKey}
-    />
-  ),
-}));
-
-vi.mock("../../../src/components/content/my-content-list.js", () => ({
-  MyContentList: ({
+vi.mock("../../../src/components/content/content-management-list.js", () => ({
+  ContentManagementList: ({
     creatorId,
     refreshKey,
   }: {
     creatorId: string;
+    creatorSlug: string;
     refreshKey: number;
-    onDeleted?: () => void;
+    onDeleted: () => void;
   }) => (
     <div
-      data-testid="content-list"
+      data-testid="content-management-list"
       data-creator-id={creatorId}
       data-refresh-key={refreshKey}
     />
@@ -88,6 +59,7 @@ const ManageContentPage = extractRouteComponent(
 // ── Lifecycle ──
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mockUseLoaderData.mockReturnValue({
     creator: { id: "creator-uuid-123", displayName: "Test Creator", handle: "test-creator" },
     memberRole: "owner",
@@ -104,10 +76,9 @@ describe("ManageContentPage", () => {
     expect(screen.getByRole("heading", { name: "Content" })).toBeInTheDocument();
   });
 
-  it("renders Drafts and Published sections", () => {
+  it("renders ContentManagementList instead of DraftContentList and MyContentList", () => {
     render(<ManageContentPage />);
-    expect(screen.getByRole("heading", { name: "Drafts" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Published" })).toBeInTheDocument();
+    expect(screen.getByTestId("content-management-list")).toBeInTheDocument();
   });
 
   it("shows Create New button initially", () => {
@@ -115,60 +86,49 @@ describe("ManageContentPage", () => {
     expect(screen.getByRole("button", { name: "Create New" })).toBeInTheDocument();
   });
 
-  it("does not show ContentForm initially", () => {
-    render(<ManageContentPage />);
-    expect(screen.queryByTestId("content-form")).toBeNull();
-  });
-
-  it("shows ContentForm when Create New button is clicked", () => {
+  it("shows type selector dropdown on Create New click", () => {
     render(<ManageContentPage />);
     fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.getByTestId("content-form")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Video" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Audio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Written Post" })).toBeInTheDocument();
   });
 
-  it("hides Create New button when form is shown", () => {
+  it("does not show type selector initially", () => {
+    render(<ManageContentPage />);
+    expect(screen.queryByRole("button", { name: "Video" })).toBeNull();
+  });
+
+  it("creates draft and navigates on type selection", async () => {
+    mockCreateContent.mockResolvedValue({
+      id: "new-draft-id",
+      slug: "untitled-video",
+    });
+
     render(<ManageContentPage />);
     fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.queryByRole("button", { name: "Create New" })).toBeNull();
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Video" }));
 
-  it("hides ContentForm after cancel", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.getByTestId("content-form")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("form-cancel-trigger"));
-    expect(screen.queryByTestId("content-form")).toBeNull();
-  });
+    await vi.waitFor(() => {
+      expect(mockCreateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          creatorId: "creator-uuid-123",
+          type: "video",
+          title: "Untitled Video",
+        }),
+      );
+    });
 
-  it("hides ContentForm after success", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    fireEvent.click(screen.getByTestId("form-success-trigger"));
-    expect(screen.queryByTestId("content-form")).toBeNull();
-  });
-
-  it("passes creator UUID to ContentForm", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    const form = screen.getByTestId("content-form");
-    expect(form).toHaveAttribute("data-creator-id", "creator-uuid-123");
-  });
-
-  it("passes creator UUID to DraftContentList", () => {
-    render(<ManageContentPage />);
-    const list = screen.getByTestId("draft-content-list");
-    expect(list).toHaveAttribute("data-creator-id", "creator-uuid-123");
-  });
-
-  it("passes creator UUID to MyContentList", () => {
-    render(<ManageContentPage />);
-    const list = screen.getByTestId("content-list");
-    expect(list).toHaveAttribute("data-creator-id", "creator-uuid-123");
-  });
-
-  it("initialises refreshKey to 0", () => {
-    render(<ManageContentPage />);
-    const list = screen.getByTestId("content-list");
-    expect(list).toHaveAttribute("data-refresh-key", "0");
+    await vi.waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "/creators/$creatorId/manage/content/$contentId",
+          params: expect.objectContaining({
+            creatorId: "test-creator",
+            contentId: "untitled-video",
+          }),
+        }),
+      );
+    });
   });
 });

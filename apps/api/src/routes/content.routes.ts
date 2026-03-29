@@ -280,6 +280,7 @@ contentRoutes.get(
       creatorId,
       limit,
       cursor,
+      type: typeFilter,
     } = c.req.valid("query" as never) as DraftQuery;
     const user = c.get("user");
 
@@ -290,6 +291,10 @@ contentRoutes.get(
       isNull(content.publishedAt),
       eq(content.creatorId, creatorId),
     ];
+
+    if (typeFilter) {
+      conditions.push(eq(content.type, typeFilter));
+    }
 
     if (cursor) {
       const decoded = decodeCursor(cursor, {

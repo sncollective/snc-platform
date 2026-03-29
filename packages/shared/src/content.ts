@@ -94,6 +94,7 @@ export const getContentStatus = (item: {
 
 export const DraftQuerySchema = z.object({
   creatorId: z.string().min(1),
+  type: ContentTypeSchema.optional(),
   limit: z
     .string()
     .optional()

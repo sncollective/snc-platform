@@ -81,10 +81,12 @@ export const Route = createFileRoute("/creators/$creatorId/manage")({
 
 function ManageLayout(): React.ReactElement {
   const { creator, memberRole, isAdmin } = Route.useLoaderData();
-  const { creatorId } = Route.useParams();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
-  const basePath = `/creators/${creatorId}/manage`;
+
+  // Use handle when available for human-readable management URLs
+  const creatorSlug = creator.handle ?? creator.id;
+  const basePath = `/creators/${creatorSlug}/manage`;
 
   const permissions = isAdmin
     ? CREATOR_ROLE_PERMISSIONS.owner
@@ -96,7 +98,7 @@ function ManageLayout(): React.ReactElement {
         <h1 className={styles.heading}>{creator.displayName}</h1>
         <Link
           to="/creators/$creatorId"
-          params={{ creatorId }}
+          params={{ creatorId: creatorSlug }}
           className={styles.viewPublic}
         >
           View public page

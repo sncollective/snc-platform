@@ -1,0 +1,230 @@
+/* ── Sidebar Container ── */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--color-bg-elevated);
+  border-left: 1px solid var(--color-border);
+  min-width: 280px;
+  max-width: 320px;
+}
+
+/* ── Section ── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.sectionHeading {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Field Labels ── */
+
+.fieldLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Inputs ── */
+
+.titleInput {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  width: 100%;
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.descriptionInput {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  width: 100%;
+  resize: vertical;
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+/* ── Slug Display ── */
+
+.slugDisplay {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  align-items: center;
+}
+
+.slugLabel {
+  font-weight: 600;
+}
+
+.slugValue {
+  font-family: monospace;
+  color: var(--color-secondary);
+  word-break: break-all;
+}
+
+/* ── Visibility Select ── */
+
+.visibilitySelect {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  width: 100%;
+  color: var(--color-text);
+}
+
+/* ── Media Status ── */
+
+.mediaStatus {
+  display: flex;
+  align-items: center;
+}
+
+.mediaReady {
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+}
+
+.mediaNeeded {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Publish Controls ── */
+
+.publishedInfo {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.publishButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.publishButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.publishButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unpublishButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.unpublishButton:hover:not(:disabled) {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+.unpublishButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.publishHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Publish Confirmation ── */
+
+.publishConfirm {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.confirmText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.confirmActions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-sm);
+}
+
+.confirmButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.confirmButton:hover {
+  background: var(--color-accent-hover);
+}
+
+.cancelButton {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
