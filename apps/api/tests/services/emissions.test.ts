@@ -155,7 +155,7 @@ describe("emissions service", () => {
           }),
         }))
         .mockImplementationOnce(() => ({
-          orderBy: () => Promise.resolve([row]),
+          orderBy: () => ({ limit: () => Promise.resolve([row]) }),
         }));
 
       const { fetchEmissionsBreakdown } = await setupEmissionsService();
@@ -189,7 +189,7 @@ describe("emissions service", () => {
           groupBy: () => ({ orderBy: () => Promise.resolve([]) }),
         }))
         .mockImplementationOnce(() => ({
-          orderBy: () => Promise.resolve([]),
+          orderBy: () => ({ limit: () => Promise.resolve([]) }),
         }));
 
       const { fetchEmissionsBreakdown } = await setupEmissionsService();

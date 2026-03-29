@@ -25,14 +25,12 @@ function formatValue(n: number): string {
 }
 
 function formatDuration(days: number): { value: string; unit: string } {
-  if (days < 1) {
-    const hours = days * 24;
-    if (hours < 1) {
-      const minutes = hours * 60;
-      return { value: formatValue(minutes), unit: "minutes" };
-    }
-    return { value: formatValue(hours), unit: "hours" };
+  const hours = days * 24;
+  if (hours < 1) {
+    const minutes = hours * 60;
+    return { value: formatValue(minutes), unit: "minutes" };
   }
+  if (days < 1) return { value: formatValue(hours), unit: "hours" };
   return { value: formatValue(days), unit: "days" };
 }
 

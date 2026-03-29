@@ -1,17 +1,11 @@
-import { useEffect, useState } from "react";
-
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
+import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
 import styles from "./video-player.module.css";
 
-// ── Types ──
-
-interface VidstackModules {
-  readonly core: typeof import("@vidstack/react");
-  readonly layouts: typeof import("@vidstack/react/player/layouts/default");
-}
+// ── Public Types ──
 
 export interface VideoPlayerProps {
   readonly src: string;
@@ -23,20 +17,7 @@ export interface VideoPlayerProps {
 
 /** Vidstack-powered video player with dynamic import for SSR safety. */
 export function VideoPlayer({ src, poster, mimeType }: VideoPlayerProps) {
-  const [modules, setModules] = useState<VidstackModules | null>(null);
-
-  useEffect(() => {
-    Promise.all([
-      import("@vidstack/react"),
-      import("@vidstack/react/player/layouts/default"),
-    ])
-      .then(([core, layouts]) => {
-        setModules({ core, layouts });
-      })
-      .catch(() => {
-        // Skeleton remains visible on import failure
-      });
-  }, []);
+  const modules = useVidstackModules();
 
   if (modules === null) {
     return <div className={styles.skeleton} />;

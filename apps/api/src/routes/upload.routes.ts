@@ -11,7 +11,7 @@ import {
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
 } from "@snc/shared";
-import type { UploadPurpose } from "@snc/shared";
+import type { UploadPurpose, StorageProvider } from "@snc/shared";
 import {
   PresignRequestSchema,
   PresignResponseSchema,
@@ -45,6 +45,14 @@ import { UploadIdParam, UploadPartParams } from "./route-params.js";
 // ── Private Constants ──
 
 const PRESIGN_EXPIRY_SECONDS = 3600; // 1 hour
+
+const PURPOSE_CATEGORY: Record<UploadPurpose, string> = {
+  "content-media": "media",
+  "content-thumbnail": "image",
+  "creator-avatar": "image",
+  "creator-banner": "image",
+  "playout-media": "video",
+};
 
 const PURPOSE_KEY_PREFIX: Record<UploadPurpose, string> = {
   "content-media": "content",
@@ -212,8 +220,91 @@ const recordUpload = async (
   }
 };
 
+/**
+ * Execute the full post-upload flow: validate key, verify ownership, HEAD-check size,
+ * clean up old storage keys, record the upload in the DB, and queue processing jobs.
+ *
+ * @throws {ValidationError} When the key prefix is wrong, the file is missing, or it exceeds size limits.
+ * @throws {UnauthorizedError} When the caller lacks the required role or ownership.
+ */
+async function completeUploadFlow(params: {
+  body: CompleteUploadRequest;
+  userId: string;
+  roles: string[];
+  storage: StorageProvider;
+  logger: { warn: (obj: object, msg: string) => void };
+}): Promise<{ key: string }> {
+  const { body, userId, roles, storage: storageProvider, logger } = params;
+
+  const expectedPrefix = `${PURPOSE_KEY_PREFIX[body.purpose]}/${body.resourceId}/${PURPOSE_FIELD[body.purpose]}/`;
+  if (!body.key.startsWith(expectedPrefix)) {
+    throw new ValidationError("Key does not match the expected upload path");
+  }
+
+  await verifyOwnership(body.purpose, body.resourceId, userId, roles);
+
+  const purposeCategory = PURPOSE_CATEGORY[body.purpose];
+
+  const headResult = await storageProvider.head(body.key);
+  if (!headResult.ok) {
+    throw new ValidationError("File not found in storage — upload may have failed");
+  }
+  const maxSize = MAX_FILE_SIZES[purposeCategory as keyof typeof MAX_FILE_SIZES];
+  if (headResult.value.size > maxSize) {
+    await storageProvider.delete(body.key);
+    throw new ValidationError("Uploaded file exceeds size limit");
+  }
+
+  if (body.purpose.startsWith("content-")) {
+    const [existing] = await db
+      .select({ mediaKey: content.mediaKey, thumbnailKey: content.thumbnailKey })
+      .from(content)
+      .where(eq(content.id, body.resourceId))
+      .limit(1);
+    const oldKey =
+      body.purpose === "content-media"
+        ? (existing?.mediaKey ?? null)
+        : (existing?.thumbnailKey ?? null);
+    if (oldKey && oldKey !== body.key) {
+      const deleteResult = await storageProvider.delete(oldKey);
+      if (!deleteResult.ok) {
+        logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old file");
+      }
+    }
+  }
+
+  await recordUpload(body.purpose, body.resourceId, body.key);
+
+  if (body.purpose === "content-media") {
+    await db
+      .update(content)
+      .set({ processingStatus: "processing", updatedAt: new Date() })
+      .where(eq(content.id, body.resourceId));
+
+    const boss = getBoss();
+    if (boss) {
+      await boss.send(JOB_QUEUES.PROBE_CODEC, { contentId: body.resourceId });
+    }
+  }
+
+  if (body.purpose === "playout-media") {
+    await db
+      .update(playoutItems)
+      .set({ processingStatus: "uploading", updatedAt: new Date() })
+      .where(eq(playoutItems.id, body.resourceId));
+
+    const boss = getBoss();
+    if (boss) {
+      await boss.send(JOB_QUEUES.PLAYOUT_INGEST, { playoutItemId: body.resourceId });
+    }
+  }
+
+  return { key: body.key };
+}
+
 // ── Public Routes ──
 
+/** Direct-to-storage and multipart upload lifecycle. */
 export const uploadRoutes = new Hono<AuthEnv>();
 
 // POST /presign — Get presigned PUT URL for single-file upload
@@ -462,82 +553,14 @@ uploadRoutes.post(
     const user = c.get("user");
     const roles = c.get("roles") ?? [];
 
-    const expectedPrefix = `${PURPOSE_KEY_PREFIX[body.purpose]}/${body.resourceId}/${PURPOSE_FIELD[body.purpose]}/`;
-    if (!body.key.startsWith(expectedPrefix)) {
-      throw new ValidationError("Key does not match the expected upload path");
-    }
+    const { key } = await completeUploadFlow({
+      body,
+      userId: user.id,
+      roles,
+      storage,
+      logger: c.var.logger,
+    });
 
-    await verifyOwnership(body.purpose, body.resourceId, user.id, roles);
-
-    const purposeCategory =
-      body.purpose === "content-media"
-        ? "media"
-        : body.purpose === "playout-media"
-          ? "video"
-          : body.purpose.includes("thumbnail") ||
-              body.purpose.includes("avatar") ||
-              body.purpose.includes("banner")
-            ? "image"
-            : "media";
-
-    const headResult = await storage.head(body.key);
-    if (!headResult.ok) {
-      throw new ValidationError("File not found in storage — upload may have failed");
-    }
-    const maxSize = MAX_FILE_SIZES[purposeCategory as keyof typeof MAX_FILE_SIZES];
-    if (headResult.value.size > maxSize) {
-      await storage.delete(body.key);
-      throw new ValidationError("Uploaded file exceeds size limit");
-    }
-
-    if (body.purpose.startsWith("content-")) {
-      const [existing] = await db
-        .select()
-        .from(content)
-        .where(eq(content.id, body.resourceId))
-        .limit(1);
-      const oldKey =
-        body.purpose === "content-media"
-          ? (existing?.mediaKey ?? null)
-          : (existing?.thumbnailKey ?? null);
-      if (oldKey && oldKey !== body.key) {
-        const deleteResult = await storage.delete(oldKey);
-        if (!deleteResult.ok) {
-          c.var.logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old file");
-        }
-      }
-    }
-
-    await recordUpload(body.purpose, body.resourceId, body.key);
-
-    if (body.purpose === "content-media") {
-      // Set processing status to "processing"
-      await db
-        .update(content)
-        .set({ processingStatus: "processing", updatedAt: new Date() })
-        .where(eq(content.id, body.resourceId));
-
-      // Queue probe job
-      const boss = getBoss();
-      if (boss) {
-        await boss.send(JOB_QUEUES.PROBE_CODEC, { contentId: body.resourceId });
-      }
-    }
-
-    if (body.purpose === "playout-media") {
-      // Set processing status to "uploading" → ingest job will set it to "processing"
-      await db
-        .update(playoutItems)
-        .set({ processingStatus: "uploading", updatedAt: new Date() })
-        .where(eq(playoutItems.id, body.resourceId));
-
-      // Queue playout ingest job
-      const boss = getBoss();
-      if (boss) {
-        await boss.send(JOB_QUEUES.PLAYOUT_INGEST, { playoutItemId: body.resourceId });
-      }
-    }
-
-    return c.json({ ok: true, key: body.key });
+    return c.json({ ok: true, key });
   },
 );

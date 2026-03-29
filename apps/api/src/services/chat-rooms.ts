@@ -2,6 +2,7 @@ import type { WSContext } from "hono/ws";
 
 // ── Types ──
 
+/** Represents a connected WebSocket client in a chat room. */
 export type ChatClient = {
   readonly ws: WSContext;
   readonly userId: string | null;

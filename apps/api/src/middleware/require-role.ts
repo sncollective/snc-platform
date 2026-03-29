@@ -3,6 +3,7 @@ import type { MiddlewareHandler } from "hono";
 import type { Role } from "@snc/shared";
 import { ForbiddenError, UnauthorizedError } from "@snc/shared";
 
+import { getClientIp } from "../lib/request-helpers.js";
 import { rootLogger } from "../logging/logger.js";
 
 import type { AuthEnv } from "./auth-env.js";
@@ -43,7 +44,7 @@ export const requireRole = (
           userRoles: userRoleValues,
           path: c.req.path,
           method: c.req.method,
-          ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+          ip: getClientIp(c),
         },
         "Authorization denied — insufficient permissions",
       );

@@ -1,4 +1,4 @@
-import node_crypto from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
@@ -52,7 +52,7 @@ const handleCheckoutCompleted = async (
   }
 
   await db.insert(userSubscriptions).values({
-    id: `sub_${node_crypto.randomUUID()}`,
+    id: `sub_${randomUUID()}`,
     userId,
     planId,
     stripeSubscriptionId,
@@ -195,11 +195,8 @@ webhookRoutes.post(
         type: event.type,
       });
     } catch (e) {
-      // Unique constraint violation on PK means already processed
-      if (
-        e instanceof Error &&
-        e.message.includes("duplicate key")
-      ) {
+      // Unique constraint violation on PK means already processed (PostgreSQL code 23505)
+      if (e && typeof e === "object" && "code" in e && e.code === "23505") {
         return c.json({ received: true as const });
       }
       // Re-throw unexpected DB errors

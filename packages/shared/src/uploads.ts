@@ -23,13 +23,15 @@ export const SourceTypeSchema = z.enum(SOURCE_TYPES);
 
 export const UploadPurposeSchema = z.enum(UPLOAD_PURPOSES);
 
-export const PresignRequestSchema = z.object({
+const UploadRequestBaseSchema = z.object({
   purpose: UploadPurposeSchema,
   resourceId: z.string().min(1),
   filename: z.string().min(1).max(255),
   contentType: z.string().min(1),
   size: z.number().int().positive(),
 });
+
+export const PresignRequestSchema = UploadRequestBaseSchema.extend({});
 
 export const PresignResponseSchema = z.object({
   url: z.string(),
@@ -37,13 +39,7 @@ export const PresignResponseSchema = z.object({
   method: z.literal("PUT"),
 });
 
-export const CreateMultipartRequestSchema = z.object({
-  purpose: UploadPurposeSchema,
-  resourceId: z.string().min(1),
-  filename: z.string().min(1).max(255),
-  contentType: z.string().min(1),
-  size: z.number().int().positive(),
-});
+export const CreateMultipartRequestSchema = UploadRequestBaseSchema.extend({});
 
 export const CreateMultipartResponseSchema = z.object({
   uploadId: z.string(),

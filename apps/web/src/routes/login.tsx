@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod/mini";
 
@@ -12,6 +11,9 @@ import styles from "../components/auth/auth-form.module.css";
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
     returnTo: z.optional(z.string()),
+  }),
+  head: () => ({
+    meta: [{ title: "Log In — S/NC" }],
   }),
   component: LoginPage,
 });

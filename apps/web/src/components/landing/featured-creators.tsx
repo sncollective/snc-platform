@@ -11,6 +11,7 @@ interface FeaturedCreatorsProps {
   readonly creators: readonly CreatorListResponse["items"][number][];
 }
 
+/** Render the featured creators section on the landing page. */
 export function FeaturedCreators({
   creators,
 }: FeaturedCreatorsProps): React.ReactElement {

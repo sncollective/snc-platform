@@ -52,6 +52,9 @@ export const Route = createFileRoute("/dashboard")({
       throw new AccessDeniedError();
     }
   },
+  head: () => ({
+    meta: [{ title: "Dashboard — S/NC" }],
+  }),
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<DashboardLoaderData> => {
     const [revenue, subscribers, bookingSummary, emissionsSummary] =

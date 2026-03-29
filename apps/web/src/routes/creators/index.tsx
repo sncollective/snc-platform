@@ -33,7 +33,11 @@ export const Route = createFileRoute("/creators/")({
     meta: [
       { title: "Creators — S/NC" },
       { name: "description", content: "Discover creators on the S/NC platform." },
+      { property: "og:title", content: "Creators — S/NC" },
+      { property: "og:description", content: "Discover creators on the S/NC platform." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/creators" }],
   }),
   component: CreatorsPage,
 });
@@ -72,8 +76,6 @@ function buildCreatorsUrl({
 // ── Page Component ──
 
 function CreatorsPage(): React.ReactElement {
-  if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
-
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
 
@@ -103,6 +105,8 @@ function CreatorsPage(): React.ReactElement {
   const handleCreated = (profile: CreatorProfileResponse) => {
     void navigate({ to: "/creators/$creatorId/manage", params: { creatorId: profile.handle ?? profile.id } });
   };
+
+  if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
 
   return (
     <div className={styles.creatorsPage}>

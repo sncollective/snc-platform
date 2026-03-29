@@ -50,6 +50,7 @@ function getStatusClass(
 
 // ── Public API ──
 
+/** Render a user's active and past subscriptions with cancel actions. */
 export function SubscriptionList({
   subscriptions,
   onCancel,

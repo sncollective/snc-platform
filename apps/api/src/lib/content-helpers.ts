@@ -1,9 +1,11 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { ContentResponse } from "@snc/shared";
+import { NotFoundError } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
+import { requireCreatorPermission } from "../services/creator-team.js";
 import { toISO, toISOOrNull } from "./response-helpers.js";
 
 type ContentRow = typeof content.$inferSelect;
@@ -48,4 +50,22 @@ export const findActiveContent = async (
     .from(content)
     .where(and(eq(content.id, id), isNull(content.deletedAt)));
   return rows[0];
+};
+
+/**
+ * Assert content exists and the user has ownership permission.
+ *
+ * @throws {NotFoundError} When the content does not exist.
+ * @throws {ForbiddenError} When the user lacks the `manageContent` permission.
+ */
+export const requireContentOwnership = async (
+  id: string,
+  userId: string,
+): Promise<ContentRow> => {
+  const existing = await findActiveContent(id);
+  if (!existing) {
+    throw new NotFoundError("Content not found");
+  }
+  await requireCreatorPermission(userId, existing.creatorId, "manageContent");
+  return existing;
 };

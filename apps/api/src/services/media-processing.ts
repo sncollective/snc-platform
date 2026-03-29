@@ -16,6 +16,41 @@ const wrapFfmpegError = (e: unknown): AppError => {
   return new AppError("FFMPEG_ERROR", "Media processing failed", 502);
 };
 
+/** Attach a stderr data handler that parses FFmpeg `time=` lines into progress percent. */
+const parseFFmpegProgress = (
+  totalDuration: number,
+  onProgress: ((percent: number) => void) | undefined,
+) => (chunk: Buffer) => {
+  const line = chunk.toString();
+  if (totalDuration > 0 && onProgress) {
+    const timeMatch = line.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1]!, 10);
+      const minutes = parseInt(timeMatch[2]!, 10);
+      const seconds = parseFloat(timeMatch[3]!);
+      const currentTime = hours * 3600 + minutes * 60 + seconds;
+      const percent = Math.min(
+        Math.round((currentTime / totalDuration) * 100),
+        99,
+      );
+      onProgress(percent);
+    }
+  }
+};
+
+/** Spawn ffmpeg with the given args, resolving on exit code 0, rejecting otherwise. */
+const runFfmpeg = (args: string[]): Promise<Result<void, AppError>> =>
+  new Promise<void>((resolve, reject) => {
+    const proc = spawn("ffmpeg", args);
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg exited with code ${code}`));
+    });
+    proc.on("error", reject);
+  })
+    .then(() => ok(undefined) as Result<void, AppError>)
+    .catch((e) => err(wrapFfmpegError(e)));
+
 // ── Types ──
 
 export type TranscodeOptions = {
@@ -134,23 +169,7 @@ export const transcodeToH264 = async (
 
       const proc = spawn("ffmpeg", args);
 
-      proc.stderr.on("data", (chunk: Buffer) => {
-        const line = chunk.toString();
-        if (totalDuration > 0 && options?.onProgress) {
-          const timeMatch = line.match(/time=(\d+):(\d+):(\d+\.\d+)/);
-          if (timeMatch) {
-            const hours = parseInt(timeMatch[1]!, 10);
-            const minutes = parseInt(timeMatch[2]!, 10);
-            const seconds = parseFloat(timeMatch[3]!);
-            const currentTime = hours * 3600 + minutes * 60 + seconds;
-            const percent = Math.min(
-              Math.round((currentTime / totalDuration) * 100),
-              99,
-            );
-            options.onProgress(percent);
-          }
-        }
-      });
+      proc.stderr.on("data", parseFFmpegProgress(totalDuration, options?.onProgress));
 
       proc.on("close", (code) => {
         if (code === 0) {
@@ -193,25 +212,14 @@ export const extractThumbnail = async (
           ? probeResult.value.duration * 0.1
           : 2;
 
-    await new Promise<void>((resolve, reject) => {
-      const proc = spawn("ffmpeg", [
-        "-ss", String(ts),
-        "-i", input,
-        "-vframes", "1",
-        "-q:v", "2",
-        "-y",
-        output,
-      ]);
-
-      proc.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`ffmpeg thumbnail exited with code ${code}`));
-      });
-
-      proc.on("error", reject);
-    });
-
-    return ok(undefined);
+    return runFfmpeg([
+      "-ss", String(ts),
+      "-i", input,
+      "-vframes", "1",
+      "-q:v", "2",
+      "-y",
+      output,
+    ]);
   } catch (e) {
     return err(wrapFfmpegError(e));
   }
@@ -227,28 +235,13 @@ export const remuxToMp4 = async (
   input: string,
   output: string,
 ): Promise<Result<void, AppError>> => {
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const proc = spawn("ffmpeg", [
-        "-i", input,
-        "-c", "copy",
-        "-movflags", "+faststart",
-        "-y",
-        output,
-      ]);
-
-      proc.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`ffmpeg remux exited with code ${code}`));
-      });
-
-      proc.on("error", reject);
-    });
-
-    return ok(undefined);
-  } catch (e) {
-    return err(wrapFfmpegError(e));
-  }
+  return runFfmpeg([
+    "-i", input,
+    "-c", "copy",
+    "-movflags", "+faststart",
+    "-y",
+    output,
+  ]);
 };
 
 /**
@@ -302,23 +295,7 @@ export const transcodeToRendition = async (
 
       const proc = spawn("ffmpeg", args);
 
-      proc.stderr.on("data", (chunk: Buffer) => {
-        const line = chunk.toString();
-        if (totalDuration > 0 && options.onProgress) {
-          const timeMatch = line.match(/time=(\d+):(\d+):(\d+\.\d+)/);
-          if (timeMatch) {
-            const hours = parseInt(timeMatch[1]!, 10);
-            const minutes = parseInt(timeMatch[2]!, 10);
-            const seconds = parseFloat(timeMatch[3]!);
-            const currentTime = hours * 3600 + minutes * 60 + seconds;
-            const percent = Math.min(
-              Math.round((currentTime / totalDuration) * 100),
-              99,
-            );
-            options.onProgress(percent);
-          }
-        }
-      });
+      proc.stderr.on("data", parseFFmpegProgress(totalDuration, options.onProgress));
 
       proc.on("close", (code) => {
         if (code === 0) {
@@ -348,28 +325,13 @@ export const extractSubtitles = async (
   input: string,
   output: string,
 ): Promise<Result<void, AppError>> => {
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const proc = spawn("ffmpeg", [
-        "-i", input,
-        "-map", "0:s:0",
-        "-c:s", "webvtt",
-        "-y",
-        output,
-      ]);
-
-      proc.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`ffmpeg subtitle extraction exited with code ${code}`));
-      });
-
-      proc.on("error", reject);
-    });
-
-    return ok(undefined);
-  } catch (e) {
-    return err(wrapFfmpegError(e));
-  }
+  return runFfmpeg([
+    "-i", input,
+    "-map", "0:s:0",
+    "-c:s", "webvtt",
+    "-y",
+    output,
+  ]);
 };
 
 /**

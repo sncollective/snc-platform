@@ -31,7 +31,11 @@ export const Route = createFileRoute("/emissions")({
     meta: [
       { title: "Emissions — S/NC" },
       { name: "description", content: "Our transparent emissions ledger — what we've emitted, offset, and where we stand." },
+      { property: "og:title", content: "Emissions — S/NC" },
+      { property: "og:description", content: "Our transparent emissions ledger — what we've emitted, offset, and where we stand." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/emissions" }],
   }),
   component: EmissionsPage,
 });

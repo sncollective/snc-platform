@@ -12,6 +12,7 @@ interface RecentContentProps {
   readonly items: readonly FeedResponse["items"][number][];
 }
 
+/** Render the recent content section on the landing page. */
 export function RecentContent({
   items,
 }: RecentContentProps): React.ReactElement {

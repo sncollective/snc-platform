@@ -5,6 +5,7 @@ import { UnauthorizedError } from "@snc/shared";
 import { auth } from "../auth/auth.js";
 import { rootLogger } from "../logging/logger.js";
 
+import { getClientIp } from "../lib/request-helpers.js";
 import type { AuthEnv } from "./auth-env.js";
 import { hydrateAuthContext } from "./auth-helpers.js";
 
@@ -29,7 +30,7 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
         event: "auth_failure",
         path: c.req.path,
         method: c.req.method,
-        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+        ip: getClientIp(c),
       },
       "Authentication failed — no valid session",
     );

@@ -3,12 +3,13 @@ import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Role } from "@snc/shared";
 
-import { NAV_LINKS, isNavLinkActive } from "../../config/navigation.js";
+import { NAV_LINKS } from "../../config/navigation.js";
+import { getAuthMenuItems } from "../../config/auth-menu-items.js";
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
-import { isFeatureEnabled } from "../../lib/config.js";
+import { NavLinkItem } from "./nav-link-item.js";
 import { clsx } from "clsx/lite";
 
 import styles from "./mobile-menu.module.css";
@@ -41,79 +42,24 @@ function MobileNavLink({ to, currentPath, exact, onClick, children }: MobileNavL
 interface NavLinkListProps {
   readonly currentPath: string;
   readonly effectiveRoles: readonly Role[];
-  readonly isAuthenticated: boolean;
   readonly onClose: () => void;
 }
 
-function NavLinkList({ currentPath, effectiveRoles, isAuthenticated, onClose }: NavLinkListProps) {
+function NavLinkList({ currentPath, effectiveRoles, onClose }: NavLinkListProps) {
   return (
     <ul className={styles.linkList}>
-      {NAV_LINKS.map((link) => {
-        if (link.role && !hasRole(effectiveRoles, link.role) && !hasRole(effectiveRoles, "admin")) {
-          return null;
-        }
-
-        const isActive = isNavLinkActive(link, currentPath, NAV_LINKS);
-        const className = clsx(
-          styles.menuLink,
-          link.disabled && styles.menuLinkDisabled,
-          isActive && styles.menuLinkActive,
-        );
-
-        return (
-          <li key={link.to}>
-            {link.external ? (
-              <a
-                href={link.to}
-                className={className}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={onClose}
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                to={link.to}
-                className={className}
-                onClick={onClose}
-              >
-                {link.label}
-              </Link>
-            )}
-          </li>
-        );
-      })}
-
-      {isFeatureEnabled("dashboard") && isAuthenticated && hasRole(effectiveRoles, "stakeholder") && (
-        <li>
-          <MobileNavLink to="/dashboard" currentPath={currentPath} onClick={onClose}>
-            Dashboard
-          </MobileNavLink>
-        </li>
-      )}
-
-      {isFeatureEnabled("calendar") && isAuthenticated && hasRole(effectiveRoles, "stakeholder") && (
-        <li>
-          <MobileNavLink to="/calendar" currentPath={currentPath} onClick={onClose}>
-            Calendar
-          </MobileNavLink>
-        </li>
-      )}
-
-      {isAuthenticated && (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
-        <li>
-          <a
-            href="https://files.s-nc.org"
-            className={styles.menuLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onClose}
-          >
-            Files
-          </a>
-        </li>
-      )}
+      {NAV_LINKS.map((link) => (
+        <NavLinkItem
+          key={link.to}
+          link={link}
+          currentPath={currentPath}
+          effectiveRoles={effectiveRoles}
+          linkClass={styles.menuLink}
+          activeClass={styles.menuLinkActive}
+          disabledClass={styles.menuLinkDisabled}
+          onClick={onClose}
+        />
+      ))}
     </ul>
   );
 }
@@ -128,32 +74,23 @@ interface AuthenticatedNavProps {
 function AuthenticatedNav({ currentPath, effectiveRoles, onClose, onLogout }: AuthenticatedNavProps) {
   return (
     <div className={styles.authSection}>
-      {isFeatureEnabled("admin") && hasRole(effectiveRoles, "admin") && (
-        <MobileNavLink to="/admin" currentPath={currentPath} onClick={onClose}>
-          Admin
-        </MobileNavLink>
-      )}
-
-      {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
-        <MobileNavLink to="/projects" currentPath={currentPath} onClick={onClose}>
-          Projects
-        </MobileNavLink>
-      )}
-
-      <MobileNavLink to="/settings" currentPath={currentPath} exact onClick={onClose}>
-        Settings
-      </MobileNavLink>
-
-      {isFeatureEnabled("subscription") && (
-        <MobileNavLink to="/settings/subscriptions" currentPath={currentPath} onClick={onClose}>
-          Subscriptions
-        </MobileNavLink>
-      )}
-
-      {isFeatureEnabled("booking") && (
-        <MobileNavLink to="/settings/bookings" currentPath={currentPath} onClick={onClose}>
-          My Bookings
-        </MobileNavLink>
+      {getAuthMenuItems(effectiveRoles).map((item) =>
+        item.external ? (
+          <a
+            key={item.key}
+            href={item.to}
+            className={styles.menuLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+          >
+            {item.label}
+          </a>
+        ) : (
+          <MobileNavLink key={item.key} to={item.to} currentPath={currentPath} onClick={onClose}>
+            {item.label}
+          </MobileNavLink>
+        )
       )}
 
       <button
@@ -194,6 +131,7 @@ function UnauthenticatedNav({ onClose }: UnauthenticatedNavProps) {
 
 // ── Public API ──
 
+/** Hamburger-triggered mobile navigation overlay with auth-aware links and logout. */
 export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
   const session = useSession();
   const { roles } = useAuthExtras();
@@ -231,7 +169,6 @@ export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
           <NavLinkList
             currentPath={currentPath}
             effectiveRoles={effectiveRoles}
-            isAuthenticated={!!session.data}
             onClose={handleClose}
           />
 

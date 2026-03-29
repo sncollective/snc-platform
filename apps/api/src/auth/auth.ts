@@ -18,6 +18,7 @@ const schema = { ...userSchema, ...oidcSchema };
 
 // ── Public API ──
 
+/** Better Auth instance with Drizzle adapter, email/password, JWT, OIDC, email OTP. */
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",

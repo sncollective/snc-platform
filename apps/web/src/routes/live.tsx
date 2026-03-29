@@ -37,7 +37,11 @@ export const Route = createFileRoute("/live")({
     meta: [
       { title: "Live — S/NC" },
       { name: "description", content: "Watch live streams from S/NC creators." },
+      { property: "og:title", content: "Live — S/NC" },
+      { property: "og:description", content: "Watch live streams from S/NC creators." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/live" }],
   }),
   component: LivePage,
 });

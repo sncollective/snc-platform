@@ -1085,16 +1085,7 @@ try {
     },
   ]);
 
-  for (const e of emissionRows) {
-    await db
-      .insert(emissions)
-      .values(e)
-      .onConflictDoUpdate({
-        target: emissions.id,
-        set: { co2Kg: e.co2Kg, amount: e.amount, description: e.description, metadata: e.metadata, updatedAt: now },
-      });
-  }
-  for (const e of projectedRows) {
+  for (const e of [...emissionRows, ...projectedRows]) {
     await db
       .insert(emissions)
       .values(e)

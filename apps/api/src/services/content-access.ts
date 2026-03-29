@@ -233,8 +233,7 @@ export const applyContentGate = async (
   if (row.visibility !== "subscribers") return response;
   const gate = await checkContentAccess(userId, row.creatorId, row.visibility, prefetchedRoles);
   if (!gate.allowed) {
-    response.mediaUrl = null;
-    response.body = null;
+    return { ...response, mediaUrl: null, body: null };
   }
   return response;
 };

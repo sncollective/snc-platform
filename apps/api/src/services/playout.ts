@@ -128,16 +128,18 @@ export const deletePlayoutItem = async (
     .returning({ id: playoutItems.id });
   if (!deleted) return err(new NotFoundError("Playout item not found"));
 
-  // Reindex positions
+  // Reindex positions in a single UPDATE using a VALUES CTE
   const remaining = await db
     .select({ id: playoutItems.id })
     .from(playoutItems)
     .orderBy(asc(playoutItems.position));
-  for (let i = 0; i < remaining.length; i++) {
-    await db
-      .update(playoutItems)
-      .set({ position: i })
-      .where(eq(playoutItems.id, remaining[i]!.id));
+
+  if (remaining.length > 0) {
+    await db.execute(sql`
+      UPDATE playout_items SET position = v.pos
+      FROM (VALUES ${sql.join(remaining.map((r, i) => sql`(${r.id}, ${i})`), sql`, `)}) AS v(id, pos)
+      WHERE playout_items.id = v.id::text
+    `);
   }
 
   await regeneratePlaylist();
@@ -148,11 +150,12 @@ export const deletePlayoutItem = async (
 export const reorderPlayoutItems = async (
   orderedIds: string[],
 ): Promise<Result<PlayoutItem[], AppError>> => {
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db
-      .update(playoutItems)
-      .set({ position: i, updatedAt: new Date() })
-      .where(eq(playoutItems.id, orderedIds[i]!));
+  if (orderedIds.length > 0) {
+    await db.execute(sql`
+      UPDATE playout_items SET position = v.pos, updated_at = NOW()
+      FROM (VALUES ${sql.join(orderedIds.map((id, i) => sql`(${id}, ${i})`), sql`, `)}) AS v(id, pos)
+      WHERE playout_items.id = v.id::text
+    `);
   }
 
   await regeneratePlaylist();

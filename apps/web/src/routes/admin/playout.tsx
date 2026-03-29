@@ -4,10 +4,11 @@ import type React from "react";
 import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
+import { AddFilmForm } from "../../components/admin/add-film-form.js";
+import { PlaylistItemRow } from "../../components/admin/playlist-item-row.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
-  createPlayoutItem,
   updatePlayoutItem,
   deletePlayoutItem,
   reorderPlayoutItems,
@@ -15,9 +16,7 @@ import {
   skipPlayoutTrack,
   queuePlayoutItem,
 } from "../../lib/playout.js";
-import { useUpload } from "../../contexts/upload-context.js";
 import errorStyles from "../../styles/error-alert.module.css";
-import formStyles from "../../styles/form.module.css";
 import buttonStyles from "../../styles/button.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
@@ -39,6 +38,9 @@ export const Route = createFileRoute("/admin/playout")({
     })) as PlayoutItemListResponse;
     return { items: data };
   },
+  head: () => ({
+    meta: [{ title: "Playout Admin — S/NC" }],
+  }),
   errorComponent: RouteErrorBoundary,
   component: PlayoutPage,
 });
@@ -282,304 +284,6 @@ function PlayoutPage(): React.ReactElement {
         )}
       </section>
     </div>
-  );
-}
-
-// ── Add Film Form ──
-
-interface AddFilmFormProps {
-  readonly onAdded: (item: PlayoutItem) => void;
-  readonly onCancel: () => void;
-}
-
-/** Form to create a new playout item and start a media upload. */
-function AddFilmForm({
-  onAdded,
-  onCancel,
-}: AddFilmFormProps): React.ReactElement {
-  const { actions } = useUpload();
-  const [title, setTitle] = useState("");
-  const [year, setYear] = useState("");
-  const [director, setDirector] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pendingItem, setPendingItem] = useState<PlayoutItem | null>(null);
-
-  const handleMetaSubmit = async (
-    e: React.FormEvent,
-  ): Promise<void> => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const item = await createPlayoutItem({
-        title: title.trim(),
-        year: year ? parseInt(year, 10) : null,
-        director: director.trim() || null,
-      });
-      setPendingItem(item);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create item");
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
-    const file = e.target.files?.[0];
-    if (!file || !pendingItem) return;
-
-    actions.startUpload({
-      file,
-      purpose: "playout-media",
-      resourceId: pendingItem.id,
-      onComplete: () => {
-        onAdded(pendingItem);
-      },
-      onError: (err) => {
-        setError(err.message);
-      },
-    });
-  };
-
-  if (pendingItem !== null) {
-    return (
-      <div className={styles.addFilmForm}>
-        <p className={styles.uploadPrompt}>
-          <strong>{pendingItem.title}</strong> created. Select the source video
-          file to upload:
-        </p>
-        {error !== null && (
-          <div className={errorStyles.error} role="alert">
-            {error}
-          </div>
-        )}
-        <div className={styles.uploadActions}>
-          <label className={styles.fileLabel}>
-            Choose file
-            <input
-              type="file"
-              accept="video/*,audio/*"
-              className={styles.fileInput}
-              onChange={handleFileChange}
-            />
-          </label>
-          <button
-            type="button"
-            className={styles.cancelButton}
-            onClick={() => {
-              onAdded(pendingItem);
-            }}
-          >
-            Skip upload
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <form className={styles.addFilmForm} onSubmit={(e) => void handleMetaSubmit(e)}>
-      <div className={formStyles.fieldGroup}>
-        <label className={formStyles.label} htmlFor="playout-title">
-          Title
-        </label>
-        <input
-          id="playout-title"
-          type="text"
-          className={formStyles.input}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          disabled={isSubmitting}
-        />
-      </div>
-
-      <div className={formStyles.fieldGroup}>
-        <label className={formStyles.label} htmlFor="playout-year">
-          Year
-        </label>
-        <input
-          id="playout-year"
-          type="number"
-          className={formStyles.input}
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          min={1888}
-          max={2100}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      <div className={formStyles.fieldGroup}>
-        <label className={formStyles.label} htmlFor="playout-director">
-          Director
-        </label>
-        <input
-          id="playout-director"
-          type="text"
-          className={formStyles.input}
-          value={director}
-          onChange={(e) => setDirector(e.target.value)}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      {error !== null && (
-        <div className={errorStyles.error} role="alert">
-          {error}
-        </div>
-      )}
-
-      <div className={styles.formActions}>
-        <button
-          type="submit"
-          className={formStyles.submitButton}
-          disabled={isSubmitting || !title.trim()}
-        >
-          {isSubmitting ? "Creating…" : "Create & Upload"}
-        </button>
-        <button
-          type="button"
-          className={styles.cancelButton}
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ── Playlist Item Row ──
-
-interface PlaylistItemRowProps {
-  readonly item: PlayoutItem;
-  readonly index: number;
-  readonly total: number;
-  readonly onToggleEnabled: () => void;
-  readonly onDelete: () => void;
-  readonly onMoveUp: () => void;
-  readonly onMoveDown: () => void;
-  readonly onPlayNext: () => void;
-}
-
-/** Single row in the playlist management table. */
-function PlaylistItemRow({
-  item,
-  index,
-  total,
-  onToggleEnabled,
-  onDelete,
-  onMoveUp,
-  onMoveDown,
-  onPlayNext,
-}: PlaylistItemRowProps): React.ReactElement {
-  return (
-    <li className={styles.playlistItem}>
-      <div className={styles.itemReorder}>
-        <button
-          type="button"
-          className={styles.reorderButton}
-          onClick={onMoveUp}
-          disabled={index === 0}
-          aria-label={`Move ${item.title} up`}
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          className={styles.reorderButton}
-          onClick={onMoveDown}
-          disabled={index === total - 1}
-          aria-label={`Move ${item.title} down`}
-        >
-          ▼
-        </button>
-      </div>
-
-      <div className={styles.itemInfo}>
-        <span className={styles.itemTitle}>
-          {item.title}
-          {item.year !== null && (
-            <span className={styles.itemYear}> ({item.year})</span>
-          )}
-        </span>
-        {item.director !== null && (
-          <span className={styles.itemDirector}>dir. {item.director}</span>
-        )}
-      </div>
-
-      <ProcessingStatusBadge status={item.processingStatus} />
-
-      <div className={styles.itemActions}>
-        <label className={styles.enabledLabel}>
-          <input
-            type="checkbox"
-            checked={item.enabled}
-            onChange={onToggleEnabled}
-            aria-label={`Enable ${item.title}`}
-          />
-          Enabled
-        </label>
-
-        <button
-          type="button"
-          className={styles.playNextButton}
-          onClick={onPlayNext}
-          disabled={item.processingStatus !== "ready"}
-          aria-label={`Play ${item.title} next`}
-        >
-          Play Next
-        </button>
-
-        <button
-          type="button"
-          className={styles.deleteButton}
-          onClick={onDelete}
-          aria-label={`Delete ${item.title}`}
-        >
-          Delete
-        </button>
-      </div>
-    </li>
-  );
-}
-
-// ── Processing Status Badge ──
-
-interface ProcessingStatusBadgeProps {
-  readonly status: PlayoutItem["processingStatus"];
-}
-
-/** Visual indicator for a playout item's processing status. */
-function ProcessingStatusBadge({
-  status,
-}: ProcessingStatusBadgeProps): React.ReactElement {
-  const classMap: Record<PlayoutItem["processingStatus"], string> = {
-    pending: styles.statusPending,
-    uploading: styles.statusUploading,
-    processing: styles.statusProcessing,
-    ready: styles.statusReady,
-    failed: styles.statusFailed,
-  };
-
-  const labelMap: Record<PlayoutItem["processingStatus"], string> = {
-    pending: "Pending",
-    uploading: "Uploading…",
-    processing: "Processing…",
-    ready: "Ready",
-    failed: "Failed",
-  };
-
-  return (
-    <span className={classMap[status]} aria-label={`Status: ${labelMap[status]}`}>
-      {labelMap[status]}
-    </span>
   );
 }
 

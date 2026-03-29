@@ -6,6 +6,38 @@ import { rootLogger } from "../logging/logger.js";
 
 const logger = rootLogger.child({ service: "liquidsoap" });
 
+// ── Private Helpers ──
+
+/** Guard that returns an error Result when Liquidsoap is not configured. */
+const ensureLiquidsoapConfigured = (): Result<void, AppError> => {
+  if (!config.LIQUIDSOAP_API_URL) {
+    return err(new AppError("LIQUIDSOAP_NOT_CONFIGURED", "Liquidsoap is not configured", 503));
+  }
+  return ok(undefined);
+};
+
+/** Perform a Liquidsoap API request: config guard, fetch, status check, and error wrapping. */
+const liquidsoapRequest = async (
+  path: string,
+  init?: RequestInit,
+): Promise<Result<void, AppError>> => {
+  const configured = ensureLiquidsoapConfigured();
+  if (!configured.ok) return configured;
+
+  try {
+    const res = await fetch(`${config.LIQUIDSOAP_API_URL}${path}`, {
+      signal: AbortSignal.timeout(3000),
+      ...init,
+    });
+    if (!res.ok) {
+      return err(new AppError("LIQUIDSOAP_ERROR", `Liquidsoap request failed: ${res.status}`, 502));
+    }
+    return ok(undefined);
+  } catch (e) {
+    return err(new AppError("LIQUIDSOAP_ERROR", "Liquidsoap unreachable", 502));
+  }
+};
+
 // ── Types ──
 
 export type LiquidsoapNowPlaying = {
@@ -54,22 +86,7 @@ export const getNowPlaying = async (): Promise<LiquidsoapNowPlaying | null> => {
  * in the fallback chain (queue > playlist).
  */
 export const skipTrack = async (): Promise<Result<void, AppError>> => {
-  if (!config.LIQUIDSOAP_API_URL) {
-    return err(new AppError("LIQUIDSOAP_NOT_CONFIGURED", "Liquidsoap is not configured", 503));
-  }
-
-  try {
-    const res = await fetch(`${config.LIQUIDSOAP_API_URL}/skip`, {
-      method: "POST",
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) {
-      return err(new AppError("LIQUIDSOAP_ERROR", `Skip failed: ${res.status}`, 502));
-    }
-    return ok(undefined);
-  } catch (e) {
-    return err(new AppError("LIQUIDSOAP_ERROR", "Liquidsoap unreachable", 502));
-  }
+  return liquidsoapRequest("/skip", { method: "POST" });
 };
 
 /**
@@ -77,22 +94,9 @@ export const skipTrack = async (): Promise<Result<void, AppError>> => {
  * over the playlist but yields to live streams.
  */
 export const queueTrack = async (s3Uri: string): Promise<Result<void, AppError>> => {
-  if (!config.LIQUIDSOAP_API_URL) {
-    return err(new AppError("LIQUIDSOAP_NOT_CONFIGURED", "Liquidsoap is not configured", 503));
-  }
-
-  try {
-    const res = await fetch(`${config.LIQUIDSOAP_API_URL}/queue`, {
-      method: "POST",
-      body: s3Uri,
-      headers: { "Content-Type": "text/plain" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) {
-      return err(new AppError("LIQUIDSOAP_ERROR", `Queue failed: ${res.status}`, 502));
-    }
-    return ok(undefined);
-  } catch (e) {
-    return err(new AppError("LIQUIDSOAP_ERROR", "Liquidsoap unreachable", 502));
-  }
+  return liquidsoapRequest("/queue", {
+    method: "POST",
+    body: s3Uri,
+    headers: { "Content-Type": "text/plain" },
+  });
 };

@@ -1,16 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 
-import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
+import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
-import { NAV_LINKS, isNavLinkActive } from "../../config/navigation.js";
+import { NAV_LINKS } from "../../config/navigation.js";
 import { UserMenu } from "./user-menu.js";
 import { MobileMenu } from "./mobile-menu.js";
-import { clsx } from "clsx/lite";
+import { NavLinkItem } from "./nav-link-item.js";
 
 import styles from "./nav-bar.module.css";
 
 // ── Public API ──
 
+/** Top-level navigation header with desktop link list, user menu, and mobile hamburger menu. */
 export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
@@ -29,37 +30,17 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
         </Link>
 
         <ul className={styles.links}>
-          {NAV_LINKS.map((link) => {
-            if (link.role && !hasRole(effectiveRoles, link.role) && !hasRole(effectiveRoles, "admin")) {
-              return null;
-            }
-
-            const isActive = isNavLinkActive(link, currentPath, NAV_LINKS);
-            const className = clsx(
-              styles.navLink,
-              link.disabled && styles.navLinkDisabled,
-              isActive && styles.navLinkActive,
-            );
-
-            return (
-              <li key={link.to}>
-                {link.external ? (
-                  <a
-                    href={link.to}
-                    className={className}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <Link to={link.to} className={className}>
-                    {link.label}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
+          {NAV_LINKS.map((link) => (
+            <NavLinkItem
+              key={link.to}
+              link={link}
+              currentPath={currentPath}
+              effectiveRoles={effectiveRoles}
+              linkClass={styles.navLink}
+              activeClass={styles.navLinkActive}
+              disabledClass={styles.navLinkDisabled}
+            />
+          ))}
         </ul>
 
         <div className={styles.right}>

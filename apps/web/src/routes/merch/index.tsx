@@ -24,7 +24,11 @@ export const Route = createFileRoute("/merch/")({
     meta: [
       { title: "Merch — S/NC" },
       { name: "description", content: "Browse merch from S/NC creators." },
+      { property: "og:title", content: "Merch — S/NC" },
+      { property: "og:description", content: "Browse merch from S/NC creators." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/merch" }],
   }),
   component: MerchPage,
 });

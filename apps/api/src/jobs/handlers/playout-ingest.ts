@@ -1,13 +1,14 @@
 import type { Job } from "pg-boss";
+import { eq } from "drizzle-orm";
 
 import { probeMedia } from "../../services/media-processing.js";
+import { getFileExtension } from "../../lib/file-utils.js";
 import {
   downloadToTemp,
   cleanupTemp,
 } from "../../services/processing-jobs.js";
 import { db } from "../../db/connection.js";
 import { playoutItems } from "../../db/schema/playout.schema.js";
-import { eq } from "drizzle-orm";
 import { regeneratePlaylist } from "../../services/playout.js";
 import { JOB_QUEUES } from "../register-workers.js";
 import { rootLogger } from "../../logging/logger.js";
@@ -54,7 +55,7 @@ export const handlePlayoutIngest = async (
 
   try {
     // ── Download source ──
-    const ext = item.sourceKey.split(".").pop() ?? "bin";
+    const ext = getFileExtension(item.sourceKey);
     const downloadResult = await downloadToTemp(item.sourceKey, `playout-source.${ext}`);
     if (!downloadResult.ok) {
       await markFailed(playoutItemId, downloadResult.error.message);

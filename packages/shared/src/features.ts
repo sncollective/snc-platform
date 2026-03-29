@@ -49,7 +49,7 @@ export const PRODUCTION_DEFAULTS: FeatureFlags = {
   emissions: false,
   calendar: true,
   federation: false,
-  streaming: false,
+  streaming: true,
 };
 
 // ── Labels ──
@@ -105,6 +105,6 @@ export const FEATURE_LABELS: Record<FeatureFlag, FeatureLabelInfo> = {
   streaming: {
     name: "Streaming",
     description:
-      "Live streaming powered by Owncast — watch creators perform live.",
+      "Live streaming powered by SRS — watch creators perform live.",
   },
 };

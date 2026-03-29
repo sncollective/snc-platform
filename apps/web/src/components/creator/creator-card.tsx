@@ -15,6 +15,7 @@ export interface CreatorCardProps {
 
 // ── Public API ──
 
+/** Render a creator in grid card or list row format with avatar, display name, bio, and content count. */
 export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): React.ReactElement {
   const avatarSrc = creator.avatarUrl;
   const creatorSlug = creator.handle ?? creator.id;

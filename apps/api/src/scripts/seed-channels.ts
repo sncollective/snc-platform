@@ -12,7 +12,7 @@ const PLAYOUT_CHANNELS = [
 
 // ── Main ──
 
-const main = async () => {
+const main = async (): Promise<void> => {
   for (const ch of PLAYOUT_CHANNELS) {
     const result = await ensurePlayout(ch);
     if (result.ok) {

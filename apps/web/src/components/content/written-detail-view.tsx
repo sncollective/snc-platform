@@ -3,9 +3,8 @@ import { useEffect } from "react";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
-import { truncateToWords } from "../../lib/format.js";
 import { ContentMeta } from "./content-meta.js";
-import { SubscribeCta } from "./subscribe-cta.js";
+import { WrittenLockedPreview } from "./written-locked-preview.js";
 import styles from "./written-detail.module.css";
 
 // ── Public Types ──
@@ -15,10 +14,6 @@ export interface WrittenDetailViewProps {
   readonly locked?: boolean;
   readonly plans?: readonly SubscriptionPlan[];
 }
-
-// ── Private Constants ──
-
-const TRUNCATE_WORD_COUNT = 200;
 
 // ── Public API ──
 
@@ -33,34 +28,7 @@ export function WrittenDetailView({ item, locked, plans }: WrittenDetailViewProp
   }, [actions]);
 
   if (locked === true) {
-    const previewText = item.body
-      ? truncateToWords(item.body, TRUNCATE_WORD_COUNT)
-      : "";
-    const previewParagraphs = previewText
-      .split(/\n\n+/)
-      .filter((p) => p.trim().length > 0);
-
-    return (
-      <div className={styles.writtenDetail}>
-        <header className={styles.header}>
-          <ContentMeta
-            title={item.title}
-            creatorName={item.creatorName}
-            publishedAt={item.publishedAt}
-          />
-        </header>
-        <hr className={styles.divider} />
-        <div className={styles.bodyPreview}>
-          <div className={styles.body}>
-            {previewParagraphs.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-          <div className={styles.fadeOverlay} />
-        </div>
-        <SubscribeCta contentType="written" plans={plans ?? []} />
-      </div>
-    );
+    return <WrittenLockedPreview item={item} plans={plans} />;
   }
 
   const paragraphs = item.body

@@ -69,8 +69,77 @@ const extractStreamKey = (param: string): string | null => {
   return match ? match[1] : null;
 };
 
+const toErrorDetail = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
+
+async function ensureLiveChannelWithChat(
+  creatorId: string,
+  sessionId: string,
+  srsStreamName: string,
+): Promise<void> {
+  try {
+    const [profile] = await db
+      .select({ displayName: creatorProfiles.displayName })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.id, creatorId));
+
+    if (!profile) return;
+
+    const channelResult = await createLiveChannel({
+      creatorId,
+      creatorName: profile.displayName,
+      streamSessionId: sessionId,
+      srsStreamName,
+    });
+
+    if (!channelResult.ok) return;
+
+    try {
+      await createChannelRoom(
+        channelResult.value.channelId,
+        `${profile.displayName}'s Stream`,
+      );
+    } catch (chatErr) {
+      rootLogger.error(toErrorDetail(chatErr), "Failed to create channel chat room");
+    }
+  } catch (channelErr) {
+    rootLogger.error(toErrorDetail(channelErr), "Failed to create live channel");
+  }
+}
+
+async function teardownLiveChannel(srsClientId: string): Promise<void> {
+  try {
+    const closedSession = await db
+      .select({ id: streamSessions.id })
+      .from(streamSessions)
+      .where(eq(streamSessions.srsClientId, srsClientId))
+      .orderBy(desc(streamSessions.endedAt))
+      .limit(1);
+
+    if (closedSession.length === 0) return;
+
+    const sessionId = closedSession[0]!.id;
+    const channelResult = await deactivateLiveChannel(sessionId);
+
+    if (!channelResult.ok || !channelResult.value) return;
+
+    const { channelId } = channelResult.value;
+    try {
+      await closeChannelRoom(channelId);
+      broadcastToRoom(channelId, {
+        type: "room_closed",
+        roomId: channelId,
+      });
+    } catch (chatErr) {
+      rootLogger.error(toErrorDetail(chatErr), "Failed to close channel chat room");
+    }
+  } catch (channelErr) {
+    rootLogger.error(toErrorDetail(channelErr), "Failed to deactivate live channel");
+  }
+}
+
 // ── Public API ──
 
+/** SRS streaming callbacks and viewer count SSE. */
 export const streamingRoutes = new Hono<AuthEnv>();
 
 // ── Status Endpoint ──
@@ -162,40 +231,7 @@ streamingRoutes.post(
 
     // Create live channel + channel chat room (best-effort — don't block SRS callback)
     if (session.ok) {
-      try {
-        const [profile] = await db
-          .select({ displayName: creatorProfiles.displayName })
-          .from(creatorProfiles)
-          .where(eq(creatorProfiles.id, lookup.creatorId));
-
-        if (profile) {
-          const channelResult = await createLiveChannel({
-            creatorId: lookup.creatorId,
-            creatorName: profile.displayName,
-            streamSessionId: session.value.sessionId,
-            srsStreamName: body.stream,
-          });
-
-          if (channelResult.ok) {
-            try {
-              await createChannelRoom(
-                channelResult.value.channelId,
-                `${profile.displayName}'s Stream`,
-              );
-            } catch (chatErr) {
-              rootLogger.error(
-                { error: chatErr instanceof Error ? chatErr.message : String(chatErr) },
-                "Failed to create channel chat room",
-              );
-            }
-          }
-        }
-      } catch (channelErr) {
-        rootLogger.error(
-          { error: channelErr instanceof Error ? channelErr.message : String(channelErr) },
-          "Failed to create live channel",
-        );
-      }
+      await ensureLiveChannelWithChat(lookup.creatorId, session.value.sessionId, body.stream);
     }
 
     return c.json({ code: 0 }, 200);
@@ -224,40 +260,7 @@ streamingRoutes.post(
     });
 
     // Deactivate live channel and close channel chat room (best-effort)
-    try {
-      const closedSession = await db
-        .select({ id: streamSessions.id })
-        .from(streamSessions)
-        .where(eq(streamSessions.srsClientId, body.client_id))
-        .orderBy(desc(streamSessions.endedAt))
-        .limit(1);
-
-      if (closedSession.length > 0) {
-        const sessionId = closedSession[0]!.id;
-        const channelResult = await deactivateLiveChannel(sessionId);
-
-        if (channelResult.ok && channelResult.value) {
-          const { channelId } = channelResult.value;
-          try {
-            await closeChannelRoom(channelId);
-            broadcastToRoom(channelId, {
-              type: "room_closed",
-              roomId: channelId,
-            });
-          } catch (chatErr) {
-            rootLogger.error(
-              { error: chatErr instanceof Error ? chatErr.message : String(chatErr) },
-              "Failed to close channel chat room",
-            );
-          }
-        }
-      }
-    } catch (channelErr) {
-      rootLogger.error(
-        { error: channelErr instanceof Error ? channelErr.message : String(channelErr) },
-        "Failed to deactivate live channel",
-      );
-    }
+    await teardownLiveChannel(body.client_id);
 
     return c.json({ code: 0 }, 200);
   },

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { Job } from "pg-boss";
 
 import { extractThumbnail } from "../../services/media-processing.js";
+import { getFileExtension } from "../../lib/file-utils.js";
 import {
   createJob,
   updateJob,
@@ -50,7 +51,7 @@ export const handleExtractThumbnail = async (
   let outputPath: string | null = null;
 
   try {
-    const ext = contentRow.mediaKey.split(".").pop() ?? "bin";
+    const ext = getFileExtension(contentRow.mediaKey);
     const downloadResult = await downloadToTemp(contentRow.mediaKey, `thumb-in.${ext}`);
     if (!downloadResult.ok) {
       await updateJob(jobRecord.id, { status: "failed", error: downloadResult.error.message });

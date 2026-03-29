@@ -75,6 +75,7 @@ const findProjectByIdOrSlug = async (param: string): Promise<ProjectRow | undefi
 
 // ── Public API ──
 
+/** Project CRUD for internal stakeholders. */
 export const projectRoutes = new Hono<AuthEnv>();
 
 projectRoutes.use("*", requireAuth);

@@ -1,11 +1,12 @@
 import type React from "react";
 import type { RefObject } from "react";
+import { clsx } from "clsx/lite";
+
 import { CONTENT_TYPES, VISIBILITY, ACCEPTED_MIME_TYPES, MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from "@snc/shared";
 import type { ContentType, Visibility } from "@snc/shared";
 
 import { useContentFormFields } from "../../hooks/use-content-form-fields.js";
 import { useContentSubmit } from "../../hooks/use-content-submit.js";
-import { clsx } from "clsx/lite";
 
 import formStyles from "../../styles/form.module.css";
 import successStyles from "../../styles/success-alert.module.css";

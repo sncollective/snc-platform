@@ -1,5 +1,6 @@
 import node_path from "node:path";
 import { mkdir, unlink, stat } from "node:fs/promises";
+import type { Stats } from "node:fs";
 import { createReadStream, createWriteStream } from "node:fs";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -15,6 +16,17 @@ import { inferContentType } from "../lib/file-utils.js";
 
 const isEnoent = (error: unknown): boolean =>
   error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT";
+
+const statOrNotFound = async (filePath: string): Promise<Result<Stats, AppError>> => {
+  try {
+    return ok(await stat(filePath));
+  } catch (statError) {
+    if (isEnoent(statError)) {
+      return err(new NotFoundError("File not found"));
+    }
+    throw statError;
+  }
+};
 
 const toStorageError = (error: unknown): Result<never, AppError> => {
   const message = error instanceof Error ? error.message : String(error);
@@ -70,19 +82,11 @@ export const createLocalStorage = (
   ): Promise<Result<DownloadResult, AppError>> => {
     try {
       const filePath = resolvePath(key);
-      let fileSize: number;
-      try {
-        const fileStat = await stat(filePath);
-        fileSize = fileStat.size;
-      } catch (statError) {
-        if (isEnoent(statError)) {
-          return err(new NotFoundError("File not found"));
-        }
-        throw statError;
-      }
+      const statResult = await statOrNotFound(filePath);
+      if (!statResult.ok) return statResult;
       const readStream = createReadStream(filePath);
       const webStream = Readable.toWeb(readStream) as ReadableStream<Uint8Array>;
-      return ok({ stream: webStream, size: fileSize });
+      return ok({ stream: webStream, size: statResult.value.size });
     } catch (error) {
       if (error instanceof AppError) {
         return err(error);
@@ -98,16 +102,8 @@ export const createLocalStorage = (
   ): Promise<Result<RangeDownloadResult, AppError>> => {
     try {
       const filePath = resolvePath(key);
-      let fileSize: number;
-      try {
-        const fileStat = await stat(filePath);
-        fileSize = fileStat.size;
-      } catch (statError) {
-        if (isEnoent(statError)) {
-          return err(new NotFoundError("File not found"));
-        }
-        throw statError;
-      }
+      const statResult = await statOrNotFound(filePath);
+      if (!statResult.ok) return statResult;
 
       const readStream = createReadStream(filePath, { start, end });
       const webStream =
@@ -116,7 +112,7 @@ export const createLocalStorage = (
       return ok({
         stream: webStream,
         contentLength: end - start + 1,
-        totalSize: fileSize,
+        totalSize: statResult.value.size,
         range: { start, end },
       });
     } catch (error) {
@@ -145,6 +141,13 @@ export const createLocalStorage = (
     }
   };
 
+  /**
+   * Resolve a local storage key to an API URL.
+   *
+   * Routing convention: keys with the prefix `content/{id}/...` are routed to
+   * `/api/content/{id}/media` (served via the content media handler); all other
+   * keys are routed to `/api/storage/{key}` (the generic storage passthrough).
+   */
   const getSignedUrl = async (
     key: string,
     _expiresInSeconds: number,
@@ -162,17 +165,10 @@ export const createLocalStorage = (
   ): Promise<Result<{ size: number; contentType: string }, AppError>> => {
     try {
       const filePath = resolvePath(key);
-      let fileStat: Awaited<ReturnType<typeof stat>>;
-      try {
-        fileStat = await stat(filePath);
-      } catch (statError) {
-        if (isEnoent(statError)) {
-          return err(new NotFoundError("File not found"));
-        }
-        throw statError;
-      }
+      const statResult = await statOrNotFound(filePath);
+      if (!statResult.ok) return statResult;
       const contentType = inferContentType(key);
-      return ok({ size: fileStat.size, contentType });
+      return ok({ size: statResult.value.size, contentType });
     } catch (error) {
       if (error instanceof AppError) {
         return err(error);
@@ -181,6 +177,10 @@ export const createLocalStorage = (
     }
   };
 
+  /**
+   * Always returns a 501 error — local storage does not support presigned upload URLs.
+   * Use an S3-compatible StorageProvider for direct client uploads.
+   */
   const getPresignedUploadUrl = async (
     _key: string,
     _contentType: string,

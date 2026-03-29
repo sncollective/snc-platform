@@ -76,7 +76,7 @@ module.exports = {
         VITE_FEATURE_EMISSIONS: "false",
         VITE_FEATURE_CALENDAR: "true",
         VITE_FEATURE_FEDERATION: "false",
-        VITE_FEATURE_STREAMING: "false",
+        VITE_FEATURE_STREAMING: "true",
       },
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: true,

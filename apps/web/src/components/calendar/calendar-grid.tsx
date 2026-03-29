@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type React from "react";
 import type { CalendarEvent } from "@snc/shared";
 
@@ -200,11 +200,22 @@ export function CalendarGrid({
 }: CalendarGridProps): React.ReactElement {
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
 
-  const singleDayEvents = events.filter((e) => !isMultiDay(e));
-  const eventsByDate = groupEventsByDate(singleDayEvents);
-  const cells = buildGridCells(year, month);
-  const weekRows = buildWeekRows(cells);
-  const spanBars = buildSpanBars(events, weekRows);
+  const { eventsByDate, weekRows, spanBarsByWeek } = useMemo(() => {
+    const singleDayEvents = events.filter((e) => !isMultiDay(e));
+    const evByDate = groupEventsByDate(singleDayEvents);
+    const cells = buildGridCells(year, month);
+    const rows = buildWeekRows(cells);
+    const bars = buildSpanBars(events, rows);
+
+    const byWeek = new Map<number, SpanBar[]>();
+    for (const bar of bars) {
+      const existing = byWeek.get(bar.weekIndex) ?? [];
+      existing.push(bar);
+      byWeek.set(bar.weekIndex, existing);
+    }
+
+    return { eventsByDate: evByDate, weekRows: rows, spanBars: bars, spanBarsByWeek: byWeek };
+  }, [events, year, month]);
 
   const SPAN_BAR_HEIGHT = 20;
   const SPAN_BAR_GAP = 2;
@@ -221,7 +232,7 @@ export function CalendarGrid({
 
       {/* Week rows */}
       {weekRows.map((row) => {
-        const rowBars = spanBars.filter((b) => b.weekIndex === row.weekIndex);
+        const rowBars = spanBarsByWeek.get(row.weekIndex) ?? [];
         const maxLane = rowBars.reduce((max, b) => Math.max(max, b.lane), -1);
         const spanBarSpace = maxLane >= 0 ? (maxLane + 1) * (SPAN_BAR_HEIGHT + SPAN_BAR_GAP) : 0;
 
@@ -241,6 +252,7 @@ export function CalendarGrid({
                 }}
                 onClick={() => onEventClick?.(bar.event.id)}
                 title={bar.event.title}
+                aria-label={bar.event.title}
               >
                 {bar.event.title}
               </button>
@@ -267,7 +279,7 @@ export function CalendarGrid({
                   >
                     {visible.map((ev) => (
                       <button key={ev.id} type="button" className={styles.eventPill}
-                        onClick={() => onEventClick?.(ev.id)} title={ev.title}>
+                        onClick={() => onEventClick?.(ev.id)} title={ev.title} aria-label={ev.title}>
                         {ev.title}
                       </button>
                     ))}

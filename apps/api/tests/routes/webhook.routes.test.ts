@@ -154,11 +154,8 @@ describe("webhook routes", () => {
 
     describe("idempotency", () => {
       it("returns 200 for duplicate event ID (already processed)", async () => {
-        mockInsertValues.mockRejectedValue(
-          new Error(
-            'duplicate key value violates unique constraint "payment_events_pkey"',
-          ),
-        );
+        const pgError = Object.assign(new Error("duplicate key"), { code: "23505" });
+        mockInsertValues.mockRejectedValue(pgError);
 
         const res = await postWebhook(
           JSON.stringify(makeCheckoutSessionCompletedEvent()),

@@ -1,3 +1,9 @@
+---
+paths:
+  - "apps/*/src/**"
+  - "packages/*/src/**"
+---
+
 # Pattern Index
 
 One line per pattern. Read the linked file for full details and code examples.

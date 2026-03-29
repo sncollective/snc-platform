@@ -1,4 +1,7 @@
 import type React from "react";
+import { useState } from "react";
+import { clsx } from "clsx/lite";
+
 import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
 
 import { useFileInput } from "../../hooks/use-file-input.js";
@@ -7,8 +10,6 @@ import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
-import { useState } from "react";
-import { clsx } from "clsx/lite";
 
 import styles from "./video-detail.module.css";
 

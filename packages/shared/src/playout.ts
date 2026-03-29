@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ── Rendition Profiles (SSOT) ──
 
+/** Encoding parameters for a single rendition. */
 export type RenditionProfile = {
   readonly width?: number;
   readonly height?: number;

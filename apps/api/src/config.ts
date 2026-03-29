@@ -68,7 +68,7 @@ export const ENV_SCHEMA = z.object({
     .transform((v) => v === "true"),
   FEATURE_STREAMING: z
     .string()
-    .default("false")
+    .default("true")
     .transform((v) => v === "true"),
 });
 

@@ -1,3 +1,9 @@
+---
+paths:
+  - "apps/*/src/**"
+  - "packages/*/src/**"
+---
+
 # Inline Documentation Convention
 
 JSDoc (`/** */`) comments for inline code documentation. Focus on intent and contracts — never restate type information.

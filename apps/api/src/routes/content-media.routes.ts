@@ -22,11 +22,10 @@ import { checkContentAccess } from "../services/content-access.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
 import { storage } from "../storage/index.js";
-import { requireCreatorPermission } from "../services/creator-team.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
-import { resolveContentUrls, findActiveContent } from "../lib/content-helpers.js";
+import { resolveContentUrls, findActiveContent, requireContentOwnership } from "../lib/content-helpers.js";
 import type { ContentRow } from "../lib/content-helpers.js";
 import { IdParam } from "./route-params.js";
 
@@ -46,18 +45,6 @@ const FIELD_KEY_MAP = {
   media: "mediaKey",
   thumbnail: "thumbnailKey",
 } as const;
-
-const requireContentOwnership = async (
-  id: string,
-  userId: string,
-): Promise<ContentRow> => {
-  const existing = await findActiveContent(id);
-  if (!existing) {
-    throw new NotFoundError("Content not found");
-  }
-  await requireCreatorPermission(userId, existing.creatorId, "manageContent");
-  return existing;
-};
 
 type ContentKeyField = "mediaKey" | "thumbnailKey";
 
@@ -124,6 +111,7 @@ const getUploadConstraints = (
 
 // ── Public API ──
 
+/** Content media upload, streaming, and thumbnail management. */
 export const contentMediaRoutes = new Hono<AuthEnv>();
 
 // POST /:id/upload — Upload media file

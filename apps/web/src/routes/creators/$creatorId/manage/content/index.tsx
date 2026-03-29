@@ -53,6 +53,18 @@ function ManageContentPage(): React.ReactElement {
     return () => document.removeEventListener("mousedown", handler);
   }, [showTypeSelector]);
 
+  // Escape key dismiss for the type selector
+  useEffect(() => {
+    if (!showTypeSelector) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowTypeSelector(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showTypeSelector]);
+
   const handleCreate = async (type: ContentType) => {
     setIsCreating(true);
     try {
@@ -85,15 +97,18 @@ function ManageContentPage(): React.ReactElement {
             className={styles.createButton}
             onClick={() => setShowTypeSelector((v) => !v)}
             disabled={isCreating}
+            aria-expanded={showTypeSelector}
+            aria-haspopup="menu"
           >
             {isCreating ? "Creating..." : "Create New"}
           </button>
           {showTypeSelector && (
-            <div className={styles.typeSelector}>
+            <div className={styles.typeSelector} role="menu">
               {CONTENT_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
+                  role="menuitem"
                   className={styles.typeSelectorOption}
                   onClick={() => void handleCreate(type)}
                   disabled={isCreating}

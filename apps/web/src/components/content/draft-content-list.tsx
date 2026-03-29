@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
 import type React from "react";
-import type { ContentResponse } from "@snc/shared";
 import { Link } from "@tanstack/react-router";
+import { clsx } from "clsx/lite";
+
+import type { ContentResponse } from "@snc/shared";
 
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { publishContent, deleteContent } from "../../lib/content.js";
+import { useContentDelete } from "../../hooks/use-content-delete.js";
+import { publishContent } from "../../lib/content.js";
 import { ProcessingIndicator } from "./processing-indicator.js";
 import { useUpload } from "../../contexts/upload-context.js";
-import { clsx } from "clsx/lite";
 
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./draft-content-list.module.css";
@@ -47,11 +49,15 @@ function DraftItem({
   onDeleted,
 }: DraftItemProps): React.ReactElement {
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
   const { actions: uploadActions } = useUpload();
+  const { deletingId, handleDelete } = useContentDelete({
+    onDeleted,
+    onError: setError,
+  });
+  const isDeleting = deletingId === item.id;
 
   const mediaStatus = item.mediaUrl !== null ? "Media ready" : "No media";
   const publishEnabled = canPublish(item) && !isPublishing;
@@ -91,20 +97,6 @@ function DraftItem({
     });
 
     if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this content?")) return;
-    setError(null);
-    setIsDeleting(true);
-    try {
-      await deleteContent(item.id);
-      onDeleted();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   const handlePublish = async () => {
@@ -203,7 +195,7 @@ function DraftItem({
         <button
           type="button"
           className={styles.deleteButton}
-          onClick={() => void handleDelete()}
+          onClick={() => void handleDelete(item.id)}
           disabled={isPublishing || isDeleting}
         >
           {isDeleting ? "Deleting..." : "Delete"}

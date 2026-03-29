@@ -89,14 +89,14 @@ describe("ManageContentPage", () => {
   it("shows type selector dropdown on Create New click", () => {
     render(<ManageContentPage />);
     fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.getByRole("button", { name: "Video" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Audio" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Written Post" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Video" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Audio" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Written Post" })).toBeInTheDocument();
   });
 
   it("does not show type selector initially", () => {
     render(<ManageContentPage />);
-    expect(screen.queryByRole("button", { name: "Video" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Video" })).toBeNull();
   });
 
   it("creates draft and navigates on type selection", async () => {
@@ -107,7 +107,7 @@ describe("ManageContentPage", () => {
 
     render(<ManageContentPage />);
     fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    fireEvent.click(screen.getByRole("button", { name: "Video" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Video" }));
 
     await vi.waitFor(() => {
       expect(mockCreateContent).toHaveBeenCalledWith(

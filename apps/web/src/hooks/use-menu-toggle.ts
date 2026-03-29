@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type React from "react";
+
+import { useDismiss } from "./use-dismiss.js";
 
 // ── Public Types ──
 
@@ -18,37 +20,15 @@ export function useMenuToggle(
 ): UseMenuToggleReturn {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleToggle = () => {
-    setIsOpen((prev) => !prev);
-  };
-
   const handleClose = useCallback(() => {
     setIsOpen(false);
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const handleToggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleClose();
-      }
-    };
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && e.target instanceof Node && !menuRef.current.contains(e.target)) {
-        handleClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, handleClose, menuRef]);
+  useDismiss(menuRef, handleClose, isOpen);
 
   return { isOpen, handleToggle, handleClose };
 }

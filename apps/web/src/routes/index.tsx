@@ -68,6 +68,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "A multi-stakeholder platform cooperative for media production and distribution." },
       { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/" }],
   }),
   component: LandingPage,
 });

@@ -21,7 +21,7 @@ const PROD_FLAGS = {
   FEATURE_DASHBOARD: "false",
   FEATURE_EMISSIONS: "false",
   FEATURE_FEDERATION: "false",
-  FEATURE_STREAMING: "false",
+  FEATURE_STREAMING: "true",
 };
 
 /** Vite-prefixed flags for the web server. */

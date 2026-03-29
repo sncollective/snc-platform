@@ -4,9 +4,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
-import { useSession, useAuthExtras, hasRole } from "../../lib/auth.js";
+import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
-import { isFeatureEnabled } from "../../lib/config.js";
+import { getAuthMenuItems } from "../../config/auth-menu-items.js";
 import { clsx } from "clsx/lite";
 
 import { getInitials } from "../../lib/format.js";
@@ -14,6 +14,7 @@ import styles from "./user-menu.module.css";
 
 // ── Public API ──
 
+/** Avatar button dropdown menu showing user info, role-based nav items, and logout. */
 export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const session = useSession();
   const { roles, isPatron } = useAuthExtras();
@@ -94,91 +95,28 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
 
           <div className={styles.divider} />
 
-          {isFeatureEnabled("admin") && hasRole(effectiveRoles, "admin") && (
-            <Link
-              to="/admin"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              Admin
-            </Link>
-          )}
-
-          {isFeatureEnabled("dashboard") && hasRole(effectiveRoles, "stakeholder") && (
-            <Link
-              to="/dashboard"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              Dashboard
-            </Link>
-          )}
-
-          {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
-            <Link
-              to="/calendar"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              Calendar
-            </Link>
-          )}
-
-          {isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder") && (
-            <Link
-              to="/projects"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              Projects
-            </Link>
-          )}
-
-          {(hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) && (
-            <a
-              href="https://files.s-nc.org"
-              className={styles.menuItem}
-
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleClose}
-            >
-              Files
-            </a>
-          )}
-
-          <Link
-            to="/settings"
-            className={styles.menuItem}
-            onClick={handleClose}
-          >
-            Settings
-          </Link>
-
-          {isFeatureEnabled("subscription") && (
-            <Link
-              to="/settings/subscriptions"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              Subscriptions
-            </Link>
-          )}
-
-          {isFeatureEnabled("booking") && (
-            <Link
-              to="/settings/bookings"
-              className={styles.menuItem}
-
-              onClick={handleClose}
-            >
-              My Bookings
-            </Link>
+          {getAuthMenuItems(effectiveRoles).map((item) =>
+            item.external ? (
+              <a
+                key={item.key}
+                href={item.to}
+                className={styles.menuItem}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleClose}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.key}
+                to={item.to}
+                className={styles.menuItem}
+                onClick={handleClose}
+              >
+                {item.label}
+              </Link>
+            )
           )}
 
           <div className={styles.divider} />

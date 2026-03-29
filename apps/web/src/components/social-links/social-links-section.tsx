@@ -1,9 +1,10 @@
 import type React from "react";
+import { clsx } from "clsx/lite";
+
 import type { SocialLink } from "@snc/shared";
 import { PLATFORM_CONFIG } from "@snc/shared";
 
 import { PlatformIcon } from "./platform-icon.js";
-import { clsx } from "clsx/lite";
 
 import sectionStyles from "../../styles/detail-section.module.css";
 import styles from "./social-links-section.module.css";
@@ -16,6 +17,7 @@ export interface SocialLinksSectionProps {
 
 // ── Public API ──
 
+/** Render a creator's social links as a labelled icon list, or null when empty. */
 export function SocialLinksSection({
   socialLinks,
 }: SocialLinksSectionProps): React.ReactElement | null {

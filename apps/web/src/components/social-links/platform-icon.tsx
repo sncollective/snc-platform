@@ -1,5 +1,4 @@
 import type React from "react";
-import type { SocialPlatform } from "@snc/shared";
 import {
   siBandcamp,
   siSpotify,
@@ -13,6 +12,8 @@ import {
   siMastodon,
   siYoutube,
 } from "simple-icons";
+
+import type { SocialPlatform } from "@snc/shared";
 
 import styles from "./social-links-section.module.css";
 

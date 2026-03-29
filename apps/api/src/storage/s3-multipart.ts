@@ -8,11 +8,10 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { ok, err } from "@snc/shared";
-import { AppError } from "@snc/shared";
-import { wrapS3Error } from "./s3-error";
-import type { Result } from "@snc/shared";
-import type { CompletedPart } from "@snc/shared";
+import { ok, err, AppError } from "@snc/shared";
+import type { Result, CompletedPart } from "@snc/shared";
+
+import { wrapS3Error } from "./s3-error.js";
 
 // ── Public Types ──
 

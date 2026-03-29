@@ -58,7 +58,16 @@ export async function fetchEmissionsSummary(): Promise<EmissionsSummary> {
   };
 }
 
-/** Fetch full emissions breakdown: summary totals, by-scope, by-category, monthly time series, and all entries. */
+/**
+ * Fetch full emissions breakdown: summary totals, by-scope, by-category, monthly time series, and all entries.
+ *
+ * All five queries run in parallel via `Promise.all`. The `entries` array is unbounded —
+ * it returns every emission row ordered by date descending with no pagination limit.
+ * The `monthly` array covers all months present in the table, sorted ascending by
+ * YYYY-MM string (i.e. chronological order); months with no entries are not zero-filled.
+ * Scopes, categories, and monthly buckets exclude projected entries and scope-0 offsets
+ * except where the shared SQL expressions explicitly include them.
+ */
 export async function fetchEmissionsBreakdown(): Promise<EmissionsBreakdownResult> {
   const monthCol = sql<string>`substring(${emissions.date} from 1 for 7)`;
 
@@ -95,7 +104,8 @@ export async function fetchEmissionsBreakdown(): Promise<EmissionsBreakdownResul
     db
       .select()
       .from(emissions)
-      .orderBy(desc(emissions.date)),
+      .orderBy(desc(emissions.date))
+      .limit(1000),
   ]);
 
   return {

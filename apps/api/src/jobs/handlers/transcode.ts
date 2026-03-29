@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { Job } from "pg-boss";
 
 import { transcodeToH264 } from "../../services/media-processing.js";
+import { getFileExtension } from "../../lib/file-utils.js";
 import {
   createJob,
   updateJob,
@@ -45,7 +46,7 @@ export const handleTranscode = async (
   let outputPath: string | null = null;
 
   try {
-    const ext = contentRow.mediaKey.split(".").pop() ?? "bin";
+    const ext = getFileExtension(contentRow.mediaKey);
     const downloadResult = await downloadToTemp(contentRow.mediaKey, `transcode-in.${ext}`);
     if (!downloadResult.ok) {
       await updateJob(jobRecord.id, { status: "failed", error: downloadResult.error.message });

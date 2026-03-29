@@ -31,7 +31,11 @@ export const Route = createFileRoute("/pricing")({
     meta: [
       { title: "Pricing — S/NC" },
       { name: "description", content: "Subscribe to S/NC for access to all content from every creator." },
+      { property: "og:title", content: "Pricing — S/NC" },
+      { property: "og:description", content: "Subscribe to S/NC for access to all content from every creator." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/pricing" }],
   }),
   component: PricingPage,
 });

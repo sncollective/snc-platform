@@ -36,6 +36,10 @@ export type ParsedRange =
 
 // ── Public Helpers ──
 
+/** Extract the file extension from a storage key, without the dot, defaulting to `"bin"`. */
+export const getFileExtension = (key: string): string =>
+  key.split(".").pop() ?? "bin";
+
 /** Normalize a filename to lowercase alphanumeric with dashes, truncated to 100 chars. */
 export const sanitizeFilename = (name: string): string =>
   name

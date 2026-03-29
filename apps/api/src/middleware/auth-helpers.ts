@@ -14,6 +14,10 @@ type RawSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
  * values expected by Hono context (AuthEnv / OptionalAuthEnv).
  *
  * Converts Date objects to ISO strings and normalizes image to null.
+ * The `user` and `session` fields are cast to shared types — callers
+ * must ensure `rawSession` originates from a verified Better Auth session.
+ *
+ * @throws Propagates any error thrown by `getUserRoles()` (e.g. database failure)
  */
 export async function hydrateAuthContext(
   rawSession: RawSession,

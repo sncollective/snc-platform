@@ -1,6 +1,8 @@
-import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
 import type React from "react";
+import { useState, useEffect } from "react";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
+import { clsx } from "clsx/lite";
+
 import type {
   ContentType,
   CreatorProfileResponse,
@@ -20,8 +22,6 @@ import { useSession, fetchAuthState } from "../../../lib/auth.js";
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchProducts } from "../../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../../lib/subscription.js";
-import { clsx } from "clsx/lite";
-
 import styles from "../creator-detail.module.css";
 import sectionStyles from "../../../styles/detail-section.module.css";
 import listingStyles from "../../../styles/listing-page.module.css";
@@ -31,6 +31,9 @@ import listingStyles from "../../../styles/listing-page.module.css";
 const parentRoute = getRouteApi("/creators/$creatorId");
 
 export const Route = createFileRoute("/creators/$creatorId/")({
+  head: () => ({
+    meta: [{ title: "Creator — S/NC" }],
+  }),
   component: CreatorDetailPage,
 });
 
@@ -38,7 +41,6 @@ export const Route = createFileRoute("/creators/$creatorId/")({
 
 function CreatorDetailPage(): React.ReactElement {
   const creator = parentRoute.useLoaderData() as CreatorProfileResponse | null;
-  if (!isFeatureEnabled("creator") || creator === null) return <ComingSoon feature="creator" />;
   const session = useSession();
   const [activeFilter, setActiveFilter] = useState<ContentType | null>(null);
   const [creatorPlans, setCreatorPlans] = useState<SubscriptionPlan[]>([]);
@@ -115,6 +117,8 @@ function CreatorDetailPage(): React.ReactElement {
   const handleFilterChange = (filter: ContentType | null) => {
     setActiveFilter(filter);
   };
+
+  if (!isFeatureEnabled("creator") || creator === null) return <ComingSoon feature="creator" />;
 
   return (
     <div className={styles.detailPage}>

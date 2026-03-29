@@ -14,6 +14,7 @@ import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
 
 // ── Job Queue Names ──
 
+/** Canonical pg-boss queue names for media and playout jobs. */
 export const JOB_QUEUES = {
   PROBE_CODEC: "media/probe-codec",
   TRANSCODE: "media/transcode",

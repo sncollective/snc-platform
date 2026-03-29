@@ -45,26 +45,11 @@ import {
 } from "../services/creator-list.js";
 import { toISO } from "../lib/response-helpers.js";
 import { resolveCreatorUrls } from "../lib/creator-url.js";
+import { findCreatorProfile } from "../lib/creator-helpers.js";
+import type { CreatorProfileRow } from "../lib/creator-helpers.js";
 import { CreatorIdParam } from "./route-params.js";
 
-// ── Private Types ──
-
-type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
-
-const findCreatorProfile = async (
-  identifier: string,
-): Promise<CreatorProfileRow | undefined> => {
-  const rows = await db
-    .select()
-    .from(creatorProfiles)
-    .where(
-      or(
-        eq(creatorProfiles.id, identifier),
-        eq(creatorProfiles.handle, identifier),
-      ),
-    );
-  return rows[0];
-};
+// ── Private Helpers ──
 
 const getContentCount = async (creatorId: string): Promise<number> => {
   const rows = await db
@@ -202,6 +187,7 @@ const handleImageStream = async (
 
 // ── Public API ──
 
+/** Creator profile CRUD and discovery. */
 export const creatorRoutes = new Hono<AuthEnv>();
 
 // GET / — List creators

@@ -59,7 +59,7 @@ describe("PRODUCTION_DEFAULTS", () => {
       emissions: false,
       calendar: true,
       federation: false,
-      streaming: false,
+      streaming: true,
     };
     expect(PRODUCTION_DEFAULTS).toStrictEqual(expected);
   });

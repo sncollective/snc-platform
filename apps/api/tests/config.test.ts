@@ -48,7 +48,7 @@ describe("parseConfig", () => {
       MEDIA_FFMPEG_CONCURRENCY: 2,
       FEDERATION_DOMAIN: "s-nc.org",
       FEATURE_FEDERATION: false,
-      FEATURE_STREAMING: false,
+      FEATURE_STREAMING: true,
     });
   });
 

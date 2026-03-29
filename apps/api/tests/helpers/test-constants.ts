@@ -64,7 +64,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   STUDIO_INQUIRY_EMAIL: undefined as string | undefined,
   FEDERATION_DOMAIN: "s-nc.test",
   FEATURE_FEDERATION: false,
-  FEATURE_STREAMING: false,
+  FEATURE_STREAMING: true,
   ...overrides,
 });
 

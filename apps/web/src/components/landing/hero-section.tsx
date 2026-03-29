@@ -1,11 +1,12 @@
-import { Link, useNavigate } from "@tanstack/react-router";
 import type React from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { clsx } from "clsx/lite";
+
 import type { SubscriptionPlan } from "@snc/shared";
 
 import { usePlatformAuth } from "../../hooks/use-platform-auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
 import { isFeatureEnabled } from "../../lib/config.js";
-import { clsx } from "clsx/lite";
 
 import buttonStyles from "../../styles/button.module.css";
 import styles from "./hero-section.module.css";
@@ -14,6 +15,7 @@ interface HeroSectionProps {
   readonly plans: readonly SubscriptionPlan[];
 }
 
+/** Landing page hero with a CTA that adapts to auth/subscription state and enabled feature flags. */
 export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
   const navigate = useNavigate();
   const { isAuthenticated, isSubscribed } = usePlatformAuth();

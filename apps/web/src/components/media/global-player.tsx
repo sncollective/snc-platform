@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
@@ -6,36 +6,16 @@ import "@vidstack/react/player/styles/default/layouts/video.css";
 import "@vidstack/react/player/styles/default/layouts/audio.css";
 
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
+import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
 
 import styles from "./global-player.module.css";
-
-// ── Types ──
-
-interface VidstackModules {
-  readonly core: typeof import("@vidstack/react");
-  readonly layouts: typeof import("@vidstack/react/player/layouts/default");
-}
 
 // ── Public API ──
 
 /** Single persistent media player rendered in the root layout. CSS controls expanded/collapsed/hidden presentation. */
 export function GlobalPlayer() {
   const { state, presentation, actions } = useGlobalPlayer();
-  const [modules, setModules] = useState<VidstackModules | null>(null);
-
-  // Single dynamic import for the app's lifetime
-  useEffect(() => {
-    Promise.all([
-      import("@vidstack/react"),
-      import("@vidstack/react/player/layouts/default"),
-    ])
-      .then(([core, layouts]) => {
-        setModules({ core, layouts });
-      })
-      .catch(() => {
-        // Player won't render
-      });
-  }, []);
+  const modules = useVidstackModules();
 
   // Set mini player height CSS variable and body padding for collapsed modes
   useEffect(() => {

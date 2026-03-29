@@ -145,6 +145,11 @@ export function PendingBookingsTable({
     );
   }
 
+  const mappedRows = bookings.map((booking) => ({
+    booking,
+    row: mapBookingToRow(booking),
+  }));
+
   return (
     <>
       {/* Desktop table layout */}
@@ -159,25 +164,21 @@ export function PendingBookingsTable({
           </tr>
         </thead>
         <tbody>
-          {bookings.map((booking) => {
-            const row = mapBookingToRow(booking);
-            return (
-              <tr key={row.id} className={styles.row}>
-                <td>{row.requesterName}</td>
-                <td>{row.serviceName}</td>
-                <td title={row.datesTitle}>{row.datesDisplay}</td>
-                <td suppressHydrationWarning>{formatRelativeDate(row.submittedAt)}</td>
-                <td>{renderActions(booking)}</td>
-              </tr>
-            );
-          })}
+          {mappedRows.map(({ booking, row }) => (
+            <tr key={row.id} className={styles.row}>
+              <td>{row.requesterName}</td>
+              <td>{row.serviceName}</td>
+              <td title={row.datesTitle}>{row.datesDisplay}</td>
+              <td suppressHydrationWarning>{formatRelativeDate(row.submittedAt)}</td>
+              <td>{renderActions(booking)}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
       {/* Mobile card layout */}
       <div className={styles.cardList}>
-        {bookings.map((booking) => {
-          const row = mapBookingToRow(booking);
+        {mappedRows.map(({ booking, row }) => {
           return (
             <div key={`card-${row.id}`} className={styles.card} role="group" aria-label={row.ariaLabel}>
               <div className={styles.cardField}>

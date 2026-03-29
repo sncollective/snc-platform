@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, desc, lt, or, and, inArray, type SQL } from "drizzle-orm";
+import { eq, desc, and, type SQL } from "drizzle-orm";
 
 import {
   AdminUsersQuerySchema,
@@ -27,12 +27,26 @@ import {
 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { toISO } from "../lib/response-helpers.js";
+import { getClientIp } from "../lib/request-helpers.js";
 import { UserIdParam } from "./route-params.js";
 import { rootLogger } from "../logging/logger.js";
 
 // ── Private Types ──
 
-type UserRow = typeof users.$inferSelect;
+type UserRow = Pick<
+  typeof users.$inferSelect,
+  "id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt"
+>;
+
+const USER_COLUMNS = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  emailVerified: users.emailVerified,
+  image: users.image,
+  createdAt: users.createdAt,
+  updatedAt: users.updatedAt,
+} as const;
 
 // ── Private Helpers ──
 
@@ -52,7 +66,7 @@ const toAdminUserResponse = (
 
 async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
   const [[user], roles] = await Promise.all([
-    db.select().from(users).where(eq(users.id, userId)),
+    db.select(USER_COLUMNS).from(users).where(eq(users.id, userId)),
     getUserRoles(userId),
   ]);
 
@@ -104,7 +118,7 @@ adminRoutes.get(
     }
 
     const userRows = await db
-      .select()
+      .select(USER_COLUMNS)
       .from(users)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(users.createdAt), desc(users.id))
@@ -174,7 +188,7 @@ adminRoutes.post(
         actorId: actor.id,
         targetUserId: userId,
         role,
-        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+        ip: getClientIp(c),
       },
       "Admin assigned role",
     );
@@ -231,7 +245,7 @@ adminRoutes.delete(
         actorId: currentUser.id,
         targetUserId: userId,
         role,
-        ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null,
+        ip: getClientIp(c),
       },
       "Admin revoked role",
     );

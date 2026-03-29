@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq, isNull } from "drizzle-orm";
-import { ok, err } from "@snc/shared";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+import { ok, err, AppError } from "@snc/shared";
 import type { Result, ChannelType } from "@snc/shared";
-import { AppError } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
@@ -48,47 +47,52 @@ const buildHlsUrl = (srsStreamName: string): string | null => {
 
 // ── Public API ──
 
-/** Get all active channels, ordered by priority (scheduled > live > playout). */
+/** Get active channels, enriched with creator profiles, ordered by type priority. */
 export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
   const rows = await db
     .select()
     .from(channels)
     .where(eq(channels.isActive, true));
 
-  const result: ChannelInfo[] = [];
+  // Batch-fetch all referenced creator profiles in a single query
+  const creatorIds = rows
+    .map((r) => r.creatorId)
+    .filter((id): id is string => id !== null);
 
-  for (const row of rows) {
-    let creator: ChannelInfo["creator"] = null;
+  const profileMap = new Map<string, ChannelInfo["creator"]>();
+  if (creatorIds.length > 0) {
+    const profiles = await db
+      .select({
+        id: creatorProfiles.id,
+        displayName: creatorProfiles.displayName,
+        handle: creatorProfiles.handle,
+        avatarKey: creatorProfiles.avatarKey,
+      })
+      .from(creatorProfiles)
+      .where(inArray(creatorProfiles.id, creatorIds));
 
-    if (row.creatorId) {
-      const [profile] = await db
-        .select()
-        .from(creatorProfiles)
-        .where(eq(creatorProfiles.id, row.creatorId));
-
-      if (profile) {
-        const urls = resolveCreatorUrls(profile);
-        creator = {
-          id: profile.id,
-          displayName: profile.displayName,
-          handle: profile.handle,
-          avatarUrl: urls.avatarUrl,
-        };
-      }
+    for (const profile of profiles) {
+      const urls = resolveCreatorUrls(profile);
+      profileMap.set(profile.id, {
+        id: profile.id,
+        displayName: profile.displayName,
+        handle: profile.handle,
+        avatarUrl: urls.avatarUrl,
+      });
     }
-
-    result.push({
-      id: row.id,
-      name: row.name,
-      type: row.type as ChannelType,
-      thumbnailUrl: row.thumbnailUrl ?? null,
-      srsStreamName: row.srsStreamName,
-      hlsUrl: buildHlsUrl(row.srsStreamName),
-      creatorId: row.creatorId,
-      creator,
-      isActive: row.isActive,
-    });
   }
+
+  const result: ChannelInfo[] = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.type as ChannelType,
+    thumbnailUrl: row.thumbnailUrl ?? null,
+    srsStreamName: row.srsStreamName,
+    hlsUrl: buildHlsUrl(row.srsStreamName),
+    creatorId: row.creatorId,
+    creator: row.creatorId !== null ? (profileMap.get(row.creatorId) ?? null) : null,
+    isActive: row.isActive,
+  }));
 
   // Sort by priority (lower number = higher priority)
   result.sort(

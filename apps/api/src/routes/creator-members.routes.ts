@@ -20,7 +20,7 @@ import type {
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
-import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
+import { creatorMembers } from "../db/schema/creator.schema.js";
 import { users, userRoles } from "../db/schema/user.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -28,24 +28,10 @@ import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-error
 import { batchGetUserRoles } from "../auth/user-roles.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { toISO } from "../lib/response-helpers.js";
+import { findCreatorProfile } from "../lib/creator-helpers.js";
 import { CreatorIdParam, CreatorMemberParams } from "./route-params.js";
 
 // ── Private Helpers ──
-
-const findCreatorProfile = async (
-  identifier: string,
-): Promise<(typeof creatorProfiles.$inferSelect) | undefined> => {
-  const rows = await db
-    .select()
-    .from(creatorProfiles)
-    .where(
-      or(
-        eq(creatorProfiles.id, identifier),
-        eq(creatorProfiles.handle, identifier),
-      ),
-    );
-  return rows[0];
-};
 
 const getMembersResponse = async (
   creatorId: string,
@@ -76,6 +62,7 @@ const getRoles = (c: Context<AuthEnv>): string[] =>
 
 // ── Public API ──
 
+/** Creator team membership management. */
 export const creatorMemberRoutes = new Hono<AuthEnv>();
 
 // GET /:creatorId/members — List members

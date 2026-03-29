@@ -1,6 +1,7 @@
 import type React from "react";
-import { createFileRoute, redirect, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { createFileRoute, redirect, Link, useNavigate, useRouter } from "@tanstack/react-router";
+
 import type { Project, CalendarEvent, CalendarEventsResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
@@ -41,6 +42,9 @@ export const Route = createFileRoute("/projects_/$projectSlug")({
       throw new AccessDeniedError();
     }
   },
+  head: () => ({
+    meta: [{ title: "Project — S/NC" }],
+  }),
   errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<ProjectDetailLoaderData> => {
     const [projectRes, events] = await Promise.all([

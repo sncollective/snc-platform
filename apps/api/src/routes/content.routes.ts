@@ -35,7 +35,7 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { generateUniqueSlug } from "../services/slug.js";
-import { resolveContentUrls, findActiveContent } from "../lib/content-helpers.js";
+import { resolveContentUrls, requireContentOwnership } from "../lib/content-helpers.js";
 import type { ContentRow } from "../lib/content-helpers.js";
 import { toISO, toISOOrNull } from "../lib/response-helpers.js";
 import { IdParam, ContentByCreatorParams } from "./route-params.js";
@@ -76,18 +76,6 @@ const CONTENT_FEED_COLUMNS = {
 
 // ── Private Helpers ──
 
-const requireContentOwnership = async (
-  id: string,
-  userId: string,
-): Promise<ContentRow> => {
-  const existing = await findActiveContent(id);
-  if (!existing) {
-    throw new NotFoundError("Content not found");
-  }
-  await requireCreatorPermission(userId, existing.creatorId, "manageContent");
-  return existing;
-};
-
 const resolveFeedItem = (row: FeedRow): FeedItem => ({
   ...resolveContentUrls(row),
   creatorName: row.creatorName ?? "",
@@ -96,6 +84,7 @@ const resolveFeedItem = (row: FeedRow): FeedItem => ({
 
 // ── Public API ──
 
+/** Content CRUD, feed queries, and visibility management. */
 export const contentRoutes = new Hono<AuthEnv>();
 
 // GET / — List published content feed

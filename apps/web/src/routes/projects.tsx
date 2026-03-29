@@ -35,6 +35,9 @@ export const Route = createFileRoute("/projects")({
       throw new AccessDeniedError();
     }
   },
+  head: () => ({
+    meta: [{ title: "Projects — S/NC" }],
+  }),
   errorComponent: RouteErrorBoundary,
   component: ProjectsPage,
 });
@@ -42,10 +45,6 @@ export const Route = createFileRoute("/projects")({
 // ── Component ──
 
 function ProjectsPage(): React.ReactElement {
-  if (!isFeatureEnabled("calendar")) {
-    return <div>Projects are not available.</div>;
-  }
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [creators, setCreators] = useState<CreatorListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,6 +116,10 @@ function ProjectsPage(): React.ReactElement {
     setEditingProject(undefined);
     setShowForm(true);
   };
+
+  if (!isFeatureEnabled("calendar")) {
+    return <div>Projects are not available.</div>;
+  }
 
   return (
     <div className={styles.page}>

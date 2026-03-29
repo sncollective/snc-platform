@@ -56,13 +56,14 @@ export const Route = createFileRoute("/creators/$creatorId/manage")({
   },
   errorComponent: RouteErrorBoundary,
   loader: async ({ params, context }): Promise<ManageLoaderData> => {
-    const creator = (await fetchApiServer({
-      data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
-    })) as CreatorProfileResponse;
-
-    const membersRes = (await fetchApiServer({
-      data: `/api/creators/${encodeURIComponent(params.creatorId)}/members`,
-    })) as { members: Array<{ userId: string; role: CreatorMemberRole }> };
+    const [creator, membersRes] = await Promise.all([
+      fetchApiServer({
+        data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
+      }) as Promise<CreatorProfileResponse>,
+      fetchApiServer({
+        data: `/api/creators/${encodeURIComponent(params.creatorId)}/members`,
+      }) as Promise<{ members: Array<{ userId: string; role: CreatorMemberRole }> }>,
+    ]);
 
     const membership = membersRes.members.find((m) => m.userId === context.userId);
     const isAdmin = context.platformRoles.includes("admin");

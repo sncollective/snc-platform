@@ -2,6 +2,8 @@ import type { MiddlewareHandler } from "hono";
 
 import { RateLimitError } from "@snc/shared";
 
+import { getClientIp } from "../lib/request-helpers.js";
+
 // ── Public Types ──
 
 export type RateLimitOptions = {
@@ -41,10 +43,7 @@ export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
   return async (c, next) => {
     cleanup();
 
-    const ip =
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      c.req.header("x-real-ip") ??
-      "unknown";
+    const ip = getClientIp(c) ?? "unknown";
 
     const now = Date.now();
     const existing = clients.get(ip);

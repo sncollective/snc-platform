@@ -26,8 +26,16 @@ import {
 } from "../lib/openapi-errors.js";
 import { getFrontendBaseUrl } from "../lib/route-utils.js";
 
+// ── Private Helpers ──
+
+const buildFeedUrl = (token: string): string => {
+  const baseUrl = getFrontendBaseUrl();
+  return `${baseUrl}/api/calendar/feed.ics?token=${token}`;
+};
+
 // ── Public API ──
 
+/** Calendar iCal feed token management and .ics generation. */
 export const calendarFeedRoutes = new Hono<AuthEnv>();
 
 // ── POST /feed-token — Generate feed token ──
@@ -68,8 +76,7 @@ calendarFeedRoutes.post(
       token,
     });
 
-    const baseUrl = getFrontendBaseUrl();
-    const url = `${baseUrl}/api/calendar/feed.ics?token=${token}`;
+    const url = buildFeedUrl(token);
 
     return c.json({ token, url });
   },
@@ -110,8 +117,7 @@ calendarFeedRoutes.get(
       throw new NotFoundError("No feed token found");
     }
 
-    const baseUrl = getFrontendBaseUrl();
-    const url = `${baseUrl}/api/calendar/feed.ics?token=${existing.token}`;
+    const url = buildFeedUrl(existing.token);
 
     return c.json({ token: existing.token, url });
   },

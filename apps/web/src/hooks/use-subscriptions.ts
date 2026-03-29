@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import type { UserSubscriptionWithPlan } from "@snc/shared";
 
 import { useSession } from "../lib/auth.js";

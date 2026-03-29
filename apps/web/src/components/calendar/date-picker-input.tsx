@@ -28,6 +28,7 @@ export interface DatePickerInputProps {
 
 // ── Public API ──
 
+/** Text input that opens a popover day-picker and emits a YYYY-MM-DD string on selection. */
 export function DatePickerInput({
   value,
   onChange,

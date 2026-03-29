@@ -29,7 +29,11 @@ export const Route = createFileRoute("/feed")({
     meta: [
       { title: "Content Feed — S/NC" },
       { name: "description", content: "Browse the latest content from S/NC creators." },
+      { property: "og:title", content: "Content Feed — S/NC" },
+      { property: "og:description", content: "Browse the latest content from S/NC creators." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/feed" }],
   }),
   component: FeedPage,
 });

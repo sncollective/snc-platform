@@ -1,11 +1,10 @@
-import { useState } from "react";
 import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { ContentCard } from "./content-card.js";
 import { ProcessingIndicator } from "./processing-indicator.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { deleteContent } from "../../lib/content.js";
+import { useContentDelete } from "../../hooks/use-content-delete.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./my-content-list.module.css";
 
@@ -25,19 +24,7 @@ export function MyContentList({
   refreshKey,
   onDeleted,
 }: MyContentListProps): React.ReactElement {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this content?")) return;
-    setDeletingId(id);
-    try {
-      await deleteContent(id);
-      onDeleted?.();
-    } catch {
-      // Silently ignore — list will still refresh
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const { deletingId, handleDelete } = useContentDelete({ onDeleted });
 
   const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<FeedItem>({

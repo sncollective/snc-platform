@@ -58,11 +58,13 @@ export type ClientEvent = z.infer<typeof ClientEventSchema>;
 
 // ── WebSocket Events: Server → Client ──
 
+/** A new chat message delivered to the client. */
 export type ServerMessageEvent = {
   readonly type: "message";
   readonly message: ChatMessage;
 };
 
+/** Batch of historical messages for a room. */
 export type ServerHistoryEvent = {
   readonly type: "history";
   readonly roomId: string;
@@ -70,17 +72,20 @@ export type ServerHistoryEvent = {
   readonly hasMore: boolean;
 };
 
+/** Notification that a chat room has been closed. */
 export type ServerRoomClosedEvent = {
   readonly type: "room_closed";
   readonly roomId: string;
 };
 
+/** Server-side error sent to the client. */
 export type ServerErrorEvent = {
   readonly type: "error";
   readonly code: string;
   readonly message: string;
 };
 
+/** Discriminated union of all server-to-client WebSocket events. */
 export type ServerEvent =
   | ServerMessageEvent
   | ServerHistoryEvent

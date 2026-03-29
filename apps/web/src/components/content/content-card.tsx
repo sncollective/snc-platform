@@ -6,15 +6,8 @@ import { clsx } from "clsx/lite";
 
 import { OptionalImage } from "../ui/optional-image.js";
 import { RelativeTime } from "../ui/relative-time.js";
+import { TYPE_BADGE_LABELS } from "../../lib/content-constants.js";
 import styles from "./content-card.module.css";
-
-// ── Constants ──
-
-const TYPE_BADGE_LABELS: Record<FeedItem["type"], string> = {
-  video: "VIDEO",
-  audio: "AUDIO",
-  written: "POST",
-};
 
 const TYPE_BADGE_CLASSES: Record<FeedItem["type"], string> = {
   video: styles.badgeVideo!,

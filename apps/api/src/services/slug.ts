@@ -15,7 +15,18 @@ export const toSlug = (name: string, maxLength = 80): string =>
     .replace(/^-|-$/g, "")
     .slice(0, maxLength);
 
-/** Generate a collision-safe slug by querying the DB for existing matches and appending a numeric suffix if needed. */
+/**
+ * Generate a collision-safe slug by querying the DB for existing matches and appending a numeric suffix if needed.
+ *
+ * If the base slug produced from `name` is fewer than 3 characters, falls back to
+ * `{fallbackPrefix}-{8-char UUID}` to guarantee a usable slug for very short names.
+ *
+ * Collision detection uses a LIKE `base%` query to fetch all slugs sharing the same
+ * prefix, then iterates `-2`, `-3`, … until a free candidate is found. Results are
+ * scoped to an optional `(scopeColumn, scopeValue)` pair — for example, scoping slugs
+ * per-creator so the same slug may be reused across different scopes. Pass `excludeId`
+ * + `idColumn` to allow the current row's own slug to be reused during updates.
+ */
 export const generateUniqueSlug = async (
   name: string,
   options: Readonly<{

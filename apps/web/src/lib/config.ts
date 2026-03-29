@@ -3,7 +3,7 @@ import type { FeatureFlag, FeatureFlags } from "@snc/shared";
 // ── Helpers ──
 
 /** Parse a single env value: absent/empty → true (dev default), otherwise "true"/"false". */
-const flag = (raw: string | undefined): boolean =>
+const parseFlag = (raw: string | undefined): boolean =>
   raw === undefined || raw === "" ? true : raw === "true";
 
 // ── Public API ──
@@ -16,17 +16,17 @@ export const DEMO_MODE: boolean = import.meta.env.VITE_DEMO_MODE === "true";
  * so Vite can replace them at build time.
  */
 export const features: FeatureFlags = {
-  content: flag(import.meta.env.VITE_FEATURE_CONTENT),
-  creator: flag(import.meta.env.VITE_FEATURE_CREATOR),
-  subscription: flag(import.meta.env.VITE_FEATURE_SUBSCRIPTION),
-  merch: flag(import.meta.env.VITE_FEATURE_MERCH),
-  booking: flag(import.meta.env.VITE_FEATURE_BOOKING),
-  dashboard: flag(import.meta.env.VITE_FEATURE_DASHBOARD),
-  admin: flag(import.meta.env.VITE_FEATURE_ADMIN),
-  emissions: flag(import.meta.env.VITE_FEATURE_EMISSIONS),
-  calendar: flag(import.meta.env.VITE_FEATURE_CALENDAR),
-  federation: flag(import.meta.env.VITE_FEATURE_FEDERATION),
-  streaming: flag(import.meta.env.VITE_FEATURE_STREAMING),
+  content: parseFlag(import.meta.env.VITE_FEATURE_CONTENT),
+  creator: parseFlag(import.meta.env.VITE_FEATURE_CREATOR),
+  subscription: parseFlag(import.meta.env.VITE_FEATURE_SUBSCRIPTION),
+  merch: parseFlag(import.meta.env.VITE_FEATURE_MERCH),
+  booking: parseFlag(import.meta.env.VITE_FEATURE_BOOKING),
+  dashboard: parseFlag(import.meta.env.VITE_FEATURE_DASHBOARD),
+  admin: parseFlag(import.meta.env.VITE_FEATURE_ADMIN),
+  emissions: parseFlag(import.meta.env.VITE_FEATURE_EMISSIONS),
+  calendar: parseFlag(import.meta.env.VITE_FEATURE_CALENDAR),
+  federation: parseFlag(import.meta.env.VITE_FEATURE_FEDERATION),
+  streaming: parseFlag(import.meta.env.VITE_FEATURE_STREAMING),
 };
 
 /** Check whether a single feature flag is enabled. */

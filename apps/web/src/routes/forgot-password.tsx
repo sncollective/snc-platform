@@ -5,6 +5,9 @@ import { ForgotPasswordForm } from "../components/auth/forgot-password-form.js";
 import styles from "../components/auth/auth-form.module.css";
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => ({
+    meta: [{ title: "Reset Password — S/NC" }],
+  }),
   component: ForgotPasswordPage,
 });
 

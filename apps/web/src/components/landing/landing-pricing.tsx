@@ -16,6 +16,7 @@ interface LandingPricingProps {
   readonly plans: readonly SubscriptionPlan[];
 }
 
+/** Landing pricing section displaying subscription plans with a checkout CTA or subscribed state. */
 export function LandingPricing({ plans }: LandingPricingProps): React.ReactElement {
   const navigate = useNavigate();
   const { isAuthenticated, isSubscribed: isSubscribedToPlatform } = usePlatformAuth();

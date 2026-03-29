@@ -1,5 +1,5 @@
 import { AppError, ok, err } from "@snc/shared";
-import type { Result } from "@snc/shared";
+import type { Result, NowPlaying } from "@snc/shared";
 
 import { config } from "../config.js";
 import { wrapExternalError } from "./external-error.js";
@@ -9,8 +9,7 @@ import { getPlayoutNowPlaying } from "./playout.js";
 
 // ── Public Types ──
 
-import type { NowPlaying } from "@snc/shared";
-
+/** Aggregated channel list with viewer counts and now-playing state for each channel. */
 export type ChannelListResult = {
   channels: Array<ChannelInfo & { viewerCount: number; nowPlaying: NowPlaying | null }>;
   defaultChannelId: string | null;
@@ -68,7 +67,7 @@ export const getChannelList = async (): Promise<
     const activeChannels = await getActiveChannels();
 
     // Fetch SRS viewer counts (best-effort — default to 0 on failure)
-    let srsViewerCounts = new Map<string, number>();
+    const srsViewerCounts = new Map<string, number>();
     try {
       const response = await fetch(`${SRS_API_URL!}/api/v1/streams/`, {
         signal: AbortSignal.timeout(5_000),

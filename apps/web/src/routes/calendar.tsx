@@ -41,6 +41,9 @@ export const Route = createFileRoute("/calendar")({
       throw new AccessDeniedError();
     }
   },
+  head: () => ({
+    meta: [{ title: "Calendar — S/NC" }],
+  }),
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<CalendarLoaderData> => {
     // Load current month's events
@@ -68,14 +71,14 @@ export const Route = createFileRoute("/calendar")({
 // ── Component ──
 
 function CalendarPage(): React.ReactElement {
-  if (!isFeatureEnabled("calendar")) return <ComingSoon feature="calendar" />;
-
   const { events: initialEvents, feedToken } = Route.useLoaderData();
 
   const cal = useCalendarState({
     includeCreatorFilter: true,
     initialEvents: initialEvents.items,
   });
+
+  if (!isFeatureEnabled("calendar")) return <ComingSoon feature="calendar" />;
 
   return (
     <div className={styles.page}>

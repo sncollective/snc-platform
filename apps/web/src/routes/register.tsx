@@ -5,6 +5,9 @@ import { RegisterForm } from "../components/auth/register-form.js";
 import styles from "../components/auth/auth-form.module.css";
 
 export const Route = createFileRoute("/register")({
+  head: () => ({
+    meta: [{ title: "Sign Up — S/NC" }],
+  }),
   component: RegisterPage,
 });
 

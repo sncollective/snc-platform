@@ -44,27 +44,28 @@ export function StudioInquiryForm(): React.ReactElement {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const validate = (): boolean => {
+  const validate = () => {
     const result = safeParse(INQUIRY_FORM_SCHEMA, { name, email, service, message });
     if (result.success) {
       setFieldErrors({});
-      return true;
+      return result.data;
     }
     setFieldErrors(
       extractFieldErrors(result.error.issues, ["name", "email", "service", "message"]),
     );
-    return false;
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError("");
-    if (!validate()) return;
+    const data = validate();
+    if (!data) return;
     setIsSubmitting(true);
     try {
       await apiMutate("/api/studio/inquiry", {
         method: "POST",
-        body: { name, email, service, message },
+        body: { name: data.name, email: data.email, service: data.service, message: data.message },
       });
       setIsSubmitted(true);
     } catch {

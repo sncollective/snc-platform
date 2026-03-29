@@ -1,18 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
 import type { CalendarEvent } from "@snc/shared";
-import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 
-import {
-  fetchCalendarEvents,
-  fetchCreatorEvents,
-  deleteCalendarEvent,
-  deleteCreatorEvent,
-  fetchEventTypes,
-  toggleEventComplete,
-} from "../lib/calendar.js";
-import { fetchProjects } from "../lib/project.js";
-import { apiGet } from "../lib/fetch-utils.js";
-import type { CalendarViewMode } from "../components/calendar/view-toggle.js";
+import { useCalendarFilters } from "./use-calendar-filters.js";
+import { useCalendarNavigation } from "./use-calendar-navigation.js";
+import { useCalendarEvents } from "./use-calendar-events.js";
+import { useCalendarForm } from "./use-calendar-form.js";
 
 // ── Public Types ──
 
@@ -25,20 +16,7 @@ export interface UseCalendarStateOptions {
   readonly initialEvents?: readonly CalendarEvent[];
 }
 
-export interface EventTypeOption {
-  readonly value: string;
-  readonly label: string;
-}
-
-export interface CreatorOption {
-  readonly id: string;
-  readonly name: string;
-}
-
-export interface ProjectOption {
-  readonly id: string;
-  readonly name: string;
-}
+export type { EventTypeOption, CreatorOption, ProjectOption } from "./use-calendar-filters.js";
 
 export interface UseCalendarStateReturn {
   // Event state
@@ -47,8 +25,8 @@ export interface UseCalendarStateReturn {
   readonly isDeleting: boolean;
 
   // View mode
-  readonly viewMode: CalendarViewMode;
-  readonly setViewMode: (mode: CalendarViewMode) => void;
+  readonly viewMode: import("../components/calendar/view-toggle.js").CalendarViewMode;
+  readonly setViewMode: (mode: import("../components/calendar/view-toggle.js").CalendarViewMode) => void;
 
   // Filters
   readonly eventTypeFilter: string;
@@ -59,9 +37,9 @@ export interface UseCalendarStateReturn {
   readonly setProjectFilter: (value: string) => void;
 
   // Filter options
-  readonly eventTypeOptions: readonly EventTypeOption[];
-  readonly creatorOptions: readonly CreatorOption[];
-  readonly projectOptions: readonly ProjectOption[];
+  readonly eventTypeOptions: readonly import("./use-calendar-filters.js").EventTypeOption[];
+  readonly creatorOptions: readonly import("./use-calendar-filters.js").CreatorOption[];
+  readonly projectOptions: readonly import("./use-calendar-filters.js").ProjectOption[];
 
   // Month navigation
   readonly monthOffset: number;
@@ -91,247 +69,57 @@ export interface UseCalendarStateReturn {
 export function useCalendarState(options: UseCalendarStateOptions = {}): UseCalendarStateReturn {
   const { creatorId, includeCreatorFilter = false, initialEvents } = options;
 
-  // ── Event state ──
-  const [events, setEvents] = useState<CalendarEvent[]>(
-    initialEvents ? [...initialEvents] : [],
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const navigation = useCalendarNavigation();
 
-  // ── View mode ──
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
+  const filters = useCalendarFilters({ creatorId, includeCreatorFilter });
 
-  // ── Filters ──
-  const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
-  const [creatorFilter, setCreatorFilter] = useState<string>("");
-  const [projectFilter, setProjectFilter] = useState<string>("");
+  const eventsState = useCalendarEvents({
+    creatorId,
+    initialEvents,
+    monthOffset: navigation.monthOffset,
+    viewMode: navigation.viewMode,
+    eventTypeFilter: filters.eventTypeFilter,
+    creatorFilter: filters.creatorFilter,
+    projectFilter: filters.projectFilter,
+  });
 
-  // ── Filter options ──
-  const [eventTypeOptions, setEventTypeOptions] = useState<EventTypeOption[]>([]);
-  const [creatorOptions, setCreatorOptions] = useState<CreatorOption[]>([]);
-  const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
-
-  // ── Form state ──
-  const [showForm, setShowForm] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  // ── Month navigation ──
-  const [monthOffset, setMonthOffset] = useState(0);
-
-  const displayDate = new Date();
-  displayDate.setMonth(displayDate.getMonth() + monthOffset);
-  const monthLabel = displayDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const currentYear = displayDate.getFullYear();
-  const currentMonthIndex = displayDate.getMonth();
-
-  // ── SSR loader data tracking ──
-  const hasLoaderData = useRef(initialEvents !== undefined);
-
-  // ── Fetch event types (once) ──
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetchEventTypes();
-        setEventTypeOptions(
-          res.items.map((et) => ({ value: et.slug, label: et.label })),
-        );
-      } catch {
-        // Fallback to default labels
-        setEventTypeOptions(
-          Object.entries(DEFAULT_EVENT_TYPE_LABELS).map(([slug, label]) => ({
-            value: slug,
-            label,
-          })),
-        );
-      }
-    };
-    void load();
-  }, []);
-
-  // ── Fetch creator options (main page only, once) ──
-  useEffect(() => {
-    if (!includeCreatorFilter) return;
-
-    const load = async () => {
-      try {
-        const res = await apiGet<{ items: { id: string; displayName: string }[] }>("/api/creators");
-        setCreatorOptions(res.items.map((c) => ({ id: c.id, name: c.displayName })));
-      } catch (e) {
-        console.warn("Failed to load creator filter options", e instanceof Error ? e.message : String(e));
-      }
-    };
-    void load();
-  }, [includeCreatorFilter]);
-
-  // ── Fetch project options (re-fetches when creator filter or creatorId changes) ──
-  useEffect(() => {
-    const effectiveCreator = creatorId ?? creatorFilter;
-    const params: Record<string, string> = { completed: "false" };
-    if (effectiveCreator) params.creatorId = effectiveCreator;
-
-    const load = async () => {
-      try {
-        const res = await fetchProjects(params);
-        setProjectOptions(res.items.map((p) => ({ id: p.id, name: p.name })));
-      } catch (e) {
-        console.warn("Failed to load project filter options", e instanceof Error ? e.message : String(e));
-      }
-    };
-    void load();
-  }, [creatorId, creatorFilter]);
-
-  // ── Fetch events ──
-  useEffect(() => {
-    if (viewMode === "timeline") return;
-
-    // Skip the initial client-side fetch — SSR loader already provided current month data
-    if (hasLoaderData.current && monthOffset === 0 && !eventTypeFilter && !creatorFilter && !projectFilter) {
-      hasLoaderData.current = false;
-      return;
-    }
-    hasLoaderData.current = false;
-
-    // Derive date range from monthOffset
-    const ref = new Date();
-    ref.setMonth(ref.getMonth() + monthOffset);
-    const from = new Date(ref.getFullYear(), ref.getMonth(), 0);
-    const to = new Date(ref.getFullYear(), ref.getMonth() + 1, 1, 23, 59, 59);
-
-    const params: Record<string, string> = {
-      from: from.toISOString(),
-      to: to.toISOString(),
-    };
-    if (eventTypeFilter) params.eventType = eventTypeFilter;
-    if (creatorFilter) params.creatorId = creatorFilter;
-    if (projectFilter) params.projectId = projectFilter;
-
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const result = creatorId
-          ? await fetchCreatorEvents(creatorId, params)
-          : await fetchCalendarEvents(params);
-        if (!cancelled) setEvents(result.items);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load events");
-      }
-    };
-    void load();
-
-    return () => { cancelled = true; };
-  }, [monthOffset, eventTypeFilter, creatorFilter, projectFilter, viewMode, reloadKey, creatorId]);
-
-  // ── Navigation handlers ──
-  const handlePrev = useCallback(() => {
-    setMonthOffset((o) => o - 1);
-  }, []);
-
-  const handleNext = useCallback(() => {
-    setMonthOffset((o) => o + 1);
-  }, []);
-
-  // ── Creator filter handler (resets project filter) ──
-  const handleCreatorChange = useCallback((value: string) => {
-    setCreatorFilter(value);
-    setProjectFilter("");
-  }, []);
-
-  // ── Form handlers ──
-  const handleNewEvent = useCallback(() => {
-    setEditingEvent(undefined);
-    setShowForm(true);
-  }, []);
-
-  const handleEdit = useCallback((id: string) => {
-    const event = events.find((e) => e.id === id);
-    if (event) {
-      setEditingEvent(event);
-      setShowForm(true);
-    }
-  }, [events]);
-
-  const handleFormSuccess = useCallback(() => {
-    setShowForm(false);
-    setEditingEvent(undefined);
-    setReloadKey((k) => k + 1);
-  }, []);
-
-  const handleFormCancel = useCallback(() => {
-    setShowForm(false);
-    setEditingEvent(undefined);
-  }, []);
-
-  const handleFormDeleted = useCallback(() => {
-    setEvents((prev) => {
-      const editing = editingEvent;
-      if (!editing) return prev;
-      return prev.filter((e) => e.id !== editing.id);
-    });
-    setShowForm(false);
-    setEditingEvent(undefined);
-  }, [editingEvent]);
-
-  // ── CRUD handlers ──
-  const handleDelete = useCallback(async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    try {
-      if (creatorId) {
-        await deleteCreatorEvent(creatorId, id);
-      } else {
-        await deleteCalendarEvent(id);
-      }
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete event");
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [creatorId]);
-
-  const handleToggleComplete = useCallback(async (id: string) => {
-    setError(null);
-    try {
-      const updated = await toggleEventComplete(id);
-      setEvents((prev) =>
-        prev.map((e) => (e.id === id ? updated : e)),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update task");
-    }
-  }, []);
+  const form = useCalendarForm({
+    events: eventsState.events,
+    onSuccess: eventsState.triggerReload,
+    onDeleted: (id) => {
+      eventsState.setEvents((prev) => prev.filter((e) => e.id !== id));
+    },
+  });
 
   return {
-    events,
-    error,
-    isDeleting,
-    viewMode,
-    setViewMode,
-    eventTypeFilter,
-    setEventTypeFilter,
-    creatorFilter,
-    handleCreatorChange,
-    projectFilter,
-    setProjectFilter,
-    eventTypeOptions,
-    creatorOptions,
-    projectOptions,
-    monthOffset,
-    monthLabel,
-    currentYear,
-    currentMonthIndex,
-    handlePrev,
-    handleNext,
-    showForm,
-    editingEvent,
-    handleNewEvent,
-    handleEdit,
-    handleFormSuccess,
-    handleFormCancel,
-    handleFormDeleted,
-    handleDelete,
-    handleToggleComplete,
+    events: eventsState.events,
+    error: eventsState.error,
+    isDeleting: eventsState.isDeleting,
+    viewMode: navigation.viewMode,
+    setViewMode: navigation.setViewMode,
+    eventTypeFilter: filters.eventTypeFilter,
+    setEventTypeFilter: filters.setEventTypeFilter,
+    creatorFilter: filters.creatorFilter,
+    handleCreatorChange: filters.handleCreatorChange,
+    projectFilter: filters.projectFilter,
+    setProjectFilter: filters.setProjectFilter,
+    eventTypeOptions: filters.eventTypeOptions,
+    creatorOptions: filters.creatorOptions,
+    projectOptions: filters.projectOptions,
+    monthOffset: navigation.monthOffset,
+    monthLabel: navigation.monthLabel,
+    currentYear: navigation.currentYear,
+    currentMonthIndex: navigation.currentMonthIndex,
+    handlePrev: navigation.handlePrev,
+    handleNext: navigation.handleNext,
+    showForm: form.showForm,
+    editingEvent: form.editingEvent,
+    handleNewEvent: form.handleNewEvent,
+    handleEdit: form.handleEdit,
+    handleFormSuccess: form.handleFormSuccess,
+    handleFormCancel: form.handleFormCancel,
+    handleFormDeleted: form.handleFormDeleted,
+    handleDelete: eventsState.handleDelete,
+    handleToggleComplete: eventsState.handleToggleComplete,
   };
 }

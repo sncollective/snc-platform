@@ -16,7 +16,11 @@ export const Route = createFileRoute("/studio")({
     meta: [
       { title: "Studio — S/NC" },
       { name: "description", content: "Book recording sessions at the S/NC studio." },
+      { property: "og:title", content: "Studio — S/NC" },
+      { property: "og:description", content: "Book recording sessions at the S/NC studio." },
+      { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://snc.coop/studio" }],
   }),
   component: StudioPage,
 });

@@ -27,26 +27,29 @@ export async function fetchLockedContentPlans(
 
 /** Check whether the current user can manage the given creator's content. */
 export async function resolveCanManage(creatorId: string): Promise<boolean> {
+  let me: { user: { id: string }; roles: string[] } | null;
   try {
-    const me = (await fetchApiServer({
-      data: "/api/me",
-    })) as { user: { id: string }; roles: string[] } | null;
-    if (!me?.user) return false;
-    if (me.roles.includes("admin")) return true;
-    try {
-      const membersRes = (await fetchApiServer({
-        data: `/api/creators/${encodeURIComponent(creatorId)}/members`,
-      })) as { members: Array<{ userId: string; role: string }> };
-      const membership = membersRes.members.find((m) => m.userId === me.user.id);
-      if (membership) {
-        const role = membership.role as "owner" | "editor" | "viewer";
-        return CREATOR_ROLE_PERMISSIONS[role].manageContent === true;
-      }
-    } catch {
-      // Not a member — can't manage
-    }
+    me = (await fetchApiServer({ data: "/api/me" })) as { user: { id: string }; roles: string[] } | null;
   } catch {
     // Not logged in
+    return false;
+  }
+  if (!me?.user) return false;
+  if (me.roles.includes("admin")) return true;
+
+  let membersRes: { members: Array<{ userId: string; role: string }> };
+  try {
+    membersRes = (await fetchApiServer({
+      data: `/api/creators/${encodeURIComponent(creatorId)}/members`,
+    })) as { members: Array<{ userId: string; role: string }> };
+  } catch {
+    // Not a member — can't manage
+    return false;
+  }
+  const membership = membersRes.members.find((m) => m.userId === me.user.id);
+  if (membership) {
+    const role = membership.role as "owner" | "editor" | "viewer";
+    return CREATOR_ROLE_PERMISSIONS[role].manageContent === true;
   }
   return false;
 }

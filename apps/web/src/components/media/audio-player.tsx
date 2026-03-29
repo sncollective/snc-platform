@@ -1,17 +1,11 @@
-import { useEffect, useState } from "react";
-
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/audio.css";
 
+import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
 import styles from "./audio-player.module.css";
 
-// ── Types ──
-
-interface VidstackAudioModules {
-  readonly core: typeof import("@vidstack/react");
-  readonly layouts: typeof import("@vidstack/react/player/layouts/default");
-}
+// ── Public Types ──
 
 export interface AudioPlayerProps {
   readonly src: string;
@@ -30,21 +24,7 @@ export function AudioPlayer({
   creator,
   coverArtUrl,
 }: AudioPlayerProps) {
-  const [modules, setModules] = useState<VidstackAudioModules | null>(null);
-
-  // Load vidstack modules once
-  useEffect(() => {
-    Promise.all([
-      import("@vidstack/react"),
-      import("@vidstack/react/player/layouts/default"),
-    ])
-      .then(([core, layouts]) => {
-        setModules({ core, layouts });
-      })
-      .catch(() => {
-        // Skeleton remains visible on import failure
-      });
-  }, []);
+  const modules = useVidstackModules();
 
   if (modules === null) {
     return <div className={styles.skeleton} />;

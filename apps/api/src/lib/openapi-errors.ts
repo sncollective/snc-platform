@@ -1,6 +1,7 @@
 import { resolver } from "hono-openapi";
 import { z } from "zod";
 
+/** Shared OpenAPI error response schema. */
 export const ErrorResponse = z.object({
   error: z.object({
     code: z.string(),

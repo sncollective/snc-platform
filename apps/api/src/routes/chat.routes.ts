@@ -39,6 +39,7 @@ const sendError = (ws: WSContext, code: string, message: string): void => {
 
 // ── Public API ──
 
+/** WebSocket chat room management and history. */
 export const chatRoutes = new Hono<OptionalAuthEnv>();
 
 // ── REST: Get Active Rooms ──

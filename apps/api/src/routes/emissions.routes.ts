@@ -26,6 +26,7 @@ type EmissionRow = typeof emissions.$inferSelect;
 
 // ── Private Helpers ──
 
+/** Strip sessionDates from metadata; returns null when no other keys remain. */
 function stripSessionDates(
   metadata: Record<string, unknown> | null,
 ): Record<string, unknown> | null {

@@ -98,6 +98,8 @@ export const getContentForJob = async (
 /**
  * Download a storage key to a local temp file. Returns the temp file path.
  * Creates the temp directory if it doesn't exist.
+ *
+ * @returns err(AppError) when download fails or storage is unreachable
  */
 export const downloadToTemp = async (
   storageKey: string,
@@ -121,6 +123,8 @@ export const downloadToTemp = async (
 
 /**
  * Upload a local file to storage. Returns ok on success.
+ *
+ * @returns err(AppError) when upload fails or storage is unreachable
  */
 export const uploadFromTemp = async (
   tempPath: string,
