@@ -1,6 +1,4 @@
 import type React from "react";
-import { useState } from "react";
-
 import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
 
 import { useFileInput } from "../../hooks/use-file-input.js";
@@ -9,6 +7,7 @@ import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
+import { AudioLockedView } from "./audio-locked-view.js";
 
 import styles from "./audio-detail.module.css";
 
@@ -46,42 +45,13 @@ export function AudioDetail({
   hideMetadata,
 }: AudioDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
-  const [lockedImgBroken, setLockedImgBroken] = useState(false);
 
   const coverArtSrc = item.thumbnailUrl;
 
   if (locked === true) {
     return (
       <div className={styles.audioDetail}>
-        <div className={styles.header}>
-          {coverArtSrc && !lockedImgBroken ? (
-            <img
-              src={coverArtSrc}
-              alt={`Thumbnail for ${item.title}`}
-              className={styles.coverArt}
-              width={280}
-              height={280}
-              onError={() => setLockedImgBroken(true)}
-            />
-          ) : (
-            <div className={styles.coverArtPlaceholder} />
-          )}
-          <div className={styles.trackInfo}>
-            <ContentMeta
-              title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-            />
-            <p className={styles.lockedText}>Subscribe to listen</p>
-          </div>
-        </div>
-        <ContentFooter
-          description={item.description}
-          creatorId={item.creatorId}
-          contentType="audio"
-          locked
-          plans={plans}
-        />
+        <AudioLockedView item={item} plans={plans} />
       </div>
     );
   }

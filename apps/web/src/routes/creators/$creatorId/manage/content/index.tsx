@@ -6,6 +6,7 @@ import { CONTENT_TYPES } from "@snc/shared";
 
 import { ContentManagementList } from "../../../../../components/content/content-management-list.js";
 import { createContent } from "../../../../../lib/content.js";
+import { useMenuToggle } from "../../../../../hooks/use-menu-toggle.js";
 
 import styles from "../content-manage.module.css";
 
@@ -14,6 +15,7 @@ import styles from "../content-manage.module.css";
 const manageRoute = getRouteApi("/creators/$creatorId/manage");
 
 export const Route = createFileRoute("/creators/$creatorId/manage/content/")({
+  head: () => ({ meta: [{ title: "Manage Content — S/NC" }] }),
   component: ManageContentPage,
 });
 
@@ -32,38 +34,60 @@ function ManageContentPage(): React.ReactElement {
   const creatorSlug = creator.handle ?? creator.id;
   const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const typeSelectorRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const { isOpen: showTypeSelector, handleToggle: toggleTypeSelector, handleClose: closeTypeSelector } =
+    useMenuToggle(typeSelectorRef);
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
-  // Click-outside dismiss for the type selector
+  // Auto-focus first menuitem when the menu opens
   useEffect(() => {
     if (!showTypeSelector) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        typeSelectorRef.current &&
-        !typeSelectorRef.current.contains(e.target as Node)
-      ) {
-        setShowTypeSelector(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+    firstItem?.focus();
   }, [showTypeSelector]);
 
-  // Escape key dismiss for the type selector
-  useEffect(() => {
-    if (!showTypeSelector) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowTypeSelector(false);
+  // Arrow-key navigation within the menu (WAI-ARIA Menu Button pattern)
+  const handleMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (items.length === 0) return;
+
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const next = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        items[next]?.focus();
+        break;
       }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [showTypeSelector]);
+      case "ArrowUp": {
+        e.preventDefault();
+        const prev = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        items[prev]?.focus();
+        break;
+      }
+      case "Home": {
+        e.preventDefault();
+        items[0]?.focus();
+        break;
+      }
+      case "End": {
+        e.preventDefault();
+        items[items.length - 1]?.focus();
+        break;
+      }
+      case "Tab": {
+        closeTypeSelector();
+        break;
+      }
+    }
+  };
 
   const handleCreate = async (type: ContentType) => {
     setIsCreating(true);
@@ -83,7 +107,7 @@ function ManageContentPage(): React.ReactElement {
       });
     } catch {
       setIsCreating(false);
-      setShowTypeSelector(false);
+      closeTypeSelector();
     }
   };
 
@@ -95,7 +119,7 @@ function ManageContentPage(): React.ReactElement {
           <button
             type="button"
             className={styles.createButton}
-            onClick={() => setShowTypeSelector((v) => !v)}
+            onClick={toggleTypeSelector}
             disabled={isCreating}
             aria-expanded={showTypeSelector}
             aria-haspopup="menu"
@@ -103,7 +127,12 @@ function ManageContentPage(): React.ReactElement {
             {isCreating ? "Creating..." : "Create New"}
           </button>
           {showTypeSelector && (
-            <div className={styles.typeSelector} role="menu">
+            <div
+              ref={menuRef}
+              className={styles.typeSelector}
+              role="menu"
+              onKeyDown={handleMenuKeyDown}
+            >
               {CONTENT_TYPES.map((type) => (
                 <button
                   key={type}

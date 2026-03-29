@@ -5,6 +5,7 @@ import { ContentCard } from "./content-card.js";
 import { ProcessingIndicator } from "./processing-indicator.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { useContentDelete } from "../../hooks/use-content-delete.js";
+import { buildContentListUrl } from "../../lib/content-url.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./my-content-list.module.css";
 
@@ -28,13 +29,8 @@ export function MyContentList({
 
   const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<FeedItem>({
-      buildUrl: (cursor) => {
-        const params = new URLSearchParams();
-        params.set("creatorId", creatorId);
-        params.set("limit", "12");
-        if (cursor) params.set("cursor", cursor);
-        return `/api/content?${params.toString()}`;
-      },
+      buildUrl: (cursor) =>
+        buildContentListUrl("/api/content", { creatorId, cursor }),
       deps: [creatorId, refreshKey],
     });
 

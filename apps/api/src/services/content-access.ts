@@ -198,6 +198,8 @@ export const checkContentAccess = async (
  *
  * When `prefetchedRoles` is provided (e.g. from Hono context after `optionalAuth`),
  * the `getUserRoles` DB query is skipped.
+ *
+ * @throws {NotFoundError} When the caller does not have draft access.
  */
 export const requireDraftAccess = async (
   row: { publishedAt: Date | null; creatorId: string },

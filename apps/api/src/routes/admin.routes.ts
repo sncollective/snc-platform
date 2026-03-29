@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { eq, desc, and, type SQL } from "drizzle-orm";
 
@@ -73,6 +74,20 @@ async function getUserWithRoles(userId: string): Promise<AdminUser | null> {
   if (!user) return null;
 
   return toAdminUserResponse(user, roles);
+}
+
+async function resolveAndAudit(
+  c: Context,
+  userId: string,
+  role: string,
+  event: "role_assigned" | "role_revoked",
+  logMessage: string,
+) {
+  const user = await getUserWithRoles(userId);
+  if (!user) throw new NotFoundError("User not found");
+  const logger = c.var?.logger ?? rootLogger;
+  logger.info({ event, actorId: c.get("user").id, targetUserId: userId, role, ip: getClientIp(c) }, logMessage);
+  return c.json({ user });
 }
 
 // ── Public API ──
@@ -170,7 +185,6 @@ adminRoutes.post(
   async (c) => {
     const { userId } = c.req.valid("param" as never) as { userId: string };
     const { role } = c.req.valid("json" as never) as { role: Role };
-    const actor = c.get("user");
 
     // Idempotent insert
     await db
@@ -178,22 +192,7 @@ adminRoutes.post(
       .values({ userId, role })
       .onConflictDoNothing();
 
-    const user = await getUserWithRoles(userId);
-    if (!user) throw new NotFoundError("User not found");
-
-    const logger = c.var?.logger ?? rootLogger;
-    logger.info(
-      {
-        event: "role_assigned",
-        actorId: actor.id,
-        targetUserId: userId,
-        role,
-        ip: getClientIp(c),
-      },
-      "Admin assigned role",
-    );
-
-    return c.json({ user });
+    return resolveAndAudit(c, userId, role, "role_assigned", "Admin assigned role");
   },
 );
 
@@ -235,21 +234,6 @@ adminRoutes.delete(
       .delete(userRoles)
       .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)));
 
-    const user = await getUserWithRoles(userId);
-    if (!user) throw new NotFoundError("User not found");
-
-    const logger = c.var?.logger ?? rootLogger;
-    logger.info(
-      {
-        event: "role_revoked",
-        actorId: currentUser.id,
-        targetUserId: userId,
-        role,
-        ip: getClientIp(c),
-      },
-      "Admin revoked role",
-    );
-
-    return c.json({ user });
+    return resolveAndAudit(c, userId, role, "role_revoked", "Admin revoked role");
   },
 );

@@ -10,9 +10,6 @@ export const VISIBILITY = ["public", "subscribers"] as const;
 export const CONTENT_STATUSES = ["draft", "published"] as const;
 export const PROCESSING_STATUSES = ["uploaded", "processing", "ready", "failed"] as const;
 
-export const PROCESSING_JOB_TYPES = ["probe", "transcode", "thumbnail", "vod-remux"] as const;
-
-export const PROCESSING_JOB_STATUSES = ["queued", "processing", "completed", "failed"] as const;
 /** Maximum content title length. */
 export const MAX_TITLE_LENGTH = 200;
 /** Maximum content description length. */
@@ -24,9 +21,6 @@ export const ContentTypeSchema = z.enum(CONTENT_TYPES);
 export const VisibilitySchema = z.enum(VISIBILITY);
 export const ContentStatusSchema = z.enum(CONTENT_STATUSES);
 export const ProcessingStatusSchema = z.enum(PROCESSING_STATUSES);
-export const ProcessingJobTypeSchema = z.enum(PROCESSING_JOB_TYPES);
-export const ProcessingJobStatusSchema = z.enum(PROCESSING_JOB_STATUSES);
-
 export const CreateContentSchema = z.object({
   creatorId: z.string(),
   title: z.string().min(1).max(MAX_TITLE_LENGTH),
@@ -76,8 +70,6 @@ export type ContentType = z.infer<typeof ContentTypeSchema>;
 export type Visibility = z.infer<typeof VisibilitySchema>;
 export type ContentStatus = z.infer<typeof ContentStatusSchema>;
 export type ProcessingStatus = z.infer<typeof ProcessingStatusSchema>;
-export type ProcessingJobType = z.infer<typeof ProcessingJobTypeSchema>;
-export type ProcessingJobStatus = z.infer<typeof ProcessingJobStatusSchema>;
 export type CreateContent = z.infer<typeof CreateContentSchema>;
 export type UpdateContent = z.infer<typeof UpdateContentSchema>;
 export type ContentResponse = z.infer<typeof ContentResponseSchema>;

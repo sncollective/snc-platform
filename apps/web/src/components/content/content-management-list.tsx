@@ -4,6 +4,7 @@ import type { ContentType, FeedItem } from "@snc/shared";
 import { CONTENT_TYPES } from "@snc/shared";
 
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
+import { buildContentListUrl } from "../../lib/content-url.js";
 import { getVisibleColumns, buildGridTemplate } from "./management-columns.js";
 import { ContentSection } from "./content-section.js";
 
@@ -71,27 +72,23 @@ export function ContentManagementList({
   const gridTemplate = buildGridTemplate(columns);
 
   const drafts = useCursorPagination<FeedItem>({
-    buildUrl: (cursor) => {
-      const params = new URLSearchParams();
-      params.set("creatorId", creatorId);
-      params.set("limit", "12");
-      if (typeFilter !== "all") params.set("type", typeFilter);
-      if (cursor) params.set("cursor", cursor);
-      return `/api/content/drafts?${params.toString()}`;
-    },
+    buildUrl: (cursor) =>
+      buildContentListUrl("/api/content/drafts", {
+        creatorId,
+        type: typeFilter !== "all" ? typeFilter : null,
+        cursor,
+      }),
     deps: [creatorId, refreshKey, typeFilter],
     fetchOptions: { credentials: "include" },
   });
 
   const published = useCursorPagination<FeedItem>({
-    buildUrl: (cursor) => {
-      const params = new URLSearchParams();
-      params.set("creatorId", creatorId);
-      params.set("limit", "12");
-      if (typeFilter !== "all") params.set("type", typeFilter);
-      if (cursor) params.set("cursor", cursor);
-      return `/api/content?${params.toString()}`;
-    },
+    buildUrl: (cursor) =>
+      buildContentListUrl("/api/content", {
+        creatorId,
+        type: typeFilter !== "all" ? typeFilter : null,
+        cursor,
+      }),
     deps: [creatorId, refreshKey, typeFilter],
   });
 

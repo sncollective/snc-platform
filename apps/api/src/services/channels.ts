@@ -32,6 +32,7 @@ export type ChannelInfo = {
 // ── Channel Priority ──
 
 const CHANNEL_PRIORITY: Record<ChannelType, number> = {
+  broadcast: 0,
   scheduled: 1,
   live: 2,
   playout: 3,
@@ -189,6 +190,57 @@ export const deactivateLiveChannel = async (
       new AppError(
         "CHANNEL_DEACTIVATE_ERROR",
         e instanceof Error ? e.message : "Failed to deactivate live channel",
+        500,
+      ),
+    );
+  }
+};
+
+/**
+ * Ensure a broadcast channel exists. Idempotent — creates on first call,
+ * updates name and activates if inactive.
+ */
+export const ensureBroadcast = async (opts: {
+  name: string;
+  srsStreamName: string;
+  defaultPlayoutChannelId?: string;
+}): Promise<Result<{ channelId: string }, AppError>> => {
+  try {
+    const [existing] = await db
+      .select({ id: channels.id, isActive: channels.isActive })
+      .from(channels)
+      .where(eq(channels.srsStreamName, opts.srsStreamName));
+
+    if (existing) {
+      await db
+        .update(channels)
+        .set({
+          name: opts.name,
+          isActive: true,
+          defaultPlayoutChannelId: opts.defaultPlayoutChannelId ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(channels.id, existing.id));
+      return ok({ channelId: existing.id });
+    }
+
+    const channelId = randomUUID();
+
+    await db.insert(channels).values({
+      id: channelId,
+      name: opts.name,
+      type: "broadcast",
+      srsStreamName: opts.srsStreamName,
+      isActive: true,
+      defaultPlayoutChannelId: opts.defaultPlayoutChannelId ?? null,
+    });
+
+    return ok({ channelId });
+  } catch (e) {
+    return err(
+      new AppError(
+        "CHANNEL_ENSURE_ERROR",
+        e instanceof Error ? e.message : "Failed to ensure broadcast channel",
         500,
       ),
     );

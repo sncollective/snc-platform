@@ -89,11 +89,14 @@ export const getChannelList = async (): Promise<
       viewerCount: srsViewerCounts.get(ch.srsStreamName) ?? 0,
     }));
 
-    // Enrich playout channels with now-playing metadata (best-effort)
+    // Enrich playout and broadcast channels with now-playing metadata (best-effort)
     const enriched = await Promise.all(
       enrichedBase.map(async (ch) => ({
         ...ch,
-        nowPlaying: ch.type === "playout" ? await getPlayoutNowPlaying() : null,
+        nowPlaying:
+          ch.type === "playout" || ch.type === "broadcast"
+            ? await getPlayoutNowPlaying(ch.srsStreamName)
+            : null,
       })),
     );
 

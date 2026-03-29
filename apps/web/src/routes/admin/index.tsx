@@ -14,6 +14,7 @@ import styles from "../admin.module.css";
 
 export const Route = createFileRoute("/admin/")({
   errorComponent: RouteErrorBoundary,
+  head: () => ({ meta: [{ title: "Admin — S/NC" }] }),
   component: AdminPage,
 });
 

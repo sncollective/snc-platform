@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 
 import type { FeedItem, Visibility } from "@snc/shared";
@@ -62,49 +62,53 @@ export function useContentManagement(item: FeedItem, initialEdit?: boolean): Con
     ? { ...item, title: editTitle, description: editDescription, visibility: editVisibility, body: editBody }
     : item;
 
-  const editCallbacks: ContentEditCallbacks | undefined = isEditing
-    ? {
-        onTitleChange: setEditTitle,
-        onDescriptionChange: setEditDescription,
-        onVisibilityChange: setEditVisibility,
-        ...(item.type === "written" ? { onBodyChange: setEditBody } : {}),
-        onMediaUpload: (file: File) => {
-          uploadActions.startUpload({
-            file,
-            purpose: "content-media",
-            resourceId: item.id,
-            onComplete: () => void router.invalidate(),
-            onError: (err) => setError(err.message),
-          });
-        },
-        onThumbnailUpload: (file: File) => {
-          uploadActions.startUpload({
-            file,
-            purpose: "content-thumbnail",
-            resourceId: item.id,
-            onComplete: () => void router.invalidate(),
-            onError: (err) => setError(err.message),
-          });
-        },
-        onThumbnailRemove: async () => {
-          try {
-            await updateContent(item.id, { clearThumbnail: true });
-            void router.invalidate();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to remove thumbnail");
+  const editCallbacks = useMemo<ContentEditCallbacks | undefined>(
+    () =>
+      isEditing
+        ? {
+            onTitleChange: setEditTitle,
+            onDescriptionChange: setEditDescription,
+            onVisibilityChange: setEditVisibility,
+            ...(item.type === "written" ? { onBodyChange: setEditBody } : {}),
+            onMediaUpload: (file: File) => {
+              uploadActions.startUpload({
+                file,
+                purpose: "content-media",
+                resourceId: item.id,
+                onComplete: () => void router.invalidate(),
+                onError: (err) => setError(err.message),
+              });
+            },
+            onThumbnailUpload: (file: File) => {
+              uploadActions.startUpload({
+                file,
+                purpose: "content-thumbnail",
+                resourceId: item.id,
+                onComplete: () => void router.invalidate(),
+                onError: (err) => setError(err.message),
+              });
+            },
+            onThumbnailRemove: async () => {
+              try {
+                await updateContent(item.id, { clearThumbnail: true });
+                void router.invalidate();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Failed to remove thumbnail");
+              }
+            },
+            onMediaRemove: async () => {
+              if (!window.confirm("Remove media file? This cannot be undone.")) return;
+              try {
+                await updateContent(item.id, { clearMedia: true });
+                void router.invalidate();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Failed to remove media");
+              }
+            },
           }
-        },
-        onMediaRemove: async () => {
-          if (!window.confirm("Remove media file? This cannot be undone.")) return;
-          try {
-            await updateContent(item.id, { clearMedia: true });
-            void router.invalidate();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to remove media");
-          }
-        },
-      }
-    : undefined;
+        : undefined,
+    [isEditing, item.id, item.type, uploadActions, router, setError],
+  );
 
   const startEditing = useCallback(() => {
     setIsEditing(true);

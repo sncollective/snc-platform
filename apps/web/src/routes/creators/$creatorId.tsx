@@ -5,6 +5,7 @@ import type { CreatorProfileResponse } from "@snc/shared";
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { buildCreatorJsonLd } from "../../lib/json-ld.js";
 
 // ── Route ──
 
@@ -34,6 +35,12 @@ export const Route = createFileRoute("/creators/$creatorId")({
       ],
       links: [
         { rel: "canonical", href: `${siteUrl}/creators/${canonicalSlug}` },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(buildCreatorJsonLd(loaderData, siteUrl)),
+        },
       ],
     };
   },

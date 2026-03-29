@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+// ── Processing Job Constants ──
+
+export const PROCESSING_JOB_TYPES = ["probe", "transcode", "thumbnail", "vod-remux"] as const;
+export const PROCESSING_JOB_STATUSES = ["queued", "processing", "completed", "failed"] as const;
+
+export const ProcessingJobTypeSchema = z.enum(PROCESSING_JOB_TYPES);
+export const ProcessingJobStatusSchema = z.enum(PROCESSING_JOB_STATUSES);
+
+export type ProcessingJobType = z.infer<typeof ProcessingJobTypeSchema>;
+export type ProcessingJobStatus = z.infer<typeof ProcessingJobStatusSchema>;
+
 // ── Probe Result ──
 
 export const ProbeResultSchema = z.object({
@@ -19,8 +30,8 @@ export type ProbeResult = z.infer<typeof ProbeResultSchema>;
 export const ProcessingJobResponseSchema = z.object({
   id: z.string(),
   contentId: z.string(),
-  type: z.string(),
-  status: z.string(),
+  type: ProcessingJobTypeSchema,
+  status: ProcessingJobStatusSchema,
   progress: z.number().int().nullable(),
   error: z.string().nullable(),
   createdAt: z.string().datetime(),

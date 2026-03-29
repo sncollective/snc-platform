@@ -165,6 +165,78 @@ describe("skipTrack", () => {
   });
 });
 
+describe("getChannelNowPlaying", () => {
+  it("returns null when LIQUIDSOAP_API_URL is not configured", async () => {
+    const { getChannelNowPlaying } = await setupModule(false);
+    const result = await getChannelNowPlaying("snc-tv");
+    expect(result).toBeNull();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("routes snc-tv to /now-playing path", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse(makeNowPlayingResponse()));
+
+    await getChannelNowPlaying("snc-tv");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/now-playing",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("routes channel-classics to /classics/now-playing path", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse(makeNowPlayingResponse()));
+
+    await getChannelNowPlaying("channel-classics");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/classics/now-playing",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("falls back to /now-playing for unknown channel names", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse(makeNowPlayingResponse()));
+
+    await getChannelNowPlaying("unknown-channel");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/now-playing",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("returns now-playing data on success", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse(makeNowPlayingResponse()));
+
+    const result = await getChannelNowPlaying("snc-tv");
+
+    expect(result).not.toBeNull();
+    expect(result?.uri).toBe("s3://snc-storage/playout/item-1/1080p.mp4");
+    expect(result?.title).toBe("Test Film");
+  });
+
+  it("returns null when Liquidsoap returns non-ok status", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse({}, 500));
+
+    const result = await getChannelNowPlaying("snc-tv");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when Liquidsoap is unreachable", async () => {
+    const { getChannelNowPlaying } = await setupModule();
+    mockFetch.mockRejectedValue(new Error("connection refused"));
+
+    const result = await getChannelNowPlaying("snc-tv");
+    expect(result).toBeNull();
+  });
+});
+
 describe("queueTrack", () => {
   it("returns err when LIQUIDSOAP_API_URL is not configured", async () => {
     const { queueTrack } = await setupModule(false);

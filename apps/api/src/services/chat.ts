@@ -42,6 +42,8 @@ const toMessageResponse = (
 /**
  * Ensure the platform chat room exists. Idempotent — creates on first call.
  * Called during server startup.
+ *
+ * @throws {AppError} On database failure.
  */
 export const ensurePlatformRoom = async (): Promise<ChatRoom> => {
   const [existing] = await db
@@ -66,6 +68,8 @@ export const ensurePlatformRoom = async (): Promise<ChatRoom> => {
 /**
  * Create a chat room linked to a channel.
  * Called from the on_publish callback after creating a live channel.
+ *
+ * @throws {AppError} On database failure.
  */
 export const createChannelRoom = async (
   channelId: string,
@@ -87,6 +91,8 @@ export const createChannelRoom = async (
 /**
  * Close a channel's chat room. Sets closedAt timestamp.
  * Called from the on_unpublish callback after deactivating a channel.
+ *
+ * @throws {AppError} On database failure.
  */
 export const closeChannelRoom = async (channelId: string): Promise<void> => {
   await db
@@ -100,6 +106,8 @@ export const closeChannelRoom = async (channelId: string): Promise<void> => {
 /**
  * Ensure a channel has a chat room. Idempotent.
  * Called lazily when a viewer first joins a playout channel.
+ *
+ * @throws {AppError} On database failure.
  */
 export const ensureChannelRoom = async (
   channelId: string,

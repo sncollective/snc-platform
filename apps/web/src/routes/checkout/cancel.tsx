@@ -10,6 +10,7 @@ export const Route = createFileRoute("/checkout/cancel")({
   beforeLoad: () => {
     if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
   },
+  head: () => ({ meta: [{ title: "Checkout Canceled — S/NC" }] }),
   component: CheckoutCancelPage,
 });
 

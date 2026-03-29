@@ -1,11 +1,12 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
 import type { MediaMetadata } from "../../contexts/global-player-context.js";
 import { ContentMeta } from "./content-meta.js";
 import { ContentFooter } from "./content-footer.js";
+import { VideoLockedView } from "./video-locked-view.js";
 
 import styles from "./video-detail-view.module.css";
 
@@ -22,8 +23,6 @@ export interface VideoDetailViewProps {
 /** Consumption-only video detail. Delegates playback to GlobalPlayer. */
 export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): React.ReactElement {
   const { state, presentation, actions } = useGlobalPlayer();
-  const [lockedImgBroken, setLockedImgBroken] = useState(false);
-
   // Signal expanded mode only when this content is actually playing
   useEffect(() => {
     if (state.media?.id === item.id) {
@@ -40,36 +39,7 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
   if (locked === true) {
     return (
       <div className={styles.videoDetail}>
-        <div className={styles.lockedOverlayContainer}>
-          {posterSrc && !lockedImgBroken ? (
-            <img
-              src={posterSrc}
-              alt={`Thumbnail for ${item.title}`}
-              className={styles.lockedThumbnail}
-              onError={() => setLockedImgBroken(true)}
-            />
-          ) : (
-            <div className={styles.lockedThumbnailPlaceholder} />
-          )}
-          <div className={styles.lockedOverlay}>
-            <span className={styles.lockIcon} aria-hidden="true">
-              &#x1F512;
-            </span>
-            <span className={styles.lockedText}>Subscribe to watch</span>
-          </div>
-        </div>
-        <ContentMeta
-          title={item.title}
-          creatorName={item.creatorName}
-          publishedAt={item.publishedAt}
-        />
-        <ContentFooter
-          description={item.description}
-          creatorId={item.creatorId}
-          contentType="video"
-          locked
-          plans={plans}
-        />
+        <VideoLockedView item={item} plans={plans} />
       </div>
     );
   }

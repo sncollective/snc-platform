@@ -14,6 +14,7 @@ import {
   uploadFromTemp,
   cleanupTemp,
 } from "../../services/processing-jobs.js";
+import { failContentJob } from "./job-error.js";
 import { config } from "../../config.js";
 import { JOB_QUEUES } from "../register-workers.js";
 import { rootLogger } from "../../logging/logger.js";
@@ -85,9 +86,7 @@ export const handleTranscode = async (
     await updateJob(jobRecord.id, { status: "completed", progress: 100, completedAt: new Date() });
     logger.info({ transcodedKey }, "Transcode complete");
   } catch (e) {
-    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Transcode job failed");
-    await updateJob(jobRecord.id, { status: "failed", error: e instanceof Error ? e.message : "Unknown error" });
-    await updateContentProcessing(contentId, { processingStatus: "failed" });
+    await failContentJob(jobRecord.id, contentId, e, logger, "Transcode job");
   } finally {
     if (inputPath) await cleanupTemp(inputPath);
     if (outputPath) await cleanupTemp(outputPath);

@@ -89,7 +89,7 @@ export const channels = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    type: text("type").notNull(), // "playout" | "live" | "scheduled"
+    type: text("type").notNull(), // "playout" | "live" | "scheduled" | "broadcast"
     thumbnailUrl: text("thumbnail_url"),
     srsStreamName: text("srs_stream_name").notNull(),
     creatorId: text("creator_id").references(() => creatorProfiles.id, {
@@ -99,6 +99,7 @@ export const channels = pgTable(
       () => streamSessions.id,
       { onDelete: "set null" },
     ),
+    defaultPlayoutChannelId: text("default_playout_channel_id"),
     isActive: boolean("is_active").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

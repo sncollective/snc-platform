@@ -253,6 +253,42 @@
   color: var(--color-bg);
 }
 
+/* ── Broadcast Section ── */
+
+.broadcastSection {
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.broadcastStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.statusLive {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.statusOffline {
+  color: var(--color-muted);
+}
+
+.viewerCount {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.nowPlaying {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
 /* ── Add Film Form ── */
 
 .addFilmForm {

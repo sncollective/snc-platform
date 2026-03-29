@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
-import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus } from "@snc/shared";
+import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { AddFilmForm } from "../../components/admin/add-film-form.js";
@@ -32,11 +32,15 @@ export const Route = createFileRoute("/admin/playout")({
   beforeLoad: async () => {
     if (!isFeatureEnabled("streaming")) throw redirect({ to: "/" });
   },
-  loader: async (): Promise<{ items: PlayoutItemListResponse }> => {
-    const data = (await fetchApiServer({
-      data: "/api/playout/items",
-    })) as PlayoutItemListResponse;
-    return { items: data };
+  loader: async (): Promise<{
+    items: PlayoutItemListResponse;
+    channels: ChannelListResponse | null;
+  }> => {
+    const [data, channelsRes] = await Promise.all([
+      fetchApiServer({ data: "/api/playout/items" }) as Promise<PlayoutItemListResponse>,
+      fetchApiServer({ data: "/api/streaming/status" }).catch(() => null) as Promise<ChannelListResponse | null>,
+    ]);
+    return { items: data, channels: channelsRes };
   },
   head: () => ({
     meta: [{ title: "Playout Admin — S/NC" }],
@@ -86,11 +90,41 @@ function usePlayoutStatus(): PlayoutStatus | null {
   return status;
 }
 
+// ── Broadcast Status Component ──
+
+/** Show S/NC TV broadcast channel status at the top of the playout admin page. */
+function BroadcastStatus({ channels }: { channels: ChannelListResponse | null }): React.ReactElement | null {
+  const broadcast = channels?.channels.find((ch) => ch.type === "broadcast");
+  if (!broadcast) return null;
+
+  return (
+    <section className={styles.broadcastSection}>
+      <h2 className={styles.sectionHeading}>S/NC TV</h2>
+      <div className={styles.broadcastStatus}>
+        <span className={broadcast.hlsUrl ? styles.statusLive : styles.statusOffline}>
+          {broadcast.hlsUrl ? "On Air" : "Offline"}
+        </span>
+        {broadcast.viewerCount > 0 && (
+          <span className={styles.viewerCount}>
+            {broadcast.viewerCount} viewer{broadcast.viewerCount !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      {broadcast.nowPlaying && (
+        <div className={styles.nowPlaying}>
+          <strong>Now Playing:</strong> {broadcast.nowPlaying.title ?? "Unknown"}
+          {broadcast.nowPlaying.director && ` — ${broadcast.nowPlaying.director}`}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── Page Component ──
 
 /** Admin playout management page. */
 function PlayoutPage(): React.ReactElement {
-  const { items: initialData } = Route.useLoaderData();
+  const { items: initialData, channels } = Route.useLoaderData();
   const [items, setItems] = useState<PlayoutItem[]>(
     initialData.items,
   );
@@ -192,6 +226,8 @@ function PlayoutPage(): React.ReactElement {
   return (
     <div className={styles.page}>
       <h1 className={pageHeadingStyles.heading}>Playout</h1>
+
+      <BroadcastStatus channels={channels} />
 
       {/* Now-Playing Card */}
       <section className={styles.section}>

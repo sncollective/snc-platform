@@ -15,6 +15,7 @@ export const Route = createFileRoute("/settings/")({
     }
   },
   errorComponent: RouteErrorBoundary,
+  head: () => ({ meta: [{ title: "Settings — S/NC" }] }),
   component: SettingsPage,
 });
 

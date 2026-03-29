@@ -48,6 +48,7 @@ vi.mock("../../../src/lib/format.js", async (importOriginal) => {
 vi.mock("../../../src/lib/auth.js", () => ({
   ...createAuthMock({ useSession: mockUseSession }),
   fetchAuthState: mockFetchAuthState,
+  GUEST_AUTH_STATE: { user: null, roles: [], isPatron: false },
 }));
 
 vi.mock("../../../src/lib/subscription.js", () => ({

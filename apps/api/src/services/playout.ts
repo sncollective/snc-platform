@@ -17,7 +17,7 @@ import type {
 import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { rootLogger } from "../logging/logger.js";
-import { getNowPlaying as getLiquidsoapNowPlaying, skipTrack, queueTrack } from "./liquidsoap.js";
+import { getNowPlaying as getLiquidsoapNowPlaying, getChannelNowPlaying, skipTrack, queueTrack } from "./liquidsoap.js";
 
 const logger = rootLogger.child({ service: "playout" });
 
@@ -226,9 +226,15 @@ export const RENDITION_COLUMNS = {
 /**
  * Get enriched now-playing data. Fetches raw data from Liquidsoap,
  * correlates the S3 URI to a playout item, and enriches with metadata.
+ *
+ * @param srsStreamName - Optional channel stream name for per-channel endpoint routing.
  */
-export const getPlayoutNowPlaying = async (): Promise<NowPlaying | null> => {
-  const raw = await getLiquidsoapNowPlaying();
+export const getPlayoutNowPlaying = async (
+  srsStreamName?: string,
+): Promise<NowPlaying | null> => {
+  const raw = srsStreamName
+    ? await getChannelNowPlaying(srsStreamName)
+    : await getLiquidsoapNowPlaying();
   if (!raw) return null;
 
   // Extract item ID from S3 URI: s3://snc-storage/playout/{id}/rendition.mp4

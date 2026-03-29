@@ -10,6 +10,7 @@ const parentRoute = getRouteApi("/creators/$creatorId/manage");
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId/manage/members")({
+  head: () => ({ meta: [{ title: "Manage Members — S/NC" }] }),
   component: ManageMembersPage,
 });
 

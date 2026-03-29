@@ -18,7 +18,8 @@ import { FilterBar } from "../../../components/content/filter-bar.js";
 import { CreatorHeader } from "../../../components/creator/creator-header.js";
 import { ProductCard } from "../../../components/merch/product-card.js";
 import { useCursorPagination } from "../../../hooks/use-cursor-pagination.js";
-import { useSession, fetchAuthState } from "../../../lib/auth.js";
+import { useSession, fetchAuthState, GUEST_AUTH_STATE } from "../../../lib/auth.js";
+import { buildContentListUrl } from "../../../lib/content-url.js";
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchProducts } from "../../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../../lib/subscription.js";
@@ -64,7 +65,7 @@ function CreatorDetailPage(): React.ReactElement {
           fetchProducts({ creatorId: creator.id, limit: 6 }),
           session.data
             ? fetchAuthState()
-            : Promise.resolve({ user: null, roles: [], isPatron: false }),
+            : Promise.resolve(GUEST_AUTH_STATE),
         ]);
 
       if (cancelled) return;
@@ -105,11 +106,10 @@ function CreatorDetailPage(): React.ReactElement {
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<FeedItem>({
       buildUrl: (cursor) =>
-        buildContentUrl({
+        buildContentListUrl("/api/content", {
           creatorId: creator.id,
-          filter: activeFilter,
+          type: activeFilter,
           cursor,
-          limit: 12,
         }),
       deps: [activeFilter, creator.id],
     });
@@ -187,27 +187,3 @@ function CreatorDetailPage(): React.ReactElement {
   );
 }
 
-// ── Private Helpers ──
-
-function buildContentUrl({
-  creatorId,
-  filter,
-  cursor,
-  limit,
-}: {
-  creatorId: string;
-  filter: ContentType | null;
-  cursor: string | null;
-  limit: number;
-}): string {
-  const params = new URLSearchParams();
-  params.set("creatorId", creatorId);
-  params.set("limit", String(limit));
-  if (filter) {
-    params.set("type", filter);
-  }
-  if (cursor) {
-    params.set("cursor", cursor);
-  }
-  return `/api/content?${params.toString()}`;
-}

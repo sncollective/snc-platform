@@ -51,6 +51,33 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
 
   const underConstruction = !contentEnabled && !subscriptionEnabled;
 
+  const primaryAction = subscriptionEnabled
+    ? isSubscribed
+      ? (
+        <Link to="/feed" className={clsx(buttonStyles.primaryButton, styles.primaryCta)}>
+          Explore Content
+        </Link>
+      )
+      : (
+        <button
+          type="button"
+          className={clsx(buttonStyles.primaryButton, styles.primaryCta)}
+          disabled={checkoutLoading}
+          onClick={() => void handlePrimaryCta()}
+        >
+          {checkoutLoading ? "Loading..." : "Subscribe"}
+        </button>
+      )
+    : null;
+
+  const secondaryAction = contentEnabled
+    ? (
+      <Link to="/feed" className={styles.secondaryCta}>
+        Browse Free Content
+      </Link>
+    )
+    : null;
+
   return (
     <section className={styles.hero}>
       <div className={styles.inner}>
@@ -77,27 +104,8 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
               and platforms for creators, owned and governed by the people who run them.
             </p>
             <div className={styles.actions}>
-              {subscriptionEnabled ? (
-                isSubscribed ? (
-                  <Link to="/feed" className={clsx(buttonStyles.primaryButton, styles.primaryCta)}>
-                    Explore Content
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className={clsx(buttonStyles.primaryButton, styles.primaryCta)}
-                    disabled={checkoutLoading}
-                    onClick={() => void handlePrimaryCta()}
-                  >
-                    {checkoutLoading ? "Loading..." : "Subscribe"}
-                  </button>
-                )
-              ) : null}
-              {contentEnabled ? (
-                <Link to="/feed" className={styles.secondaryCta}>
-                  Browse Free Content
-                </Link>
-              ) : null}
+              {primaryAction}
+              {secondaryAction}
             </div>
           </>
         )}

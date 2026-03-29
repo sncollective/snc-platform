@@ -31,6 +31,7 @@ const setupService = async () => {
       srsStreamName: "srsStreamName",
       creatorId: "creatorId",
       streamSessionId: "streamSessionId",
+      defaultPlayoutChannelId: "defaultPlayoutChannelId",
       isActive: "isActive",
       createdAt: "createdAt",
       updatedAt: "updatedAt",
@@ -290,6 +291,96 @@ describe("channel service", () => {
       if (result.ok) {
         expect(result.value).toBeNull();
       }
+    });
+  });
+
+  describe("ensureBroadcast", () => {
+    it("creates broadcast channel on first call", async () => {
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
+      mockDbInsert.mockReturnValueOnce(buildInsertValuesChain());
+
+      const { ensureBroadcast } = await setupService();
+      const result = await ensureBroadcast({
+        name: "S/NC TV",
+        srsStreamName: "snc-tv",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockDbInsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("creates channel with type broadcast and isActive true", async () => {
+      let insertedValues: Record<string, unknown> | null = null;
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
+      mockDbInsert.mockReturnValueOnce({
+        values: vi.fn().mockImplementation((vals) => {
+          insertedValues = vals;
+          return Promise.resolve([]);
+        }),
+      });
+
+      const { ensureBroadcast } = await setupService();
+      await ensureBroadcast({ name: "S/NC TV", srsStreamName: "snc-tv" });
+
+      expect(insertedValues).not.toBeNull();
+      const vals = insertedValues as unknown as Record<string, unknown>;
+      expect(vals.type).toBe("broadcast");
+      expect(vals.isActive).toBe(true);
+    });
+
+    it("sets defaultPlayoutChannelId when provided", async () => {
+      let insertedValues: Record<string, unknown> | null = null;
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
+      mockDbInsert.mockReturnValueOnce({
+        values: vi.fn().mockImplementation((vals) => {
+          insertedValues = vals;
+          return Promise.resolve([]);
+        }),
+      });
+
+      const { ensureBroadcast } = await setupService();
+      await ensureBroadcast({
+        name: "S/NC TV",
+        srsStreamName: "snc-tv",
+        defaultPlayoutChannelId: "playout-channel-1",
+      });
+
+      expect(insertedValues).not.toBeNull();
+      const vals = insertedValues as unknown as Record<string, unknown>;
+      expect(vals.defaultPlayoutChannelId).toBe("playout-channel-1");
+    });
+
+    it("is idempotent on second call (updates instead of inserting)", async () => {
+      const existingChannel = { id: "broadcast-existing", isActive: true };
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+
+      const { ensureBroadcast } = await setupService();
+      const result = await ensureBroadcast({
+        name: "S/NC TV",
+        srsStreamName: "snc-tv",
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.channelId).toBe("broadcast-existing");
+      }
+      expect(mockDbUpdate).toHaveBeenCalledTimes(1);
+      expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("selectDefaultChannel with broadcast", () => {
+    it("returns broadcast channel over all other types", async () => {
+      const { selectDefaultChannel } = await setupService();
+      const channels = [
+        { id: "ch-broadcast", type: "broadcast" as const, name: "b", srsStreamName: "snc-tv", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-scheduled", type: "scheduled" as const, name: "s", srsStreamName: "s", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-live", type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-playout", type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+      ];
+      const result = selectDefaultChannel(channels);
+      expect(result).toBe("ch-broadcast");
     });
   });
 

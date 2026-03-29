@@ -8,6 +8,7 @@ import type { ContentResponse } from "@snc/shared";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
 import { useContentDelete } from "../../hooks/use-content-delete.js";
 import { publishContent } from "../../lib/content.js";
+import { buildContentListUrl } from "../../lib/content-url.js";
 import { ProcessingIndicator } from "./processing-indicator.js";
 import { useUpload } from "../../contexts/upload-context.js";
 
@@ -215,13 +216,8 @@ export function DraftContentList({
 }: DraftContentListProps): React.ReactElement {
   const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<ContentResponse>({
-      buildUrl: (cursor) => {
-        const params = new URLSearchParams();
-        params.set("creatorId", creatorId);
-        params.set("limit", "12");
-        if (cursor) params.set("cursor", cursor);
-        return `/api/content/drafts?${params.toString()}`;
-      },
+      buildUrl: (cursor) =>
+        buildContentListUrl("/api/content/drafts", { creatorId, cursor }),
       deps: [creatorId, refreshKey],
       fetchOptions: { credentials: "include" },
     });

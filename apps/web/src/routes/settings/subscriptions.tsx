@@ -26,6 +26,7 @@ export const Route = createFileRoute("/settings/subscriptions")({
     }
   },
   errorComponent: RouteErrorBoundary,
+  head: () => ({ meta: [{ title: "Subscriptions — S/NC" }] }),
   component: SubscriptionManagementPage,
 });
 

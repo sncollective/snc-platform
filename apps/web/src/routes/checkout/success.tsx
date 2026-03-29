@@ -25,6 +25,7 @@ export const Route = createFileRoute("/checkout/success")({
     }
   },
   errorComponent: RouteErrorBoundary,
+  head: () => ({ meta: [{ title: "Checkout — S/NC" }] }),
   component: CheckoutSuccessPage,
 });
 

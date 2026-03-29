@@ -50,6 +50,13 @@
       "when": 1774667645397,
       "tag": "0006_free_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774817331043,
+      "tag": "0007_equal_christian_walker",
+      "breakpoints": true
     }
   ]
 }

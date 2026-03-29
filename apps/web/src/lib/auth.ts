@@ -19,13 +19,16 @@ export interface AuthState {
   readonly isPatron: boolean;
 }
 
+/** Default auth state for unauthenticated/guest users. */
+export const GUEST_AUTH_STATE: AuthState = { user: null, roles: [], isPatron: false };
+
 /** Fetch the current user's authentication state, returning null user on failure. */
 export async function fetchAuthState(): Promise<AuthState> {
   try {
     const body = await apiGet<{ user: User | null; roles?: Role[]; isPatron?: boolean }>("/api/me");
     return { user: body.user ?? null, roles: body.roles ?? [], isPatron: body.isPatron ?? false };
   } catch {
-    return { user: null, roles: [], isPatron: false };
+    return GUEST_AUTH_STATE;
   }
 }
 

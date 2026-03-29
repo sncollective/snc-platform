@@ -13,6 +13,7 @@ import {
   downloadToTemp,
   cleanupTemp,
 } from "../../services/processing-jobs.js";
+import { failContentJob } from "./job-error.js";
 import { JOB_QUEUES } from "../register-workers.js";
 import { rootLogger } from "../../logging/logger.js";
 
@@ -85,9 +86,7 @@ export const handleProbeCodec = async (
       await boss.send(JOB_QUEUES.EXTRACT_THUMBNAIL, { contentId });
     }
   } catch (e) {
-    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Probe job failed");
-    await updateJob(jobRecord.id, { status: "failed", error: e instanceof Error ? e.message : "Unknown error" });
-    await updateContentProcessing(contentId, { processingStatus: "failed" });
+    await failContentJob(jobRecord.id, contentId, e, logger, "Probe job");
   } finally {
     if (tempPath) await cleanupTemp(tempPath);
   }

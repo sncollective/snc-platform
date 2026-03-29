@@ -62,6 +62,23 @@ const SrsOnUnpublishSchema = z.object({
   param: z.string().optional().default(""),
 });
 
+const SrsOnForwardSchema = z.object({
+  action: z.literal("on_forward"),
+  server_id: z.string(),
+  client_id: z.string(),
+  ip: z.string(),
+  vhost: z.string(),
+  app: z.string(),
+  tcUrl: z.string(),
+  stream: z.string(),
+  param: z.string().optional().default(""),
+});
+
+// ── Private Constants ──
+
+/** SRS stream names that originate from Liquidsoap — never forward these. */
+const PLAYOUT_STREAM_NAMES = new Set(["snc-tv", "channel-classics"]);
+
 // ── Private Helpers ──
 
 const extractStreamKey = (param: string): string | null => {
@@ -263,6 +280,42 @@ streamingRoutes.post(
     await teardownLiveChannel(body.client_id);
 
     return c.json({ code: 0 }, 200);
+  },
+);
+
+// ── SRS Callback: on_forward ──
+
+streamingRoutes.post(
+  "/callbacks/on-forward",
+  describeRoute({
+    description:
+      "SRS on_forward callback — returns RTMP destinations for a published stream",
+    tags: ["streaming-callbacks"],
+    responses: {
+      200: { description: "Forward destinations" },
+      400: ERROR_400,
+    },
+  }),
+  validator("json", SrsOnForwardSchema),
+  async (c) => {
+    const body = c.req.valid("json" as never) as z.infer<typeof SrsOnForwardSchema>;
+
+    // Never forward Liquidsoap's own output (prevents loops)
+    if (PLAYOUT_STREAM_NAMES.has(body.stream)) {
+      return c.json({ code: 0, data: { urls: [] } }, 200);
+    }
+
+    // Creator stream — forward to Liquidsoap for S/NC TV takeover
+    const urls: string[] = [];
+
+    if (config.LIQUIDSOAP_RTMP_URL) {
+      urls.push(config.LIQUIDSOAP_RTMP_URL);
+    }
+
+    // Future: simulcast destinations (Twitch, YouTube) will be appended here
+    // from the simulcast_destinations table
+
+    return c.json({ code: 0, data: { urls } }, 200);
   },
 );
 

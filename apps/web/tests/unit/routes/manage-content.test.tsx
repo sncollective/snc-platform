@@ -99,6 +99,55 @@ describe("ManageContentPage", () => {
     expect(screen.queryByRole("menuitem", { name: "Video" })).toBeNull();
   });
 
+  it("closes type selector on Escape key", () => {
+    render(<ManageContentPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("cycles focus forward with ArrowDown key in the menu", () => {
+    render(<ManageContentPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
+    const menu = screen.getByRole("menu");
+    const items = screen.getAllByRole("menuitem");
+    // First item is auto-focused; ArrowDown moves to second
+    items[0]?.focus();
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+  });
+
+  it("cycles focus backward with ArrowUp key in the menu", () => {
+    render(<ManageContentPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
+    const menu = screen.getByRole("menu");
+    const items = screen.getAllByRole("menuitem");
+    // Focus first item; ArrowUp wraps to last
+    items[0]?.focus();
+    fireEvent.keyDown(menu, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+  });
+
+  it("wraps focus from last to first with ArrowDown", () => {
+    render(<ManageContentPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
+    const menu = screen.getByRole("menu");
+    const items = screen.getAllByRole("menuitem");
+    items[items.length - 1]?.focus();
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it("closes type selector on Tab key", () => {
+    render(<ManageContentPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
+    const menu = screen.getByRole("menu");
+    expect(menu).toBeInTheDocument();
+    fireEvent.keyDown(menu, { key: "Tab" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
   it("creates draft and navigates on type selection", async () => {
     mockCreateContent.mockResolvedValue({
       id: "new-draft-id",

@@ -47,6 +47,13 @@ export type LiquidsoapNowPlaying = {
   remaining: number;
 };
 
+// ── Channel-Specific Endpoints ──
+
+const CHANNEL_NOW_PLAYING_PATHS: Record<string, string> = {
+  "snc-tv": "/now-playing",
+  "channel-classics": "/classics/now-playing",
+};
+
 // ── Public API ──
 
 /**
@@ -77,6 +84,40 @@ export const getNowPlaying = async (): Promise<LiquidsoapNowPlaying | null> => {
     };
   } catch (e) {
     logger.debug({ error: e instanceof Error ? e.message : String(e) }, "Liquidsoap unreachable");
+    return null;
+  }
+};
+
+/**
+ * Fetch now-playing metadata for a specific channel.
+ * Falls back to the default `/now-playing` endpoint for unknown channels.
+ * Returns null if Liquidsoap is unreachable or not configured.
+ */
+export const getChannelNowPlaying = async (
+  srsStreamName: string,
+): Promise<LiquidsoapNowPlaying | null> => {
+  if (!config.LIQUIDSOAP_API_URL) return null;
+
+  const path = CHANNEL_NOW_PLAYING_PATHS[srsStreamName] ?? "/now-playing";
+
+  try {
+    const res = await fetch(`${config.LIQUIDSOAP_API_URL}${path}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as LiquidsoapNowPlaying;
+    return {
+      uri: data.uri,
+      title: data.title,
+      elapsed: data.elapsed,
+      remaining: data.remaining,
+    };
+  } catch (e) {
+    logger.debug(
+      { error: e instanceof Error ? e.message : String(e), channel: srsStreamName },
+      "Liquidsoap unreachable for channel",
+    );
     return null;
   }
 };

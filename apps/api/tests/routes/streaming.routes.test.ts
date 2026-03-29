@@ -529,6 +529,81 @@ describe("streaming routes", () => {
     });
   });
 
+  describe("POST /api/streaming/callbacks/on-forward", () => {
+    const makeForwardBody = (stream: string) => ({
+      action: "on_forward" as const,
+      server_id: "srs-1",
+      client_id: "client-123",
+      ip: "127.0.0.1",
+      vhost: "__defaultVhost__",
+      app: "live",
+      tcUrl: "rtmp://localhost/live",
+      stream,
+      param: "",
+    });
+
+    it("returns empty URLs for snc-tv (playout stream name)", async () => {
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(makeForwardBody("snc-tv")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.code).toBe(0);
+      expect(body.data.urls).toStrictEqual([]);
+    });
+
+    it("returns empty URLs for channel-classics (playout stream name)", async () => {
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(makeForwardBody("channel-classics")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.code).toBe(0);
+      expect(body.data.urls).toStrictEqual([]);
+    });
+
+    it("returns Liquidsoap RTMP URL for creator streams", async () => {
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(makeForwardBody("creator-stream")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.code).toBe(0);
+      expect(body.data.urls).toContain("rtmp://host.docker.internal:1936/live/stream");
+    });
+
+    it("returns 400 on invalid body", async () => {
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "wrong" }),
+        },
+      );
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe("GET /api/streaming/keys/:creatorId", () => {
     it("requires auth", async () => {
       ctx.auth.user = null;

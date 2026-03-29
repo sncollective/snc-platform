@@ -35,7 +35,13 @@ const createS3Client = (cfg: Config): S3Client => {
   });
 };
 
-/** Create a StorageProvider from config, selecting local or S3 based on STORAGE_TYPE. */
+/**
+ * Create a StorageProvider from config, selecting local or S3 based on STORAGE_TYPE.
+ *
+ * Factory for test and CLI injection — do not call this alongside the singleton
+ * exported from `index.ts`. Concurrent instances will not share state and may
+ * cause double-initialisation in production.
+ */
 export const createStorageProvider = (cfg: Config): StorageProvider => {
   switch (cfg.STORAGE_TYPE) {
     case "local":

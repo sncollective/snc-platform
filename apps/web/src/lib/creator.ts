@@ -44,35 +44,31 @@ export async function updateCreatorProfile(
   );
 }
 
-/**
- * Upload or replace the avatar image for a creator.
- */
-export async function uploadCreatorAvatar(
+/** Upload or replace a creator image (avatar or banner). */
+async function uploadCreatorImage(
   creatorId: string,
   file: File,
+  field: "avatar" | "banner",
 ): Promise<CreatorProfileResponse> {
   const formData = new FormData();
   formData.append("file", file);
   return apiUpload<CreatorProfileResponse>(
-    `/api/creators/${encodeURIComponent(creatorId)}/avatar`,
+    `/api/creators/${encodeURIComponent(creatorId)}/${field}`,
     formData,
   );
 }
 
 /**
+ * Upload or replace the avatar image for a creator.
+ */
+export const uploadCreatorAvatar = (id: string, file: File): Promise<CreatorProfileResponse> =>
+  uploadCreatorImage(id, file, "avatar");
+
+/**
  * Upload or replace the banner image for a creator.
  */
-export async function uploadCreatorBanner(
-  creatorId: string,
-  file: File,
-): Promise<CreatorProfileResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  return apiUpload<CreatorProfileResponse>(
-    `/api/creators/${encodeURIComponent(creatorId)}/banner`,
-    formData,
-  );
-}
+export const uploadCreatorBanner = (id: string, file: File): Promise<CreatorProfileResponse> =>
+  uploadCreatorImage(id, file, "banner");
 
 /**
  * Create a new creator entity (requires stakeholder platform role).

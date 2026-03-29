@@ -1,11 +1,12 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
 import type { MediaMetadata } from "../../contexts/global-player-context.js";
 import { ContentMeta } from "./content-meta.js";
 import { ContentFooter } from "./content-footer.js";
+import { AudioLockedView } from "./audio-locked-view.js";
 
 import styles from "./audio-detail-view.module.css";
 
@@ -22,8 +23,6 @@ export interface AudioDetailViewProps {
 /** Consumption-only audio detail. Shows cover art with play overlay and delegates playback to GlobalPlayer. */
 export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): React.ReactElement {
   const { state, presentation, actions } = useGlobalPlayer();
-  const [lockedImgBroken, setLockedImgBroken] = useState(false);
-
   // Signal expanded mode only when this content is actually playing
   useEffect(() => {
     if (state.media?.id === item.id) {
@@ -40,35 +39,7 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
   if (locked === true) {
     return (
       <div className={styles.audioDetail}>
-        <div className={styles.header}>
-          {coverArtSrc && !lockedImgBroken ? (
-            <img
-              src={coverArtSrc}
-              alt={`Thumbnail for ${item.title}`}
-              className={styles.coverArt}
-              width={280}
-              height={280}
-              onError={() => setLockedImgBroken(true)}
-            />
-          ) : (
-            <div className={styles.coverArtPlaceholder} />
-          )}
-          <div className={styles.trackInfo}>
-            <ContentMeta
-              title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-            />
-            <p className={styles.lockedText}>Subscribe to listen</p>
-          </div>
-        </div>
-        <ContentFooter
-          description={item.description}
-          creatorId={item.creatorId}
-          contentType="audio"
-          locked
-          plans={plans}
-        />
+        <AudioLockedView item={item} plans={plans} />
       </div>
     );
   }

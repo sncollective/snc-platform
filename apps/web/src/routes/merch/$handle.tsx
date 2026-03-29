@@ -7,6 +7,7 @@ import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ProductDetail } from "../../components/merch/product-detail.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
+import { buildProductJsonLd } from "../../lib/json-ld.js";
 
 // ── Route ──
 
@@ -39,6 +40,12 @@ export const Route = createFileRoute("/merch/$handle")({
       ],
       links: [
         { rel: "canonical", href: `${siteUrl}/merch/${loaderData.handle}` },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(buildProductJsonLd(loaderData, siteUrl)),
+        },
       ],
     };
   },

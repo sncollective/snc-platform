@@ -15,6 +15,7 @@ import { meRoutes } from "./routes/me.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
 import { contentMediaRoutes } from "./routes/content-media.routes.js";
 import { creatorRoutes } from "./routes/creator.routes.js";
+import { creatorMediaRoutes } from "./routes/creator-media.routes.js";
 import { creatorMemberRoutes } from "./routes/creator-members.routes.js";
 import { subscriptionRoutes } from "./routes/subscription.routes.js";
 import { webhookRoutes } from "./routes/webhook.routes.js";
@@ -101,6 +102,7 @@ if (features.content) {
 }
 if (features.creator) {
   app.route("/api/creators", creatorRoutes);
+  app.route("/api/creators", creatorMediaRoutes);
   app.route("/api/creators", creatorMemberRoutes);
 }
 if (features.subscription) {

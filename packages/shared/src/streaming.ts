@@ -4,7 +4,7 @@ import { NowPlayingSchema } from "./playout.js";
 
 // ── Channel Types ──
 
-export const CHANNEL_TYPES = ["playout", "live", "scheduled"] as const;
+export const CHANNEL_TYPES = ["playout", "live", "scheduled", "broadcast"] as const;
 export type ChannelType = (typeof CHANNEL_TYPES)[number];
 
 export const ChannelSchema = z.object({

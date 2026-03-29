@@ -1,7 +1,8 @@
 import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
-import { fetchApiServer } from "./api-server.js";
+import { fetchApiServer, fetchAuthStateServer } from "./api-server.js";
+import type { AuthState } from "./auth.js";
 
 /** Check whether a content item's media is gated behind a subscription. */
 export function isContentLocked(item: FeedItem): boolean {
@@ -25,15 +26,14 @@ export async function fetchLockedContentPlans(
   }
 }
 
-/** Check whether the current user can manage the given creator's content. */
-export async function resolveCanManage(creatorId: string): Promise<boolean> {
-  let me: { user: { id: string }; roles: string[] } | null;
-  try {
-    me = (await fetchApiServer({ data: "/api/me" })) as { user: { id: string }; roles: string[] } | null;
-  } catch {
-    // Not logged in
-    return false;
-  }
+/**
+ * Check whether the current user can manage the given creator's content.
+ *
+ * @param authState - Optional pre-fetched auth state to avoid a redundant /api/me call.
+ */
+export async function resolveCanManage(creatorId: string, authState?: AuthState | null): Promise<boolean> {
+  const auth = authState ?? await fetchAuthStateServer();
+  const me = auth.user ? { user: auth.user, roles: auth.roles } : null;
   if (!me?.user) return false;
   if (me.roles.includes("admin")) return true;
 

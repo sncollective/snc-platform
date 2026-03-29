@@ -4,9 +4,9 @@ import { z } from "zod";
 
 const MONTH_REGEX = /^\d{4}-\d{2}$/;
 
-// ── Public Schemas ──
+// ── Private Schemas ──
 
-export const EmissionEntrySchema = z.object({
+const EmissionCoreSchema = z.object({
   id: z.string(),
   date: z.iso.date(),
   scope: z.number().int().min(0).max(3),
@@ -16,6 +16,11 @@ export const EmissionEntrySchema = z.object({
   description: z.string(),
   amount: z.number(),
   unit: z.string(),
+});
+
+// ── Public Schemas ──
+
+export const EmissionEntrySchema = EmissionCoreSchema.extend({
   co2Kg: z.number(),
   method: z.string(),
   projected: z.boolean(),
@@ -88,16 +93,7 @@ export const EmissionsBreakdownSchema = z.object({
   entries: z.array(EmissionEntrySchema),
 });
 
-export const EmissionsFileEntrySchema = z.object({
-  id: z.string(),
-  date: z.iso.date(),
-  scope: z.number().int().min(0).max(3),
-  category: z.string(),
-  subcategory: z.string(),
-  source: z.string(),
-  description: z.string(),
-  amount: z.number(),
-  unit: z.string(),
+export const EmissionsFileEntrySchema = EmissionCoreSchema.extend({
   co2_kg: z.number(),
   method: z.string(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),

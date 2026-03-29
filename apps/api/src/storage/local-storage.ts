@@ -33,6 +33,11 @@ const toStorageError = (error: unknown): Result<never, AppError> => {
   return err(new AppError("STORAGE_ERROR", message, 500));
 };
 
+const catchLocalError = (error: unknown): Result<never, AppError> => {
+  if (error instanceof AppError) return err(error);
+  return toStorageError(error);
+};
+
 // ── Public Types ──
 
 export type LocalStorageOptions = {
@@ -70,10 +75,7 @@ export const createLocalStorage = (
       const statResult = await stat(filePath);
       return ok({ key, size: statResult.size });
     } catch (error) {
-      if (error instanceof AppError) {
-        return err(error);
-      }
-      return toStorageError(error);
+      return catchLocalError(error);
     }
   };
 
@@ -88,10 +90,7 @@ export const createLocalStorage = (
       const webStream = Readable.toWeb(readStream) as ReadableStream<Uint8Array>;
       return ok({ stream: webStream, size: statResult.value.size });
     } catch (error) {
-      if (error instanceof AppError) {
-        return err(error);
-      }
-      return toStorageError(error);
+      return catchLocalError(error);
     }
   };
 
@@ -116,10 +115,7 @@ export const createLocalStorage = (
         range: { start, end },
       });
     } catch (error) {
-      if (error instanceof AppError) {
-        return err(error);
-      }
-      return toStorageError(error);
+      return catchLocalError(error);
     }
   };
 
@@ -131,13 +127,10 @@ export const createLocalStorage = (
       await unlink(filePath);
       return ok(undefined);
     } catch (error) {
-      if (error instanceof AppError) {
-        return err(error);
-      }
       if (isEnoent(error)) {
         return ok(undefined);
       }
-      return toStorageError(error);
+      return catchLocalError(error);
     }
   };
 
@@ -170,10 +163,7 @@ export const createLocalStorage = (
       const contentType = inferContentType(key);
       return ok({ size: statResult.value.size, contentType });
     } catch (error) {
-      if (error instanceof AppError) {
-        return err(error);
-      }
-      return toStorageError(error);
+      return catchLocalError(error);
     }
   };
 

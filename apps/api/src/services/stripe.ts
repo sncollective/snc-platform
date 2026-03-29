@@ -7,6 +7,14 @@ import { rootLogger } from "../logging/logger.js";
 import { wrapStripeErrorGranular } from "./external-error.js";
 import { getStripe } from "./stripe-client.js";
 
+// ── Private Helpers ──
+
+async function withStripe<T>(fn: (stripe: Stripe) => Promise<Result<T, AppError>>): Promise<Result<T, AppError>> {
+  const stripeResult = getStripe();
+  if (!stripeResult.ok) return err(stripeResult.error);
+  return fn(stripeResult.value);
+}
+
 // ── Public Types ──
 
 export type CreateCheckoutSessionParams = {
@@ -29,31 +37,28 @@ export type CreateCheckoutSessionParams = {
 export const getOrCreateCustomer = async (
   userId: string,
   email: string,
-): Promise<Result<string, AppError>> => {
-  const stripeResult = getStripe();
-  if (!stripeResult.ok) return err(stripeResult.error);
-  const stripe = stripeResult.value;
+): Promise<Result<string, AppError>> =>
+  withStripe(async (stripe) => {
+    try {
+      const search = await stripe.customers.search({
+        query: `metadata["sncUserId"]:"${userId}"`,
+      });
 
-  try {
-    const search = await stripe.customers.search({
-      query: `metadata["sncUserId"]:"${userId}"`,
-    });
+      const [first] = search.data;
+      if (first !== undefined) {
+        return ok(first.id);
+      }
 
-    const [first] = search.data;
-    if (first !== undefined) {
-      return ok(first.id);
+      const customer = await stripe.customers.create({
+        email,
+        metadata: { sncUserId: userId },
+      });
+
+      return ok(customer.id);
+    } catch (e) {
+      return err(wrapStripeErrorGranular(e));
     }
-
-    const customer = await stripe.customers.create({
-      email,
-      metadata: { sncUserId: userId },
-    });
-
-    return ok(customer.id);
-  } catch (e) {
-    return err(wrapStripeErrorGranular(e));
-  }
-};
+  });
 
 /**
  * Create a Stripe Checkout session in subscription mode.
@@ -62,32 +67,29 @@ export const getOrCreateCustomer = async (
  */
 export const createCheckoutSession = async (
   params: CreateCheckoutSessionParams,
-): Promise<Result<string, AppError>> => {
-  const stripeResult = getStripe();
-  if (!stripeResult.ok) return err(stripeResult.error);
-  const stripe = stripeResult.value;
+): Promise<Result<string, AppError>> =>
+  withStripe(async (stripe) => {
+    try {
+      const session = await stripe.checkout.sessions.create({
+        customer: params.customerId,
+        mode: "subscription",
+        line_items: [{ price: params.planStripePriceId, quantity: 1 }],
+        metadata: { userId: params.userId, planId: params.planId },
+        success_url: params.successUrl,
+        cancel_url: params.cancelUrl,
+      });
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      customer: params.customerId,
-      mode: "subscription",
-      line_items: [{ price: params.planStripePriceId, quantity: 1 }],
-      metadata: { userId: params.userId, planId: params.planId },
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
-    });
+      if (session.url === null) {
+        return err(
+          new AppError("STRIPE_ERROR", "Checkout session URL was null", 502),
+        );
+      }
 
-    if (session.url === null) {
-      return err(
-        new AppError("STRIPE_ERROR", "Checkout session URL was null", 502),
-      );
+      return ok(session.url);
+    } catch (e) {
+      return err(wrapStripeErrorGranular(e));
     }
-
-    return ok(session.url);
-  } catch (e) {
-    return err(wrapStripeErrorGranular(e));
-  }
-};
+  });
 
 /**
  * Mark a Stripe subscription for cancellation at the end of the current
@@ -95,21 +97,18 @@ export const createCheckoutSession = async (
  */
 export const cancelSubscriptionAtPeriodEnd = async (
   stripeSubscriptionId: string,
-): Promise<Result<void, AppError>> => {
-  const stripeResult = getStripe();
-  if (!stripeResult.ok) return stripeResult;
-  const stripe = stripeResult.value;
+): Promise<Result<void, AppError>> =>
+  withStripe(async (stripe) => {
+    try {
+      await stripe.subscriptions.update(stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
 
-  try {
-    await stripe.subscriptions.update(stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
-
-    return ok(undefined);
-  } catch (e) {
-    return err(wrapStripeErrorGranular(e));
-  }
-};
+      return ok(undefined);
+    } catch (e) {
+      return err(wrapStripeErrorGranular(e));
+    }
+  });
 
 /**
  * Verify a Stripe webhook event signature and parse the raw body.

@@ -26,6 +26,16 @@ type EmissionRow = typeof emissions.$inferSelect;
 
 // ── Private Helpers ──
 
+async function insertEmission(
+  body: { date: string; source: string; description: string; amount: number; unit: string; method: string; metadata?: Record<string, unknown> | null },
+  fixedFields: { scope: number; category: string; subcategory: string; co2Kg: number; projected?: boolean },
+): Promise<EmissionRow> {
+  const id = randomUUID();
+  const now = new Date();
+  const [row] = await db.insert(emissions).values({ id, ...body, ...fixedFields, metadata: body.metadata ?? null, createdAt: now, updatedAt: now }).returning();
+  return row!;
+}
+
 /** Strip sessionDates from metadata; returns null when no other keys remain. */
 function stripSessionDates(
   metadata: Record<string, unknown> | null,
@@ -120,31 +130,11 @@ emissionsRoutes.post(
   validator("json", CreateEmissionEntrySchema),
   async (c) => {
     const body = c.req.valid("json");
-    const id = randomUUID();
-    const now = new Date();
-
-    const [row] = await db
-      .insert(emissions)
-      .values({
-        id,
-        date: body.date,
-        scope: body.scope,
-        category: body.category,
-        subcategory: body.subcategory,
-        source: body.source,
-        description: body.description,
-        amount: body.amount,
-        unit: body.unit,
-        co2Kg: body.co2Kg,
-        method: body.method,
-        projected: body.projected,
-        metadata: body.metadata ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    return c.json(toEntryResponse(row!), 201);
+    const row = await insertEmission(
+      { date: body.date, source: body.source, description: body.description, amount: body.amount, unit: body.unit, method: body.method, metadata: body.metadata },
+      { scope: body.scope, category: body.category, subcategory: body.subcategory, co2Kg: body.co2Kg, projected: body.projected },
+    );
+    return c.json(toEntryResponse(row), 201);
   },
 );
 
@@ -170,29 +160,10 @@ emissionsRoutes.post(
   validator("json", CreateOffsetEntrySchema),
   async (c) => {
     const body = c.req.valid("json");
-    const id = randomUUID();
-    const now = new Date();
-
-    const [row] = await db
-      .insert(emissions)
-      .values({
-        id,
-        date: body.date,
-        scope: 0,
-        category: "offset",
-        subcategory: "offset",
-        source: body.source,
-        description: body.description,
-        amount: body.amount,
-        unit: body.unit,
-        co2Kg: -Math.abs(body.co2Kg),
-        method: body.method,
-        metadata: body.metadata ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    return c.json(toEntryResponse(row!), 201);
+    const row = await insertEmission(
+      { date: body.date, source: body.source, description: body.description, amount: body.amount, unit: body.unit, method: body.method, metadata: body.metadata },
+      { scope: 0, category: "offset", subcategory: "offset", co2Kg: -Math.abs(body.co2Kg) },
+    );
+    return c.json(toEntryResponse(row), 201);
   },
 );

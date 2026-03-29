@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, gte, lte, or, asc, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, or, asc, isNull, type SQL } from "drizzle-orm";
 
 import {
   CreateCalendarEventSchema,
@@ -37,6 +37,32 @@ import { IdParam } from "./route-params.js";
 type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
 // ── Private Helpers ──
+
+function buildDateRangeConditions(from?: string, to?: string): SQL[] {
+  const conditions: SQL[] = [];
+  if (from && to) {
+    // Event is visible if it overlaps the date range:
+    // startAt <= to AND (endAt >= from OR (endAt IS NULL AND startAt >= from))
+    conditions.push(lte(calendarEvents.startAt, new Date(to)));
+    conditions.push(
+      or(
+        gte(calendarEvents.endAt, new Date(from)),
+        and(isNull(calendarEvents.endAt), gte(calendarEvents.startAt, new Date(from))),
+      )!,
+    );
+  } else if (from) {
+    conditions.push(
+      or(
+        gte(calendarEvents.startAt, new Date(from)),
+        gte(calendarEvents.endAt, new Date(from)),
+      )!,
+    );
+  } else if (to) {
+    conditions.push(lte(calendarEvents.startAt, new Date(to)));
+  }
+  return conditions;
+}
+
 
 const findActiveEvent = async (id: string): Promise<CalendarEventRow | undefined> => {
   const [row] = await db
@@ -95,26 +121,8 @@ calendarRoutes.get(
 
     const conditions = [isNull(calendarEvents.deletedAt)];
 
-    if (from && to) {
-      // Event is visible if it overlaps the date range:
-      // startAt <= to AND (endAt >= from OR (endAt IS NULL AND startAt >= from))
-      conditions.push(lte(calendarEvents.startAt, new Date(to)));
-      conditions.push(
-        or(
-          gte(calendarEvents.endAt, new Date(from)),
-          and(isNull(calendarEvents.endAt), gte(calendarEvents.startAt, new Date(from))),
-        )!,
-      );
-    } else if (from) {
-      conditions.push(
-        or(
-          gte(calendarEvents.startAt, new Date(from)),
-          gte(calendarEvents.endAt, new Date(from)),
-        )!,
-      );
-    } else if (to) {
-      conditions.push(lte(calendarEvents.startAt, new Date(to)));
-    }
+    conditions.push(...buildDateRangeConditions(from, to));
+
     if (eventType) {
       conditions.push(eq(calendarEvents.eventType, eventType));
     }

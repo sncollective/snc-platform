@@ -185,39 +185,30 @@ const verifyOwnership = async (
   throw new ValidationError("Invalid purpose");
 };
 
+const RECORD_UPLOAD_DISPATCH: Record<UploadPurpose, (resourceId: string, key: string) => Promise<void>> = {
+  "content-media": async (resourceId, key) => {
+    await db.update(content).set({ mediaKey: key, updatedAt: new Date() }).where(eq(content.id, resourceId));
+  },
+  "content-thumbnail": async (resourceId, key) => {
+    await db.update(content).set({ thumbnailKey: key, updatedAt: new Date() }).where(eq(content.id, resourceId));
+  },
+  "creator-avatar": async (resourceId, key) => {
+    await db.update(creatorProfiles).set({ avatarKey: key, updatedAt: new Date() }).where(eq(creatorProfiles.id, resourceId));
+  },
+  "creator-banner": async (resourceId, key) => {
+    await db.update(creatorProfiles).set({ bannerKey: key, updatedAt: new Date() }).where(eq(creatorProfiles.id, resourceId));
+  },
+  "playout-media": async (resourceId, key) => {
+    await db.update(playoutItems).set({ sourceKey: key, updatedAt: new Date() }).where(eq(playoutItems.id, resourceId));
+  },
+};
+
 const recordUpload = async (
   purpose: UploadPurpose,
   resourceId: string,
   key: string,
 ): Promise<void> => {
-  if (purpose === "content-media") {
-    await db
-      .update(content)
-      .set({ mediaKey: key, updatedAt: new Date() })
-      .where(eq(content.id, resourceId));
-  } else if (purpose === "content-thumbnail") {
-    await db
-      .update(content)
-      .set({ thumbnailKey: key, updatedAt: new Date() })
-      .where(eq(content.id, resourceId));
-  } else if (purpose === "creator-avatar") {
-    await db
-      .update(creatorProfiles)
-      .set({ avatarKey: key, updatedAt: new Date() })
-      .where(eq(creatorProfiles.id, resourceId));
-  } else if (purpose === "creator-banner") {
-    await db
-      .update(creatorProfiles)
-      .set({ bannerKey: key, updatedAt: new Date() })
-      .where(eq(creatorProfiles.id, resourceId));
-  } else if (purpose === "playout-media") {
-    await db
-      .update(playoutItems)
-      .set({ sourceKey: key, updatedAt: new Date() })
-      .where(eq(playoutItems.id, resourceId));
-  } else {
-    throw new ValidationError("Invalid purpose for completion");
-  }
+  await RECORD_UPLOAD_DISPATCH[purpose](resourceId, key);
 };
 
 /**

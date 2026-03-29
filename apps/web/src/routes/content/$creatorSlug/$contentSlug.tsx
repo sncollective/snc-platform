@@ -5,9 +5,10 @@ import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
 import { ComingSoon } from "../../../components/coming-soon/coming-soon.js";
 import { ContentDetail } from "../../../components/content/content-detail.js";
-import { fetchApiServer } from "../../../lib/api-server.js";
+import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchLockedContentPlans, resolveCanManage } from "../../../lib/content-loader.js";
+import { buildContentJsonLd } from "../../../lib/json-ld.js";
 
 // ── Private Types ──
 
@@ -33,10 +34,11 @@ export const Route = createFileRoute("/content/$creatorSlug/$contentSlug")({
       throw new Error("Not found");
     }
 
-    const [plans, canManage] = await Promise.all([
+    const [plans, authState] = await Promise.all([
       fetchLockedContentPlans(item),
-      resolveCanManage(item.creatorId),
+      fetchAuthStateServer(),
     ]);
+    const canManage = await resolveCanManage(item.creatorId, authState);
 
     return { item, plans, canManage };
   },
@@ -58,6 +60,12 @@ export const Route = createFileRoute("/content/$creatorSlug/$contentSlug")({
       ],
       links: [
         { rel: "canonical", href: `${siteUrl}/content/${item.creatorHandle}/${item.slug}` },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(buildContentJsonLd(item, siteUrl)),
+        },
       ],
     };
   },

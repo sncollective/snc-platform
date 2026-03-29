@@ -126,7 +126,11 @@ const ctx = setupRouteTest({
     const { creatorRoutes } = await import(
       "../../src/routes/creator.routes.js"
     );
+    const { creatorMediaRoutes } = await import(
+      "../../src/routes/creator-media.routes.js"
+    );
     app.route("/api/creators", creatorRoutes);
+    app.route("/api/creators", creatorMediaRoutes);
   },
   beforeEach: () => {
     // Re-establish SELECT chain after clearAllMocks.

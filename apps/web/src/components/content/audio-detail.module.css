@@ -65,17 +65,6 @@
   margin-top: var(--space-sm);
 }
 
-/* ── Locked Text ── */
-
-.lockedText {
-  font-family: var(--font-ui);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-style: italic;
-  margin-top: var(--space-sm);
-}
-
 /* ── Media Unavailable ── */
 
 .mediaUnavailableText {

@@ -22,6 +22,7 @@ export const Route = createFileRoute("/settings/bookings")({
     }
   },
   errorComponent: RouteErrorBoundary,
+  head: () => ({ meta: [{ title: "Bookings — S/NC" }] }),
   component: BookingManagementPage,
 });
 

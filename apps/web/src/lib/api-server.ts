@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 
 import type { AuthState } from "./auth.js";
+import { GUEST_AUTH_STATE } from "./auth.js";
 import { extractErrorMessage } from "./fetch-utils.js";
 import { ssrLogger } from "./logger.js";
 
@@ -78,11 +79,11 @@ export const fetchAuthStateServer = createServerFn({ method: "GET" })
         { error: e instanceof Error ? e.message : String(e) },
         "SSR auth state fetch failed — network error",
       );
-      return { user: null, roles: [], isPatron: false };
+      return GUEST_AUTH_STATE;
     }
 
     if (!res.ok) {
-      return { user: null, roles: [], isPatron: false };
+      return GUEST_AUTH_STATE;
     }
 
     const body = (await res.json()) as { user: unknown; roles?: unknown[]; isPatron?: boolean };
