@@ -10,6 +10,7 @@ const mockCreatePlayoutItem = vi.fn();
 const mockUpdatePlayoutItem = vi.fn();
 const mockDeletePlayoutItem = vi.fn();
 const mockReorderPlayoutItems = vi.fn();
+const mockSavePlaylist = vi.fn();
 const mockGetPlayoutStatus = vi.fn();
 const mockQueuePlayoutItem = vi.fn();
 const mockSkipCurrentTrack = vi.fn();
@@ -34,7 +35,7 @@ const makePlayoutItem = (overrides: Record<string, unknown> = {}) => ({
 
 const makePlayoutStatus = () => ({
   nowPlaying: null,
-  items: [makePlayoutItem()],
+  queuedItems: [],
 });
 
 // ── Route Test Context ──
@@ -53,6 +54,7 @@ const ctx = setupRouteTest({
       updatePlayoutItem: mockUpdatePlayoutItem,
       deletePlayoutItem: mockDeletePlayoutItem,
       reorderPlayoutItems: mockReorderPlayoutItems,
+      savePlaylist: mockSavePlaylist,
       getPlayoutStatus: mockGetPlayoutStatus,
       queuePlayoutItem: mockQueuePlayoutItem,
       skipCurrentTrack: mockSkipCurrentTrack,
@@ -69,6 +71,7 @@ const ctx = setupRouteTest({
     mockUpdatePlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });
     mockDeletePlayoutItem.mockResolvedValue({ ok: true, value: undefined });
     mockReorderPlayoutItems.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
+    mockSavePlaylist.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
     mockGetPlayoutStatus.mockResolvedValue(makePlayoutStatus());
     mockQueuePlayoutItem.mockResolvedValue({ ok: true, value: undefined });
     mockSkipCurrentTrack.mockResolvedValue({ ok: true, value: undefined });
@@ -493,6 +496,61 @@ describe("playout routes", () => {
       ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/playout/queue/item-1", { method: "POST" });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("PUT /api/playout/playlist", () => {
+    const validBody = {
+      items: [{ id: "item-1", enabled: true, position: 0 }],
+    };
+
+    it("saves playlist and returns updated items", async () => {
+      mockSavePlaylist.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
+
+      const res = await ctx.app.request("/api/playout/playlist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0]?.id).toBe("item-1");
+      expect(mockSavePlaylist).toHaveBeenCalledWith(validBody);
+    });
+
+    it("returns 400 on invalid body (missing enabled field)", async () => {
+      const res = await ctx.app.request("/api/playout/playlist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [{ id: "item-1", position: 0 }] }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      ctx.auth.session = null;
+
+      const res = await ctx.app.request("/api/playout/playlist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 when not admin", async () => {
+      ctx.auth.roles = [];
+
+      const res = await ctx.app.request("/api/playout/playlist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      });
       expect(res.status).toBe(403);
     });
   });

@@ -24,8 +24,6 @@ export function FormField({
   error,
   ...inputProps
 }: FormFieldProps): React.ReactElement {
-  const errorId = error ? `${id}-error` : undefined;
-
   return (
     <div className={formStyles.fieldGroup}>
       <label htmlFor={id} className={formStyles.label}>
@@ -34,15 +32,18 @@ export function FormField({
       <input
         id={id}
         className={clsx(formStyles.input, error && formStyles.inputError)}
-        aria-describedby={errorId}
+        aria-describedby={`${id}-error`}
         aria-invalid={error ? true : undefined}
         {...inputProps}
       />
-      {error && (
-        <span id={errorId} className={formStyles.fieldError} role="alert">
-          {error}
-        </span>
-      )}
+      <span
+        id={`${id}-error`}
+        className={formStyles.fieldError}
+        role={error ? "alert" : undefined}
+        aria-live="polite"
+      >
+        {error ?? "\u00A0"}
+      </span>
     </div>
   );
 }

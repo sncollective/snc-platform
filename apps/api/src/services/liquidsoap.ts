@@ -143,9 +143,12 @@ export const skipTrack = async (channel?: string): Promise<Result<void, AppError
  */
 export const queueTrack = async (s3Uri: string, channel?: string): Promise<Result<void, AppError>> => {
   const path = channel === "channel-classics" ? "/classics/queue" : "/queue";
+  // Wrap with annotate: so s3_uri metadata propagates through resolution
+  // (without this, on_metadata sees only the temp file path after S3 download)
+  const annotatedUri = `annotate:s3_uri="${s3Uri}":${s3Uri}`;
   return liquidsoapRequest(path, {
     method: "POST",
-    body: s3Uri,
+    body: annotatedUri,
     headers: { "Content-Type": "text/plain" },
   });
 };

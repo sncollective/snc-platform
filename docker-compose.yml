@@ -56,8 +56,7 @@ services:
     container_name: snc-liquidsoap
     restart: unless-stopped
     volumes:
-      - ./liquidsoap/playout.liq:/etc/liquidsoap/playout.liq:ro
-      - ./liquidsoap/playlist.m3u:/etc/liquidsoap/playlist.m3u
+      - ./liquidsoap:/etc/liquidsoap
     command: ["/etc/liquidsoap/playout.liq"]
     ports:
       - "8888:8888"

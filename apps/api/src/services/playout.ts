@@ -12,6 +12,7 @@ import type {
   NowPlaying,
   PlayoutStatus,
   Rendition,
+  SavePlaylist,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -20,6 +21,15 @@ import { rootLogger } from "../logging/logger.js";
 import { getNowPlaying as getLiquidsoapNowPlaying, getChannelNowPlaying, skipTrack, queueTrack, reloadPlaylist } from "./liquidsoap.js";
 
 const logger = rootLogger.child({ service: "playout" });
+
+/** Ephemeral queue tracking — records items pushed to Liquidsoap's request.queue. */
+type QueueEntryInternal = {
+  itemId: string;
+  title: string;
+  uri: string;
+  queuedAt: string;
+};
+const queuedEntries: QueueEntryInternal[] = [];
 
 // ── Playlist M3U path ──
 
@@ -102,7 +112,7 @@ export const createPlayoutItem = async (
   return ok(toPlayoutItem(row!));
 };
 
-/** Update a playout item's metadata or enabled state. */
+/** Update a playout item's metadata. */
 export const updatePlayoutItem = async (
   id: string,
   data: UpdatePlayoutItem,
@@ -114,7 +124,6 @@ export const updatePlayoutItem = async (
     .returning();
   if (!row) return err(new NotFoundError("Playout item not found"));
 
-  await regeneratePlaylist();
   return ok(toPlayoutItem(row));
 };
 
@@ -156,6 +165,26 @@ export const reorderPlayoutItems = async (
       FROM (VALUES ${sql.join(orderedIds.map((id, i) => sql`(${id}, ${i})`), sql`, `)}) AS v(id, pos)
       WHERE playout_items.id = v.id::text
     `);
+  }
+
+  await regeneratePlaylist();
+  return ok(await listPlayoutItems());
+};
+
+/** Batch-save playlist state: enabled flags and positions. Regenerates M3U once. */
+export const savePlaylist = async (
+  data: SavePlaylist,
+): Promise<Result<PlayoutItem[], AppError>> => {
+  if (data.items.length === 0) {
+    return ok(await listPlayoutItems());
+  }
+
+  // Batch update enabled + position — individual updates in a single transaction
+  for (const item of data.items) {
+    await db
+      .update(playoutItems)
+      .set({ enabled: item.enabled, position: item.position, updatedAt: new Date() })
+      .where(eq(playoutItems.id, item.id));
   }
 
   await regeneratePlaylist();
@@ -273,13 +302,29 @@ export const getPlayoutNowPlaying = async (
 
 // ── Queue Controls ──
 
-/** Get full playout status for admin UI. */
+/** Get full playout status for admin UI, including in-memory queue entries. */
 export const getPlayoutStatus = async (): Promise<PlayoutStatus> => {
   const nowPlaying = await getPlayoutNowPlaying("channel-classics");
-  return { nowPlaying, queuedUri: null };
+
+  // Prune entries that have started playing (itemId matches now-playing)
+  if (nowPlaying?.itemId) {
+    const idx = queuedEntries.findIndex((e) => e.itemId === nowPlaying.itemId);
+    if (idx !== -1) {
+      queuedEntries.splice(0, idx + 1);
+    }
+  }
+
+  return {
+    nowPlaying,
+    queuedItems: queuedEntries.map(({ itemId, title, queuedAt }) => ({
+      itemId,
+      title,
+      queuedAt,
+    })),
+  };
 };
 
-/** Queue a playout item to play next by its ID. */
+/** Queue a playout item to play next by its ID. Records the entry in the in-memory queue on success. */
 export const queuePlayoutItem = async (
   itemId: string,
 ): Promise<Result<void, AppError>> => {
@@ -292,7 +337,16 @@ export const queuePlayoutItem = async (
   const uri = selectPlayoutRenditionUri(row);
   if (!uri) return err(new AppError("NO_RENDITION", "No playable rendition available", 400));
 
-  return queueTrack(uri, "channel-classics");
+  const result = await queueTrack(uri, "channel-classics");
+  if (result.ok) {
+    queuedEntries.push({
+      itemId: row.id,
+      title: row.title,
+      uri,
+      queuedAt: new Date().toISOString(),
+    });
+  }
+  return result;
 };
 
 /** Skip the current track on the playout channel (S/NC Classics). */

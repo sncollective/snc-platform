@@ -74,7 +74,6 @@ export const UpdatePlayoutItemSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   year: z.number().int().min(1888).max(2100).nullable().optional(),
   director: z.string().max(255).nullable().optional(),
-  enabled: z.boolean().optional(),
 });
 
 export type UpdatePlayoutItem = z.infer<typeof UpdatePlayoutItemSchema>;
@@ -84,6 +83,30 @@ export const ReorderPlayoutItemsSchema = z.object({
 });
 
 export type ReorderPlayoutItems = z.infer<typeof ReorderPlayoutItemsSchema>;
+
+// ── Batch Playlist Save ──
+
+export const SavePlaylistItemSchema = z.object({
+  id: z.string(),
+  enabled: z.boolean(),
+  position: z.number().int().min(0),
+});
+
+export const SavePlaylistSchema = z.object({
+  items: z.array(SavePlaylistItemSchema).min(1),
+});
+
+export type SavePlaylist = z.infer<typeof SavePlaylistSchema>;
+
+// ── Queue Entry (admin visibility) ──
+
+export const QueueEntrySchema = z.object({
+  itemId: z.string(),
+  title: z.string(),
+  queuedAt: z.string().datetime(),
+});
+
+export type QueueEntry = z.infer<typeof QueueEntrySchema>;
 
 // ── Now-Playing ──
 
@@ -103,7 +126,7 @@ export type NowPlaying = z.infer<typeof NowPlayingSchema>;
 
 export const PlayoutStatusSchema = z.object({
   nowPlaying: NowPlayingSchema.nullable(),
-  queuedUri: z.string().nullable(),
+  queuedItems: z.array(QueueEntrySchema),
 });
 
 export type PlayoutStatus = z.infer<typeof PlayoutStatusSchema>;

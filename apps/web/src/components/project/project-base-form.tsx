@@ -105,11 +105,14 @@ export function ProjectBaseForm({ project, creatorId, creators, onSuccess, onCan
 
   return (
     <form onSubmit={handleSubmit} noValidate className={styles.projectForm}>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
       <div className={formStyles.fieldGroup}>
         <label htmlFor="project-name" className={formStyles.label}>
           Name

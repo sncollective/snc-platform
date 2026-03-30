@@ -174,11 +174,14 @@ export function StudioInquiryForm(): React.ReactElement {
           )}
         </div>
 
-        {serverError && (
-          <div className={formStyles.serverError} role="alert">
-            {serverError}
-          </div>
-        )}
+        <div
+          className={formStyles.serverError}
+          role={serverError ? "alert" : undefined}
+          aria-live="polite"
+          style={serverError ? undefined : { visibility: "hidden" }}
+        >
+          {serverError || "\u00A0"}
+        </div>
 
         <button
           type="submit"

@@ -92,11 +92,14 @@ export function CreateCreatorForm({
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <div className={formStyles.fieldGroup}>
         <label htmlFor="creator-display-name" className={formStyles.label}>

@@ -363,3 +363,95 @@
 .fileInput {
   display: none;
 }
+
+/* ── Queue Section ── */
+
+.queueList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.queueItemTitle {
+  font-weight: 500;
+}
+
+.queueItemTime {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.queueEmpty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+/* ── Playlist Save Bar ── */
+
+.playlistActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.saveButton {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  background: var(--color-accent-hover);
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.discardButton {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.discardButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.addButton {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}

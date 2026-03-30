@@ -333,11 +333,14 @@ export function EventForm({
         {isEdit ? "Edit Event" : "New Event"}
       </h4>
 
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <div className={formStyles.fieldGroup}>
         <label htmlFor="event-title" className={formStyles.label}>

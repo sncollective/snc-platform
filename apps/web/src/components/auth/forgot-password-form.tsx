@@ -45,11 +45,14 @@ interface EmailStepProps {
 function EmailStep({ email, onEmailChange, emailError, serverError, isSubmitting, onSubmit }: EmailStepProps) {
   return (
     <form className={styles.form} onSubmit={onSubmit} noValidate>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <FormField
         id="forgot-email"
@@ -100,11 +103,14 @@ function OtpStep({
 }: OtpStepProps) {
   return (
     <form className={styles.form} onSubmit={onSubmit} noValidate>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <FormField
         id="forgot-otp"

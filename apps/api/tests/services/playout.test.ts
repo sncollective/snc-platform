@@ -6,9 +6,11 @@ const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockDbDelete = vi.fn();
+const mockDbExecute = vi.fn().mockResolvedValue(undefined);
 const mockWriteFile = vi.fn().mockResolvedValue(undefined);
 const mockRename = vi.fn().mockResolvedValue(undefined);
 const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
+const mockGetChannelNowPlaying = vi.fn().mockResolvedValue(null);
 const mockSkipTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockQueueTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockReloadPlaylist = vi.fn().mockResolvedValue(undefined);
@@ -103,6 +105,7 @@ const setupService = async () => {
       insert: mockDbInsert,
       update: mockDbUpdate,
       delete: mockDbDelete,
+      execute: mockDbExecute,
     },
     sql: vi.fn(),
   }));
@@ -136,6 +139,7 @@ const setupService = async () => {
   }));
   vi.doMock("../../src/services/liquidsoap.js", () => ({
     getNowPlaying: mockGetLiquidsoapNowPlaying,
+    getChannelNowPlaying: mockGetChannelNowPlaying,
     skipTrack: mockSkipTrack,
     queueTrack: mockQueueTrack,
     reloadPlaylist: mockReloadPlaylist,
@@ -156,9 +160,11 @@ const setupService = async () => {
 // Restore defaults before each test (vitest's mockReset:true runs after afterEach,
 // so defaults must be set in beforeEach to survive into the test body).
 beforeEach(() => {
+  mockDbExecute.mockResolvedValue(undefined);
   mockWriteFile.mockResolvedValue(undefined);
   mockRename.mockResolvedValue(undefined);
   mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
+  mockGetChannelNowPlaying.mockResolvedValue(null);
   mockSkipTrack.mockResolvedValue({ ok: true, value: undefined });
   mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
   mockReloadPlaylist.mockResolvedValue(undefined);
@@ -458,5 +464,165 @@ describe("getApplicableRenditions (via import)", () => {
     // Test through shared module instead
     const { getApplicableRenditions } = await import("../../src/services/media-processing.js");
     expect(getApplicableRenditions(null, null)).toEqual(["audio"]);
+  });
+});
+
+describe("updatePlayoutItem", () => {
+  it("updates item without triggering playlist regeneration", async () => {
+    const { updatePlayoutItem } = await setupService();
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereReturningChain([makeItemRow({ title: "Updated" })]));
+
+    const result = await updatePlayoutItem("item-1", { title: "Updated" });
+
+    expect(result.ok).toBe(true);
+    // regeneratePlaylist writes the M3U — must not be called
+    expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(mockRename).not.toHaveBeenCalled();
+  });
+
+  it("returns NotFoundError when item not found", async () => {
+    const { updatePlayoutItem } = await setupService();
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereReturningChain([]));
+
+    const result = await updatePlayoutItem("nonexistent", { title: "X" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.statusCode).toBe(404);
+    }
+  });
+});
+
+describe("savePlaylist", () => {
+  it("updates items and regenerates playlist once", async () => {
+    const { savePlaylist } = await setupService();
+    const row = makeItemRow();
+    // savePlaylist calls: db.update per item, then regeneratePlaylist (select), then listPlayoutItems (select)
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectWhereOrderByChain([row])) // regeneratePlaylist
+      .mockReturnValueOnce(buildSelectOrderByChain([row]));     // listPlayoutItems
+
+    const result = await savePlaylist({
+      items: [{ id: "item-1", enabled: true, position: 0 }],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockDbUpdate).toHaveBeenCalledTimes(1);
+    // Playlist regeneration: writeFile + rename each called once
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(mockRename).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns updated items ordered by position", async () => {
+    const { savePlaylist } = await setupService();
+    const item0 = makeItemRow({ id: "item-1", position: 0 });
+    const item1 = makeItemRow({ id: "item-2", position: 1 });
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectWhereOrderByChain([item0, item1])) // regeneratePlaylist
+      .mockReturnValueOnce(buildSelectOrderByChain([item0, item1]));     // listPlayoutItems
+
+    const result = await savePlaylist({
+      items: [
+        { id: "item-1", enabled: true, position: 0 },
+        { id: "item-2", enabled: false, position: 1 },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toHaveLength(2);
+      expect(result.value[0]?.id).toBe("item-1");
+      expect(result.value[1]?.id).toBe("item-2");
+    }
+  });
+
+  it("calls regeneratePlaylist exactly once regardless of item count", async () => {
+    const { savePlaylist } = await setupService();
+    const rows = [makeItemRow(), makeItemRow({ id: "item-2" })];
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectWhereOrderByChain(rows)) // regeneratePlaylist
+      .mockReturnValueOnce(buildSelectOrderByChain(rows));     // listPlayoutItems
+
+    await savePlaylist({
+      items: [
+        { id: "item-1", enabled: true, position: 0 },
+        { id: "item-2", enabled: true, position: 1 },
+      ],
+    });
+
+    expect(mockDbUpdate).toHaveBeenCalledTimes(2);
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(mockRename).toHaveBeenCalledTimes(1);
+    expect(mockReloadPlaylist).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getPlayoutStatus", () => {
+  it("returns empty queuedItems when queue is empty", async () => {
+    const { getPlayoutStatus } = await setupService();
+    mockGetChannelNowPlaying.mockResolvedValue(null);
+
+    const status = await getPlayoutStatus();
+
+    expect(status.queuedItems).toEqual([]);
+    expect(status.nowPlaying).toBeNull();
+  });
+
+  it("returns queuedItems after queuePlayoutItem succeeds", async () => {
+    const { queuePlayoutItem, getPlayoutStatus } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+    mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
+    mockGetChannelNowPlaying.mockResolvedValue(null);
+
+    await queuePlayoutItem("item-1");
+    const status = await getPlayoutStatus();
+
+    expect(status.queuedItems).toHaveLength(1);
+    expect(status.queuedItems[0]?.itemId).toBe("item-1");
+    expect(status.queuedItems[0]?.title).toBe("Test Film");
+    expect(typeof status.queuedItems[0]?.queuedAt).toBe("string");
+  });
+
+  it("prunes queue entries when now-playing itemId matches", async () => {
+    const { queuePlayoutItem, getPlayoutStatus } = await setupService();
+    // Queue two items
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectWhereChain([makeItemRow({ id: "item-1", title: "Film One" })]))
+      .mockReturnValueOnce(buildSelectWhereChain([makeItemRow({ id: "item-2", title: "Film Two" })]));
+    mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
+
+    await queuePlayoutItem("item-1");
+    await queuePlayoutItem("item-2");
+
+    // Simulate item-1 now playing — should prune item-1 from queue
+    mockGetChannelNowPlaying.mockResolvedValue({
+      uri: "s3://snc-storage/playout/item-1/1080p.mp4",
+      title: "Film One",
+      elapsed: 10,
+      remaining: 80,
+    });
+    // DB lookup for getPlayoutNowPlaying enrichment
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow({ id: "item-1", title: "Film One" })]));
+
+    const status = await getPlayoutStatus();
+
+    // item-1 played, so it and everything before it (nothing) pruned; item-2 remains
+    expect(status.queuedItems).toHaveLength(1);
+    expect(status.queuedItems[0]?.itemId).toBe("item-2");
+  });
+
+  it("does not push to queue when queueTrack fails", async () => {
+    const { queuePlayoutItem, getPlayoutStatus } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+    mockQueueTrack.mockResolvedValue({ ok: false, error: new Error("failed") });
+    mockGetChannelNowPlaying.mockResolvedValue(null);
+
+    await queuePlayoutItem("item-1");
+    const status = await getPlayoutStatus();
+
+    expect(status.queuedItems).toHaveLength(0);
   });
 });

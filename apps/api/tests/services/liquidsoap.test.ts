@@ -287,7 +287,7 @@ describe("queueTrack", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("sends the URI as the request body", async () => {
+  it("sends the URI wrapped with annotate: as the request body", async () => {
     const { queueTrack } = await setupModule();
     const uri = "s3://snc-storage/playout/item-1/1080p.mp4";
     mockFetch.mockReturnValue(mockFetchResponse("queued", 200));
@@ -298,7 +298,7 @@ describe("queueTrack", () => {
       "http://localhost:8888/queue",
       expect.objectContaining({
         method: "POST",
-        body: uri,
+        body: `annotate:s3_uri="${uri}":${uri}`,
         headers: { "Content-Type": "text/plain" },
       }),
     );
@@ -315,7 +315,7 @@ describe("queueTrack", () => {
       "http://localhost:8888/classics/queue",
       expect.objectContaining({
         method: "POST",
-        body: uri,
+        body: `annotate:s3_uri="${uri}":${uri}`,
         headers: { "Content-Type": "text/plain" },
       }),
     );
@@ -332,7 +332,7 @@ describe("queueTrack", () => {
       "http://localhost:8888/queue",
       expect.objectContaining({
         method: "POST",
-        body: uri,
+        body: `annotate:s3_uri="${uri}":${uri}`,
         headers: { "Content-Type": "text/plain" },
       }),
     );

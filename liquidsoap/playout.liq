@@ -10,10 +10,9 @@ log.level := 4
 settings.protocol.aws.endpoint := "http://snc-garage:3900"
 settings.protocol.aws.region := "garage"
 
-# ── Shared Playlist ──
-# Both S/NC TV and Classics read the same M3U file but maintain independent positions.
+# ── Playlist ──
+# S/NC Classics owns the playlist. S/NC TV falls back to Classics.
 
-tv_playlist = playlist("/etc/liquidsoap/playlist.m3u", mode="normal", reload_mode="seconds", reload=0)
 classics_playlist = playlist("/etc/liquidsoap/playlist.m3u", mode="normal", reload_mode="seconds", reload=0)
 
 # ── Live Input (S/NC TV only) ──
@@ -25,11 +24,6 @@ live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
 
 queue_source = request.queue(id="admin-queue")
 
-# ── S/NC TV: Full Fallback Chain ──
-# Priority: live creator > admin queue > playlist > silence
-
-snc_tv = fallback(track_sensitive=false, [live_source, queue_source, tv_playlist, mksafe(blank())])
-
 # ── Admin Queue (Classics) ──
 
 classics_queue = request.queue(id="classics-queue")
@@ -38,6 +32,11 @@ classics_queue = request.queue(id="classics-queue")
 # Priority: admin queue > playlist > silence
 
 classics = fallback(track_sensitive=false, [classics_queue, classics_playlist, mksafe(blank())])
+
+# ── S/NC TV: Full Fallback Chain ──
+# Priority: live creator > admin queue > classics stream
+
+snc_tv = fallback(track_sensitive=false, [live_source, queue_source, classics])
 
 # ── Metadata Tracking ──
 
@@ -100,7 +99,7 @@ end)
 
 # S/NC TV: skip
 harbor.http.register(port=8888, method="POST", "/skip", fun(_req, res) -> begin
-  tv_playlist.skip()
+  snc_tv.skip()
   res.data("skipped")
 end)
 
@@ -124,9 +123,12 @@ harbor.http.register(port=8888, method="GET", "/classics/now-playing", fun(_req,
   })
 end)
 
-# S/NC Classics: skip
+# S/NC Classics: skip — advance playlist cursor then skip the fallback
+# Playlist skip ensures the cursor advances (fallback skip alone replays the same track).
+# Fallback skip ends a queued track when the queue is active (playlist skip is a no-op then).
 harbor.http.register(port=8888, method="POST", "/classics/skip", fun(_req, res) -> begin
   classics_playlist.skip()
+  classics.skip()
   res.data("skipped")
 end)
 
@@ -138,7 +140,6 @@ end)
 
 # Reload playlist on demand (called by API after regeneration)
 harbor.http.register(port=8888, method="POST", "/reload-playlist", fun(_req, res) -> begin
-  tv_playlist.reload()
   classics_playlist.reload()
   res.data("reloaded")
 end)

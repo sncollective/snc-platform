@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
 
@@ -9,15 +9,13 @@ import { PlaylistItemRow } from "../../components/admin/playlist-item-row.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
-  updatePlayoutItem,
   deletePlayoutItem,
-  reorderPlayoutItems,
   fetchPlayoutStatus,
   skipPlayoutTrack,
   queuePlayoutItem,
+  savePlaylist,
 } from "../../lib/playout.js";
 import errorStyles from "../../styles/error-alert.module.css";
-import buttonStyles from "../../styles/button.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./playout.module.css";
@@ -134,14 +132,22 @@ function BroadcastStatus({ channels }: { channels: ChannelListResponse | null })
 /** Admin playout management page. */
 function PlayoutPage(): React.ReactElement {
   const { items: initialData, channels } = Route.useLoaderData();
-  const [items, setItems] = useState<PlayoutItem[]>(
-    initialData.items,
-  );
+  const [serverItems, setServerItems] = useState<PlayoutItem[]>(initialData.items);
+  const [pendingItems, setPendingItems] = useState<PlayoutItem[]>(initialData.items);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [skipError, setSkipError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const status = usePlayoutStatus();
+
+  const isDirty = useMemo(() => {
+    if (serverItems.length !== pendingItems.length) return true;
+    return serverItems.some((s, i) => {
+      const p = pendingItems[i];
+      return !p || s.id !== p.id || s.enabled !== p.enabled || s.position !== p.position;
+    });
+  }, [serverItems, pendingItems]);
 
   const handleSkip = async (): Promise<void> => {
     setSkipError(null);
@@ -152,68 +158,41 @@ function PlayoutPage(): React.ReactElement {
     }
   };
 
-  const handleToggleEnabled = async (
-    item: PlayoutItem,
-  ): Promise<void> => {
-    setActionError(null);
-    try {
-      const updated = await updatePlayoutItem(item.id, {
-        enabled: !item.enabled,
-      });
-      setItems((prev) =>
-        prev.map((i) => (i.id === updated.id ? updated : i)),
-      );
-    } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to update item",
-      );
-    }
+  const handleToggleEnabled = (item: PlayoutItem): void => {
+    setPendingItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, enabled: !i.enabled } : i)),
+    );
   };
 
   const handleDelete = async (id: string): Promise<void> => {
     setActionError(null);
     try {
       await deletePlayoutItem(id);
-      setItems((prev) => prev.filter((i) => i.id !== id));
+      setServerItems((prev) => prev.filter((i) => i.id !== id));
+      setPendingItems((prev) => prev.filter((i) => i.id !== id));
     } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to delete item",
-      );
+      setActionError(e instanceof Error ? e.message : "Failed to delete item");
     }
   };
 
-  const handleMoveUp = async (index: number): Promise<void> => {
+  const handleMoveUp = (index: number): void => {
     if (index === 0) return;
-    setActionError(null);
-    const newItems = [...items];
-    const [item] = newItems.splice(index, 1);
-    newItems.splice(index - 1, 0, item!);
-    const orderedIds = newItems.map((i) => i.id);
-    try {
-      const result = await reorderPlayoutItems(orderedIds);
-      setItems(result.items);
-    } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to reorder items",
-      );
-    }
+    setPendingItems((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(index - 1, 0, item!);
+      return next;
+    });
   };
 
-  const handleMoveDown = async (index: number): Promise<void> => {
-    if (index === items.length - 1) return;
-    setActionError(null);
-    const newItems = [...items];
-    const [item] = newItems.splice(index, 1);
-    newItems.splice(index + 1, 0, item!);
-    const orderedIds = newItems.map((i) => i.id);
-    try {
-      const result = await reorderPlayoutItems(orderedIds);
-      setItems(result.items);
-    } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to reorder items",
-      );
-    }
+  const handleMoveDown = (index: number): void => {
+    if (index === pendingItems.length - 1) return;
+    setPendingItems((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(index + 1, 0, item!);
+      return next;
+    });
   };
 
   const handlePlayNext = async (id: string): Promise<void> => {
@@ -221,14 +200,37 @@ function PlayoutPage(): React.ReactElement {
     try {
       await queuePlayoutItem(id);
     } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Failed to queue item",
-      );
+      setActionError(e instanceof Error ? e.message : "Failed to queue item");
     }
   };
 
+  const handleSavePlaylist = async (): Promise<void> => {
+    setActionError(null);
+    setIsSaving(true);
+    try {
+      const result = await savePlaylist({
+        items: pendingItems.map((item, i) => ({
+          id: item.id,
+          enabled: item.enabled,
+          position: i,
+        })),
+      });
+      setServerItems(result.items);
+      setPendingItems(result.items);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to save playlist");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscardChanges = (): void => {
+    setPendingItems(serverItems);
+  };
+
   const handleItemAdded = (item: PlayoutItem): void => {
-    setItems((prev) => [...prev, item]);
+    setServerItems((prev) => [...prev, item]);
+    setPendingItems((prev) => [...prev, item]);
     setShowAddForm(false);
   };
 
@@ -282,17 +284,57 @@ function PlayoutPage(): React.ReactElement {
         )}
       </section>
 
+      {/* Queue */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionHeading}>Queue</h2>
+        {status?.queuedItems && status.queuedItems.length > 0 ? (
+          <ul className={styles.queueList}>
+            {status.queuedItems.map((entry) => (
+              <li key={entry.itemId + entry.queuedAt} className={styles.queueItem}>
+                <span className={styles.queueItemTitle}>{entry.title}</span>
+                <span className={styles.queueItemTime}>
+                  queued {new Date(entry.queuedAt).toLocaleTimeString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.queueEmpty}>Queue empty — playlist will auto-play.</p>
+        )}
+      </section>
+
       {/* Playlist Management */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionHeading}>Playlist</h2>
-          <button
-            type="button"
-            className={buttonStyles.primaryButton}
-            onClick={() => setShowAddForm(true)}
-          >
-            Add Film
-          </button>
+          <div className={styles.playlistActions}>
+            {isDirty && (
+              <>
+                <button
+                  type="button"
+                  className={styles.discardButton}
+                  onClick={handleDiscardChanges}
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  className={styles.saveButton}
+                  onClick={() => void handleSavePlaylist()}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving…" : "Save Playlist"}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={() => setShowAddForm(true)}
+            >
+              Add Film
+            </button>
+          </div>
         </div>
 
         {actionError !== null && (
@@ -308,20 +350,20 @@ function PlayoutPage(): React.ReactElement {
           />
         )}
 
-        {items.length === 0 && !showAddForm ? (
+        {pendingItems.length === 0 && !showAddForm ? (
           <p className={listingStyles.status}>No items in playlist</p>
         ) : (
           <ul className={styles.playlistItems} aria-label="Playlist">
-            {items.map((item, index) => (
+            {pendingItems.map((item, index) => (
               <PlaylistItemRow
                 key={item.id}
                 item={item}
                 index={index}
-                total={items.length}
-                onToggleEnabled={() => void handleToggleEnabled(item)}
+                total={pendingItems.length}
+                onToggleEnabled={() => handleToggleEnabled(item)}
                 onDelete={() => void handleDelete(item.id)}
-                onMoveUp={() => void handleMoveUp(index)}
-                onMoveDown={() => void handleMoveDown(index)}
+                onMoveUp={() => handleMoveUp(index)}
+                onMoveDown={() => handleMoveDown(index)}
                 onPlayNext={() => void handlePlayNext(item.id)}
               />
             ))}

@@ -54,7 +54,7 @@ function makeMockStatus(
       elapsed: 600,
       remaining: 8400,
     },
-    queuedUri: null,
+    queuedItems: [],
     ...overrides,
   };
 }
@@ -100,6 +100,7 @@ const {
   mockFetchPlayoutStatus,
   mockSkipPlayoutTrack,
   mockQueuePlayoutItem,
+  mockSavePlaylist,
   mockStartUpload,
 } = vi.hoisted(() => ({
   mockFetchPlayoutItems: vi.fn(),
@@ -110,6 +111,7 @@ const {
   mockFetchPlayoutStatus: vi.fn(),
   mockSkipPlayoutTrack: vi.fn(),
   mockQueuePlayoutItem: vi.fn(),
+  mockSavePlaylist: vi.fn(),
   mockStartUpload: vi.fn(),
 }));
 
@@ -139,6 +141,7 @@ vi.mock("../../../../src/lib/playout.js", () => ({
   fetchPlayoutStatus: mockFetchPlayoutStatus,
   skipPlayoutTrack: mockSkipPlayoutTrack,
   queuePlayoutItem: mockQueuePlayoutItem,
+  savePlaylist: mockSavePlaylist,
 }));
 
 vi.mock("../../../../src/contexts/upload-context.js", () => ({
@@ -169,6 +172,7 @@ beforeEach(() => {
   mockReorderPlayoutItems.mockResolvedValue({ items: [item] });
   mockSkipPlayoutTrack.mockResolvedValue(undefined);
   mockQueuePlayoutItem.mockResolvedValue(undefined);
+  mockSavePlaylist.mockResolvedValue({ items: [makeMockPlayoutItem()] });
   mockCreatePlayoutItem.mockResolvedValue({
     ...item,
     id: "item_new",
@@ -233,18 +237,14 @@ describe("PlayoutPage", () => {
     });
   });
 
-  it("calls updatePlayoutItem when enabled checkbox is toggled", async () => {
+  it("does not call updatePlayoutItem when enabled checkbox is toggled", async () => {
     const userSetup = userEvent.setup();
     render(<PlayoutPage />);
 
     const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
     await userSetup.click(checkbox);
 
-    await waitFor(() => {
-      expect(mockUpdatePlayoutItem).toHaveBeenCalledWith("item_001", {
-        enabled: false,
-      });
-    });
+    expect(mockUpdatePlayoutItem).not.toHaveBeenCalled();
   });
 
   it("removes item from list after delete", async () => {
@@ -348,6 +348,85 @@ describe("PlayoutPage", () => {
       name: /Move Metropolis down/,
     });
     expect(moveDownBtn).toBeDisabled();
+  });
+});
+
+describe("playlist editing", () => {
+  it("toggles enabled locally without calling API", async () => {
+    const userSetup = userEvent.setup();
+    render(<PlayoutPage />);
+
+    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
+    await userSetup.click(checkbox);
+
+    expect(mockUpdatePlayoutItem).not.toHaveBeenCalled();
+  });
+
+  it("shows Save button when playlist state is dirty", async () => {
+    const userSetup = userEvent.setup();
+    render(<PlayoutPage />);
+
+    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
+    await userSetup.click(checkbox);
+
+    expect(screen.getByRole("button", { name: "Save Playlist" })).toBeInTheDocument();
+  });
+
+  it("does not show Save/Discard when clean", () => {
+    render(<PlayoutPage />);
+    expect(screen.queryByRole("button", { name: "Save Playlist" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("calls savePlaylist with pending items on Save click", async () => {
+    const userSetup = userEvent.setup();
+    render(<PlayoutPage />);
+
+    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
+    await userSetup.click(checkbox);
+
+    await userSetup.click(screen.getByRole("button", { name: "Save Playlist" }));
+
+    await waitFor(() => {
+      expect(mockSavePlaylist).toHaveBeenCalledWith({
+        items: [{ id: "item_001", enabled: false, position: 0 }],
+      });
+    });
+  });
+
+  it("resets pending state on Discard click", async () => {
+    const userSetup = userEvent.setup();
+    render(<PlayoutPage />);
+
+    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
+    await userSetup.click(checkbox);
+
+    // Discard button should now be visible
+    await userSetup.click(screen.getByRole("button", { name: "Discard" }));
+
+    // Save/Discard should be gone — state is clean again
+    expect(screen.queryByRole("button", { name: "Save Playlist" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+});
+
+describe("queue section", () => {
+  it("renders queued items from status poll", async () => {
+    mockFetchPlayoutStatus.mockResolvedValue({
+      nowPlaying: null,
+      queuedItems: [{ itemId: "q1", title: "Queued Film", queuedAt: "2026-03-30T12:00:00.000Z" }],
+    });
+    render(<PlayoutPage />);
+    await waitFor(() => {
+      expect(screen.getByText("Queued Film")).toBeInTheDocument();
+    });
+  });
+
+  it("shows empty state when no items queued", async () => {
+    render(<PlayoutPage />);
+    await waitFor(() => {
+      expect(screen.getByText(/Queue empty/)).toBeInTheDocument();
+    });
   });
 });
 

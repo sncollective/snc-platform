@@ -97,11 +97,14 @@ export function LoginForm({
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <FormField
         id="login-email"

@@ -118,11 +118,14 @@ export function BookingForm({
         Book: {serviceName}
       </h3>
 
-      {serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={serverError ? undefined : { visibility: "hidden" }}
+      >
+        {serverError || "\u00A0"}
+      </div>
 
       <fieldset className={clsx(formStyles.fieldGroup, styles.datesFieldset)}>
         <legend className={formStyles.label}>Preferred Dates</legend>

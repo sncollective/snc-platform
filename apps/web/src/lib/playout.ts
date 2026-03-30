@@ -5,6 +5,7 @@ import type {
   UpdatePlayoutItem,
   ReorderPlayoutItems,
   PlayoutStatus,
+  SavePlaylist,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
@@ -71,5 +72,15 @@ export async function skipPlayoutTrack(): Promise<void> {
 export async function queuePlayoutItem(id: string): Promise<void> {
   await apiMutate(`/api/playout/queue/${encodeURIComponent(id)}`, {
     method: "POST",
+  });
+}
+
+/** Batch-save playlist enabled flags and positions. */
+export async function savePlaylist(
+  data: SavePlaylist,
+): Promise<PlayoutItemListResponse> {
+  return apiMutate<PlayoutItemListResponse>("/api/playout/playlist", {
+    method: "PUT",
+    body: data,
   });
 }

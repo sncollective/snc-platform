@@ -89,11 +89,14 @@ export function ContentForm({ creatorId, onSuccess, onCancel, onUploadComplete }
 
   return (
     <form onSubmit={submit.handleSubmit} noValidate className={styles.form}>
-      {submit.serverError && (
-        <div className={formStyles.serverError} role="alert">
-          {submit.serverError}
-        </div>
-      )}
+      <div
+        className={formStyles.serverError}
+        role={submit.serverError ? "alert" : undefined}
+        aria-live="polite"
+        style={submit.serverError ? undefined : { visibility: "hidden" }}
+      >
+        {submit.serverError || "\u00A0"}
+      </div>
 
       {submit.successMessage && (
         <div className={successStyles.success} role="status">
