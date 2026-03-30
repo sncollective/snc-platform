@@ -11,6 +11,7 @@ const mockRename = vi.fn().mockResolvedValue(undefined);
 const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
 const mockSkipTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockQueueTrack = vi.fn().mockResolvedValue({ ok: true, value: undefined });
+const mockReloadPlaylist = vi.fn().mockResolvedValue(undefined);
 
 // ── Fixtures ──
 
@@ -137,6 +138,7 @@ const setupService = async () => {
     getNowPlaying: mockGetLiquidsoapNowPlaying,
     skipTrack: mockSkipTrack,
     queueTrack: mockQueueTrack,
+    reloadPlaylist: mockReloadPlaylist,
   }));
   vi.doMock("../../src/logging/logger.js", () => ({
     rootLogger: {
@@ -159,6 +161,7 @@ beforeEach(() => {
   mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
   mockSkipTrack.mockResolvedValue({ ok: true, value: undefined });
   mockQueueTrack.mockResolvedValue({ ok: true, value: undefined });
+  mockReloadPlaylist.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -248,6 +251,98 @@ describe("createPlayoutItem", () => {
     if (result.ok) {
       expect(result.value.title).toBe("Test Film");
     }
+  });
+});
+
+describe("regeneratePlaylist", () => {
+  it("writes #EXTM3U header and annotate-wrapped URIs", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereOrderByChain([makeItemRow()]));
+
+    await regeneratePlaylist();
+
+    const written: string = mockWriteFile.mock.calls[0]?.[1] as string;
+    expect(written).toContain("#EXTM3U");
+    expect(written).toContain('annotate:s3_uri="s3://snc-storage/playout/item-1/1080p.mp4":s3://snc-storage/playout/item-1/1080p.mp4');
+  });
+
+  it("includes #EXTINF line when duration is set", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereOrderByChain([makeItemRow({ duration: 90.5 })]));
+
+    await regeneratePlaylist();
+
+    const written: string = mockWriteFile.mock.calls[0]?.[1] as string;
+    expect(written).toContain("#EXTINF:91,Test Film");
+  });
+
+  it("prefers 1080p rendition URI", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereOrderByChain([
+        makeItemRow({ rendition1080pKey: "playout/item-1/1080p.mp4", rendition720pKey: "playout/item-1/720p.mp4" }),
+      ]),
+    );
+
+    await regeneratePlaylist();
+
+    const written: string = mockWriteFile.mock.calls[0]?.[1] as string;
+    expect(written).toContain("s3://snc-storage/playout/item-1/1080p.mp4");
+    expect(written).not.toContain("720p");
+  });
+
+  it("skips items with no rendition", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereOrderByChain([
+        makeItemRow({
+          rendition1080pKey: null,
+          rendition720pKey: null,
+          rendition480pKey: null,
+          sourceKey: null,
+        }),
+      ]),
+    );
+
+    await regeneratePlaylist();
+
+    const written: string = mockWriteFile.mock.calls[0]?.[1] as string;
+    const lines = written.split("\n").filter(Boolean);
+    expect(lines).toHaveLength(1); // only #EXTM3U header
+  });
+
+  it("renames temp file to final path atomically", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereOrderByChain([]));
+
+    await regeneratePlaylist();
+
+    expect(mockRename).toHaveBeenCalledTimes(1);
+    const [tmpPath, finalPath] = mockRename.mock.calls[0] as [string, string];
+    expect(tmpPath).toMatch(/\.tmp$/);
+    expect(finalPath).not.toMatch(/\.tmp$/);
+  });
+
+  it("calls reloadPlaylist after writing the file", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereOrderByChain([makeItemRow()]));
+
+    await regeneratePlaylist();
+
+    expect(mockReloadPlaylist).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls reloadPlaylist after rename (file write completes first)", async () => {
+    const { regeneratePlaylist } = await setupService();
+    mockDbSelect.mockReturnValue(buildSelectWhereOrderByChain([]));
+
+    const callOrder: string[] = [];
+    mockRename.mockImplementation(async () => { callOrder.push("rename"); });
+    mockReloadPlaylist.mockImplementation(async () => { callOrder.push("reload"); });
+
+    await regeneratePlaylist();
+
+    expect(callOrder).toEqual(["rename", "reload"]);
   });
 });
 
@@ -352,6 +447,7 @@ describe("queuePlayoutItem", () => {
 
     expect(mockQueueTrack).toHaveBeenCalledWith(
       "s3://snc-storage/playout/item-1/1080p.mp4",
+      "channel-classics",
     );
   });
 });

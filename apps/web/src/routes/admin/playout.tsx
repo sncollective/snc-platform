@@ -97,6 +97,11 @@ function BroadcastStatus({ channels }: { channels: ChannelListResponse | null })
   const broadcast = channels?.channels.find((ch) => ch.type === "broadcast");
   if (!broadcast) return null;
 
+  // Check if a live creator has taken over S/NC TV
+  const liveCreator = channels?.channels.find(
+    (ch) => ch.type === "live" && ch.creator,
+  );
+
   return (
     <section className={styles.broadcastSection}>
       <h2 className={styles.sectionHeading}>S/NC TV</h2>
@@ -110,12 +115,16 @@ function BroadcastStatus({ channels }: { channels: ChannelListResponse | null })
           </span>
         )}
       </div>
-      {broadcast.nowPlaying && (
+      {liveCreator ? (
+        <div className={styles.nowPlaying}>
+          <strong>Live:</strong> {liveCreator.creator!.displayName}
+        </div>
+      ) : broadcast.nowPlaying ? (
         <div className={styles.nowPlaying}>
           <strong>Now Playing:</strong> {broadcast.nowPlaying.title ?? "Unknown"}
           {broadcast.nowPlaying.director && ` — ${broadcast.nowPlaying.director}`}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

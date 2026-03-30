@@ -123,21 +123,42 @@ export const getChannelNowPlaying = async (
 };
 
 /**
- * Skip the currently playing track. Liquidsoap advances to the next track
- * in the fallback chain (queue > playlist).
+ * Skip the currently playing track on a specific channel.
+ * Liquidsoap advances to the next track in the fallback chain (queue > playlist).
+ * Defaults to S/NC TV for backward compatibility.
+ *
+ * @param channel - Optional channel ID; use `"channel-classics"` for S/NC Classics.
  */
-export const skipTrack = async (): Promise<Result<void, AppError>> => {
-  return liquidsoapRequest("/skip", { method: "POST" });
+export const skipTrack = async (channel?: string): Promise<Result<void, AppError>> => {
+  const path = channel === "channel-classics" ? "/classics/skip" : "/skip";
+  return liquidsoapRequest(path, { method: "POST" });
 };
 
 /**
- * Queue a specific S3 URI to play next. The queued item takes priority
- * over the playlist but yields to live streams.
+ * Queue a specific S3 URI to play next on a specific channel.
+ * The queued item takes priority over the playlist but yields to live streams.
+ * Defaults to S/NC TV for backward compatibility.
+ *
+ * @param channel - Optional channel ID; use `"channel-classics"` for S/NC Classics.
  */
-export const queueTrack = async (s3Uri: string): Promise<Result<void, AppError>> => {
-  return liquidsoapRequest("/queue", {
+export const queueTrack = async (s3Uri: string, channel?: string): Promise<Result<void, AppError>> => {
+  const path = channel === "channel-classics" ? "/classics/queue" : "/queue";
+  return liquidsoapRequest(path, {
     method: "POST",
     body: s3Uri,
     headers: { "Content-Type": "text/plain" },
   });
+};
+
+/**
+ * Trigger Liquidsoap to reload the playlist from disk.
+ * Best-effort — failure is logged but not propagated, since the playlist
+ * file write already succeeded. Liquidsoap will pick up changes on its
+ * next track boundary or restart.
+ */
+export const reloadPlaylist = async (): Promise<void> => {
+  const result = await liquidsoapRequest("/reload-playlist", { method: "POST" });
+  if (!result.ok) {
+    logger.warn({ error: result.error }, "Failed to trigger playlist reload");
+  }
 };

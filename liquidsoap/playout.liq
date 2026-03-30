@@ -2,17 +2,19 @@
 
 log.stdout := true
 log.file := false
+log.level := 4
+log.level := 4
 
 # ── S3 Protocol (Garage) ──
 
-settings.protocol.aws.endpoint := "http://localhost:3900"
+settings.protocol.aws.endpoint := "http://snc-garage:3900"
 settings.protocol.aws.region := "garage"
 
 # ── Shared Playlist ──
 # Both S/NC TV and Classics read the same M3U file but maintain independent positions.
 
-tv_playlist = playlist("/workspaces/SNC/platform/liquidsoap/playlist.m3u", mode="normal", reload_mode="watch", reload=10)
-classics_playlist = playlist("/workspaces/SNC/platform/liquidsoap/playlist.m3u", mode="normal", reload_mode="watch", reload=10)
+tv_playlist = playlist("/etc/liquidsoap/playlist.m3u", mode="normal", reload_mode="seconds", reload=0)
+classics_playlist = playlist("/etc/liquidsoap/playlist.m3u", mode="normal", reload_mode="seconds", reload=0)
 
 # ── Live Input (S/NC TV only) ──
 # SRS forwards creator streams here via the on_forward callback.
@@ -28,23 +30,30 @@ queue_source = request.queue(id="admin-queue")
 
 snc_tv = fallback(track_sensitive=false, [live_source, queue_source, tv_playlist, mksafe(blank())])
 
-# ── S/NC Classics: Playlist Only ──
+# ── Admin Queue (Classics) ──
 
-classics = fallback(track_sensitive=false, [classics_playlist, mksafe(blank())])
+classics_queue = request.queue(id="classics-queue")
+
+# ── S/NC Classics: Fallback Chain ──
+# Priority: admin queue > playlist > silence
+
+classics = fallback(track_sensitive=false, [classics_queue, classics_playlist, mksafe(blank())])
 
 # ── Metadata Tracking ──
 
 snc_tv_uri = ref("")
 snc_tv_title = ref("")
-snc_tv.on_metadata(fun(m) -> begin
-  snc_tv_uri := m["filename"]
+snc_tv.on_metadata(synchronous=false, fun(m) -> begin
+  u = m["s3_uri"]
+  snc_tv_uri := if u == "" then m["filename"] else u end
   snc_tv_title := m["title"]
 end)
 
 classics_uri = ref("")
 classics_title = ref("")
-classics.on_metadata(fun(m) -> begin
-  classics_uri := m["filename"]
+classics.on_metadata(synchronous=false, fun(m) -> begin
+  u = m["s3_uri"]
+  classics_uri := if u == "" then m["filename"] else u end
   classics_title := m["title"]
 end)
 
@@ -59,11 +68,11 @@ enc = %ffmpeg(
 # ── Output: S/NC TV → SRS ──
 
 playout_key = environment.get("PLAYOUT_STREAM_KEY", default="")
-output.url(url="rtmp://localhost:1935/live/snc-tv?key=#{playout_key}", enc, snc_tv)
+output.url(url="rtmp://snc-srs:1935/live/snc-tv?key=#{playout_key}", enc, snc_tv)
 
 # ── Output: S/NC Classics → SRS ──
 
-output.url(url="rtmp://localhost:1935/live/channel-classics?key=#{playout_key}", enc, classics)
+output.url(url="rtmp://snc-srs:1935/live/channel-classics?key=#{playout_key}", enc, classics)
 
 # ── Harbor HTTP Endpoints ──
 
@@ -76,11 +85,16 @@ end)
 
 # S/NC TV: now-playing (existing path — backward compatible)
 harbor.http.register(port=8888, method="GET", "/now-playing", fun(_req, res) -> begin
+  e = snc_tv.elapsed()
+  r = snc_tv.remaining()
+  # Clamp infinity/nan to -1 for live sources where duration is unknown
+  safe_elapsed = if e == infinity or e != e then -1. else e end
+  safe_remaining = if r == infinity or r != r then -1. else r end
   res.json({
     uri = snc_tv_uri(),
     title = snc_tv_title(),
-    elapsed = snc_tv.elapsed(),
-    remaining = snc_tv.remaining()
+    elapsed = safe_elapsed,
+    remaining = safe_remaining
   })
 end)
 
@@ -98,10 +112,33 @@ end)
 
 # S/NC Classics: now-playing
 harbor.http.register(port=8888, method="GET", "/classics/now-playing", fun(_req, res) -> begin
+  e = classics.elapsed()
+  r = classics.remaining()
+  safe_elapsed = if e == infinity or e != e then -1. else e end
+  safe_remaining = if r == infinity or r != r then -1. else r end
   res.json({
     uri = classics_uri(),
     title = classics_title(),
-    elapsed = classics.elapsed(),
-    remaining = classics.remaining()
+    elapsed = safe_elapsed,
+    remaining = safe_remaining
   })
+end)
+
+# S/NC Classics: skip
+harbor.http.register(port=8888, method="POST", "/classics/skip", fun(_req, res) -> begin
+  classics.skip()
+  res.data("skipped")
+end)
+
+# S/NC Classics: queue
+harbor.http.register(port=8888, method="POST", "/classics/queue", fun(req, res) -> begin
+  classics_queue.push.uri(req.body())
+  res.data("queued")
+end)
+
+# Reload playlist on demand (called by API after regeneration)
+harbor.http.register(port=8888, method="POST", "/reload-playlist", fun(_req, res) -> begin
+  tv_playlist.reload()
+  classics_playlist.reload()
+  res.data("reloaded")
 end)

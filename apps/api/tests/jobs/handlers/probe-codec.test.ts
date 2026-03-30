@@ -26,6 +26,7 @@ const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
   height: 1080,
   duration: 120.5,
   bitrate: 5000000,
+  dataStreamCount: 0,
   ...overrides,
 });
 

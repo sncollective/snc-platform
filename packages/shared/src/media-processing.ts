@@ -21,6 +21,7 @@ export const ProbeResultSchema = z.object({
   height: z.number().int().nullable(),
   duration: z.number().nullable(),
   bitrate: z.number().int().nullable(),
+  dataStreamCount: z.number().int(),
 });
 
 export type ProbeResult = z.infer<typeof ProbeResultSchema>;

@@ -9,6 +9,9 @@ services:
   snc-garage:
     networks:
       - claude-net
+  snc-liquidsoap:
+    networks:
+      - claude-net
 
 networks:
   claude-net:

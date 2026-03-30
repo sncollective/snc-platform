@@ -22,6 +22,7 @@ const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
   height: 1080,
   duration: 90.0,
   bitrate: 5000000,
+  dataStreamCount: 0,
   ...overrides,
 });
 
@@ -36,7 +37,9 @@ const makeJob = (data: Record<string, unknown> = {}) => ({
 const mockDbSelect = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockProbeMedia = vi.fn().mockResolvedValue({ ok: true, value: makeProbeResult() });
+const mockRemuxPlayoutSource = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockDownloadToTemp = vi.fn().mockResolvedValue({ ok: true, value: "/tmp/snc-media/uuid-playout-source.mp4" });
+const mockUploadFromTemp = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockCleanupTemp = vi.fn().mockResolvedValue(undefined);
 const mockRegeneratePlaylist = vi.fn().mockResolvedValue(undefined);
 
@@ -80,9 +83,11 @@ const setupModule = async () => {
   }));
   vi.doMock("../../../src/services/media-processing.js", () => ({
     probeMedia: mockProbeMedia,
+    remuxPlayoutSource: mockRemuxPlayoutSource,
   }));
   vi.doMock("../../../src/services/processing-jobs.js", () => ({
     downloadToTemp: mockDownloadToTemp,
+    uploadFromTemp: mockUploadFromTemp,
     cleanupTemp: mockCleanupTemp,
   }));
   vi.doMock("../../../src/services/playout.js", () => ({
@@ -113,7 +118,9 @@ const setupModule = async () => {
 // so defaults must be set in beforeEach to survive into the test body).
 beforeEach(() => {
   mockProbeMedia.mockResolvedValue({ ok: true, value: makeProbeResult() });
+  mockRemuxPlayoutSource.mockResolvedValue({ ok: true, value: undefined });
   mockDownloadToTemp.mockResolvedValue({ ok: true, value: "/tmp/snc-media/uuid-playout-source.mp4" });
+  mockUploadFromTemp.mockResolvedValue({ ok: true, value: undefined });
   mockCleanupTemp.mockResolvedValue(undefined);
   mockRegeneratePlaylist.mockResolvedValue(undefined);
 });
@@ -168,14 +175,36 @@ describe("handlePlayoutIngest", () => {
     expect(mockDbUpdate).toHaveBeenCalledTimes(2); // set processing + set failed
   });
 
-  it("probes the downloaded source file", async () => {
+  it("remuxes and re-uploads before probing", async () => {
     const { handlePlayoutIngest } = await setupModule();
     mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
     mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
 
     await handlePlayoutIngest([makeJob() as never]);
 
-    expect(mockProbeMedia).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source.mp4");
+    expect(mockRemuxPlayoutSource).toHaveBeenCalledWith(
+      "/tmp/snc-media/uuid-playout-source.mp4",
+      "/tmp/snc-media/uuid-playout-source-remuxed.mp4",
+    );
+    expect(mockUploadFromTemp).toHaveBeenCalledWith(
+      "/tmp/snc-media/uuid-playout-source-remuxed.mp4",
+      "playout/item-1/source.mp4",
+      "video/mp4",
+    );
+    expect(mockProbeMedia).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source-remuxed.mp4");
+  });
+
+  it("marks item failed when remux fails", async () => {
+    const { handlePlayoutIngest } = await setupModule();
+    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
+    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
+    mockRemuxPlayoutSource.mockResolvedValue({ ok: false, error: { message: "remux error" } });
+
+    await handlePlayoutIngest([makeJob() as never]);
+
+    expect(mockUploadFromTemp).not.toHaveBeenCalled();
+    expect(mockProbeMedia).not.toHaveBeenCalled();
+    expect(mockRegeneratePlaylist).not.toHaveBeenCalled();
   });
 
   it("marks item failed when probe fails", async () => {
@@ -200,7 +229,7 @@ describe("handlePlayoutIngest", () => {
     expect(mockRegeneratePlaylist).toHaveBeenCalledTimes(1);
   });
 
-  it("cleans up source temp file even when processing fails", async () => {
+  it("cleans up both temp files even when processing fails", async () => {
     const { handlePlayoutIngest } = await setupModule();
     mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
     mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
@@ -209,5 +238,6 @@ describe("handlePlayoutIngest", () => {
     await handlePlayoutIngest([makeJob() as never]);
 
     expect(mockCleanupTemp).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source.mp4");
+    expect(mockCleanupTemp).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source-remuxed.mp4");
   });
 });

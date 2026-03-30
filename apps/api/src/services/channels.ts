@@ -123,7 +123,9 @@ export const selectDefaultChannel = (
 };
 
 /**
- * Create a live channel when a creator starts streaming.
+ * Create or reactivate a live channel when a creator starts streaming.
+ * If a deactivated channel with the same srsStreamName exists, reactivate it
+ * with updated metadata. Otherwise create a new one.
  * Called from the on_publish callback after opening a session.
  */
 export const createLiveChannel = async (opts: {
@@ -133,6 +135,26 @@ export const createLiveChannel = async (opts: {
   srsStreamName: string;
 }): Promise<Result<{ channelId: string }, AppError>> => {
   try {
+    const [existing] = await db
+      .select({ id: channels.id })
+      .from(channels)
+      .where(eq(channels.srsStreamName, opts.srsStreamName));
+
+    if (existing) {
+      await db
+        .update(channels)
+        .set({
+          name: `Live: ${opts.creatorName}`,
+          type: "live",
+          creatorId: opts.creatorId,
+          streamSessionId: opts.streamSessionId,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(channels.id, existing.id));
+      return ok({ channelId: existing.id });
+    }
+
     const channelId = randomUUID();
 
     await db.insert(channels).values({

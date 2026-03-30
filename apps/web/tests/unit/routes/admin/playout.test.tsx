@@ -7,7 +7,7 @@ import {
 } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus } from "@snc/shared";
+import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
 import { createRouterMock } from "../../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../../helpers/route-test-utils.js";
 
@@ -55,6 +55,36 @@ function makeMockStatus(
       remaining: 8400,
     },
     queuedUri: null,
+    ...overrides,
+  };
+}
+
+function makeMockChannels(
+  overrides?: Partial<ChannelListResponse>,
+): ChannelListResponse {
+  return {
+    defaultChannelId: "ch_broadcast",
+    channels: [
+      {
+        id: "ch_broadcast",
+        name: "S/NC TV",
+        type: "broadcast",
+        thumbnailUrl: null,
+        hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
+        viewerCount: 0,
+        creator: null,
+        startedAt: null,
+        nowPlaying: {
+          itemId: "item_001",
+          title: "Metropolis",
+          year: 1927,
+          director: "Fritz Lang",
+          duration: 9000,
+          elapsed: 600,
+          remaining: 8400,
+        },
+      },
+    ],
     ...overrides,
   };
 }
@@ -128,8 +158,9 @@ const PlayoutPage = extractRouteComponent(
 
 beforeEach(() => {
   const item = makeMockPlayoutItem();
-  const loaderData: { items: PlayoutItemListResponse } = {
+  const loaderData: { items: PlayoutItemListResponse; channels: ChannelListResponse | null } = {
     items: { items: [item] },
+    channels: null,
   };
   mockUseLoaderData.mockReturnValue(loaderData);
   mockFetchPlayoutStatus.mockResolvedValue(makeMockStatus());
@@ -317,5 +348,180 @@ describe("PlayoutPage", () => {
       name: /Move Metropolis down/,
     });
     expect(moveDownBtn).toBeDisabled();
+  });
+});
+
+describe("BroadcastStatus", () => {
+  it("renders nothing when channels is null", () => {
+    mockUseLoaderData.mockReturnValue({ items: { items: [] }, channels: null });
+    render(<PlayoutPage />);
+    expect(screen.queryByText("S/NC TV")).not.toBeInTheDocument();
+  });
+
+  it("renders nothing when no broadcast channel exists", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: { defaultChannelId: null, channels: [] },
+    });
+    render(<PlayoutPage />);
+    expect(screen.queryByText("S/NC TV")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Now Playing' with title when playout is active", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels(),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText("S/NC TV")).toBeInTheDocument();
+    expect(screen.getByText(/Now Playing:/)).toBeInTheDocument();
+    expect(screen.getByText(/Metropolis/)).toBeInTheDocument();
+  });
+
+  it("shows director when nowPlaying includes director", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels(),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText(/Fritz Lang/)).toBeInTheDocument();
+  });
+
+  it("shows nothing when broadcast has no nowPlaying and no live creator", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels({
+        channels: [
+          {
+            id: "ch_broadcast",
+            name: "S/NC TV",
+            type: "broadcast",
+            thumbnailUrl: null,
+            hlsUrl: null,
+            viewerCount: 0,
+            creator: null,
+            startedAt: null,
+            nowPlaying: null,
+          },
+        ],
+      }),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText("S/NC TV")).toBeInTheDocument();
+    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live:/)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Live: {name}' when a live creator channel is active", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels({
+        channels: [
+          {
+            id: "ch_broadcast",
+            name: "S/NC TV",
+            type: "broadcast",
+            thumbnailUrl: null,
+            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
+            viewerCount: 2,
+            creator: null,
+            startedAt: null,
+            nowPlaying: null,
+          },
+          {
+            id: "ch_live_1",
+            name: "Alice Live",
+            type: "live",
+            thumbnailUrl: null,
+            hlsUrl: "https://cdn.example.com/alice/index.m3u8",
+            viewerCount: 2,
+            creator: {
+              id: "user_alice",
+              displayName: "Alice",
+              handle: "alice",
+              avatarUrl: null,
+            },
+            startedAt: "2026-03-29T12:00:00.000Z",
+            nowPlaying: null,
+          },
+        ],
+      }),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText(/Live:/)).toBeInTheDocument();
+    expect(screen.getByText(/Alice/)).toBeInTheDocument();
+    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
+  });
+
+  it("prefers 'Live: {name}' over 'Now Playing' when both are available", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels({
+        channels: [
+          {
+            id: "ch_broadcast",
+            name: "S/NC TV",
+            type: "broadcast",
+            thumbnailUrl: null,
+            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
+            viewerCount: 1,
+            creator: null,
+            startedAt: null,
+            nowPlaying: {
+              itemId: "item_001",
+              title: "Metropolis",
+              year: 1927,
+              director: "Fritz Lang",
+              duration: 9000,
+              elapsed: 600,
+              remaining: 8400,
+            },
+          },
+          {
+            id: "ch_live_1",
+            name: "Bob Live",
+            type: "live",
+            thumbnailUrl: null,
+            hlsUrl: "https://cdn.example.com/bob/index.m3u8",
+            viewerCount: 1,
+            creator: {
+              id: "user_bob",
+              displayName: "Bob",
+              handle: "bob",
+              avatarUrl: null,
+            },
+            startedAt: "2026-03-29T13:00:00.000Z",
+            nowPlaying: null,
+          },
+        ],
+      }),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText(/Live:/)).toBeInTheDocument();
+    expect(screen.getByText(/Bob/)).toBeInTheDocument();
+    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
+  });
+
+  it("shows viewer count when positive", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: { items: [] },
+      channels: makeMockChannels({
+        channels: [
+          {
+            id: "ch_broadcast",
+            name: "S/NC TV",
+            type: "broadcast",
+            thumbnailUrl: null,
+            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
+            viewerCount: 3,
+            creator: null,
+            startedAt: null,
+            nowPlaying: null,
+          },
+        ],
+      }),
+    });
+    render(<PlayoutPage />);
+    expect(screen.getByText(/3 viewers/)).toBeInTheDocument();
   });
 });

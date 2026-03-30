@@ -17,7 +17,7 @@ import type {
 import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { rootLogger } from "../logging/logger.js";
-import { getNowPlaying as getLiquidsoapNowPlaying, getChannelNowPlaying, skipTrack, queueTrack } from "./liquidsoap.js";
+import { getNowPlaying as getLiquidsoapNowPlaying, getChannelNowPlaying, skipTrack, queueTrack, reloadPlaylist } from "./liquidsoap.js";
 
 const logger = rootLogger.child({ service: "playout" });
 
@@ -189,7 +189,7 @@ export const regeneratePlaylist = async (): Promise<void> => {
       if (row.duration) {
         lines.push(`#EXTINF:${Math.round(row.duration)},${row.title}`);
       }
-      lines.push(uri);
+      lines.push(`annotate:s3_uri="${uri}":${uri}`);
     }
   }
 
@@ -197,6 +197,9 @@ export const regeneratePlaylist = async (): Promise<void> => {
   await writeFile(tempPath, lines.join("\n") + "\n");
   await rename(tempPath, PLAYLIST_PATH);
   logger.info({ items: rows.length }, "Playlist regenerated");
+
+  // Notify Liquidsoap to reload the playlist from disk
+  await reloadPlaylist();
 };
 
 /** Select the best available rendition URI for playout (1080p preferred). */
@@ -272,7 +275,7 @@ export const getPlayoutNowPlaying = async (
 
 /** Get full playout status for admin UI. */
 export const getPlayoutStatus = async (): Promise<PlayoutStatus> => {
-  const nowPlaying = await getPlayoutNowPlaying();
+  const nowPlaying = await getPlayoutNowPlaying("channel-classics");
   return { nowPlaying, queuedUri: null };
 };
 
@@ -289,10 +292,10 @@ export const queuePlayoutItem = async (
   const uri = selectPlayoutRenditionUri(row);
   if (!uri) return err(new AppError("NO_RENDITION", "No playable rendition available", 400));
 
-  return queueTrack(uri);
+  return queueTrack(uri, "channel-classics");
 };
 
-/** Skip the current track. */
+/** Skip the current track on the playout channel (S/NC Classics). */
 export const skipCurrentTrack = async (): Promise<Result<void, AppError>> => {
-  return skipTrack();
+  return skipTrack("channel-classics");
 };

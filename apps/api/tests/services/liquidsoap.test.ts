@@ -163,6 +163,30 @@ describe("skipTrack", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("sends POST to /classics/skip when channel is channel-classics", async () => {
+    const { skipTrack } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse("skipped", 200));
+
+    await skipTrack("channel-classics");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/classics/skip",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("sends POST to /skip for unknown channel (backward compatible)", async () => {
+    const { skipTrack } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse("skipped", 200));
+
+    await skipTrack("snc-tv");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/skip",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });
 
 describe("getChannelNowPlaying", () => {
@@ -280,11 +304,86 @@ describe("queueTrack", () => {
     );
   });
 
+  it("sends POST to /classics/queue when channel is channel-classics", async () => {
+    const { queueTrack } = await setupModule();
+    const uri = "s3://snc-storage/playout/item-1/1080p.mp4";
+    mockFetch.mockReturnValue(mockFetchResponse("queued", 200));
+
+    await queueTrack(uri, "channel-classics");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/classics/queue",
+      expect.objectContaining({
+        method: "POST",
+        body: uri,
+        headers: { "Content-Type": "text/plain" },
+      }),
+    );
+  });
+
+  it("sends POST to /queue for unknown channel (backward compatible)", async () => {
+    const { queueTrack } = await setupModule();
+    const uri = "s3://snc-storage/playout/item-1/1080p.mp4";
+    mockFetch.mockReturnValue(mockFetchResponse("queued", 200));
+
+    await queueTrack(uri, "snc-tv");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/queue",
+      expect.objectContaining({
+        method: "POST",
+        body: uri,
+        headers: { "Content-Type": "text/plain" },
+      }),
+    );
+  });
+
   it("returns err when Liquidsoap is unreachable", async () => {
     const { queueTrack } = await setupModule();
     mockFetch.mockRejectedValue(new Error("connection refused"));
 
     const result = await queueTrack("s3://snc-storage/playout/item-1/1080p.mp4");
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("reloadPlaylist", () => {
+  it("returns silently when LIQUIDSOAP_API_URL is not configured", async () => {
+    const { reloadPlaylist } = await setupModule(false);
+    await expect(reloadPlaylist()).resolves.toBeUndefined();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("sends POST to /reload-playlist", async () => {
+    const { reloadPlaylist } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse("reloaded", 200));
+
+    await reloadPlaylist();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8888/reload-playlist",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("returns void on success (does not throw)", async () => {
+    const { reloadPlaylist } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse("reloaded", 200));
+
+    await expect(reloadPlaylist()).resolves.toBeUndefined();
+  });
+
+  it("logs a warning and does not throw on failure", async () => {
+    const { reloadPlaylist } = await setupModule();
+    mockFetch.mockReturnValue(mockFetchResponse({}, 500));
+
+    await expect(reloadPlaylist()).resolves.toBeUndefined();
+  });
+
+  it("logs a warning and does not throw when Liquidsoap is unreachable", async () => {
+    const { reloadPlaylist } = await setupModule();
+    mockFetch.mockRejectedValue(new Error("connection refused"));
+
+    await expect(reloadPlaylist()).resolves.toBeUndefined();
   });
 });

@@ -1,10 +1,11 @@
 import type { Job } from "pg-boss";
 import { eq } from "drizzle-orm";
 
-import { probeMedia } from "../../services/media-processing.js";
+import { probeMedia, remuxPlayoutSource } from "../../services/media-processing.js";
 import { getFileExtension } from "../../lib/file-utils.js";
 import {
   downloadToTemp,
+  uploadFromTemp,
   cleanupTemp,
 } from "../../services/processing-jobs.js";
 import { db } from "../../db/connection.js";
@@ -52,6 +53,7 @@ export const handlePlayoutIngest = async (
     .where(eq(playoutItems.id, playoutItemId));
 
   let tempPath: string | null = null;
+  let remuxedPath: string | null = null;
 
   try {
     // ── Download source ──
@@ -63,14 +65,34 @@ export const handlePlayoutIngest = async (
     }
     tempPath = downloadResult.value;
 
+    // ── Remux: strip non-AV streams ──
+    // Data tracks (timecode, camera telemetry, chapter markers) cause
+    // Liquidsoap's FFmpeg decoder to hang. Codec-copy remux is fast.
+    remuxedPath = tempPath.replace(/(\.\w+)$/, "-remuxed$1");
+    const remuxResult = await remuxPlayoutSource(tempPath, remuxedPath);
+    if (!remuxResult.ok) {
+      await markFailed(playoutItemId, remuxResult.error.message);
+      return;
+    }
+
+    // ── Upload clean source back to S3 ──
+    const uploadResult = await uploadFromTemp(remuxedPath, item.sourceKey, "video/mp4");
+    if (!uploadResult.ok) {
+      await markFailed(playoutItemId, uploadResult.error.message);
+      return;
+    }
+
     // ── Probe for metadata ──
-    const probeResult = await probeMedia(tempPath);
+    const probeResult = await probeMedia(remuxedPath);
     if (!probeResult.ok) {
       await markFailed(playoutItemId, probeResult.error.message);
       return;
     }
 
     const probe = probeResult.value;
+    if (probe.dataStreamCount > 0) {
+      logger.info({ dataStreamCount: probe.dataStreamCount }, "Stripped non-AV streams from source");
+    }
 
     await db
       .update(playoutItems)
@@ -94,6 +116,7 @@ export const handlePlayoutIngest = async (
     await markFailed(playoutItemId, e instanceof Error ? e.message : "Unknown error");
   } finally {
     if (tempPath) await cleanupTemp(tempPath);
+    if (remuxedPath) await cleanupTemp(remuxedPath);
   }
 };
 

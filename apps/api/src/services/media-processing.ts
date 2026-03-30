@@ -120,6 +120,10 @@ export const probeMedia = async (
     const videoStream = data.streams?.find((s) => s.codec_type === "video");
     const audioStream = data.streams?.find((s) => s.codec_type === "audio");
     const subtitleStream = data.streams?.find((s) => s.codec_type === "subtitle");
+    const knownTypes = new Set(["video", "audio", "subtitle"]);
+    const dataStreamCount = data.streams?.filter(
+      (s) => s.codec_type && !knownTypes.has(s.codec_type),
+    ).length ?? 0;
 
     return ok({
       videoCodec: videoStream?.codec_name ?? null,
@@ -129,6 +133,7 @@ export const probeMedia = async (
       height: videoStream?.height ?? null,
       duration: data.format?.duration ? parseFloat(data.format.duration) : null,
       bitrate: data.format?.bit_rate ? parseInt(data.format.bit_rate, 10) : null,
+      dataStreamCount,
     });
   } catch (e) {
     return err(wrapFfmpegError(e));
@@ -156,6 +161,8 @@ export const transcodeToH264 = async (
     await new Promise<void>((resolve, reject) => {
       const args = [
         "-i", input,
+        "-map", "0:v:0",
+        "-map", "0:a:0",
         "-c:v", "libx264",
         "-preset", "medium",
         "-crf", "23",
@@ -237,6 +244,30 @@ export const remuxToMp4 = async (
 ): Promise<Result<void, AppError>> => {
   return runFfmpeg([
     "-i", input,
+    "-map", "0:v:0",
+    "-map", "0:a:0",
+    "-c", "copy",
+    "-movflags", "+faststart",
+    "-y",
+    output,
+  ]);
+};
+
+/**
+ * Remux a media file keeping only video and audio streams.
+ *
+ * Strips data tracks (timecode, camera telemetry, chapter markers) that cause
+ * Liquidsoap's FFmpeg decoder to hang during request resolution. Codec-copy
+ * only — fast regardless of file size or resolution.
+ */
+export const remuxPlayoutSource = async (
+  input: string,
+  output: string,
+): Promise<Result<void, AppError>> => {
+  return runFfmpeg([
+    "-i", input,
+    "-map", "0:v:0",
+    "-map", "0:a:0",
     "-c", "copy",
     "-movflags", "+faststart",
     "-y",
@@ -271,6 +302,7 @@ export const transcodeToRendition = async (
       if (options.rendition === "audio") {
         args = [
           "-i", input,
+          "-map", "0:a:0",
           "-vn",
           "-c:a", "aac",
           "-b:a", profile.audioBitrate,
@@ -281,6 +313,8 @@ export const transcodeToRendition = async (
         const videoProfile = profile as typeof RENDITION_PROFILES["1080p"];
         args = [
           "-i", input,
+          "-map", "0:v:0",
+          "-map", "0:a:0",
           "-vf", `scale=${videoProfile.width}:-2`,
           "-c:v", "libx264",
           "-crf", String(videoProfile.crf),

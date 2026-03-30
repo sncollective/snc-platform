@@ -1,0 +1,5 @@
+#EXTM3U
+#EXTINF:1,test563251
+annotate:s3_uri="s3://snc-storage/playout/5779e8be-f8d0-41d9-a0f6-64442697e66c/source/c0023.mp4":s3://snc-storage/playout/5779e8be-f8d0-41d9-a0f6-64442697e66c/source/c0023.mp4
+#EXTINF:11,test059312564
+annotate:s3_uri="s3://snc-storage/playout/be0f95cf-4a51-40b1-a106-8b54d107db78/source/c0015.mp4":s3://snc-storage/playout/be0f95cf-4a51-40b1-a106-8b54d107db78/source/c0015.mp4

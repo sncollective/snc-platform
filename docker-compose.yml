@@ -51,6 +51,29 @@ services:
       timeout: 3s
       retries: 5
 
+  snc-liquidsoap:
+    build: ./liquidsoap
+    container_name: snc-liquidsoap
+    restart: unless-stopped
+    volumes:
+      - ./liquidsoap/playout.liq:/etc/liquidsoap/playout.liq:ro
+      - ./liquidsoap/playlist.m3u:/etc/liquidsoap/playlist.m3u
+    command: ["/etc/liquidsoap/playout.liq"]
+    ports:
+      - "8888:8888"
+      - "1936:1936"
+    environment:
+      PLAYOUT_STREAM_KEY: ${PLAYOUT_STREAM_KEY:-}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: garage
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
   snc-pgdata:
   snc-garage-meta:

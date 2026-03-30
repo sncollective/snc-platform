@@ -49,7 +49,7 @@ describe("parseConfig", () => {
       FEDERATION_DOMAIN: "s-nc.org",
       FEATURE_FEDERATION: false,
       FEATURE_STREAMING: true,
-      LIQUIDSOAP_RTMP_URL: "rtmp://host.docker.internal:1936/live/stream",
+      LIQUIDSOAP_RTMP_URL: "rtmp://snc-liquidsoap:1936/live/stream",
     });
   });
 

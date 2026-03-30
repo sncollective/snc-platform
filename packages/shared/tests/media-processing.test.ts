@@ -120,6 +120,7 @@ describe("ProbeResultSchema", () => {
       height: 1080,
       duration: 123.456,
       bitrate: 4000000,
+      dataStreamCount: 0,
     });
     expect(result.videoCodec).toBe("h264");
     expect(result.audioCodec).toBe("aac");
@@ -128,6 +129,7 @@ describe("ProbeResultSchema", () => {
     expect(result.height).toBe(1080);
     expect(result.duration).toBe(123.456);
     expect(result.bitrate).toBe(4000000);
+    expect(result.dataStreamCount).toBe(0);
   });
 
   it("validates a probe result with subtitles", () => {
@@ -139,6 +141,7 @@ describe("ProbeResultSchema", () => {
       height: 1080,
       duration: 90.0,
       bitrate: 4000000,
+      dataStreamCount: 0,
     });
     expect(result.subtitleCodec).toBe("subrip");
   });
@@ -152,6 +155,7 @@ describe("ProbeResultSchema", () => {
       height: null,
       duration: 240.0,
       bitrate: 128000,
+      dataStreamCount: 0,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.audioCodec).toBe("mp3");
@@ -168,9 +172,24 @@ describe("ProbeResultSchema", () => {
       height: null,
       duration: null,
       bitrate: null,
+      dataStreamCount: 0,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.duration).toBeNull();
+  });
+
+  it("validates a probe result with data streams", () => {
+    const result = ProbeResultSchema.parse({
+      videoCodec: "h264",
+      audioCodec: "pcm_s16be",
+      subtitleCodec: null,
+      width: 3840,
+      height: 2160,
+      duration: 2.4,
+      bitrate: 111863903,
+      dataStreamCount: 1,
+    });
+    expect(result.dataStreamCount).toBe(1);
   });
 
   it("rejects when required fields are missing", () => {

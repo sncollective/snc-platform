@@ -587,7 +587,7 @@ describe("streaming routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.code).toBe(0);
-      expect(body.data.urls).toContain("rtmp://host.docker.internal:1936/live/stream");
+      expect(body.data.urls).toContain("rtmp://snc-liquidsoap:1936/live/stream");
     });
 
     it("returns 400 on invalid body", async () => {
