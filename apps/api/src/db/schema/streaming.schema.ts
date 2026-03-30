@@ -11,6 +11,29 @@ import {
 
 import { creatorProfiles } from "./creator.schema.js";
 
+// ── Simulcast Destinations ──
+
+export const simulcastDestinations = pgTable(
+  "simulcast_destinations",
+  {
+    id: text("id").primaryKey(),
+    platform: text("platform").notNull(), // "twitch" | "youtube" | "custom"
+    label: text("label").notNull(),
+    rtmpUrl: text("rtmp_url").notNull(),
+    streamKey: text("stream_key").notNull(),
+    isActive: boolean("is_active").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("simulcast_destinations_active_idx").on(table.isActive),
+  ],
+);
+
 // ── Stream Keys ──
 
 export const streamKeys = pgTable(

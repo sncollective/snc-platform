@@ -24,6 +24,7 @@ import { openSession, closeSession } from "../services/stream-sessions.js";
 import { createLiveChannel, deactivateLiveChannel } from "../services/channels.js";
 import { createChannelRoom, closeChannelRoom } from "../services/chat.js";
 import { broadcastToRoom } from "../services/chat-rooms.js";
+import { getActiveSimulcastUrls } from "../services/simulcast.js";
 import { config } from "../config.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -302,7 +303,8 @@ streamingRoutes.post(
 
     // Never forward Liquidsoap's own output (prevents loops)
     if (PLAYOUT_STREAM_NAMES.has(body.stream)) {
-      return c.json({ code: 0, data: { urls: [] } }, 200);
+      const urls = await getActiveSimulcastUrls();
+      return c.json({ code: 0, data: { urls } }, 200);
     }
 
     // Creator stream — forward to Liquidsoap for S/NC TV takeover
@@ -311,9 +313,6 @@ streamingRoutes.post(
     if (config.LIQUIDSOAP_RTMP_URL) {
       urls.push(config.LIQUIDSOAP_RTMP_URL);
     }
-
-    // Future: simulcast destinations (Twitch, YouTube) will be appended here
-    // from the simulcast_destinations table
 
     return c.json({ code: 0, data: { urls } }, 200);
   },

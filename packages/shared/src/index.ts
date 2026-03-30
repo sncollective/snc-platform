@@ -18,6 +18,7 @@ export * from "./calendar.js";
 export * from "./project.js";
 export * from "./features.js";
 export * from "./federation.js";
+export * from "./simulcast.js";
 export * from "./streaming.js";
 export * from "./studio.js";
 export * from "./uploads.js";

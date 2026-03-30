@@ -132,6 +132,14 @@ if (features.streaming) {
   import("./routes/playout.routes.js")
     .then(({ playoutRoutes }) => app.route("/api/playout", playoutRoutes))
     .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout routes"));
+  import("./routes/simulcast.routes.js")
+    .then(({ simulcastRoutes }) => app.route("/api/simulcast", simulcastRoutes))
+    .catch((err) =>
+      rootLogger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        "Failed to load simulcast routes",
+      ),
+    );
 }
 // Federation routes mount at root (not /api/) because /.well-known/* and /ap/* paths live there
 if (features.federation) {

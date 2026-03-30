@@ -28,6 +28,7 @@ export const ADMIN_NAV: ContextNavConfig = {
   items: [
     { to: "", label: "Users" },
     { to: "/playout", label: "Playout", featureFlag: "streaming" },
+    { to: "/simulcast", label: "Simulcast", featureFlag: "streaming" },
     { to: "/creators", label: "Creators" },
   ],
 };

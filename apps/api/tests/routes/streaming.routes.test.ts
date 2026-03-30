@@ -21,6 +21,7 @@ const mockDeactivateLiveChannel = vi.fn();
 const mockCreateChannelRoom = vi.fn();
 const mockCloseChannelRoom = vi.fn();
 const mockBroadcastToRoom = vi.fn();
+const mockGetActiveSimulcastUrls = vi.fn();
 
 // ── Fixtures ──
 
@@ -75,6 +76,9 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/services/chat-rooms.js", () => ({
       broadcastToRoom: mockBroadcastToRoom,
     }));
+    vi.doMock("../../src/services/simulcast.js", () => ({
+      getActiveSimulcastUrls: mockGetActiveSimulcastUrls,
+    }));
     vi.doMock("../../src/db/connection.js", () => ({
       db: {
         select: vi.fn().mockReturnValue({
@@ -92,6 +96,7 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
       streamSessions: { srsClientId: "srsClientId", endedAt: "endedAt", id: "id" },
       channels: {},
+      simulcastDestinations: { isActive: "isActive", rtmpUrl: "rtmpUrl", streamKey: "streamKey" },
     }));
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
       creatorProfiles: { id: "id", displayName: "displayName" },
@@ -119,6 +124,7 @@ const ctx = setupRouteTest({
     mockCreateChannelRoom.mockResolvedValue({ id: "room-1", type: "channel", channelId: "channel-1", name: "Test", createdAt: "2026-03-01T00:00:00.000Z", closedAt: null });
     mockCloseChannelRoom.mockResolvedValue(undefined);
     mockBroadcastToRoom.mockReturnValue(undefined);
+    mockGetActiveSimulcastUrls.mockResolvedValue([]);
   },
 });
 
@@ -542,7 +548,29 @@ describe("streaming routes", () => {
       param: "",
     });
 
-    it("returns empty URLs for snc-tv (playout stream name)", async () => {
+    it("returns active simulcast URLs for snc-tv (playout stream name)", async () => {
+      mockGetActiveSimulcastUrls.mockResolvedValue([
+        "rtmp://live.twitch.tv/app/live_sk_test",
+      ]);
+
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(makeForwardBody("snc-tv")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.code).toBe(0);
+      expect(body.data.urls).toStrictEqual(["rtmp://live.twitch.tv/app/live_sk_test"]);
+    });
+
+    it("returns empty array for snc-tv when no active destinations", async () => {
+      mockGetActiveSimulcastUrls.mockResolvedValue([]);
+
       const res = await ctx.app.request(
         "/api/streaming/callbacks/on-forward",
         {
@@ -558,7 +586,11 @@ describe("streaming routes", () => {
       expect(body.data.urls).toStrictEqual([]);
     });
 
-    it("returns empty URLs for channel-classics (playout stream name)", async () => {
+    it("returns active simulcast URLs for channel-classics (playout stream name)", async () => {
+      mockGetActiveSimulcastUrls.mockResolvedValue([
+        "rtmp://a.rtmp.youtube.com/live2/yt_sk_test",
+      ]);
+
       const res = await ctx.app.request(
         "/api/streaming/callbacks/on-forward",
         {
@@ -571,7 +603,7 @@ describe("streaming routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.code).toBe(0);
-      expect(body.data.urls).toStrictEqual([]);
+      expect(body.data.urls).toStrictEqual(["rtmp://a.rtmp.youtube.com/live2/yt_sk_test"]);
     });
 
     it("returns Liquidsoap RTMP URL for creator streams", async () => {

@@ -57,6 +57,13 @@
       "when": 1774817331043,
       "tag": "0007_equal_christian_walker",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774899434446,
+      "tag": "0008_steady_human_robot",
+      "breakpoints": true
     }
   ]
 }
