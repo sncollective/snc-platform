@@ -16,7 +16,7 @@ export interface AuthMenuItem {
 
 /**
  * Returns the ordered list of authenticated user-action menu items for the given roles.
- * Covers: Admin, Dashboard, Calendar, Projects, Files, Settings, Subscriptions, My Bookings.
+ * Covers: Admin, Co-op, Files, Settings, Subscriptions.
  * Used in both the desktop UserMenu dropdown and the mobile AuthenticatedNav section.
  */
 export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly AuthMenuItem[] {
@@ -26,16 +26,8 @@ export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly Auth
     items.push({ key: "admin", to: "/admin", label: "Admin" });
   }
 
-  if (isFeatureEnabled("dashboard") && hasRole(effectiveRoles, "stakeholder")) {
-    items.push({ key: "dashboard", to: "/dashboard", label: "Dashboard" });
-  }
-
-  if (isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder")) {
-    items.push({ key: "calendar", to: "/calendar", label: "Calendar" });
-  }
-
-  if (isFeatureEnabled("calendar") && hasRole(effectiveRoles, "stakeholder")) {
-    items.push({ key: "projects", to: "/projects", label: "Projects" });
+  if (hasRole(effectiveRoles, "stakeholder")) {
+    items.push({ key: "governance", to: "/governance", label: "Co-op" });
   }
 
   if (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) {
@@ -46,10 +38,6 @@ export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly Auth
 
   if (isFeatureEnabled("subscription")) {
     items.push({ key: "subscriptions", to: "/settings/subscriptions", label: "Subscriptions" });
-  }
-
-  if (isFeatureEnabled("booking")) {
-    items.push({ key: "bookings", to: "/settings/bookings", label: "My Bookings" });
   }
 
   return items;

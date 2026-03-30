@@ -36,6 +36,9 @@
   /* Layout */
   --content-max-width: 1200px;
   --nav-height: 64px;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 0px;
+  --context-topbar-height: 48px;
   --mini-player-height: 0px;
   --mini-upload-height: 0px;
 
@@ -164,6 +167,20 @@ a:hover {
   padding: var(--space-lg) var(--space-md);
   padding-bottom: calc(var(--space-lg) + var(--mini-player-height) + var(--mini-upload-height));
   min-height: calc(100vh - var(--nav-height) - 120px);
+}
+
+/* ── Screen Reader Only ── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ── Skip Link ── */

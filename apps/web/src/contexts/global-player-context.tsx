@@ -5,6 +5,7 @@ import {
   useContext,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 import type React from "react";
 import type { ReactNode } from "react";
@@ -14,6 +15,8 @@ import type { ReactNode } from "react";
 export type MediaContentType = "audio" | "video" | "live" | "playout";
 
 export type PlayerPresentation = "expanded" | "collapsed" | "hidden";
+
+export type LiveLayout = "default" | "theater";
 
 export interface MediaMetadata {
   readonly id: string;
@@ -33,6 +36,10 @@ export interface GlobalPlayerState {
   readonly activeDetailId: string | null;
   /** True only when playback was triggered by a user gesture via play(). False on page load. */
   readonly shouldAutoPlay: boolean;
+  /** Layout signal from the live page. Null when not on /live. */
+  readonly liveLayout: LiveLayout | null;
+  /** Whether the chat panel is collapsed. Set by the live page. */
+  readonly chatCollapsed: boolean;
 }
 
 export interface GlobalPlayerActions {
@@ -42,12 +49,18 @@ export interface GlobalPlayerActions {
   readonly clear: () => void;
   /** Signal that a detail page for this content ID is mounted (expanded mode). Pass null on unmount. */
   readonly setActiveDetail: (id: string | null) => void;
+  /** Signal live page layout mode. Pass null on unmount. */
+  readonly setLiveLayout: (layout: LiveLayout | null) => void;
+  /** Signal whether the chat panel is collapsed. Pass false on unmount. */
+  readonly setChatCollapsed: (collapsed: boolean) => void;
 }
 
 export interface GlobalPlayerContextValue {
   readonly state: GlobalPlayerState;
   readonly presentation: PlayerPresentation;
   readonly actions: GlobalPlayerActions;
+  /** Ref to the chat portal target element, set by root layout. Null when not mounted. */
+  readonly chatPortalRef: React.RefObject<HTMLDivElement | null>;
 }
 
 // ── Constants ──
@@ -56,6 +69,8 @@ export const INITIAL_STATE: GlobalPlayerState = {
   media: null,
   activeDetailId: null,
   shouldAutoPlay: false,
+  liveLayout: null,
+  chatCollapsed: false,
 };
 
 // ── Reducer ──
@@ -63,7 +78,9 @@ export const INITIAL_STATE: GlobalPlayerState = {
 type GlobalPlayerAction =
   | { readonly type: "PLAY"; readonly media: MediaMetadata }
   | { readonly type: "CLEAR" }
-  | { readonly type: "SET_ACTIVE_DETAIL"; readonly id: string | null };
+  | { readonly type: "SET_ACTIVE_DETAIL"; readonly id: string | null }
+  | { readonly type: "SET_LIVE_LAYOUT"; readonly layout: LiveLayout | null }
+  | { readonly type: "SET_CHAT_COLLAPSED"; readonly collapsed: boolean };
 
 /** Pure reducer for global player state. */
 export function globalPlayerReducer(
@@ -77,6 +94,10 @@ export function globalPlayerReducer(
       return INITIAL_STATE;
     case "SET_ACTIVE_DETAIL":
       return { ...state, activeDetailId: action.id };
+    case "SET_LIVE_LAYOUT":
+      return { ...state, liveLayout: action.layout };
+    case "SET_CHAT_COLLAPSED":
+      return { ...state, chatCollapsed: action.collapsed };
   }
 }
 
@@ -91,6 +112,7 @@ export function GlobalPlayerProvider({
   children,
 }: Readonly<{ children: ReactNode }>): React.ReactElement {
   const [state, dispatch] = useReducer(globalPlayerReducer, INITIAL_STATE);
+  const chatPortalRef = useRef<HTMLDivElement | null>(null);
 
   const presentation = useMemo<PlayerPresentation>(() => {
     if (!state.media) return "hidden";
@@ -110,12 +132,18 @@ export function GlobalPlayerProvider({
       setActiveDetail(id: string | null) {
         dispatch({ type: "SET_ACTIVE_DETAIL", id });
       },
+      setLiveLayout(layout: LiveLayout | null) {
+        dispatch({ type: "SET_LIVE_LAYOUT", layout });
+      },
+      setChatCollapsed(collapsed: boolean) {
+        dispatch({ type: "SET_CHAT_COLLAPSED", collapsed });
+      },
     }),
     [state.media?.id],
   );
 
   const value = useMemo<GlobalPlayerContextValue>(
-    () => ({ state, presentation, actions }),
+    () => ({ state, presentation, actions, chatPortalRef }),
     [state, presentation, actions],
   );
 

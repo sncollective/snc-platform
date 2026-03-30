@@ -91,7 +91,7 @@ describe("MobileMenu", () => {
     expect(studioLink).not.toHaveAttribute("rel");
   });
 
-  it("shows Dashboard link for stakeholder (bug fix verification)", async () => {
+  it("shows Co-op link for stakeholder (bug fix verification)", async () => {
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
 
@@ -99,11 +99,11 @@ describe("MobileMenu", () => {
 
     await openMenu();
 
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink).toHaveAttribute("href", "/dashboard");
+    const coopLink = screen.getByRole("link", { name: "Co-op" });
+    expect(coopLink).toHaveAttribute("href", "/governance");
   });
 
-  it("hides Dashboard link for user without stakeholder role", async () => {
+  it("hides Co-op link for user without stakeholder role", async () => {
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 
@@ -111,10 +111,10 @@ describe("MobileMenu", () => {
 
     await openMenu();
 
-    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Co-op" })).toBeNull();
   });
 
-  it("hides Dashboard link when not authenticated", async () => {
+  it("hides Co-op link when not authenticated", async () => {
     mockUseSession.mockReturnValue({ data: null, isPending: false, error: null });
     mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 
@@ -122,7 +122,7 @@ describe("MobileMenu", () => {
 
     await openMenu();
 
-    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Co-op" })).toBeNull();
   });
 
   it("shows Files link for stakeholder", async () => {
@@ -182,7 +182,7 @@ describe("MobileMenu", () => {
     expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
   });
 
-  it("shows Projects link for stakeholder", async () => {
+  it("does not show a separate Projects link for stakeholder (merged into Co-op)", async () => {
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
 
@@ -190,10 +190,10 @@ describe("MobileMenu", () => {
 
     await openMenu();
 
-    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/projects");
+    expect(screen.queryByRole("link", { name: "Projects" })).toBeNull();
   });
 
-  it("shows Subscriptions and My Bookings when authenticated", async () => {
+  it("shows Subscriptions when authenticated (My Bookings removed)", async () => {
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
 
@@ -202,7 +202,7 @@ describe("MobileMenu", () => {
     await openMenu();
 
     expect(screen.getByRole("link", { name: "Subscriptions" })).toHaveAttribute("href", "/settings/subscriptions");
-    expect(screen.getByRole("link", { name: "My Bookings" })).toHaveAttribute("href", "/settings/bookings");
+    expect(screen.queryByRole("link", { name: "My Bookings" })).toBeNull();
   });
 
   it("hides Subscriptions and My Bookings when not authenticated", async () => {

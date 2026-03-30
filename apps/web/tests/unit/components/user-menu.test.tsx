@@ -143,7 +143,7 @@ describe("UserMenu", () => {
     expect(screen.queryByLabelText("Patron")).toBeNull();
   });
 
-  it("shows 'Dashboard' link for stakeholder role", async () => {
+  it("shows 'Co-op' link for stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
@@ -154,11 +154,11 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink).toHaveAttribute("href", "/dashboard");
+    const coopLink = screen.getByRole("link", { name: "Co-op" });
+    expect(coopLink).toHaveAttribute("href", "/governance");
   });
 
-  it("hides 'Dashboard' link for users without stakeholder role", async () => {
+  it("hides 'Co-op' link for users without stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
@@ -170,11 +170,11 @@ describe("UserMenu", () => {
     await user.click(screen.getByLabelText("User menu"));
 
     expect(
-      screen.queryByRole("link", { name: "Dashboard" }),
+      screen.queryByRole("link", { name: "Co-op" }),
     ).toBeNull();
   });
 
-  it("renders Settings, Subscriptions, and My Bookings links", async () => {
+  it("renders Settings and Subscriptions links (My Bookings removed)", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
@@ -191,9 +191,7 @@ describe("UserMenu", () => {
     expect(
       screen.getByRole("link", { name: "Subscriptions" }),
     ).toHaveAttribute("href", "/settings/subscriptions");
-    expect(
-      screen.getByRole("link", { name: "My Bookings" }),
-    ).toHaveAttribute("href", "/settings/bookings");
+    expect(screen.queryByRole("link", { name: "My Bookings" })).toBeNull();
   });
 
   it("shows skeleton while session is pending and no serverAuth", () => {
@@ -299,7 +297,7 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink).toHaveAttribute("href", "/dashboard");
+    const coopLink = screen.getByRole("link", { name: "Co-op" });
+    expect(coopLink).toHaveAttribute("href", "/governance");
   });
 });

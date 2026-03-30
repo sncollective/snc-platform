@@ -14,8 +14,10 @@ import styles from "./chat-panel.module.css";
 /** Real-time chat panel. Auto-joins the channel room (by channelId) or the platform room. */
 export function ChatPanel({
   channelId,
+  onCollapse,
 }: {
   readonly channelId?: string | null;
+  readonly onCollapse?: () => void;
 }): React.ReactElement {
   const { state, actions } = useChat();
   const [input, setInput] = useState("");
@@ -76,35 +78,37 @@ export function ChatPanel({
 
   return (
     <div className={styles.panel}>
-      {/* Room Header */}
-      <div className={styles.header}>
-        <span className={styles.roomName}>
-          {activeRoom?.name ?? "Chat"}
-        </span>
+      {/* Tab bar with optional collapse button */}
+      <div className={styles.tabBar}>
+        {onCollapse && (
+          <button
+            type="button"
+            className={styles.collapseButton}
+            onClick={onCollapse}
+            aria-label="Collapse chat"
+            title="Collapse chat"
+          >
+            {"\u2192"}
+          </button>
+        )}
+        {visibleRooms.map((room) => (
+          <button
+            key={room.id}
+            type="button"
+            className={
+              room.id === state.activeRoomId
+                ? styles.tabActive
+                : styles.tab
+            }
+            onClick={() => actions.setActiveRoom(room.id)}
+          >
+            {room.name}
+          </button>
+        ))}
         {!state.isConnected && (
           <span className={styles.disconnected}>Reconnecting...</span>
         )}
       </div>
-
-      {/* Room Tabs */}
-      {otherRooms.length > 0 && (
-        <div className={styles.tabs}>
-          {visibleRooms.map((room) => (
-              <button
-                key={room.id}
-                type="button"
-                className={
-                  room.id === state.activeRoomId
-                    ? styles.tabActive
-                    : styles.tab
-                }
-                onClick={() => actions.setActiveRoom(room.id)}
-              >
-                {room.name}
-              </button>
-            ))}
-        </div>
-      )}
 
       {/* Messages */}
       <div className={styles.messages}>

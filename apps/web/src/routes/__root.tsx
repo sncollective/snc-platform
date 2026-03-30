@@ -5,24 +5,27 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { clsx } from "clsx/lite";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
 import { logClientError } from "../lib/client-logger.js";
 import { installGlobalErrorHandlers } from "../lib/global-error-handlers.js";
 import { useRouteAnnouncer } from "../hooks/use-route-announcer.js";
+import type { AuthState } from "../lib/auth.js";
 
 import { ErrorPage } from "../components/error/error-page.js";
 import { NavBar } from "../components/layout/nav-bar.js";
 import { Footer } from "../components/layout/footer.js";
 import { DemoBanner } from "../components/layout/demo-banner.js";
-import { GlobalPlayerProvider } from "../contexts/global-player-context.js";
+import { GlobalPlayerProvider, useGlobalPlayer } from "../contexts/global-player-context.js";
 import { UploadProvider } from "../contexts/upload-context.js";
 import { GlobalPlayer } from "../components/media/global-player.js";
 import { MiniUploadIndicator } from "../components/upload/mini-upload-indicator.js";
 import { DEMO_MODE } from "../lib/config.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
 import globalCss from "../styles/global.css?url";
+import styles from "./__root.module.css";
 
 export const Route = createRootRoute({
   loader: async () => {
@@ -80,16 +83,49 @@ export function RootLayout() {
       </a>
       <GlobalPlayerProvider>
         <UploadProvider>
-          <NavBar serverAuth={authState} />
-          <main id="main-content" className="main-content">
-            <GlobalPlayer />
-            <Outlet />
-          </main>
-          <MiniUploadIndicator />
-          <Footer />
+          <AppShell serverAuth={authState} />
         </UploadProvider>
       </GlobalPlayerProvider>
     </div>
+  );
+}
+
+/** Inner shell that consumes GlobalPlayerContext for layout signals. */
+function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
+  const { state: playerState, chatPortalRef } = useGlobalPlayer();
+
+  const isLiveLayout = playerState.liveLayout !== null;
+  const isTheater = playerState.liveLayout === "theater";
+  const isChatCollapsed = playerState.chatCollapsed;
+
+  return (
+    <>
+      {!isTheater && <NavBar serverAuth={serverAuth} />}
+      <main
+        id="main-content"
+        className={clsx(
+          "main-content",
+          isLiveLayout && styles.liveGrid,
+          isTheater && styles.liveGridTheater,
+          isLiveLayout && isChatCollapsed && styles.liveGridChatCollapsed,
+        )}
+      >
+        <GlobalPlayer />
+        <div className={clsx(isLiveLayout && styles.outletColumn)}>
+          <Outlet />
+          {isLiveLayout && !isTheater && <Footer />}
+        </div>
+        <div
+          ref={chatPortalRef}
+          className={clsx(
+            isLiveLayout && styles.chatPortal,
+            !isLiveLayout && styles.chatPortalHidden,
+          )}
+        />
+      </main>
+      <MiniUploadIndicator />
+      {!isLiveLayout && !isTheater && <Footer />}
+    </>
   );
 }
 

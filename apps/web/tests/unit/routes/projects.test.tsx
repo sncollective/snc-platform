@@ -101,7 +101,7 @@ vi.mock("../../../src/routes/projects.module.css", () => ({
 // ── Component Under Test ──
 
 const ProjectsPage = extractRouteComponent(
-  () => import("../../../src/routes/projects.js"),
+  () => import("../../../src/routes/governance/projects.js"),
 );
 
 // ── Test Lifecycle ──

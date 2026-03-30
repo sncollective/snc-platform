@@ -1,17 +1,17 @@
-import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import type React from "react";
 
 import type { CreatorProfileResponse, CreatorMemberRole, CreatorPermission } from "@snc/shared";
 import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
+import { ContextShell } from "../../../components/layout/context-shell.js";
+import { CreatorSwitcher } from "../../../components/layout/creator-switcher.js";
+import type { ContextNavConfig, ContextNavItem } from "../../../config/context-nav.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
-import { clsx } from "clsx/lite";
-
 import { isFeatureEnabled } from "../../../lib/config.js";
 import { AccessDeniedError } from "../../../lib/errors.js";
 import { buildLoginRedirect } from "../../../lib/return-to.js";
-import styles from "./manage.module.css";
 
 // ── Types ──
 
@@ -22,23 +22,17 @@ export interface ManageLoaderData {
   readonly userId: string;
 }
 
-// ── Tab Config ──
+// ── Nav Config ──
 
-interface ManageTab {
-  readonly to: string;
-  readonly label: string;
-  readonly permission?: CreatorPermission;
-}
-
-const MANAGE_TABS: readonly ManageTab[] = [
+const MANAGE_ITEMS: readonly ContextNavItem[] = [
   { to: "", label: "Overview" },
-  { to: "/content", label: "Content", permission: "manageContent" },
-  { to: "/calendar", label: "Calendar", permission: "manageScheduling" },
-  { to: "/projects", label: "Projects", permission: "manageScheduling" },
+  { to: "/content", label: "Content", creatorPermission: "manageContent" },
+  { to: "/calendar", label: "Calendar", creatorPermission: "manageScheduling" },
+  { to: "/projects", label: "Projects", creatorPermission: "manageScheduling" },
   { to: "/streaming", label: "Streaming" },
-  { to: "/settings", label: "Settings", permission: "editProfile" },
-  { to: "/members", label: "Members", permission: "manageMembers" },
-] as const;
+  { to: "/settings", label: "Settings", creatorPermission: "editProfile" },
+  { to: "/members", label: "Members", creatorPermission: "manageMembers" },
+];
 
 // ── Route ──
 
@@ -82,10 +76,6 @@ export const Route = createFileRoute("/creators/$creatorId/manage")({
 
 function ManageLayout(): React.ReactElement {
   const { creator, memberRole, isAdmin } = Route.useLoaderData();
-  const routerState = useRouterState();
-  const currentPath = routerState.location.pathname;
-
-  // Use handle when available for human-readable management URLs
   const creatorSlug = creator.handle ?? creator.id;
   const basePath = `/creators/${creatorSlug}/manage`;
 
@@ -93,46 +83,28 @@ function ManageLayout(): React.ReactElement {
     ? CREATOR_ROLE_PERMISSIONS.owner
     : CREATOR_ROLE_PERMISSIONS[memberRole];
 
+  const config: ContextNavConfig = {
+    label: creator.displayName,
+    basePath,
+    backTo: `/creators/${creatorSlug}`,
+    backLabel: "View public page",
+    items: MANAGE_ITEMS,
+  };
+
+  const itemFilter = (item: ContextNavItem): boolean => {
+    if (item.creatorPermission && !permissions[item.creatorPermission as CreatorPermission]) return false;
+    // Streaming: owner-only (not in permission matrix)
+    if (item.to === "/streaming" && memberRole !== "owner" && !isAdmin) return false;
+    return true;
+  };
+
   return (
-    <div className={styles.layout}>
-      <header className={styles.header}>
-        <h1 className={styles.heading}>{creator.displayName}</h1>
-        <Link
-          to="/creators/$creatorId"
-          params={{ creatorId: creatorSlug }}
-          className={styles.viewPublic}
-        >
-          View public page
-        </Link>
-      </header>
-
-      <nav className={styles.tabs} aria-label="Creator management">
-        {MANAGE_TABS.map((tab) => {
-          if (tab.permission && !permissions[tab.permission]) return null;
-          // Streaming tab: owner-only (not in permission matrix)
-          if (tab.to === "/streaming" && memberRole !== "owner" && !isAdmin) return null;
-
-          const tabPath = `${basePath}${tab.to}`;
-          const isActive =
-            tab.to === ""
-              ? currentPath === basePath || currentPath === `${basePath}/`
-              : currentPath.startsWith(tabPath);
-
-          return (
-            <Link
-              key={tab.to}
-              to={tabPath}
-              className={clsx(styles.tab, isActive && styles.tabActive)}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className={styles.content}>
-        <Outlet />
-      </div>
-    </div>
+    <ContextShell
+      config={config}
+      headerSlot={<CreatorSwitcher currentCreatorId={creator.id} currentSlug={creatorSlug} />}
+      itemFilter={itemFilter}
+    >
+      <Outlet />
+    </ContextShell>
   );
 }

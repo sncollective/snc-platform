@@ -37,8 +37,8 @@ describe("NAV_LINKS", () => {
     expect(labels).toContain("Live");
     expect(labels).toContain("Studio");
     expect(labels).toContain("Merch");
-    expect(labels).toContain("Pricing");
     expect(labels).toContain("Emissions");
+    expect(labels).not.toContain("Pricing");
   });
 
   it("all links have disabled: false when all features are enabled", async () => {
@@ -74,7 +74,6 @@ describe("NAV_LINKS", () => {
     const labels = NAV_LINKS.map((l) => l.label);
     expect(labels).toContain("Feed");
     expect(labels).toContain("Creators");
-    expect(labels).toContain("Pricing");
     expect(labels).toContain("Merch");
     expect(labels).toContain("Studio");
     expect(labels).toContain("Emissions");
@@ -90,7 +89,7 @@ describe("NAV_LINKS", () => {
     expect(feedLink?.disabled).toBe(false);
   });
 
-  it("always includes all 6 nav links regardless of feature state", async () => {
+  it("always includes all nav links regardless of feature state", async () => {
     const flags: FeatureFlags = {
       content: false,
       creator: false,
@@ -113,7 +112,7 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(7);
+    expect(NAV_LINKS).toHaveLength(6);
     for (const link of NAV_LINKS) {
       expect(link.disabled).toBe(true);
     }

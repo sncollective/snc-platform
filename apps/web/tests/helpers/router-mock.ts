@@ -145,10 +145,13 @@ export function createRouterMock(options: RouterMockOptions = {}): Record<string
     mock.useRouter = options.useRouter;
   }
 
-  // useRouterState
-  if (options.useRouterState !== undefined) {
-    mock.useRouterState = options.useRouterState;
-  }
+  // useRouterState — always include a default so ContextShell's active-state check works
+  mock.useRouterState = options.useRouterState !== undefined
+    ? options.useRouterState
+    : (opts?: { select?: (s: unknown) => unknown }) => {
+        const state = { location: { pathname: "/" } };
+        return opts?.select ? opts.select(state) : state;
+      };
 
   // redirect
   if (options.redirect !== undefined) {

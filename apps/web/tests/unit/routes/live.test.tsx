@@ -40,9 +40,16 @@ vi.mock("../../../src/lib/fetch-utils.js", () => ({
 // Mock GlobalPlayerProvider/useGlobalPlayer — live route calls actions on channel selection
 vi.mock("../../../src/contexts/global-player-context.js", () => ({
   useGlobalPlayer: () => ({
-    state: { media: null, activeDetailId: null },
+    state: { media: null, activeDetailId: null, liveLayout: null, chatCollapsed: false },
     presentation: "hidden",
-    actions: { play: vi.fn(), clear: vi.fn(), setActiveDetail: vi.fn() },
+    actions: {
+      play: vi.fn(),
+      clear: vi.fn(),
+      setActiveDetail: vi.fn(),
+      setLiveLayout: vi.fn(),
+      setChatCollapsed: vi.fn(),
+    },
+    chatPortalRef: { current: null },
   }),
 }));
 

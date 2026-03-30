@@ -127,7 +127,7 @@ vi.mock("../../../src/components/calendar/event-form.js", () => ({
 // ── Component Under Test ──
 
 const ProjectDetailPage = extractRouteComponent(
-  () => import("../../../src/routes/projects_.$projectSlug.js"),
+  () => import("../../../src/routes/governance/projects_.$projectSlug.js"),
 );
 
 // ── Test Lifecycle ──

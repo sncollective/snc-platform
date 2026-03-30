@@ -1,0 +1,76 @@
+/* ── Live Layout Grid ── */
+
+.liveGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  grid-template-rows: auto 1fr;
+  height: calc(100vh - var(--nav-height));
+  max-width: none;
+  padding: 0 0 0 var(--space-xl);
+  margin: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.liveGrid > :first-child {
+  /* GlobalPlayer — top-left cell */
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.outletColumn {
+  grid-column: 1;
+  grid-row: 2;
+  overflow-y: auto;
+  padding: var(--space-md);
+  min-height: 0;
+}
+
+.chatPortal {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.chatPortalHidden {
+  display: none;
+}
+
+/* ── Theater Mode ── */
+
+.liveGridTheater {
+  height: 100vh;
+  padding-left: 0;
+}
+
+/* ── Chat Collapsed ── */
+
+.liveGridChatCollapsed {
+  grid-template-columns: 1fr;
+}
+
+.liveGridChatCollapsed .chatPortal {
+  display: none;
+}
+
+/* ── Mobile: revert to stacked ── */
+
+@media (max-width: 768px) {
+  .liveGrid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    padding: var(--space-lg) var(--space-md);
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .chatPortal {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    height: 400px;
+  }
+
+}

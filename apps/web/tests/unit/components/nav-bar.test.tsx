@@ -108,7 +108,7 @@ describe("NavBar", () => {
     expect(avatarButton).toHaveTextContent("JD");
   });
 
-  it("shows 'Dashboard' link when user has stakeholder role", async () => {
+  it("shows 'Co-op' link when user has stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: ["stakeholder"], isPatron: false });
@@ -117,11 +117,11 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink).toHaveAttribute("href", "/dashboard");
+    const coopLink = screen.getByRole("link", { name: "Co-op" });
+    expect(coopLink).toHaveAttribute("href", "/governance");
   });
 
-  it("hides 'Dashboard' link when user lacks stakeholder role", async () => {
+  it("hides 'Co-op' link when user lacks stakeholder role", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(makeLoggedInSessionResult({ name: "Jane Doe" }));
     mockUseAuthExtras.mockReturnValue({ roles: [], isPatron: false });
@@ -130,7 +130,7 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Co-op" })).toBeNull();
   });
 
 });

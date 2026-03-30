@@ -12,6 +12,7 @@ import { rateLimiter } from "./middleware/rate-limit.js";
 import { requestIdMiddleware, requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
+import { meCreatorsRoutes } from "./routes/me-creators.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
 import { contentMediaRoutes } from "./routes/content-media.routes.js";
 import { creatorRoutes } from "./routes/creator.routes.js";
@@ -93,6 +94,7 @@ app.get(
 // Always-on routes (auth, me, uploads)
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
+app.route("/api/me/creators", meCreatorsRoutes);
 app.route("/api/uploads", uploadRoutes);
 
 // Feature-gated routes

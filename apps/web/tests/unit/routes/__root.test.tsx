@@ -30,6 +30,26 @@ vi.mock("../../../src/contexts/audio-player-context.js", async () => {
   };
 });
 
+vi.mock("../../../src/contexts/global-player-context.js", async () => {
+  const React = await import("react");
+  return {
+    GlobalPlayerProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useGlobalPlayer: () => ({
+      state: { media: null, activeDetailId: null, shouldAutoPlay: false, liveLayout: null, chatCollapsed: false },
+      presentation: "hidden",
+      actions: {
+        play: () => {},
+        clear: () => {},
+        setActiveDetail: () => {},
+        setLiveLayout: () => {},
+        setChatCollapsed: () => {},
+      },
+      chatPortalRef: { current: null },
+    }),
+  };
+});
+
 vi.mock("../../../src/contexts/upload-context.js", async () => {
   const React = await import("react");
   return {
@@ -38,12 +58,17 @@ vi.mock("../../../src/contexts/upload-context.js", async () => {
   };
 });
 
-vi.mock("../../../src/components/media/mini-player.js", () => ({
-  MiniPlayer: () => null,
-}));
 
 vi.mock("../../../src/components/upload/mini-upload-indicator.js", () => ({
   MiniUploadIndicator: () => null,
+}));
+
+vi.mock("../../../src/components/media/global-player.js", () => ({
+  GlobalPlayer: () => null,
+}));
+
+vi.mock("../../../src/routes/__root.module.css", () => ({
+  default: {},
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({

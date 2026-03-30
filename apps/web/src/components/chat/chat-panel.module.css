@@ -8,29 +8,40 @@
   overflow: hidden;
 }
 
-.header {
+.tabBar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-sm) var(--space-md);
+  align-items: stretch;
+  gap: 0;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
 }
 
-.roomName {
-  font-weight: 600;
+.collapseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.collapseButton:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .disconnected {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0 var(--space-sm);
   font-size: var(--font-size-xs);
   color: var(--color-error);
-}
-
-.tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .tab {

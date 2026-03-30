@@ -201,3 +201,62 @@ describe("useGlobalPlayer", () => {
     consoleSpy.mockRestore();
   });
 });
+
+// ── Live Layout Reducer Tests ──
+
+describe("globalPlayerReducer — live layout", () => {
+  it("SET_LIVE_LAYOUT sets liveLayout", () => {
+    const next = globalPlayerReducer(INITIAL_STATE, {
+      type: "SET_LIVE_LAYOUT",
+      layout: "theater",
+    });
+    expect(next.liveLayout).toBe("theater");
+  });
+
+  it("SET_LIVE_LAYOUT null clears liveLayout", () => {
+    const state = { ...INITIAL_STATE, liveLayout: "default" as const };
+    const next = globalPlayerReducer(state, {
+      type: "SET_LIVE_LAYOUT",
+      layout: null,
+    });
+    expect(next.liveLayout).toBeNull();
+  });
+
+  it("SET_CHAT_COLLAPSED sets chatCollapsed", () => {
+    const next = globalPlayerReducer(INITIAL_STATE, {
+      type: "SET_CHAT_COLLAPSED",
+      collapsed: true,
+    });
+    expect(next.chatCollapsed).toBe(true);
+  });
+
+  it("CLEAR resets liveLayout and chatCollapsed", () => {
+    const state = {
+      ...INITIAL_STATE,
+      media: AUDIO_MEDIA,
+      liveLayout: "theater" as const,
+      chatCollapsed: true,
+    };
+    const next = globalPlayerReducer(state, { type: "CLEAR" });
+    expect(next.liveLayout).toBeNull();
+    expect(next.chatCollapsed).toBe(false);
+  });
+});
+
+// ── Live Layout Provider Tests ──
+
+describe("GlobalPlayerProvider — live layout", () => {
+  it("setLiveLayout updates state", () => {
+    const { result } = renderHook(() => useGlobalPlayer(), { wrapper });
+    act(() => {
+      result.current.actions.setLiveLayout("theater");
+    });
+    expect(result.current.state.liveLayout).toBe("theater");
+  });
+
+  it("chatPortalRef is available", () => {
+    const { result } = renderHook(() => useGlobalPlayer(), { wrapper });
+    expect(result.current.chatPortalRef).toBeDefined();
+    expect(result.current.chatPortalRef.current).toBeNull();
+  });
+});

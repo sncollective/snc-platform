@@ -100,7 +100,7 @@ end)
 
 # S/NC TV: skip
 harbor.http.register(port=8888, method="POST", "/skip", fun(_req, res) -> begin
-  snc_tv.skip()
+  tv_playlist.skip()
   res.data("skipped")
 end)
 
@@ -126,7 +126,7 @@ end)
 
 # S/NC Classics: skip
 harbor.http.register(port=8888, method="POST", "/classics/skip", fun(_req, res) -> begin
-  classics.skip()
+  classics_playlist.skip()
   res.data("skipped")
 end)
 
