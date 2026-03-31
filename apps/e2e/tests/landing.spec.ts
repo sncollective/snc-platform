@@ -23,9 +23,10 @@ test.describe("Landing page", () => {
     });
     await expect(creatorsRegion).toBeVisible();
 
-    // Navigation bar present with Creators link
+    // Navigation bar present with Creators and Live links
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link", { name: "Creators" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Live" })).toBeVisible();
   });
 });

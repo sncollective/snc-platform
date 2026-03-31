@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import { makeTestConfig } from "../helpers/test-constants.js";
+
 // ── Mock State ──
 
 const mockDbSelect = vi.fn();
@@ -99,6 +101,9 @@ const buildDeleteWhereReturningChain = (rows: unknown[]) => ({
 // ── Setup Factory ──
 
 const setupService = async () => {
+  vi.doMock("../../src/config.js", () => ({
+    config: makeTestConfig({ S3_BUCKET: "snc-storage" }),
+  }));
   vi.doMock("../../src/db/connection.js", () => ({
     db: {
       select: mockDbSelect,
@@ -497,8 +502,7 @@ describe("savePlaylist", () => {
   it("updates items and regenerates playlist once", async () => {
     const { savePlaylist } = await setupService();
     const row = makeItemRow();
-    // savePlaylist calls: db.update per item, then regeneratePlaylist (select), then listPlayoutItems (select)
-    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
+    // savePlaylist calls: db.execute (batch UPDATE), then regeneratePlaylist (select), then listPlayoutItems (select)
     mockDbSelect
       .mockReturnValueOnce(buildSelectWhereOrderByChain([row])) // regeneratePlaylist
       .mockReturnValueOnce(buildSelectOrderByChain([row]));     // listPlayoutItems
@@ -508,7 +512,7 @@ describe("savePlaylist", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(mockDbUpdate).toHaveBeenCalledTimes(1);
+    expect(mockDbExecute).toHaveBeenCalledTimes(1);
     // Playlist regeneration: writeFile + rename each called once
     expect(mockWriteFile).toHaveBeenCalledTimes(1);
     expect(mockRename).toHaveBeenCalledTimes(1);
@@ -518,7 +522,6 @@ describe("savePlaylist", () => {
     const { savePlaylist } = await setupService();
     const item0 = makeItemRow({ id: "item-1", position: 0 });
     const item1 = makeItemRow({ id: "item-2", position: 1 });
-    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
     mockDbSelect
       .mockReturnValueOnce(buildSelectWhereOrderByChain([item0, item1])) // regeneratePlaylist
       .mockReturnValueOnce(buildSelectOrderByChain([item0, item1]));     // listPlayoutItems
@@ -541,7 +544,6 @@ describe("savePlaylist", () => {
   it("calls regeneratePlaylist exactly once regardless of item count", async () => {
     const { savePlaylist } = await setupService();
     const rows = [makeItemRow(), makeItemRow({ id: "item-2" })];
-    mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
     mockDbSelect
       .mockReturnValueOnce(buildSelectWhereOrderByChain(rows)) // regeneratePlaylist
       .mockReturnValueOnce(buildSelectOrderByChain(rows));     // listPlayoutItems
@@ -553,7 +555,7 @@ describe("savePlaylist", () => {
       ],
     });
 
-    expect(mockDbUpdate).toHaveBeenCalledTimes(2);
+    expect(mockDbExecute).toHaveBeenCalledTimes(1);
     expect(mockWriteFile).toHaveBeenCalledTimes(1);
     expect(mockRename).toHaveBeenCalledTimes(1);
     expect(mockReloadPlaylist).toHaveBeenCalledTimes(1);

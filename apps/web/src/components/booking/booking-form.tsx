@@ -9,6 +9,8 @@ import { createBooking } from "../../lib/booking.js";
 import { extractFieldErrors } from "../../lib/form-utils.js";
 import { clsx } from "clsx/lite";
 
+import { DatePickerInput } from "../calendar/date-picker-input.js";
+
 import formStyles from "../../styles/form.module.css";
 import styles from "./booking-form.module.css";
 
@@ -131,13 +133,15 @@ export function BookingForm({
         <legend className={formStyles.label}>Preferred Dates</legend>
         {preferredDates.map((date, index) => (
           <div className={styles.dateRow} key={index}>
-            <input
-              type="text"
+            <label htmlFor={`booking-date-${index}`} className="sr-only">
+              Preferred date {index + 1}
+            </label>
+            <DatePickerInput
+              id={`booking-date-${index}`}
               value={date}
-              onChange={(e) => updateDate(index, e.target.value)}
-              placeholder={`e.g. March ${15 + index}, 2026`}
-              className={clsx(formStyles.input, styles.dateRowInput, fieldErrors.preferredDates && formStyles.inputError)}
-              aria-label={`Preferred date ${index + 1}`}
+              onChange={(value) => updateDate(index, value)}
+              className={clsx(formStyles.input, styles.dateRowInput)}
+              hasError={!!fieldErrors.preferredDates}
             />
             <button
               type="button"

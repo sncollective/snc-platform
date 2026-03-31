@@ -107,10 +107,11 @@ const query = async <T>(
     });
 
     if (!response.ok) {
+      rootLogger.error({ status: response.status }, "Shopify API error");
       return err(
         new AppError(
-          "SHOPIFY_ERROR",
-          `Shopify API returned ${response.status}`,
+          "SHOPIFY_QUERY_ERROR",
+          "Merch service unavailable",
           502,
         ),
       );

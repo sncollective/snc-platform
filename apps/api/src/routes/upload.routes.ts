@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import {
   AppError,
@@ -37,7 +37,8 @@ import { content } from "../db/schema/content.schema.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { getBoss } from "../jobs/boss.js";
 import { JOB_QUEUES } from "../jobs/register-workers.js";
-import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
+import { requireCreatorPermission } from "../services/creator-team.js";
 import { sanitizeFilename } from "../lib/file-utils.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_503 } from "../lib/openapi-errors.js";
 import { UploadIdParam, UploadPartParams } from "./route-params.js";
@@ -153,32 +154,12 @@ const verifyOwnership = async (
       .limit(1);
     if (!row) throw new NotFoundError("Content not found");
 
-    const [member] = await db
-      .select({ userId: creatorMembers.userId })
-      .from(creatorMembers)
-      .where(and(
-        eq(creatorMembers.creatorId, row.creatorId),
-        eq(creatorMembers.userId, userId),
-      ))
-      .limit(1);
-    if (!member) {
-      throw new AppError("FORBIDDEN", "Not the content owner", 403);
-    }
+    await requireCreatorPermission(userId, row.creatorId, "manageContent", roles);
     return { contentType: row.type };
   }
 
   if (purpose.startsWith("creator-")) {
-    const [member] = await db
-      .select({ userId: creatorMembers.userId })
-      .from(creatorMembers)
-      .where(and(
-        eq(creatorMembers.creatorId, resourceId),
-        eq(creatorMembers.userId, userId),
-      ))
-      .limit(1);
-    if (!member) {
-      throw new AppError("FORBIDDEN", "Not the profile owner", 403);
-    }
+    await requireCreatorPermission(userId, resourceId, "editProfile", roles);
     return {};
   }
 
@@ -334,6 +315,7 @@ uploadRoutes.post(
       key,
       body.contentType,
       PRESIGN_EXPIRY_SECONDS,
+      body.size,
     );
 
     if (!result.ok) throw result.error;

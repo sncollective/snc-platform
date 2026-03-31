@@ -10,6 +10,8 @@
 #   8080 — HLS segments (proxied by Caddy on stream.s-nc.tv)
 #
 # Replace APP_IP with the snc-app container/LXC IP.
+# Replace SRS_CALLBACK_SECRET with the value from the platform .env.
+# Generate: openssl rand -hex 32
 
 listen 1935;
 max_connections 100;
@@ -43,12 +45,12 @@ vhost __defaultVhost__ {
 
     http_hooks {
         enabled on;
-        on_publish http://APP_IP:3000/api/streaming/callbacks/on-publish;
-        on_unpublish http://APP_IP:3000/api/streaming/callbacks/on-unpublish;
+        on_publish http://APP_IP:3000/api/streaming/callbacks/on-publish?secret=SRS_CALLBACK_SECRET;
+        on_unpublish http://APP_IP:3000/api/streaming/callbacks/on-unpublish?secret=SRS_CALLBACK_SECRET;
     }
 
     forward {
         enabled on;
-        backend http://APP_IP:3000/api/streaming/callbacks/on-forward;
+        backend http://APP_IP:3000/api/streaming/callbacks/on-forward?secret=SRS_CALLBACK_SECRET;
     }
 }

@@ -5,21 +5,21 @@ import { toLocalDateKey } from "../../lib/format.js";
 // ── Public Types ──
 
 export interface GridCell {
-  dateKey: string;
-  day: number;
-  isCurrentMonth: boolean;
+  readonly dateKey: string;
+  readonly day: number;
+  readonly isCurrentMonth: boolean;
 }
 
 export interface WeekRow {
-  cells: GridCell[];
-  weekIndex: number;
+  readonly cells: GridCell[];
+  readonly weekIndex: number;
 }
 
 export interface SpanBar {
-  event: CalendarEvent;
-  startCol: number;
-  spanCols: number;
-  weekIndex: number;
+  readonly event: CalendarEvent;
+  readonly startCol: number;
+  readonly spanCols: number;
+  readonly weekIndex: number;
   lane: number;
 }
 

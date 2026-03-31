@@ -24,7 +24,7 @@ export const EmissionEntrySchema = EmissionCoreSchema.extend({
   co2Kg: z.number(),
   method: z.string(),
   projected: z.boolean(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

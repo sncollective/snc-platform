@@ -417,6 +417,7 @@ function StreamCreatorBar({
           className={styles.creatorAvatar}
           width={32}
           height={32}
+          decoding="async"
         />
       )}
       <span className={styles.creatorName}>{creator.displayName}</span>

@@ -15,6 +15,7 @@ import type {
   SavePlaylist,
 } from "@snc/shared";
 
+import { config } from "../config.js";
 import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { rootLogger } from "../logging/logger.js";
@@ -179,13 +180,11 @@ export const savePlaylist = async (
     return ok(await listPlayoutItems());
   }
 
-  // Batch update enabled + position — individual updates in a single transaction
-  for (const item of data.items) {
-    await db
-      .update(playoutItems)
-      .set({ enabled: item.enabled, position: item.position, updatedAt: new Date() })
-      .where(eq(playoutItems.id, item.id));
-  }
+  await db.execute(sql`
+    UPDATE playout_items SET enabled = v.enabled::boolean, position = v.pos::integer, updated_at = NOW()
+    FROM (VALUES ${sql.join(data.items.map((item) => sql`(${item.id}, ${item.enabled}, ${item.position})`), sql`, `)}) AS v(id, enabled, pos)
+    WHERE playout_items.id = v.id::text
+  `);
 
   await regeneratePlaylist();
   return ok(await listPlayoutItems());
@@ -235,7 +234,7 @@ export const regeneratePlaylist = async (): Promise<void> => {
 const selectPlayoutRenditionUri = (
   row: typeof playoutItems.$inferSelect,
 ): string | null => {
-  const bucket = "snc-storage";
+  const bucket = config.S3_BUCKET ?? "snc-storage";
   if (row.rendition1080pKey) return `s3://${bucket}/${row.rendition1080pKey}`;
   if (row.rendition720pKey) return `s3://${bucket}/${row.rendition720pKey}`;
   if (row.rendition480pKey) return `s3://${bucket}/${row.rendition480pKey}`;

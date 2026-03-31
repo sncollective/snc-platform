@@ -37,6 +37,9 @@ const mockS3Multipart = {
   listParts: mockListParts,
 };
 
+// Creator team service mock
+const mockRequireCreatorPermission = vi.fn();
+
 // DB mock — chainable chains for select, update
 const mockSelectLimit = vi.fn();
 const mockSelectWhere = vi.fn();
@@ -81,7 +84,12 @@ const ctx = setupRouteTest({
       creatorMembers: {
         creatorId: {},
         userId: {},
+        role: {},
       },
+    }));
+
+    vi.doMock("../../src/services/creator-team.js", () => ({
+      requireCreatorPermission: mockRequireCreatorPermission,
     }));
   },
   mountRoute: async (app) => {
@@ -107,13 +115,16 @@ const ctx = setupRouteTest({
       ok([{ PartNumber: 1, Size: 5242880, ETag: '"part1-etag"' }]),
     );
 
+    // Creator team mock: allow by default
+    mockRequireCreatorPermission.mockResolvedValue(undefined);
+
     // SELECT chain: db.select().from().where().limit()
     mockSelect.mockReturnValue({ from: mockSelectFrom });
     mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
     mockSelectWhere.mockReturnValue({ limit: mockSelectLimit });
-    // Default: content row exists and profile.userId matches test user
+    // Default: content row exists
     mockSelectLimit.mockResolvedValue([
-      { creatorId: "creator-profile-1", type: "video", userId: "user_test123" },
+      { creatorId: "creator-profile-1", type: "video" },
     ]);
 
     // UPDATE chain: db.update().set().where()
@@ -138,11 +149,9 @@ describe("upload routes", () => {
     };
 
     it("returns presigned URL for authenticated content owner", async () => {
-      // First select: content row with creatorId
-      // Second select: creator profile with matching userId
+      // First select: content row with creatorId (requireCreatorPermission is mocked)
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
@@ -173,8 +182,7 @@ describe("upload routes", () => {
     it("returns 503 when S3 returns error from getPresignedUploadUrl", async () => {
       const { AppError } = await import("@snc/shared");
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       mockStorageGetPresignedUploadUrl.mockResolvedValueOnce(
         err(new AppError("S3_ERROR", "S3 unavailable", 502)),
@@ -191,8 +199,7 @@ describe("upload routes", () => {
 
     it("returns 400 for invalid MIME type", async () => {
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
@@ -214,10 +221,13 @@ describe("upload routes", () => {
     });
 
     it("returns 403 for non-owner", async () => {
-      // Content belongs to a different user
+      const { ForbiddenError } = await import("@snc/shared");
+      // Content exists but user lacks permission
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Insufficient permissions"),
+      );
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
@@ -254,8 +264,7 @@ describe("upload routes", () => {
 
     it("creates multipart upload for authenticated content owner", async () => {
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       const res = await ctx.app.request("/api/uploads/s3/multipart", {
         method: "POST",
@@ -283,9 +292,12 @@ describe("upload routes", () => {
     });
 
     it("returns 403 for non-owner", async () => {
+      const { ForbiddenError } = await import("@snc/shared");
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Insufficient permissions"),
+      );
 
       const res = await ctx.app.request("/api/uploads/s3/multipart", {
         method: "POST",
@@ -454,11 +466,10 @@ describe("upload routes", () => {
     };
 
     it("records key in DB for content owner", async () => {
-      // verifyOwnership: first select content, then creator profile
+      // verifyOwnership: first select content (requireCreatorPermission is mocked)
       // completeUpload: select existing key
       mockSelectLimit
         .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }])
         .mockResolvedValueOnce([{ mediaKey: null }]); // no existing key
 
       mockStorageHead.mockResolvedValueOnce(
@@ -491,9 +502,12 @@ describe("upload routes", () => {
     });
 
     it("returns 403 for non-owner", async () => {
+      const { ForbiddenError } = await import("@snc/shared");
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Insufficient permissions"),
+      );
 
       const res = await ctx.app.request("/api/uploads/complete", {
         method: "POST",
@@ -519,8 +533,7 @@ describe("upload routes", () => {
 
     it("returns 400 when file not found in storage", async () => {
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       const { NotFoundError } = await import("@snc/shared");
       mockStorageHead.mockResolvedValueOnce(
@@ -539,7 +552,6 @@ describe("upload routes", () => {
     it("deletes old file and records new key when replacing existing upload", async () => {
       mockSelectLimit
         .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }])
         .mockResolvedValueOnce([{ mediaKey: "content/content-test-1/media/old-video.mp4" }]);
 
       mockStorageHead.mockResolvedValueOnce(
@@ -585,8 +597,7 @@ describe("upload routes", () => {
       const { AppError } = await import("@snc/shared");
 
       mockSelectLimit
-        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }])
-        .mockResolvedValueOnce([{ userId: "user_test123" }]);
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "video" }]);
 
       mockStorageGetPresignedUploadUrl.mockResolvedValueOnce(
         err(new AppError("PRESIGN_UPLOAD_NOT_SUPPORTED", "Direct uploads require S3 storage", 501)),
@@ -612,9 +623,7 @@ describe("upload routes", () => {
 
   describe("creator purposes", () => {
     it("POST /presign works for creator-avatar purpose", async () => {
-      // Creator avatar: single select on creatorProfiles
-      mockSelectLimit.mockResolvedValueOnce([{ userId: "user_test123" }]);
-
+      // Creator avatar: requireCreatorPermission is mocked (no DB query needed)
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -634,7 +643,10 @@ describe("upload routes", () => {
     });
 
     it("POST /presign returns 403 when user is not a member of the creator profile", async () => {
-      mockSelectLimit.mockResolvedValueOnce([]); // no membership found
+      const { ForbiddenError } = await import("@snc/shared");
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Insufficient permissions"),
+      );
 
       const res = await ctx.app.request("/api/uploads/presign", {
         method: "POST",

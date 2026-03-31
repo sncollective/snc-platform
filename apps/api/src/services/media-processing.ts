@@ -39,17 +39,21 @@ const parseFFmpegProgress = (
 };
 
 /** Spawn ffmpeg with the given args, resolving on exit code 0, rejecting otherwise. */
-const runFfmpeg = (args: string[]): Promise<Result<void, AppError>> =>
-  new Promise<void>((resolve, reject) => {
-    const proc = spawn("ffmpeg", args);
-    proc.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exited with code ${code}`));
+const runFfmpeg = async (args: string[]): Promise<Result<void, AppError>> => {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn("ffmpeg", args);
+      proc.on("close", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`ffmpeg exited with code ${code}`));
+      });
+      proc.on("error", reject);
     });
-    proc.on("error", reject);
-  })
-    .then(() => ok(undefined) as Result<void, AppError>)
-    .catch((e) => err(wrapFfmpegError(e)));
+    return ok(undefined);
+  } catch (e) {
+    return err(wrapFfmpegError(e));
+  }
+};
 
 // ── Types ──
 

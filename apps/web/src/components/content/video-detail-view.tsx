@@ -75,19 +75,15 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
   return (
     <div className={styles.videoDetail}>
       {!playerExpanded && (
-        <div
+        <button
+          type="button"
           className={styles.playOverlay}
           onClick={() => actions.play(videoMetadata)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") actions.play(videoMetadata);
-          }}
           aria-label="Play video"
         >
-          {posterSrc && <img src={posterSrc} alt="" className={styles.poster} />}
+          {posterSrc && <img src={posterSrc} alt="" className={styles.poster} width={640} height={360} />}
           <div className={styles.playIcon}>{"\u25B6"}</div>
-        </div>
+        </button>
       )}
       <ContentMeta
         title={item.title}

@@ -196,9 +196,10 @@ describe("simulcast routes", () => {
     });
 
     it("returns 404 when destination not found", async () => {
+      const { NotFoundError } = await import("@snc/shared");
       mockUpdateSimulcastDestination.mockResolvedValue({
         ok: false,
-        error: { code: "NOT_FOUND", message: "Simulcast destination not found", statusCode: 404 },
+        error: new NotFoundError("Simulcast destination not found"),
       });
 
       const res = await ctx.app.request("/api/simulcast/nonexistent", {
@@ -247,9 +248,10 @@ describe("simulcast routes", () => {
     });
 
     it("returns 404 when destination not found", async () => {
+      const { NotFoundError } = await import("@snc/shared");
       mockDeleteSimulcastDestination.mockResolvedValue({
         ok: false,
-        error: { code: "NOT_FOUND", message: "Simulcast destination not found", statusCode: 404 },
+        error: new NotFoundError("Simulcast destination not found"),
       });
 
       const res = await ctx.app.request("/api/simulcast/nonexistent", {

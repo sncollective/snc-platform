@@ -17,7 +17,7 @@ import { EventForm } from "../../components/calendar/event-form.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "../projects_.$projectSlug.module.css";
 
-// ── Private Types ──
+// ── Route Types ──
 
 export interface ProjectDetailLoaderData {
   readonly project: Project;

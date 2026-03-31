@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
+import { z } from "zod";
 
 import {
   CreateSimulcastDestinationSchema,
@@ -17,6 +18,10 @@ import {
   deleteSimulcastDestination,
 } from "../services/simulcast.js";
 
+/** Simulcast destination ID param (text, not UUID) */
+const SimulcastIdParam = z.object({ id: z.string().min(1) });
+
+/** Admin simulcast destination management (RTMP forward targets). */
 export const simulcastRoutes = new Hono<AuthEnv>();
 
 // All routes require admin role
@@ -37,7 +42,7 @@ simulcastRoutes.get(
   }),
   async (c) => {
     const result = await listSimulcastDestinations();
-    if (!result.ok) return c.json({ error: { code: result.error.code, message: result.error.message } }, result.error.statusCode as 500);
+    if (!result.ok) throw result.error;
     return c.json({ destinations: result.value }, 200);
   },
 );
@@ -60,7 +65,7 @@ simulcastRoutes.post(
   async (c) => {
     const body = c.req.valid("json" as never);
     const result = await createSimulcastDestination(body);
-    if (!result.ok) return c.json({ error: { code: result.error.code, message: result.error.message } }, result.error.statusCode as 500);
+    if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 201);
   },
 );
@@ -80,12 +85,13 @@ simulcastRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", SimulcastIdParam),
   validator("json", UpdateSimulcastDestinationSchema),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const body = c.req.valid("json" as never);
     const result = await updateSimulcastDestination(id, body);
-    if (!result.ok) return c.json({ error: { code: result.error.code, message: result.error.message } }, result.error.statusCode as 404);
+    if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 200);
   },
 );
@@ -104,10 +110,11 @@ simulcastRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", SimulcastIdParam),
   async (c) => {
-    const { id } = c.req.param();
+    const { id } = c.req.valid("param" as never) as { id: string };
     const result = await deleteSimulcastDestination(id);
-    if (!result.ok) return c.json({ error: { code: result.error.code, message: result.error.message } }, result.error.statusCode as 404);
+    if (!result.ok) throw result.error;
     return c.body(null, 204);
   },
 );

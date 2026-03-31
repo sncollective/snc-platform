@@ -30,9 +30,15 @@ export function CreatorSwitcher({ currentCreatorId }: CreatorSwitcherProps): Rea
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiGet<{ creators: MyCreator[] }>("/api/me/creators")
-      .then((data) => setCreators(data.creators))
-      .catch(() => setError("Failed to load creators"));
+    async function loadCreators(): Promise<void> {
+      try {
+        const data = await apiGet<{ creators: MyCreator[] }>("/api/me/creators");
+        setCreators(data.creators);
+      } catch {
+        setError("Failed to load creators");
+      }
+    }
+    void loadCreators();
   }, []);
 
   // Don't render switcher if user only has one creator

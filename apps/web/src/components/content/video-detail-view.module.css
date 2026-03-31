@@ -15,6 +15,10 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-media-bg);
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;

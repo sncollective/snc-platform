@@ -242,10 +242,10 @@ describe("calendar-feed routes", () => {
       expect(text).toContain("Alice");
     });
 
-    it("returns 401 when token query param is missing", async () => {
+    it("returns 400 when token query param is missing", async () => {
       const res = await ctx.app.request("/api/calendar/feed.ics");
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(400);
     });
 
     it("returns 401 for an invalid or unknown token", async () => {

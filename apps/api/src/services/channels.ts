@@ -9,6 +9,7 @@ import { channels } from "../db/schema/streaming.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { resolveCreatorUrls } from "../lib/creator-url.js";
 import { config } from "../config.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Public Types ──
 
@@ -169,10 +170,11 @@ export const createLiveChannel = async (opts: {
 
     return ok({ channelId });
   } catch (e) {
+    rootLogger.error({ err: e }, "Failed to create live channel");
     return err(
       new AppError(
         "CHANNEL_CREATE_ERROR",
-        e instanceof Error ? e.message : "Failed to create live channel",
+        "Failed to create live channel",
         500,
       ),
     );
@@ -208,10 +210,11 @@ export const deactivateLiveChannel = async (
 
     return ok({ channelId: channel.id });
   } catch (e) {
+    rootLogger.error({ err: e }, "Failed to deactivate live channel");
     return err(
       new AppError(
         "CHANNEL_DEACTIVATE_ERROR",
-        e instanceof Error ? e.message : "Failed to deactivate live channel",
+        "Failed to deactivate live channel",
         500,
       ),
     );
@@ -259,10 +262,11 @@ export const ensureBroadcast = async (opts: {
 
     return ok({ channelId });
   } catch (e) {
+    rootLogger.error({ err: e }, "Failed to ensure broadcast channel");
     return err(
       new AppError(
         "CHANNEL_ENSURE_ERROR",
-        e instanceof Error ? e.message : "Failed to ensure broadcast channel",
+        "Failed to ensure broadcast channel",
         500,
       ),
     );
@@ -303,10 +307,11 @@ export const ensurePlayout = async (opts: {
 
     return ok({ channelId });
   } catch (e) {
+    rootLogger.error({ err: e }, "Failed to ensure playout channel");
     return err(
       new AppError(
         "CHANNEL_ENSURE_ERROR",
-        e instanceof Error ? e.message : "Failed to ensure playout channel",
+        "Failed to ensure playout channel",
         500,
       ),
     );

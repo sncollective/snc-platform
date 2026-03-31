@@ -29,6 +29,12 @@ export type VideoRendition = (typeof VIDEO_RENDITIONS)[number];
 export const PLAYOUT_PROCESSING_STATUSES = ["pending", "uploading", "processing", "ready", "failed"] as const;
 export type PlayoutProcessingStatus = (typeof PLAYOUT_PROCESSING_STATUSES)[number];
 
+// ── Private Constants ──
+
+/** Earliest known film year (Roundhay Garden Scene, 1888). */
+const MIN_FILM_YEAR = 1888;
+const MAX_FILM_YEAR = 2100;
+
 // ── Playout Item Schemas ──
 
 export const PlayoutItemSchema = z.object({
@@ -64,7 +70,7 @@ export type PlayoutItemListResponse = z.infer<typeof PlayoutItemListResponseSche
 
 export const CreatePlayoutItemSchema = z.object({
   title: z.string().min(1).max(255),
-  year: z.number().int().min(1888).max(2100).nullable().optional(),
+  year: z.number().int().min(MIN_FILM_YEAR).max(MAX_FILM_YEAR).nullable().optional(),
   director: z.string().max(255).nullable().optional(),
 });
 
@@ -72,7 +78,7 @@ export type CreatePlayoutItem = z.infer<typeof CreatePlayoutItemSchema>;
 
 export const UpdatePlayoutItemSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  year: z.number().int().min(1888).max(2100).nullable().optional(),
+  year: z.number().int().min(MIN_FILM_YEAR).max(MAX_FILM_YEAR).nullable().optional(),
   director: z.string().max(255).nullable().optional(),
 });
 

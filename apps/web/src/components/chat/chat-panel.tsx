@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
@@ -25,7 +25,8 @@ export function ChatPanel({
 
   // Load rooms on mount
   useEffect(() => {
-    void apiGet<ActiveRoomsResponse>("/api/chat/rooms").then((res) => {
+    async function loadRooms(): Promise<void> {
+      const res = await apiGet<ActiveRoomsResponse>("/api/chat/rooms");
       actions.setRooms(res.rooms);
 
       // Auto-join: prefer channel room if available, otherwise platform room
@@ -38,7 +39,8 @@ export function ChatPanel({
       if (defaultRoom && !state.activeRoomId) {
         actions.setActiveRoom(defaultRoom.id);
       }
-    });
+    }
+    void loadRooms();
   }, [channelId, actions, state.activeRoomId]);
 
   // When channelId changes (user switches channel), switch to that channel's room
@@ -57,16 +59,13 @@ export function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [state.messages]);
 
-  const handleSubmit = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault();
-      const trimmed = input.trim();
-      if (!trimmed) return;
-      actions.sendMessage(trimmed);
-      setInput("");
-    },
-    [input, actions],
-  );
+  const handleSubmit = (e: FormEvent): void => {
+    e.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    actions.sendMessage(trimmed);
+    setInput("");
+  };
 
   const activeRoom = state.rooms.find((r) => r.id === state.activeRoomId);
 

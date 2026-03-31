@@ -175,6 +175,7 @@ export const createLocalStorage = (
     _key: string,
     _contentType: string,
     _expiresInSeconds: number,
+    _contentLength: number,
   ): Promise<Result<string, AppError>> => {
     return err(
       new AppError("PRESIGN_UPLOAD_NOT_SUPPORTED", "Direct uploads require S3 storage", 501),

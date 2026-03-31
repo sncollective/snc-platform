@@ -30,6 +30,8 @@ export function VideoLockedView({ item, plans }: VideoLockedViewProps): React.Re
             src={posterSrc}
             alt={`Thumbnail for ${item.title}`}
             className={styles.lockedThumbnail}
+            width={640}
+            height={360}
             onError={() => setLockedImgBroken(true)}
           />
         ) : (

@@ -89,14 +89,10 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
     <div className={styles.audioDetail}>
       <div className={styles.header}>
         {!playerExpanded ? (
-          <div
+          <button
+            type="button"
             className={styles.coverArtWrapper}
             onClick={() => actions.play(audioMetadata)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") actions.play(audioMetadata);
-            }}
             aria-label="Play audio"
           >
             {coverArtSrc ? (
@@ -113,7 +109,7 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
             <div className={styles.playOverlayIcon}>
               <div className={styles.playIcon}>{"\u25B6"}</div>
             </div>
-          </div>
+          </button>
         ) : (
           <div className={styles.coverArtWrapper}>
             {coverArtSrc ? (

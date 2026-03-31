@@ -50,7 +50,7 @@ export async function deletePlayoutItem(id: string): Promise<void> {
 
 /** Reorder playout items. */
 export async function reorderPlayoutItems(
-  orderedIds: string[],
+  orderedIds: readonly string[],
 ): Promise<PlayoutItemListResponse> {
   return apiMutate<PlayoutItemListResponse>("/api/playout/items/reorder", {
     method: "PUT",

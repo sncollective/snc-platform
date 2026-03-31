@@ -9,6 +9,7 @@ import type { CreatorMemberRole, CreatorPermission } from "@snc/shared";
 import { db } from "../db/connection.js";
 import { creatorMembers } from "../db/schema/creator.schema.js";
 import { getUserRoles } from "../auth/user-roles.js";
+import { rootLogger } from "../logging/logger.js";
 
 /**
  * Get all creator IDs the user is a member of (with roles).
@@ -67,6 +68,15 @@ export const requireCreatorPermission = async (
     userRoles,
   );
   if (!allowed) {
+    rootLogger.warn(
+      {
+        event: "creator_authz_denial",
+        userId,
+        creatorId,
+        permission,
+      },
+      "Creator permission denied",
+    );
     throw new ForbiddenError("Insufficient permissions");
   }
 };

@@ -648,10 +648,10 @@ describe("calendar routes", () => {
   // ── GET /api/calendar/feed.ics ──
 
   describe("GET /api/calendar/feed.ics", () => {
-    it("returns 401 when token is missing", async () => {
+    it("returns 400 when token is missing", async () => {
       const res = await ctx.app.request("/api/calendar/feed.ics");
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(400);
     });
 
     it("returns 401 for invalid token", async () => {

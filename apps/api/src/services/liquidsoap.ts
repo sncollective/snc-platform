@@ -30,7 +30,8 @@ const liquidsoapRequest = async (
       ...init,
     });
     if (!res.ok) {
-      return err(new AppError("LIQUIDSOAP_ERROR", `Liquidsoap request failed: ${res.status}`, 502));
+      rootLogger.error({ status: res.status, path }, "Liquidsoap request failed");
+      return err(new AppError("LIQUIDSOAP_ERROR", "Playout service error", 502));
     }
     return ok(undefined);
   } catch (e) {

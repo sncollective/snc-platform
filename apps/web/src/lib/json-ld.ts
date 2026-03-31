@@ -22,55 +22,52 @@ function secondsToIsoDuration(seconds: number): string {
 export function buildContentJsonLd(item: FeedItem, siteUrl: string): Record<string, unknown> {
   const contentUrl = `${siteUrl}/content/${item.creatorHandle ?? item.creatorId}/${item.slug ?? item.id}`;
 
-  if (item.type === "video") {
-    return {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      name: item.title,
-      description: item.description ?? undefined,
-      thumbnailUrl: item.thumbnailUrl ? `${siteUrl}${item.thumbnailUrl}` : undefined,
-      contentUrl: item.mediaUrl ?? undefined,
-      duration: item.duration != null ? secondsToIsoDuration(item.duration) : undefined,
-      uploadDate: item.publishedAt ?? undefined,
-      datePublished: item.publishedAt ?? undefined,
-      creator: {
-        "@type": "Person",
-        name: item.creatorName,
-      },
-    };
-  }
+  switch (item.type) {
+    case "video":
+    case "audio": {
+      const mediaBase = {
+        "@context": "https://schema.org" as const,
+        name: item.title,
+        description: item.description ?? undefined,
+        thumbnailUrl: item.thumbnailUrl ? `${siteUrl}${item.thumbnailUrl}` : undefined,
+        contentUrl: item.mediaUrl ?? undefined,
+        duration: item.duration != null ? secondsToIsoDuration(item.duration) : undefined,
+        datePublished: item.publishedAt ?? undefined,
+        creator: {
+          "@type": "Person" as const,
+          name: item.creatorName,
+        },
+      };
 
-  if (item.type === "audio") {
-    return {
-      "@context": "https://schema.org",
-      "@type": "AudioObject",
-      name: item.title,
-      description: item.description ?? undefined,
-      thumbnailUrl: item.thumbnailUrl ? `${siteUrl}${item.thumbnailUrl}` : undefined,
-      contentUrl: item.mediaUrl ?? undefined,
-      duration: item.duration != null ? secondsToIsoDuration(item.duration) : undefined,
-      datePublished: item.publishedAt ?? undefined,
-      creator: {
-        "@type": "Person",
-        name: item.creatorName,
-      },
-    };
-  }
+      if (item.type === "video") {
+        return {
+          ...mediaBase,
+          "@type": "VideoObject" as const,
+          uploadDate: item.publishedAt ?? undefined,
+        };
+      }
 
-  // written
-  return {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: item.title,
-    description: item.description ?? undefined,
-    image: item.thumbnailUrl ? `${siteUrl}${item.thumbnailUrl}` : undefined,
-    datePublished: item.publishedAt ?? undefined,
-    url: contentUrl,
-    author: {
-      "@type": "Person",
-      name: item.creatorName,
-    },
-  };
+      return { ...mediaBase, "@type": "AudioObject" as const };
+    }
+    case "written":
+      return {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: item.title,
+        description: item.description ?? undefined,
+        image: item.thumbnailUrl ? `${siteUrl}${item.thumbnailUrl}` : undefined,
+        datePublished: item.publishedAt ?? undefined,
+        url: contentUrl,
+        author: {
+          "@type": "Person",
+          name: item.creatorName,
+        },
+      };
+    default: {
+      const _exhaustive: never = item.type;
+      return _exhaustive;
+    }
+  }
 }
 
 /** Build Schema.org Person structured data for a creator profile. */

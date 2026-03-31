@@ -10,7 +10,7 @@ import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchLockedContentPlans, resolveCanManage } from "../../../lib/content-loader.js";
 import { buildContentJsonLd } from "../../../lib/json-ld.js";
 
-// ── Private Types ──
+// ── Route Types ──
 
 export interface SlugContentDetailLoaderData {
   readonly item: FeedItem | null;

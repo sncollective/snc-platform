@@ -36,6 +36,7 @@ import {
 import { users } from "../db/schema/user.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import {
   ERROR_400,
@@ -45,6 +46,8 @@ import {
 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { toISO } from "../lib/response-helpers.js";
+import { getClientIp } from "../lib/request-helpers.js";
+import { rootLogger } from "../logging/logger.js";
 import { IdParam } from "./route-params.js";
 
 // ── Private Types ──
@@ -141,6 +144,7 @@ bookingRoutes.get(
       },
     },
   }),
+  optionalAuth,
   async (c) => {
     const rows = await db
       .select()
@@ -171,6 +175,7 @@ bookingRoutes.get(
       404: ERROR_404,
     },
   }),
+  optionalAuth,
   validator("param", IdParam),
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };
@@ -454,7 +459,7 @@ bookingRoutes.get(
 bookingRoutes.patch(
   "/bookings/:id/review",
   requireAuth,
-  requireRole("stakeholder"),
+  requireRole("stakeholder", "admin"),
   describeRoute({
     description:
       "Approve or deny a booking request with optional review note (cooperative-member only)",
@@ -506,6 +511,18 @@ bookingRoutes.patch(
       })
       .where(eq(bookingRequests.id, id))
       .returning();
+
+    const logger = c.var?.logger ?? rootLogger;
+    logger.info(
+      {
+        event: "booking_reviewed",
+        actorId: user.id,
+        bookingId: id,
+        status,
+        ip: getClientIp(c),
+      },
+      "Booking reviewed",
+    );
 
     return c.json({
       booking: toBookingWithServiceResponse(updated!, row.services),

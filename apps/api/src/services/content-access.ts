@@ -35,22 +35,6 @@ export type ContentGateResult =
 
 // ── Public API ──
 
-/**
- * Check whether a user is allowed to access gated content from a specific
- * creator. Enforces subscription-based content gating with the following
- * rules:
- *
- * 1. Public content → always allowed
- * 2. No userId (unauthenticated) → not allowed
- * 3. User is a stakeholder or any creator team member → allowed (free perk)
- * 4. User has an active subscription that covers this creator → allowed
- * 5. Otherwise → not allowed (SUBSCRIPTION_REQUIRED)
- *
- * "Active subscription" means:
- * - status = "active" (or "canceled" if currentPeriodEnd is still in the future)
- * - AND the plan is either platform-wide OR creator-specific matching the
- *   content's creator
- */
 // ── Batch Access (for feed gating without N+1 queries) ──
 
 export type ContentAccessContext = {
@@ -156,6 +140,21 @@ export const hasContentAccess = (
 // ── Per-Item Access (for detail endpoints) ──
 
 /**
+ * Check whether a user is allowed to access gated content from a specific
+ * creator. Enforces subscription-based content gating with the following
+ * rules:
+ *
+ * 1. Public content → always allowed
+ * 2. No userId (unauthenticated) → not allowed
+ * 3. User is a stakeholder or any creator team member → allowed (free perk)
+ * 4. User has an active subscription that covers this creator → allowed
+ * 5. Otherwise → not allowed (SUBSCRIPTION_REQUIRED)
+ *
+ * "Active subscription" means:
+ * - status = "active" (or "canceled" if currentPeriodEnd is still in the future)
+ * - AND the plan is either platform-wide OR creator-specific matching the
+ *   content's creator
+ *
  * When `prefetchedRoles` is provided (e.g. from Hono context after
  * `requireAuth`), the `getUserRoles` DB query is skipped.
  *

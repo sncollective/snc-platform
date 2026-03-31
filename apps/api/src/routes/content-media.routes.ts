@@ -297,6 +297,7 @@ contentMediaRoutes.get(
       404: ERROR_404,
     },
   }),
+  optionalAuth,
   validator("param", IdParam),
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };

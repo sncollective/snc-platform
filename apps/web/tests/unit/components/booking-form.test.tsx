@@ -12,6 +12,25 @@ vi.mock("../../../src/lib/booking.js", () => ({
   createBooking: mockCreateBooking,
 }));
 
+// Mock DatePickerInput to simplify — renders a text input that accepts YYYY-MM-DD
+vi.mock("../../../src/components/calendar/date-picker-input.js", () => ({
+  DatePickerInput: ({ id, value, onChange, hasError }: {
+    id?: string;
+    value: string;
+    onChange: (v: string) => void;
+    hasError?: boolean;
+  }) => (
+    <input
+      id={id}
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      data-has-error={hasError}
+      data-testid={`date-picker-${id ?? "unknown"}`}
+    />
+  ),
+}));
+
 // ── Import component under test (after mocks) ──
 
 import { BookingForm } from "../../../src/components/booking/booking-form.js";
@@ -127,7 +146,7 @@ describe("BookingForm", () => {
     const user = userEvent.setup();
     render(<BookingForm {...defaultProps} />);
 
-    await user.type(screen.getByLabelText("Preferred date 1"), "March 15, 2026");
+    await user.type(screen.getByLabelText("Preferred date 1"), "2026-03-15");
     fireEvent.change(screen.getByLabelText("Notes"), {
       target: { value: "a".repeat(2001) },
     });
@@ -146,14 +165,14 @@ describe("BookingForm", () => {
     mockCreateBooking.mockResolvedValue(makeMockBookingWithService());
     render(<BookingForm {...defaultProps} />);
 
-    await user.type(screen.getByLabelText("Preferred date 1"), "March 15, 2026");
+    await user.type(screen.getByLabelText("Preferred date 1"), "2026-03-15");
     await user.type(screen.getByLabelText("Notes"), "Afternoon preferred");
     await user.click(screen.getByRole("button", { name: /submit request/i }));
 
     await waitFor(() => {
       expect(mockCreateBooking).toHaveBeenCalledWith({
         serviceId: "svc_test",
-        preferredDates: ["March 15, 2026"],
+        preferredDates: ["2026-03-15"],
         notes: "Afternoon preferred",
       });
     });
@@ -164,7 +183,7 @@ describe("BookingForm", () => {
     mockCreateBooking.mockReturnValue(new Promise(() => {}));
     render(<BookingForm {...defaultProps} />);
 
-    await user.type(screen.getByLabelText("Preferred date 1"), "March 15, 2026");
+    await user.type(screen.getByLabelText("Preferred date 1"), "2026-03-15");
     await user.click(screen.getByRole("button", { name: /submit request/i }));
 
     await waitFor(() => {
@@ -177,7 +196,7 @@ describe("BookingForm", () => {
     mockCreateBooking.mockResolvedValue(makeMockBookingWithService());
     render(<BookingForm {...defaultProps} />);
 
-    await user.type(screen.getByLabelText("Preferred date 1"), "March 15, 2026");
+    await user.type(screen.getByLabelText("Preferred date 1"), "2026-03-15");
     await user.click(screen.getByRole("button", { name: /submit request/i }));
 
     await waitFor(() => {
@@ -190,7 +209,7 @@ describe("BookingForm", () => {
     mockCreateBooking.mockRejectedValue(new Error("Service not found"));
     render(<BookingForm {...defaultProps} />);
 
-    await user.type(screen.getByLabelText("Preferred date 1"), "March 15, 2026");
+    await user.type(screen.getByLabelText("Preferred date 1"), "2026-03-15");
     await user.click(screen.getByRole("button", { name: /submit request/i }));
 
     await waitFor(() => {

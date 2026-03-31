@@ -39,6 +39,19 @@ const toErrorBody = (
  */
 export const errorHandler: ErrorHandler = (e, c) => {
   if (e instanceof AppError) {
+    if (e.statusCode === 401 || e.statusCode === 403) {
+      const logger = c.var?.logger ?? rootLogger;
+      logger.debug(
+        {
+          event: "authz_error",
+          code: e.code,
+          statusCode: e.statusCode,
+          path: c.req.path,
+          method: c.req.method,
+        },
+        "Authorization error",
+      );
+    }
     const details = "details" in e ? (e as { details?: unknown }).details : undefined;
     return c.json(toErrorBody(e.code, e.message, details), e.statusCode as ContentfulStatusCode);
   }

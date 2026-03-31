@@ -30,6 +30,10 @@
   flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   background: var(--color-media-bg);
   display: flex;

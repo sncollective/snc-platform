@@ -8,8 +8,9 @@ import { ContentDetail } from "../../components/content/content-detail.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../lib/api-server.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchLockedContentPlans, resolveCanManage } from "../../lib/content-loader.js";
+import { buildContentJsonLd } from "../../lib/json-ld.js";
 
-// ── Private Types ──
+// ── Route Types ──
 
 export interface ContentDetailLoaderData {
   readonly item: FeedItem | null;
@@ -53,6 +54,10 @@ export const Route = createFileRoute("/content/$contentId")({
     if (!loaderData?.item) return {};
     const { item } = loaderData;
     const siteUrl = import.meta.env.VITE_SITE_URL ?? "";
+    const canonicalPath = item.creatorHandle && item.slug
+      ? `/content/${item.creatorHandle}/${item.slug}`
+      : `/content/${item.id}`;
+    const canonicalUrl = `${siteUrl}${canonicalPath}`;
     return {
       meta: [
         { title: `${item.title} — S/NC` },
@@ -60,9 +65,19 @@ export const Route = createFileRoute("/content/$contentId")({
         { property: "og:title", content: item.title },
         { property: "og:description", content: item.description ?? "" },
         { property: "og:type", content: "article" },
+        { property: "og:url", content: canonicalUrl },
         ...(item.thumbnailUrl
           ? [{ property: "og:image", content: `${siteUrl}${item.thumbnailUrl}` }]
           : []),
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(buildContentJsonLd(item, siteUrl)),
+        },
       ],
     };
   },

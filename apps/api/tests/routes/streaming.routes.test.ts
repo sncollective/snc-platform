@@ -759,6 +759,160 @@ describe("streaming routes", () => {
     });
   });
 
+  describe("SRS callback authentication", () => {
+    const TEST_CALLBACK_SECRET = "test-srs-callback-secret-that-is-at-least-32-chars-long";
+    let authApp: Hono;
+
+    beforeEach(async () => {
+      vi.resetModules();
+
+      vi.doMock("../../src/config.js", () => ({
+        config: makeTestConfig({ SRS_CALLBACK_SECRET: TEST_CALLBACK_SECRET }),
+        parseOrigins: (raw: string) =>
+          raw
+            .split(",")
+            .map((o: string) => o.trim())
+            .filter(Boolean),
+      }));
+
+      vi.doMock("../../src/services/srs.js", () => ({
+        getChannelList: mockGetChannelList,
+      }));
+      vi.doMock("../../src/services/stream-keys.js", () => ({
+        lookupCreatorByKeyHash: mockLookupCreatorByKeyHash,
+        listStreamKeys: mockListStreamKeys,
+        createStreamKey: mockCreateStreamKey,
+        revokeStreamKey: mockRevokeStreamKey,
+      }));
+      vi.doMock("../../src/services/stream-sessions.js", () => ({
+        openSession: mockOpenSession,
+        closeSession: mockCloseSession,
+      }));
+      vi.doMock("../../src/services/channels.js", () => ({
+        createLiveChannel: mockCreateLiveChannel,
+        deactivateLiveChannel: mockDeactivateLiveChannel,
+      }));
+      vi.doMock("../../src/services/chat.js", () => ({
+        createChannelRoom: mockCreateChannelRoom,
+        closeChannelRoom: mockCloseChannelRoom,
+      }));
+      vi.doMock("../../src/services/chat-rooms.js", () => ({
+        broadcastToRoom: mockBroadcastToRoom,
+      }));
+      vi.doMock("../../src/services/simulcast.js", () => ({
+        getActiveSimulcastUrls: mockGetActiveSimulcastUrls,
+        listCreatorSimulcastDestinations: mockListCreatorSimulcastDestinations,
+        createCreatorSimulcastDestination: mockCreateCreatorSimulcastDestination,
+        updateCreatorSimulcastDestination: mockUpdateCreatorSimulcastDestination,
+        deleteCreatorSimulcastDestination: mockDeleteCreatorSimulcastDestination,
+      }));
+      vi.doMock("../../src/db/connection.js", () => {
+        const makeWhere = (): Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } } => {
+          const p = Promise.resolve([]) as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
+          p.orderBy = vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          });
+          return p;
+        };
+        return {
+          db: {
+            select: vi.fn().mockReturnValue({
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockImplementation(makeWhere),
+              }),
+            }),
+          },
+          sql: vi.fn(),
+        };
+      });
+      vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
+        streamSessions: { srsClientId: "srsClientId", endedAt: "endedAt", id: "id" },
+        channels: {},
+        simulcastDestinations: { isActive: "isActive", rtmpUrl: "rtmpUrl", streamKey: "streamKey", creatorId: "creatorId" },
+      }));
+      vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+        creatorProfiles: { id: "id", displayName: "displayName" },
+      }));
+      vi.doMock("../../src/middleware/require-auth.js", () => ({
+        requireAuth: async (_c: unknown, next: () => Promise<void>) => next(),
+      }));
+
+      const { errorHandler } = await import(
+        "../../src/middleware/error-handler.js"
+      );
+      const { corsMiddleware } = await import(
+        "../../src/middleware/cors.js"
+      );
+      const { streamingRoutes } = await import(
+        "../../src/routes/streaming.routes.js"
+      );
+
+      authApp = new Hono();
+      authApp.use("*", corsMiddleware);
+      authApp.onError(errorHandler);
+      authApp.route("/api/streaming", streamingRoutes);
+    });
+
+    afterEach(() => {
+      vi.resetModules();
+    });
+
+    const publishBody = {
+      action: "on_publish" as const,
+      client_id: "liquidsoap-123",
+      ip: "127.0.0.1",
+      vhost: "__defaultVhost__",
+      app: "live",
+      stream: "channel-main",
+      param: "?key=pk_test_playout_key",
+    };
+
+    it("rejects on-publish when secret is configured but missing from request URL", async () => {
+      const res = await authApp.request(
+        "/api/streaming/callbacks/on-publish",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(publishBody),
+        },
+      );
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body).toStrictEqual({ code: 1 });
+    });
+
+    it("rejects on-publish when secret in URL is wrong", async () => {
+      const res = await authApp.request(
+        "/api/streaming/callbacks/on-publish?secret=wrong-secret-value",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(publishBody),
+        },
+      );
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body).toStrictEqual({ code: 1 });
+    });
+
+    it("allows on-publish when secret matches", async () => {
+      const res = await authApp.request(
+        `/api/streaming/callbacks/on-publish?secret=${TEST_CALLBACK_SECRET}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(publishBody),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toStrictEqual({ code: 0 });
+    });
+  });
+
   describe("Creator Simulcast Destinations", () => {
     const CREATOR_ID = "creator-1";
     const DEST_ID = "dest-1";

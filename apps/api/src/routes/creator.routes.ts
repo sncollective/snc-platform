@@ -244,6 +244,7 @@ creatorRoutes.get(
       404: ERROR_404,
     },
   }),
+  optionalAuth,
   validator("param", CreatorIdParam),
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };

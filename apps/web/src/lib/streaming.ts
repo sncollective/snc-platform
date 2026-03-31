@@ -45,8 +45,8 @@ export async function revokeStreamKey(
 /** Fetch simulcast destinations for a creator (owner only). */
 export async function fetchCreatorSimulcastDestinations(
   creatorId: string,
-): Promise<{ destinations: SimulcastDestination[] }> {
-  return apiGet<{ destinations: SimulcastDestination[] }>(
+): Promise<{ readonly destinations: readonly SimulcastDestination[] }> {
+  return apiGet<{ readonly destinations: readonly SimulcastDestination[] }>(
     `/api/streaming/simulcast/${encodeURIComponent(creatorId)}`,
   );
 }
@@ -55,8 +55,8 @@ export async function fetchCreatorSimulcastDestinations(
 export async function createCreatorSimulcastDestination(
   creatorId: string,
   input: CreateSimulcastDestination,
-): Promise<{ destination: SimulcastDestination }> {
-  return apiMutate<{ destination: SimulcastDestination }>(
+): Promise<{ readonly destination: SimulcastDestination }> {
+  return apiMutate<{ readonly destination: SimulcastDestination }>(
     `/api/streaming/simulcast/${encodeURIComponent(creatorId)}`,
     { method: "POST", body: input },
   );
@@ -67,8 +67,8 @@ export async function updateCreatorSimulcastDestination(
   creatorId: string,
   destId: string,
   input: UpdateSimulcastDestination,
-): Promise<{ destination: SimulcastDestination }> {
-  return apiMutate<{ destination: SimulcastDestination }>(
+): Promise<{ readonly destination: SimulcastDestination }> {
+  return apiMutate<{ readonly destination: SimulcastDestination }>(
     `/api/streaming/simulcast/${encodeURIComponent(creatorId)}/${encodeURIComponent(destId)}`,
     { method: "PATCH", body: input },
   );

@@ -24,6 +24,7 @@ import {
 } from "../services/shopify.js";
 import { getFrontendBaseUrl } from "../lib/route-utils.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
 import type { ShopifyProductNode } from "../services/shopify.js";
 import { HandleParam } from "./route-params.js";
 import {
@@ -92,6 +93,7 @@ merchRoutes.get(
       503: ERROR_503,
     },
   }),
+  optionalAuth,
   validator("query", MerchListQuerySchema),
   async (c) => {
     const { limit, cursor, creatorId } =
@@ -143,6 +145,7 @@ merchRoutes.get(
       503: ERROR_503,
     },
   }),
+  optionalAuth,
   validator("param", HandleParam),
   async (c) => {
     const { handle } = c.req.valid("param" as never) as { handle: string };

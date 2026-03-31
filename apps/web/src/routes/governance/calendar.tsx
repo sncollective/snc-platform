@@ -16,7 +16,7 @@ import { useCalendarState } from "../../hooks/use-calendar-state.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "../calendar.module.css";
 
-// ── Private Types ──
+// ── Route Types ──
 
 export interface CalendarLoaderData {
   readonly events: CalendarEventsResponse;

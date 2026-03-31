@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
-import { describeRoute, resolver } from "hono-openapi";
+import { describeRoute, resolver, validator } from "hono-openapi";
+import { z } from "zod";
 import { eq, and, gte, lte, asc, isNull } from "drizzle-orm";
 import ical, { ICalCalendarMethod, ICalEventStatus } from "ical-generator";
 
@@ -125,74 +126,74 @@ calendarFeedRoutes.get(
 
 // ── GET /feed.ics — Public .ics feed (token-based auth) ──
 
-calendarFeedRoutes.get("/feed.ics", async (c) => {
-  const token = c.req.query("token");
+calendarFeedRoutes.get(
+  "/feed.ics",
+  validator("query", z.object({ token: z.string().min(1) })),
+  async (c) => {
+    const { token } = c.req.valid("query" as never) as { token: string };
 
-  if (!token) {
-    return c.text("Missing token", 401);
-  }
+    // Validate token
+    const [feedToken] = await db
+      .select({ token: calendarFeedTokens.token })
+      .from(calendarFeedTokens)
+      .where(eq(calendarFeedTokens.token, token));
 
-  // Validate token
-  const [feedToken] = await db
-    .select({ token: calendarFeedTokens.token })
-    .from(calendarFeedTokens)
-    .where(eq(calendarFeedTokens.token, token));
-
-  if (!feedToken) {
-    return c.text("Invalid token", 401);
-  }
-
-  // Fetch upcoming events (next 6 months + last 1 month)
-  const now = new Date();
-  const from = new Date(now);
-  from.setMonth(from.getMonth() - 1);
-  const to = new Date(now);
-  to.setMonth(to.getMonth() + 6);
-
-  const events = await db
-    .select({
-      event: calendarEvents,
-      creatorName: creatorProfiles.displayName,
-    })
-    .from(calendarEvents)
-    .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
-    .where(
-      and(
-        isNull(calendarEvents.deletedAt),
-        gte(calendarEvents.startAt, from),
-        lte(calendarEvents.startAt, to),
-      ),
-    )
-    .orderBy(asc(calendarEvents.startAt));
-
-  // Generate .ics
-  const calendar = ical({
-    name: "S/NC Calendar",
-    method: ICalCalendarMethod.PUBLISH,
-  });
-
-  for (const row of events) {
-    const event = row.event;
-    const summary = row.creatorName ? `${event.title} (${row.creatorName})` : event.title;
-    const icalEvent = calendar.createEvent({
-      id: event.id,
-      start: event.startAt,
-      end: event.endAt ?? null,
-      allDay: event.allDay,
-      summary,
-      description: event.description ?? null,
-      location: event.location ?? null,
-    });
-    icalEvent.createCategory({ name: event.eventType });
-    if (event.eventType === "task" && event.completedAt !== null) {
-      icalEvent.status(ICalEventStatus.CONFIRMED);
-    } else if (event.eventType === "task") {
-      icalEvent.status(ICalEventStatus.TENTATIVE);
+    if (!feedToken) {
+      return c.text("Invalid token", 401);
     }
-  }
 
-  return c.body(calendar.toString(), 200, {
-    "Content-Type": "text/calendar; charset=utf-8",
-    "Content-Disposition": 'attachment; filename="snc-calendar.ics"',
-  });
-});
+    // Fetch upcoming events (next 6 months + last 1 month)
+    const now = new Date();
+    const from = new Date(now);
+    from.setMonth(from.getMonth() - 1);
+    const to = new Date(now);
+    to.setMonth(to.getMonth() + 6);
+
+    const events = await db
+      .select({
+        event: calendarEvents,
+        creatorName: creatorProfiles.displayName,
+      })
+      .from(calendarEvents)
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
+      .where(
+        and(
+          isNull(calendarEvents.deletedAt),
+          gte(calendarEvents.startAt, from),
+          lte(calendarEvents.startAt, to),
+        ),
+      )
+      .orderBy(asc(calendarEvents.startAt));
+
+    // Generate .ics
+    const calendar = ical({
+      name: "S/NC Calendar",
+      method: ICalCalendarMethod.PUBLISH,
+    });
+
+    for (const row of events) {
+      const event = row.event;
+      const summary = row.creatorName ? `${event.title} (${row.creatorName})` : event.title;
+      const icalEvent = calendar.createEvent({
+        id: event.id,
+        start: event.startAt,
+        end: event.endAt ?? null,
+        allDay: event.allDay,
+        summary,
+        description: event.description ?? null,
+        location: event.location ?? null,
+      });
+      icalEvent.createCategory({ name: event.eventType });
+      if (event.eventType === "task" && event.completedAt !== null) {
+        icalEvent.status(ICalEventStatus.CONFIRMED);
+      } else if (event.eventType === "task") {
+        icalEvent.status(ICalEventStatus.TENTATIVE);
+      }
+    }
+
+    return c.body(calendar.toString(), 200, {
+      "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="snc-calendar.ics"',
+    });
+  },
+);

@@ -52,7 +52,15 @@ initWebSocket(app);
 // ── Middleware ──
 
 app.use("*", corsMiddleware);
-app.use("*", secureHeaders());
+app.use(
+  "*",
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  }),
+);
 app.use("*", requestIdMiddleware);
 app.use("*", requestLogger);
 const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
@@ -64,7 +72,12 @@ app.use("/api/auth/*", (c, next) => {
     path.startsWith("/api/auth/sign-up") ||
     path.startsWith("/api/auth/email-otp") ||
     path.startsWith("/api/auth/forget-password") ||
-    path.startsWith("/api/auth/reset-password")
+    path.startsWith("/api/auth/reset-password") ||
+    path.startsWith("/api/auth/verify-email") ||
+    path.startsWith("/api/auth/change-password") ||
+    path.startsWith("/api/auth/change-email") ||
+    path.startsWith("/api/auth/delete-user") ||
+    path.startsWith("/api/auth/two-factor")
   ) {
     return authStrictLimiter(c, next);
   }

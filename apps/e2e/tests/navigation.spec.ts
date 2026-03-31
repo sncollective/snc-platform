@@ -41,4 +41,16 @@ test.describe("Navigation flow", () => {
       page.getByRole("heading", { name: "Settings" }),
     ).toBeVisible();
   });
+
+  test("navigates to live page via nav link", async ({ page }) => {
+    await page.goto("/");
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    await nav.getByRole("link", { name: "Live" }).click();
+    await expect(page).toHaveURL(/\/live/);
+    // The live page should render a channel selector (playout is always-on)
+    // or a "Coming Soon" placeholder when no streams are active
+    await expect(
+      page.getByLabel("Select channel").or(page.getByRole("heading", { name: "Coming Soon" })),
+    ).toBeVisible();
+  });
 });

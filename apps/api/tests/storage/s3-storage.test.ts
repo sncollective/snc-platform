@@ -280,6 +280,7 @@ describe("createS3Storage", () => {
         "content/abc/media/video.mp4",
         "video/mp4",
         3600,
+        1024 * 1024,
       );
 
       expect(result.ok).toBe(true);
@@ -296,6 +297,7 @@ describe("createS3Storage", () => {
         "content/abc/media/video.mp4",
         "video/mp4",
         3600,
+        1024 * 1024,
       );
 
       expect(result.ok).toBe(false);

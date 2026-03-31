@@ -184,6 +184,7 @@ export const runStorageContractTests = (
         "test/presign-test.mp4",
         "video/mp4",
         3600,
+        1024 * 1024,
       );
 
       // Result may be ok (S3) or err (local storage) — both are valid

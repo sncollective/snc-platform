@@ -26,8 +26,10 @@ export const wrapExternalError =
 export const wrapStripeErrorGranular = (e: unknown): AppError => {
   if (e instanceof Stripe.errors.StripeCardError)
     return new AppError("STRIPE_CARD_ERROR", e.message, 400);
-  if (e instanceof Stripe.errors.StripeInvalidRequestError)
-    return new AppError("STRIPE_INVALID_REQUEST", e.message, 400);
+  if (e instanceof Stripe.errors.StripeInvalidRequestError) {
+    rootLogger.error({ err: e }, "Stripe invalid request error");
+    return new AppError("STRIPE_INVALID_REQUEST", "Invalid payment request", 400);
+  }
   if (e instanceof Stripe.errors.StripeRateLimitError) {
     rootLogger.error({ error: e.message }, "Stripe rate limit exceeded");
     return new AppError("STRIPE_RATE_LIMIT", "Payment service temporarily unavailable", 429);

@@ -199,8 +199,9 @@ webhookRoutes.post(
       if (e && typeof e === "object" && "code" in e && e.code === "23505") {
         return c.json({ received: true as const });
       }
-      // Re-throw unexpected DB errors
-      throw e;
+      // Wrap unexpected DB errors so raw details don't leak to clients
+      rootLogger.error({ err: e }, "Webhook idempotency check failed");
+      throw new AppError("INTERNAL_ERROR", "Webhook processing failed", 500);
     }
 
     // 4. Dispatch to event-specific handler via discriminated switch
@@ -223,6 +224,15 @@ webhookRoutes.post(
       default:
         rootLogger.warn({ eventType: event.type, eventId: event.id }, "Unhandled Stripe webhook event type");
     }
+
+    rootLogger.info(
+      {
+        event: "webhook_processed",
+        stripeEventType: event.type,
+        stripeEventId: event.id,
+      },
+      "Stripe webhook processed",
+    );
 
     return c.json({ received: true as const });
   },

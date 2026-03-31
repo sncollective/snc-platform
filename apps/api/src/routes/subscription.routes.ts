@@ -31,6 +31,7 @@ import {
   userSubscriptions,
 } from "../db/schema/subscription.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import {
   ERROR_400,
@@ -122,6 +123,7 @@ subscriptionRoutes.get(
       400: ERROR_400,
     },
   }),
+  optionalAuth,
   validator("query", PlansQuerySchema),
   async (c) => {
     const { creatorId, type } =

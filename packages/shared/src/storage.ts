@@ -61,6 +61,7 @@ export type StorageProvider = {
     key: string,
     contentType: string,
     expiresInSeconds: number,
+    contentLength: number,
   ): Promise<Result<string, AppError>>;
 };
 

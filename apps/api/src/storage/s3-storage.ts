@@ -169,12 +169,14 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
     key: string,
     contentType: string,
     expiresInSeconds: number,
+    contentLength: number,
   ): Promise<Result<string, AppError>> => {
     try {
       const command = new PutObjectCommand({
         Bucket: bucket,
         Key: key,
         ContentType: contentType,
+        ContentLength: contentLength,
       });
       const url = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
       return ok(url);

@@ -2,10 +2,10 @@
 export function buildContentListUrl(
   endpoint: "/api/content" | "/api/content/drafts",
   params: {
-    creatorId: string;
-    limit?: number;
-    type?: string | null;
-    cursor?: string | null;
+    readonly creatorId: string;
+    readonly limit?: number;
+    readonly type?: string | null;
+    readonly cursor?: string | null;
   },
 ): string {
   const qs = new URLSearchParams();

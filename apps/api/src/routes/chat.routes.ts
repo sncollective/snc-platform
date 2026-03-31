@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import { describeRoute, resolver, validator } from "hono-openapi";
+import { z } from "zod";
 
 import {
+  AppError,
   ClientEventSchema,
   ChatHistoryQuerySchema,
   ChatHistoryResponseSchema,
@@ -26,6 +28,10 @@ import {
 import type { ChatClient } from "../services/chat-rooms.js";
 import { upgradeWebSocket } from "../ws.js";
 import { ERROR_400 } from "../lib/openapi-errors.js";
+
+// ── Param Schemas ──
+
+const RoomIdParam = z.object({ roomId: z.string().min(1) });
 
 // ── Private Helpers ──
 
@@ -81,9 +87,10 @@ chatRoutes.get(
       400: ERROR_400,
     },
   }),
+  validator("param", RoomIdParam),
   validator("query", ChatHistoryQuerySchema),
   async (c) => {
-    const roomId = c.req.param("roomId");
+    const { roomId } = c.req.valid("param" as never) as { roomId: string };
     const { before, limit } = c.req.valid("query" as never) as {
       before?: string;
       limit: number;
@@ -166,7 +173,11 @@ chatRoutes.get(
               content: parsed.content,
             }).then((result) => {
               if (!result.ok) {
-                sendError(ws, result.error.code, result.error.message);
+                // Defense-in-depth: only forward known AppError messages
+                const errorMessage = result.error instanceof AppError
+                  ? result.error.message
+                  : "An error occurred";
+                sendError(ws, result.error.code ?? "INTERNAL_ERROR", errorMessage);
                 return;
               }
               broadcastToRoom(parsed.roomId, {

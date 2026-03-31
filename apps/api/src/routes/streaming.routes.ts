@@ -35,6 +35,8 @@ import {
 } from "../services/simulcast.js";
 import { config } from "../config.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
+import { verifySrsCallback } from "../middleware/verify-srs-callback.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -48,6 +50,21 @@ import {
   ERROR_502,
   ERROR_503,
 } from "../lib/openapi-errors.js";
+import { CreatorIdParam } from "./route-params.js";
+
+// ── Param Schemas ──
+
+/** Creator + stream key compound param */
+const CreatorKeyParams = z.object({
+  creatorId: z.string().min(1),
+  keyId: z.string().min(1),
+});
+
+/** Creator + simulcast destination compound param */
+const CreatorSimulcastParams = z.object({
+  creatorId: z.string().min(1),
+  id: z.string().min(1),
+});
 
 // ── Callback Schemas ──
 
@@ -186,6 +203,7 @@ streamingRoutes.get(
       503: ERROR_503,
     },
   }),
+  optionalAuth,
   async (c) => {
     const result = await getChannelList();
     if (!result.ok) throw result.error;
@@ -222,6 +240,7 @@ streamingRoutes.post(
       403: ERROR_403,
     },
   }),
+  verifySrsCallback,
   validator("json", SrsOnPublishSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnPublishSchema>;
@@ -236,6 +255,15 @@ streamingRoutes.post(
 
     // Per-creator key validation
     if (!rawKey) {
+      rootLogger.warn(
+        {
+          event: "stream_key_rejected",
+          ip: body.ip,
+          stream: body.stream,
+          reason: "missing_key",
+        },
+        "Stream key rejected",
+      );
       return c.json({ code: 1 }, 403);
     }
 
@@ -243,6 +271,15 @@ streamingRoutes.post(
     const lookup = await lookupCreatorByKeyHash(keyHash);
 
     if (!lookup) {
+      rootLogger.warn(
+        {
+          event: "stream_key_rejected",
+          ip: body.ip,
+          stream: body.stream,
+          reason: "invalid_key",
+        },
+        "Stream key rejected",
+      );
       return c.json({ code: 1 }, 403);
     }
 
@@ -276,6 +313,7 @@ streamingRoutes.post(
       400: ERROR_400,
     },
   }),
+  verifySrsCallback,
   validator("json", SrsOnUnpublishSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnUnpublishSchema>;
@@ -305,6 +343,7 @@ streamingRoutes.post(
       400: ERROR_400,
     },
   }),
+  verifySrsCallback,
   validator("json", SrsOnForwardSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnForwardSchema>;
@@ -361,8 +400,9 @@ streamingRoutes.get(
     },
   }),
   requireAuth,
+  validator("param", CreatorIdParam),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const result = await listStreamKeys(user.id, creatorId);
     if (!result.ok) throw result.error;
@@ -388,9 +428,10 @@ streamingRoutes.post(
     },
   }),
   requireAuth,
+  validator("param", CreatorIdParam),
   validator("json", CreateStreamKeySchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const { name } = c.req.valid("json" as never) as z.infer<typeof CreateStreamKeySchema>;
     const result = await createStreamKey(user.id, creatorId, name);
@@ -417,9 +458,9 @@ streamingRoutes.delete(
     },
   }),
   requireAuth,
+  validator("param", CreatorKeyParams),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
-    const keyId = c.req.param("keyId");
+    const { creatorId, keyId } = c.req.valid("param" as never) as { creatorId: string; keyId: string };
     const user = c.get("user");
     const result = await revokeStreamKey(user.id, creatorId, keyId);
     if (!result.ok) throw result.error;
@@ -441,8 +482,9 @@ streamingRoutes.get(
     },
   }),
   requireAuth,
+  validator("param", CreatorIdParam),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const result = await listCreatorSimulcastDestinations(user.id, creatorId);
     if (!result.ok) throw result.error;
@@ -463,9 +505,10 @@ streamingRoutes.post(
     },
   }),
   requireAuth,
+  validator("param", CreatorIdParam),
   validator("json", CreateSimulcastDestinationSchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const body = c.req.valid("json" as never);
     const result = await createCreatorSimulcastDestination(
@@ -492,10 +535,10 @@ streamingRoutes.patch(
     },
   }),
   requireAuth,
+  validator("param", CreatorSimulcastParams),
   validator("json", UpdateSimulcastDestinationSchema),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
-    const { id } = c.req.param();
+    const { creatorId, id } = c.req.valid("param" as never) as { creatorId: string; id: string };
     const user = c.get("user");
     const body = c.req.valid("json" as never);
     const result = await updateCreatorSimulcastDestination(
@@ -522,9 +565,9 @@ streamingRoutes.delete(
     },
   }),
   requireAuth,
+  validator("param", CreatorSimulcastParams),
   async (c) => {
-    const creatorId = c.req.param("creatorId");
-    const { id } = c.req.param();
+    const { creatorId, id } = c.req.valid("param" as never) as { creatorId: string; id: string };
     const user = c.get("user");
     const result = await deleteCreatorSimulcastDestination(
       user.id,

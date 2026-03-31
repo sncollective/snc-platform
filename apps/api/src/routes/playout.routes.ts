@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
+import { z } from "zod";
 
 import {
   CreatePlayoutItemSchema,
@@ -25,6 +26,9 @@ import {
   skipCurrentTrack,
 } from "../services/playout.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
+
+/** Playout item ID param (text, not UUID) */
+const PlayoutIdParam = z.object({ id: z.string().min(1) });
 
 /** Playout playlist management and Liquidsoap control. */
 export const playoutRoutes = new Hono<AuthEnv>();
@@ -63,8 +67,10 @@ playoutRoutes.get(
       404: ERROR_404,
     },
   }),
+  validator("param", PlayoutIdParam),
   async (c) => {
-    const result = await getPlayoutItem(c.req.param("id"));
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const result = await getPlayoutItem(id);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },
@@ -106,10 +112,12 @@ playoutRoutes.patch(
       404: ERROR_404,
     },
   }),
+  validator("param", PlayoutIdParam),
   validator("json", UpdatePlayoutItemSchema),
   async (c) => {
+    const { id } = c.req.valid("param" as never) as { id: string };
     const body = c.req.valid("json" as never) as UpdatePlayoutItem;
-    const result = await updatePlayoutItem(c.req.param("id"), body);
+    const result = await updatePlayoutItem(id, body);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },
@@ -128,8 +136,10 @@ playoutRoutes.delete(
       404: ERROR_404,
     },
   }),
+  validator("param", PlayoutIdParam),
   async (c) => {
-    const result = await deletePlayoutItem(c.req.param("id"));
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const result = await deletePlayoutItem(id);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },
@@ -229,8 +239,10 @@ playoutRoutes.post(
       404: ERROR_404,
     },
   }),
+  validator("param", PlayoutIdParam),
   async (c) => {
-    const result = await queuePlayoutItem(c.req.param("id"));
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const result = await queuePlayoutItem(id);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },
