@@ -28,11 +28,16 @@ test.describe("Navigation flow", () => {
     ).toBeVisible();
   });
 
-  test("calendar page is accessible for stakeholders", async ({ page }) => {
-    await page.goto("/calendar");
+  test("governance calendar is accessible for stakeholders", async ({ page }) => {
+    await page.goto("/governance/calendar");
     await expect(
       page.getByRole("heading", { name: "Calendar", exact: true }),
     ).toBeVisible();
+  });
+
+  test("/calendar redirects to /governance/calendar", async ({ page }) => {
+    await page.goto("/calendar");
+    await expect(page).toHaveURL(/\/governance\/calendar/);
   });
 
   test("settings page is accessible for authenticated users", async ({ page }) => {
@@ -47,10 +52,9 @@ test.describe("Navigation flow", () => {
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     await nav.getByRole("link", { name: "Live" }).click();
     await expect(page).toHaveURL(/\/live/);
-    // The live page should render a channel selector (playout is always-on)
-    // or a "Coming Soon" placeholder when no streams are active
+    // Channel selector is always present (playout channels are pre-seeded)
     await expect(
-      page.getByLabel("Select channel").or(page.getByRole("heading", { name: "Coming Soon" })),
+      page.getByRole("combobox", { name: "Select channel" }),
     ).toBeVisible();
   });
 });

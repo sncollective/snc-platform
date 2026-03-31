@@ -31,7 +31,18 @@ function buildCellRenderers(
   onDelete: (id: string) => void,
 ): Record<string, (item: FeedItem) => React.ReactNode> {
   return {
-    title: (item) => <span className={styles.cellTitle}>{item.title}</span>,
+    title: (item) => (
+      <Link
+        to="/creators/$creatorId/manage/content/$contentId"
+        params={{
+          creatorId: creatorSlug,
+          contentId: item.slug ?? item.id,
+        }}
+        className={styles.cellTitle}
+      >
+        {item.title}
+      </Link>
+    ),
     type: (item) => (
       <span className={clsx(styles.typeBadge, styles[`typeBadge_${item.type}`])}>
         {TYPE_BADGE_LABELS[item.type]}
@@ -59,16 +70,6 @@ function buildCellRenderers(
     processing: (item) => <ProcessingIndicator status={item.processingStatus} />,
     _actions: (item) => (
       <div className={styles.rowActions}>
-        <Link
-          to="/creators/$creatorId/manage/content/$contentId"
-          params={{
-            creatorId: creatorSlug,
-            contentId: item.slug ?? item.id,
-          }}
-          className={styles.editLink}
-        >
-          Edit
-        </Link>
         <KebabMenu itemId={item.id} deletingId={deletingId} onDelete={onDelete} />
       </div>
     ),

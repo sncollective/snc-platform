@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Auth guards", () => {
-  test("calendar redirects unauthenticated users to login", async ({
+  test("governance calendar redirects unauthenticated users to login", async ({
     page,
   }) => {
-    await page.goto("/calendar");
+    await page.goto("/governance/calendar");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -21,7 +21,7 @@ test.describe("Auth guards", () => {
   });
 
   test("login preserves returnTo parameter", async ({ page }) => {
-    await page.goto("/calendar");
-    await expect(page).toHaveURL(/returnTo.*calendar/);
+    await page.goto("/governance/calendar");
+    await expect(page).toHaveURL(/returnTo.*governance.*calendar/);
   });
 });

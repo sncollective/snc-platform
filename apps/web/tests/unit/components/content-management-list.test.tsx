@@ -136,31 +136,30 @@ describe("ContentManagementList", () => {
     expect(select.value).toBe("all");
   });
 
-  it("generates slugified Edit link for items with handle + slug", () => {
+  it("title links to edit page using slug when available", () => {
     mockUseCursorPagination
       .mockReturnValueOnce(makePaginationResult([
-        makeItem({ id: "content-id", slug: "my-post", publishedAt: null }),
+        makeItem({ id: "content-id", slug: "my-post", title: "My Post", publishedAt: null }),
       ]))
       .mockReturnValueOnce(makePaginationResult([]));
 
     render(<ContentManagementList {...DEFAULT_PROPS} />);
 
-    const editLink = screen.getByRole("link", { name: "Edit" });
-    // creatorSlug = "maya-chen", contentId = slug = "my-post"
-    expect(editLink).toHaveAttribute("href", "/creators/maya-chen/manage/content/my-post");
+    const titleLink = screen.getByRole("link", { name: "My Post" });
+    expect(titleLink).toHaveAttribute("href", "/creators/maya-chen/manage/content/my-post");
   });
 
-  it("falls back to ID link for items without slug", () => {
+  it("title links to edit page using ID when slug is absent", () => {
     mockUseCursorPagination
       .mockReturnValueOnce(makePaginationResult([
-        makeItem({ id: "content-uuid", slug: null, publishedAt: null }),
+        makeItem({ id: "content-uuid", slug: null, title: "Untitled", publishedAt: null }),
       ]))
       .mockReturnValueOnce(makePaginationResult([]));
 
     render(<ContentManagementList {...DEFAULT_PROPS} />);
 
-    const editLink = screen.getByRole("link", { name: "Edit" });
-    expect(editLink).toHaveAttribute("href", "/creators/maya-chen/manage/content/content-uuid");
+    const titleLink = screen.getByRole("link", { name: "Untitled" });
+    expect(titleLink).toHaveAttribute("href", "/creators/maya-chen/manage/content/content-uuid");
   });
 
   it("shows load more for sections independently when nextCursor is present", () => {

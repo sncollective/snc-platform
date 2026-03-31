@@ -4,7 +4,7 @@ test.describe("Calendar", () => {
   test.use({ storageState: "auth/stakeholder.json" });
 
   test("loads calendar page with grid and filters", async ({ page }) => {
-    await page.goto("/calendar");
+    await page.goto("/governance/calendar");
 
     // Page heading
     await expect(
