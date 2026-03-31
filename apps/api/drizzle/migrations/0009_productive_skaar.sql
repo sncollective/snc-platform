@@ -1,0 +1,3 @@
+ALTER TABLE "simulcast_destinations" ADD COLUMN "creator_id" text;--> statement-breakpoint
+ALTER TABLE "simulcast_destinations" ADD CONSTRAINT "simulcast_destinations_creator_id_creator_profiles_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."creator_profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "simulcast_destinations_creator_active_idx" ON "simulcast_destinations" USING btree ("creator_id","is_active");

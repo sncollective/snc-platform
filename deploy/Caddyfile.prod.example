@@ -3,9 +3,10 @@
 # Shared security snippet + site blocks for s-nc.org and s-nc.tv.
 # Other service blocks (storage, streaming) are in their deploy guides:
 #   docs/ops/garage-deploy.md         → storage.s-nc.org
-#   boards/infra/guides/streaming-deploy.md → stream/relay.s-nc.tv
+#   docs/ops/srs-deploy.md                  → stream.s-nc.tv (SRS)
 #
 # Replace APP_IP with the snc-app container IP.
+# Replace SRS_IP with the SRS container/LXC IP (only used in s-nc.tv block).
 
 # ── Shared security headers ──────────────────────────────────────
 # Import in every site block: `import security_headers`
@@ -48,6 +49,7 @@ s-nc.org {
 
 # ── Streaming site (s-nc.tv) ─────────────────────────────────────
 # Same app as s-nc.org, different domain entry point.
+# HLS segments are proxied from SRS (port 8080) via path matcher.
 s-nc.tv {
 	import security_headers
 
@@ -60,6 +62,15 @@ s-nc.tv {
 	handle /uploads/* {
 		reverse_proxy APP_IP:3000
 	}
+
+	# SRS HLS — .m3u8 playlists and .ts segments
+	@hls {
+		path /live/*.m3u8 /live/*.ts
+	}
+	handle @hls {
+		reverse_proxy SRS_IP:8080
+	}
+
 	handle {
 		reverse_proxy APP_IP:3001
 	}

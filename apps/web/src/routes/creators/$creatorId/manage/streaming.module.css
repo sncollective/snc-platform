@@ -112,3 +112,222 @@
   font-family: var(--font-mono, monospace);
   word-break: break-all;
 }
+
+/* ── Simulcast Destinations ── */
+
+.simulcastSection {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.simulcastHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.destCount {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.addDestButton {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.addDestButton:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.addDestButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Destination Form ── */
+
+.destForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.destFormRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.destFormRow label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+}
+
+.destFormRow input,
+.destFormRow select {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+}
+
+.destFormRow input:focus,
+.destFormRow select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.destFormActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.destSaveButton {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.destSaveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.destCancelButton {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+/* ── Destination List ── */
+
+.destList {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.destItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.destInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.destPlatform {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.destLabel {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.destMaskedKey {
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.05em;
+}
+
+.destActive {
+  color: var(--color-success, hsl(140 60% 45%));
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+
+.destInactive {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.destActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.destToggleButton,
+.destEditButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.destToggleButton:hover,
+.destEditButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.destDeleteButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.destDeleteButton:hover {
+  background: var(--color-error);
+  color: var(--color-bg);
+}
+
+.emptyDest {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  padding: var(--space-md) 0;
+}

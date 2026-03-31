@@ -1,11 +1,11 @@
 # Rule: Flat Services Directory
 
-> The services/ folder stays flat until it exceeds ~15 files. Only subdivide by domain when needed.
+> The services/ folder stays flat until it exceeds ~25 files. Only subdivide by domain when needed.
 
 ## Motivation
 
-Premature folder nesting hurts discoverability more than a slightly long flat list. With 9 service
-files, every file is visible at a glance. Grouping into `services/stripe/`, `services/content/`,
+Premature folder nesting hurts discoverability more than a slightly long flat list. With 21 service
+files, every file is visible at a glance. Grouping into `services/stripe/`, `services/streaming/`,
 etc. adds navigation depth and makes it harder to find a service. The current flat structure
 naturally communicates what services exist. Subdivide only when the directory becomes genuinely
 hard to scan.
@@ -17,13 +17,25 @@ hard to scan.
 **Current (keep this):**
 ```
 apps/api/src/services/
+├── channels.ts            # Streaming channel management
+├── chat-rooms.ts          # Chat room lifecycle
+├── chat.ts                # Chat message handling
 ├── content-access.ts      # Subscription-based content gating
+├── creator-list.ts        # Creator listing queries
 ├── creator-team.ts        # Creator member permission logic
+├── emissions.ts           # Carbon emissions tracking
 ├── external-error.ts      # Error wrapping factory for 502s
-├── owncast.ts             # Owncast streaming integration
+├── liquidsoap.ts          # Liquidsoap playout control
+├── media-processing.ts    # Media transcode pipeline
+├── playout.ts             # Playout queue management
+├── processing-jobs.ts     # pg-boss job orchestration
 ├── revenue.ts             # Stripe revenue aggregation
 ├── shopify.ts             # Shopify Storefront API client
+├── simulcast.ts           # RTMP forward destinations
 ├── slug.ts                # URL slug generation
+├── srs.ts                 # SRS streaming server integration
+├── stream-keys.ts         # Stream key validation
+├── stream-sessions.ts     # Stream session lifecycle
 ├── stripe-client.ts       # Stripe SDK instance
 └── stripe.ts              # Stripe service functions
 ```
@@ -47,32 +59,36 @@ services/
     └── slug.ts
 ```
 
-**After (correct — stay flat at 9 files):**
+**After (correct — stay flat at 21 files):**
 ```
 services/
+├── channels.ts
+├── chat-rooms.ts
+├── chat.ts
 ├── content-access.ts
-├── creator-team.ts
-├── external-error.ts
-├── owncast.ts
-├── revenue.ts
-├── shopify.ts
-├── slug.ts
+├── ...
+├── srs.ts
+├── stream-keys.ts
+├── stream-sessions.ts
 ├── stripe-client.ts
 └── stripe.ts
 ```
 
-### When to eventually subdivide (~15+ files)
+### When to eventually subdivide (~25+ files)
 
-**If services grew to 18 files:**
+**If services grew to 28+ files:**
 ```
 services/
 ├── payments/
 │   ├── stripe.ts
 │   ├── stripe-client.ts
 │   └── revenue.ts
-├── integrations/
-│   ├── shopify.ts
-│   └── owncast.ts
+├── streaming/
+│   ├── srs.ts
+│   ├── channels.ts
+│   ├── simulcast.ts
+│   ├── stream-keys.ts
+│   └── stream-sessions.ts
 ├── content-access.ts
 ├── creator-team.ts
 ├── external-error.ts
@@ -83,8 +99,8 @@ services/
 
 - **Tightly coupled service pairs** — `stripe.ts` + `stripe-client.ts` are related but still
   work fine as flat siblings. Only group if a service grows to 3+ files.
-- **The ~15 threshold is a guideline, not a hard rule** — if services reach 13 but are all
-  clearly named and easy to scan, stay flat. If 12 files have confusing naming overlaps,
+- **The ~25 threshold is a guideline, not a hard rule** — if services reach 23 but are all
+  clearly named and easy to scan, stay flat. If naming overlaps make it hard to scan,
   consider grouping earlier.
 
 ## Scope

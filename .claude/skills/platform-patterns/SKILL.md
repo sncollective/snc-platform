@@ -54,7 +54,7 @@ Available patterns:
 - [content-access-gate.md](content-access-gate.md) — checkContentAccess() returns ContentGateResult discriminated union with 5 priority rules; callers branch on .reason for 401 vs 403
 
 ### Shopify Merch Storefront
-- [external-error-factory.md](external-error-factory.md) — wrapExternalError(code) factory → (e: unknown) => AppError(502) for blanket-502 services (Shopify, Owncast); Stripe uses wrapStripeErrorGranular for per-error-type statuses
+- [external-error-factory.md](external-error-factory.md) — wrapExternalError(code) factory → (e: unknown) => AppError(502) for blanket-502 services (Shopify, SRS); Stripe uses wrapStripeErrorGranular for per-error-type statuses
 - [web-fetch-client.md](web-fetch-client.md) — extractErrorMessage + throwIfNotOk foundation; apiGet<T> / apiMutate<T> / apiUpload<T> generic helpers in fetch-utils.ts; all client-side lib modules import these
 
 ### Service Booking

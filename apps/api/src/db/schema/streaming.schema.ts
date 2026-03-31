@@ -22,6 +22,9 @@ export const simulcastDestinations = pgTable(
     rtmpUrl: text("rtmp_url").notNull(),
     streamKey: text("stream_key").notNull(),
     isActive: boolean("is_active").notNull().default(false),
+    creatorId: text("creator_id").references(() => creatorProfiles.id, {
+      onDelete: "cascade",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -31,6 +34,10 @@ export const simulcastDestinations = pgTable(
   },
   (table) => [
     index("simulcast_destinations_active_idx").on(table.isActive),
+    index("simulcast_destinations_creator_active_idx").on(
+      table.creatorId,
+      table.isActive,
+    ),
   ],
 );
 

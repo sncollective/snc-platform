@@ -15,6 +15,9 @@ export const SIMULCAST_PLATFORM_KEYS = Object.keys(SIMULCAST_PLATFORMS) as [
   ...SimulcastPlatform[],
 ];
 
+/** Maximum simulcast destinations a single creator can configure. */
+export const MAX_CREATOR_SIMULCAST_DESTINATIONS = 5;
+
 // ── API Schemas ──
 
 export const SimulcastDestinationSchema = z.object({
@@ -24,6 +27,7 @@ export const SimulcastDestinationSchema = z.object({
   rtmpUrl: z.string(),
   streamKeyPrefix: z.string(),
   isActive: z.boolean(),
+  creatorId: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

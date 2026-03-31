@@ -21,6 +21,7 @@ const makeDestination = (overrides?: Partial<{
   rtmpUrl: string;
   streamKeyPrefix: string;
   isActive: boolean;
+  creatorId: string | null;
   createdAt: string;
   updatedAt: string;
 }>) => ({
@@ -30,6 +31,7 @@ const makeDestination = (overrides?: Partial<{
   rtmpUrl: "rtmp://live.twitch.tv/app",
   streamKeyPrefix: "sk_test1",
   isActive: true,
+  creatorId: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,

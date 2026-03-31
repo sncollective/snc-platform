@@ -26,7 +26,7 @@ Google Fonts origins are properly preconnected.
 ### Flaggable pattern: third-party origins without hints
 
 The platform integrates with several external services (configured via env vars):
-- **Owncast** streaming server (`OWNCAST_URL`, `OWNCAST_HLS_URL`) — HLS video segments loaded in-browser
+- **SRS** streaming server (`SRS_HLS_URL`) — HLS video segments loaded in-browser via Caddy proxy
 - **Shopify** storefront (`SHOPIFY_STORE_DOMAIN`) — merch product data
 - **Stripe** checkout — redirect-based, less benefit from preconnect
 
@@ -35,7 +35,7 @@ should be preconnected.
 
 **Before:**
 ```tsx
-// Root head() has no preconnect for Owncast HLS origin
+// Root head() has no preconnect for streaming HLS origin
 // When a user visits a live stream page, the browser discovers the HLS origin
 // only when the video player requests the first segment — 200ms+ penalty
 ```
@@ -45,21 +45,25 @@ should be preconnected.
 links: [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  // Add when streaming feature is enabled and origin is known
-  ...(import.meta.env.VITE_OWNCAST_HLS_URL
-    ? [{ rel: "dns-prefetch", href: new URL(import.meta.env.VITE_OWNCAST_HLS_URL).origin }]
+  // SRS HLS is proxied through Caddy on stream.s-nc.tv (same origin in prod),
+  // so preconnect is only needed if HLS is served from a separate origin
+  ...(import.meta.env.VITE_SRS_HLS_ORIGIN
+    ? [{ rel: "dns-prefetch", href: import.meta.env.VITE_SRS_HLS_ORIGIN }]
     : []),
 ],
 ```
 
 Note: use `dns-prefetch` (lighter) for origins that may not be needed on every page.
 Use `preconnect` (heavier, full connection setup) only for origins needed on most pages.
+In production, SRS HLS is proxied through Caddy on the same domain (`stream.s-nc.tv`),
+so no resource hint is needed unless HLS is served from a separate origin.
 
 ## Exceptions
 
 - Same-origin resources (`/api/*`) — no hint needed, connection is already established
 - Origins used only via server-side API calls (never fetched by the browser) — preconnect is for browser-initiated requests only
 - Stripe — checkout uses a redirect, not in-page resource loading; preconnect adds no value
+- SRS HLS — in production, HLS is proxied through Caddy on `stream.s-nc.tv` (same origin); no hint needed
 - Origins that vary per user or per page — can't be preconnected globally in root head
 
 ## Scope

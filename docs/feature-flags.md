@@ -33,7 +33,7 @@ When a flag is OFF, its API routes are never registered -- requests return 404.
 | `emissions` | Emissions | Our carbon footprint -- tracked, reduced, and offset. | OFF |
 | `calendar` | Calendar | Cooperative calendar with events and .ics feed. | ON |
 | `federation` | Federation | ActivityPub federation -- discover S/NC creators from the Fediverse. | OFF |
-| `streaming` | Streaming | Live streaming powered by Owncast -- watch creators perform live. | OFF |
+| `streaming` | Streaming | Live streaming powered by SRS -- watch creators perform live. | OFF |
 
 Production defaults are codified in the `PRODUCTION_DEFAULTS` preset. The `ALL_FEATURES_ON` preset enables every flag and is used for development and testing.
 
@@ -93,7 +93,7 @@ Checklist for adding a feature flag end-to-end:
 
 ## Gotchas
 
-**API flags default to ON.** The `booleanFlag` Zod transformer defaults to `"true"`, so any unset `FEATURE_*` env var enables its feature. This is intentional for dev ergonomics but means production deployments must explicitly set disabled flags to `"false"`. The two exceptions are `FEATURE_FEDERATION` and `FEATURE_STREAMING`, which default to `"false"` because they require external infrastructure (ActivityPub domain config and Owncast server, respectively).
+**API flags default to ON.** The `booleanFlag` Zod transformer defaults to `"true"`, so any unset `FEATURE_*` env var enables its feature. This is intentional for dev ergonomics but means production deployments must explicitly set disabled flags to `"false"`. The two exceptions are `FEATURE_FEDERATION` and `FEATURE_STREAMING`, which default to `"false"` because they require external infrastructure (ActivityPub domain config and SRS streaming server, respectively).
 
 **Web flags also default to ON.** The `flag()` helper in `apps/web/src/lib/config.ts` returns `true` for absent or empty values. Same rationale: local dev works without any feature flag configuration. Production builds must set `VITE_FEATURE_<FLAG>=false` explicitly.
 

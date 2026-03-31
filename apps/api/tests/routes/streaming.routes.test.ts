@@ -22,6 +22,10 @@ const mockCreateChannelRoom = vi.fn();
 const mockCloseChannelRoom = vi.fn();
 const mockBroadcastToRoom = vi.fn();
 const mockGetActiveSimulcastUrls = vi.fn();
+const mockListCreatorSimulcastDestinations = vi.fn();
+const mockCreateCreatorSimulcastDestination = vi.fn();
+const mockUpdateCreatorSimulcastDestination = vi.fn();
+const mockDeleteCreatorSimulcastDestination = vi.fn();
 
 // ── Fixtures ──
 
@@ -78,25 +82,34 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/services/simulcast.js", () => ({
       getActiveSimulcastUrls: mockGetActiveSimulcastUrls,
+      listCreatorSimulcastDestinations: mockListCreatorSimulcastDestinations,
+      createCreatorSimulcastDestination: mockCreateCreatorSimulcastDestination,
+      updateCreatorSimulcastDestination: mockUpdateCreatorSimulcastDestination,
+      deleteCreatorSimulcastDestination: mockDeleteCreatorSimulcastDestination,
     }));
-    vi.doMock("../../src/db/connection.js", () => ({
-      db: {
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
+    vi.doMock("../../src/db/connection.js", () => {
+      const makeWhere = (): Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } } => {
+        const p = Promise.resolve([]) as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
+        p.orderBy = vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        });
+        return p;
+      };
+      return {
+        db: {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockImplementation(makeWhere),
             }),
           }),
-        }),
-      },
-      sql: vi.fn(),
-    }));
+        },
+        sql: vi.fn(),
+      };
+    });
     vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
       streamSessions: { srsClientId: "srsClientId", endedAt: "endedAt", id: "id" },
       channels: {},
-      simulcastDestinations: { isActive: "isActive", rtmpUrl: "rtmpUrl", streamKey: "streamKey" },
+      simulcastDestinations: { isActive: "isActive", rtmpUrl: "rtmpUrl", streamKey: "streamKey", creatorId: "creatorId" },
     }));
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
       creatorProfiles: { id: "id", displayName: "displayName" },
@@ -125,6 +138,10 @@ const ctx = setupRouteTest({
     mockCloseChannelRoom.mockResolvedValue(undefined);
     mockBroadcastToRoom.mockReturnValue(undefined);
     mockGetActiveSimulcastUrls.mockResolvedValue([]);
+    mockListCreatorSimulcastDestinations.mockResolvedValue({ ok: true, value: [] });
+    mockCreateCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: { id: "dest-1", platform: "twitch", label: "My Twitch", rtmpUrl: "rtmp://live.twitch.tv/app", streamKeyPrefix: "sk_test1", isActive: true, creatorId: "creator-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } });
+    mockUpdateCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: { id: "dest-1", platform: "twitch", label: "My Twitch", rtmpUrl: "rtmp://live.twitch.tv/app", streamKeyPrefix: "sk_test1", isActive: true, creatorId: "creator-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } });
+    mockDeleteCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: undefined });
   },
 });
 
@@ -739,6 +756,152 @@ describe("streaming routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.revokedAt).not.toBeNull();
+    });
+  });
+
+  describe("Creator Simulcast Destinations", () => {
+    const CREATOR_ID = "creator-1";
+    const DEST_ID = "dest-1";
+    const validDestBody = {
+      platform: "twitch",
+      label: "My Twitch",
+      rtmpUrl: "rtmp://live.twitch.tv/app",
+      streamKey: "live_sk_test_key",
+    };
+
+    describe("GET /api/streaming/simulcast/:creatorId", () => {
+      it("returns 200 for authenticated user (service handles ownership)", async () => {
+        mockListCreatorSimulcastDestinations.mockResolvedValue({
+          ok: true,
+          value: [],
+        });
+
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}`,
+        );
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.destinations).toStrictEqual([]);
+        expect(mockListCreatorSimulcastDestinations).toHaveBeenCalledWith(
+          expect.any(String),
+          CREATOR_ID,
+        );
+      });
+
+      it("returns 401 when unauthenticated", async () => {
+        ctx.auth.user = null;
+        ctx.auth.session = null;
+
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}`,
+        );
+
+        expect(res.status).toBe(401);
+      });
+    });
+
+    describe("POST /api/streaming/simulcast/:creatorId", () => {
+      it("returns 201 on success", async () => {
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(validDestBody),
+          },
+        );
+
+        expect(res.status).toBe(201);
+        const body = await res.json();
+        expect(body.destination.id).toBe(DEST_ID);
+        expect(mockCreateCreatorSimulcastDestination).toHaveBeenCalledWith(
+          expect.any(String),
+          CREATOR_ID,
+          validDestBody,
+        );
+      });
+
+      it("returns 401 when unauthenticated", async () => {
+        ctx.auth.user = null;
+        ctx.auth.session = null;
+
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(validDestBody),
+          },
+        );
+
+        expect(res.status).toBe(401);
+      });
+    });
+
+    describe("PATCH /api/streaming/simulcast/:creatorId/:id", () => {
+      it("returns 200 on success", async () => {
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}/${DEST_ID}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive: false }),
+          },
+        );
+
+        expect(res.status).toBe(200);
+        expect(mockUpdateCreatorSimulcastDestination).toHaveBeenCalledWith(
+          expect.any(String),
+          CREATOR_ID,
+          DEST_ID,
+          { isActive: false },
+        );
+      });
+
+      it("returns 401 when unauthenticated", async () => {
+        ctx.auth.user = null;
+        ctx.auth.session = null;
+
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}/${DEST_ID}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive: false }),
+          },
+        );
+
+        expect(res.status).toBe(401);
+      });
+    });
+
+    describe("DELETE /api/streaming/simulcast/:creatorId/:id", () => {
+      it("returns 204 on success", async () => {
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}/${DEST_ID}`,
+          { method: "DELETE" },
+        );
+
+        expect(res.status).toBe(204);
+        expect(mockDeleteCreatorSimulcastDestination).toHaveBeenCalledWith(
+          expect.any(String),
+          CREATOR_ID,
+          DEST_ID,
+        );
+      });
+
+      it("returns 401 when unauthenticated", async () => {
+        ctx.auth.user = null;
+        ctx.auth.session = null;
+
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}/${DEST_ID}`,
+          { method: "DELETE" },
+        );
+
+        expect(res.status).toBe(401);
+      });
     });
   });
 });

@@ -1,0 +1,54 @@
+# SRS Production Configuration
+#
+# Deploy as an LXC container on Proxmox (2-4 CPU cores, 2GB RAM, 10GB disk).
+# Run via Docker: docker run -d --name snc-srs -p 1935:1935 -p 1985:1985 -p 8080:8080 \
+#   -v /path/to/srs.conf:/usr/local/srs/conf/srs.conf ossrs/srs:6
+#
+# Ports:
+#   1935 — RTMP ingest (OBS, Liquidsoap)
+#   1985 — HTTP API (platform queries, admin)
+#   8080 — HLS segments (proxied by Caddy on stream.s-nc.tv)
+#
+# Replace APP_IP with the snc-app container/LXC IP.
+
+listen 1935;
+max_connections 100;
+daemon off;
+srs_log_tank console;
+srs_log_level warn;
+
+http_server {
+    enabled on;
+    listen 8080;
+    dir /usr/local/srs/objs/nginx/html;
+    crossdomain on;
+}
+
+http_api {
+    enabled on;
+    listen 1985;
+    crossdomain on;
+    raw_api {
+        enabled on;
+        allow_reload on;
+    }
+}
+
+vhost __defaultVhost__ {
+    hls {
+        enabled on;
+        hls_fragment 2;
+        hls_window 10;
+    }
+
+    http_hooks {
+        enabled on;
+        on_publish http://APP_IP:3000/api/streaming/callbacks/on-publish;
+        on_unpublish http://APP_IP:3000/api/streaming/callbacks/on-unpublish;
+    }
+
+    forward {
+        enabled on;
+        backend http://APP_IP:3000/api/streaming/callbacks/on-forward;
+    }
+}

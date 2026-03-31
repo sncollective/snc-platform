@@ -52,7 +52,7 @@ const presignedUrl = await getSignedUrl(s3Client, command, {
 ## Exceptions
 
 - Download URLs for published content may use longer expiry (content is already public)
-- VOD stream URLs from Owncast pipeline may need different expiry based on stream duration
+- VOD stream URLs from SRS DVR pipeline may need different expiry based on stream duration
 
 ## Scope
 

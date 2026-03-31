@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc, isNull } from "drizzle-orm";
 
 import {
   ChannelListResponseSchema,
@@ -11,6 +11,8 @@ import {
   StreamKeysListResponseSchema,
   StreamKeyCreatedResponseSchema,
   StreamKeyResponseSchema,
+  CreateSimulcastDestinationSchema,
+  UpdateSimulcastDestinationSchema,
 } from "@snc/shared";
 
 import { getChannelList } from "../services/srs.js";
@@ -24,7 +26,13 @@ import { openSession, closeSession } from "../services/stream-sessions.js";
 import { createLiveChannel, deactivateLiveChannel } from "../services/channels.js";
 import { createChannelRoom, closeChannelRoom } from "../services/chat.js";
 import { broadcastToRoom } from "../services/chat-rooms.js";
-import { getActiveSimulcastUrls } from "../services/simulcast.js";
+import {
+  getActiveSimulcastUrls,
+  listCreatorSimulcastDestinations,
+  createCreatorSimulcastDestination,
+  updateCreatorSimulcastDestination,
+  deleteCreatorSimulcastDestination,
+} from "../services/simulcast.js";
 import { config } from "../config.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -314,6 +322,22 @@ streamingRoutes.post(
       urls.push(config.LIQUIDSOAP_RTMP_URL);
     }
 
+    // Look up creator from active session to fetch their simulcast destinations
+    const [session] = await db
+      .select({ creatorId: streamSessions.creatorId })
+      .from(streamSessions)
+      .where(
+        and(
+          eq(streamSessions.srsClientId, body.client_id),
+          isNull(streamSessions.endedAt),
+        ),
+      );
+
+    if (session) {
+      const creatorUrls = await getActiveSimulcastUrls(session.creatorId);
+      urls.push(...creatorUrls);
+    }
+
     return c.json({ code: 0, data: { urls } }, 200);
   },
 );
@@ -400,5 +424,114 @@ streamingRoutes.delete(
     const result = await revokeStreamKey(user.id, creatorId, keyId);
     if (!result.ok) throw result.error;
     return c.json(result.value);
+  },
+);
+
+// ── Creator Simulcast Destinations (owner-only) ──
+
+streamingRoutes.get(
+  "/simulcast/:creatorId",
+  describeRoute({
+    description: "List simulcast destinations for a creator (owner only)",
+    tags: ["streaming-simulcast"],
+    responses: {
+      200: { description: "Destination list" },
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const result = await listCreatorSimulcastDestinations(user.id, creatorId);
+    if (!result.ok) throw result.error;
+    return c.json({ destinations: result.value }, 200);
+  },
+);
+
+streamingRoutes.post(
+  "/simulcast/:creatorId",
+  describeRoute({
+    description: "Create a simulcast destination for a creator (owner only, max 5)",
+    tags: ["streaming-simulcast"],
+    responses: {
+      201: { description: "Created" },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  requireAuth,
+  validator("json", CreateSimulcastDestinationSchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const user = c.get("user");
+    const body = c.req.valid("json" as never);
+    const result = await createCreatorSimulcastDestination(
+      user.id,
+      creatorId,
+      body,
+    );
+    if (!result.ok) throw result.error;
+    return c.json({ destination: result.value }, 201);
+  },
+);
+
+streamingRoutes.patch(
+  "/simulcast/:creatorId/:id",
+  describeRoute({
+    description: "Update a creator's simulcast destination (owner only)",
+    tags: ["streaming-simulcast"],
+    responses: {
+      200: { description: "Updated" },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  requireAuth,
+  validator("json", UpdateSimulcastDestinationSchema),
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const { id } = c.req.param();
+    const user = c.get("user");
+    const body = c.req.valid("json" as never);
+    const result = await updateCreatorSimulcastDestination(
+      user.id,
+      creatorId,
+      id,
+      body,
+    );
+    if (!result.ok) throw result.error;
+    return c.json({ destination: result.value }, 200);
+  },
+);
+
+streamingRoutes.delete(
+  "/simulcast/:creatorId/:id",
+  describeRoute({
+    description: "Delete a creator's simulcast destination (owner only)",
+    tags: ["streaming-simulcast"],
+    responses: {
+      204: { description: "Deleted" },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const creatorId = c.req.param("creatorId");
+    const { id } = c.req.param();
+    const user = c.get("user");
+    const result = await deleteCreatorSimulcastDestination(
+      user.id,
+      creatorId,
+      id,
+    );
+    if (!result.ok) throw result.error;
+    return c.body(null, 204);
   },
 );

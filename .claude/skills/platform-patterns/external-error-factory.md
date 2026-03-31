@@ -17,16 +17,16 @@ export const wrapExternalError =
     new AppError(code, e instanceof Error ? e.message : String(e), 502);
 ```
 
-### Example 2: Owncast service specializes the factory
-**File**: `apps/api/src/services/owncast.ts:21`
+### Example 2: SRS service specializes the factory
+**File**: `apps/api/src/services/srs.ts`
 ```typescript
 import { wrapExternalError } from "./external-error.js";
 
-const wrapOwncastError = wrapExternalError("OWNCAST_ERROR");
+const wrapSrsError = wrapExternalError("SRS_ERROR");
 
 // Used in every catch block:
 } catch (e) {
-  return err(wrapOwncastError(e));
+  return err(wrapSrsError(e));
 }
 ```
 

@@ -42,7 +42,7 @@ snc/
 │   │   │   ├── middleware/    # Auth, CORS, error handling, rate limiting, request logging
 │   │   │   ├── routes/       # Domain-grouped route handlers
 │   │   │   ├── scripts/      # Seed scripts (admin, demo data)
-│   │   │   ├── services/     # Business logic (Stripe, Shopify, Owncast, emissions, creators)
+│   │   │   ├── services/     # Business logic (Stripe, Shopify, SRS, emissions, creators)
 │   │   │   └── storage/      # Pluggable StorageProvider (local or S3)
 │   │   ├── tests/            # API tests
 │   │   └── drizzle/          # SQL migrations
@@ -249,7 +249,11 @@ pnpm --filter @snc/e2e test
 | `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook secret (billing returns 503 without it) |
 | `SHOPIFY_STORE_DOMAIN` | — | Shopify `.myshopify.com` domain (merch returns 503 without it) |
 | `SHOPIFY_STOREFRONT_TOKEN` | — | Shopify Storefront API token (merch returns 503 without it) |
-| `OWNCAST_URL` | — | Owncast instance URL (streaming returns 503 without it) |
+| `SRS_API_URL` | — | SRS streaming server API URL (e.g., `http://srs-ip:1985`) |
+| `SRS_HLS_URL` | — | SRS HLS base URL (e.g., `https://stream.s-nc.tv/live`) |
+| `SRS_STREAM_KEY` | — | Stream key for SRS `on_publish` validation |
+| `PLAYOUT_STREAM_KEY` | — | Dedicated stream key for Liquidsoap playout |
+| `LIQUIDSOAP_API_URL` | — | Liquidsoap control API URL |
 | `FEDERATION_DOMAIN` | `s-nc.org` | ActivityPub federation domain |
 | `SEAFILE_OIDC_CLIENT_ID` | — | Seafile OIDC client ID (OIDC provider inactive without it) |
 | `SEAFILE_OIDC_CLIENT_SECRET` | — | Seafile OIDC client secret |
@@ -283,7 +287,7 @@ The API serves OpenAPI 3.1 documentation at `/api/openapi`. Key endpoint groups:
 | Dashboard | `/api/dashboard/*` | Stakeholder | Revenue, subscribers, bookings KPIs |
 | Studio | `/api/studio/*` | Stakeholder | Studio dashboard |
 | Emissions | `/api/emissions/*` | Stakeholder | Carbon tracking and reporting |
-| Streaming | `/api/streaming/*` | Mixed | Owncast streaming integration |
+| Streaming | `/api/streaming/*` | Mixed | SRS streaming, channels, playout, chat |
 | Federation | `/api/federation/*` | Public | ActivityPub federation endpoints |
 | Upload | `/api/upload/*` | Authenticated | Multipart/presigned upload handling |
 

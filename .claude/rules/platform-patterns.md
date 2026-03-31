@@ -46,7 +46,7 @@ One line per pattern. Read the linked file for full details and code examples.
 - **content-access-gate**: `checkContentAccess(userId, creatorId, visibility): Promise<ContentGateResult>` with 5 priority rules; discriminated union `{ allowed: true } | { allowed: false; reason; creatorId }` lets callers throw 401 vs 403 → [content-access-gate.md]
 
 ## Shopify Merch Storefront
-- **external-error-factory**: `wrapExternalError(code)` factory curries error code → `(e: unknown) => AppError(502)` for blanket-502 services (Shopify, Owncast); Stripe uses `wrapStripeErrorGranular` instead (see stripe-service-layer) → [external-error-factory.md]
+- **external-error-factory**: `wrapExternalError(code)` factory curries error code → `(e: unknown) => AppError(502)` for blanket-502 services (Shopify, SRS); Stripe uses `wrapStripeErrorGranular` instead (see stripe-service-layer) → [external-error-factory.md]
 - **web-fetch-client**: `extractErrorMessage(response)` + `throwIfNotOk(response)` foundation; `apiGet<T>` / `apiMutate<T>` / `apiUpload<T>` generic helpers in `fetch-utils.ts`; all client-side lib modules import these instead of raw fetch → [web-fetch-client.md]
 
 ## Service Booking
