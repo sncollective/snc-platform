@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -249,8 +249,12 @@ streamingRoutes.post(
     // Playout key: Liquidsoap authenticates with a dedicated key.
     // No session or channel creation — playout channels are pre-seeded.
     const playoutKey = config.PLAYOUT_STREAM_KEY;
-    if (playoutKey && rawKey === playoutKey) {
-      return c.json({ code: 0 }, 200);
+    if (playoutKey && rawKey) {
+      const a = Buffer.from(playoutKey, "utf-8");
+      const b = Buffer.from(rawKey, "utf-8");
+      if (a.length === b.length && timingSafeEqual(a, b)) {
+        return c.json({ code: 0 }, 200);
+      }
     }
 
     // Per-creator key validation

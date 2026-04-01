@@ -138,6 +138,11 @@ function LivePage(): React.ReactElement {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LayoutPrefs>(getInitialPrefs);
 
+  const selectedChannel =
+    channels.find((c) => c.id === selectedChannelId) ?? null;
+  const hasChannels = channels.length > 0;
+  const isStreaming = selectedChannel?.hlsUrl != null;
+
   // Derive layout signal from prefs
   const liveLayout: LiveLayout = prefs.theater ? "theater" : "default";
 
@@ -152,18 +157,19 @@ function LivePage(): React.ReactElement {
 
   // ── Layout signal: tell root layout to switch to grid ──
   useEffect(() => {
-    actions.setLiveLayout(liveLayout);
+    actions.setLiveLayout(isStreaming ? liveLayout : null);
     return () => actions.setLiveLayout(null);
-  }, [liveLayout, actions]);
+  }, [liveLayout, isStreaming, actions]);
 
   // ── Chat collapse signal: tell root layout to collapse chat column ──
   useEffect(() => {
-    actions.setChatCollapsed(prefs.chatCollapsed);
+    actions.setChatCollapsed(isStreaming && prefs.chatCollapsed);
     return () => actions.setChatCollapsed(false);
-  }, [prefs.chatCollapsed, actions]);
+  }, [prefs.chatCollapsed, isStreaming, actions]);
 
   // ── Keyboard shortcut: 't' for theater ──
   useEffect(() => {
+    if (!isStreaming) return;
     const handler = (e: KeyboardEvent) => {
       const target = e.target;
       if (
@@ -179,7 +185,7 @@ function LivePage(): React.ReactElement {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [prefs.theater, updatePrefs]);
+  }, [prefs.theater, isStreaming, updatePrefs]);
 
   // Auto-select default channel on first load only
   useEffect(() => {
@@ -187,10 +193,6 @@ function LivePage(): React.ReactElement {
       setSelectedChannelId(channelList.defaultChannelId);
     }
   }, [channelList?.defaultChannelId, selectedChannelId]);
-
-  const selectedChannel =
-    channels.find((c) => c.id === selectedChannelId) ?? null;
-  const hasChannels = channels.length > 0;
 
   // Signal expanded mode while /live is mounted with a selected channel
   useEffect(() => {
@@ -221,26 +223,10 @@ function LivePage(): React.ReactElement {
   const portalTarget = chatPortalRef.current;
 
   return (
-    <ChatProvider>
-      {/* Theater toggle — top-right of content area */}
-      <button
-        type="button"
-        className={clsx(
-          styles.theaterToggle,
-          prefs.theater && styles.theaterToggleActive,
-          prefs.chatCollapsed && styles.theaterToggleCollapsed,
-        )}
-        onClick={() => updatePrefs({ theater: !prefs.theater })}
-        aria-label="Theater mode"
-        aria-pressed={prefs.theater}
-        title="Theater mode (t)"
-      >
-        {prefs.theater ? "\u2715" : "\u2922"}
-      </button>
-
+    <>
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
       <div className={styles.routeContent}>
-        {!selectedChannel?.hlsUrl && <ComingSoonPlaceholder />}
+        {!isStreaming && <ComingSoonPlaceholder />}
 
         {hasChannels && (
           <div className={styles.streamInfo}>
@@ -280,37 +266,54 @@ function LivePage(): React.ReactElement {
         )}
       </div>
 
-      {/* Theater overlay */}
-      {prefs.theater && (
-        <TheaterOverlay
-          channel={selectedChannel}
-          onExitTheater={() => updatePrefs({ theater: false })}
-        />
-      )}
+      {/* Streaming-only UI: theater, chat, overlays */}
+      {isStreaming && (
+        <ChatProvider>
+          <button
+            type="button"
+            className={clsx(
+              styles.theaterToggle,
+              prefs.theater && styles.theaterToggleActive,
+              prefs.chatCollapsed && styles.theaterToggleCollapsed,
+            )}
+            onClick={() => updatePrefs({ theater: !prefs.theater })}
+            aria-label="Theater mode"
+            aria-pressed={prefs.theater}
+            title="Theater mode (t)"
+          >
+            {prefs.theater ? "\u2715" : "\u2922"}
+          </button>
 
-      {/* Chat portaled into root layout's grid column */}
-      {portalTarget && !prefs.chatCollapsed &&
-        createPortal(
-          <ChatPanel
-            channelId={selectedChannelId}
-            onCollapse={() => updatePrefs({ chatCollapsed: true })}
-          />,
-          portalTarget,
-        )}
+          {prefs.theater && (
+            <TheaterOverlay
+              channel={selectedChannel}
+              onExitTheater={() => updatePrefs({ theater: false })}
+            />
+          )}
 
-      {/* Chat expand tab (when collapsed) — arrow mirrors the collapse button */}
-      {prefs.chatCollapsed && (
-        <button
-          type="button"
-          className={styles.chatExpandTab}
-          onClick={() => updatePrefs({ chatCollapsed: false })}
-          aria-label="Show chat"
-          title="Show chat"
-        >
-          {"\u2190"}
-        </button>
+          {portalTarget && !prefs.chatCollapsed &&
+            createPortal(
+              <ChatPanel
+                channelId={selectedChannelId}
+                onCollapse={() => updatePrefs({ chatCollapsed: true })}
+              />,
+              portalTarget,
+            )}
+
+          {prefs.chatCollapsed && (
+            <button
+              type="button"
+              className={styles.chatExpandTab}
+              onClick={() => updatePrefs({ chatCollapsed: false })}
+              aria-label="Show chat"
+              title="Show chat"
+            >
+              {"\u2190"}
+            </button>
+          )}
+        </ChatProvider>
       )}
-    </ChatProvider>
+    </>
   );
 }
 

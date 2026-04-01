@@ -4,19 +4,22 @@
 # Run via Docker: docker run -d --name snc-srs -p 1935:1935 -p 1985:1985 -p 8080:8080 \
 #   -v /path/to/srs.conf:/usr/local/srs/conf/srs.conf ossrs/srs:6
 #
-# Ports:
-#   1935 — RTMP ingest (OBS, Liquidsoap)
-#   1985 — HTTP API (platform queries, admin)
-#   8080 — HLS segments (proxied by Caddy on stream.s-nc.tv)
+# SECURITY — Port exposure:
+#   1935 — RTMP ingest. OK to expose publicly (port-forward from router).
+#   1985 — HTTP API. MUST stay internal (VLAN-only, no port forward, no Caddy proxy).
+#   8080 — HLS segments. Internal only (Caddy proxies to viewers via stream.s-nc.tv).
+#   1936 — Liquidsoap RTMP ingest (if co-located). Internal only.
 #
 # Replace APP_IP with the snc-app container/LXC IP.
 # Replace SRS_CALLBACK_SECRET with the value from the platform .env.
 # Generate: openssl rand -hex 32
 
 listen 1935;
-max_connections 100;
+max_connections 1000;
 daemon off;
 srs_log_tank console;
+# warn level suppresses info/trace logs that would include callback URLs
+# containing the shared secret. Never use trace/info in production.
 srs_log_level warn;
 
 http_server {
@@ -30,8 +33,13 @@ http_api {
     enabled on;
     listen 1985;
     crossdomain on;
+    # SECURITY: Port 1985 MUST NOT be exposed publicly or proxied by Caddy.
+    # It provides unauthenticated access to stream stats and config reload.
+    # Firewall: allow TCP 1985 from APP_IP only.
     raw_api {
         enabled on;
+        # Required for simulcast — platform calls /api/v1/raw?rpc=reload
+        # when destinations change. Safe as long as 1985 is internal-only.
         allow_reload on;
     }
 }

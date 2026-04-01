@@ -125,7 +125,7 @@ export function ChatProvider({
       reconnectAttemptsRef.current = 0;
 
       // Re-join active room on reconnect
-      if (activeRoomRef.current) {
+      if (activeRoomRef.current && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "join", roomId: activeRoomRef.current }));
       }
     };
@@ -177,17 +177,22 @@ export function ChatProvider({
     };
   }, [connect]);
 
+  const safeSend = useCallback((data: string) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) ws.send(data);
+  }, []);
+
   const actions = useMemo(
     (): ChatActions => ({
       joinRoom: (roomId: string) => {
-        wsRef.current?.send(JSON.stringify({ type: "join", roomId }));
+        safeSend(JSON.stringify({ type: "join", roomId }));
       },
       leaveRoom: (roomId: string) => {
-        wsRef.current?.send(JSON.stringify({ type: "leave", roomId }));
+        safeSend(JSON.stringify({ type: "leave", roomId }));
       },
       sendMessage: (content: string) => {
         if (!activeRoomRef.current) return;
-        wsRef.current?.send(
+        safeSend(
           JSON.stringify({
             type: "message",
             roomId: activeRoomRef.current,
@@ -198,19 +203,19 @@ export function ChatProvider({
       setActiveRoom: (roomId: string) => {
         // Leave old room
         if (activeRoomRef.current) {
-          wsRef.current?.send(
+          safeSend(
             JSON.stringify({ type: "leave", roomId: activeRoomRef.current }),
           );
         }
         dispatch({ type: "SET_ACTIVE_ROOM", roomId });
         // Join new room
-        wsRef.current?.send(JSON.stringify({ type: "join", roomId }));
+        safeSend(JSON.stringify({ type: "join", roomId }));
       },
       setRooms: (rooms: ChatRoom[]) => {
         dispatch({ type: "SET_ROOMS", rooms });
       },
     }),
-    [],
+    [safeSend],
   );
 
   const value = useMemo(

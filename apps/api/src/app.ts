@@ -65,6 +65,7 @@ app.use("*", requestIdMiddleware);
 app.use("*", requestLogger);
 const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
 const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
+const srsCallbackLimiter = rateLimiter({ windowMs: 60_000, max: 30 });
 app.use("/api/auth/*", (c, next) => {
   const path = c.req.path;
   if (
@@ -123,6 +124,7 @@ app.route("/api/calendar", calendarRoutes);
 app.route("/api/calendar", calendarFeedRoutes);
 app.route("/api/calendar", calendarEventTypeRoutes);
 app.route("/api/projects", projectRoutes);
+app.use("/api/streaming/callbacks/*", srsCallbackLimiter);
 app.route("/api/streaming", streamingRoutes);
 import("./routes/chat.routes.js")
   .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
