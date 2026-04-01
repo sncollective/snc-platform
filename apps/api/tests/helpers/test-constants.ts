@@ -15,9 +15,6 @@ export const TEST_SRS_API_URL = "http://srs.test:1985";
 /** SRS HLS URL for unit test config mocks. */
 export const TEST_SRS_HLS_URL = "http://srs.test:8080/live/livestream.m3u8";
 
-/** SRS stream key for unit test config mocks. */
-export const TEST_SRS_STREAM_KEY = "test-stream-key";
-
 /** Shopify store domain for unit test config mocks. */
 export const TEST_SHOPIFY_STORE_DOMAIN = "test-store.myshopify.com";
 
@@ -47,7 +44,6 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   SHOPIFY_STOREFRONT_TOKEN: TEST_SHOPIFY_STOREFRONT_TOKEN,
   SRS_API_URL: TEST_SRS_API_URL as string | undefined,
   SRS_HLS_URL: TEST_SRS_HLS_URL as string | undefined,
-  SRS_STREAM_KEY: TEST_SRS_STREAM_KEY as string | undefined,
   PLAYOUT_STREAM_KEY: "pk_test_playout_key" as string | undefined,
   SRS_CALLBACK_SECRET: undefined as string | undefined,
   LIQUIDSOAP_API_URL: undefined as string | undefined,

@@ -49,7 +49,6 @@ export const ENV_SCHEMA = z.object({
   // SRS streaming server (optional — API returns 503 STREAMING_NOT_CONFIGURED when absent)
   SRS_API_URL: z.string().url().optional(),
   SRS_HLS_URL: z.string().url().optional(),
-  SRS_STREAM_KEY: z.string().min(1).optional(),
   PLAYOUT_STREAM_KEY: z.string().min(1).optional(),
   SRS_CALLBACK_SECRET: z.string().min(32).optional(),
   LIQUIDSOAP_API_URL: z.string().url().optional(),

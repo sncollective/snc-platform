@@ -251,8 +251,7 @@ pnpm --filter @snc/e2e test
 | `SHOPIFY_STOREFRONT_TOKEN` | — | Shopify Storefront API token (merch returns 503 without it) |
 | `SRS_API_URL` | — | SRS streaming server API URL (e.g., `http://srs-ip:1985`) |
 | `SRS_HLS_URL` | — | SRS HLS base URL (e.g., `https://stream.s-nc.tv/live`) |
-| `SRS_STREAM_KEY` | — | Stream key for SRS `on_publish` validation |
-| `PLAYOUT_STREAM_KEY` | — | Dedicated stream key for Liquidsoap playout |
+| `PLAYOUT_STREAM_KEY` | — | Stream key for Liquidsoap playout (validated by `on_publish` callback) |
 | `LIQUIDSOAP_API_URL` | — | Liquidsoap control API URL |
 | `LIQUIDSOAP_RTMP_URL` | `rtmp://snc-liquidsoap:1936/live/stream` | Liquidsoap RTMP ingest URL |
 | `SRS_CALLBACK_SECRET` | — | Shared secret for SRS HTTP callback authentication |

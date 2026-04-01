@@ -320,7 +320,7 @@ describe("streaming routes", () => {
       vi.resetModules();
 
       vi.doMock("../../src/config.js", () => ({
-        config: makeTestConfig({ SRS_STREAM_KEY: undefined }),
+        config: makeTestConfig(),
         parseOrigins: (raw: string) =>
           raw
             .split(",")
@@ -457,8 +457,8 @@ describe("streaming routes", () => {
       expect(body).toStrictEqual({ code: 1 });
     });
 
-    it("allows all publishes when SRS_STREAM_KEY not configured and no per-creator key needed", async () => {
-      // When no SRS_STREAM_KEY set AND no key provided → rejects (per-creator mode requires key)
+    it("rejects publish when no stream key is provided", async () => {
+      // Per-creator mode: no key in RTMP params → 403
       const res = await perCreatorApp.request(
         "/api/streaming/callbacks/on-publish",
         {

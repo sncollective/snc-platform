@@ -1,12 +1,22 @@
 # S/NC Production Caddyfile
 #
-# Shared security snippet + site blocks for s-nc.org and s-nc.tv.
+# Shared snippets + site blocks for s-nc.org and s-nc.tv.
 # Other service blocks (storage, streaming) are in their deploy guides:
 #   docs/ops/garage-deploy.md         → storage.s-nc.org
-#   docs/ops/srs-deploy.md                  → stream.s-nc.tv (SRS)
+#   docs/ops/srs-deploy.md           → stream.s-nc.tv (SRS)
 #
 # Replace APP_IP with the snc-app container IP.
 # Replace SRS_IP with the SRS container/LXC IP (only used in s-nc.tv block).
+#
+# Internal services (Garage admin :3903, SRS API :1985, Grafana :3000)
+# are NOT proxied here — they are internal VLAN only.
+
+# ── Global options ───────────────────────────────────────────────
+{
+	# Explicit TLS policy — Caddy defaults are strong, making them
+	# explicit prevents surprises on upgrades.
+	default_sni s-nc.org
+}
 
 # ── Shared security headers ──────────────────────────────────────
 # Import in every site block: `import security_headers`
@@ -21,9 +31,36 @@
 	}
 }
 
+# ── Shared access logging ────────────────────────────────────────
+# Structured JSON access logs. Caddy runs under systemd, so logs
+# also appear in the journal. File output lets Promtail ship to Loki
+# without relying on journal parsing for HTTP access data.
+(access_log) {
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 100MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
 # ── Platform (s-nc.org) ───────────────────────────────────────────
 s-nc.org {
 	import security_headers
+	import access_log
+
+	# TLS — Caddy auto-provisions Let's Encrypt certs.
+	# Explicit protocol range for defense-in-depth.
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	# Request body limit — 10MB covers API JSON + multipart forms.
+	# Large media uploads go direct to S3 via presigned URLs (bypass Caddy).
+	request_body {
+		max_size 10MB
+	}
 
 	# API + health + uploads → API server
 	handle /api/* {
@@ -52,6 +89,15 @@ s-nc.org {
 # HLS segments are proxied from SRS (port 8080) via path matcher.
 s-nc.tv {
 	import security_headers
+	import access_log
+
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	request_body {
+		max_size 10MB
+	}
 
 	handle /api/* {
 		reverse_proxy APP_IP:3000
