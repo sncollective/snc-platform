@@ -25,4 +25,5 @@ export * from "./uploads.js";
 export * from "./chat.js";
 export * from "./media-processing.js";
 export * from "./playout.js";
+export * from "./playout-queue.js";
 export { textToStream, streamToText } from "./storage-contract.js";

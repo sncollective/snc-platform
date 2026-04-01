@@ -4,6 +4,13 @@ import { AppError } from "@snc/shared";
 
 // AppError is used to construct mock return values for storage mocks
 
+// ── @aws-sdk/lib-storage mock (static vi.mock for external package) ──
+// Upload is mocked module-wide so vi.doMock picks it up via module reset.
+
+vi.mock("@aws-sdk/lib-storage", () => ({
+  Upload: vi.fn(),
+}));
+
 // ── Mock factories ──
 
 const mockMkdir = vi.fn();
@@ -44,6 +51,57 @@ const setupProcessingJobs = async () => {
       download: mockDownload,
       upload: mockUpload,
     },
+    s3Client: null,
+    s3Bucket: null,
+  }));
+
+  vi.doMock("../../src/db/connection.js", () => ({ db: {} }));
+  vi.doMock("../../src/db/schema/processing.schema.js", () => ({
+    processingJobs: {},
+  }));
+  vi.doMock("../../src/db/schema/content.schema.js", () => ({
+    content: {},
+  }));
+  vi.doMock("../../src/logging/logger.js", () => ({
+    rootLogger: {
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
+    },
+  }));
+
+  return await import("../../src/services/processing-jobs.js");
+};
+
+const setupProcessingJobsWithS3 = async () => {
+  vi.doMock("node:fs/promises", () => ({
+    mkdir: mockMkdir,
+    unlink: mockUnlink,
+    stat: mockStat,
+  }));
+
+  vi.doMock("node:fs", () => ({
+    createWriteStream: mockCreateWriteStream,
+    createReadStream: mockCreateReadStream,
+  }));
+
+  vi.doMock("node:stream/promises", () => ({
+    pipeline: mockPipeline,
+  }));
+
+  vi.doMock("../../src/config.js", () => ({
+    config: {
+      MEDIA_TEMP_DIR: "/tmp/snc-media",
+    },
+  }));
+
+  vi.doMock("../../src/storage/index.js", () => ({
+    storage: {
+      download: mockDownload,
+      upload: mockUpload,
+    },
+    s3Client: { send: vi.fn() }, // non-null S3Client
+    s3Bucket: "test-bucket",
   }));
 
   vi.doMock("../../src/db/connection.js", () => ({ db: {} }));
@@ -236,6 +294,97 @@ describe("processing-jobs", () => {
       await expect(
         cleanupTemp("/tmp/snc-media/missing.mp4"),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  // ── uploadFromTemp with streaming multipart ──
+
+  describe("uploadFromTemp with streaming multipart", () => {
+    it("uses Upload for large files on S3 (≥100MB)", async () => {
+      const mockUploadDone = vi.fn().mockResolvedValue(undefined);
+
+      mockStat.mockResolvedValue({ size: 100 * 1024 * 1024 }); // exactly 100MB
+      mockCreateReadStream.mockReturnValue({ pipe: vi.fn() });
+
+      // Import processing-jobs first so @aws-sdk/lib-storage is loaded into the module cache
+      const { uploadFromTemp } = await setupProcessingJobsWithS3();
+
+      // Configure the Upload constructor mock on the now-cached instance.
+      // Must use a regular function (not arrow) for constructor mocking.
+      const { Upload } = await import("@aws-sdk/lib-storage");
+      vi.mocked(Upload).mockImplementation(function () {
+        return { done: mockUploadDone } as never;
+      });
+
+      const result = await uploadFromTemp(
+        "/tmp/snc-media/large.mp4",
+        "output/large.mp4",
+        "video/mp4",
+      );
+
+      expect(result.ok).toBe(true);
+      expect(mockUploadDone).toHaveBeenCalledTimes(1);
+      // storage.upload should NOT have been called
+      expect(mockUpload).not.toHaveBeenCalled();
+    });
+
+    it("uses storage.upload for small files on S3 (<100MB)", async () => {
+      mockStat.mockResolvedValue({ size: 100 * 1024 * 1024 - 1 }); // 1 byte under threshold
+      mockCreateReadStream.mockReturnValue({ pipe: vi.fn() });
+      mockUpload.mockResolvedValue({ ok: true, value: undefined });
+
+      vi.doMock("node:stream", () => ({
+        Readable: {
+          fromWeb: vi.fn(),
+          toWeb: vi.fn().mockReturnValue({}),
+        },
+      }));
+
+      const { uploadFromTemp } = await setupProcessingJobsWithS3();
+
+      const { Upload } = await import("@aws-sdk/lib-storage");
+      const result = await uploadFromTemp(
+        "/tmp/snc-media/small.mp4",
+        "output/small.mp4",
+        "video/mp4",
+      );
+
+      expect(result.ok).toBe(true);
+      expect(vi.mocked(Upload)).not.toHaveBeenCalled();
+      expect(mockUpload).toHaveBeenCalledWith(
+        "output/small.mp4",
+        expect.anything(),
+        { contentType: "video/mp4", contentLength: 100 * 1024 * 1024 - 1 },
+      );
+    });
+
+    it("returns err when Upload.done() throws", async () => {
+      const mockUploadDone = vi.fn().mockRejectedValue(new Error("S3 multipart failed"));
+
+      mockStat.mockResolvedValue({ size: 200 * 1024 * 1024 }); // 200MB
+      mockCreateReadStream.mockReturnValue({ pipe: vi.fn() });
+
+      // Import processing-jobs first so @aws-sdk/lib-storage is in the module cache
+      const { uploadFromTemp } = await setupProcessingJobsWithS3();
+
+      // Configure the Upload constructor mock on the now-cached instance.
+      // Must use a regular function (not arrow) for constructor mocking.
+      const { Upload } = await import("@aws-sdk/lib-storage");
+      vi.mocked(Upload).mockImplementation(function () {
+        return { done: mockUploadDone } as never;
+      });
+
+      const result = await uploadFromTemp(
+        "/tmp/snc-media/large.mp4",
+        "output/large.mp4",
+        "video/mp4",
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("PROCESSING_ERROR");
+        expect(result.error.statusCode).toBe(500);
+      }
     });
   });
 });

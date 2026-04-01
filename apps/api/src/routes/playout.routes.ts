@@ -5,10 +5,8 @@ import { z } from "zod";
 import {
   CreatePlayoutItemSchema,
   UpdatePlayoutItemSchema,
-  ReorderPlayoutItemsSchema,
-  SavePlaylistSchema,
 } from "@snc/shared";
-import type { CreatePlayoutItem, UpdatePlayoutItem, ReorderPlayoutItems, SavePlaylist } from "@snc/shared";
+import type { CreatePlayoutItem, UpdatePlayoutItem } from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { requireAuth } from "../middleware/require-auth.js";
@@ -19,8 +17,6 @@ import {
   createPlayoutItem,
   updatePlayoutItem,
   deletePlayoutItem,
-  reorderPlayoutItems,
-  savePlaylist,
   getPlayoutStatus,
   queuePlayoutItem,
   skipCurrentTrack,
@@ -30,7 +26,7 @@ import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-error
 /** Playout item ID param (text, not UUID) */
 const PlayoutIdParam = z.object({ id: z.string().min(1) });
 
-/** Playout playlist management and Liquidsoap control. */
+/** Playout item management and Liquidsoap control. */
 export const playoutRoutes = new Hono<AuthEnv>();
 
 // All playout routes require admin role
@@ -142,50 +138,6 @@ playoutRoutes.delete(
     const result = await deletePlayoutItem(id);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
-  },
-);
-
-// PUT /items/reorder — reorder playout items
-playoutRoutes.put(
-  "/items/reorder",
-  describeRoute({
-    description: "Reorder playout items by providing a new ordered list of IDs.",
-    tags: ["playout"],
-    responses: {
-      200: { description: "Reordered playout items" },
-      400: ERROR_400,
-      401: ERROR_401,
-      403: ERROR_403,
-    },
-  }),
-  validator("json", ReorderPlayoutItemsSchema),
-  async (c) => {
-    const body = c.req.valid("json" as never) as ReorderPlayoutItems;
-    const result = await reorderPlayoutItems(body.orderedIds);
-    if (!result.ok) throw result.error;
-    return c.json({ items: result.value });
-  },
-);
-
-// PUT /playlist — batch save playlist state (enabled flags + positions)
-playoutRoutes.put(
-  "/playlist",
-  describeRoute({
-    description: "Batch-save playlist enabled flags and positions. Regenerates M3U once.",
-    tags: ["playout"],
-    responses: {
-      200: { description: "Playlist saved, returns updated items" },
-      400: ERROR_400,
-      401: ERROR_401,
-      403: ERROR_403,
-    },
-  }),
-  validator("json", SavePlaylistSchema),
-  async (c) => {
-    const body = c.req.valid("json" as never) as SavePlaylist;
-    const result = await savePlaylist(body);
-    if (!result.ok) throw result.error;
-    return c.json({ items: result.value });
   },
 );
 

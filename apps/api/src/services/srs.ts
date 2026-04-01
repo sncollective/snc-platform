@@ -5,7 +5,8 @@ import { config } from "../config.js";
 import { wrapExternalError } from "./external-error.js";
 import { getActiveChannels, selectDefaultChannel } from "./channels.js";
 import type { ChannelInfo } from "./channels.js";
-import { getPlayoutNowPlaying } from "./playout.js";
+import { orchestrator } from "../routes/playout-channels.init.js";
+import { getNowPlaying as getLiquidsoapNowPlaying } from "./liquidsoap.js";
 
 // ── Public Types ──
 
@@ -91,13 +92,48 @@ export const getChannelList = async (): Promise<
 
     // Enrich playout and broadcast channels with now-playing metadata (best-effort)
     const enriched = await Promise.all(
-      enrichedBase.map(async (ch) => ({
-        ...ch,
-        nowPlaying:
-          ch.type === "playout" || ch.type === "broadcast"
-            ? await getPlayoutNowPlaying(ch.srsStreamName)
-            : null,
-      })),
+      enrichedBase.map(async (ch) => {
+        if (ch.type === "playout") {
+          // Playout: DB queue is source of truth — no Liquidsoap round-trip needed
+          const queueStatus = await orchestrator.getChannelQueueStatus(ch.id);
+          if (queueStatus.ok && queueStatus.value.nowPlaying) {
+            const np = queueStatus.value.nowPlaying;
+            return {
+              ...ch,
+              nowPlaying: {
+                itemId: np.playoutItemId,
+                title: np.title,
+                year: null,
+                director: null,
+                duration: np.duration,
+                elapsed: -1, // DB doesn't track elapsed; Phase 3 can add Liquidsoap poll
+                remaining: -1,
+              },
+            };
+          }
+          return { ...ch, nowPlaying: null };
+        }
+
+        if (ch.type === "broadcast") {
+          // Broadcast: use Liquidsoap's /now-playing backward-compat endpoint for live elapsed/remaining
+          const raw = await getLiquidsoapNowPlaying();
+          if (!raw) return { ...ch, nowPlaying: null };
+          return {
+            ...ch,
+            nowPlaying: {
+              itemId: null,
+              title: raw.title ?? null,
+              year: null,
+              director: null,
+              duration: null,
+              elapsed: raw.elapsed,
+              remaining: raw.remaining,
+            },
+          };
+        }
+
+        return { ...ch, nowPlaying: null };
+      }),
     );
 
     return ok({

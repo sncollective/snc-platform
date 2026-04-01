@@ -10,6 +10,11 @@ import {
 // ── Mock Services ──
 
 const mockGetChannelList = vi.fn();
+
+// ── Mock DB (for isPlayoutStream channel lookup) ──
+// Default: no channels found (all streams treated as creator streams).
+// Tests that need a playout stream recognized should call mockDbSelectWhere.mockResolvedValue([{ id: "..." }]).
+const mockDbSelectWhere = vi.fn();
 const mockLookupCreatorByKeyHash = vi.fn();
 const mockOpenSession = vi.fn();
 const mockCloseSession = vi.fn();
@@ -89,7 +94,9 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/db/connection.js", () => {
       const makeWhere = (): Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } } => {
-        const p = Promise.resolve([]) as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
+        // Use mockDbSelectWhere to allow per-test control (e.g., returning channel rows for isPlayoutStream)
+        const resolved = mockDbSelectWhere();
+        const p = Promise.resolve(resolved ?? []) as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
         p.orderBy = vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([]),
         });
@@ -108,7 +115,7 @@ const ctx = setupRouteTest({
     });
     vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
       streamSessions: { srsClientId: "srsClientId", endedAt: "endedAt", id: "id" },
-      channels: {},
+      channels: { id: "id", srsStreamName: "srs_stream_name", isActive: "is_active" },
       simulcastDestinations: { isActive: "isActive", rtmpUrl: "rtmpUrl", streamKey: "streamKey", creatorId: "creatorId" },
     }));
     vi.doMock("../../src/db/schema/creator.schema.js", () => ({
@@ -142,6 +149,8 @@ const ctx = setupRouteTest({
     mockCreateCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: { id: "dest-1", platform: "twitch", label: "My Twitch", rtmpUrl: "rtmp://live.twitch.tv/app", streamKeyPrefix: "sk_test1", isActive: true, creatorId: "creator-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } });
     mockUpdateCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: { id: "dest-1", platform: "twitch", label: "My Twitch", rtmpUrl: "rtmp://live.twitch.tv/app", streamKeyPrefix: "sk_test1", isActive: true, creatorId: "creator-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } });
     mockDeleteCreatorSimulcastDestination.mockResolvedValue({ ok: true, value: undefined });
+    // Default: no channel found (stream is a creator stream, not playout)
+    mockDbSelectWhere.mockReturnValue([]);
   },
 });
 
@@ -566,6 +575,8 @@ describe("streaming routes", () => {
     });
 
     it("returns active simulcast URLs for snc-tv (playout stream name)", async () => {
+      // snc-tv is recognized as a playout/broadcast channel via DB lookup
+      mockDbSelectWhere.mockReturnValue([{ id: "channel-snctv" }]);
       mockGetActiveSimulcastUrls.mockResolvedValue([
         "rtmp://live.twitch.tv/app/live_sk_test",
       ]);
@@ -586,6 +597,8 @@ describe("streaming routes", () => {
     });
 
     it("returns empty array for snc-tv when no active destinations", async () => {
+      // snc-tv is recognized as a playout/broadcast channel via DB lookup
+      mockDbSelectWhere.mockReturnValue([{ id: "channel-snctv" }]);
       mockGetActiveSimulcastUrls.mockResolvedValue([]);
 
       const res = await ctx.app.request(
@@ -604,6 +617,8 @@ describe("streaming routes", () => {
     });
 
     it("returns active simulcast URLs for channel-classics (playout stream name)", async () => {
+      // channel-classics is recognized as a playout channel via DB lookup
+      mockDbSelectWhere.mockReturnValue([{ id: "channel-classics" }]);
       mockGetActiveSimulcastUrls.mockResolvedValue([
         "rtmp://a.rtmp.youtube.com/live2/yt_sk_test",
       ]);

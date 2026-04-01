@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import {
   TEST_CONFIG,
@@ -30,7 +30,8 @@ const makeSrsStreamsResponse = (
 
 const mockGetActiveChannels = vi.fn();
 const mockSelectDefaultChannel = vi.fn();
-const mockGetPlayoutNowPlaying = vi.fn().mockResolvedValue(null);
+const mockGetChannelQueueStatus = vi.fn().mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
+const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
 
 // ── Setup Factories ──
 
@@ -41,8 +42,13 @@ const setupSrsService = async () => {
     getActiveChannels: mockGetActiveChannels,
     selectDefaultChannel: mockSelectDefaultChannel,
   }));
-  vi.doMock("../../src/services/playout.js", () => ({
-    getPlayoutNowPlaying: mockGetPlayoutNowPlaying,
+  vi.doMock("../../src/routes/playout-channels.init.js", () => ({
+    orchestrator: {
+      getChannelQueueStatus: mockGetChannelQueueStatus,
+    },
+  }));
+  vi.doMock("../../src/services/liquidsoap.js", () => ({
+    getNowPlaying: mockGetLiquidsoapNowPlaying,
   }));
   return await import("../../src/services/srs.js");
 };
@@ -56,11 +62,22 @@ const setupUnconfiguredSrsService = async () => {
     getActiveChannels: mockGetActiveChannels,
     selectDefaultChannel: mockSelectDefaultChannel,
   }));
-  vi.doMock("../../src/services/playout.js", () => ({
-    getPlayoutNowPlaying: mockGetPlayoutNowPlaying,
+  vi.doMock("../../src/routes/playout-channels.init.js", () => ({
+    orchestrator: {
+      getChannelQueueStatus: mockGetChannelQueueStatus,
+    },
+  }));
+  vi.doMock("../../src/services/liquidsoap.js", () => ({
+    getNowPlaying: mockGetLiquidsoapNowPlaying,
   }));
   return await import("../../src/services/srs.js");
 };
+
+// Restore defaults before each test (vi.resetAllMocks() in afterEach clears return values)
+beforeEach(() => {
+  mockGetChannelQueueStatus.mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
+  mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
+});
 
 afterEach(() => {
   vi.resetModules();
@@ -73,7 +90,7 @@ afterEach(() => {
 const makeChannel = (overrides?: Partial<{
   id: string;
   name: string;
-  type: "playout" | "live" | "scheduled";
+  type: "playout" | "broadcast" | "live" | "scheduled";
   srsStreamName: string;
   hlsUrl: string | null;
   thumbnailUrl: string | null;
@@ -210,32 +227,86 @@ describe("srs service", () => {
       }
     });
 
-    it("enriches playout channels with nowPlaying data", async () => {
+    it("enriches playout channels with nowPlaying data from orchestrator", async () => {
       const channel = makeChannel({ type: "playout" });
-      const nowPlaying = {
-        itemId: "item-1",
-        title: "Test Film",
-        year: 2020,
-        director: "Test Director",
-        duration: 90.0,
-        elapsed: 30.0,
-        remaining: 60.0,
-      };
       mockGetActiveChannels.mockResolvedValue([channel]);
       mockSelectDefaultChannel.mockReturnValue("channel-1");
       mockFetch.mockReturnValue(mockFetchResponse(makeSrsStreamsResponse([])));
-      mockGetPlayoutNowPlaying.mockResolvedValue(nowPlaying);
+      mockGetChannelQueueStatus.mockResolvedValue({
+        ok: true,
+        value: {
+          nowPlaying: {
+            id: "queue-1",
+            playoutItemId: "item-1",
+            title: "Test Film",
+            duration: 90.0,
+            status: "playing",
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+          upcoming: [],
+          poolSize: 5,
+        },
+      });
 
       const { getChannelList } = await setupSrsService();
       const result = await getChannelList();
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.channels[0]?.nowPlaying).toEqual(nowPlaying);
+        const np = result.value.channels[0]?.nowPlaying;
+        expect(np).not.toBeNull();
+        expect(np?.itemId).toBe("item-1");
+        expect(np?.title).toBe("Test Film");
+        expect(np?.elapsed).toBe(-1);
+        expect(np?.remaining).toBe(-1);
       }
     });
 
-    it("sets nowPlaying to null for non-playout channels", async () => {
+    it("sets nowPlaying to null for playout channel when queue is empty", async () => {
+      const channel = makeChannel({ type: "playout" });
+      mockGetActiveChannels.mockResolvedValue([channel]);
+      mockSelectDefaultChannel.mockReturnValue("channel-1");
+      mockFetch.mockReturnValue(mockFetchResponse(makeSrsStreamsResponse([])));
+      mockGetChannelQueueStatus.mockResolvedValue({
+        ok: true,
+        value: { nowPlaying: null, upcoming: [], poolSize: 0 },
+      });
+
+      const { getChannelList } = await setupSrsService();
+      const result = await getChannelList();
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.channels[0]?.nowPlaying).toBeNull();
+      }
+    });
+
+    it("enriches broadcast channels with now-playing from Liquidsoap", async () => {
+      const channel = makeChannel({ type: "broadcast" });
+      mockGetActiveChannels.mockResolvedValue([channel]);
+      mockSelectDefaultChannel.mockReturnValue("channel-1");
+      mockFetch.mockReturnValue(mockFetchResponse(makeSrsStreamsResponse([])));
+      mockGetLiquidsoapNowPlaying.mockResolvedValue({
+        uri: "s3://snc-storage/playout/item-1/1080p.mp4",
+        title: "Test Film",
+        elapsed: 30.0,
+        remaining: 60.0,
+      });
+
+      const { getChannelList } = await setupSrsService();
+      const result = await getChannelList();
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const np = result.value.channels[0]?.nowPlaying;
+        expect(np).not.toBeNull();
+        expect(np?.title).toBe("Test Film");
+        expect(np?.elapsed).toBe(30.0);
+        expect(np?.remaining).toBe(60.0);
+      }
+    });
+
+    it("sets nowPlaying to null for non-playout/broadcast channels", async () => {
       const channel = makeChannel({ type: "live" });
       mockGetActiveChannels.mockResolvedValue([channel]);
       mockSelectDefaultChannel.mockReturnValue("channel-1");

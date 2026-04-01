@@ -12,6 +12,8 @@ const mockBoss = {
 
 // ── Setup ──
 
+const mockInitialize = vi.fn().mockResolvedValue(undefined);
+
 const setupRegisterWorkers = async () => {
   vi.doMock("../../src/config.js", () => ({
     config: {
@@ -21,6 +23,12 @@ const setupRegisterWorkers = async () => {
 
   vi.doMock("../../src/logging/logger.js", () => ({
     rootLogger: {
+      child: vi.fn().mockReturnValue({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      }),
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
@@ -41,6 +49,12 @@ const setupRegisterWorkers = async () => {
 
   vi.doMock("../../src/jobs/handlers/playout-ingest.js", () => ({
     handlePlayoutIngest: vi.fn(),
+  }));
+
+  vi.doMock("../../src/routes/playout-channels.init.js", () => ({
+    orchestrator: {
+      initialize: mockInitialize,
+    },
   }));
 
   return await import("../../src/jobs/register-workers.js");

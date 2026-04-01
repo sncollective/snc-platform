@@ -18,10 +18,16 @@ import type {
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
-import { simulcastDestinations } from "../db/schema/streaming.schema.js";
+import {
+  channels,
+  simulcastDestinations,
+} from "../db/schema/streaming.schema.js";
 import { creatorMembers } from "../db/schema/creator.schema.js";
 import { config } from "../config.js";
 import { toISO } from "../lib/response-helpers.js";
+import { rootLogger } from "../logging/logger.js";
+
+const logger = rootLogger.child({ service: "simulcast" });
 
 // ── Response Transformer ──
 
@@ -79,7 +85,7 @@ export async function listSimulcastDestinations(): Promise<
   return ok(rows.map(toDestinationResponse));
 }
 
-/** Create a new simulcast destination. Triggers SRS reload. */
+/** Create a platform simulcast destination. Restarts playout forward. */
 export async function createSimulcastDestination(
   input: CreateSimulcastDestination,
 ): Promise<Result<SimulcastDestination>> {
@@ -97,11 +103,11 @@ export async function createSimulcastDestination(
 
   if (!inserted) return err(new AppError("INSERT_FAILED", "Failed to create destination", 500));
 
-  await reloadSrs();
+  await restartPlayoutForward();
   return ok(toDestinationResponse(inserted));
 }
 
-/** Update an existing simulcast destination. Triggers SRS reload. */
+/** Update a platform simulcast destination. Restarts playout forward. */
 export async function updateSimulcastDestination(
   id: string,
   input: UpdateSimulcastDestination,
@@ -121,11 +127,11 @@ export async function updateSimulcastDestination(
 
   if (!updated) return err(new NotFoundError("Simulcast destination not found"));
 
-  await reloadSrs();
+  await restartPlayoutForward();
   return ok(toDestinationResponse(updated));
 }
 
-/** Delete a simulcast destination. Triggers SRS reload. */
+/** Delete a platform simulcast destination. Restarts playout forward. */
 export async function deleteSimulcastDestination(
   id: string,
 ): Promise<Result<void>> {
@@ -136,7 +142,7 @@ export async function deleteSimulcastDestination(
 
   if (!deleted) return err(new NotFoundError("Simulcast destination not found"));
 
-  await reloadSrs();
+  await restartPlayoutForward();
   return ok(undefined);
 }
 
@@ -196,7 +202,8 @@ export async function createCreatorSimulcastDestination(
   if (!inserted)
     return err(new AppError("INSERT_FAILED", "Failed to create destination", 500));
 
-  await reloadSrs();
+  // Creator forward changes apply on next stream — no SRS restart needed.
+  // SRS on_forward fires per-publish, and kicking a creator's OBS would be disruptive.
   return ok(toDestinationResponse(inserted));
 }
 
@@ -230,7 +237,6 @@ export async function updateCreatorSimulcastDestination(
 
   if (!updated) return err(new NotFoundError("Simulcast destination not found"));
 
-  await reloadSrs();
   return ok(toDestinationResponse(updated));
 }
 
@@ -255,7 +261,6 @@ export async function deleteCreatorSimulcastDestination(
 
   if (!deleted) return err(new NotFoundError("Simulcast destination not found"));
 
-  await reloadSrs();
   return ok(undefined);
 }
 
@@ -288,20 +293,61 @@ export async function getActiveSimulcastUrls(
   return rows.map((r) => `${r.rtmpUrl}/${r.streamKey}`);
 }
 
-// ── SRS Reload ──
+// ── SRS Forward Restart ──
 
-/** Trigger SRS config reload so on_forward re-evaluates destinations. Best-effort. */
-async function reloadSrs(): Promise<void> {
+/**
+ * Restart SRS forward for playout streams by kicking their publishers.
+ *
+ * SRS on_forward fires once per publish and is not re-triggered by config reload.
+ * Kicking the publisher causes Liquidsoap to auto-reconnect (~1-2s), which
+ * fires a fresh on_forward that picks up the latest simulcast destinations.
+ */
+async function restartPlayoutForward(): Promise<void> {
   const srsApiUrl = config.SRS_API_URL;
   if (!srsApiUrl) return;
 
   try {
-    await fetch(`${srsApiUrl}/api/v1/raw?rpc=reload`, {
-      method: "GET",
+    // Get playout stream names from the channels table (data-driven, matches isPlayoutStream)
+    const playoutChannels = await db
+      .select({ srsStreamName: channels.srsStreamName })
+      .from(channels)
+      .where(eq(channels.isActive, true));
+
+    const playoutStreams = new Set(
+      playoutChannels.map((c) => c.srsStreamName),
+    );
+
+    if (playoutStreams.size === 0) return;
+
+    const res = await fetch(`${srsApiUrl}/api/v1/streams?count=100`, {
       signal: AbortSignal.timeout(5_000),
     });
-  } catch {
-    // Best-effort — log warning but don't fail the operation
-    // SRS reload failure means destinations won't take effect until next stream publish
+    if (!res.ok) return;
+
+    const data = (await res.json()) as {
+      streams?: Array<{
+        name: string;
+        publish?: { active?: boolean; cid?: string };
+      }>;
+    };
+
+    for (const stream of data.streams ?? []) {
+      if (
+        playoutStreams.has(stream.name) &&
+        stream.publish?.active &&
+        stream.publish.cid
+      ) {
+        logger.info({ stream: stream.name }, "Kicking playout publisher to restart forward");
+        await fetch(`${srsApiUrl}/api/v1/clients/${stream.publish.cid}`, {
+          method: "DELETE",
+          signal: AbortSignal.timeout(5_000),
+        });
+      }
+    }
+  } catch (e) {
+    logger.warn(
+      { error: e instanceof Error ? e.message : String(e) },
+      "Failed to restart playout forward — destinations won't update until next publish",
+    );
   }
 }

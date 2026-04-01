@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/lib-storage": "^3.1021.0",
     "@aws-sdk/s3-request-presigner": "^3.1014.0",
     "@fedify/fedify": "^2.0.5",
     "@fedify/hono": "^2.0.5",

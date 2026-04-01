@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import { Upload } from "@aws-sdk/lib-storage";
+
 import { eq } from "drizzle-orm";
 import { AppError, ok, err } from "@snc/shared";
 import type { Result, ProcessingJobType, ProcessingJobStatus, ProcessingStatus } from "@snc/shared";
@@ -12,13 +14,17 @@ import type { Result, ProcessingJobType, ProcessingJobStatus, ProcessingStatus }
 import { db } from "../db/connection.js";
 import { processingJobs } from "../db/schema/processing.schema.js";
 import { content } from "../db/schema/content.schema.js";
-import { storage } from "../storage/index.js";
+import { storage, s3Client, s3Bucket } from "../storage/index.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 
 // ── Public Types ──
 
 export type ProcessingJobRow = typeof processingJobs.$inferSelect;
+
+// ── Constants ──
+
+const MULTIPART_THRESHOLD = 100 * 1024 * 1024; // 100 MB
 
 // ── Public API ──
 
@@ -124,6 +130,10 @@ export const downloadToTemp = async (
 /**
  * Upload a local file to storage. Returns ok on success.
  *
+ * For files ≥100 MB on S3, uses multipart streaming upload via `@aws-sdk/lib-storage`
+ * to avoid buffering the entire file in memory and to bypass the 5 GB single-PUT limit.
+ * Smaller files and local storage use the StorageProvider path.
+ *
  * @returns err(AppError) when upload fails or storage is unreachable
  */
 export const uploadFromTemp = async (
@@ -133,6 +143,22 @@ export const uploadFromTemp = async (
 ): Promise<Result<void, AppError>> => {
   try {
     const fileStats = await stat(tempPath);
+
+    if (s3Client && s3Bucket && fileStats.size >= MULTIPART_THRESHOLD) {
+      const upload = new Upload({
+        client: s3Client,
+        params: {
+          Bucket: s3Bucket,
+          Key: storageKey,
+          ContentType: contentType,
+          Body: createReadStream(tempPath),
+        },
+      });
+      await upload.done();
+      return ok(undefined);
+    }
+
+    // Small files or local storage — use existing StorageProvider
     const nodeStream = createReadStream(tempPath);
     const webStream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
     const uploadResult = await storage.upload(storageKey, webStream, {
@@ -142,8 +168,13 @@ export const uploadFromTemp = async (
     if (!uploadResult.ok) return err(uploadResult.error);
     return ok(undefined);
   } catch (e) {
-    rootLogger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to upload from temp");
-    return err(new AppError("PROCESSING_ERROR", "Failed to upload processed media", 500));
+    rootLogger.error(
+      { error: e instanceof Error ? e.message : String(e) },
+      "Failed to upload from temp",
+    );
+    return err(
+      new AppError("PROCESSING_ERROR", "Failed to upload processed media", 500),
+    );
   }
 };
 

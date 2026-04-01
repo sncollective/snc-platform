@@ -46,6 +46,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   SRS_HLS_URL: TEST_SRS_HLS_URL as string | undefined,
   PLAYOUT_STREAM_KEY: "pk_test_playout_key" as string | undefined,
   SRS_CALLBACK_SECRET: undefined as string | undefined,
+  PLAYOUT_CALLBACK_SECRET: "test-playout-callback-secret-minimum-32-chars" as string | undefined,
   LIQUIDSOAP_API_URL: undefined as string | undefined,
   LIQUIDSOAP_RTMP_URL: "rtmp://snc-liquidsoap:1936/live/stream",
   FEATURE_CONTENT: true,

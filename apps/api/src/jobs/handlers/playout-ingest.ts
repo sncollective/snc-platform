@@ -10,7 +10,6 @@ import {
 } from "../../services/processing-jobs.js";
 import { db } from "../../db/connection.js";
 import { playoutItems } from "../../db/schema/playout.schema.js";
-import { regeneratePlaylist } from "../../services/playout.js";
 import { JOB_QUEUES } from "../register-workers.js";
 import { rootLogger } from "../../logging/logger.js";
 
@@ -23,9 +22,9 @@ export type PlayoutIngestJobData = {
 // ── Handler ──
 
 /**
- * Handle a playout ingest job: download source, probe for metadata,
- * mark ready, and regenerate playlist. Liquidsoap reads the source
- * file directly — no rendition transcoding needed.
+ * Handle a playout ingest job: download source, remux, probe for metadata,
+ * and mark ready. The item sits in the content pool; auto-fill picks it up
+ * when the queue needs filling — no playlist to regenerate.
  */
 export const handlePlayoutIngest = async (
   [job]: [Job<PlayoutIngestJobData>],
@@ -104,12 +103,12 @@ export const handlePlayoutIngest = async (
       })
       .where(eq(playoutItems.id, playoutItemId));
 
-    // ── Mark ready + regenerate playlist ──
+    // ── Mark ready ──
+    // Item is now in the content pool. Auto-fill picks it up when the queue needs filling.
     await db
       .update(playoutItems)
       .set({ processingStatus: "ready", updatedAt: new Date() })
       .where(eq(playoutItems.id, playoutItemId));
-    await regeneratePlaylist();
     logger.info("Playout item ready");
   } catch (e) {
     logger.error({ error: e instanceof Error ? e.message : String(e) }, "Playout ingest failed");

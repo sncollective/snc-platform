@@ -1,19 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
+import type {
+  ChannelContent,
+  ChannelListResponse,
+  ChannelQueueStatus,
+  PoolCandidate,
+} from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
-import { AddFilmForm } from "../../components/admin/add-film-form.js";
-import { PlaylistItemRow } from "../../components/admin/playlist-item-row.js";
+import { AddContentForm } from "../../components/admin/add-content-form.js";
+import { ContentPoolTable } from "../../components/admin/content-pool-table.js";
+import { ContentSearchPicker } from "../../components/admin/content-search-picker.js";
+import { QueueItemRow } from "../../components/admin/queue-item-row.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
-  deletePlayoutItem,
-  fetchPlayoutStatus,
-  skipPlayoutTrack,
-  queuePlayoutItem,
-  savePlaylist,
-} from "../../lib/playout.js";
+  assignChannelContent,
+  fetchChannelContent,
+  fetchChannelQueue,
+  insertQueueItem,
+  removeChannelContent,
+  removeQueueItem,
+  skipChannelTrack,
+} from "../../lib/playout-channels.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
@@ -21,20 +30,21 @@ import styles from "./playout.module.css";
 
 // ── Constants ──
 
-const STATUS_POLL_INTERVAL_MS = 3_000;
+const QUEUE_POLL_INTERVAL_MS = 3_000;
 
 // ── Route ──
 
 export const Route = createFileRoute("/admin/playout")({
   loader: async (): Promise<{
-    items: PlayoutItemListResponse;
-    channels: ChannelListResponse | null;
+    allChannels: ChannelListResponse["channels"];
+    playoutChannels: ChannelListResponse["channels"];
   }> => {
-    const [data, channelsRes] = await Promise.all([
-      fetchApiServer({ data: "/api/playout/items" }) as Promise<PlayoutItemListResponse>,
-      fetchApiServer({ data: "/api/streaming/status" }).catch(() => null) as Promise<ChannelListResponse | null>,
-    ]);
-    return { items: data, channels: channelsRes };
+    const channels = await (
+      fetchApiServer({ data: "/api/streaming/status" }) as Promise<ChannelListResponse>
+    ).catch(() => null);
+    const allChannels = channels?.channels ?? [];
+    const playoutChannels = allChannels.filter((c) => c.type === "playout");
+    return { allChannels, playoutChannels };
   },
   head: () => ({
     meta: [{ title: "Playout Admin — S/NC" }],
@@ -43,43 +53,40 @@ export const Route = createFileRoute("/admin/playout")({
   component: PlayoutPage,
 });
 
-// ── Polling Hook ──
+// ── Channel Queue Hook ──
 
-/** Poll the playout status endpoint on a fixed interval. */
-function usePlayoutStatus(): PlayoutStatus | null {
-  const [status, setStatus] = useState<PlayoutStatus | null>(null);
+/** Poll channel queue status every 3 seconds. Returns null while loading or when no channel is selected. */
+function useChannelQueue(channelId: string | null): ChannelQueueStatus | null {
+  const [status, setStatus] = useState<ChannelQueueStatus | null>(null);
   const mountedRef = useRef(true);
-
-  const poll = useCallback(async () => {
-    try {
-      const next = await fetchPlayoutStatus();
-      if (mountedRef.current) setStatus(next);
-    } catch {
-      // Transient failure — keep showing the last known status
-    }
-  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
+    setStatus(null);
+
+    if (!channelId) return;
+
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Poll immediately, then on interval
-    void poll();
-
-    const schedule = () => {
-      timeoutId = setTimeout(async () => {
-        await poll();
-        if (mountedRef.current) schedule();
-      }, STATUS_POLL_INTERVAL_MS);
+    const poll = async (): Promise<void> => {
+      try {
+        const data = await fetchChannelQueue(channelId);
+        if (mountedRef.current) setStatus(data);
+      } catch {
+        // Keep last known state on transient failure
+      }
+      if (mountedRef.current) {
+        timeoutId = setTimeout(() => void poll(), QUEUE_POLL_INTERVAL_MS);
+      }
     };
 
-    schedule();
+    void poll();
 
     return () => {
       mountedRef.current = false;
       clearTimeout(timeoutId);
     };
-  }, [poll]);
+  }, [channelId]);
 
   return status;
 }
@@ -87,12 +94,15 @@ function usePlayoutStatus(): PlayoutStatus | null {
 // ── Broadcast Status Component ──
 
 /** Show S/NC TV broadcast channel status at the top of the playout admin page. */
-function BroadcastStatus({ channels }: { channels: ChannelListResponse | null }): React.ReactElement | null {
-  const broadcast = channels?.channels.find((ch) => ch.type === "broadcast");
+function BroadcastStatus({
+  channels,
+}: {
+  channels: ChannelListResponse["channels"];
+}): React.ReactElement | null {
+  const broadcast = channels.find((ch) => ch.type === "broadcast");
   if (!broadcast) return null;
 
-  // Check if a live creator has taken over S/NC TV
-  const liveCreator = channels?.channels.find(
+  const liveCreator = channels.find(
     (ch) => ch.type === "live" && ch.creator,
   );
 
@@ -116,7 +126,7 @@ function BroadcastStatus({ channels }: { channels: ChannelListResponse | null })
       ) : broadcast.nowPlaying ? (
         <div className={styles.nowPlaying}>
           <strong>Now Playing:</strong> {broadcast.nowPlaying.title ?? "Unknown"}
-          {broadcast.nowPlaying.director && ` — ${broadcast.nowPlaying.director}`}
+          {broadcast.nowPlaying.director != null && ` — ${broadcast.nowPlaying.director}`}
         </div>
       ) : null}
     </section>
@@ -125,247 +135,283 @@ function BroadcastStatus({ channels }: { channels: ChannelListResponse | null })
 
 // ── Page Component ──
 
-/** Admin playout management page. */
+/** Admin playout management page — channel tabs, queue, and content pool. */
 function PlayoutPage(): React.ReactElement {
-  const { items: initialData, channels } = Route.useLoaderData();
-  const [serverItems, setServerItems] = useState<PlayoutItem[]>(initialData.items);
-  const [pendingItems, setPendingItems] = useState<PlayoutItem[]>(initialData.items);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { allChannels, playoutChannels } = Route.useLoaderData();
+
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    playoutChannels[0]?.id ?? null,
+  );
+  const queueStatus = useChannelQueue(selectedChannelId);
+
+  const [poolItems, setPoolItems] = useState<ChannelContent[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showSearchPicker, setShowSearchPicker] = useState<"queue" | "pool" | null>(null);
+
   const [skipError, setSkipError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const status = usePlayoutStatus();
-
-  const isDirty = useMemo(() => {
-    if (serverItems.length !== pendingItems.length) return true;
-    return serverItems.some((s, i) => {
-      const p = pendingItems[i];
-      return !p || s.id !== p.id || s.enabled !== p.enabled || s.position !== p.position;
-    });
-  }, [serverItems, pendingItems]);
+  // Fetch content pool when selected channel changes
+  useEffect(() => {
+    if (!selectedChannelId) return;
+    fetchChannelContent(selectedChannelId)
+      .then((data) => setPoolItems(data.items))
+      .catch(() => {});
+  }, [selectedChannelId]);
 
   const handleSkip = async (): Promise<void> => {
+    if (!selectedChannelId) return;
     setSkipError(null);
     try {
-      await skipPlayoutTrack();
+      await skipChannelTrack(selectedChannelId);
     } catch (e) {
       setSkipError(e instanceof Error ? e.message : "Failed to skip track");
     }
   };
 
-  const handleToggleEnabled = (item: PlayoutItem): void => {
-    setPendingItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, enabled: !i.enabled } : i)),
-    );
-  };
-
-  const handleDelete = async (id: string): Promise<void> => {
+  const handleRemoveQueueItem = async (entryId: string): Promise<void> => {
+    if (!selectedChannelId) return;
     setActionError(null);
     try {
-      await deletePlayoutItem(id);
-      setServerItems((prev) => prev.filter((i) => i.id !== id));
-      setPendingItems((prev) => prev.filter((i) => i.id !== id));
+      await removeQueueItem(selectedChannelId, entryId);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to delete item");
+      setActionError(e instanceof Error ? e.message : "Failed to remove queue item");
     }
   };
 
-  const handleMoveUp = (index: number): void => {
-    if (index === 0) return;
-    setPendingItems((prev) => {
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(index - 1, 0, item!);
-      return next;
-    });
-  };
-
-  const handleMoveDown = (index: number): void => {
-    if (index === pendingItems.length - 1) return;
-    setPendingItems((prev) => {
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(index + 1, 0, item!);
-      return next;
-    });
-  };
-
-  const handlePlayNext = async (id: string): Promise<void> => {
+  const handlePlayNext = async (item: PoolCandidate): Promise<void> => {
+    if (!selectedChannelId) return;
     setActionError(null);
+    setShowSearchPicker(null);
     try {
-      await queuePlayoutItem(id);
+      await insertQueueItem(selectedChannelId, item.id, 1);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to queue item");
     }
   };
 
-  const handleSavePlaylist = async (): Promise<void> => {
+  const handleAssignContent = async (item: PoolCandidate): Promise<void> => {
+    if (!selectedChannelId) return;
     setActionError(null);
-    setIsSaving(true);
+    setShowSearchPicker(null);
     try {
-      const result = await savePlaylist({
-        items: pendingItems.map((item, i) => ({
-          id: item.id,
-          enabled: item.enabled,
-          position: i,
-        })),
-      });
-      setServerItems(result.items);
-      setPendingItems(result.items);
+      if (item.sourceType === "playout") {
+        await assignChannelContent(selectedChannelId, [item.id]);
+      } else {
+        await assignChannelContent(selectedChannelId, undefined, [item.id]);
+      }
+      // Refresh pool
+      const data = await fetchChannelContent(selectedChannelId);
+      setPoolItems(data.items);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to save playlist");
-    } finally {
-      setIsSaving(false);
+      setActionError(e instanceof Error ? e.message : "Failed to assign content");
     }
   };
 
-  const handleDiscardChanges = (): void => {
-    setPendingItems(serverItems);
+  const handleRemovePoolItem = async (item: ChannelContent): Promise<void> => {
+    if (!selectedChannelId) return;
+    setActionError(null);
+    try {
+      if (item.playoutItemId !== null) {
+        await removeChannelContent(selectedChannelId, [item.playoutItemId]);
+      } else if (item.contentId !== null) {
+        await removeChannelContent(selectedChannelId, undefined, [item.contentId]);
+      }
+      setPoolItems((prev) => prev.filter((p) => p.id !== item.id));
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to remove content");
+    }
   };
 
-  const handleItemAdded = (item: PlayoutItem): void => {
-    setServerItems((prev) => [...prev, item]);
-    setPendingItems((prev) => [...prev, item]);
-    setShowAddForm(false);
-  };
+  // Compute cumulative estimated start times for each upcoming queue entry
+  const upcomingWithEstimates = (queueStatus?.upcoming ?? []).map((entry, index, arr) => {
+    const cumulativeSecs = arr.slice(0, index).reduce<number | null>((acc, e) => {
+      if (acc === null || e.duration === null) return null;
+      return acc + e.duration;
+    }, 0);
+    return { entry, estimatedStart: cumulativeSecs };
+  });
 
   return (
     <div className={styles.page}>
       <h1 className={pageHeadingStyles.heading}>Playout</h1>
 
-      <BroadcastStatus channels={channels} />
+      <BroadcastStatus channels={allChannels} />
 
-      {/* Now-Playing Card */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Now Playing</h2>
-
-        {skipError !== null && (
-          <div className={errorStyles.error} role="alert">
-            {skipError}
-          </div>
-        )}
-
-        {status?.nowPlaying !== null && status?.nowPlaying !== undefined ? (
-          <div className={styles.nowPlayingCard}>
-            <div className={styles.nowPlayingInfo}>
-              <span className={styles.nowPlayingTitle}>
-                {status.nowPlaying.title}
-                {status.nowPlaying.year !== null && ` (${status.nowPlaying.year})`}
-              </span>
-              {status.nowPlaying.director !== null && (
-                <span className={styles.nowPlayingDirector}>
-                  dir. {status.nowPlaying.director}
-                </span>
-              )}
-              {status.nowPlaying.duration !== null && (
-                <span className={styles.nowPlayingTime}>
-                  {formatSeconds(status.nowPlaying.elapsed)} /{" "}
-                  {formatSeconds(status.nowPlaying.duration)}
-                </span>
-              )}
-            </div>
+      {/* Channel Tabs */}
+      {playoutChannels.length > 0 ? (
+        <div className={styles.channelTabs} role="tablist" aria-label="Playout channels">
+          {playoutChannels.map((ch) => (
             <button
+              key={ch.id}
               type="button"
-              className={styles.skipButton}
-              onClick={() => void handleSkip()}
+              role="tab"
+              aria-selected={ch.id === selectedChannelId}
+              className={
+                ch.id === selectedChannelId
+                  ? `${styles.channelTab} ${styles.channelTabActive}`
+                  : styles.channelTab
+              }
+              onClick={() => {
+                setSelectedChannelId(ch.id);
+                setShowAddForm(false);
+                setShowSearchPicker(null);
+              }}
             >
-              Skip
+              {ch.name}
             </button>
-          </div>
-        ) : (
-          <p className={listingStyles.status}>
-            {status === null ? "Loading…" : "Nothing playing"}
-          </p>
-        )}
-      </section>
-
-      {/* Queue */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionHeading}>Queue</h2>
-        {status?.queuedItems && status.queuedItems.length > 0 ? (
-          <ul className={styles.queueList}>
-            {status.queuedItems.map((entry) => (
-              <li key={entry.itemId + entry.queuedAt} className={styles.queueItem}>
-                <span className={styles.queueItemTitle}>{entry.title}</span>
-                <span className={styles.queueItemTime}>
-                  queued {new Date(entry.queuedAt).toLocaleTimeString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.queueEmpty}>Queue empty — playlist will auto-play.</p>
-        )}
-      </section>
-
-      {/* Playlist Management */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionHeading}>Playlist</h2>
-          <div className={styles.playlistActions}>
-            {isDirty && (
-              <>
-                <button
-                  type="button"
-                  className={styles.discardButton}
-                  onClick={handleDiscardChanges}
-                >
-                  Discard
-                </button>
-                <button
-                  type="button"
-                  className={styles.saveButton}
-                  onClick={() => void handleSavePlaylist()}
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving…" : "Save Playlist"}
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className={styles.addButton}
-              onClick={() => setShowAddForm(true)}
-            >
-              Add Film
-            </button>
-          </div>
+          ))}
         </div>
+      ) : (
+        <p className={listingStyles.status}>No playout channels configured.</p>
+      )}
 
-        {actionError !== null && (
-          <div className={errorStyles.error} role="alert">
-            {actionError}
-          </div>
-        )}
+      {selectedChannelId !== null && (
+        <>
+          {/* Global action error */}
+          {actionError !== null && (
+            <div className={errorStyles.error} role="alert">
+              {actionError}
+            </div>
+          )}
 
-        {showAddForm && (
-          <AddFilmForm
-            onAdded={handleItemAdded}
-            onCancel={() => setShowAddForm(false)}
-          />
-        )}
+          {/* Now Playing */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionHeading}>Now Playing</h2>
 
-        {pendingItems.length === 0 && !showAddForm ? (
-          <p className={listingStyles.status}>No items in playlist</p>
-        ) : (
-          <ul className={styles.playlistItems} aria-label="Playlist">
-            {pendingItems.map((item, index) => (
-              <PlaylistItemRow
-                key={item.id}
-                item={item}
-                index={index}
-                total={pendingItems.length}
-                onToggleEnabled={() => handleToggleEnabled(item)}
-                onDelete={() => void handleDelete(item.id)}
-                onMoveUp={() => handleMoveUp(index)}
-                onMoveDown={() => handleMoveDown(index)}
-                onPlayNext={() => void handlePlayNext(item.id)}
+            {skipError !== null && (
+              <div className={errorStyles.error} role="alert">
+                {skipError}
+              </div>
+            )}
+
+            {queueStatus?.nowPlaying != null ? (
+              <div className={styles.nowPlayingCard}>
+                <div className={styles.nowPlayingInfo}>
+                  <span className={styles.nowPlayingTitle}>
+                    {queueStatus.nowPlaying.title}
+                  </span>
+                  {queueStatus.nowPlaying.duration !== null && (
+                    <span className={styles.nowPlayingTime}>
+                      {formatSeconds(queueStatus.nowPlaying.duration)}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={styles.skipButton}
+                  onClick={() => void handleSkip()}
+                >
+                  Skip
+                </button>
+              </div>
+            ) : (
+              <p className={listingStyles.status}>
+                {queueStatus === null ? "Loading…" : "Nothing playing"}
+              </p>
+            )}
+          </section>
+
+          {/* Queue */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionHeading}>Queue</h2>
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  className={styles.addButton}
+                  onClick={() =>
+                    setShowSearchPicker(showSearchPicker === "queue" ? null : "queue")
+                  }
+                >
+                  + Play Next
+                </button>
+                {showSearchPicker === "queue" && (
+                  <ContentSearchPicker
+                    channelId={selectedChannelId}
+                    onSelect={(item) => void handlePlayNext(item)}
+                    onClose={() => setShowSearchPicker(null)}
+                  />
+                )}
+              </div>
+            </div>
+
+            {upcomingWithEstimates.length > 0 ? (
+              <ul className={styles.queueList} aria-label="Upcoming queue">
+                {upcomingWithEstimates.map(({ entry, estimatedStart }) => (
+                  <QueueItemRow
+                    key={entry.id}
+                    entry={entry}
+                    estimatedStart={estimatedStart}
+                    onRemove={() => void handleRemoveQueueItem(entry.id)}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.queueEmpty}>
+                {queueStatus === null ? "Loading…" : "Queue empty — content pool will auto-play."}
+              </p>
+            )}
+          </section>
+
+          {/* Content Pool */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionHeading}>
+                Content Pool
+                {queueStatus !== null && ` (${queueStatus.poolSize} items)`}
+              </h2>
+              <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center", position: "relative" }}>
+                <div style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    className={styles.addButton}
+                    onClick={() =>
+                      setShowSearchPicker(showSearchPicker === "pool" ? null : "pool")
+                    }
+                  >
+                    + Add Content
+                  </button>
+                  {showSearchPicker === "pool" && (
+                    <ContentSearchPicker
+                      channelId={selectedChannelId}
+                      onSelect={(item) => void handleAssignContent(item)}
+                      onClose={() => setShowSearchPicker(null)}
+                    />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={styles.addButton}
+                  onClick={() => setShowAddForm(!showAddForm)}
+                >
+                  + Create New
+                </button>
+              </div>
+            </div>
+
+            {showAddForm && (
+              <AddContentForm
+                channelId={selectedChannelId}
+                onAdded={(item) => {
+                  // Pool is refreshed after assignChannelContent in the form
+                  fetchChannelContent(selectedChannelId)
+                    .then((data) => setPoolItems(data.items))
+                    .catch(() => {});
+                  setShowAddForm(false);
+                  void item; // suppress unused var
+                }}
+                onCancel={() => setShowAddForm(false)}
               />
-            ))}
-          </ul>
-        )}
-      </section>
+            )}
+
+            <ContentPoolTable
+              items={poolItems}
+              onRemove={(item) => void handleRemovePoolItem(item)}
+            />
+          </section>
+        </>
+      )}
     </div>
   );
 }

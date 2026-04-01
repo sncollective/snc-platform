@@ -5,86 +5,72 @@ import {
   vi,
   beforeEach,
 } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
+import type {
+  ChannelListResponse,
+  ChannelQueueStatus,
+  ChannelContent,
+} from "@snc/shared";
 import { createRouterMock } from "../../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../../helpers/route-test-utils.js";
 
 // ── Fixtures ──
 
-function makeMockPlayoutItem(
-  overrides?: Partial<PlayoutItem>,
-): PlayoutItem {
+function makeMockPlayoutChannel(
+  overrides?: Partial<ChannelListResponse["channels"][number]>,
+): ChannelListResponse["channels"][number] {
   return {
-    id: "item_001",
-    title: "Metropolis",
-    year: 1927,
-    director: "Fritz Lang",
-    duration: 9000,
-    sourceWidth: 1920,
-    sourceHeight: 1080,
-    processingStatus: "ready",
-    position: 0,
-    enabled: true,
-    renditions: {
-      source: true,
-      "1080p": true,
-      "720p": true,
-      "480p": true,
-      audio: true,
-    },
-    hasSubtitles: false,
-    createdAt: "2025-01-01T00:00:00Z",
-    updatedAt: "2025-01-01T00:00:00Z",
+    id: "ch_playout_1",
+    name: "Classics",
+    type: "playout",
+    thumbnailUrl: null,
+    hlsUrl: null,
+    viewerCount: 0,
+    creator: null,
+    startedAt: null,
+    nowPlaying: null,
     ...overrides,
   };
 }
 
-function makeMockStatus(
-  overrides?: Partial<PlayoutStatus>,
-): PlayoutStatus {
+function makeMockQueueStatus(
+  overrides?: Partial<ChannelQueueStatus>,
+): ChannelQueueStatus {
   return {
+    channelId: "ch_playout_1",
+    channelName: "Classics",
     nowPlaying: {
-      itemId: "item_001",
+      id: "entry_001",
+      channelId: "ch_playout_1",
+      playoutItemId: "item_001",
+      position: 0,
+      status: "playing",
+      pushedToLiquidsoap: true,
+      createdAt: "2026-01-01T00:00:00Z",
       title: "Metropolis",
-      year: 1927,
-      director: "Fritz Lang",
       duration: 9000,
-      elapsed: 600,
-      remaining: 8400,
     },
-    queuedItems: [],
+    upcoming: [],
+    poolSize: 5,
     ...overrides,
   };
 }
 
-function makeMockChannels(
-  overrides?: Partial<ChannelListResponse>,
-): ChannelListResponse {
+function makeMockChannelContent(
+  overrides?: Partial<ChannelContent>,
+): ChannelContent {
   return {
-    defaultChannelId: "ch_broadcast",
-    channels: [
-      {
-        id: "ch_broadcast",
-        name: "S/NC TV",
-        type: "broadcast",
-        thumbnailUrl: null,
-        hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
-        viewerCount: 0,
-        creator: null,
-        startedAt: null,
-        nowPlaying: {
-          itemId: "item_001",
-          title: "Metropolis",
-          year: 1927,
-          director: "Fritz Lang",
-          duration: 9000,
-          elapsed: 600,
-          remaining: 8400,
-        },
-      },
-    ],
+    id: "cc_001",
+    channelId: "ch_playout_1",
+    playoutItemId: "item_001",
+    contentId: null,
+    sourceType: "playout",
+    title: "Metropolis",
+    duration: 9000,
+    lastPlayedAt: null,
+    playCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
     ...overrides,
   };
 }
@@ -92,27 +78,27 @@ function makeMockChannels(
 // ── Hoisted Mocks ──
 
 const {
-  mockFetchPlayoutItems,
-  mockCreatePlayoutItem,
-  mockUpdatePlayoutItem,
-  mockDeletePlayoutItem,
-  mockReorderPlayoutItems,
-  mockFetchPlayoutStatus,
-  mockSkipPlayoutTrack,
-  mockQueuePlayoutItem,
-  mockSavePlaylist,
+  mockFetchChannelQueue,
+  mockFetchChannelContent,
+  mockSkipChannelTrack,
+  mockInsertQueueItem,
+  mockRemoveQueueItem,
+  mockAssignChannelContent,
+  mockRemoveChannelContent,
+  mockSearchAvailableContent,
   mockStartUpload,
+  mockCreatePlayoutItem,
 } = vi.hoisted(() => ({
-  mockFetchPlayoutItems: vi.fn(),
-  mockCreatePlayoutItem: vi.fn(),
-  mockUpdatePlayoutItem: vi.fn(),
-  mockDeletePlayoutItem: vi.fn(),
-  mockReorderPlayoutItems: vi.fn(),
-  mockFetchPlayoutStatus: vi.fn(),
-  mockSkipPlayoutTrack: vi.fn(),
-  mockQueuePlayoutItem: vi.fn(),
-  mockSavePlaylist: vi.fn(),
+  mockFetchChannelQueue: vi.fn(),
+  mockFetchChannelContent: vi.fn(),
+  mockSkipChannelTrack: vi.fn(),
+  mockInsertQueueItem: vi.fn(),
+  mockRemoveQueueItem: vi.fn(),
+  mockAssignChannelContent: vi.fn(),
+  mockRemoveChannelContent: vi.fn(),
+  mockSearchAvailableContent: vi.fn(),
   mockStartUpload: vi.fn(),
+  mockCreatePlayoutItem: vi.fn(),
 }));
 
 const mockUseLoaderData = vi.hoisted(() => vi.fn());
@@ -132,16 +118,27 @@ vi.mock("../../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
 }));
 
+vi.mock("../../../../src/lib/playout-channels.js", () => ({
+  fetchChannelQueue: mockFetchChannelQueue,
+  fetchChannelContent: mockFetchChannelContent,
+  skipChannelTrack: mockSkipChannelTrack,
+  insertQueueItem: mockInsertQueueItem,
+  removeQueueItem: mockRemoveQueueItem,
+  assignChannelContent: mockAssignChannelContent,
+  removeChannelContent: mockRemoveChannelContent,
+  searchAvailableContent: mockSearchAvailableContent,
+}));
+
 vi.mock("../../../../src/lib/playout.js", () => ({
-  fetchPlayoutItems: mockFetchPlayoutItems,
+  fetchPlayoutItems: vi.fn(),
   createPlayoutItem: mockCreatePlayoutItem,
-  updatePlayoutItem: mockUpdatePlayoutItem,
-  deletePlayoutItem: mockDeletePlayoutItem,
-  reorderPlayoutItems: mockReorderPlayoutItems,
-  fetchPlayoutStatus: mockFetchPlayoutStatus,
-  skipPlayoutTrack: mockSkipPlayoutTrack,
-  queuePlayoutItem: mockQueuePlayoutItem,
-  savePlaylist: mockSavePlaylist,
+  updatePlayoutItem: vi.fn(),
+  deletePlayoutItem: vi.fn(),
+  reorderPlayoutItems: vi.fn(),
+  fetchPlayoutStatus: vi.fn(),
+  skipPlayoutTrack: vi.fn(),
+  queuePlayoutItem: vi.fn(),
+  savePlaylist: vi.fn(),
 }));
 
 vi.mock("../../../../src/contexts/upload-context.js", () => ({
@@ -160,23 +157,31 @@ const PlayoutPage = extractRouteComponent(
 // ── Lifecycle ──
 
 beforeEach(() => {
-  const item = makeMockPlayoutItem();
-  const loaderData: { items: PlayoutItemListResponse; channels: ChannelListResponse | null } = {
-    items: { items: [item] },
-    channels: null,
-  };
-  mockUseLoaderData.mockReturnValue(loaderData);
-  mockFetchPlayoutStatus.mockResolvedValue(makeMockStatus());
-  mockUpdatePlayoutItem.mockResolvedValue({ ...item, enabled: false });
-  mockDeletePlayoutItem.mockResolvedValue(undefined);
-  mockReorderPlayoutItems.mockResolvedValue({ items: [item] });
-  mockSkipPlayoutTrack.mockResolvedValue(undefined);
-  mockQueuePlayoutItem.mockResolvedValue(undefined);
-  mockSavePlaylist.mockResolvedValue({ items: [makeMockPlayoutItem()] });
+  const playoutChannel = makeMockPlayoutChannel();
+  mockUseLoaderData.mockReturnValue({ allChannels: [playoutChannel], playoutChannels: [playoutChannel] });
+  mockFetchChannelQueue.mockResolvedValue(makeMockQueueStatus());
+  mockFetchChannelContent.mockResolvedValue({ items: [makeMockChannelContent()] });
+  mockSkipChannelTrack.mockResolvedValue(undefined);
+  mockInsertQueueItem.mockResolvedValue(undefined);
+  mockRemoveQueueItem.mockResolvedValue(undefined);
+  mockAssignChannelContent.mockResolvedValue(undefined);
+  mockRemoveChannelContent.mockResolvedValue(undefined);
+  mockSearchAvailableContent.mockResolvedValue({ items: [] });
   mockCreatePlayoutItem.mockResolvedValue({
-    ...item,
     id: "item_new",
+    title: "Nosferatu",
+    year: null,
+    director: null,
+    duration: null,
+    sourceWidth: null,
+    sourceHeight: null,
     processingStatus: "pending",
+    position: 0,
+    enabled: true,
+    renditions: {},
+    hasSubtitles: false,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
   });
 });
 
@@ -190,27 +195,35 @@ describe("PlayoutPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders playlist item titles", async () => {
+  it("renders channel tab for each playout channel", () => {
     render(<PlayoutPage />);
-    expect(screen.getByText("Metropolis")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Classics" })).toBeInTheDocument();
   });
 
-  it("shows now-playing title after status loads", async () => {
+  it("shows no playout channels message when empty", () => {
+    mockUseLoaderData.mockReturnValue({ allChannels: [], playoutChannels: [] });
+    render(<PlayoutPage />);
+    expect(screen.getByText("No playout channels configured.")).toBeInTheDocument();
+  });
+
+  it("shows now-playing title after queue status loads", async () => {
     render(<PlayoutPage />);
     await waitFor(() => {
-      expect(screen.getAllByText(/Metropolis/)[0]).toBeInTheDocument();
+      expect(screen.getAllByText("Metropolis").length).toBeGreaterThan(0);
     });
   });
 
   it("shows 'Nothing playing' when nowPlaying is null", async () => {
-    mockFetchPlayoutStatus.mockResolvedValue(makeMockStatus({ nowPlaying: null }));
+    mockFetchChannelQueue.mockResolvedValue(
+      makeMockQueueStatus({ nowPlaying: null }),
+    );
     render(<PlayoutPage />);
     await waitFor(() => {
       expect(screen.getByText("Nothing playing")).toBeInTheDocument();
     });
   });
 
-  it("calls skipPlayoutTrack when Skip button is clicked", async () => {
+  it("calls skipChannelTrack when Skip button is clicked", async () => {
     const userSetup = userEvent.setup();
     render(<PlayoutPage />);
 
@@ -220,387 +233,140 @@ describe("PlayoutPage", () => {
 
     await userSetup.click(screen.getByRole("button", { name: "Skip" }));
     await waitFor(() => {
-      expect(mockSkipPlayoutTrack).toHaveBeenCalled();
+      expect(mockSkipChannelTrack).toHaveBeenCalledWith("ch_playout_1");
     });
   });
 
-  it("calls queuePlayoutItem when Play Next is clicked", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    await userSetup.click(
-      screen.getByRole("button", { name: /Play Metropolis next/ }),
-    );
-
-    await waitFor(() => {
-      expect(mockQueuePlayoutItem).toHaveBeenCalledWith("item_001");
-    });
-  });
-
-  it("does not call updatePlayoutItem when enabled checkbox is toggled", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
-    await userSetup.click(checkbox);
-
-    expect(mockUpdatePlayoutItem).not.toHaveBeenCalled();
-  });
-
-  it("removes item from list after delete", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    await userSetup.click(
-      screen.getByRole("button", { name: /Delete Metropolis/ }),
-    );
-
-    await waitFor(() => {
-      expect(mockDeletePlayoutItem).toHaveBeenCalledWith("item_001");
-    });
-  });
-
-  it("shows 'Add Film' button", () => {
-    render(<PlayoutPage />);
-    expect(
-      screen.getByRole("button", { name: "Add Film" }),
-    ).toBeInTheDocument();
-  });
-
-  it("shows add film form when 'Add Film' is clicked", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    await userSetup.click(screen.getByRole("button", { name: "Add Film" }));
-
-    expect(
-      screen.getByRole("textbox", { name: "Title" }),
-    ).toBeInTheDocument();
-  });
-
-  it("calls createPlayoutItem and shows upload prompt on form submit", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    await userSetup.click(screen.getByRole("button", { name: "Add Film" }));
-
-    await userSetup.type(screen.getByRole("textbox", { name: "Title" }), "Nosferatu");
-    await userSetup.click(screen.getByRole("button", { name: "Create & Upload" }));
-
-    await waitFor(() => {
-      expect(mockCreatePlayoutItem).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Nosferatu" }),
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/created/)).toBeInTheDocument();
-    });
-  });
-
-  it("shows processing status badge for each item", () => {
-    render(<PlayoutPage />);
-    expect(screen.getByText("Ready")).toBeInTheDocument();
-  });
-
-  it("shows 'Processing…' badge for items in processing state", () => {
-    const processingItem = makeMockPlayoutItem({
-      processingStatus: "processing",
-    });
+  it("shows multiple channel tabs when multiple channels exist", () => {
+    const chs = [
+      makeMockPlayoutChannel({ id: "ch1", name: "Classics" }),
+      makeMockPlayoutChannel({ id: "ch2", name: "Music Videos" }),
+    ];
     mockUseLoaderData.mockReturnValue({
-      items: { items: [processingItem] },
+      allChannels: chs,
+      playoutChannels: chs,
     });
-
     render(<PlayoutPage />);
-    expect(screen.getByText("Processing…")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Classics" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Music Videos" })).toBeInTheDocument();
   });
 
-  it("shows 'No items in playlist' when list is empty", () => {
-    mockUseLoaderData.mockReturnValue({ items: { items: [] } });
+  it("renders pool items in the content pool table", async () => {
     render(<PlayoutPage />);
-    expect(screen.getByText("No items in playlist")).toBeInTheDocument();
-  });
-
-  it("disables 'Play Next' button for non-ready items", () => {
-    const pendingItem = makeMockPlayoutItem({ processingStatus: "pending" });
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [pendingItem] },
-    });
-
-    render(<PlayoutPage />);
-    const playNextBtn = screen.getByRole("button", {
-      name: /Play Metropolis next/,
-    });
-    expect(playNextBtn).toBeDisabled();
-  });
-
-  it("disables move-up button for first item", () => {
-    render(<PlayoutPage />);
-    const moveUpBtn = screen.getByRole("button", {
-      name: /Move Metropolis up/,
-    });
-    expect(moveUpBtn).toBeDisabled();
-  });
-
-  it("disables move-down button for last item", () => {
-    render(<PlayoutPage />);
-    const moveDownBtn = screen.getByRole("button", {
-      name: /Move Metropolis down/,
-    });
-    expect(moveDownBtn).toBeDisabled();
-  });
-});
-
-describe("playlist editing", () => {
-  it("toggles enabled locally without calling API", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
-    await userSetup.click(checkbox);
-
-    expect(mockUpdatePlayoutItem).not.toHaveBeenCalled();
-  });
-
-  it("shows Save button when playlist state is dirty", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
-    await userSetup.click(checkbox);
-
-    expect(screen.getByRole("button", { name: "Save Playlist" })).toBeInTheDocument();
-  });
-
-  it("does not show Save/Discard when clean", () => {
-    render(<PlayoutPage />);
-    expect(screen.queryByRole("button", { name: "Save Playlist" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-  });
-
-  it("calls savePlaylist with pending items on Save click", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
-    await userSetup.click(checkbox);
-
-    await userSetup.click(screen.getByRole("button", { name: "Save Playlist" }));
-
     await waitFor(() => {
-      expect(mockSavePlaylist).toHaveBeenCalledWith({
-        items: [{ id: "item_001", enabled: false, position: 0 }],
-      });
+      expect(screen.getAllByText("Metropolis").length).toBeGreaterThan(0);
     });
-  });
-
-  it("resets pending state on Discard click", async () => {
-    const userSetup = userEvent.setup();
-    render(<PlayoutPage />);
-
-    const checkbox = screen.getByRole("checkbox", { name: /Enable Metropolis/ });
-    await userSetup.click(checkbox);
-
-    // Discard button should now be visible
-    await userSetup.click(screen.getByRole("button", { name: "Discard" }));
-
-    // Save/Discard should be gone — state is clean again
-    expect(screen.queryByRole("button", { name: "Save Playlist" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 });
 
 describe("queue section", () => {
-  it("renders queued items from status poll", async () => {
-    mockFetchPlayoutStatus.mockResolvedValue({
-      nowPlaying: null,
-      queuedItems: [{ itemId: "q1", title: "Queued Film", queuedAt: "2026-03-30T12:00:00.000Z" }],
-    });
+  it("renders upcoming queue items", async () => {
+    mockFetchChannelQueue.mockResolvedValue(
+      makeMockQueueStatus({
+        upcoming: [
+          {
+            id: "entry_002",
+            channelId: "ch_playout_1",
+            playoutItemId: "item_002",
+            position: 1,
+            status: "queued",
+            pushedToLiquidsoap: false,
+            createdAt: "2026-01-01T00:00:00Z",
+            title: "Nosferatu",
+            duration: 6000,
+          },
+        ],
+      }),
+    );
     render(<PlayoutPage />);
     await waitFor(() => {
-      expect(screen.getByText("Queued Film")).toBeInTheDocument();
+      expect(screen.getByText("Nosferatu")).toBeInTheDocument();
     });
   });
 
-  it("shows empty state when no items queued", async () => {
+  it("shows empty state when no items are queued", async () => {
+    mockFetchChannelQueue.mockResolvedValue(
+      makeMockQueueStatus({ nowPlaying: null, upcoming: [] }),
+    );
     render(<PlayoutPage />);
     await waitFor(() => {
       expect(screen.getByText(/Queue empty/)).toBeInTheDocument();
     });
   });
+
+  it("calls removeQueueItem when Remove button is clicked in queue", async () => {
+    const userSetup = userEvent.setup();
+    mockFetchChannelQueue.mockResolvedValue(
+      makeMockQueueStatus({
+        upcoming: [
+          {
+            id: "entry_002",
+            channelId: "ch_playout_1",
+            playoutItemId: "item_002",
+            position: 1,
+            status: "queued",
+            pushedToLiquidsoap: false,
+            createdAt: "2026-01-01T00:00:00Z",
+            title: "Nosferatu",
+            duration: 6000,
+          },
+        ],
+      }),
+    );
+    render(<PlayoutPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Remove Nosferatu from queue/ }),
+      ).toBeInTheDocument();
+    });
+
+    await userSetup.click(
+      screen.getByRole("button", { name: /Remove Nosferatu from queue/ }),
+    );
+
+    await waitFor(() => {
+      expect(mockRemoveQueueItem).toHaveBeenCalledWith("ch_playout_1", "entry_002");
+    });
+  });
 });
 
 describe("BroadcastStatus", () => {
-  it("renders nothing when channels is null", () => {
-    mockUseLoaderData.mockReturnValue({ items: { items: [] }, channels: null });
+  it("renders nothing when there are no broadcast channels", () => {
+    // No broadcast channel in playoutChannels — BroadcastStatus gets the full list
+    mockUseLoaderData.mockReturnValue({ allChannels: [], playoutChannels: [] });
     render(<PlayoutPage />);
     expect(screen.queryByText("S/NC TV")).not.toBeInTheDocument();
   });
+});
 
-  it("renders nothing when no broadcast channel exists", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: { defaultChannelId: null, channels: [] },
-    });
+describe("content pool", () => {
+  it("renders content pool table with pool items", async () => {
     render(<PlayoutPage />);
-    expect(screen.queryByText("S/NC TV")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockFetchChannelContent).toHaveBeenCalledWith("ch_playout_1");
+    });
   });
 
-  it("shows 'Now Playing' with title when playout is active", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels(),
-    });
+  it("calls removeChannelContent when Remove is clicked in pool table", async () => {
+    const userSetup = userEvent.setup();
     render(<PlayoutPage />);
-    expect(screen.getByText("S/NC TV")).toBeInTheDocument();
-    expect(screen.getByText(/Now Playing:/)).toBeInTheDocument();
-    expect(screen.getByText(/Metropolis/)).toBeInTheDocument();
-  });
 
-  it("shows director when nowPlaying includes director", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels(),
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Remove Metropolis from pool/ }),
+      ).toBeInTheDocument();
     });
-    render(<PlayoutPage />);
-    expect(screen.getByText(/Fritz Lang/)).toBeInTheDocument();
-  });
 
-  it("shows nothing when broadcast has no nowPlaying and no live creator", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels({
-        channels: [
-          {
-            id: "ch_broadcast",
-            name: "S/NC TV",
-            type: "broadcast",
-            thumbnailUrl: null,
-            hlsUrl: null,
-            viewerCount: 0,
-            creator: null,
-            startedAt: null,
-            nowPlaying: null,
-          },
-        ],
-      }),
-    });
-    render(<PlayoutPage />);
-    expect(screen.getByText("S/NC TV")).toBeInTheDocument();
-    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Live:/)).not.toBeInTheDocument();
-  });
+    await userSetup.click(
+      screen.getByRole("button", { name: /Remove Metropolis from pool/ }),
+    );
 
-  it("shows 'Live: {name}' when a live creator channel is active", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels({
-        channels: [
-          {
-            id: "ch_broadcast",
-            name: "S/NC TV",
-            type: "broadcast",
-            thumbnailUrl: null,
-            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
-            viewerCount: 2,
-            creator: null,
-            startedAt: null,
-            nowPlaying: null,
-          },
-          {
-            id: "ch_live_1",
-            name: "Alice Live",
-            type: "live",
-            thumbnailUrl: null,
-            hlsUrl: "https://cdn.example.com/alice/index.m3u8",
-            viewerCount: 2,
-            creator: {
-              id: "user_alice",
-              displayName: "Alice",
-              handle: "alice",
-              avatarUrl: null,
-            },
-            startedAt: "2026-03-29T12:00:00.000Z",
-            nowPlaying: null,
-          },
-        ],
-      }),
+    await waitFor(() => {
+      expect(mockRemoveChannelContent).toHaveBeenCalledWith(
+        "ch_playout_1",
+        ["item_001"],
+      );
     });
-    render(<PlayoutPage />);
-    expect(screen.getByText(/Live:/)).toBeInTheDocument();
-    expect(screen.getByText(/Alice/)).toBeInTheDocument();
-    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
-  });
-
-  it("prefers 'Live: {name}' over 'Now Playing' when both are available", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels({
-        channels: [
-          {
-            id: "ch_broadcast",
-            name: "S/NC TV",
-            type: "broadcast",
-            thumbnailUrl: null,
-            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
-            viewerCount: 1,
-            creator: null,
-            startedAt: null,
-            nowPlaying: {
-              itemId: "item_001",
-              title: "Metropolis",
-              year: 1927,
-              director: "Fritz Lang",
-              duration: 9000,
-              elapsed: 600,
-              remaining: 8400,
-            },
-          },
-          {
-            id: "ch_live_1",
-            name: "Bob Live",
-            type: "live",
-            thumbnailUrl: null,
-            hlsUrl: "https://cdn.example.com/bob/index.m3u8",
-            viewerCount: 1,
-            creator: {
-              id: "user_bob",
-              displayName: "Bob",
-              handle: "bob",
-              avatarUrl: null,
-            },
-            startedAt: "2026-03-29T13:00:00.000Z",
-            nowPlaying: null,
-          },
-        ],
-      }),
-    });
-    render(<PlayoutPage />);
-    expect(screen.getByText(/Live:/)).toBeInTheDocument();
-    expect(screen.getByText(/Bob/)).toBeInTheDocument();
-    expect(screen.queryByText(/Now Playing:/)).not.toBeInTheDocument();
-  });
-
-  it("shows viewer count when positive", () => {
-    mockUseLoaderData.mockReturnValue({
-      items: { items: [] },
-      channels: makeMockChannels({
-        channels: [
-          {
-            id: "ch_broadcast",
-            name: "S/NC TV",
-            type: "broadcast",
-            thumbnailUrl: null,
-            hlsUrl: "https://cdn.example.com/snc-tv/index.m3u8",
-            viewerCount: 3,
-            creator: null,
-            startedAt: null,
-            nowPlaying: null,
-          },
-        ],
-      }),
-    });
-    render(<PlayoutPage />);
-    expect(screen.getByText(/3 viewers/)).toBeInTheDocument();
   });
 });

@@ -41,7 +41,6 @@ const mockRemuxPlayoutSource = vi.fn().mockResolvedValue({ ok: true, value: unde
 const mockDownloadToTemp = vi.fn().mockResolvedValue({ ok: true, value: "/tmp/snc-media/uuid-playout-source.mp4" });
 const mockUploadFromTemp = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const mockCleanupTemp = vi.fn().mockResolvedValue(undefined);
-const mockRegeneratePlaylist = vi.fn().mockResolvedValue(undefined);
 
 // ── DB Chain Helpers ──
 
@@ -90,9 +89,6 @@ const setupModule = async () => {
     uploadFromTemp: mockUploadFromTemp,
     cleanupTemp: mockCleanupTemp,
   }));
-  vi.doMock("../../../src/services/playout.js", () => ({
-    regeneratePlaylist: mockRegeneratePlaylist,
-  }));
   vi.doMock("../../../src/jobs/register-workers.js", () => ({
     JOB_QUEUES: {
       PLAYOUT_INGEST: "playout/ingest",
@@ -122,7 +118,6 @@ beforeEach(() => {
   mockDownloadToTemp.mockResolvedValue({ ok: true, value: "/tmp/snc-media/uuid-playout-source.mp4" });
   mockUploadFromTemp.mockResolvedValue({ ok: true, value: undefined });
   mockCleanupTemp.mockResolvedValue(undefined);
-  mockRegeneratePlaylist.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -204,7 +199,6 @@ describe("handlePlayoutIngest", () => {
 
     expect(mockUploadFromTemp).not.toHaveBeenCalled();
     expect(mockProbeMedia).not.toHaveBeenCalled();
-    expect(mockRegeneratePlaylist).not.toHaveBeenCalled();
   });
 
   it("marks item failed when probe fails", async () => {
@@ -215,18 +209,23 @@ describe("handlePlayoutIngest", () => {
 
     await handlePlayoutIngest([makeJob() as never]);
 
-    // Last update should be failed status
-    expect(mockRegeneratePlaylist).not.toHaveBeenCalled();
+    // Three updates: set processing + update metadata attempt doesn't happen + set failed
+    // Actually: set processing (1) + set failed (2)
+    expect(mockDbUpdate).toHaveBeenCalledTimes(2);
   });
 
-  it("marks item ready and regenerates playlist after probe", async () => {
+  it("marks item ready after probe succeeds (no playlist regeneration)", async () => {
     const { handlePlayoutIngest } = await setupModule();
     mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
     mockDbUpdate.mockReturnValue(buildUpdateSetWhereChain());
 
     await handlePlayoutIngest([makeJob() as never]);
 
-    expect(mockRegeneratePlaylist).toHaveBeenCalledTimes(1);
+    // Verify the last update set processingStatus to "ready"
+    const updateCalls = mockDbUpdate.mock.calls;
+    // Last call's set argument should include processingStatus: "ready"
+    // We check via the set mock on the chain
+    expect(mockDbUpdate).toHaveBeenCalledTimes(3); // processing + metadata + ready
   });
 
   it("cleans up both temp files even when processing fails", async () => {

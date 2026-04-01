@@ -11,6 +11,7 @@ import type { ProbeJobData } from "./handlers/probe-codec.js";
 import type { TranscodeJobData } from "./handlers/transcode.js";
 import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
 import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
+import { orchestrator } from "../routes/playout-channels.init.js";
 
 // ── Job Queue Names ──
 
@@ -88,4 +89,7 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     { concurrency, queues: Object.values(JOB_QUEUES) },
     "Media processing workers registered",
   );
+
+  await orchestrator.initialize();
+  rootLogger.info("Playout orchestrator initialized");
 };

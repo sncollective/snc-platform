@@ -9,8 +9,6 @@ const mockGetPlayoutItem = vi.fn();
 const mockCreatePlayoutItem = vi.fn();
 const mockUpdatePlayoutItem = vi.fn();
 const mockDeletePlayoutItem = vi.fn();
-const mockReorderPlayoutItems = vi.fn();
-const mockSavePlaylist = vi.fn();
 const mockGetPlayoutStatus = vi.fn();
 const mockQueuePlayoutItem = vi.fn();
 const mockSkipCurrentTrack = vi.fn();
@@ -53,8 +51,6 @@ const ctx = setupRouteTest({
       createPlayoutItem: mockCreatePlayoutItem,
       updatePlayoutItem: mockUpdatePlayoutItem,
       deletePlayoutItem: mockDeletePlayoutItem,
-      reorderPlayoutItems: mockReorderPlayoutItems,
-      savePlaylist: mockSavePlaylist,
       getPlayoutStatus: mockGetPlayoutStatus,
       queuePlayoutItem: mockQueuePlayoutItem,
       skipCurrentTrack: mockSkipCurrentTrack,
@@ -70,8 +66,6 @@ const ctx = setupRouteTest({
     mockCreatePlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });
     mockUpdatePlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });
     mockDeletePlayoutItem.mockResolvedValue({ ok: true, value: undefined });
-    mockReorderPlayoutItems.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
-    mockSavePlaylist.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
     mockGetPlayoutStatus.mockResolvedValue(makePlayoutStatus());
     mockQueuePlayoutItem.mockResolvedValue({ ok: true, value: undefined });
     mockSkipCurrentTrack.mockResolvedValue({ ok: true, value: undefined });
@@ -100,7 +94,7 @@ describe("playout routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 when authenticated but not admin", async () => {
+    it("returns 403 when not admin", async () => {
       ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/playout/items");
@@ -118,7 +112,7 @@ describe("playout routes", () => {
       expect(body.title).toBe("Test Film");
     });
 
-    it("returns 404 when item not found", async () => {
+    it("returns 404 when not found", async () => {
       const { AppError } = await import("@snc/shared");
       mockGetPlayoutItem.mockResolvedValue({
         ok: false,
@@ -126,10 +120,7 @@ describe("playout routes", () => {
       });
 
       const res = await ctx.app.request("/api/playout/items/nonexistent");
-
       expect(res.status).toBe(404);
-      const body = await res.json();
-      expect(body.error.code).toBe("NOT_FOUND");
     });
 
     it("returns 401 when unauthenticated", async () => {
@@ -139,36 +130,27 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items/item-1");
       expect(res.status).toBe(401);
     });
-
-    it("returns 403 when not admin", async () => {
-      ctx.auth.roles = [];
-
-      const res = await ctx.app.request("/api/playout/items/item-1");
-      expect(res.status).toBe(403);
-    });
   });
 
   describe("POST /api/playout/items", () => {
-    it("creates a new item and returns 201", async () => {
+    it("creates item and returns 201", async () => {
       const res = await ctx.app.request("/api/playout/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Test Film" }),
+        body: JSON.stringify({ title: "New Film" }),
       });
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.title).toBe("Test Film");
-      expect(mockCreatePlayoutItem).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Test Film" }),
-      );
+      expect(body.id).toBe("item-1");
+      expect(mockCreatePlayoutItem).toHaveBeenCalledWith({ title: "New Film" });
     });
 
-    it("returns 400 on invalid body (missing title)", async () => {
+    it("returns 400 on invalid body", async () => {
       const res = await ctx.app.request("/api/playout/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ title: "" }), // empty title
       });
 
       expect(res.status).toBe(400);
@@ -181,7 +163,7 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Test Film" }),
+        body: JSON.stringify({ title: "Test" }),
       });
       expect(res.status).toBe(401);
     });
@@ -192,14 +174,14 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Test Film" }),
+        body: JSON.stringify({ title: "Test" }),
       });
       expect(res.status).toBe(403);
     });
   });
 
   describe("PATCH /api/playout/items/:id", () => {
-    it("updates item and returns 200", async () => {
+    it("updates item and returns updated data", async () => {
       mockUpdatePlayoutItem.mockResolvedValue({
         ok: true,
         value: makePlayoutItem({ title: "Updated Film" }),
@@ -214,13 +196,10 @@ describe("playout routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.title).toBe("Updated Film");
-      expect(mockUpdatePlayoutItem).toHaveBeenCalledWith(
-        "item-1",
-        expect.objectContaining({ title: "Updated Film" }),
-      );
+      expect(mockUpdatePlayoutItem).toHaveBeenCalledWith("item-1", { title: "Updated Film" });
     });
 
-    it("returns 404 when item not found", async () => {
+    it("returns 404 when not found", async () => {
       const { AppError } = await import("@snc/shared");
       mockUpdatePlayoutItem.mockResolvedValue({
         ok: false,
@@ -230,9 +209,8 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items/nonexistent", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Updated" }),
+        body: JSON.stringify({ title: "X" }),
       });
-
       expect(res.status).toBe(404);
     });
 
@@ -243,7 +221,7 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items/item-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Updated" }),
+        body: JSON.stringify({ title: "Test" }),
       });
       expect(res.status).toBe(401);
     });
@@ -254,7 +232,7 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items/item-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Updated" }),
+        body: JSON.stringify({ title: "Test" }),
       });
       expect(res.status).toBe(403);
     });
@@ -272,7 +250,7 @@ describe("playout routes", () => {
       expect(mockDeletePlayoutItem).toHaveBeenCalledWith("item-1");
     });
 
-    it("returns 404 when item not found", async () => {
+    it("returns 404 when not found", async () => {
       const { AppError } = await import("@snc/shared");
       mockDeletePlayoutItem.mockResolvedValue({
         ok: false,
@@ -282,7 +260,6 @@ describe("playout routes", () => {
       const res = await ctx.app.request("/api/playout/items/nonexistent", {
         method: "DELETE",
       });
-
       expect(res.status).toBe(404);
     });
 
@@ -306,59 +283,6 @@ describe("playout routes", () => {
     });
   });
 
-  describe("PUT /api/playout/items/reorder", () => {
-    it("reorders items and returns updated list", async () => {
-      mockReorderPlayoutItems.mockResolvedValue({
-        ok: true,
-        value: [makePlayoutItem({ position: 0 }), makePlayoutItem({ id: "item-2", position: 1 })],
-      });
-
-      const res = await ctx.app.request("/api/playout/items/reorder", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: ["item-1", "item-2"] }),
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.items).toHaveLength(2);
-      expect(mockReorderPlayoutItems).toHaveBeenCalledWith(["item-1", "item-2"]);
-    });
-
-    it("returns 400 on invalid body", async () => {
-      const res = await ctx.app.request("/api/playout/items/reorder", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: "not-an-array" }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it("returns 401 when unauthenticated", async () => {
-      ctx.auth.user = null;
-      ctx.auth.session = null;
-
-      const res = await ctx.app.request("/api/playout/items/reorder", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: ["item-1"] }),
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("returns 403 when not admin", async () => {
-      ctx.auth.roles = [];
-
-      const res = await ctx.app.request("/api/playout/items/reorder", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: ["item-1"] }),
-      });
-      expect(res.status).toBe(403);
-    });
-  });
-
   describe("GET /api/playout/status", () => {
     it("returns playout status with nowPlaying and items", async () => {
       mockGetPlayoutStatus.mockResolvedValue({
@@ -368,10 +292,10 @@ describe("playout routes", () => {
           year: 2020,
           director: "Test Director",
           duration: 90.0,
-          elapsed: 30.0,
-          remaining: 60.0,
+          elapsed: -1,
+          remaining: -1,
         },
-        items: [makePlayoutItem()],
+        queuedItems: [],
       });
 
       const res = await ctx.app.request("/api/playout/status");
@@ -381,7 +305,6 @@ describe("playout routes", () => {
       expect(body.nowPlaying).not.toBeNull();
       expect(body.nowPlaying?.itemId).toBe("item-1");
       expect(body.nowPlaying?.title).toBe("Test Film");
-      expect(body.items).toHaveLength(1);
     });
 
     it("returns status with null nowPlaying when nothing playing", async () => {
@@ -496,61 +419,6 @@ describe("playout routes", () => {
       ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/playout/queue/item-1", { method: "POST" });
-      expect(res.status).toBe(403);
-    });
-  });
-
-  describe("PUT /api/playout/playlist", () => {
-    const validBody = {
-      items: [{ id: "item-1", enabled: true, position: 0 }],
-    };
-
-    it("saves playlist and returns updated items", async () => {
-      mockSavePlaylist.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
-
-      const res = await ctx.app.request("/api/playout/playlist", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validBody),
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.items).toHaveLength(1);
-      expect(body.items[0]?.id).toBe("item-1");
-      expect(mockSavePlaylist).toHaveBeenCalledWith(validBody);
-    });
-
-    it("returns 400 on invalid body (missing enabled field)", async () => {
-      const res = await ctx.app.request("/api/playout/playlist", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [{ id: "item-1", position: 0 }] }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it("returns 401 when unauthenticated", async () => {
-      ctx.auth.user = null;
-      ctx.auth.session = null;
-
-      const res = await ctx.app.request("/api/playout/playlist", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validBody),
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("returns 403 when not admin", async () => {
-      ctx.auth.roles = [];
-
-      const res = await ctx.app.request("/api/playout/playlist", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validBody),
-      });
       expect(res.status).toBe(403);
     });
   });

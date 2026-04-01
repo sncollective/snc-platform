@@ -40,7 +40,7 @@ import { verifySrsCallback } from "../middleware/verify-srs-callback.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
-import { streamSessions } from "../db/schema/streaming.schema.js";
+import { channels, streamSessions } from "../db/schema/streaming.schema.js";
 import { rootLogger } from "../logging/logger.js";
 import {
   ERROR_400,
@@ -100,12 +100,21 @@ const SrsOnForwardSchema = z.object({
   param: z.string().optional().default(""),
 });
 
-// ── Private Constants ──
-
-/** SRS stream names that originate from Liquidsoap — never forward these. */
-const PLAYOUT_STREAM_NAMES = new Set(["snc-tv", "channel-classics"]);
-
 // ── Private Helpers ──
+
+/** Check if a stream name belongs to an active playout or broadcast channel (never forward these). */
+const isPlayoutStream = async (streamName: string): Promise<boolean> => {
+  const [channel] = await db
+    .select({ id: channels.id })
+    .from(channels)
+    .where(
+      and(
+        eq(channels.srsStreamName, streamName),
+        eq(channels.isActive, true),
+      ),
+    );
+  return channel !== undefined;
+};
 
 const extractStreamKey = (param: string): string | null => {
   const match = param.match(/[?&]key=([^&]*)/);
@@ -352,8 +361,8 @@ streamingRoutes.post(
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnForwardSchema>;
 
-    // Never forward Liquidsoap's own output (prevents loops)
-    if (PLAYOUT_STREAM_NAMES.has(body.stream)) {
+    // Playout stream — return admin simulcast destinations only (no Liquidsoap URL to prevent loops)
+    if (await isPlayoutStream(body.stream)) {
       const urls = await getActiveSimulcastUrls();
       return c.json({ code: 0, data: { urls } }, 200);
     }

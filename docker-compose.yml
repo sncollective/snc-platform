@@ -66,6 +66,15 @@ services:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: garage
+      AWS_ENDPOINT: http://snc-garage:3900
+      SRS_RTMP_HOST: snc-srs
+      API_CALLBACK_HOST: snc-api
+      API_CALLBACK_PORT: "3000"
+      PLAYOUT_CALLBACK_SECRET: ${PLAYOUT_CALLBACK_SECRET:-}
+      CHANNEL_CLASSICS_ID: ${CHANNEL_CLASSICS_ID:-}
+      CHANNEL_CLASSICS_STREAM: ${CHANNEL_CLASSICS_STREAM:-channel-classics}
+      CHANNEL_SNCTV_STREAM: ${CHANNEL_SNCTV_STREAM:-snc-tv}
+      DEFAULT_PLAYOUT_STREAM: ${DEFAULT_PLAYOUT_STREAM:-channel-classics}
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8888/health"]
       interval: 15s
