@@ -21,30 +21,26 @@ export const Route = createFileRoute("/")({
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<LandingData> => {
     const [creators, recentContent, plans] = await Promise.all([
-      isFeatureEnabled("creator")
-        ? (
-            fetchApiServer({
-              data: "/api/creators?limit=8",
-            }) as Promise<CreatorListResponse>
-          )
-            .then((r) => r.items)
-            .catch((e: unknown) => {
-              ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load featured creators");
-              return [] as CreatorListResponse["items"];
-            })
-        : ([] as CreatorListResponse["items"]),
-      isFeatureEnabled("content")
-        ? (
-            fetchApiServer({
-              data: "/api/content?limit=6",
-            }) as Promise<FeedResponse>
-          )
-            .then((r) => r.items)
-            .catch((e: unknown) => {
-              ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load recent content");
-              return [] as FeedResponse["items"];
-            })
-        : ([] as FeedResponse["items"]),
+      (
+        fetchApiServer({
+          data: "/api/creators?limit=8",
+        }) as Promise<CreatorListResponse>
+      )
+        .then((r) => r.items)
+        .catch((e: unknown) => {
+          ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load featured creators");
+          return [] as CreatorListResponse["items"];
+        }),
+      (
+        fetchApiServer({
+          data: "/api/content?limit=6",
+        }) as Promise<FeedResponse>
+      )
+        .then((r) => r.items)
+        .catch((e: unknown) => {
+          ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load recent content");
+          return [] as FeedResponse["items"];
+        }),
       isFeatureEnabled("subscription")
         ? (
             fetchApiServer({
@@ -78,8 +74,8 @@ function LandingPage(): React.ReactElement {
   return (
     <>
       <HeroSection plans={data.plans} />
-      {isFeatureEnabled("creator") && <FeaturedCreators creators={data.creators} />}
-      {isFeatureEnabled("content") && <RecentContent items={data.recentContent} />}
+      <FeaturedCreators creators={data.creators} />
+      <RecentContent items={data.recentContent} />
       {isFeatureEnabled("subscription") && <LandingPricing plans={data.plans} />}
     </>
   );

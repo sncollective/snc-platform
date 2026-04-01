@@ -8,17 +8,11 @@ afterEach(() => {
 });
 
 const ALL_ON: FeatureFlags = {
-  content: true,
-  creator: true,
   subscription: true,
   merch: true,
   booking: true,
-  dashboard: true,
-  admin: true,
   emissions: true,
-  calendar: true,
   federation: true,
-  streaming: true,
 };
 
 describe("NAV_LINKS", () => {
@@ -91,17 +85,11 @@ describe("NAV_LINKS", () => {
 
   it("always includes all nav links regardless of feature state", async () => {
     const flags: FeatureFlags = {
-      content: false,
-      creator: false,
       subscription: false,
       merch: false,
       booking: false,
-      dashboard: false,
-      admin: false,
       emissions: false,
-      calendar: false,
       federation: false,
-      streaming: false,
     };
 
     vi.doMock("../../../src/lib/config.js", () => ({
@@ -112,9 +100,14 @@ describe("NAV_LINKS", () => {
 
     const { NAV_LINKS } = await import("../../../src/config/navigation.js");
 
-    expect(NAV_LINKS).toHaveLength(6);
-    for (const link of NAV_LINKS) {
+    // Links with a feature flag are disabled; links with no flag are always enabled
+    const flaggedLinks = NAV_LINKS.filter((l) => l.feature !== undefined);
+    const unflaggedLinks = NAV_LINKS.filter((l) => l.feature === undefined);
+    for (const link of flaggedLinks) {
       expect(link.disabled).toBe(true);
+    }
+    for (const link of unflaggedLinks) {
+      expect(link.disabled).toBe(false);
     }
   });
 

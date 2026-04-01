@@ -9,7 +9,6 @@ import { ContextShell } from "../../../components/layout/context-shell.js";
 import { CreatorSwitcher } from "../../../components/layout/creator-switcher.js";
 import type { ContextNavConfig, ContextNavItem } from "../../../config/context-nav.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
-import { isFeatureEnabled } from "../../../lib/config.js";
 import { AccessDeniedError } from "../../../lib/errors.js";
 import { buildLoginRedirect } from "../../../lib/return-to.js";
 
@@ -38,8 +37,6 @@ const MANAGE_ITEMS: readonly ContextNavItem[] = [
 
 export const Route = createFileRoute("/creators/$creatorId/manage")({
   beforeLoad: async ({ location }) => {
-    if (!isFeatureEnabled("creator")) throw redirect({ to: "/" });
-
     const { user, roles } = await fetchAuthStateServer();
     if (!user) throw redirect(buildLoginRedirect(location.pathname));
     if (!roles.includes("stakeholder") && !roles.includes("admin")) {

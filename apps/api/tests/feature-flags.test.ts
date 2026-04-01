@@ -21,17 +21,11 @@ describe("getFeatureFlags", () => {
     const flags = getFeatureFlags(cfg);
 
     expect(flags).toStrictEqual({
-      content: true,
-      creator: true,
       subscription: true,
       merch: true,
       booking: true,
-      dashboard: true,
-      admin: true,
       emissions: true,
-      calendar: true,
       federation: false,
-      streaming: true,
     });
   });
 
@@ -45,7 +39,7 @@ describe("getFeatureFlags", () => {
 
     expect(flags.merch).toBe(false);
     expect(flags.booking).toBe(false);
-    expect(flags.content).toBe(true);
+    expect(flags.subscription).toBe(true);
   });
 });
 
@@ -53,32 +47,28 @@ describe("ENV_SCHEMA feature flag defaults", () => {
   it("defaults all feature flags to true when env vars absent", () => {
     const cfg = parseConfig(BASE_ENV);
 
-    expect(cfg.FEATURE_CONTENT).toBe(true);
-    expect(cfg.FEATURE_CREATOR).toBe(true);
     expect(cfg.FEATURE_SUBSCRIPTION).toBe(true);
     expect(cfg.FEATURE_MERCH).toBe(true);
     expect(cfg.FEATURE_BOOKING).toBe(true);
-    expect(cfg.FEATURE_DASHBOARD).toBe(true);
-    expect(cfg.FEATURE_ADMIN).toBe(true);
     expect(cfg.FEATURE_EMISSIONS).toBe(true);
   });
 
   it('sets flag to false when env var is "false"', () => {
     const cfg = parseConfig({
       ...BASE_ENV,
-      FEATURE_CONTENT: "false",
+      FEATURE_SUBSCRIPTION: "false",
     });
 
-    expect(cfg.FEATURE_CONTENT).toBe(false);
+    expect(cfg.FEATURE_SUBSCRIPTION).toBe(false);
   });
 
   it('sets flag to false for any non-"true" string', () => {
     const cfg = parseConfig({
       ...BASE_ENV,
-      FEATURE_ADMIN: "0",
+      FEATURE_MERCH: "0",
     });
 
-    expect(cfg.FEATURE_ADMIN).toBe(false);
+    expect(cfg.FEATURE_MERCH).toBe(false);
   });
 });
 
@@ -115,15 +105,11 @@ describe("conditional route registration", () => {
       return {
         ...actual,
         features: {
-          content: false,
-          creator: false,
           subscription: false,
           merch: false,
           booking: false,
-          dashboard: false,
-          admin: false,
           emissions: false,
-          calendar: false,
+          federation: false,
         },
       };
     });

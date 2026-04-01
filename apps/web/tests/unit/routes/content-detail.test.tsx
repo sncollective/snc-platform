@@ -64,16 +64,4 @@ describe("ContentDetailPage", () => {
     expect(screen.getByTestId("content-detail")).toBeInTheDocument();
     expect(screen.getByText("Test Post")).toBeInTheDocument();
   });
-
-  it("renders Coming Soon when content feature is disabled", () => {
-    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "content");
-    mockUseLoaderData.mockReturnValue({ item: null, plans: [] });
-
-    render(<ContentDetailPage />);
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Content — Coming Soon" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
-  });
 });

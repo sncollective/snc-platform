@@ -3,10 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../../components/error/route-error-boundary.js";
-import { ComingSoon } from "../../../components/coming-soon/coming-soon.js";
 import { ContentDetail } from "../../../components/content/content-detail.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../../lib/api-server.js";
-import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchLockedContentPlans, resolveCanManage } from "../../../lib/content-loader.js";
 import { buildContentJsonLd } from "../../../lib/json-ld.js";
 
@@ -23,8 +21,6 @@ export interface SlugContentDetailLoaderData {
 export const Route = createFileRoute("/content/$creatorSlug/$contentSlug")({
   errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<SlugContentDetailLoaderData> => {
-    if (!isFeatureEnabled("content")) return { item: null, plans: [], canManage: false };
-
     const item = (await fetchApiServer({
       data: `/api/content/by-creator/${encodeURIComponent(params.creatorSlug)}/${encodeURIComponent(params.contentSlug)}`,
     })) as FeedItem;
@@ -76,6 +72,6 @@ export const Route = createFileRoute("/content/$creatorSlug/$contentSlug")({
 
 function SlugContentDetailPage(): React.ReactElement {
   const { item, plans, canManage } = Route.useLoaderData();
-  if (!isFeatureEnabled("content") || item === null) return <ComingSoon feature="content" />;
+  if (item === null) return <></>;
   return <ContentDetail item={item} plans={plans} canManage={canManage} />;
 }

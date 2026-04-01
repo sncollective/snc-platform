@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type { Project, CreatorListItem } from "@snc/shared";
@@ -6,7 +6,6 @@ import type { Project, CreatorListItem } from "@snc/shared";
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { ProjectForm } from "../../components/project/project-form.js";
 import { ProjectItem } from "../../components/project/project-item.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import {
   fetchProjects,
   updateProject,
@@ -19,9 +18,6 @@ import styles from "../projects.module.css";
 // ── Route ──
 
 export const Route = createFileRoute("/governance/projects")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-  },
   head: () => ({
     meta: [{ title: "Projects — S/NC" }],
   }),
@@ -103,10 +99,6 @@ function ProjectsPage(): React.ReactElement {
     setEditingProject(undefined);
     setShowForm(true);
   };
-
-  if (!isFeatureEnabled("calendar")) {
-    return <div>Projects are not available.</div>;
-  }
 
   return (
     <div className={styles.page}>

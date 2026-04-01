@@ -16,17 +16,11 @@ export const DEMO_MODE: boolean = import.meta.env.VITE_DEMO_MODE === "true";
  * so Vite can replace them at build time.
  */
 export const features: FeatureFlags = {
-  content: parseFlag(import.meta.env.VITE_FEATURE_CONTENT),
-  creator: parseFlag(import.meta.env.VITE_FEATURE_CREATOR),
   subscription: parseFlag(import.meta.env.VITE_FEATURE_SUBSCRIPTION),
   merch: parseFlag(import.meta.env.VITE_FEATURE_MERCH),
   booking: parseFlag(import.meta.env.VITE_FEATURE_BOOKING),
-  dashboard: parseFlag(import.meta.env.VITE_FEATURE_DASHBOARD),
-  admin: parseFlag(import.meta.env.VITE_FEATURE_ADMIN),
   emissions: parseFlag(import.meta.env.VITE_FEATURE_EMISSIONS),
-  calendar: parseFlag(import.meta.env.VITE_FEATURE_CALENDAR),
   federation: parseFlag(import.meta.env.VITE_FEATURE_FEDERATION),
-  streaming: parseFlag(import.meta.env.VITE_FEATURE_STREAMING),
 };
 
 /** Check whether a single feature flag is enabled. */

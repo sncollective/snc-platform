@@ -200,15 +200,4 @@ describe("FeedPage", () => {
       links.some((link) => link.getAttribute("href") === "/content/test-creator/test-slug"),
     ).toBe(true);
   });
-
-  it("renders Coming Soon when content feature is disabled", () => {
-    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "content");
-
-    render(<FeedPage />);
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Content — Coming Soon" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
-  });
 });

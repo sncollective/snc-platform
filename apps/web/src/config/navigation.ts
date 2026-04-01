@@ -16,9 +16,9 @@ export interface NavLink {
 // ── Private Constants ──
 
 const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
-  { to: "/feed", label: "Feed", feature: "content" },
-  { to: "/creators", label: "Creators", feature: "creator" },
-  { to: "/live", label: "Live", feature: "streaming" },
+  { to: "/feed", label: "Feed" },
+  { to: "/creators", label: "Creators" },
+  { to: "/live", label: "Live" },
   { to: "/studio", label: "Studio", feature: "booking" },
   { to: "/merch", label: "Merch", feature: "merch" },
   { to: "/emissions", label: "Emissions", feature: "emissions" },

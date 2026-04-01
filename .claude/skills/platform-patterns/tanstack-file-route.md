@@ -14,14 +14,11 @@ TanStack Router requires every route to declare itself via `createFileRoute()` s
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer, fetchAuthStateServer } from "../lib/api-server.js";
-import { isFeatureEnabled } from "../lib/config.js";
 import { AccessDeniedError } from "../lib/errors.js";
 import { buildLoginRedirect } from "../lib/return-to.js";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async ({ location }) => {
-    if (!isFeatureEnabled("dashboard")) throw redirect({ to: "/" });
-
     const { user, roles } = await fetchAuthStateServer();
 
     if (!user) {
@@ -46,6 +43,27 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 ```
+
+### Example 1b: Feature-gated route (unshipped feature)
+**File**: `apps/web/src/routes/subscribe.tsx`
+```typescript
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { isFeatureEnabled } from "../lib/config.js";
+
+export const Route = createFileRoute("/subscribe")({
+  beforeLoad: async ({ location }) => {
+    // Feature flag check gates unshipped features only.
+    // When the feature ships, remove this flag and mount the route unconditionally.
+    if (!isFeatureEnabled("subscription")) throw redirect({ to: "/" });
+
+    const { user } = await fetchAuthStateServer();
+    if (!user) throw redirect(buildLoginRedirect(location.pathname));
+  },
+  component: SubscribePage,
+});
+```
+
+> **Note:** Feature flag checks are only needed for unshipped features. Shipped features mount unconditionally — no `isFeatureEnabled` guard. See `platform/.claude/rules/feature-flags.md` for the full flag lifecycle.
 
 ### Example 2: Guest-only route with returnTo support
 **File**: `apps/web/src/routes/login.tsx:12`
@@ -137,7 +155,7 @@ Guest-only routes (login, register) use `useSession()` + `useEffect` redirect in
 
 - Every page/route in the app — this is mandatory for TanStack Router
 - Auth-only pages: add `beforeLoad` that calls `fetchAuthStateServer()`, `buildLoginRedirect()` for unauthenticated, `AccessDeniedError` for wrong role, and `errorComponent: RouteErrorBoundary`
-- Feature-gated pages: check `isFeatureEnabled(flag)` before auth in `beforeLoad`
+- Feature-gated pages (unshipped features only): check `isFeatureEnabled(flag)` before auth in `beforeLoad`; remove the guard when the feature ships
 - Loaders that fetch API data: use `fetchApiServer({ data: endpoint })` for server-side fetch with cookie forwarding
 - Guest-only pages (login, register): use `useSession()` + `useEffect` redirect in the component
 

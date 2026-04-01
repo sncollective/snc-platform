@@ -21,7 +21,6 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
   const { isAuthenticated, isSubscribed } = usePlatformAuth();
   const platformPlanId: string | undefined = plans[0]?.id;
 
-  const contentEnabled = isFeatureEnabled("content");
   const subscriptionEnabled = isFeatureEnabled("subscription");
 
   const { checkoutLoading, handleCheckout } = useCheckout({
@@ -49,7 +48,7 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
     await handleCheckout(platformPlanId);
   }
 
-  const underConstruction = !contentEnabled && !subscriptionEnabled;
+  const underConstruction = !subscriptionEnabled;
 
   const primaryAction = subscriptionEnabled
     ? isSubscribed
@@ -70,13 +69,11 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
       )
     : null;
 
-  const secondaryAction = contentEnabled
-    ? (
-      <Link to="/feed" className={styles.secondaryCta}>
-        Browse Free Content
-      </Link>
-    )
-    : null;
+  const secondaryAction = (
+    <Link to="/feed" className={styles.secondaryCta}>
+      Browse Free Content
+    </Link>
+  );
 
   return (
     <section className={styles.hero}>

@@ -231,9 +231,9 @@ describe("HeroSection", () => {
   });
 
   describe("under-construction variant", () => {
-    it("shows construction message when both content and subscription are disabled", () => {
+    it("shows construction message when subscription is disabled", () => {
       mockIsFeatureEnabled.mockImplementation(
-        (flag: string) => flag !== "content" && flag !== "subscription",
+        (flag: string) => flag !== "subscription",
       );
 
       render(<HeroSection plans={[]} />);
@@ -246,40 +246,18 @@ describe("HeroSection", () => {
 
     it("hides Subscribe button and Browse link when under construction", () => {
       mockIsFeatureEnabled.mockImplementation(
-        (flag: string) => flag !== "content" && flag !== "subscription",
-      );
-
-      render(<HeroSection plans={[]} />);
-
-      expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
-      expect(screen.queryByRole("link", { name: "Browse Free Content" })).toBeNull();
-    });
-
-    it("hides Browse link when only content is disabled", () => {
-      mockIsFeatureEnabled.mockImplementation(
-        (flag: string) => flag !== "content",
-      );
-
-      render(<HeroSection plans={DEFAULT_PLANS} />);
-
-      expect(screen.queryByRole("link", { name: "Browse Free Content" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Subscribe" })).toBeInTheDocument();
-    });
-
-    it("hides Subscribe button when only subscription is disabled", () => {
-      mockIsFeatureEnabled.mockImplementation(
         (flag: string) => flag !== "subscription",
       );
 
       render(<HeroSection plans={[]} />);
 
       expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
-      expect(screen.getByRole("link", { name: "Browse Free Content" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Browse Free Content" })).toBeNull();
     });
 
     it("still renders heading in under-construction mode", () => {
       mockIsFeatureEnabled.mockImplementation(
-        (flag: string) => flag !== "content" && flag !== "subscription",
+        (flag: string) => flag !== "subscription",
       );
 
       render(<HeroSection plans={[]} />);
@@ -291,7 +269,7 @@ describe("HeroSection", () => {
 
     it("hides tagline in under-construction mode", () => {
       mockIsFeatureEnabled.mockImplementation(
-        (flag: string) => flag !== "content" && flag !== "subscription",
+        (flag: string) => flag !== "subscription",
       );
 
       render(<HeroSection plans={[]} />);

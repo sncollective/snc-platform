@@ -1,12 +1,11 @@
 import type React from "react";
 import { useState } from "react";
-import { createFileRoute, redirect, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 
 import type { Project, CalendarEvent, CalendarEventsResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import {
   updateProject,
   deleteProject,
@@ -27,9 +26,6 @@ export interface ProjectDetailLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/governance/projects_/$projectSlug")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-  },
   head: () => ({
     meta: [{ title: "Project — S/NC" }],
   }),

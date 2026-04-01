@@ -227,17 +227,6 @@ describe("CreatorsPage", () => {
     ).toBe(true);
   });
 
-  it("renders Coming Soon when creator feature is disabled", () => {
-    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "creator");
-
-    render(<CreatorsPage />);
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Creators — Coming Soon" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
-  });
-
   it("renders view toggle for stakeholder users", async () => {
     mockFetchAuthState.mockResolvedValue({ user: { id: "u1" }, roles: ["stakeholder"], isPatron: false });
     render(<CreatorsPage />);

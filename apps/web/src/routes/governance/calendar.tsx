@@ -1,12 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import type { CalendarEventsResponse, FeedTokenResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
-import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { ssrLogger } from "../../lib/logger.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { EventForm } from "../../components/calendar/event-form.js";
 import { FeedUrlCard } from "../../components/calendar/feed-url-card.js";
 import { ViewToggle } from "../../components/calendar/view-toggle.js";
@@ -26,9 +24,6 @@ export interface CalendarLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/governance/calendar")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-  },
   head: () => ({
     meta: [{ title: "Calendar — S/NC" }],
   }),
@@ -66,7 +61,6 @@ function CalendarPage(): React.ReactElement {
     initialEvents: initialEvents.items,
   });
 
-  if (!isFeatureEnabled("calendar")) return <ComingSoon feature="calendar" />;
 
   return (
     <div className={styles.page}>

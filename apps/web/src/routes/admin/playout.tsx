@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListResponse } from "@snc/shared";
@@ -6,7 +6,6 @@ import type { PlayoutItem, PlayoutItemListResponse, PlayoutStatus, ChannelListRe
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { AddFilmForm } from "../../components/admin/add-film-form.js";
 import { PlaylistItemRow } from "../../components/admin/playlist-item-row.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
   deletePlayoutItem,
@@ -27,9 +26,6 @@ const STATUS_POLL_INTERVAL_MS = 3_000;
 // ── Route ──
 
 export const Route = createFileRoute("/admin/playout")({
-  beforeLoad: async () => {
-    if (!isFeatureEnabled("streaming")) throw redirect({ to: "/" });
-  },
   loader: async (): Promise<{
     items: PlayoutItemListResponse;
     channels: ChannelListResponse | null;

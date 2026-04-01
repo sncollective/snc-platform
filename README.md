@@ -254,6 +254,10 @@ pnpm --filter @snc/e2e test
 | `SRS_STREAM_KEY` | — | Stream key for SRS `on_publish` validation |
 | `PLAYOUT_STREAM_KEY` | — | Dedicated stream key for Liquidsoap playout |
 | `LIQUIDSOAP_API_URL` | — | Liquidsoap control API URL |
+| `LIQUIDSOAP_RTMP_URL` | `rtmp://snc-liquidsoap:1936/live/stream` | Liquidsoap RTMP ingest URL |
+| `SRS_CALLBACK_SECRET` | — | Shared secret for SRS HTTP callback authentication |
+| `MEDIA_TEMP_DIR` | `/tmp/snc-media` | Temp directory for media processing jobs |
+| `MEDIA_FFMPEG_CONCURRENCY` | `2` | Max parallel FFmpeg processes for job queue |
 | `FEDERATION_DOMAIN` | `s-nc.org` | ActivityPub federation domain |
 | `SEAFILE_OIDC_CLIENT_ID` | — | Seafile OIDC client ID (OIDC provider inactive without it) |
 | `SEAFILE_OIDC_CLIENT_SECRET` | — | Seafile OIDC client secret |
@@ -288,6 +292,7 @@ The API serves OpenAPI 3.1 documentation at `/api/openapi`. Key endpoint groups:
 | Studio | `/api/studio/*` | Stakeholder | Studio dashboard |
 | Emissions | `/api/emissions/*` | Stakeholder | Carbon tracking and reporting |
 | Streaming | `/api/streaming/*` | Mixed | SRS streaming, channels, playout, chat |
+| Chat | `/api/chat/*` | Mixed | WebSocket live chat for streams |
 | Federation | `/api/federation/*` | Public | ActivityPub federation endpoints |
 | Upload | `/api/upload/*` | Authenticated | Multipart/presigned upload handling |
 

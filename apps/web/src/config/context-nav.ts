@@ -27,8 +27,8 @@ export const ADMIN_NAV: ContextNavConfig = {
   backLabel: "Back to site",
   items: [
     { to: "", label: "Users" },
-    { to: "/playout", label: "Playout", featureFlag: "streaming" },
-    { to: "/simulcast", label: "Simulcast", featureFlag: "streaming" },
+    { to: "/playout", label: "Playout" },
+    { to: "/simulcast", label: "Simulcast" },
     { to: "/creators", label: "Creators" },
   ],
 };
@@ -41,7 +41,7 @@ export const GOVERNANCE_NAV: ContextNavConfig = {
   backTo: "/",
   backLabel: "Back to site",
   items: [
-    { to: "/calendar", label: "Calendar", featureFlag: "calendar" },
-    { to: "/projects", label: "Projects", featureFlag: "calendar" },
+    { to: "/calendar", label: "Calendar" },
+    { to: "/projects", label: "Projects" },
   ],
 };

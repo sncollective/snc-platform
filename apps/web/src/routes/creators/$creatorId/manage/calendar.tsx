@@ -1,11 +1,10 @@
-import { createFileRoute, getRouteApi, redirect } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import type React from "react";
 
 import { EventForm } from "../../../../components/calendar/event-form.js";
 import { CalendarGrid } from "../../../../components/calendar/calendar-grid.js";
 import { TimelineView } from "../../../../components/calendar/timeline-view.js";
 import { ViewToggle } from "../../../../components/calendar/view-toggle.js";
-import { isFeatureEnabled } from "../../../../lib/config.js";
 import { useCalendarState } from "../../../../hooks/use-calendar-state.js";
 import sectionStyles from "../../../../styles/detail-section.module.css";
 import styles from "./calendar-manage.module.css";
@@ -15,9 +14,6 @@ import styles from "./calendar-manage.module.css";
 const manageRoute = getRouteApi("/creators/$creatorId/manage");
 
 export const Route = createFileRoute("/creators/$creatorId/manage/calendar")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-  },
   component: ManageCalendarPage,
 });
 

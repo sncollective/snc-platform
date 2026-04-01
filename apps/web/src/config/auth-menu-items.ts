@@ -22,7 +22,7 @@ export interface AuthMenuItem {
 export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly AuthMenuItem[] {
   const items: AuthMenuItem[] = [];
 
-  if (isFeatureEnabled("admin") && hasRole(effectiveRoles, "admin")) {
+  if (hasRole(effectiveRoles, "admin")) {
     items.push({ key: "admin", to: "/admin", label: "Admin" });
   }
 

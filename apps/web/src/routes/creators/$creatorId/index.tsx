@@ -11,7 +11,6 @@ import type {
   SubscriptionPlan,
 } from "@snc/shared";
 
-import { ComingSoon } from "../../../components/coming-soon/coming-soon.js";
 import { SocialLinksSection } from "../../../components/social-links/social-links-section.js";
 import { ContentCard } from "../../../components/content/content-card.js";
 import { FilterBar } from "../../../components/content/filter-bar.js";
@@ -20,7 +19,6 @@ import { ProductCard } from "../../../components/merch/product-card.js";
 import { useCursorPagination } from "../../../hooks/use-cursor-pagination.js";
 import { useSession, fetchAuthState, GUEST_AUTH_STATE } from "../../../lib/auth.js";
 import { buildContentListUrl } from "../../../lib/content-url.js";
-import { isFeatureEnabled } from "../../../lib/config.js";
 import { fetchProducts } from "../../../lib/merch.js";
 import { fetchPlans, fetchMySubscriptions } from "../../../lib/subscription.js";
 import styles from "../creator-detail.module.css";
@@ -118,7 +116,7 @@ function CreatorDetailPage(): React.ReactElement {
     setActiveFilter(filter);
   };
 
-  if (!isFeatureEnabled("creator") || creator === null) return <ComingSoon feature="creator" />;
+  if (creator === null) return null;
 
   return (
     <div className={styles.detailPage}>

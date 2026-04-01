@@ -3,10 +3,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
-import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { ContentDetail } from "../../components/content/content-detail.js";
 import { fetchApiServer, fetchAuthStateServer } from "../../lib/api-server.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchLockedContentPlans, resolveCanManage } from "../../lib/content-loader.js";
 import { buildContentJsonLd } from "../../lib/json-ld.js";
 
@@ -23,8 +21,6 @@ export interface ContentDetailLoaderData {
 export const Route = createFileRoute("/content/$contentId")({
   errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<ContentDetailLoaderData> => {
-    if (!isFeatureEnabled("content")) return { item: null, plans: [], canManage: false };
-
     const item = (await fetchApiServer({
       data: `/api/content/${encodeURIComponent(params.contentId)}`,
     })) as FeedItem;
@@ -88,6 +84,6 @@ export const Route = createFileRoute("/content/$contentId")({
 
 function ContentDetailPage(): React.ReactElement {
   const { item, plans, canManage } = Route.useLoaderData();
-  if (!isFeatureEnabled("content") || item === null) return <ComingSoon feature="content" />;
+  if (item === null) return <></>;
   return <ContentDetail item={item} plans={plans} canManage={canManage} />;
 }

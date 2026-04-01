@@ -42,15 +42,10 @@ export const ENV_SCHEMA = z.object({
   EMAIL_FROM: z.string().default("S/NC <noreply@s-nc.org>"),
   STUDIO_INQUIRY_EMAIL: z.string().email().optional(),
   // Feature flags (default ON — set "false" to disable a domain)
-  FEATURE_CONTENT: booleanFlag,
-  FEATURE_CREATOR: booleanFlag,
   FEATURE_SUBSCRIPTION: booleanFlag,
   FEATURE_MERCH: booleanFlag,
   FEATURE_BOOKING: booleanFlag,
-  FEATURE_DASHBOARD: booleanFlag,
-  FEATURE_ADMIN: booleanFlag,
   FEATURE_EMISSIONS: booleanFlag,
-  FEATURE_CALENDAR: booleanFlag,
   // SRS streaming server (optional — API returns 503 STREAMING_NOT_CONFIGURED when absent)
   SRS_API_URL: z.string().url().optional(),
   SRS_HLS_URL: z.string().url().optional(),
@@ -67,10 +62,6 @@ export const ENV_SCHEMA = z.object({
   FEATURE_FEDERATION: z
     .string()
     .default("false")
-    .transform((v) => v === "true"),
-  FEATURE_STREAMING: z
-    .string()
-    .default("true")
     .transform((v) => v === "true"),
 });
 
@@ -104,17 +95,11 @@ export const parseConfig = (
  * Extract feature flags from a parsed Config object.
  */
 export const getFeatureFlags = (cfg: Config): FeatureFlags => ({
-  content: cfg.FEATURE_CONTENT,
-  creator: cfg.FEATURE_CREATOR,
   subscription: cfg.FEATURE_SUBSCRIPTION,
   merch: cfg.FEATURE_MERCH,
   booking: cfg.FEATURE_BOOKING,
-  dashboard: cfg.FEATURE_DASHBOARD,
-  admin: cfg.FEATURE_ADMIN,
   emissions: cfg.FEATURE_EMISSIONS,
-  calendar: cfg.FEATURE_CALENDAR,
   federation: cfg.FEATURE_FEDERATION,
-  streaming: cfg.FEATURE_STREAMING,
 });
 
 /**

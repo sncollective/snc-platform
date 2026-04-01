@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -10,7 +10,6 @@ import { useGlobalPlayer } from "../contexts/global-player-context.js";
 import type { LiveLayout, MediaMetadata } from "../contexts/global-player-context.js";
 import { ChatPanel } from "../components/chat/chat-panel.js";
 import { fetchApiServer } from "../lib/api-server.js";
-import { isFeatureEnabled } from "../lib/config.js";
 import { apiGet } from "../lib/fetch-utils.js";
 import { ChatProvider } from "../contexts/chat-context.js";
 
@@ -58,7 +57,6 @@ function persistPrefs(prefs: LayoutPrefs): void {
 export const Route = createFileRoute("/live")({
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<{ initial: ChannelListResponse | null }> => {
-    if (!isFeatureEnabled("streaming")) throw redirect({ to: "/" });
     try {
       const initial = (await fetchApiServer({
         data: "/api/streaming/status",

@@ -4,12 +4,10 @@ import type React from "react";
 import type { CreatorListItem, CreatorListResponse, CreatorProfileResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
-import { ComingSoon } from "../../components/coming-soon/coming-soon.js";
 import { CreatorCard } from "../../components/creator/creator-card.js";
 import { CreateCreatorForm } from "../../components/creator/create-creator-form.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { useCursorPagination } from "../../hooks/use-cursor-pagination.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { fetchAuthState } from "../../lib/auth.js";
 import { clsx } from "clsx/lite";
 
@@ -20,7 +18,6 @@ import buttonStyles from "../../styles/button.module.css";
 export const Route = createFileRoute("/creators/")({
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<CreatorListResponse> => {
-    if (!isFeatureEnabled("creator")) return { items: [], nextCursor: null };
     try {
       return (await fetchApiServer({
         data: "/api/creators?limit=24",
@@ -106,7 +103,6 @@ function CreatorsPage(): React.ReactElement {
     void navigate({ to: "/creators/$creatorId/manage", params: { creatorId: profile.handle ?? profile.id } });
   };
 
-  if (!isFeatureEnabled("creator")) return <ComingSoon feature="creator" />;
 
   return (
     <div className={styles.creatorsPage}>

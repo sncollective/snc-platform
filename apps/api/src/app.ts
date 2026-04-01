@@ -110,16 +110,36 @@ app.route("/api/me", meRoutes);
 app.route("/api/me/creators", meCreatorsRoutes);
 app.route("/api/uploads", uploadRoutes);
 
-// Feature-gated routes
-if (features.content) {
-  app.route("/api/content", contentRoutes);
-  app.route("/api/content", contentMediaRoutes);
-}
-if (features.creator) {
-  app.route("/api/creators", creatorRoutes);
-  app.route("/api/creators", creatorMediaRoutes);
-  app.route("/api/creators", creatorMemberRoutes);
-}
+// Shipped features — unconditionally mounted
+app.route("/api/content", contentRoutes);
+app.route("/api/content", contentMediaRoutes);
+app.route("/api/creators", creatorRoutes);
+app.route("/api/creators", creatorMediaRoutes);
+app.route("/api/creators", creatorMemberRoutes);
+app.route("/api/creators", creatorEventRoutes);
+app.route("/api/admin", adminRoutes);
+app.route("/api/dashboard", dashboardRoutes);
+app.route("/api/calendar", calendarRoutes);
+app.route("/api/calendar", calendarFeedRoutes);
+app.route("/api/calendar", calendarEventTypeRoutes);
+app.route("/api/projects", projectRoutes);
+app.route("/api/streaming", streamingRoutes);
+import("./routes/chat.routes.js")
+  .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
+  .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load chat routes"));
+import("./routes/playout.routes.js")
+  .then(({ playoutRoutes }) => app.route("/api/playout", playoutRoutes))
+  .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout routes"));
+import("./routes/simulcast.routes.js")
+  .then(({ simulcastRoutes }) => app.route("/api/simulcast", simulcastRoutes))
+  .catch((err) =>
+    rootLogger.error(
+      { error: err instanceof Error ? err.message : String(err) },
+      "Failed to load simulcast routes",
+    ),
+  );
+
+// Feature-gated routes (unshipped)
 if (features.subscription) {
   app.route("/api/subscriptions", subscriptionRoutes);
   app.route("/api/webhooks", webhookRoutes);
@@ -127,33 +147,7 @@ if (features.subscription) {
 if (features.merch) app.route("/api/merch", merchRoutes);
 if (features.booking) app.route("/api", bookingRoutes);
 if (features.booking) app.route("/api/studio", studioRoutes);
-if (features.dashboard) app.route("/api/dashboard", dashboardRoutes);
-if (features.admin) app.route("/api/admin", adminRoutes);
 if (features.emissions) app.route("/api/emissions", emissionsRoutes);
-if (features.calendar) app.route("/api/calendar", calendarRoutes);
-if (features.calendar) app.route("/api/calendar", calendarFeedRoutes);
-if (features.calendar) app.route("/api/calendar", calendarEventTypeRoutes);
-if (features.calendar && features.creator) {
-  app.route("/api/creators", creatorEventRoutes);
-}
-if (features.calendar) app.route("/api/projects", projectRoutes);
-if (features.streaming) app.route("/api/streaming", streamingRoutes);
-if (features.streaming) {
-  import("./routes/chat.routes.js")
-    .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
-    .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load chat routes"));
-  import("./routes/playout.routes.js")
-    .then(({ playoutRoutes }) => app.route("/api/playout", playoutRoutes))
-    .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout routes"));
-  import("./routes/simulcast.routes.js")
-    .then(({ simulcastRoutes }) => app.route("/api/simulcast", simulcastRoutes))
-    .catch((err) =>
-      rootLogger.error(
-        { error: err instanceof Error ? err.message : String(err) },
-        "Failed to load simulcast routes",
-      ),
-    );
-}
 // Federation routes mount at root (not /api/) because /.well-known/* and /ap/* paths live there
 if (features.federation) {
   import("./routes/federation.routes.js")

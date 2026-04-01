@@ -507,14 +507,4 @@ describe("CreatorDetailPage", () => {
     expect(screen.queryByRole("button", { name: /subscribe/i })).toBeNull();
   });
 
-  it("renders Coming Soon when creator feature is disabled", () => {
-    mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "creator");
-
-    render(<CreatorDetailPage />);
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Creators — Coming Soon" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
-  });
 });

@@ -4,7 +4,6 @@ import type { CreatorProfileResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { buildCreatorJsonLd } from "../../lib/json-ld.js";
 
 // ── Route ──
@@ -12,7 +11,6 @@ import { buildCreatorJsonLd } from "../../lib/json-ld.js";
 export const Route = createFileRoute("/creators/$creatorId")({
   errorComponent: RouteErrorBoundary,
   loader: async ({ params }): Promise<CreatorProfileResponse | null> => {
-    if (!isFeatureEnabled("creator")) return null;
     return fetchApiServer({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
     }) as Promise<CreatorProfileResponse>;

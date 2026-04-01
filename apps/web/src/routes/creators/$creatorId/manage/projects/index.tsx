@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, redirect } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type { Project } from "@snc/shared";
@@ -8,7 +8,6 @@ import {
   updateProject,
   deleteProject,
 } from "../../../../../lib/project.js";
-import { isFeatureEnabled } from "../../../../../lib/config.js";
 import { ManageProjectForm } from "../../../../../components/project/manage-project-form.js";
 import { ManageProjectItem } from "../../../../../components/project/manage-project-item.js";
 import sectionStyles from "../../../../../styles/detail-section.module.css";
@@ -19,9 +18,6 @@ import styles from "./projects-manage.module.css";
 const manageRoute = getRouteApi("/creators/$creatorId/manage");
 
 export const Route = createFileRoute("/creators/$creatorId/manage/projects/")({
-  beforeLoad: () => {
-    if (!isFeatureEnabled("calendar")) throw redirect({ to: "/" });
-  },
   component: ManageProjectsPage,
 });
 

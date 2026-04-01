@@ -1,9 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { SimulcastDestinationManager } from "../../components/simulcast/simulcast-destination-manager.js";
-import { isFeatureEnabled } from "../../lib/config.js";
 import { apiGet, apiMutate } from "../../lib/fetch-utils.js";
 import listingStyles from "../../styles/listing-page.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
@@ -11,11 +10,6 @@ import pageHeadingStyles from "../../styles/page-heading.module.css";
 // ── Route ──
 
 export const Route = createFileRoute("/admin/simulcast")({
-  beforeLoad: async () => {
-    if (!isFeatureEnabled("streaming")) {
-      throw redirect({ to: "/" });
-    }
-  },
   head: () => ({ meta: [{ title: "Simulcast — S/NC" }] }),
   errorComponent: RouteErrorBoundary,
   component: SimulcastPage,
