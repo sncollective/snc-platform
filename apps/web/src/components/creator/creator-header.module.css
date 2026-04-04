@@ -177,6 +177,18 @@
   outline-offset: 2px;
 }
 
+/* ── Also Follow Checkbox Label ── */
+
+.alsoFollowLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
 /* ── Subscribed Badge ── */
 
 .subscribedBadge {

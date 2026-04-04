@@ -9,10 +9,11 @@ import { createAuthMock } from "../../helpers/auth-mock.js";
 
 // ── Hoisted Mocks ──
 
-const { mockUseSession, mockCreateCheckout, mockNavigateExternal } = vi.hoisted(() => ({
+const { mockUseSession, mockCreateCheckout, mockNavigateExternal, mockApiMutate } = vi.hoisted(() => ({
   mockUseSession: vi.fn(),
   mockCreateCheckout: vi.fn(),
   mockNavigateExternal: vi.fn(),
+  mockApiMutate: vi.fn(),
 }));
 
 vi.mock("../../../src/lib/auth.js", () =>
@@ -28,6 +29,11 @@ vi.mock("../../../src/lib/url.js", async (importOriginal) => {
   return { ...actual, navigateExternal: mockNavigateExternal };
 });
 
+vi.mock("../../../src/lib/fetch-utils.js", () => ({
+  apiMutate: mockApiMutate,
+  apiGet: vi.fn().mockResolvedValue({ isFollowing: false, followerCount: 0 }),
+}));
+
 vi.mock("@tanstack/react-router", () => createRouterMock());
 
 // ── Import component under test (after mocks) ──
@@ -39,6 +45,7 @@ import { CreatorHeader } from "../../../src/components/creator/creator-header.js
 beforeEach(() => {
   mockUseSession.mockReturnValue({ data: { user: { id: "user-1" } } });
   mockCreateCheckout.mockResolvedValue("https://checkout.stripe.com/test");
+  mockApiMutate.mockResolvedValue(undefined);
 });
 
 // ── Tests ──

@@ -17,6 +17,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 1000,
+      kill_timeout: 30000,
     },
     {
       name: "web",
@@ -32,6 +33,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 1000,
+      kill_timeout: 30000,
     },
     {
       name: "web-staging",

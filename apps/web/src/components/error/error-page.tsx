@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import styles from "./error-page.module.css";
 
@@ -19,11 +19,20 @@ export function ErrorPage({
   onRetry,
 }: ErrorPageProps) {
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleRetry = () => {
     if (!onRetry || isRetrying) return;
     setIsRetrying(true);
     onRetry();
+  };
+
+  const handleGoBack = () => {
+    window.history.back();
   };
 
   const hasRetry = showRetry === true && onRetry !== undefined;
@@ -50,7 +59,9 @@ export function ErrorPage({
             className={
               hasRetry ? styles.secondaryButton : styles.primaryButton
             }
-            onClick={() => window.history.back()}
+            onClick={handleGoBack}
+            suppressHydrationWarning
+            disabled={!isMounted}
           >
             Go back
           </button>

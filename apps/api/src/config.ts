@@ -41,6 +41,20 @@ export const ENV_SCHEMA = z.object({
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default("S/NC <noreply@s-nc.org>"),
   STUDIO_INQUIRY_EMAIL: z.string().email().optional(),
+  // Social Login — Google
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // Social Login — Apple
+  APPLE_CLIENT_ID: z.string().optional(),
+  APPLE_CLIENT_SECRET: z.string().optional(),
+  // Social Login — Twitch (login only — basic profile scopes)
+  TWITCH_CLIENT_ID: z.string().optional(),
+  TWITCH_CLIENT_SECRET: z.string().optional(),
+  // Social Login — Mastodon (custom per-instance OAuth)
+  MASTODON_REDIRECT_URI: z.string().url().optional(),
+  // YouTube streaming connect (separate from Google sign-in)
+  YOUTUBE_CLIENT_ID: z.string().optional(),
+  YOUTUBE_CLIENT_SECRET: z.string().optional(),
   // Feature flags (default ON — set "false" to disable a domain)
   FEATURE_SUBSCRIPTION: booleanFlag,
   FEATURE_MERCH: booleanFlag,

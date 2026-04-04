@@ -297,6 +297,7 @@ export function UploadProvider({
           callbacksRef.current.delete(fileId);
         })
         .catch((err: Error) => {
+          uppyRef.current?.removeFile(fileId);
           dispatch({ type: "SET_STATUS", id: fileId, status: "error", error: err.message });
           callbacksRef.current.get(fileId)?.onError?.(err);
           callbacksRef.current.delete(fileId);
@@ -306,6 +307,10 @@ export function UploadProvider({
     const onError = (file: UppyFile<Meta, Body> | undefined, error: Error) => {
       const fileId = file?.id;
       if (!fileId) return;
+      // Remove file from Uppy to clean up stale multipart state (uploadId, parts).
+      // This triggers the AwsS3 plugin's abortMultipartUpload handler if a
+      // multipart upload was in progress, preventing "already exists" on retry.
+      uppyRef.current?.removeFile(fileId);
       dispatch({ type: "SET_STATUS", id: fileId, status: "error", error: error.message });
       callbacksRef.current.get(fileId)?.onError?.(error);
       callbacksRef.current.delete(fileId);

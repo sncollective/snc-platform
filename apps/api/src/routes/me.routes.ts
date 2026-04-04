@@ -8,7 +8,9 @@ import { SessionSchema, UserSchema } from "@snc/shared";
 import { auth } from "../auth/auth.js";
 import { getUserRoles } from "../auth/user-roles.js";
 import { db } from "../db/connection.js";
+import { accounts } from "../db/schema/user.schema.js";
 import { subscriptionPlans, userSubscriptions } from "../db/schema/subscription.schema.js";
+import { requireAuth } from "../middleware/require-auth.js";
 
 // ── Schemas ──
 
@@ -82,5 +84,28 @@ meRoutes.get(
       roles,
       isPatron,
     });
+  },
+);
+
+meRoutes.get(
+  "/providers",
+  requireAuth,
+  describeRoute({
+    tags: ["me"],
+    summary: "List linked account providers",
+    responses: { 200: { description: "Provider list" } },
+  }),
+  async (c) => {
+    const user = c.get("user");
+
+    const rows = await db
+      .select({ providerId: accounts.providerId })
+      .from(accounts)
+      .where(eq(accounts.userId, user.id));
+
+    const providers = rows.map((r) => r.providerId);
+    const hasPassword = providers.includes("credential");
+
+    return c.json({ providers, hasPassword });
   },
 );

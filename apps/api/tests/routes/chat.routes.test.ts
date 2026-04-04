@@ -6,6 +6,12 @@ import { setupRouteTest } from "../helpers/route-test-factory.js";
 
 const mockGetActiveRooms = vi.fn();
 const mockGetMessageHistory = vi.fn();
+const mockGetModerationHistory = vi.fn();
+const mockGetActiveSanctions = vi.fn();
+const mockGetWordFilters = vi.fn();
+const mockAddWordFilter = vi.fn();
+const mockRemoveWordFilter = vi.fn();
+const mockGetReactionsForMessage = vi.fn();
 
 const ctx = setupRouteTest({
   mockAuth: true,
@@ -32,12 +38,35 @@ const ctx = setupRouteTest({
       leaveAllRooms: vi.fn(),
       broadcastToRoom: vi.fn(),
       getRoomClientCount: vi.fn(),
+      getRoomPresence: vi.fn().mockReturnValue({ viewerCount: 0, users: [] }),
+      registerClient: vi.fn(),
+      unregisterClient: vi.fn(),
+    }));
+    vi.doMock("../../src/services/chat-moderation.js", () => ({
+      timeoutUser: vi.fn(),
+      banUser: vi.fn(),
+      unbanUser: vi.fn(),
+      setSlowMode: vi.fn(),
+      getModerationHistory: mockGetModerationHistory,
+      getActiveSanctions: mockGetActiveSanctions,
+    }));
+    vi.doMock("../../src/services/chat-word-filters.js", () => ({
+      addWordFilter: mockAddWordFilter,
+      removeWordFilter: mockRemoveWordFilter,
+      getWordFilters: mockGetWordFilters,
+    }));
+    vi.doMock("../../src/services/chat-reactions.js", () => ({
+      addReaction: vi.fn(),
+      removeReaction: vi.fn(),
+      getReactionsForMessage: mockGetReactionsForMessage,
+      getReactionsBatch: vi.fn().mockResolvedValue({ ok: true, value: {} }),
     }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
-        c.set("user", null);
-        c.set("session", null);
-        c.set("roles", []);
+        // Use the ctx.auth state so individual tests can set a user
+        c.set("user", ctx.auth.user);
+        c.set("session", ctx.auth.session);
+        c.set("roles", ctx.auth.roles);
         await next();
       },
     }));
@@ -51,6 +80,36 @@ const ctx = setupRouteTest({
     mockGetMessageHistory.mockResolvedValue({
       ok: true,
       value: { messages: [], hasMore: false },
+    });
+    mockGetModerationHistory.mockResolvedValue({
+      ok: true,
+      value: { actions: [], hasMore: false },
+    });
+    mockGetActiveSanctions.mockResolvedValue({
+      ok: true,
+      value: [],
+    });
+    mockGetWordFilters.mockResolvedValue({
+      ok: true,
+      value: [],
+    });
+    mockAddWordFilter.mockResolvedValue({
+      ok: true,
+      value: {
+        id: "filter-1",
+        roomId: "room-1",
+        pattern: "badword",
+        isRegex: false,
+        createdAt: "2026-03-01T00:00:00.000Z",
+      },
+    });
+    mockRemoveWordFilter.mockResolvedValue({
+      ok: true,
+      value: undefined,
+    });
+    mockGetReactionsForMessage.mockResolvedValue({
+      ok: true,
+      value: [],
     });
   },
 });
@@ -189,6 +248,90 @@ describe("chat routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.hasMore).toBe(true);
+    });
+  });
+
+  describe("GET /api/chat/rooms/:roomId/moderation", () => {
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      // Rebuild app with null user
+      const res = await ctx.app.request("/api/chat/rooms/room-1/moderation");
+      expect(res.status).toBe(401);
+    });
+
+    it("returns moderation history when authenticated", async () => {
+      // ctx.auth.user is set by beforeEach to makeMockUser()
+      const res = await ctx.app.request("/api/chat/rooms/room-1/moderation");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.actions).toBeDefined();
+    });
+  });
+
+  describe("GET /api/chat/rooms/:roomId/filters", () => {
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      const res = await ctx.app.request("/api/chat/rooms/room-1/filters");
+      expect(res.status).toBe(401);
+    });
+
+    it("returns word filters when authenticated", async () => {
+      const res = await ctx.app.request("/api/chat/rooms/room-1/filters");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.filters).toBeDefined();
+    });
+  });
+
+  describe("POST /api/chat/rooms/:roomId/filters", () => {
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      const res = await ctx.app.request("/api/chat/rooms/room-1/filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pattern: "bad", isRegex: false }),
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("creates word filter when authenticated", async () => {
+      const res = await ctx.app.request("/api/chat/rooms/room-1/filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pattern: "badword", isRegex: false }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.pattern).toBe("badword");
+    });
+  });
+
+  describe("GET /api/chat/rooms/:roomId/messages/:messageId/reactions", () => {
+    it("returns reactions array when authenticated", async () => {
+      const reactions = [
+        { emoji: "👍", count: 2, reactedByMe: true },
+      ];
+      mockGetReactionsForMessage.mockResolvedValue({ ok: true, value: reactions });
+
+      const res = await ctx.app.request("/api/chat/rooms/room-1/messages/msg-1/reactions");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.reactions).toEqual(reactions);
+    });
+
+    it("works unauthenticated (read-only)", async () => {
+      ctx.auth.user = null;
+      mockGetReactionsForMessage.mockResolvedValue({ ok: true, value: [] });
+
+      const res = await ctx.app.request("/api/chat/rooms/room-1/messages/msg-1/reactions");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.reactions).toEqual([]);
     });
   });
 });

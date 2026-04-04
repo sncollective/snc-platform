@@ -1,4 +1,5 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { z } from "zod/mini";
 import { useState, useEffect } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
@@ -12,6 +13,8 @@ import type {
 import { MAX_CREATOR_SIMULCAST_DESTINATIONS } from "@snc/shared";
 
 import { SimulcastDestinationManager } from "../../../../components/simulcast/simulcast-destination-manager.js";
+import { apiMutate } from "../../../../lib/fetch-utils.js";
+import { navigateExternal } from "../../../../lib/url.js";
 import {
   fetchStreamKeys,
   createStreamKey,
@@ -38,8 +41,46 @@ const parentRoute = getRouteApi("/creators/$creatorId/manage");
 export const Route = createFileRoute(
   "/creators/$creatorId/manage/streaming",
 )({
+  validateSearch: z.object({
+    connected: z.optional(z.string()),
+    error: z.optional(z.string()),
+  }),
   component: StreamingPage,
 });
+
+// ── ConnectButton ──
+
+function ConnectButton({ platform, creatorId, label }: {
+  readonly platform: "twitch" | "youtube";
+  readonly creatorId: string;
+  readonly label: string;
+}) {
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnect = async () => {
+    setIsConnecting(true);
+    try {
+      const result = await apiMutate<{ authorizationUrl: string }>(
+        `/api/streaming/connect/${platform}/start`,
+        { method: "POST", body: { creatorId } },
+      );
+      navigateExternal(result.authorizationUrl);
+    } catch {
+      setIsConnecting(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={buttonStyles.secondaryButton}
+      onClick={handleConnect}
+      disabled={isConnecting}
+    >
+      {isConnecting ? `Connecting to ${label}…` : `Connect ${label}`}
+    </button>
+  );
+}
 
 // ── Component ──
 
@@ -47,6 +88,7 @@ function StreamingPage(): React.ReactElement {
   const { creator, memberRole, isAdmin } = parentRoute.useLoaderData();
   const creatorId = creator.id;
   const isOwner = isAdmin || memberRole === "owner";
+  const { connected, error: connectError } = Route.useSearch();
 
   const [keys, setKeys] = useState<StreamKeyResponse[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
@@ -227,6 +269,32 @@ function StreamingPage(): React.ReactElement {
           </ul>
         </section>
       )}
+
+      {/* ── Connect Streaming Accounts ── */}
+      <section className={styles.connectSection}>
+        <h2 className={styles.heading}>Connect Streaming Accounts</h2>
+        <p className={styles.description}>
+          Auto-fill your stream key and RTMP URL from your streaming platform.
+        </p>
+
+        {connected && (
+          <div className={successStyles.success} role="status">
+            {connected === "twitch" ? "Twitch" : "YouTube"} account connected!
+            Review the new destination below and activate it when ready.
+          </div>
+        )}
+
+        {connectError && (
+          <div className={errorStyles.error} role="alert">
+            {connectError}
+          </div>
+        )}
+
+        <div className={styles.connectButtons}>
+          <ConnectButton platform="twitch" creatorId={creatorId} label="Twitch" />
+          <ConnectButton platform="youtube" creatorId={creatorId} label="YouTube" />
+        </div>
+      </section>
 
       {/* ── Simulcast Destinations ── */}
       <section className={styles.simulcastSection}>

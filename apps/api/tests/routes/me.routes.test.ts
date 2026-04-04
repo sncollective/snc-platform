@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
@@ -8,10 +8,11 @@ import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 const mockGetSession = vi.fn();
 const mockGetUserRoles = vi.fn();
 
-// ── Drizzle chain mocks for patron query ──
+// ── Drizzle chain mocks ──
 
 const mockLimit = vi.fn();
 const mockWhere = vi.fn();
+const mockProvidersWhere = vi.fn();
 const mockInnerJoin = vi.fn();
 const mockFrom = vi.fn();
 const mockSelect = vi.fn();
@@ -22,7 +23,7 @@ const ctx = setupRouteTest({
   mockAuth: false,
   mockRole: false,
   defaultAuth: { user: null, session: null, roles: [] },
-  mocks: () => {
+  mocks: ({ UnauthorizedError }) => {
     vi.doMock("../../src/auth/auth.js", () => ({
       auth: {
         api: {
@@ -44,6 +45,20 @@ const ctx = setupRouteTest({
       subscriptionPlans: {},
       userSubscriptions: {},
     }));
+
+    vi.doMock("../../src/db/schema/user.schema.js", () => ({
+      accounts: {},
+    }));
+
+    // Mock requireAuth so /providers tests can control auth state directly
+    vi.doMock("../../src/middleware/require-auth.js", () => ({
+      requireAuth: async (c: any, next: any) => {
+        if (!ctx.auth.user) throw new UnauthorizedError();
+        c.set("user", ctx.auth.user);
+        c.set("session", ctx.auth.session);
+        await next();
+      },
+    }));
   },
   mountRoute: async (app) => {
     const { meRoutes } = await import("../../src/routes/me.routes.js");
@@ -52,14 +67,19 @@ const ctx = setupRouteTest({
   beforeEach: () => {
     mockGetSession.mockReset();
     mockGetUserRoles.mockReset();
+    mockProvidersWhere.mockReset();
 
-    // Wire the Drizzle chain: select → from → innerJoin → where → limit
+    // Wire the Drizzle chain for both query shapes:
+    // - Patron query:   select → from → innerJoin → where → limit
+    // - Providers query: select → from → where (resolves directly)
     mockSelect.mockReturnValue({ from: mockFrom });
-    mockFrom.mockReturnValue({ innerJoin: mockInnerJoin });
+    mockFrom.mockReturnValue({ innerJoin: mockInnerJoin, where: mockProvidersWhere });
     mockInnerJoin.mockReturnValue({ where: mockWhere });
     mockWhere.mockReturnValue({ limit: mockLimit });
     // Default: no patron subscription
     mockLimit.mockResolvedValue([]);
+    // Default: no providers
+    mockProvidersWhere.mockResolvedValue([]);
   },
 });
 
@@ -200,5 +220,58 @@ describe("isPatron field", () => {
     const body = await res.json();
     expect(body).toStrictEqual({ user: null });
     expect(body.isPatron).toBeUndefined();
+  });
+});
+
+describe("GET /api/me/providers", () => {
+  it("returns 401 when unauthenticated", async () => {
+    ctx.auth.user = null;
+    ctx.auth.session = null;
+
+    const res = await ctx.app.request("/api/me/providers");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns hasPassword true when user has credential provider", async () => {
+    mockProvidersWhere.mockResolvedValue([
+      { providerId: "credential" },
+      { providerId: "google" },
+    ]);
+
+    const res = await ctx.app.request("/api/me/providers", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.hasPassword).toBe(true);
+    expect(body.providers).toStrictEqual(["credential", "google"]);
+  });
+
+  it("returns hasPassword false when user only has OAuth providers", async () => {
+    mockProvidersWhere.mockResolvedValue([{ providerId: "google" }]);
+
+    const res = await ctx.app.request("/api/me/providers", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.hasPassword).toBe(false);
+    expect(body.providers).toStrictEqual(["google"]);
+  });
+
+  it("returns empty providers list for user with no linked accounts", async () => {
+    mockProvidersWhere.mockResolvedValue([]);
+
+    const res = await ctx.app.request("/api/me/providers", {
+      headers: { Cookie: "better-auth.session_token=valid_token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.hasPassword).toBe(false);
+    expect(body.providers).toStrictEqual([]);
   });
 });

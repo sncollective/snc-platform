@@ -57,3 +57,5 @@ Pre-1.0 — all current releases. 1.0 reserved for cooperative launch.
 - **Board naming:** `boards/platform/release-{version}/` — each release gets its own board directory.
 - **Theme titles:** each release has a short theme used in the board heading (e.g., "Admin Polish + Playout Redesign").
 - `/release-create` defaults to patch bump of the latest release. Offers minor bump as an alternative.
+
+**Releases are scoping units, not deployment units.** Multiple releases can be active at different stages simultaneously. All development happens on main. Deployment ships everything that's been reviewed — which may span multiple releases. Quality gates run once against the combined deployment surface. `/release-deploy` handles this: it collects reviewed work across releases, runs gates against the combined surface, and archives boards as appropriate.

@@ -36,21 +36,39 @@ const MANAGE_ITEMS: readonly ContextNavItem[] = [
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId/manage")({
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location, params }) => {
     const { user, roles } = await fetchAuthStateServer();
     if (!user) throw redirect(buildLoginRedirect(location.pathname));
-    if (!roles.includes("stakeholder") && !roles.includes("admin")) {
-      throw new AccessDeniedError();
+
+    if (!roles.includes("admin")) {
+      // Non-admin: check team membership for this specific creator
+      const [membershipsRes, creatorRes] = await Promise.all([
+        fetchApiServer({ data: "/api/me/creators" }) as Promise<{
+          creators: Array<{ id: string; displayName: string; handle: string; role: string; avatarUrl: string | null }>;
+        }>,
+        fetchApiServer({
+          data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
+        }) as Promise<import("@snc/shared").CreatorProfileResponse>,
+      ]);
+
+      const isMember = membershipsRes.creators.some((m) => m.id === creatorRes.id);
+      if (!isMember) {
+        throw new AccessDeniedError();
+      }
+
+      return { userId: user.id, platformRoles: roles, resolvedCreator: creatorRes };
     }
 
-    return { userId: user.id, platformRoles: roles };
+    return { userId: user.id, platformRoles: roles, resolvedCreator: null };
   },
   errorComponent: RouteErrorBoundary,
   loader: async ({ params, context }): Promise<ManageLoaderData> => {
     const [creator, membersRes] = await Promise.all([
-      fetchApiServer({
-        data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
-      }) as Promise<CreatorProfileResponse>,
+      context.resolvedCreator
+        ? Promise.resolve(context.resolvedCreator)
+        : (fetchApiServer({
+            data: `/api/creators/${encodeURIComponent(params.creatorId)}`,
+          }) as Promise<CreatorProfileResponse>),
       fetchApiServer({
         data: `/api/creators/${encodeURIComponent(params.creatorId)}/members`,
       }) as Promise<{ members: Array<{ userId: string; role: CreatorMemberRole }> }>,

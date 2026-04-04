@@ -9,6 +9,8 @@ import { extractFieldErrors } from "../../lib/form-utils.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
 import { FormField } from "./form-field.js";
+import { MastodonLoginDialog } from "./mastodon-login-dialog.js";
+import { SocialLoginButtons } from "./social-login-buttons.js";
 
 // ── Private Constants ──
 
@@ -30,6 +32,7 @@ export function RegisterForm() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [showMastodonDialog, setShowMastodonDialog] = useState(false);
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
@@ -81,56 +84,66 @@ export function RegisterForm() {
   };
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      <div
-        className={formStyles.serverError}
-        role={serverError ? "alert" : undefined}
-        aria-live="polite"
-        style={serverError ? undefined : { visibility: "hidden" }}
-      >
-        {serverError || "\u00A0"}
-      </div>
+    <>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div
+          className={formStyles.serverError}
+          role={serverError ? "alert" : undefined}
+          aria-live="polite"
+          style={serverError ? undefined : { visibility: "hidden" }}
+        >
+          {serverError || "\u00A0"}
+        </div>
 
-      <FormField
-        id="register-name"
-        label="Name"
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        error={fieldErrors.name}
-        autoComplete="name"
-        required
+        <FormField
+          id="register-name"
+          label="Name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={fieldErrors.name}
+          autoComplete="name"
+          required
+        />
+
+        <FormField
+          id="register-email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={fieldErrors.email}
+          autoComplete="email"
+          required
+        />
+
+        <FormField
+          id="register-password"
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={fieldErrors.password}
+          autoComplete="new-password"
+          required
+        />
+
+        <button
+          type="submit"
+          className={formStyles.submitButton}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Creating account\u2026" : "Create account"}
+        </button>
+      </form>
+      <SocialLoginButtons
+        callbackURL="/feed"
+        onMastodonClick={() => setShowMastodonDialog(true)}
       />
-
-      <FormField
-        id="register-email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        error={fieldErrors.email}
-        autoComplete="email"
-        required
+      <MastodonLoginDialog
+        open={showMastodonDialog}
+        onClose={() => setShowMastodonDialog(false)}
       />
-
-      <FormField
-        id="register-password"
-        label="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        error={fieldErrors.password}
-        autoComplete="new-password"
-        required
-      />
-
-      <button
-        type="submit"
-        className={formStyles.submitButton}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Creating account\u2026" : "Create account"}
-      </button>
-    </form>
+    </>
   );
 }

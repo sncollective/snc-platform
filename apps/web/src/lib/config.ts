@@ -25,3 +25,15 @@ export const features: FeatureFlags = {
 
 /** Check whether a single feature flag is enabled. */
 export const isFeatureEnabled = (flag: FeatureFlag): boolean => features[flag];
+
+// ── Social Providers ──
+
+/** Resolved social login provider flags — absent env vars default to OFF. */
+export const socialProviders = {
+  google: import.meta.env.VITE_SOCIAL_GOOGLE === "true",
+  apple: import.meta.env.VITE_SOCIAL_APPLE === "true",
+  twitch: import.meta.env.VITE_SOCIAL_TWITCH === "true",
+  mastodon: import.meta.env.VITE_SOCIAL_MASTODON === "true",
+} as const;
+
+export type SocialProvider = keyof typeof socialProviders;

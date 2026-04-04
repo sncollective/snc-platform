@@ -26,4 +26,7 @@ export * from "./chat.js";
 export * from "./media-processing.js";
 export * from "./playout.js";
 export * from "./playout-queue.js";
+export * from "./notification.js";
+export * from "./notification-inbox.js";
+export * from "./invite.js";
 export { textToStream, streamToText } from "./storage-contract.js";

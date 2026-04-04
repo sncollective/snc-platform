@@ -16,6 +16,38 @@ import { rootLogger } from "../logging/logger.js";
 
 const schema = { ...userSchema, ...oidcSchema };
 
+/**
+ * Build the socialProviders config object from env vars.
+ * Each provider is only included when both its client ID and secret are present.
+ */
+function buildSocialProviders() {
+  type SocialProviderConfig = Record<string, { clientId: string; clientSecret: string }>;
+  const providers: SocialProviderConfig = {};
+
+  if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
+    providers.google = {
+      clientId: config.GOOGLE_CLIENT_ID,
+      clientSecret: config.GOOGLE_CLIENT_SECRET,
+    };
+  }
+
+  if (config.APPLE_CLIENT_ID && config.APPLE_CLIENT_SECRET) {
+    providers.apple = {
+      clientId: config.APPLE_CLIENT_ID,
+      clientSecret: config.APPLE_CLIENT_SECRET,
+    };
+  }
+
+  if (config.TWITCH_CLIENT_ID && config.TWITCH_CLIENT_SECRET) {
+    providers.twitch = {
+      clientId: config.TWITCH_CLIENT_ID,
+      clientSecret: config.TWITCH_CLIENT_SECRET,
+    };
+  }
+
+  return providers;
+}
+
 // ── Public API ──
 
 /** Better Auth instance with Drizzle adapter, email/password, JWT, OIDC, email OTP. */
@@ -30,6 +62,13 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   emailAndPassword: {
     enabled: true,
+  },
+  socialProviders: buildSocialProviders(),
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "apple", "twitch"],
+    },
   },
   databaseHooks: {
     user: {

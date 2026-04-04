@@ -34,6 +34,7 @@ import {
   deleteCreatorSimulcastDestination,
 } from "../services/simulcast.js";
 import { config } from "../config.js";
+import { dispatchNotification } from "../services/notification-dispatch.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
 import { verifySrsCallback } from "../middleware/verify-srs-callback.js";
@@ -317,6 +318,23 @@ streamingRoutes.post(
     // Create live channel + channel chat room (best-effort — don't block SRS callback)
     if (session.ok) {
       await ensureLiveChannelWithChat(lookup.creatorId, session.value.sessionId, body.stream);
+
+      // Fetch creator profile for notification payload
+      const [profile] = await db
+        .select({ displayName: creatorProfiles.displayName, handle: creatorProfiles.handle })
+        .from(creatorProfiles)
+        .where(eq(creatorProfiles.id, lookup.creatorId));
+
+      // Fire-and-forget go-live notification
+      void dispatchNotification({
+        eventType: "go_live",
+        creatorId: lookup.creatorId,
+        payload: {
+          creatorName: profile?.displayName ?? "A creator",
+          creatorId: lookup.creatorId,
+          liveUrl: `${config.BETTER_AUTH_URL}/live`,
+        },
+      });
     }
 
     return c.json({ code: 0 }, 200);

@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type React from "react";
+
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  createColumnHelper,
+  flexRender,
+} from "@tanstack/react-table";
+import type { SortingState, ColumnFiltersState } from "@tanstack/react-table";
 
 import type { CreatorProfileResponse, CreatorStatus } from "@snc/shared";
 import { CREATOR_STATUSES } from "@snc/shared";
@@ -8,7 +18,12 @@ import { CREATOR_STATUSES } from "@snc/shared";
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import { listAdminCreators, createCreator, updateCreatorStatus } from "../../lib/admin.js";
+import { apiMutate } from "../../lib/fetch-utils.js";
 import listingStyles from "../../styles/listing-page.module.css";
+import formStyles from "../../styles/form.module.css";
+import errorStyles from "../../styles/error-alert.module.css";
+import successStyles from "../../styles/success-alert.module.css";
+import styles from "./admin-creators.module.css";
 
 // ── Private Types ──
 
@@ -28,32 +43,11 @@ export const Route = createFileRoute("/admin/creators")({
   component: AdminCreatorsPage,
 });
 
-// ── Private Components ──
+// ── Column Helper ──
 
-function StatusBadge({ status }: { status: CreatorStatus }): React.ReactElement {
-  const colors: Record<CreatorStatus, string> = {
-    active: "#16a34a",
-    inactive: "#6b7280",
-    archived: "#dc2626",
-  };
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: "9999px",
-        fontSize: "0.75rem",
-        fontWeight: 600,
-        color: "#fff",
-        backgroundColor: colors[status],
-        marginLeft: "0.5rem",
-        textTransform: "capitalize",
-      }}
-    >
-      {status}
-    </span>
-  );
-}
+const columnHelper = createColumnHelper<CreatorProfileResponse>();
+
+// ── Private Components ──
 
 interface StatusActionsProps {
   creator: CreatorProfileResponse;
@@ -79,28 +73,135 @@ function StatusActions({ creator, onStatusChange }: StatusActionsProps): React.R
   };
 
   return (
-    <span style={{ marginLeft: "0.75rem" }}>
+    <div className={styles.actionButtons}>
       {creator.status === "inactive" && (
-        <button disabled={busy} onClick={() => handle("active")} style={{ marginRight: "0.25rem" }}>
+        <button
+          className={styles.actionButton}
+          disabled={busy}
+          onClick={() => { void handle("active"); }}
+        >
           Activate
         </button>
       )}
       {creator.status === "active" && (
         <>
-          <button disabled={busy} onClick={() => handle("inactive")} style={{ marginRight: "0.25rem" }}>
+          <button
+            className={styles.actionButton}
+            disabled={busy}
+            onClick={() => { void handle("inactive"); }}
+          >
             Deactivate
           </button>
-          <button disabled={busy} onClick={() => handle("archived")} style={{ marginRight: "0.25rem" }}>
+          <button
+            className={styles.actionButton}
+            disabled={busy}
+            onClick={() => { void handle("archived"); }}
+          >
             Archive
           </button>
         </>
       )}
       {creator.status === "archived" && (
-        <button disabled={busy} onClick={() => handle("active")}>
+        <button
+          className={styles.actionButton}
+          disabled={busy}
+          onClick={() => { void handle("active"); }}
+        >
           Restore
         </button>
       )}
-    </span>
+    </div>
+  );
+}
+
+// ── Invite Dialog ──
+
+interface InviteCreatorDialogProps {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onSuccess: () => void;
+}
+
+function InviteCreatorDialog({ open, onClose, onSuccess }: InviteCreatorDialogProps): React.ReactElement | null {
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!open) return null;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    setError("");
+    if (!email || !displayName) {
+      setError("Both fields are required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiMutate("/api/invites", {
+        method: "POST",
+        body: { type: "creator_owner", email, displayName },
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send invite. Check the email and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className={styles.dialogOverlay}
+      onClick={onClose}
+    >
+      <div
+        className={styles.dialog}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Invite Creator"
+      >
+        <h3 className={styles.dialogTitle}>Invite Creator</h3>
+        <form onSubmit={(e) => { void handleSubmit(e); }}>
+          {error && (
+            <p className={errorStyles.error} role="alert">
+              {error}
+            </p>
+          )}
+          <label className={styles.dialogField}>
+            Email
+            <input
+              className={styles.dialogFieldInput}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label className={styles.dialogField}>
+            Display Name
+            <input
+              className={styles.dialogFieldInput}
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+            />
+          </label>
+          <div className={styles.dialogActions}>
+            <button type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send Invite"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -111,12 +212,13 @@ function AdminCreatorsPage(): React.ReactElement {
   const [creators, setCreators] = useState<readonly CreatorProfileResponse[]>(initialCreators);
   const [statusFilter, setStatusFilter] = useState<CreatorStatus | "all">("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
   const [newName, setNewName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const filtered =
-    statusFilter === "all" ? creators : creators.filter((c) => c.status === statusFilter);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,7 +236,7 @@ function AdminCreatorsPage(): React.ReactElement {
     }
   };
 
-  const handleStatusChange = async (creatorId: string, status: CreatorStatus) => {
+  const handleStatusChange = useCallback(async (creatorId: string, status: CreatorStatus) => {
     setError(null);
     try {
       const result = await updateCreatorStatus(creatorId, { status });
@@ -144,45 +246,129 @@ function AdminCreatorsPage(): React.ReactElement {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status");
     }
-  };
+  }, []);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: creators.length };
+    for (const c of creators) {
+      counts[c.status] = (counts[c.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [creators]);
+
+  const columnFilters = useMemo<ColumnFiltersState>(
+    () => [{ id: "status", value: statusFilter }],
+    [statusFilter],
+  );
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("displayName", {
+        header: "Name",
+        cell: (info) => (
+          <Link
+            to="/creators/$creatorId/manage"
+            params={{ creatorId: info.row.original.handle ?? info.row.original.id }}
+            className={styles.creatorName}
+          >
+            {info.getValue()}
+          </Link>
+        ),
+      }),
+      columnHelper.accessor("handle", {
+        header: "Handle",
+        cell: (info) => (
+          <span className={styles.handle}>
+            {info.getValue() ? `@${info.getValue()}` : "—"}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("status", {
+        header: "Status",
+        cell: (info) => {
+          const status = info.getValue();
+          const statusClass =
+            status === "active"
+              ? styles.statusActive
+              : status === "inactive"
+                ? styles.statusInactive
+                : styles.statusArchived;
+          return (
+            <span className={`${styles.statusBadge} ${statusClass}`}>
+              {status}
+            </span>
+          );
+        },
+        filterFn: (row, _columnId, filterValue: string) => {
+          if (filterValue === "all") return true;
+          return row.original.status === filterValue;
+        },
+      }),
+      columnHelper.accessor("contentCount", {
+        header: "Content",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "",
+        cell: (info) => (
+          <StatusActions
+            creator={info.row.original}
+            onStatusChange={handleStatusChange}
+          />
+        ),
+      }),
+    ],
+    [handleStatusChange],
+  );
+
+  const table = useReactTable({
+    data: creators as CreatorProfileResponse[],
+    columns,
+    state: { sorting, globalFilter, columnFilters },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: "includesString",
+  });
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className={styles.page}>
+      <div className={styles.header}>
         <h1 className={listingStyles.heading}>Creators</h1>
-        <button onClick={() => { setShowCreateForm(true); setError(null); }}>
-          Create Creator
-        </button>
+        <div className={styles.actions}>
+          <button onClick={() => { setShowInviteDialog(true); setInviteSuccess(false); }}>
+            Invite Creator
+          </button>
+          <button onClick={() => { setShowCreateForm(true); setError(null); }}>
+            Create Creator
+          </button>
+        </div>
       </div>
 
-      {/* Status filter tabs */}
-      <div style={{ marginBottom: "1rem" }}>
-        {(["all", ...CREATOR_STATUSES] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            style={{
-              marginRight: "0.5rem",
-              fontWeight: statusFilter === s ? 700 : 400,
-              textDecoration: statusFilter === s ? "underline" : "none",
-            }}
-          >
-            {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
+      {inviteSuccess && (
+        <p className={successStyles.success}>Invite sent successfully!</p>
+      )}
+
+      <InviteCreatorDialog
+        open={showInviteDialog}
+        onClose={() => setShowInviteDialog(false)}
+        onSuccess={() => setInviteSuccess(true)}
+      />
 
       {/* Create form (inline, toggleable) */}
       {showCreateForm && (
-        <form onSubmit={handleCreate} style={{ marginBottom: "1rem" }}>
+        <form onSubmit={(e) => { void handleCreate(e); }} className={styles.createForm}>
           <input
+            className={formStyles.input}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Display name"
             required
-            style={{ marginRight: "0.5rem" }}
           />
-          <button type="submit" disabled={isSubmitting} style={{ marginRight: "0.25rem" }}>
+          <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create"}
           </button>
           <button type="button" onClick={() => { setShowCreateForm(false); setNewName(""); }}>
@@ -192,23 +378,66 @@ function AdminCreatorsPage(): React.ReactElement {
       )}
 
       {/* Error message */}
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <p className={errorStyles.error}>{error}</p>}
 
-      {/* Creator list with status badges and actions */}
-      {filtered.length === 0 ? (
-        <p className={listingStyles.status}>No creators found.</p>
+      {/* Status filter tabs */}
+      <div className={styles.filterTabs}>
+        {(["all", ...CREATOR_STATUSES] as const).map((s) => (
+          <button
+            key={s}
+            className={`${styles.filterTab} ${statusFilter === s ? styles.filterTabActive : ""}`}
+            onClick={() => setStatusFilter(s)}
+          >
+            {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+            <span className={styles.filterCount}>({statusCounts[s] ?? 0})</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className={styles.searchRow}>
+        <input
+          className={styles.searchInput}
+          placeholder="Search creators..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          aria-label="Search creators"
+        />
+      </div>
+
+      {/* Creator table */}
+      {table.getRowModel().rows.length === 0 ? (
+        <p className={styles.emptyState}>No creators found.</p>
       ) : (
-        <ul>
-          {filtered.map((c) => (
-            <li key={c.id} style={{ marginBottom: "0.5rem" }}>
-              <Link to="/creators/$creatorId/manage" params={{ creatorId: c.handle ?? c.id }}>
-                {c.displayName}
-              </Link>
-              <StatusBadge status={c.status} />
-              <StatusActions creator={c} onStatusChange={handleStatusChange} />
-            </li>
-          ))}
-        </ul>
+        <table className={styles.table}>
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getIsSorted() === "asc" ? " \u2191" : ""}
+                    {header.column.getIsSorted() === "desc" ? " \u2193" : ""}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

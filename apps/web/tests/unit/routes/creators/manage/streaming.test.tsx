@@ -9,12 +9,14 @@ import { createRouterMock } from "../../../../helpers/router-mock.js";
 const {
   mockUseLoaderData,
   mockUseParams,
+  mockUseSearch,
   mockFetchStreamKeys,
   mockCreateStreamKey,
   mockRevokeStreamKey,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockUseParams: vi.fn(),
+  mockUseSearch: vi.fn(),
   mockFetchStreamKeys: vi.fn(),
   mockCreateStreamKey: vi.fn(),
   mockRevokeStreamKey: vi.fn(),
@@ -28,11 +30,12 @@ vi.mock("@tanstack/react-router", () => {
       useRouteContext: () => ({}),
     }),
   });
-  // Override createFileRoute to also attach useParams + useLoaderData on the Route object
+  // Override createFileRoute to also attach useParams + useLoaderData + useSearch on the Route object
   base.createFileRoute = () => (routeOptions: Record<string, unknown>) => ({
     ...routeOptions,
     useLoaderData: mockUseLoaderData,
     useParams: mockUseParams,
+    useSearch: mockUseSearch,
   });
   return base;
 });
@@ -41,6 +44,18 @@ vi.mock("../../../../../src/lib/streaming.js", () => ({
   fetchStreamKeys: mockFetchStreamKeys,
   createStreamKey: mockCreateStreamKey,
   revokeStreamKey: mockRevokeStreamKey,
+  fetchCreatorSimulcastDestinations: vi.fn().mockResolvedValue({ destinations: [] }),
+  createCreatorSimulcastDestination: vi.fn(),
+  updateCreatorSimulcastDestination: vi.fn(),
+  deleteCreatorSimulcastDestination: vi.fn(),
+}));
+
+vi.mock("../../../../../src/lib/fetch-utils.js", () => ({
+  apiMutate: vi.fn(),
+}));
+
+vi.mock("../../../../../src/lib/url.js", () => ({
+  navigateExternal: vi.fn(),
 }));
 
 // ── Component Under Test ──
@@ -53,6 +68,7 @@ const StreamingPage = extractRouteComponent(
 
 beforeEach(() => {
   mockUseParams.mockReturnValue({ creatorId: "creator-123" });
+  mockUseSearch.mockReturnValue({});
   mockFetchStreamKeys.mockResolvedValue({ keys: [] });
 });
 

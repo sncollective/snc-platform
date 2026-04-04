@@ -113,6 +113,18 @@
   word-break: break-all;
 }
 
+/* ── Connect Section ── */
+
+.connectSection {
+  margin-bottom: var(--space-xl);
+}
+
+.connectButtons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
 /* ── Simulcast Section Wrapper ── */
 
 .simulcastSection {

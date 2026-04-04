@@ -133,12 +133,13 @@ describe("LivePage", () => {
     expect(screen.getByText("Live streaming is on its way. Stay tuned.")).toBeInTheDocument();
   });
 
-  it("renders Coming Soon when initial is null", () => {
+  it("does not render Coming Soon while loading (initial is null)", () => {
     mockUseLoaderData.mockReturnValue({ initial: null });
 
     render(<LivePage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Coming Soon" })).toBeInTheDocument();
+    // When initial is null, isLoading is true — Coming Soon deferred until fetch completes
+    expect(screen.queryByRole("heading", { level: 1, name: "Coming Soon" })).not.toBeInTheDocument();
   });
 
   it("renders channel selector when channels are active", () => {

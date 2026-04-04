@@ -4,6 +4,8 @@ import { RouteErrorBoundary } from "../../components/error/route-error-boundary.
 import { fetchAuthStateServer } from "../../lib/api-server.js";
 import { buildLoginRedirect } from "../../lib/return-to.js";
 import { ChangePasswordForm } from "../../components/auth/change-password-form.js";
+import { SetPasswordBanner } from "../../components/auth/set-password-banner.js";
+import { useSession } from "../../lib/auth.js";
 import settingsStyles from "../../styles/settings-page.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 
@@ -20,9 +22,13 @@ export const Route = createFileRoute("/settings/")({
 });
 
 function SettingsPage() {
+  const session = useSession();
+  const userEmail = session.data?.user?.email;
+
   return (
     <div className={settingsStyles.page}>
       <h1 className={listingStyles.heading}>Settings</h1>
+      {userEmail && <SetPasswordBanner email={userEmail} />}
       <h2>Change password</h2>
       <ChangePasswordForm />
     </div>

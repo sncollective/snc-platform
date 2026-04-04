@@ -11,6 +11,8 @@ import { navigateExternal } from "../../lib/url.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./auth-form.module.css";
 import { FormField } from "./form-field.js";
+import { MastodonLoginDialog } from "./mastodon-login-dialog.js";
+import { SocialLoginButtons } from "./social-login-buttons.js";
 
 // ── Private Constants ──
 
@@ -39,6 +41,7 @@ export function LoginForm({
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showMastodonDialog, setShowMastodonDialog] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,48 +99,58 @@ export function LoginForm({
   };
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      <div
-        className={formStyles.serverError}
-        role={serverError ? "alert" : undefined}
-        aria-live="polite"
-        style={serverError ? undefined : { visibility: "hidden" }}
-      >
-        {serverError || "\u00A0"}
-      </div>
+    <>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div
+          className={formStyles.serverError}
+          role={serverError ? "alert" : undefined}
+          aria-live="polite"
+          style={serverError ? undefined : { visibility: "hidden" }}
+        >
+          {serverError || "\u00A0"}
+        </div>
 
-      <FormField
-        id="login-email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        error={fieldErrors.email}
-        autoComplete="email"
-        required
+        <FormField
+          id="login-email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={fieldErrors.email}
+          autoComplete="email"
+          required
+        />
+
+        <FormField
+          id="login-password"
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={fieldErrors.password}
+          autoComplete="current-password"
+          required
+        />
+        <Link to="/forgot-password" className={styles.forgotLink}>
+          Forgot password?
+        </Link>
+
+        <button
+          type="submit"
+          className={formStyles.submitButton}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Logging in\u2026" : "Log in"}
+        </button>
+      </form>
+      <SocialLoginButtons
+        callbackURL={getValidReturnTo(returnTo)}
+        onMastodonClick={() => setShowMastodonDialog(true)}
       />
-
-      <FormField
-        id="login-password"
-        label="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        error={fieldErrors.password}
-        autoComplete="current-password"
-        required
+      <MastodonLoginDialog
+        open={showMastodonDialog}
+        onClose={() => setShowMastodonDialog(false)}
       />
-      <Link to="/forgot-password" className={styles.forgotLink}>
-        Forgot password?
-      </Link>
-
-      <button
-        type="submit"
-        className={formStyles.submitButton}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Logging in\u2026" : "Log in"}
-      </button>
-    </form>
+    </>
   );
 }

@@ -92,6 +92,55 @@
       "when": 1775158871084,
       "tag": "0012_optimal_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775308983944,
+      "tag": "0013_sharp_king_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775310212445,
+      "tag": "0014_glorious_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1775311358256,
+      "tag": "0015_colorful_turbo",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1775312901293,
+      "tag": "0016_wooden_dragon_lord",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775313453125,
+      "tag": "0017_flat_saracen",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775314863804,
+      "tag": "0018_low_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775317705826,
+      "tag": "0019_round_betty_brant",
+      "breakpoints": true
     }
   ]
 }

@@ -88,25 +88,38 @@ export const Route = createFileRoute("/live")({
 
 // ── Polling Hook ──
 
+interface ChannelListState {
+  readonly data: ChannelListResponse | null;
+  /** True until the first fetch completes when no SSR data was available. */
+  readonly isLoading: boolean;
+}
+
 /** Poll the channel list endpoint on a fixed interval. */
-function useChannelList(
-  initial: ChannelListResponse | null,
-): ChannelListResponse | null {
-  const [data, setData] = useState<ChannelListResponse | null>(initial);
+function useChannelList(initial: ChannelListResponse | null): ChannelListState {
+  const [state, setState] = useState<ChannelListState>({
+    data: initial,
+    isLoading: initial === null,
+  });
   const mountedRef = useRef(true);
 
   const poll = useCallback(async () => {
     try {
       const next = await apiGet<ChannelListResponse>("/api/streaming/status");
-      if (mountedRef.current) setData(next);
+      if (mountedRef.current) setState({ data: next, isLoading: false });
     } catch {
       // Transient failure — keep showing the last known channel list
+      if (mountedRef.current) setState((prev) => ({ ...prev, isLoading: false }));
     }
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
     let timeoutId: ReturnType<typeof setTimeout>;
+
+    // If no SSR data, fetch immediately to populate the page
+    if (initial === null) {
+      void poll();
+    }
 
     const schedule = () => {
       timeoutId = setTimeout(async () => {
@@ -121,9 +134,9 @@ function useChannelList(
       mountedRef.current = false;
       clearTimeout(timeoutId);
     };
-  }, [poll]);
+  }, [poll, initial]);
 
-  return data;
+  return state;
 }
 
 // ── Components ──
@@ -131,12 +144,34 @@ function useChannelList(
 /** Main live stream page. */
 function LivePage(): React.ReactElement {
   const { initial } = Route.useLoaderData();
-  const channelList = useChannelList(initial);
+  const { data: channelList, isLoading } = useChannelList(initial);
   const { actions, chatPortalRef } = useGlobalPlayer();
 
   const channels = channelList?.channels ?? [];
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LayoutPrefs>(getInitialPrefs);
+
+  // ── Controls visibility (hover/touch) ──
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = setTimeout(() => setControlsVisible(false), 2000);
+  }, []);
+
+  const showControlsTouch = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, []);
 
   const selectedChannel =
     channels.find((c) => c.id === selectedChannelId) ?? null;
@@ -225,8 +260,16 @@ function LivePage(): React.ReactElement {
   return (
     <>
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
-      <div className={styles.routeContent}>
-        {!isStreaming && <ComingSoonPlaceholder />}
+      <div
+        className={clsx(styles.routeContent, styles.contentArea)}
+        onMouseMove={showControls}
+        onMouseLeave={() => {
+          if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+          setControlsVisible(false);
+        }}
+        onTouchStart={showControlsTouch}
+      >
+        {!isStreaming && !isLoading && <ComingSoonPlaceholder />}
 
         {hasChannels && (
           <div className={styles.streamInfo}>
@@ -275,6 +318,7 @@ function LivePage(): React.ReactElement {
               styles.theaterToggle,
               prefs.theater && styles.theaterToggleActive,
               prefs.chatCollapsed && styles.theaterToggleCollapsed,
+              controlsVisible && styles.controlVisible,
             )}
             onClick={() => updatePrefs({ theater: !prefs.theater })}
             aria-label="Theater mode"
@@ -288,6 +332,7 @@ function LivePage(): React.ReactElement {
             <TheaterOverlay
               channel={selectedChannel}
               onExitTheater={() => updatePrefs({ theater: false })}
+              visible={controlsVisible}
             />
           )}
 
@@ -303,7 +348,7 @@ function LivePage(): React.ReactElement {
           {prefs.chatCollapsed && (
             <button
               type="button"
-              className={styles.chatExpandTab}
+              className={clsx(styles.chatExpandTab, controlsVisible && styles.controlVisible)}
               onClick={() => updatePrefs({ chatCollapsed: false })}
               aria-label="Show chat"
               title="Show chat"
@@ -318,49 +363,20 @@ function LivePage(): React.ReactElement {
 }
 
 
-/** Channel info overlay shown on hover during theater mode. */
+/** Channel info overlay shown during theater mode. Visibility is driven by the parent's `visible` prop. */
 function TheaterOverlay({
   channel,
   onExitTheater,
+  visible,
 }: {
   readonly channel: Channel | null;
   readonly onExitTheater: () => void;
+  readonly visible: boolean;
 }): React.ReactElement | null {
-  const [visible, setVisible] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      // Show overlay when mouse is in the top 80px of the viewport
-      if (e.clientY < 80) {
-        setVisible(true);
-        clearTimeout(timeoutRef.current);
-      } else {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => setVisible(false), 1500);
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
   if (!channel) return null;
 
   return (
-    <div
-      className={clsx(styles.theaterOverlay, visible && styles.theaterOverlayVisible)}
-      onMouseEnter={() => {
-        setVisible(true);
-        clearTimeout(timeoutRef.current);
-      }}
-      onMouseLeave={() => {
-        timeoutRef.current = setTimeout(() => setVisible(false), 500);
-      }}
-    >
+    <div className={clsx(styles.theaterOverlay, visible && styles.theaterOverlayVisible)}>
       <span className={styles.theaterChannelName}>{channel.name}</span>
       <span className={styles.theaterViewerCount}>
         {channel.viewerCount} {channel.viewerCount === 1 ? "viewer" : "viewers"}

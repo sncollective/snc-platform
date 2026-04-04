@@ -48,20 +48,47 @@ startBoss()
 
 // ── Graceful Shutdown ──
 
-const shutdown = () => {
-  server.close(async (err) => {
-    if (err) {
-      rootLogger.error(
-        { error: err instanceof Error ? err.message : String(err) },
-        "Error during server shutdown",
-      );
-      process.exit(1);
-    }
+let shuttingDown = false;
+
+/**
+ * Gracefully shut down the server, job queue, and database connection.
+ * Prevents re-entry on multiple signals. Forces exit after 30 seconds
+ * if cleanup hangs, closing all active connections including WebSockets.
+ */
+const shutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  rootLogger.info("Shutdown initiated");
+
+  // Hard timeout — force exit if any cleanup stage hangs
+  const forceExit = setTimeout(() => {
+    rootLogger.error("Shutdown timed out, forcing exit");
+    server.closeAllConnections();
+    process.exit(1);
+  }, 30_000);
+  forceExit.unref(); // Don't keep process alive just for this timer
+
+  // Stop accepting new connections
+  server.close();
+
+  try {
+    rootLogger.info("Stopping job queue...");
     await stopBoss();
-    await sql.end();
-    process.exit(0);
-  });
+  } catch (e) {
+    rootLogger.error({ err: e }, "Error stopping job queue");
+  }
+
+  try {
+    rootLogger.info("Closing database connection...");
+    await sql.end({ timeout: 10 });
+  } catch (e) {
+    rootLogger.error({ err: e }, "Error closing database");
+  }
+
+  clearTimeout(forceExit);
+  rootLogger.info("Shutdown complete");
+  process.exit(0);
 };
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+process.on("SIGTERM", () => void shutdown());
+process.on("SIGINT", () => void shutdown());

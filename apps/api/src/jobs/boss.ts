@@ -44,12 +44,25 @@ export const startBoss = async (): Promise<PgBoss> => {
 
 /**
  * Stop the pg-boss instance gracefully. Called during server shutdown.
- * Waits up to 30 seconds for in-progress jobs to complete before stopping.
- * Safe to call when not started (no-op).
+ * Races a 15-second timeout against boss.stop() — logs a warning and
+ * continues if the timeout wins. Safe to call when not started (no-op).
  */
 export const stopBoss = async (): Promise<void> => {
   if (!boss) return;
-  await boss.stop();
+
+  const stopTimeout = new Promise<void>((resolve) =>
+    setTimeout(() => {
+      rootLogger.warn("pg-boss stop timed out, continuing shutdown");
+      resolve();
+    }, 15_000),
+  );
+
+  try {
+    await Promise.race([boss.stop(), stopTimeout]);
+  } catch (e) {
+    rootLogger.error({ err: e }, "pg-boss stop error");
+  }
+
   rootLogger.info("pg-boss stopped");
   boss = null;
 };

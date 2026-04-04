@@ -1,0 +1,72 @@
+/* ── Mastodon Login Dialog ── */
+
+.dialog {
+  background: var(--color-bg-surface, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, var(--radius-sm));
+  padding: 0;
+  width: 90%;
+  max-width: 400px;
+  color: var(--color-text);
+}
+
+.dialog::backdrop {
+  background: hsl(0 0% 0% / 0.6);
+}
+
+.content {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.heading {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.input {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  padding: 0;
+  align-self: center;
+}
+
+.closeButton:hover {
+  color: var(--color-text);
+}

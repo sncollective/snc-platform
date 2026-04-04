@@ -7,9 +7,11 @@ import { Link } from "@tanstack/react-router";
 import { formatPrice, formatIntervalShort } from "../../lib/format.js";
 import { useSession } from "../../lib/auth.js";
 import { useCheckout } from "../../hooks/use-checkout.js";
+import { apiMutate } from "../../lib/fetch-utils.js";
 import { isFeatureEnabled } from "../../lib/config.js";
 import { FediverseAddress } from "../federation/fediverse-address.js";
 import { FollowFediverseDialog } from "../federation/follow-fediverse-dialog.js";
+import { FollowButton } from "./follow-button.js";
 import { OptionalImage } from "../ui/optional-image.js";
 import { clsx } from "clsx/lite";
 
@@ -37,6 +39,7 @@ export function CreatorHeader({
   const session = useSession();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [followDialogOpen, setFollowDialogOpen] = useState(false);
+  const [alsoFollow, setAlsoFollow] = useState(true);
   const { checkoutLoading, handleCheckout } = useCheckout();
 
   const showFediverseUI =
@@ -130,18 +133,34 @@ export function CreatorHeader({
         )}
 
         {plans && plans.length > 0 && !isSubscribed && isAuthenticated && plans.length === 1 && (
-          <button
-            type="button"
-            className={clsx(buttonStyles.primaryButton, styles.subscribeButton)}
-            onClick={() => {
-              void handleCheckout(plans[0]!.id);
-            }}
-            disabled={checkoutLoading}
-          >
-            {checkoutLoading
-              ? "Subscribing..."
-              : `Subscribe — ${formatPrice(plans[0]!.price)}/${formatIntervalShort(plans[0]!.interval)}`}
-          </button>
+          <>
+            <label className={styles.alsoFollowLabel}>
+              <input
+                type="checkbox"
+                checked={alsoFollow}
+                onChange={(e) => { setAlsoFollow(e.target.checked); }}
+              />
+              {" "}Also follow for notifications?
+            </label>
+            <button
+              type="button"
+              className={clsx(buttonStyles.primaryButton, styles.subscribeButton)}
+              onClick={() => {
+                const run = async () => {
+                  if (alsoFollow) {
+                    await apiMutate(`/api/creators/${creator.id}/follow`, { method: "POST" });
+                  }
+                  await handleCheckout(plans[0]!.id);
+                };
+                void run();
+              }}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading
+                ? "Subscribing..."
+                : `Subscribe — ${formatPrice(plans[0]!.price)}/${formatIntervalShort(plans[0]!.interval)}`}
+            </button>
+          </>
         )}
 
         {plans && plans.length > 1 && !isSubscribed && isAuthenticated && (
@@ -160,11 +179,25 @@ export function CreatorHeader({
                 </option>
               ))}
             </select>
+            <label className={styles.alsoFollowLabel}>
+              <input
+                type="checkbox"
+                checked={alsoFollow}
+                onChange={(e) => { setAlsoFollow(e.target.checked); }}
+              />
+              {" "}Also follow for notifications?
+            </label>
             <button
               type="button"
               className={clsx(buttonStyles.primaryButton, styles.subscribeButton)}
               onClick={() => {
-                void handleCheckout(selectedPlanId ?? plans[0]!.id);
+                const run = async () => {
+                  if (alsoFollow) {
+                    await apiMutate(`/api/creators/${creator.id}/follow`, { method: "POST" });
+                  }
+                  await handleCheckout(selectedPlanId ?? plans[0]!.id);
+                };
+                void run();
               }}
               disabled={checkoutLoading}
             >
@@ -172,6 +205,11 @@ export function CreatorHeader({
             </button>
           </div>
         )}
+        <FollowButton
+          creatorId={creator.id}
+          isAuthenticated={isAuthenticated}
+        />
+
         {showFediverseUI && (
           <>
             <button

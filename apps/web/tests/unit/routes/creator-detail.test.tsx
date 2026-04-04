@@ -63,7 +63,15 @@ vi.mock("../../../src/lib/merch.js", () => ({
 vi.mock("../../../src/lib/config.js", () => ({
   DEMO_MODE: false,
   features: {},
+  socialProviders: { google: false, apple: false, twitch: false, mastodon: false },
   isFeatureEnabled: mockIsFeatureEnabled,
+}));
+
+vi.mock("../../../src/lib/fetch-utils.js", () => ({
+  apiGet: vi.fn().mockResolvedValue({ isFollowing: false, followerCount: 0 }),
+  apiMutate: vi.fn().mockResolvedValue(undefined),
+  extractErrorMessage: vi.fn().mockResolvedValue("Error"),
+  throwIfNotOk: vi.fn(),
 }));
 
 // ── Component Under Test ──

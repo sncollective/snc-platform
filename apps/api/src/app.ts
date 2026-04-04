@@ -33,6 +33,10 @@ import { calendarEventTypeRoutes } from "./routes/calendar-event-types.routes.js
 import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
+import { streamingConnectRoutes } from "./routes/streaming-connect.routes.js";
+import { followRoutes } from "./routes/follow.routes.js";
+import { notificationPreferencesRoutes } from "./routes/notification-preferences.routes.js";
+import { inviteRoutes } from "./routes/invite.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
 import { initWebSocket } from "./ws.js";
 // federation.routes uses @fedify/fedify which may not be installed;
@@ -108,8 +112,12 @@ app.get(
 
 // Always-on routes (auth, me, uploads)
 app.route("/api/auth", authRoutes);
+import("./routes/mastodon-auth.routes.js")
+  .then(({ mastodonAuthRoutes }) => app.route("/api/auth/mastodon", mastodonAuthRoutes))
+  .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load mastodon auth routes"));
 app.route("/api/me", meRoutes);
 app.route("/api/me/creators", meCreatorsRoutes);
+app.route("/api/me/notifications", notificationPreferencesRoutes);
 app.route("/api/uploads", uploadRoutes);
 
 // Shipped features — unconditionally mounted
@@ -119,6 +127,8 @@ app.route("/api/creators", creatorRoutes);
 app.route("/api/creators", creatorMediaRoutes);
 app.route("/api/creators", creatorMemberRoutes);
 app.route("/api/creators", creatorEventRoutes);
+app.route("/api/creators", followRoutes);
+app.route("/api/invites", inviteRoutes);
 app.route("/api/admin/creators", adminCreatorRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/dashboard", dashboardRoutes);
@@ -128,9 +138,13 @@ app.route("/api/calendar", calendarEventTypeRoutes);
 app.route("/api/projects", projectRoutes);
 app.use("/api/streaming/callbacks/*", srsCallbackLimiter);
 app.route("/api/streaming", streamingRoutes);
+app.route("/api/streaming/connect", streamingConnectRoutes);
 import("./routes/chat.routes.js")
   .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
   .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load chat routes"));
+import("./routes/notification-inbox.routes.js")
+  .then(({ notificationInboxRoutes }) => app.route("/api/notifications", notificationInboxRoutes))
+  .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load notification inbox routes"));
 import("./routes/playout.routes.js")
   .then(({ playoutRoutes }) => app.route("/api/playout", playoutRoutes))
   .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout routes"));

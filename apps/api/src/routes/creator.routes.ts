@@ -22,7 +22,7 @@ import { optionalAuth } from "../middleware/optional-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
-import { requireCreatorPermission } from "../services/creator-team.js";
+import { requireCreatorPermission, getCreatorMemberships } from "../services/creator-team.js";
 import { generateUniqueSlug } from "../services/slug.js";
 import {
   batchGetContentCounts,
@@ -105,13 +105,20 @@ creatorRoutes.get(
     // Enrich with canManage, subscription status, and KPIs
     const userId = (c.get("user") as { id: string } | undefined)?.id;
     const roles = (c.get("roles") ?? []) as string[];
-    const isManageEligible = roles.includes("stakeholder") || roles.includes("admin");
+    const isAdmin = roles.includes("admin");
+    const isManageEligible = roles.includes("stakeholder") || isAdmin;
     const creatorIds = rawRows.map((r) => r.id);
 
     // Authenticated: fetch subscription status for current user
-    const subscribedIds = userId
-      ? await batchGetSubscribedCreatorIds(userId, creatorIds)
-      : new Set<string>();
+    // Also fetch memberships to determine per-creator canManage
+    const [subscribedIds, memberships] = userId
+      ? await Promise.all([
+          batchGetSubscribedCreatorIds(userId, creatorIds),
+          getCreatorMemberships(userId),
+        ])
+      : [new Set<string>(), [] as Array<{ creatorId: string; role: string }>];
+
+    const memberCreatorIds = new Set(memberships.map((m) => m.creatorId));
 
     // Stakeholder/admin: fetch KPIs
     const [subscriberCounts, lastPublished] = isManageEligible
@@ -121,17 +128,20 @@ creatorRoutes.get(
         ])
       : [new Map<string, number>(), new Map<string, string>()];
 
-    const enrichedItems = items.map((item) => ({
-      ...item,
-      ...(userId ? { isSubscribed: subscribedIds.has(item.id) } : {}),
-      ...(isManageEligible
-        ? {
-            canManage: true,
-            subscriberCount: subscriberCounts.get(item.id) ?? 0,
-            lastPublishedAt: lastPublished.get(item.id) ?? null,
-          }
-        : {}),
-    }));
+    const enrichedItems = items.map((item) => {
+      const canManage = isAdmin || memberCreatorIds.has(item.id);
+      return {
+        ...item,
+        ...(userId ? { isSubscribed: subscribedIds.has(item.id) } : {}),
+        ...(canManage ? { canManage: true } : {}),
+        ...(isManageEligible
+          ? {
+              subscriberCount: subscriberCounts.get(item.id) ?? 0,
+              lastPublishedAt: lastPublished.get(item.id) ?? null,
+            }
+          : {}),
+      };
+    });
 
     // Sort: subscribed creators first (stable sort preserves createdAt order within groups)
     if (userId) {

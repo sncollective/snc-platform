@@ -17,8 +17,9 @@ function makeRoom(overrides: Partial<ChatRoom> = {}): ChatRoom {
   return {
     id: "room-1",
     type: "platform",
-    streamSessionId: null,
+    channelId: null,
     name: "Community",
+    slowModeSeconds: 0,
     createdAt: "2026-03-01T00:00:00.000Z",
     closedAt: null,
     ...overrides,
@@ -32,6 +33,7 @@ function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
     userId: "user-1",
     userName: "Alice",
     avatarUrl: null,
+    badges: [],
     content: "Hello, world!",
     createdAt: "2026-03-01T00:01:00.000Z",
     ...overrides,
@@ -149,6 +151,30 @@ describe("chatReducer", () => {
     });
     expect(result.isConnected).toBe(true);
   });
+
+  it("SET_NOTIFICATION_COUNT updates notificationCount", () => {
+    const result = chatReducer(INITIAL_STATE, {
+      type: "SET_NOTIFICATION_COUNT",
+      count: 7,
+    });
+    expect(result.notificationCount).toBe(7);
+  });
+
+  it("SET_NOTIFICATION_COUNT resets to zero", () => {
+    const stateWithCount: ChatState = {
+      ...INITIAL_STATE,
+      notificationCount: 5,
+    };
+    const result = chatReducer(stateWithCount, {
+      type: "SET_NOTIFICATION_COUNT",
+      count: 0,
+    });
+    expect(result.notificationCount).toBe(0);
+  });
+
+  it("INITIAL_STATE has notificationCount 0", () => {
+    expect(INITIAL_STATE.notificationCount).toBe(0);
+  });
 });
 
 // ── Tests: useChat hook ──
@@ -173,5 +199,170 @@ describe("useChat", () => {
     expect(result.current.actions).toBeDefined();
     expect(result.current.state.rooms).toEqual([]);
     expect(result.current.state.activeRoomId).toBeNull();
+  });
+});
+
+// ── Tests: chatReducer moderation actions ──
+
+describe("chatReducer moderation actions", () => {
+  it("INITIAL_STATE has default moderation fields", () => {
+    expect(INITIAL_STATE.slowModeSeconds).toBe(0);
+    expect(INITIAL_STATE.isTimedOut).toBe(false);
+    expect(INITIAL_STATE.timedOutUntil).toBeNull();
+    expect(INITIAL_STATE.isBanned).toBe(false);
+    expect(INITIAL_STATE.lastFilteredAt).toBeNull();
+    expect(INITIAL_STATE.isModerator).toBe(false);
+  });
+
+  it("SET_SLOW_MODE updates slowModeSeconds", () => {
+    const result = chatReducer(INITIAL_STATE, { type: "SET_SLOW_MODE", seconds: 30 });
+    expect(result.slowModeSeconds).toBe(30);
+  });
+
+  it("SET_TIMED_OUT with a date sets isTimedOut and timedOutUntil", () => {
+    const until = "2026-04-01T12:00:00.000Z";
+    const result = chatReducer(INITIAL_STATE, { type: "SET_TIMED_OUT", until });
+    expect(result.isTimedOut).toBe(true);
+    expect(result.timedOutUntil).toBe(until);
+  });
+
+  it("SET_TIMED_OUT with null clears isTimedOut", () => {
+    const stateWithTimeout = { ...INITIAL_STATE, isTimedOut: true, timedOutUntil: "2026-04-01T12:00:00.000Z" };
+    const result = chatReducer(stateWithTimeout, { type: "SET_TIMED_OUT", until: null });
+    expect(result.isTimedOut).toBe(false);
+    expect(result.timedOutUntil).toBeNull();
+  });
+
+  it("SET_BANNED sets isBanned to true", () => {
+    const result = chatReducer(INITIAL_STATE, { type: "SET_BANNED", banned: true });
+    expect(result.isBanned).toBe(true);
+  });
+
+  it("SET_BANNED sets isBanned to false", () => {
+    const stateWithBan = { ...INITIAL_STATE, isBanned: true };
+    const result = chatReducer(stateWithBan, { type: "SET_BANNED", banned: false });
+    expect(result.isBanned).toBe(false);
+  });
+
+  it("MESSAGE_FILTERED sets lastFilteredAt to a timestamp", () => {
+    const before = Date.now();
+    const result = chatReducer(INITIAL_STATE, { type: "MESSAGE_FILTERED" });
+    const after = Date.now();
+    expect(result.lastFilteredAt).not.toBeNull();
+    expect(result.lastFilteredAt).toBeGreaterThanOrEqual(before);
+    expect(result.lastFilteredAt).toBeLessThanOrEqual(after);
+  });
+
+  it("CLEAR_FILTERED resets lastFilteredAt to null", () => {
+    const stateWithFilter = { ...INITIAL_STATE, lastFilteredAt: Date.now() };
+    const result = chatReducer(stateWithFilter, { type: "CLEAR_FILTERED" });
+    expect(result.lastFilteredAt).toBeNull();
+  });
+
+  it("SET_MODERATOR sets isModerator", () => {
+    const result = chatReducer(INITIAL_STATE, { type: "SET_MODERATOR", isModerator: true });
+    expect(result.isModerator).toBe(true);
+  });
+
+  it("SET_ACTIVE_ROOM resets moderation state", () => {
+    const stateWithModeration = {
+      ...INITIAL_STATE,
+      slowModeSeconds: 30,
+      isTimedOut: true,
+      timedOutUntil: "2026-04-01T12:00:00.000Z",
+      isBanned: true,
+      lastFilteredAt: Date.now(),
+      isModerator: true,
+    };
+    const result = chatReducer(stateWithModeration, {
+      type: "SET_ACTIVE_ROOM",
+      roomId: "room-2",
+    });
+    expect(result.slowModeSeconds).toBe(0);
+    expect(result.isTimedOut).toBe(false);
+    expect(result.timedOutUntil).toBeNull();
+    expect(result.isBanned).toBe(false);
+    expect(result.lastFilteredAt).toBeNull();
+    expect(result.isModerator).toBe(false);
+    expect(result.reactions.size).toBe(0);
+  });
+
+  it("SET_REACTIONS_BATCH populates reactions map", () => {
+    const reactions = {
+      "msg-1": [
+        { emoji: "👍" as const, count: 2, reactedByMe: false },
+      ],
+      "msg-2": [
+        { emoji: "❤️" as const, count: 1, reactedByMe: true },
+      ],
+    };
+    const result = chatReducer(INITIAL_STATE, {
+      type: "SET_REACTIONS_BATCH",
+      reactions,
+    });
+    expect(result.reactions.get("msg-1")).toHaveLength(1);
+    expect(result.reactions.get("msg-2")).toHaveLength(1);
+    expect(result.reactions.get("msg-1")?.[0]?.emoji).toBe("👍");
+  });
+
+  it("UPDATE_REACTION updates single emoji without clobbering others", () => {
+    const stateWithReactions: ChatState = {
+      ...INITIAL_STATE,
+      reactions: new Map([
+        ["msg-1", [
+          { emoji: "👍" as const, count: 1, reactedByMe: false },
+          { emoji: "❤️" as const, count: 2, reactedByMe: true },
+        ]],
+      ]),
+    };
+    const result = chatReducer(stateWithReactions, {
+      type: "UPDATE_REACTION",
+      messageId: "msg-1",
+      emoji: "👍",
+      count: 3,
+      userIds: ["user-1", "user-2", "user-3"],
+      currentUserId: "user-1",
+    });
+    const reactions = result.reactions.get("msg-1") ?? [];
+    const thumbsUp = reactions.find((r) => r.emoji === "👍");
+    const heart = reactions.find((r) => r.emoji === "❤️");
+    expect(thumbsUp?.count).toBe(3);
+    expect(thumbsUp?.reactedByMe).toBe(true);
+    // Heart emoji should be unchanged
+    expect(heart?.count).toBe(2);
+    expect(heart?.reactedByMe).toBe(true);
+  });
+
+  it("UPDATE_REACTION removes pill when count reaches 0", () => {
+    const stateWithReactions: ChatState = {
+      ...INITIAL_STATE,
+      reactions: new Map([
+        ["msg-1", [{ emoji: "👍" as const, count: 1, reactedByMe: true }]],
+      ]),
+    };
+    const result = chatReducer(stateWithReactions, {
+      type: "UPDATE_REACTION",
+      messageId: "msg-1",
+      emoji: "👍",
+      count: 0,
+      userIds: [],
+      currentUserId: "user-1",
+    });
+    const reactions = result.reactions.get("msg-1") ?? [];
+    expect(reactions.find((r) => r.emoji === "👍")).toBeUndefined();
+  });
+
+  it("SET_ACTIVE_ROOM clears reactions map", () => {
+    const stateWithReactions: ChatState = {
+      ...INITIAL_STATE,
+      reactions: new Map([
+        ["msg-1", [{ emoji: "👍" as const, count: 1, reactedByMe: false }]],
+      ]),
+    };
+    const result = chatReducer(stateWithReactions, {
+      type: "SET_ACTIVE_ROOM",
+      roomId: "room-2",
+    });
+    expect(result.reactions.size).toBe(0);
   });
 });

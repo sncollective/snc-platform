@@ -2,12 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
-import type { ActiveRoomsResponse } from "@snc/shared";
+import type { ActiveRoomsResponse, BadgeType } from "@snc/shared";
 
 import { useChat } from "../../contexts/chat-context.js";
 import { apiGet } from "../../lib/fetch-utils.js";
+import { ChatModerationPanel } from "./chat-moderation-panel.js";
+import { ChatUserActions } from "./chat-user-actions.js";
+import { ReactionPicker } from "./reaction-picker.js";
 
 import styles from "./chat-panel.module.css";
+
+// ── Constants ──
+
+const BADGE_LABELS: Record<BadgeType, string> = {
+  platform: "Patron",
+  creator: "Sub",
+};
 
 // ── Component ──
 
@@ -21,7 +31,10 @@ export function ChatPanel({
 }): React.ReactElement {
   const { state, actions } = useChat();
   const [input, setInput] = useState("");
+  const [usersExpanded, setUsersExpanded] = useState(false);
+  const [hoveredMessageUserId, setHoveredMessageUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
 
   // Load rooms on mount
   useEffect(() => {
@@ -104,52 +117,182 @@ export function ChatPanel({
             {room.name}
           </button>
         ))}
+        <span className={styles.viewerCount} title="Viewers in this room">
+          {state.viewerCount}
+        </span>
         {!state.isConnected && (
           <span className={styles.disconnected}>Reconnecting...</span>
         )}
       </div>
 
+      {/* User list (authenticated viewers) */}
+      {state.users.length > 0 && (
+        <div className={styles.userList}>
+          <button
+            type="button"
+            className={styles.userListToggle}
+            onClick={() => setUsersExpanded((prev) => !prev)}
+            aria-expanded={usersExpanded}
+          >
+            {usersExpanded ? "Hide" : "Show"} users ({state.users.length})
+          </button>
+          {usersExpanded && (
+            <ul className={styles.userListItems}>
+              {state.users.map((user) => (
+                <li key={user.userId} className={styles.userListItem}>
+                  {user.avatarUrl && (
+                    <img
+                      src={user.avatarUrl}
+                      alt=""
+                      className={styles.userListAvatar}
+                      width={16}
+                      height={16}
+                    />
+                  )}
+                  <span>{user.userName}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Status banners */}
+      {state.slowModeSeconds > 0 && (
+        <div className={styles.slowModeBanner}>
+          Slow mode: {state.slowModeSeconds}s between messages
+        </div>
+      )}
+      {state.isTimedOut && state.timedOutUntil && (
+        <div className={styles.timedOutBanner}>
+          You are timed out until {new Date(state.timedOutUntil).toLocaleTimeString()}
+        </div>
+      )}
+      {state.isBanned && (
+        <div className={styles.bannedBanner}>
+          You are banned from this room
+        </div>
+      )}
+      {state.lastFilteredAt && (
+        <div className={styles.filteredFlash}>
+          Message blocked by filter
+        </div>
+      )}
+
       {/* Messages */}
       <div className={styles.messages}>
-        {state.messages.map((msg) => (
-          <div key={msg.id} className={styles.message}>
-            {msg.avatarUrl && (
-              <img
-                src={msg.avatarUrl}
-                alt=""
-                className={styles.avatar}
-                width={20}
-                height={20}
-              />
-            )}
-            <span className={styles.userName}>{msg.userName}</span>
-            <span className={styles.content}>{msg.content}</span>
-          </div>
-        ))}
+        {state.messages.map((msg) => {
+          const msgReactions = state.reactions.get(msg.id) ?? [];
+          return (
+            <div
+              key={msg.id}
+              className={styles.message}
+              onMouseEnter={() => state.isModerator ? setHoveredMessageUserId(msg.userId) : undefined}
+              onMouseLeave={() => state.isModerator ? setHoveredMessageUserId(null) : undefined}
+            >
+              {msg.avatarUrl && (
+                <img
+                  src={msg.avatarUrl}
+                  alt=""
+                  className={styles.avatar}
+                  width={20}
+                  height={20}
+                />
+              )}
+              <span className={styles.userName}>{msg.userName}</span>
+              {msg.badges.length > 0 && (
+                <span className={styles.badges}>
+                  {msg.badges.map((badge) => (
+                    <span
+                      key={badge}
+                      className={styles.badge}
+                      data-badge={badge}
+                      title={BADGE_LABELS[badge]}
+                    >
+                      {BADGE_LABELS[badge]}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span className={styles.content}>{msg.content}</span>
+              {state.isModerator && hoveredMessageUserId === msg.userId && (
+                <ChatUserActions
+                  targetUserId={msg.userId}
+                  targetUserName={msg.userName}
+                  onTimeout={actions.timeoutUser}
+                  onBan={actions.banUser}
+                />
+              )}
+              {/* Reaction pills + picker trigger */}
+              {(msgReactions.filter((r) => r.count > 0).length > 0 ||
+                (state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt)) && (
+                <div className={styles.reactionRow}>
+                  {msgReactions.filter((r) => r.count > 0).map((reaction) => (
+                    <button
+                      key={reaction.emoji}
+                      type="button"
+                      className={
+                        reaction.reactedByMe
+                          ? styles.reactionPillActive
+                          : styles.reactionPill
+                      }
+                      onClick={() =>
+                        reaction.reactedByMe
+                          ? actions.removeReaction(msg.id, reaction.emoji)
+                          : actions.addReaction(msg.id, reaction.emoji)
+                      }
+                      title={`${reaction.count} reaction${reaction.count !== 1 ? "s" : ""}`}
+                      aria-label={`${reaction.emoji} ${reaction.count}`}
+                      aria-pressed={reaction.reactedByMe}
+                    >
+                      {reaction.emoji} {reaction.count}
+                    </button>
+                  ))}
+                  {state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt && (
+                    <ReactionPicker
+                      messageId={msg.id}
+                      existingReactions={msgReactions}
+                      onReact={(emoji) => actions.addReaction(msg.id, emoji)}
+                      onUnreact={(emoji) => actions.removeReaction(msg.id, emoji)}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input (auth-gated) */}
       {activeRoom && !activeRoom.closedAt ? (
-        <form onSubmit={handleSubmit} className={styles.inputForm}>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Send a message..."
-            className={styles.input}
-            maxLength={500}
-            disabled={!state.isConnected}
-            aria-label="Chat message"
-          />
-          <button
-            type="submit"
-            className={styles.sendButton}
-            disabled={!state.isConnected || !input.trim()}
-          >
-            Send
-          </button>
-        </form>
+        <>
+          {state.isModerator && (
+            <ChatModerationPanel
+              slowModeSeconds={state.slowModeSeconds}
+              onSetSlowMode={actions.setSlowMode}
+            />
+          )}
+          <form onSubmit={handleSubmit} className={styles.inputForm}>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Send a message..."
+              className={styles.input}
+              maxLength={500}
+              disabled={!state.isConnected || state.isTimedOut || state.isBanned}
+              aria-label="Chat message"
+            />
+            <button
+              type="submit"
+              className={styles.sendButton}
+              disabled={!state.isConnected || !input.trim() || state.isTimedOut || state.isBanned}
+            >
+              Send
+            </button>
+          </form>
+        </>
       ) : (
         activeRoom?.closedAt && (
           <div className={styles.closedBanner}>Stream ended</div>

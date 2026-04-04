@@ -321,7 +321,7 @@ describe("creator routes", () => {
       expect(body.items[0]).not.toHaveProperty("canManage");
     });
 
-    it("includes canManage: true for stakeholder users", async () => {
+    it("does not include canManage for stakeholder-only users (not a member)", async () => {
       ctx.auth.roles = ["stakeholder"];
 
       const profile = makeMockDbCreatorProfile({ id: "creator_1" });
@@ -330,6 +330,30 @@ describe("creator routes", () => {
       mockLimit.mockResolvedValueOnce([profile]);
       mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
       mockGroupBy.mockResolvedValueOnce([{ creatorId: "creator_1", count: 0 }]);
+      // No memberships for this user
+      mockGetCreatorMemberships.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/creators");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0]).not.toHaveProperty("canManage");
+    });
+
+    it("includes canManage: true for team members of that creator", async () => {
+      ctx.auth.roles = [];
+
+      const profile = makeMockDbCreatorProfile({ id: "creator_1" });
+
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce([profile]);
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([{ creatorId: "creator_1", count: 0 }]);
+      // User is a member of creator_1
+      mockGetCreatorMemberships.mockResolvedValueOnce([
+        { creatorId: "creator_1", role: "editor" },
+      ]);
 
       const res = await ctx.app.request("/api/creators");
 
@@ -337,6 +361,34 @@ describe("creator routes", () => {
       const body = await res.json();
       expect(body.items).toHaveLength(1);
       expect(body.items[0].canManage).toBe(true);
+    });
+
+    it("canManage only for creators the user is a member of (not others)", async () => {
+      ctx.auth.roles = [];
+
+      const profiles = [
+        makeMockDbCreatorProfile({ id: "creator_1", createdAt: new Date("2026-02-01T00:00:00.000Z") }),
+        makeMockDbCreatorProfile({ id: "creator_2", createdAt: new Date("2026-01-01T00:00:00.000Z") }),
+      ];
+
+      mockSelectWhere.mockReturnValueOnce({ orderBy: mockOrderBy });
+      mockLimit.mockResolvedValueOnce(profiles);
+      mockSelectWhere.mockReturnValueOnce({ groupBy: mockGroupBy });
+      mockGroupBy.mockResolvedValueOnce([]);
+      // User is only a member of creator_1
+      mockGetCreatorMemberships.mockResolvedValueOnce([
+        { creatorId: "creator_1", role: "owner" },
+      ]);
+
+      const res = await ctx.app.request("/api/creators?limit=2");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.items).toHaveLength(2);
+      const item1 = body.items.find((i: { id: string }) => i.id === "creator_1");
+      const item2 = body.items.find((i: { id: string }) => i.id === "creator_2");
+      expect(item1.canManage).toBe(true);
+      expect(item2).not.toHaveProperty("canManage");
     });
 
     it("includes canManage: true for admin users", async () => {
@@ -534,7 +586,8 @@ describe("creator routes", () => {
       expect(body.items).toHaveLength(1);
       expect(body.items[0].subscriberCount).toBe(7);
       expect(body.items[0].lastPublishedAt).toBe("2026-03-01T12:00:00.000Z");
-      expect(body.items[0].canManage).toBe(true);
+      // canManage is not granted by stakeholder role alone — requires admin or team membership
+      expect(body.items[0]).not.toHaveProperty("canManage");
     });
 
     it("non-stakeholder authenticated user → items do not include subscriberCount or lastPublishedAt", async () => {

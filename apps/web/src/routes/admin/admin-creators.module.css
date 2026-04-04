@@ -1,0 +1,250 @@
+/* ── Page Layout ── */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* ── Filter Tabs ── */
+
+.filterTabs {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-xs);
+}
+
+.filterTab {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.filterTab:hover {
+  color: var(--color-text);
+}
+
+.filterTabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.filterCount {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin-left: var(--space-xs);
+}
+
+/* ── Search ── */
+
+.searchRow {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.searchInput {
+  flex: 1;
+  max-width: 320px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* ── Table ── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th:hover {
+  color: var(--color-text);
+}
+
+.table td {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  vertical-align: middle;
+}
+
+.table tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+.creatorName {
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.creatorName:hover {
+  text-decoration: underline;
+}
+
+.handle {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* ── Status Badge ── */
+
+.statusBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.statusActive {
+  background-color: var(--color-success, #16a34a);
+}
+
+.statusInactive {
+  background-color: var(--color-text-muted, #6b7280);
+}
+
+.statusArchived {
+  background-color: var(--color-error, #dc2626);
+}
+
+/* ── Action Buttons ── */
+
+.actionButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* ── Create Form ── */
+
+.createForm {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* ── Invite Dialog (extracted from inline styles) ── */
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  min-width: 360px;
+  max-width: 480px;
+  width: 100%;
+}
+
+.dialogTitle {
+  margin: 0 0 var(--space-md);
+}
+
+.dialogField {
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.dialogFieldInput {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.dialogActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+}
+
+/* ── Empty State ── */
+
+.emptyState {
+  text-align: center;
+  padding: var(--space-xl) 0;
+  color: var(--color-text-muted);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

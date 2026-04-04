@@ -15,6 +15,7 @@ import {
   removeCreatorMember,
   fetchMemberCandidates,
 } from "../../lib/creator.js";
+import { apiMutate } from "../../lib/fetch-utils.js";
 import { clsx } from "clsx/lite";
 
 import formStyles from "../../styles/form.module.css";
@@ -64,6 +65,13 @@ export function TeamSection({
   const [isAdding, setIsAdding] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Invite State ──
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<CreatorMemberRole>("editor");
+  const [inviteError, setInviteError] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
 
   // ── Derived State ──
   const currentMember = members.find((m) => m.userId === currentUserId);
@@ -185,6 +193,27 @@ export function TeamSection({
     }
   };
 
+  const handleInvite = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    setInviteError("");
+    setIsInviting(true);
+
+    try {
+      await apiMutate("/api/invites", {
+        method: "POST",
+        body: { type: "team_member", email: inviteEmail, creatorId, role: inviteRole },
+      });
+      setShowInviteForm(false);
+      setInviteEmail("");
+      setInviteRole("editor");
+      setSuccessMessage("Invite sent successfully");
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Failed to send invite.");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   // ── Render ──
   if (isLoading) {
     return (
@@ -287,6 +316,58 @@ export function TeamSection({
                 </p>
               )}
             </div>
+          )}
+
+          {/* Invite by email */}
+          {!showInviteForm ? (
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={() => { setShowInviteForm(true); setInviteError(""); }}
+              style={{ marginTop: "0.5rem" }}
+            >
+              Invite by email
+            </button>
+          ) : (
+            <form onSubmit={(e) => { void handleInvite(e); }} style={{ marginTop: "0.75rem" }}>
+              {inviteError && (
+                <p style={{ color: "var(--color-error)", marginBottom: "0.5rem", fontSize: "var(--font-size-sm)" }} role="alert">
+                  {inviteError}
+                </p>
+              )}
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="Email address"
+                  required
+                  className={formStyles.input}
+                  aria-label="Invite email"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as CreatorMemberRole)}
+                  className={formStyles.select}
+                  aria-label="Invite role"
+                >
+                  {CREATOR_MEMBER_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" disabled={isInviting}>
+                  {isInviting ? "Sending..." : "Send Invite"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowInviteForm(false); setInviteEmail(""); setInviteError(""); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}

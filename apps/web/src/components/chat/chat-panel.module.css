@@ -38,10 +38,58 @@
 .disconnected {
   display: flex;
   align-items: center;
-  margin-left: auto;
   padding: 0 var(--space-sm);
   font-size: var(--font-size-xs);
   color: var(--color-error);
+}
+
+.viewerCount {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.userList {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.userListToggle {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.userListToggle:hover {
+  color: var(--color-text);
+}
+
+.userListItems {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-1);
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.userListItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-half) 0;
+  font-size: var(--font-size-sm);
+}
+
+.userListAvatar {
+  border-radius: 50%;
 }
 
 .tab {
@@ -95,6 +143,33 @@
   white-space: nowrap;
 }
 
+.badges {
+  display: inline-flex;
+  gap: 2px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge[data-badge="platform"] {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.badge[data-badge="creator"] {
+  background: var(--color-accent, var(--color-primary));
+  color: var(--color-bg);
+}
+
 .content {
   color: var(--color-text);
   word-break: break-word;
@@ -146,4 +221,82 @@
   color: var(--color-text-muted);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
+}
+
+.slowModeBanner {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.timedOutBanner {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-error, #c0392b);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.bannedBanner {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-error, #c0392b);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.filteredFlash {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-error, #c0392b);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  animation: fadeOut 3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.reactionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: 2px;
+  margin-left: calc(20px + var(--space-xs)); /* align under content, past avatar */
+}
+
+.reactionPill,
+.reactionPillActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.reactionPill:hover {
+  background: var(--color-surface-hover);
+}
+
+.reactionPillActive {
+  background: var(--color-primary-subtle, color-mix(in srgb, var(--color-primary) 15%, transparent));
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }

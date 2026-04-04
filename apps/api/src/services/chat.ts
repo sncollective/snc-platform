@@ -2,11 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, isNull, lt, desc } from "drizzle-orm";
 import { ok, err } from "@snc/shared";
-import type { Result, ChatMessage, ChatRoom } from "@snc/shared";
-import { AppError, NotFoundError, ForbiddenError } from "@snc/shared";
+import type { Result, ChatMessage, ChatRoom, BadgeType } from "@snc/shared";
+import { AppError, NotFoundError, ForbiddenError, RateLimitError } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { chatRooms, chatMessages } from "../db/schema/chat.schema.js";
+import { isUserBanned, isUserTimedOut, canModerateRoom } from "./chat-moderation-auth.js";
+import { isMessageFiltered } from "./chat-word-filters.js";
+import { channels } from "../db/schema/streaming.schema.js";
+import {
+  userSubscriptions,
+  subscriptionPlans,
+} from "../db/schema/subscription.schema.js";
 
 // ── Constants ──
 
@@ -21,6 +28,7 @@ const toRoomResponse = (row: typeof chatRooms.$inferSelect): ChatRoom => ({
   type: row.type as ChatRoom["type"],
   channelId: row.channelId,
   name: row.name,
+  slowModeSeconds: row.slowModeSeconds,
   createdAt: row.createdAt.toISOString(),
   closedAt: row.closedAt?.toISOString() ?? null,
 });
@@ -33,9 +41,99 @@ const toMessageResponse = (
   userId: row.userId,
   userName: row.userName,
   avatarUrl: row.avatarUrl,
+  badges: row.badges ?? [],
   content: row.content,
   createdAt: row.createdAt.toISOString(),
 });
+
+/**
+ * Resolve patron badges for a user in a given chat room.
+ *
+ * Checks active subscriptions against the room context:
+ * - `platform` badge if the user has any active platform subscription
+ * - `creator` badge if the room is a channel room and the user subscribes to that channel's creator
+ */
+const resolveUserBadges = async (
+  userId: string,
+  room: { channelId: string | null },
+): Promise<BadgeType[]> => {
+  const activeSubs = await db
+    .select({
+      planType: subscriptionPlans.type,
+      creatorId: subscriptionPlans.creatorId,
+    })
+    .from(userSubscriptions)
+    .innerJoin(
+      subscriptionPlans,
+      eq(userSubscriptions.planId, subscriptionPlans.id),
+    )
+    .where(
+      and(
+        eq(userSubscriptions.userId, userId),
+        eq(userSubscriptions.status, "active"),
+      ),
+    );
+
+  const badges: BadgeType[] = [];
+
+  if (activeSubs.some((s) => s.planType === "platform")) {
+    badges.push("platform");
+  }
+
+  if (room.channelId) {
+    const [channel] = await db
+      .select({ creatorId: channels.creatorId })
+      .from(channels)
+      .where(eq(channels.id, room.channelId));
+
+    if (channel?.creatorId) {
+      const hasCreatorSub = activeSubs.some(
+        (s) => s.planType === "creator" && s.creatorId === channel.creatorId,
+      );
+      if (hasCreatorSub) {
+        badges.push("creator");
+      }
+    }
+  }
+
+  return badges;
+};
+
+/**
+ * Enforce slow mode for a user in a room.
+ * Queries the most recent message by the user and checks if enough time has elapsed.
+ *
+ * @returns ok(undefined) if the user may send, err(RateLimitError) if they must wait.
+ */
+const checkSlowMode = async (
+  roomId: string,
+  userId: string,
+  slowModeSeconds: number,
+): Promise<Result<void, AppError>> => {
+  if (slowModeSeconds <= 0) return ok(undefined);
+
+  const [lastMessage] = await db
+    .select({ createdAt: chatMessages.createdAt })
+    .from(chatMessages)
+    .where(
+      and(
+        eq(chatMessages.roomId, roomId),
+        eq(chatMessages.userId, userId),
+      ),
+    )
+    .orderBy(desc(chatMessages.createdAt))
+    .limit(1);
+
+  if (!lastMessage) return ok(undefined);
+
+  const elapsed = (Date.now() - lastMessage.createdAt.getTime()) / 1000;
+  if (elapsed < slowModeSeconds) {
+    const waitSeconds = Math.ceil(slowModeSeconds - elapsed);
+    return err(new RateLimitError(`Slow mode: please wait ${waitSeconds}s before sending again`));
+  }
+
+  return ok(undefined);
+};
 
 // ── Public API ──
 
@@ -163,8 +261,46 @@ export const createMessage = async (opts: {
     return err(new ForbiddenError("Chat room is closed"));
   }
 
+  // Check if user is banned
+  const banned = await isUserBanned(opts.userId, opts.roomId);
+  if (banned) {
+    return err(new ForbiddenError("You are banned from this room"));
+  }
+
+  // Check if user is timed out
+  const { timedOut, expiresAt } = await isUserTimedOut(opts.userId, opts.roomId);
+  if (timedOut) {
+    return err(new ForbiddenError(`You are timed out until ${expiresAt}`));
+  }
+
+  // Check moderation authority — moderators are exempt from slow mode and word filters
+  const modResult = await canModerateRoom(opts.userId, opts.roomId);
+  const isModerator = modResult.ok;
+
+  if (!isModerator) {
+    // Enforce slow mode
+    const slowModeResult = await checkSlowMode(opts.roomId, opts.userId, room.slowModeSeconds);
+    if (!slowModeResult.ok) {
+      return err(slowModeResult.error);
+    }
+
+    // Check word filters
+    const filtered = await isMessageFiltered(opts.roomId, opts.content);
+    if (filtered) {
+      return err(new AppError("MESSAGE_FILTERED", "Message blocked by word filter", 400));
+    }
+  }
+
   // Strip HTML tags for XSS prevention
   const sanitizedContent = opts.content.replace(/<[^>]*>/g, "");
+
+  // Resolve badges from subscription status — failure must not block message send
+  let badges: BadgeType[] = [];
+  try {
+    badges = await resolveUserBadges(opts.userId, room);
+  } catch {
+    // Badge resolution failure should not block message send
+  }
 
   const [message] = await db
     .insert(chatMessages)
@@ -174,6 +310,7 @@ export const createMessage = async (opts: {
       userId: opts.userId,
       userName: opts.userName,
       avatarUrl: opts.avatarUrl,
+      badges,
       content: sanitizedContent,
     })
     .returning();

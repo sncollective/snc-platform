@@ -12,7 +12,7 @@ import {
 import type React from "react";
 import type { ReactNode } from "react";
 
-import type { ChatMessage, ChatRoom, ServerEvent } from "@snc/shared";
+import type { ChatMessage, ChatRoom, MessageReaction, PresenceUser, ReactionEmoji, ServerEvent } from "@snc/shared";
 
 // ── Public Types ──
 
@@ -22,6 +22,17 @@ export interface ChatState {
   readonly messages: readonly ChatMessage[];
   readonly hasMore: boolean;
   readonly isConnected: boolean;
+  readonly viewerCount: number;
+  readonly users: readonly PresenceUser[];
+  readonly notificationCount: number;
+  readonly slowModeSeconds: number;
+  readonly isTimedOut: boolean;
+  readonly timedOutUntil: string | null;
+  readonly isBanned: boolean;
+  readonly lastFilteredAt: number | null;
+  readonly isModerator: boolean;
+  /** Map of messageId to per-emoji reaction state */
+  readonly reactions: ReadonlyMap<string, readonly MessageReaction[]>;
 }
 
 export interface ChatActions {
@@ -30,6 +41,12 @@ export interface ChatActions {
   readonly sendMessage: (content: string) => void;
   readonly setActiveRoom: (roomId: string) => void;
   readonly setRooms: (rooms: ChatRoom[]) => void;
+  readonly timeoutUser: (targetUserId: string, durationSeconds: number, reason?: string) => void;
+  readonly banUser: (targetUserId: string, reason?: string) => void;
+  readonly unbanUser: (targetUserId: string) => void;
+  readonly setSlowMode: (seconds: number) => void;
+  readonly addReaction: (messageId: string, emoji: ReactionEmoji) => void;
+  readonly removeReaction: (messageId: string, emoji: ReactionEmoji) => void;
 }
 
 export interface ChatContextValue {
@@ -45,6 +62,16 @@ export const INITIAL_STATE: ChatState = {
   messages: [],
   hasMore: false,
   isConnected: false,
+  viewerCount: 0,
+  users: [],
+  notificationCount: 0,
+  slowModeSeconds: 0,
+  isTimedOut: false,
+  timedOutUntil: null,
+  isBanned: false,
+  lastFilteredAt: null,
+  isModerator: false,
+  reactions: new Map(),
 };
 
 // ── Reducer ──
@@ -56,7 +83,19 @@ type ChatAction =
   | { readonly type: "SET_HISTORY"; readonly messages: ChatMessage[]; readonly hasMore: boolean }
   | { readonly type: "ADD_MESSAGE"; readonly message: ChatMessage }
   | { readonly type: "ROOM_CLOSED"; readonly roomId: string }
-  | { readonly type: "CLEAR_MESSAGES" };
+  | { readonly type: "CLEAR_MESSAGES" }
+  | { readonly type: "SET_PRESENCE"; readonly viewerCount: number; readonly users: readonly PresenceUser[] }
+  | { readonly type: "USER_JOINED"; readonly user: PresenceUser }
+  | { readonly type: "USER_LEFT"; readonly userId: string }
+  | { readonly type: "SET_NOTIFICATION_COUNT"; readonly count: number }
+  | { readonly type: "SET_SLOW_MODE"; readonly seconds: number }
+  | { readonly type: "SET_TIMED_OUT"; readonly until: string | null }
+  | { readonly type: "SET_BANNED"; readonly banned: boolean }
+  | { readonly type: "MESSAGE_FILTERED" }
+  | { readonly type: "SET_MODERATOR"; readonly isModerator: boolean }
+  | { readonly type: "CLEAR_FILTERED" }
+  | { readonly type: "SET_REACTIONS_BATCH"; readonly reactions: Record<string, readonly MessageReaction[]> }
+  | { readonly type: "UPDATE_REACTION"; readonly messageId: string; readonly emoji: ReactionEmoji; readonly count: number; readonly userIds: readonly string[]; readonly currentUserId: string | null };
 
 /** Pure reducer for chat state. Exported for unit testing. */
 export function chatReducer(
@@ -67,7 +106,21 @@ export function chatReducer(
     case "SET_ROOMS":
       return { ...state, rooms: action.rooms };
     case "SET_ACTIVE_ROOM":
-      return { ...state, activeRoomId: action.roomId, messages: [], hasMore: false };
+      return {
+        ...state,
+        activeRoomId: action.roomId,
+        messages: [],
+        hasMore: false,
+        viewerCount: 0,
+        users: [],
+        slowModeSeconds: 0,
+        isTimedOut: false,
+        timedOutUntil: null,
+        isBanned: false,
+        lastFilteredAt: null,
+        isModerator: false,
+        reactions: new Map(),
+      };
     case "SET_CONNECTED":
       return { ...state, isConnected: action.isConnected };
     case "SET_HISTORY":
@@ -90,6 +143,64 @@ export function chatReducer(
       };
     case "CLEAR_MESSAGES":
       return { ...state, messages: [], hasMore: false };
+    case "SET_PRESENCE":
+      return { ...state, viewerCount: action.viewerCount, users: action.users };
+    case "USER_JOINED":
+      return {
+        ...state,
+        users: state.users.some((u) => u.userId === action.user.userId)
+          ? state.users
+          : [...state.users, action.user],
+      };
+    case "USER_LEFT":
+      return {
+        ...state,
+        users: state.users.filter((u) => u.userId !== action.userId),
+      };
+    case "SET_NOTIFICATION_COUNT":
+      return { ...state, notificationCount: action.count };
+    case "SET_SLOW_MODE":
+      return { ...state, slowModeSeconds: action.seconds };
+    case "SET_TIMED_OUT":
+      return {
+        ...state,
+        isTimedOut: action.until !== null,
+        timedOutUntil: action.until,
+      };
+    case "SET_BANNED":
+      return { ...state, isBanned: action.banned };
+    case "MESSAGE_FILTERED":
+      return { ...state, lastFilteredAt: Date.now() };
+    case "CLEAR_FILTERED":
+      return { ...state, lastFilteredAt: null };
+    case "SET_MODERATOR":
+      return { ...state, isModerator: action.isModerator };
+    case "SET_REACTIONS_BATCH": {
+      const next = new Map(state.reactions);
+      for (const [messageId, emojis] of Object.entries(action.reactions)) {
+        next.set(messageId, emojis);
+      }
+      return { ...state, reactions: next };
+    }
+    case "UPDATE_REACTION": {
+      const existing = state.reactions.get(action.messageId) ?? [];
+      const otherEmojis = existing.filter((r) => r.emoji !== action.emoji);
+      const updated: MessageReaction[] = action.count > 0
+        ? [
+            ...otherEmojis,
+            {
+              emoji: action.emoji,
+              count: action.count,
+              reactedByMe: action.currentUserId !== null
+                && action.userIds.includes(action.currentUserId),
+            },
+          ]
+        : otherEmojis;
+
+      const next = new Map(state.reactions);
+      next.set(action.messageId, updated);
+      return { ...state, reactions: next };
+    }
     default:
       return state;
   }
@@ -104,10 +215,14 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 /** Manage global chat state and WebSocket connection. Consume with `useChat`. */
 export function ChatProvider({
   children,
+  userId = null,
 }: {
   readonly children: ReactNode;
+  readonly userId?: string | null;
 }): React.ReactElement {
   const [state, dispatch] = useReducer(chatReducer, INITIAL_STATE);
+  const userIdRef = useRef<string | null>(userId);
+  userIdRef.current = userId;
   const wsRef = useRef<WebSocket | null>(null);
   const activeRoomRef = useRef<string | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -149,6 +264,61 @@ export function ChatProvider({
             break;
           case "error":
             // Errors are displayed by the UI — no dispatch needed
+            break;
+          case "presence":
+            dispatch({
+              type: "SET_PRESENCE",
+              viewerCount: data.viewerCount,
+              users: data.users,
+            });
+            break;
+          case "user_joined":
+            dispatch({
+              type: "USER_JOINED",
+              user: {
+                userId: data.userId,
+                userName: data.userName,
+                avatarUrl: data.avatarUrl,
+              },
+            });
+            break;
+          case "user_left":
+            dispatch({ type: "USER_LEFT", userId: data.userId });
+            break;
+          case "notification_count":
+            dispatch({ type: "SET_NOTIFICATION_COUNT", count: data.count });
+            break;
+          case "slow_mode_changed":
+            dispatch({ type: "SET_SLOW_MODE", seconds: data.seconds });
+            break;
+          case "user_timed_out":
+            // Note: server broadcasts to all room members; individual UI components
+            // should compare targetUserId against the current user before rendering
+            // timed-out state. The SET_TIMED_OUT action stores the most recent event.
+            dispatch({ type: "SET_TIMED_OUT", until: data.expiresAt });
+            break;
+          case "user_banned":
+            dispatch({ type: "SET_BANNED", banned: true });
+            break;
+          case "user_unbanned":
+            dispatch({ type: "SET_BANNED", banned: false });
+            break;
+          case "message_filtered":
+            dispatch({ type: "MESSAGE_FILTERED" });
+            setTimeout(() => dispatch({ type: "CLEAR_FILTERED" }), 3000);
+            break;
+          case "reactions_batch":
+            dispatch({ type: "SET_REACTIONS_BATCH", reactions: data.reactions });
+            break;
+          case "reaction_updated":
+            dispatch({
+              type: "UPDATE_REACTION",
+              messageId: data.messageId,
+              emoji: data.emoji,
+              count: data.count,
+              userIds: data.userIds,
+              currentUserId: userIdRef.current,
+            });
             break;
         }
       } catch {
@@ -213,6 +383,71 @@ export function ChatProvider({
       },
       setRooms: (rooms: ChatRoom[]) => {
         dispatch({ type: "SET_ROOMS", rooms });
+      },
+      timeoutUser: (targetUserId: string, durationSeconds: number, reason?: string) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "timeout",
+            roomId: activeRoomRef.current,
+            targetUserId,
+            durationSeconds,
+            ...(reason !== undefined ? { reason } : {}),
+          }),
+        );
+      },
+      banUser: (targetUserId: string, reason?: string) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "ban",
+            roomId: activeRoomRef.current,
+            targetUserId,
+            ...(reason !== undefined ? { reason } : {}),
+          }),
+        );
+      },
+      unbanUser: (targetUserId: string) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "unban",
+            roomId: activeRoomRef.current,
+            targetUserId,
+          }),
+        );
+      },
+      setSlowMode: (seconds: number) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "set_slow_mode",
+            roomId: activeRoomRef.current,
+            seconds,
+          }),
+        );
+      },
+      addReaction: (messageId: string, emoji: ReactionEmoji) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "add_reaction",
+            roomId: activeRoomRef.current,
+            messageId,
+            emoji,
+          }),
+        );
+      },
+      removeReaction: (messageId: string, emoji: ReactionEmoji) => {
+        if (!activeRoomRef.current) return;
+        safeSend(
+          JSON.stringify({
+            type: "remove_reaction",
+            roomId: activeRoomRef.current,
+            messageId,
+            emoji,
+          }),
+        );
       },
     }),
     [safeSend],

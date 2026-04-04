@@ -7,21 +7,24 @@ import { handleProbeCodec } from "./handlers/probe-codec.js";
 import { handleTranscode } from "./handlers/transcode.js";
 import { handleExtractThumbnail } from "./handlers/extract-thumbnail.js";
 import { handlePlayoutIngest } from "./handlers/playout-ingest.js";
+import { handleNotificationSend } from "./handlers/notification-send.js";
 import type { ProbeJobData } from "./handlers/probe-codec.js";
 import type { TranscodeJobData } from "./handlers/transcode.js";
 import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
 import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
+import type { NotificationSendJobData } from "./handlers/notification-send.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
 
 // ── Job Queue Names ──
 
-/** Canonical pg-boss queue names for media and playout jobs. */
+/** Canonical pg-boss queue names for media, playout, and notification jobs. */
 export const JOB_QUEUES = {
   PROBE_CODEC: "media/probe-codec",
   TRANSCODE: "media/transcode",
   EXTRACT_THUMBNAIL: "media/extract-thumbnail",
   VOD_REMUX: "media/vod-remux",
   PLAYOUT_INGEST: "playout/ingest",
+  NOTIFICATION_SEND: "notification/send",
 } as const;
 
 // ── Public API ──
@@ -83,6 +86,19 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     JOB_QUEUES.PLAYOUT_INGEST,
     { localConcurrency: 1 },
     (jobs) => handlePlayoutIngest(jobs as [Job<PlayoutIngestJobData>]),
+  );
+
+  await boss.createQueue(JOB_QUEUES.NOTIFICATION_SEND, {
+    retryLimit: 3,
+    retryDelay: 60, // 1 min between retries
+    expireInSeconds: 120,
+    deleteAfterSeconds: 60 * 60 * 24 * 30, // Keep 30 days for audit
+  });
+
+  await boss.work<NotificationSendJobData>(
+    JOB_QUEUES.NOTIFICATION_SEND,
+    { localConcurrency: 3 },
+    (jobs) => handleNotificationSend(jobs as [Job<NotificationSendJobData>]),
   );
 
   rootLogger.info(
