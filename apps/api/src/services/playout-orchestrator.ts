@@ -8,6 +8,7 @@ import type {
   ChannelQueueStatus,
   ChannelContent,
   PoolCandidate,
+  PlayoutProcessingStatus,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -524,6 +525,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         cc.playout_item_id AS "playoutItemId",
         cc.content_id AS "contentId",
         'playout' AS "sourceType",
+        pi.processing_status AS "processingStatus",
         pi.title,
         pi.duration,
         cc.last_played_at AS "lastPlayedAt",
@@ -542,6 +544,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         cc.playout_item_id AS "playoutItemId",
         cc.content_id AS "contentId",
         'content' AS "sourceType",
+        NULL AS "processingStatus",
         c.title,
         c.duration,
         cc.last_played_at AS "lastPlayedAt",
@@ -559,6 +562,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       playoutItemId: string | null;
       contentId: string | null;
       sourceType: "playout" | "content";
+      processingStatus: string | null;
       title: string;
       duration: number | null;
       lastPlayedAt: Date | null;
@@ -573,6 +577,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         playoutItemId: row.playoutItemId ?? null,
         contentId: row.contentId ?? null,
         sourceType: row.sourceType,
+        processingStatus: (row.processingStatus as PlayoutProcessingStatus | null) ?? null,
         title: row.title,
         duration: row.duration ?? null,
         lastPlayedAt: row.lastPlayedAt?.toISOString() ?? null,

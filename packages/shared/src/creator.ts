@@ -82,6 +82,13 @@ export const SocialLinkSchema = z.object({
 
 export type SocialLink = z.infer<typeof SocialLinkSchema>;
 
+// ── Creator Status ──
+
+export const CREATOR_STATUSES = ["active", "inactive", "archived"] as const;
+/** Lifecycle status of a creator profile. */
+export type CreatorStatus = (typeof CREATOR_STATUSES)[number];
+export const CreatorStatusSchema = z.enum(CREATOR_STATUSES);
+
 // ── Creator Member Roles ──
 
 export const CREATOR_MEMBER_ROLES = ["owner", "editor", "viewer"] as const;
@@ -148,6 +155,7 @@ export const CreatorProfileResponseSchema = z.object({
   bannerUrl: z.string().nullable(),
   socialLinks: z.array(SocialLinkSchema),
   contentCount: z.number().int().min(0),
+  status: CreatorStatusSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });

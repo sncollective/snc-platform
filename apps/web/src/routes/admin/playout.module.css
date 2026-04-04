@@ -253,6 +253,24 @@
   color: var(--color-bg);
 }
 
+.retryButton {
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-warning, hsl(40 90% 55%));
+  border: 1px solid var(--color-warning, hsl(40 90% 55%));
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  margin-right: var(--space-xs);
+}
+
+.retryButton:hover {
+  background: var(--color-warning, hsl(40 90% 55%));
+  color: var(--color-bg);
+}
+
 /* ── Broadcast Section ── */
 
 .broadcastSection {

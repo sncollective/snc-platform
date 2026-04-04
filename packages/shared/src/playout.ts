@@ -29,11 +29,12 @@ export type VideoRendition = (typeof VIDEO_RENDITIONS)[number];
 export const PLAYOUT_PROCESSING_STATUSES = ["pending", "uploading", "processing", "ready", "failed"] as const;
 export type PlayoutProcessingStatus = (typeof PLAYOUT_PROCESSING_STATUSES)[number];
 
-// ── Private Constants ──
+// ── Film Year Bounds ──
 
 /** Earliest known film year (Roundhay Garden Scene, 1888). */
-const MIN_FILM_YEAR = 1888;
-const MAX_FILM_YEAR = 2100;
+export const MIN_FILM_YEAR = 1888;
+/** Upper bound for playout item year validation. */
+export const MAX_FILM_YEAR = 2100;
 
 // ── Playout Item Schemas ──
 

@@ -11,6 +11,7 @@ import {
   fetchPlayoutStatus,
   skipPlayoutTrack,
   queuePlayoutItem,
+  retryPlayoutIngest,
 } from "../../../src/lib/playout.js";
 import { setupFetchMock } from "../../helpers/fetch-mock.js";
 
@@ -302,5 +303,46 @@ describe("queuePlayoutItem", () => {
 
     const calledUrl = getMockFetch().mock.calls[0]![0] as string;
     expect(calledUrl).toContain("item%2Fx%20y");
+  });
+});
+
+// ── retryPlayoutIngest ──
+
+describe("retryPlayoutIngest", () => {
+  it("POSTs to /api/playout/items/:id/retry", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+
+    await retryPlayoutIngest("item_001");
+
+    expect(getMockFetch()).toHaveBeenCalledWith(
+      "/api/playout/items/item_001/retry",
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+  });
+
+  it("encodes special characters in ID", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+
+    await retryPlayoutIngest("item/x y");
+
+    const calledUrl = getMockFetch().mock.calls[0]![0] as string;
+    expect(calledUrl).toContain("item%2Fx%20y");
+  });
+
+  it("throws on non-2xx response", async () => {
+    getMockFetch().mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: "Item is not in failed state" } }),
+        { status: 409 },
+      ),
+    );
+
+    await expect(retryPlayoutIngest("item_001")).rejects.toThrow(
+      "Item is not in failed state",
+    );
   });
 });

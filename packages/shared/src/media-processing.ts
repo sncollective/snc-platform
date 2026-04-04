@@ -13,6 +13,15 @@ export type ProcessingJobStatus = z.infer<typeof ProcessingJobStatusSchema>;
 
 // ── Probe Result ──
 
+/** Normalised metadata extracted from ffprobe format.tags. All fields nullable. */
+export const ProbeTagsSchema = z.object({
+  title: z.string().nullable(),
+  year: z.number().int().nullable(),
+  director: z.string().nullable(),
+});
+
+export type ProbeTags = z.infer<typeof ProbeTagsSchema>;
+
 export const ProbeResultSchema = z.object({
   videoCodec: z.string().nullable(),
   audioCodec: z.string().nullable(),
@@ -22,6 +31,7 @@ export const ProbeResultSchema = z.object({
   duration: z.number().nullable(),
   bitrate: z.number().int().nullable(),
   dataStreamCount: z.number().int(),
+  tags: ProbeTagsSchema,
 });
 
 export type ProbeResult = z.infer<typeof ProbeResultSchema>;

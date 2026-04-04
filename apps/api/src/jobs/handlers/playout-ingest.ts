@@ -93,12 +93,33 @@ export const handlePlayoutIngest = async (
       logger.info({ dataStreamCount: probe.dataStreamCount }, "Stripped non-AV streams from source");
     }
 
+    // ── Auto-fill metadata from probe tags ──
+    // title is always admin-provided at creation (CreatePlayoutItemSchema requires min(1)).
+    // year and director default to null — fill them from probe tags only when still null.
+    const metadataUpdate: {
+      year?: number | null;
+      director?: string | null;
+    } = {};
+
+    if (item.year === null && probe.tags.year !== null) {
+      metadataUpdate.year = probe.tags.year;
+    }
+    if (item.director === null && probe.tags.director) {
+      metadataUpdate.director = probe.tags.director;
+    }
+
+    const tagsFilled = Object.keys(metadataUpdate).length > 0;
+    if (tagsFilled) {
+      logger.info({ tags: metadataUpdate }, "Auto-filled metadata from probe tags");
+    }
+
     await db
       .update(playoutItems)
       .set({
         sourceWidth: probe.width,
         sourceHeight: probe.height,
         duration: probe.duration,
+        ...metadataUpdate,
         updatedAt: new Date(),
       })
       .where(eq(playoutItems.id, playoutItemId));

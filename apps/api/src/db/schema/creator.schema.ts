@@ -1,29 +1,39 @@
 import { pgTable, text, timestamp, jsonb, index, primaryKey } from "drizzle-orm/pg-core";
 
-import type { SocialLink, CreatorMemberRole } from "@snc/shared";
+import type { SocialLink, CreatorMemberRole, CreatorStatus } from "@snc/shared";
 
 import { users } from "./user.schema.js";
 
 // ── Creator Profiles ──
 
-export const creatorProfiles = pgTable("creator_profiles", {
-  id: text("id").primaryKey(),
-  displayName: text("display_name").notNull(),
-  bio: text("bio"),
-  avatarKey: text("avatar_key"),
-  bannerKey: text("banner_key"),
-  socialLinks: jsonb("social_links")
-    .$type<SocialLink[]>()
-    .notNull()
-    .default([]),
-  handle: text("handle").unique(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const creatorProfiles = pgTable(
+  "creator_profiles",
+  {
+    id: text("id").primaryKey(),
+    displayName: text("display_name").notNull(),
+    bio: text("bio"),
+    avatarKey: text("avatar_key"),
+    bannerKey: text("banner_key"),
+    socialLinks: jsonb("social_links")
+      .$type<SocialLink[]>()
+      .notNull()
+      .default([]),
+    handle: text("handle").unique(),
+    status: text("status")
+      .$type<CreatorStatus>()
+      .notNull()
+      .default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("creator_profiles_status_idx").on(table.status),
+  ],
+);
 
 // ── Creator Members ──
 

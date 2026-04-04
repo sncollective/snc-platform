@@ -8,6 +8,7 @@ import styles from "../../routes/admin/playout.module.css";
 export interface ContentPoolTableProps {
   readonly items: ChannelContent[];
   readonly onRemove: (item: ChannelContent) => void;
+  readonly onRetry?: (item: ChannelContent) => void;
 }
 
 // ── Helpers ──
@@ -42,6 +43,7 @@ function relativeTime(isoString: string | null): string {
 export function ContentPoolTable({
   items,
   onRemove,
+  onRetry,
 }: ContentPoolTableProps): React.ReactElement {
   if (items.length === 0) {
     return <p className={styles.emptyMessage}>No content in pool.</p>;
@@ -76,6 +78,18 @@ export function ContentPoolTable({
             </td>
             <td className={styles.poolTableCell}>{item.playCount}</td>
             <td className={styles.poolTableCell}>
+              {item.sourceType === "playout" &&
+                item.processingStatus === "failed" &&
+                onRetry !== undefined && (
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    onClick={() => onRetry(item)}
+                    aria-label={`Retry ingest for ${item.title}`}
+                  >
+                    Retry
+                  </button>
+                )}
               <button
                 type="button"
                 className={styles.deleteButton}

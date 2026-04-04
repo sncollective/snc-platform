@@ -30,6 +30,7 @@ const VALID_CREATOR_PROFILE = {
   bannerUrl: null,
   socialLinks: [],
   contentCount: 5,
+  status: "active" as const,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 };

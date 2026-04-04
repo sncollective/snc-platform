@@ -30,7 +30,7 @@ const MANAGE_ITEMS: readonly ContextNavItem[] = [
   { to: "/projects", label: "Projects", creatorPermission: "manageScheduling" },
   { to: "/streaming", label: "Streaming" },
   { to: "/settings", label: "Settings", creatorPermission: "editProfile" },
-  { to: "/members", label: "Members", creatorPermission: "manageMembers" },
+  { to: "/members", label: "Members" },
 ];
 
 // ── Route ──

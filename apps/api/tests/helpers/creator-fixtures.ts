@@ -10,6 +10,7 @@ type DbCreatorProfileRow = {
   avatarKey: string | null;
   bannerKey: string | null;
   socialLinks: SocialLink[];
+  status: "active" | "inactive" | "archived";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -33,6 +34,7 @@ export const makeMockDbCreatorProfile = (
   avatarKey: null,
   bannerKey: null,
   socialLinks: [],
+  status: "active" as const,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   ...overrides,

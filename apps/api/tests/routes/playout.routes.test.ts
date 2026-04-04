@@ -12,6 +12,7 @@ const mockDeletePlayoutItem = vi.fn();
 const mockGetPlayoutStatus = vi.fn();
 const mockQueuePlayoutItem = vi.fn();
 const mockSkipCurrentTrack = vi.fn();
+const mockRetryPlayoutIngest = vi.fn();
 
 // ── Fixtures ──
 
@@ -54,6 +55,7 @@ const ctx = setupRouteTest({
       getPlayoutStatus: mockGetPlayoutStatus,
       queuePlayoutItem: mockQueuePlayoutItem,
       skipCurrentTrack: mockSkipCurrentTrack,
+      retryPlayoutIngest: mockRetryPlayoutIngest,
     }));
   },
   mountRoute: async (app) => {
@@ -69,6 +71,7 @@ const ctx = setupRouteTest({
     mockGetPlayoutStatus.mockResolvedValue(makePlayoutStatus());
     mockQueuePlayoutItem.mockResolvedValue({ ok: true, value: undefined });
     mockSkipCurrentTrack.mockResolvedValue({ ok: true, value: undefined });
+    mockRetryPlayoutIngest.mockResolvedValue({ ok: true, value: undefined });
   },
 });
 
@@ -419,6 +422,79 @@ describe("playout routes", () => {
       ctx.auth.roles = [];
 
       const res = await ctx.app.request("/api/playout/queue/item-1", { method: "POST" });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("POST /api/playout/items/:id/retry", () => {
+    it("returns ok when retry succeeds", async () => {
+      const res = await ctx.app.request("/api/playout/items/item-1/retry", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(mockRetryPlayoutIngest).toHaveBeenCalledWith("item-1");
+    });
+
+    it("returns 404 when item not found", async () => {
+      const { AppError } = await import("@snc/shared");
+      mockRetryPlayoutIngest.mockResolvedValue({
+        ok: false,
+        error: new AppError("NOT_FOUND", "Playout item not found", 404),
+      });
+
+      const res = await ctx.app.request("/api/playout/items/nonexistent/retry", {
+        method: "POST",
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 409 when item is not in failed state", async () => {
+      const { AppError } = await import("@snc/shared");
+      mockRetryPlayoutIngest.mockResolvedValue({
+        ok: false,
+        error: new AppError("INVALID_STATE", "Cannot retry item in state: ready", 409),
+      });
+
+      const res = await ctx.app.request("/api/playout/items/item-1/retry", {
+        method: "POST",
+      });
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.error.code).toBe("INVALID_STATE");
+    });
+
+    it("returns 422 when item has no source file", async () => {
+      const { AppError } = await import("@snc/shared");
+      mockRetryPlayoutIngest.mockResolvedValue({
+        ok: false,
+        error: new AppError("NO_SOURCE", "Item has no source file", 422),
+      });
+
+      const res = await ctx.app.request("/api/playout/items/item-1/retry", {
+        method: "POST",
+      });
+      expect(res.status).toBe(422);
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      ctx.auth.session = null;
+
+      const res = await ctx.app.request("/api/playout/items/item-1/retry", {
+        method: "POST",
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 when not admin", async () => {
+      ctx.auth.roles = [];
+
+      const res = await ctx.app.request("/api/playout/items/item-1/retry", {
+        method: "POST",
+      });
       expect(res.status).toBe(403);
     });
   });

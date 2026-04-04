@@ -111,6 +111,8 @@ describe("ProcessingJobStatusSchema", () => {
 });
 
 describe("ProbeResultSchema", () => {
+  const nullTags = { title: null, year: null, director: null };
+
   it("validates a complete probe result", () => {
     const result = ProbeResultSchema.parse({
       videoCodec: "h264",
@@ -121,6 +123,7 @@ describe("ProbeResultSchema", () => {
       duration: 123.456,
       bitrate: 4000000,
       dataStreamCount: 0,
+      tags: nullTags,
     });
     expect(result.videoCodec).toBe("h264");
     expect(result.audioCodec).toBe("aac");
@@ -142,6 +145,7 @@ describe("ProbeResultSchema", () => {
       duration: 90.0,
       bitrate: 4000000,
       dataStreamCount: 0,
+      tags: nullTags,
     });
     expect(result.subtitleCodec).toBe("subrip");
   });
@@ -156,6 +160,7 @@ describe("ProbeResultSchema", () => {
       duration: 240.0,
       bitrate: 128000,
       dataStreamCount: 0,
+      tags: nullTags,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.audioCodec).toBe("mp3");
@@ -173,6 +178,7 @@ describe("ProbeResultSchema", () => {
       duration: null,
       bitrate: null,
       dataStreamCount: 0,
+      tags: nullTags,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.duration).toBeNull();
@@ -188,8 +194,26 @@ describe("ProbeResultSchema", () => {
       duration: 2.4,
       bitrate: 111863903,
       dataStreamCount: 1,
+      tags: nullTags,
     });
     expect(result.dataStreamCount).toBe(1);
+  });
+
+  it("validates probe tags with extracted values", () => {
+    const result = ProbeResultSchema.parse({
+      videoCodec: "h264",
+      audioCodec: "aac",
+      subtitleCodec: null,
+      width: 1920,
+      height: 1080,
+      duration: 90.0,
+      bitrate: 4000000,
+      dataStreamCount: 0,
+      tags: { title: "Test Film", year: 2021, director: "Jane Doe" },
+    });
+    expect(result.tags.title).toBe("Test Film");
+    expect(result.tags.year).toBe(2021);
+    expect(result.tags.director).toBe("Jane Doe");
   });
 
   it("rejects when required fields are missing", () => {
@@ -206,6 +230,7 @@ describe("ProbeResultSchema", () => {
         height: 1080,
         duration: 10,
         bitrate: 1000,
+        tags: nullTags,
       }),
     ).toThrow();
   });

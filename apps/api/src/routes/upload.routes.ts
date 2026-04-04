@@ -45,7 +45,15 @@ import { UploadIdParam, UploadPartParams } from "./route-params.js";
 
 // ── Private Constants ──
 
-const PRESIGN_EXPIRY_SECONDS = 3600; // 1 hour
+const PRESIGN_EXPIRY_SECONDS: Record<UploadPurpose, number> = {
+  "content-media": 3600,     // 1 hour — large files, multipart
+  "content-thumbnail": 300,  // 5 min — small image
+  "creator-avatar": 300,     // 5 min — small image
+  "creator-banner": 300,     // 5 min — small image
+  "playout-media": 3600,     // 1 hour — large files, multipart
+};
+
+const MULTIPART_PRESIGN_EXPIRY_SECONDS = 3600; // 1 hour — multipart parts always get full window
 
 const PURPOSE_CATEGORY: Record<UploadPurpose, string> = {
   "content-media": "media",
@@ -314,7 +322,7 @@ uploadRoutes.post(
     const result = await storage.getPresignedUploadUrl(
       key,
       body.contentType,
-      PRESIGN_EXPIRY_SECONDS,
+      PRESIGN_EXPIRY_SECONDS[body.purpose],
       body.size,
     );
 
@@ -399,7 +407,7 @@ uploadRoutes.get(
       uploadId,
       key,
       partNumber,
-      PRESIGN_EXPIRY_SECONDS,
+      MULTIPART_PRESIGN_EXPIRY_SECONDS,
     );
 
     if (!result.ok) throw result.error;

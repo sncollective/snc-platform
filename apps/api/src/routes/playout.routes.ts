@@ -20,6 +20,7 @@ import {
   getPlayoutStatus,
   queuePlayoutItem,
   skipCurrentTrack,
+  retryPlayoutIngest,
 } from "../services/playout.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 
@@ -136,6 +137,30 @@ playoutRoutes.delete(
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };
     const result = await deletePlayoutItem(id);
+    if (!result.ok) throw result.error;
+    return c.json({ ok: true });
+  },
+);
+
+// POST /items/:id/retry — re-enqueue ingest for a failed playout item
+playoutRoutes.post(
+  "/items/:id/retry",
+  describeRoute({
+    description: "Reset a failed playout item to pending and re-enqueue the ingest job.",
+    tags: ["playout"],
+    responses: {
+      200: { description: "Retry enqueued" },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+      409: { description: "Item is not in failed state" },
+      422: { description: "Item has no source file" },
+    },
+  }),
+  validator("param", PlayoutIdParam),
+  async (c) => {
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const result = await retryPlayoutIngest(id);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },

@@ -262,6 +262,10 @@ streamingRoutes.post(
       const a = Buffer.from(playoutKey, "utf-8");
       const b = Buffer.from(rawKey, "utf-8");
       if (a.length === b.length && timingSafeEqual(a, b)) {
+        rootLogger.info(
+          { event: "stream_key_accepted", ip: body.ip, stream: body.stream, source: "playout" },
+          "Playout stream key accepted",
+        );
         return c.json({ code: 0 }, 200);
       }
     }
@@ -295,6 +299,11 @@ streamingRoutes.post(
       );
       return c.json({ code: 1 }, 403);
     }
+
+    rootLogger.info(
+      { event: "stream_key_accepted", ip: body.ip, stream: body.stream, source: "creator", creatorId: lookup.creatorId, keyId: lookup.keyId },
+      "Creator stream key accepted",
+    );
 
     // Open session
     const session = await openSession({

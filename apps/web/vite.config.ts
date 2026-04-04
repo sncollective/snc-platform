@@ -150,10 +150,5 @@ export default defineConfig({
   },
   nitro: {
     preset: "node-server",
-    routeRules: {
-      "/api/**": {
-        proxy: { to: "http://localhost:3000/api/**" },
-      },
-    },
   },
 });

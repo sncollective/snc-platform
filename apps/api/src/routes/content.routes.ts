@@ -42,7 +42,7 @@ import { IdParam, ContentByCreatorParams } from "./route-params.js";
 
 // ── Private Types ──
 
-type FeedRow = ContentRow & { creatorName: string | null; creatorHandle: string | null };
+type FeedRow = ContentRow & { creatorName: string | null; creatorHandle: string | null; creatorStatus: string | null };
 
 // ── Private Constants ──
 
@@ -72,6 +72,7 @@ const CONTENT_FEED_COLUMNS = {
   bitrate: content.bitrate,
   creatorName: creatorProfiles.displayName,
   creatorHandle: creatorProfiles.handle,
+  creatorStatus: creatorProfiles.status,
 } as const;
 
 // ── Private Helpers ──
@@ -138,6 +139,9 @@ contentRoutes.get(
         isNotNull(content.mediaKey),
       )!,
     );
+
+    // Only show content from active creators
+    conditions.push(eq(creatorProfiles.status, "active"));
 
     // Decode cursor for keyset pagination
     if (cursor) {
@@ -341,7 +345,7 @@ contentRoutes.get(
     const user = c.get("user");
     const roles = c.get("roles") as string[];
 
-    // Resolve creator by handle or ID
+    // Resolve creator by handle or ID (active only for public routes)
     const creatorRows = await db
       .select({
         id: creatorProfiles.id,
@@ -350,9 +354,12 @@ contentRoutes.get(
       })
       .from(creatorProfiles)
       .where(
-        or(
-          eq(creatorProfiles.id, creatorIdentifier),
-          eq(creatorProfiles.handle, creatorIdentifier),
+        and(
+          or(
+            eq(creatorProfiles.id, creatorIdentifier),
+            eq(creatorProfiles.handle, creatorIdentifier),
+          ),
+          eq(creatorProfiles.status, "active"),
         ),
       );
     const creator = creatorRows[0];
@@ -421,6 +428,10 @@ contentRoutes.get(
     const row = joined[0];
 
     if (!row) {
+      throw new NotFoundError("Content not found");
+    }
+
+    if (row.creatorStatus !== "active") {
       throw new NotFoundError("Content not found");
     }
 

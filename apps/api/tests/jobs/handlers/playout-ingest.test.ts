@@ -5,6 +5,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const makeItemRow = (overrides: Record<string, unknown> = {}) => ({
   id: "item-1",
   title: "Test Film",
+  year: null,
+  director: null,
   s3KeyPrefix: "playout/item-1",
   sourceKey: "playout/item-1/source.mp4",
   sourceWidth: null,
@@ -14,7 +16,7 @@ const makeItemRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
+const baseProbeResult = {
   videoCodec: "h264",
   audioCodec: "aac",
   subtitleCodec: null,
@@ -23,6 +25,11 @@ const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
   duration: 90.0,
   bitrate: 5000000,
   dataStreamCount: 0,
+  tags: { title: null, year: null, director: null },
+};
+
+const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
+  ...baseProbeResult,
   ...overrides,
 });
 
@@ -55,6 +62,20 @@ const buildUpdateSetWhereChain = () => ({
     where: vi.fn().mockResolvedValue(undefined),
   }),
 });
+
+/**
+ * Configure mockDbUpdate to return a fresh chain per call and return all chains
+ * so tests can inspect individual set() arguments.
+ */
+const captureUpdateChains = (): Array<ReturnType<typeof buildUpdateSetWhereChain>> => {
+  const chains: Array<ReturnType<typeof buildUpdateSetWhereChain>> = [];
+  mockDbUpdate.mockImplementation(() => {
+    const chain = buildUpdateSetWhereChain();
+    chains.push(chain);
+    return chain;
+  });
+  return chains;
+};
 
 // ── Setup Factory ──
 
@@ -238,5 +259,94 @@ describe("handlePlayoutIngest", () => {
 
     expect(mockCleanupTemp).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source.mp4");
     expect(mockCleanupTemp).toHaveBeenCalledWith("/tmp/snc-media/uuid-playout-source-remuxed.mp4");
+  });
+});
+
+// ── auto-fill metadata from probe tags ──
+
+describe("auto-fill metadata from probe tags", () => {
+  it("populates year and director from tags when item fields are null", async () => {
+    const { handlePlayoutIngest } = await setupModule();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereChain([makeItemRow({ year: null, director: null })]),
+    );
+    const chains = captureUpdateChains();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: {
+        ...baseProbeResult,
+        tags: { title: "Tag Title", year: 1954, director: "Federico Fellini" },
+      },
+    });
+
+    await handlePlayoutIngest([makeJob() as never]);
+
+    // chains[1] is the metadata update (processing=0, metadata=1, ready=2)
+    const setArg = chains[1]!.set.mock.calls[0]![0] as Record<string, unknown>;
+    expect(setArg).toMatchObject({ year: 1954, director: "Federico Fellini" });
+    // title is never auto-filled
+    expect(setArg["title"]).toBeUndefined();
+  });
+
+  it("does NOT overwrite admin-entered year", async () => {
+    const { handlePlayoutIngest } = await setupModule();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereChain([makeItemRow({ year: 2020, director: null })]),
+    );
+    const chains = captureUpdateChains();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: {
+        ...baseProbeResult,
+        tags: { title: null, year: 1999, director: null },
+      },
+    });
+
+    await handlePlayoutIngest([makeJob() as never]);
+
+    const setArg = chains[1]!.set.mock.calls[0]![0] as Record<string, unknown>;
+    expect(setArg["year"]).toBeUndefined();
+  });
+
+  it("does NOT overwrite admin-entered director", async () => {
+    const { handlePlayoutIngest } = await setupModule();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereChain([makeItemRow({ year: null, director: "Admin Director" })]),
+    );
+    const chains = captureUpdateChains();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: {
+        ...baseProbeResult,
+        tags: { title: null, year: null, director: "Tag Director" },
+      },
+    });
+
+    await handlePlayoutIngest([makeJob() as never]);
+
+    const setArg = chains[1]!.set.mock.calls[0]![0] as Record<string, unknown>;
+    expect(setArg["director"]).toBeUndefined();
+  });
+
+  it("does nothing when probe returns null tags", async () => {
+    const { handlePlayoutIngest } = await setupModule();
+    mockDbSelect.mockReturnValue(
+      buildSelectWhereChain([makeItemRow({ year: null, director: null })]),
+    );
+    const chains = captureUpdateChains();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: {
+        ...baseProbeResult,
+        tags: { title: null, year: null, director: null },
+      },
+    });
+
+    await handlePlayoutIngest([makeJob() as never]);
+
+    // DB update still fires for sourceWidth/sourceHeight/duration, but no year/director keys
+    const setArg = chains[1]!.set.mock.calls[0]![0] as Record<string, unknown>;
+    expect(setArg["year"]).toBeUndefined();
+    expect(setArg["director"]).toBeUndefined();
   });
 });

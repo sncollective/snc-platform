@@ -1,4 +1,4 @@
-import { eq, or, and, isNull, isNotNull, count } from "drizzle-orm";
+import { eq, or, and, isNull, isNotNull, count, type SQL } from "drizzle-orm";
 
 import { db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -16,16 +16,21 @@ export type CreatorProfileRow = typeof creatorProfiles.$inferSelect;
 /** Find a creator profile by UUID or handle, returning undefined when not found. */
 export const findCreatorProfile = async (
   identifier: string,
+  opts?: { activeOnly?: boolean },
 ): Promise<CreatorProfileRow | undefined> => {
+  const conditions: SQL[] = [
+    or(
+      eq(creatorProfiles.id, identifier),
+      eq(creatorProfiles.handle, identifier),
+    ) as SQL,
+  ];
+  if (opts?.activeOnly) {
+    conditions.push(eq(creatorProfiles.status, "active"));
+  }
   const rows = await db
     .select()
     .from(creatorProfiles)
-    .where(
-      or(
-        eq(creatorProfiles.id, identifier),
-        eq(creatorProfiles.handle, identifier),
-      ),
-    );
+    .where(and(...conditions));
   return rows[0];
 };
 
@@ -59,6 +64,7 @@ export const toProfileResponse = (
     bannerUrl: urls.bannerUrl,
     socialLinks: profile.socialLinks ?? [],
     contentCount,
+    status: profile.status,
     createdAt: toISO(profile.createdAt),
     updatedAt: toISO(profile.updatedAt),
   };

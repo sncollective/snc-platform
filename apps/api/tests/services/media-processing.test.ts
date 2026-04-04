@@ -40,6 +40,24 @@ const emitError = (proc: MockProcess, error: Error) => {
 
 const mockSpawn = vi.fn();
 
+/**
+ * Configure mockSpawn so the next probeMedia() call receives the given JSON output
+ * and exits with code 0. Events are emitted after a microtask tick so the
+ * handler registration completes before data arrives.
+ */
+const mockSpawnOutput = (output: string) => {
+  mockSpawn.mockImplementationOnce(() => {
+    const proc = createMockProcess();
+    // Schedule emission after the spawn caller registers its handlers
+    Promise.resolve().then(() => {
+      proc.stdout.emit("data", Buffer.from(output));
+      proc.stderr.emit("data", Buffer.from(""));
+      emitClose(proc, 0);
+    });
+    return proc;
+  });
+};
+
 // ── Setup Factory ──
 
 const setupService = async () => {
@@ -347,6 +365,79 @@ describe("extractThumbnail", () => {
     if (!result.ok) {
       expect(result.error.code).toBe("FFMPEG_ERROR");
     }
+  });
+});
+
+// ── probeMedia — format.tags extraction ──
+
+describe("probeMedia — format.tags extraction", () => {
+  const makeProbeOutput = (tags: Record<string, string>) =>
+    JSON.stringify({
+      format: { duration: "5400.0", bit_rate: "8000000", tags },
+      streams: [
+        { codec_type: "video", codec_name: "h264", width: 1920, height: 1080 },
+        { codec_type: "audio", codec_name: "aac" },
+      ],
+    });
+
+  it("extracts TITLE tag", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ TITLE: "The Good Film" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.title).toBe("The Good Film");
+  });
+
+  it("extracts lowercase title tag", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ title: "lowercase title" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.title).toBe("lowercase title");
+  });
+
+  it("parses DATE tag to year integer", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ DATE: "2019-06-21" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.year).toBe(2019);
+  });
+
+  it("parses plain YEAR tag", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ YEAR: "2021" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.year).toBe(2021);
+  });
+
+  it("falls back to ARTIST when DIRECTOR absent", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ ARTIST: "Jane Doe" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.director).toBe("Jane Doe");
+  });
+
+  it("returns null tags when format.tags absent", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({}));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.tags.title).toBeNull();
+      expect(result.value.tags.year).toBeNull();
+      expect(result.value.tags.director).toBeNull();
+    }
+  });
+
+  it("rejects year out of valid range", async () => {
+    const { probeMedia } = await setupService();
+    mockSpawnOutput(makeProbeOutput({ YEAR: "0000" }));
+    const result = await probeMedia("/fake/path.mkv");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.tags.year).toBeNull();
   });
 });
 

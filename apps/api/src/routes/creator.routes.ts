@@ -1,29 +1,23 @@
-import { randomUUID } from "node:crypto";
-
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, type SQL } from "drizzle-orm";
 
 import {
   CreatorProfileResponseSchema,
   CreatorListQuerySchema,
   CreatorListResponseSchema,
   UpdateCreatorProfileSchema,
-  CreateCreatorSchema,
   NotFoundError,
   ValidationError,
-  AppError,
 } from "@snc/shared";
 import type {
   CreatorListQuery,
   UpdateCreatorProfile,
-  CreateCreator,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
-import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
-import { requireRole } from "../middleware/require-role.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
@@ -67,22 +61,21 @@ creatorRoutes.get(
   async (c) => {
     const { limit, cursor } = c.req.valid("query" as never) as CreatorListQuery;
 
-    // Build optional cursor condition for keyset pagination
-    let whereCondition:
-      | ReturnType<typeof or>
-      | ReturnType<typeof and>
-      | undefined;
+    // Active-only filter + optional cursor condition for keyset pagination
+    const conditions: SQL[] = [eq(creatorProfiles.status, "active")];
 
     if (cursor) {
       const decoded = decodeCursor(cursor, {
         timestampField: "createdAt",
         idField: "id",
       });
-      whereCondition = buildCursorCondition(
-        creatorProfiles.createdAt,
-        creatorProfiles.id,
-        decoded,
-        "desc",
+      conditions.push(
+        buildCursorCondition(
+          creatorProfiles.createdAt,
+          creatorProfiles.id,
+          decoded,
+          "desc",
+        ),
       );
     }
 
@@ -90,7 +83,7 @@ creatorRoutes.get(
     const rows = await db
       .select()
       .from(creatorProfiles)
-      .where(whereCondition)
+      .where(and(...conditions))
       .orderBy(desc(creatorProfiles.createdAt), desc(creatorProfiles.id))
       .limit(limit + 1);
 
@@ -153,79 +146,6 @@ creatorRoutes.get(
   },
 );
 
-// POST / — Create new creator entity
-creatorRoutes.post(
-  "/",
-  requireAuth,
-  requireRole("stakeholder", "admin"),
-  describeRoute({
-    description: "Create a new creator entity (requires stakeholder or admin role)",
-    tags: ["creators"],
-    responses: {
-      201: {
-        description: "Creator entity created",
-        content: {
-          "application/json": {
-            schema: resolver(CreatorProfileResponseSchema),
-          },
-        },
-      },
-      400: ERROR_400,
-      401: ERROR_401,
-      403: ERROR_403,
-    },
-  }),
-  validator("json", CreateCreatorSchema),
-  async (c) => {
-    const body = c.req.valid("json") as CreateCreator;
-    const user = c.get("user");
-
-    // Check handle uniqueness if provided
-    if (body.handle) {
-      const existing = await db
-        .select({ id: creatorProfiles.id })
-        .from(creatorProfiles)
-        .where(eq(creatorProfiles.handle, body.handle));
-      if (existing.length > 0) {
-        throw new ValidationError(`Handle '${body.handle}' is already taken`);
-      }
-    }
-
-    const id = randomUUID();
-    const now = new Date();
-
-    const [inserted] = await db
-      .insert(creatorProfiles)
-      .values({
-        id,
-        displayName: body.displayName,
-        handle: body.handle ?? await generateUniqueSlug(body.displayName, {
-          table: creatorProfiles,
-          slugColumn: creatorProfiles.handle,
-          maxLength: 30,
-          fallbackPrefix: "creator",
-        }),
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    if (!inserted) {
-      throw new AppError("INSERT_FAILED", "Failed to create creator profile", 500);
-    }
-
-    // Seed owner member row
-    await db.insert(creatorMembers).values({
-      creatorId: id,
-      userId: user.id,
-      role: "owner",
-      createdAt: now,
-    });
-
-    return c.json(toProfileResponse(inserted, 0), 201);
-  },
-);
-
 // GET /:creatorId — Get creator profile
 creatorRoutes.get(
   "/:creatorId",
@@ -248,7 +168,7 @@ creatorRoutes.get(
   validator("param", CreatorIdParam),
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
-    const profile = await findCreatorProfile(creatorId);
+    const profile = await findCreatorProfile(creatorId, { activeOnly: true });
 
     if (!profile) {
       throw new NotFoundError("Creator not found");

@@ -49,12 +49,11 @@ classics.on_metadata(synchronous=false, fun(m) -> begin
   classics_uri := if u == "" then m["filename"] else u end
   classics_title := m["title"]
   # Webhook: notify API of track start
-  ignore(process.run("curl", [
-    "-s", "-X", "POST",
-    "http://#{api_host}:#{api_port}/api/playout/channels/#{classics_id}/track-event?secret=#{callback_secret}",
-    "-H", "Content-Type: application/json",
-    "-d", '{"uri":"#{classics_uri()}","title":"#{classics_title()}"}'
-  ]))
+  ignore(http.post(
+    headers=[("Content-Type", "application/json")],
+    data='{"uri":"#{classics_uri()}","title":"#{classics_title()}"}',
+    "http://#{api_host}:#{api_port}/api/playout/channels/#{classics_id}/track-event?secret=#{callback_secret}"
+  ))
 end)
 
 output.url(url="rtmp://#{srs_host}:1935/live/#{classics_stream}?key=#{playout_key}", enc, classics)

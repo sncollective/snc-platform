@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-import { AppError, ok, err } from "@snc/shared";
+import { AppError, ok, err, MIN_FILM_YEAR, MAX_FILM_YEAR } from "@snc/shared";
 import type { Result, ProbeResult, Rendition } from "@snc/shared";
 import { RENDITION_PROFILES, VIDEO_RENDITIONS } from "@snc/shared";
 
@@ -71,6 +71,39 @@ export type RenditionTranscodeOptions = {
 // ── Public API ──
 
 /**
+ * Extract normalised metadata from ffprobe format.tags.
+ *
+ * Handles case variants (TITLE/title, DATE/date/YEAR/year, DIRECTOR/director/ARTIST/artist)
+ * and parses DATE strings to a four-digit year integer.
+ */
+const extractProbeTags = (
+  raw: Record<string, string> | undefined,
+): { title: string | null; year: number | null; director: string | null } => {
+  if (!raw) return { title: null, year: null, director: null };
+
+  const get = (...keys: string[]): string | null => {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v && v.trim()) return v.trim();
+    }
+    return null;
+  };
+
+  const title = get("TITLE", "title");
+
+  const rawYear = get("DATE", "date", "YEAR", "year");
+  let year: number | null = null;
+  if (rawYear) {
+    const parsed = parseInt(rawYear.slice(0, 4), 10);
+    if (!isNaN(parsed) && parsed >= MIN_FILM_YEAR && parsed <= MAX_FILM_YEAR) year = parsed;
+  }
+
+  const director = get("DIRECTOR", "director", "ARTIST", "artist");
+
+  return { title, year, director };
+};
+
+/**
  * Probe a media file with ffprobe. Returns codec, resolution, duration, and bitrate.
  *
  * Spawns `ffprobe -v quiet -print_format json -show_format -show_streams` and
@@ -112,7 +145,11 @@ export const probeMedia = async (
     });
 
     const data = JSON.parse(stdout) as {
-      format?: { duration?: string; bit_rate?: string };
+      format?: {
+        duration?: string;
+        bit_rate?: string;
+        tags?: Record<string, string>;
+      };
       streams?: Array<{
         codec_type?: string;
         codec_name?: string;
@@ -138,6 +175,7 @@ export const probeMedia = async (
       duration: data.format?.duration ? parseFloat(data.format.duration) : null,
       bitrate: data.format?.bit_rate ? parseInt(data.format.bit_rate, 10) : null,
       dataStreamCount,
+      tags: extractProbeTags(data.format?.tags),
     });
   } catch (e) {
     return err(wrapFfmpegError(e));

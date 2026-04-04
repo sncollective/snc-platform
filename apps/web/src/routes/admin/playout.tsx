@@ -23,6 +23,7 @@ import {
   removeQueueItem,
   skipChannelTrack,
 } from "../../lib/playout-channels.js";
+import { retryPlayoutIngest } from "../../lib/playout.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
@@ -223,6 +224,21 @@ function PlayoutPage(): React.ReactElement {
     }
   };
 
+  const handleRetryPoolItem = async (item: ChannelContent): Promise<void> => {
+    if (!item.playoutItemId) return;
+    setActionError(null);
+    try {
+      await retryPlayoutIngest(item.playoutItemId);
+      // Refresh the pool to reflect the new processingStatus
+      if (selectedChannelId) {
+        const data = await fetchChannelContent(selectedChannelId);
+        setPoolItems(data.items);
+      }
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to retry ingest");
+    }
+  };
+
   // Compute cumulative estimated start times for each upcoming queue entry
   const upcomingWithEstimates = (queueStatus?.upcoming ?? []).map((entry, index, arr) => {
     const cumulativeSecs = arr.slice(0, index).reduce<number | null>((acc, e) => {
@@ -408,6 +424,7 @@ function PlayoutPage(): React.ReactElement {
             <ContentPoolTable
               items={poolItems}
               onRemove={(item) => void handleRemovePoolItem(item)}
+              onRetry={(item) => void handleRetryPoolItem(item)}
             />
           </section>
         </>

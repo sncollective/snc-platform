@@ -11,6 +11,9 @@ import type {
   PlayoutStatus,
 } from "@snc/shared";
 
+import { getBoss } from "../jobs/boss.js";
+import { JOB_QUEUES } from "../jobs/register-workers.js";
+
 import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { channels } from "../db/schema/streaming.schema.js";
@@ -271,4 +274,53 @@ export const skipCurrentTrack = async (): Promise<Result<void, AppError>> => {
     return err(new AppError("NO_PLAYOUT_CHANNEL", "No active playout channel found", 503));
   }
   return orchestrator.skip(channelId);
+};
+
+/**
+ * Reset a failed playout item to pending and re-enqueue the ingest job.
+ * Guards against retrying items not in failed state.
+ *
+ * @throws Never — returns Result
+ */
+export const retryPlayoutIngest = async (
+  id: string,
+): Promise<Result<void, AppError>> => {
+  const [row] = await db
+    .select()
+    .from(playoutItems)
+    .where(eq(playoutItems.id, id));
+
+  if (!row) return err(new NotFoundError("Playout item not found"));
+
+  if (row.processingStatus !== "failed") {
+    return err(
+      new AppError(
+        "INVALID_STATE",
+        `Cannot retry item in state: ${row.processingStatus}`,
+        409,
+      ),
+    );
+  }
+
+  if (!row.sourceKey) {
+    return err(
+      new AppError(
+        "NO_SOURCE",
+        "Item has no source file — upload a file before retrying",
+        422,
+      ),
+    );
+  }
+
+  await db
+    .update(playoutItems)
+    .set({ processingStatus: "pending", updatedAt: new Date() })
+    .where(eq(playoutItems.id, id));
+
+  const boss = getBoss();
+  if (boss) {
+    await boss.send(JOB_QUEUES.PLAYOUT_INGEST, { playoutItemId: id });
+  }
+
+  return ok(undefined);
 };

@@ -583,7 +583,7 @@ describe("content routes", () => {
 
   describe("GET /api/content/:id", () => {
     it("returns 200 with metadata for public content (no auth required)", async () => {
-      mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
+      mockSelectWhere.mockResolvedValue([{ ...makeMockDbContent(), creatorStatus: "active" }]);
 
       const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
 
@@ -600,7 +600,7 @@ describe("content routes", () => {
 
     it("returns creatorName in the response", async () => {
       mockSelectWhere.mockResolvedValue([
-        { ...makeMockDbContent({ creatorId: "user_test123" }), creatorName: "Test Creator", creatorHandle: null },
+        { ...makeMockDbContent({ creatorId: "user_test123" }), creatorName: "Test Creator", creatorHandle: null, creatorStatus: "active" },
       ]);
 
       const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");
@@ -612,10 +612,13 @@ describe("content routes", () => {
 
     it("returns 200 with full metadata for subscribers-only content when authenticated", async () => {
       mockSelectWhere.mockResolvedValue([
-        makeMockDbContent({
-          visibility: "subscribers",
-          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
-        }),
+        {
+          ...makeMockDbContent({
+            visibility: "subscribers",
+            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+          }),
+          creatorStatus: "active",
+        },
       ]);
       ctx.auth.user = makeMockUser();
 
@@ -628,10 +631,13 @@ describe("content routes", () => {
 
     it("returns metadata with mediaUrl null for subscribers-only when unauthenticated", async () => {
       mockSelectWhere.mockResolvedValue([
-        makeMockDbContent({
-          visibility: "subscribers",
-          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
-        }),
+        {
+          ...makeMockDbContent({
+            visibility: "subscribers",
+            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+          }),
+          creatorStatus: "active",
+        },
       ]);
       ctx.auth.user = null;
 
@@ -645,11 +651,14 @@ describe("content routes", () => {
 
     it("returns mediaUrl for subscribers-only content when user has active subscription", async () => {
       mockSelectWhere.mockResolvedValueOnce([
-        makeMockDbContent({
-          visibility: "subscribers",
-          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
-          creatorId: "creator_different",
-        }),
+        {
+          ...makeMockDbContent({
+            visibility: "subscribers",
+            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+            creatorId: "creator_different",
+          }),
+          creatorStatus: "active",
+        },
       ]);
       ctx.auth.user = makeMockUser();
       // buildContentAccessContext subscription query awaits innerJoin().where() directly
@@ -667,11 +676,14 @@ describe("content routes", () => {
 
     it("returns mediaUrl null for subscribers-only content when user has no subscription", async () => {
       mockSelectWhere.mockResolvedValueOnce([
-        makeMockDbContent({
-          visibility: "subscribers",
-          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
-          creatorId: "creator_different",
-        }),
+        {
+          ...makeMockDbContent({
+            visibility: "subscribers",
+            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+            creatorId: "creator_different",
+          }),
+          creatorStatus: "active",
+        },
       ]);
       ctx.auth.user = makeMockUser();
       // mockSubLimit defaults to [] (no subscription)
@@ -686,11 +698,14 @@ describe("content routes", () => {
     it("returns mediaUrl for subscribers-only content when user is the content creator", async () => {
       mockSelectWhere
         .mockResolvedValueOnce([
-          makeMockDbContent({
-            visibility: "subscribers",
-            mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
-            creatorId: "user_test123",
-          }),
+          {
+            ...makeMockDbContent({
+              visibility: "subscribers",
+              mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+              creatorId: "user_test123",
+            }),
+            creatorStatus: "active",
+          },
         ])
         .mockResolvedValueOnce([{ role: "owner" }]); // creatorMembers check in checkContentAccess
       ctx.auth.user = makeMockUser({ id: "user_test123" });
@@ -1521,7 +1536,7 @@ describe("content routes", () => {
 
   describe("GET /api/content/:id (draft access control)", () => {
     it("returns 200 for draft when user is creator team member", async () => {
-      const draft = makeMockDbContent({ publishedAt: null });
+      const draft = { ...makeMockDbContent({ publishedAt: null }), creatorStatus: "active" };
       mockSelectWhere.mockResolvedValue([draft]);
       ctx.auth.user = makeMockUser({ id: "user_test123" });
       mockCheckCreatorPermission.mockResolvedValue(true);
@@ -1555,7 +1570,7 @@ describe("content routes", () => {
     });
 
     it("returns 200 for draft when user has admin role", async () => {
-      const draft = makeMockDbContent({ publishedAt: null });
+      const draft = { ...makeMockDbContent({ publishedAt: null }), creatorStatus: "active" };
       mockSelectWhere.mockResolvedValue([draft]);
       ctx.auth.user = makeMockUser({ id: "admin-user" });
       ctx.auth.roles = ["admin"];
@@ -1567,9 +1582,10 @@ describe("content routes", () => {
 
     it("allows access to published content without draft access check", async () => {
       // Published content should still work for unauthenticated users
-      const published = makeMockDbContent({
-        publishedAt: new Date("2026-01-01T00:00:00.000Z"),
-      });
+      const published = {
+        ...makeMockDbContent({ publishedAt: new Date("2026-01-01T00:00:00.000Z") }),
+        creatorStatus: "active",
+      };
       mockSelectWhere.mockResolvedValue([published]);
 
       const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001");

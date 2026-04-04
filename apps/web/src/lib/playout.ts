@@ -84,3 +84,10 @@ export async function savePlaylist(
     body: data,
   });
 }
+
+/** Re-enqueue the ingest job for a failed playout item. */
+export async function retryPlayoutIngest(id: string): Promise<void> {
+  await apiMutate(`/api/playout/items/${encodeURIComponent(id)}/retry`, {
+    method: "POST",
+  });
+}

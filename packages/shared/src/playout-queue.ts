@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { PLAYOUT_PROCESSING_STATUSES } from "./playout.js";
+
 // ── Queue Status ──
 
 export const QUEUE_STATUSES = ["queued", "playing", "played"] as const;
@@ -13,6 +15,7 @@ export const ChannelContentSchema = z.object({
   playoutItemId: z.string().nullable(),
   contentId: z.string().nullable(),
   sourceType: z.enum(["playout", "content"]),
+  processingStatus: z.enum(PLAYOUT_PROCESSING_STATUSES).nullable(),
   title: z.string(),
   duration: z.number().nullable(),
   lastPlayedAt: z.string().datetime().nullable(),
