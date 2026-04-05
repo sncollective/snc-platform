@@ -1,6 +1,16 @@
 import type React from "react";
 import { Link } from "@tanstack/react-router";
-import type { FeedItem } from "@snc/shared";
+import {
+  BookOpen,
+  CircleDashed,
+  Eye,
+  Globe,
+  Lock,
+  Music,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
+import type { ContentType, FeedItem } from "@snc/shared";
 
 import { TYPE_BADGE_LABELS } from "../../lib/content-constants.js";
 import { formatRelativeDate } from "../../lib/format.js";
@@ -25,6 +35,12 @@ export interface ContentRowProps {
 
 // ── Private Helpers ──
 
+const TYPE_ICONS: Record<ContentType, LucideIcon> = {
+  video: Video,
+  audio: Music,
+  written: BookOpen,
+};
+
 function buildCellRenderers(
   creatorSlug: string,
   deletingId: string | null,
@@ -43,11 +59,15 @@ function buildCellRenderers(
         {item.title}
       </Link>
     ),
-    type: (item) => (
-      <span className={clsx(styles.typeBadge, styles[`typeBadge_${item.type}`])}>
-        {TYPE_BADGE_LABELS[item.type]}
-      </span>
-    ),
+    type: (item) => {
+      const Icon = TYPE_ICONS[item.type];
+      return (
+        <span className={clsx(styles.typeBadge, styles[`typeBadge_${item.type}`])}>
+          <Icon size={12} aria-hidden="true" />
+          {TYPE_BADGE_LABELS[item.type]}
+        </span>
+      );
+    },
     status: (item) => (
       <span
         className={clsx(
@@ -55,6 +75,11 @@ function buildCellRenderers(
           item.publishedAt ? styles.statusPublished : styles.statusDraft,
         )}
       >
+        {item.publishedAt ? (
+          <Eye size={12} aria-hidden="true" />
+        ) : (
+          <CircleDashed size={12} aria-hidden="true" />
+        )}
         {item.publishedAt ? "Published" : "Draft"}
       </span>
     ),
@@ -64,7 +89,19 @@ function buildCellRenderers(
       </time>
     ),
     visibility: (item) => (
-      <span>{item.visibility === "public" ? "Public" : "Subscribers"}</span>
+      <span className={styles.visibility}>
+        {item.visibility === "public" ? (
+          <>
+            <Globe size={14} aria-hidden="true" />
+            Public
+          </>
+        ) : (
+          <>
+            <Lock size={14} aria-hidden="true" />
+            Subscribers
+          </>
+        )}
+      </span>
     ),
     duration: (item) => <span>{formatDuration(item.duration)}</span>,
     processing: (item) => <ProcessingIndicator status={item.processingStatus} />,

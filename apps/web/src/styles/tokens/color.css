@@ -1,0 +1,69 @@
+/* ── Color Tokens ── */
+
+:root {
+  /* Primitives */
+  --color-bg: #1a1a2e;
+  --color-bg-elevated: #252542;
+  --color-bg-input: #2a2a4a;
+  --color-bg-hero-gradient: #1e1e36;
+  --color-text: #f0f0f0;
+  --color-text-muted: #a0a0b0;
+  --color-accent: #f5a623;
+  --color-accent-hover: #e09510;
+  --color-secondary: #5bb5b5;
+  --color-error: #ef5350;
+  --color-border: #3a3a5c;
+  --color-media-bg: #000;
+  --color-text-on-color: #fff;
+
+  /* Semantic surfaces */
+  --color-surface: var(--color-bg-elevated);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.05);
+
+  /* Semantic links */
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  /* Status backgrounds (10% tint) */
+  --color-error-bg: rgba(239, 83, 80, 0.1);
+  --color-success: #4caf50;
+  --color-success-bg: rgba(76, 175, 80, 0.1);
+  --color-accent-bg: rgba(245, 166, 35, 0.1);
+  --color-secondary-bg: rgba(91, 181, 181, 0.1);
+
+  /* Subtle tints (15% — more visible than -bg) */
+  --color-accent-subtle: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  --color-secondary-subtle: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+
+  /* Content type badges */
+  --color-badge-video-bg: rgba(245, 166, 35, 0.85);
+  --color-badge-audio-bg: rgba(91, 181, 181, 0.85);
+  --color-badge-written-bg: rgba(160, 160, 176, 0.6);
+
+  /* Overlay */
+  --overlay-lock: rgba(0, 0, 0, 0.6);
+  --color-overlay-dark: rgba(0, 0, 0, 0.7);
+
+  /* ── Missing tokens (referenced in codebase but never defined) ── */
+
+  /* Used by: chat-panel, follow-button, chat-moderation-panel, set-password-banner, admin-creators */
+  --color-primary: var(--color-accent);
+  --color-primary-text: var(--color-text-on-color);
+  --color-primary-subtle: color-mix(in srgb, var(--color-primary) 15%, transparent);
+
+  /* Used by: playout admin */
+  --color-muted: var(--color-text-muted);
+
+  /* Used by: content-manage, playout, draft-content-list */
+  --color-text-on-accent: var(--color-text-on-color);
+
+  /* Used by: reaction-picker */
+  --color-text-secondary: var(--color-text-muted);
+
+  /* Used by: video-detail, audio-detail, written-detail */
+  --color-bg-alt: var(--color-bg-elevated);
+
+  /* Used by: playout admin, content-editor */
+  --color-warning: hsl(40 90% 55%);
+}

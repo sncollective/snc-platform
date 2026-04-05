@@ -26,7 +26,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-base);
   cursor: pointer;
-  z-index: 5;
+  z-index: var(--z-raised);
 }
 
 .theaterToggle:hover {
@@ -52,14 +52,14 @@
   left: 0;
   right: 340px;
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+  background: linear-gradient(to bottom, var(--color-overlay-dark), transparent);
   display: flex;
   align-items: center;
   gap: var(--space-md);
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-raised);
 }
 
 .theaterOverlay:hover,
@@ -111,7 +111,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   cursor: pointer;
-  z-index: 10;
+  z-index: var(--z-raised);
 }
 
 .chatExpandTab:hover {

@@ -109,7 +109,9 @@
 }
 
 .menuItem {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   color: var(--color-text);
   font-size: var(--font-size-sm);
@@ -123,7 +125,9 @@
 }
 
 .logoutButton {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   background: none;

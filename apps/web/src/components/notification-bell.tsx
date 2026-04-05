@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type React from "react";
 
+import { Bell } from "lucide-react";
+
 import type { InboxNotification, InboxNotificationsResponse, UnreadCountResponse } from "@snc/shared";
 
-import { useChat } from "../contexts/chat-context.js";
+import { useChatOptional } from "../contexts/chat-context.js";
 import { apiGet, apiMutate } from "../lib/fetch-utils.js";
 
 import styles from "./notification-bell.module.css";
@@ -19,7 +21,7 @@ const formatBadgeCount = (count: number): string => {
 
 /** Notification bell icon with unread count badge and dropdown inbox. */
 export function NotificationBell(): React.ReactElement {
-  const { state } = useChat();
+  const chat = useChatOptional();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,8 +43,8 @@ export function NotificationBell(): React.ReactElement {
       });
   }, []);
 
-  // Once WS delivers a live count, clear the local override
-  const wsCount = state.notificationCount;
+  // Once WS delivers a live count (on pages with ChatProvider), prefer it
+  const wsCount = chat?.state.notificationCount ?? 0;
   const displayCount = wsCount > 0 ? wsCount : initialCount;
 
   // Close dropdown on outside click
@@ -117,20 +119,7 @@ export function NotificationBell(): React.ReactElement {
         aria-expanded={isOpen}
         type="button"
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
+        <Bell size={20} aria-hidden="true" />
         {displayCount > 0 && (
           <span className={styles.badge} aria-hidden="true">
             {formatBadgeCount(displayCount)}

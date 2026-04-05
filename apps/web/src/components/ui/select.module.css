@@ -1,0 +1,108 @@
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.control {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-default);
+}
+
+.trigger:hover {
+  border-color: var(--color-accent);
+}
+
+.trigger[data-state="open"] {
+  border-color: var(--color-accent);
+}
+
+.trigger[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.trigger[data-placeholder-shown] {
+  color: var(--color-text-muted);
+}
+
+.valueText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.positioner {
+  z-index: var(--z-dropdown);
+}
+
+.content {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xs);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.content[data-state="open"] {
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.item[data-highlighted] {
+  background: var(--color-surface-hover);
+  outline: none;
+}
+
+.item[data-state="checked"] {
+  color: var(--color-accent);
+}
+
+.item[data-disabled] {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.itemIndicator {
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+}
+
+.groupLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

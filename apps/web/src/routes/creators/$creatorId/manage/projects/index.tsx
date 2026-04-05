@@ -1,6 +1,7 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
+import { FolderPlus } from "lucide-react";
 import type { Project } from "@snc/shared";
 
 import {
@@ -11,6 +12,7 @@ import {
 import { ManageProjectForm } from "../../../../../components/project/manage-project-form.js";
 import { ManageProjectItem } from "../../../../../components/project/manage-project-item.js";
 import sectionStyles from "../../../../../styles/detail-section.module.css";
+import listingStyles from "../../../../../styles/listing-page.module.css";
 import styles from "./projects-manage.module.css";
 
 // ── Route ──
@@ -139,7 +141,10 @@ function ManageProjectsPage(): React.ReactElement {
         {isLoading ? (
           <p className={styles.status}>Loading projects...</p>
         ) : projects.length === 0 ? (
-          <p className={styles.status}>No projects yet. Create one to get started.</p>
+          <div className={listingStyles.empty}>
+            <FolderPlus size={32} aria-hidden="true" />
+            <p>No projects yet. Create one to get started.</p>
+          </div>
         ) : (
           <div className={styles.projectList}>
             {projects.map((project) => (

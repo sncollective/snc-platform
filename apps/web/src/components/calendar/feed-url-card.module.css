@@ -24,7 +24,7 @@
 
 .error {
   padding: var(--space-sm) var(--space-md);
-  background: rgba(239, 83, 80, 0.1);
+  background: var(--color-error-bg);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
   color: var(--color-error);
@@ -60,7 +60,7 @@
 }
 
 .copyButton:hover {
-  background: rgba(245, 166, 35, 0.1);
+  background: var(--color-accent-bg);
 }
 
 .noToken {

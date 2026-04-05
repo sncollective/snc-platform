@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
+import { Users } from "lucide-react";
 import type { CreatorListItem, CreatorListResponse, CreatorProfileResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
@@ -144,7 +145,10 @@ function CreatorsPage(): React.ReactElement {
       {isLoading && items.length === 0 ? (
         <p className={listingStyles.status}>Loading...</p>
       ) : items.length === 0 ? (
-        <p className={listingStyles.status}>No creators found.</p>
+        <div className={listingStyles.empty}>
+          <Users size={32} aria-hidden="true" />
+          <p>No creators found.</p>
+        </div>
       ) : (
         <>
           <div className={viewMode === "grid" ? "content-grid" : styles.listLayout}>

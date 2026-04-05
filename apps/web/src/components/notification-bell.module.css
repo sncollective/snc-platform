@@ -135,7 +135,7 @@
 }
 
 .notificationItem.unread:hover {
-  background: rgba(245, 166, 35, 0.15);
+  background: var(--color-accent-subtle);
 }
 
 .notificationTitle {

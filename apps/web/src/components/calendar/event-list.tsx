@@ -1,4 +1,5 @@
 import type React from "react";
+import { Calendar } from "lucide-react";
 import type { CalendarEvent } from "@snc/shared";
 
 import { formatLocalDate } from "../../lib/format.js";
@@ -25,7 +26,12 @@ export function EventList({
   onToggleComplete,
 }: EventListProps): React.ReactElement {
   if (events.length === 0) {
-    return <p className={styles.empty}>No events found.</p>;
+    return (
+      <div className={styles.empty}>
+        <Calendar size={32} aria-hidden="true" />
+        <p>No events found.</p>
+      </div>
+    );
   }
 
   const grouped = groupEventsByDate(events);

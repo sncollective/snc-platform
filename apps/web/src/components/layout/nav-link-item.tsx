@@ -56,10 +56,12 @@ export function NavLinkItem({
           rel="noopener noreferrer"
           onClick={onClick}
         >
+          {link.icon && <link.icon size={16} aria-hidden="true" />}
           {link.label}
         </a>
       ) : (
         <Link to={link.to} className={className} onClick={onClick}>
+          {link.icon && <link.icon size={16} aria-hidden="true" />}
           {link.label}
         </Link>
       )}

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import type React from "react";
+import { FolderPlus } from "lucide-react";
 import type { Project, CreatorListItem } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
@@ -145,7 +146,10 @@ function ProjectsPage(): React.ReactElement {
       {isLoading ? (
         <p className={listingStyles.status}>Loading projects...</p>
       ) : projects.length === 0 ? (
-        <p className={listingStyles.status}>No projects yet. Create one to get started.</p>
+        <div className={listingStyles.empty}>
+          <FolderPlus size={32} aria-hidden="true" />
+          <p>No projects yet. Create one to get started.</p>
+        </div>
       ) : (
         <div className={styles.projectList}>
           {projects.map((project) => (

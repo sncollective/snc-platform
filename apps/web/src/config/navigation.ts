@@ -1,5 +1,8 @@
 import type { FeatureFlag, Role } from "@snc/shared";
 
+import { Rss, Users, Radio, Mic, ShoppingBag, Leaf } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 import { isFeatureEnabled } from "../lib/config.js";
 
 // ── Public Types ──
@@ -7,6 +10,7 @@ import { isFeatureEnabled } from "../lib/config.js";
 export interface NavLink {
   readonly to: string;
   readonly label: string;
+  readonly icon?: LucideIcon;
   readonly feature?: FeatureFlag;
   readonly disabled?: boolean;
   readonly external?: boolean;
@@ -16,13 +20,13 @@ export interface NavLink {
 // ── Private Constants ──
 
 const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
-  { to: "/feed", label: "Feed" },
-  { to: "/creators", label: "Creators" },
-  { to: "/live", label: "Live" },
-  { to: "/studio", label: "Studio", feature: "booking" },
-  { to: "/merch", label: "Merch", feature: "merch" },
-  { to: "/emissions", label: "Emissions", feature: "emissions" },
-] as const;
+  { to: "/feed", label: "Feed", icon: Rss },
+  { to: "/creators", label: "Creators", icon: Users },
+  { to: "/live", label: "Live", icon: Radio },
+  { to: "/studio", label: "Studio", feature: "booking", icon: Mic },
+  { to: "/merch", label: "Merch", feature: "merch", icon: ShoppingBag },
+  { to: "/emissions", label: "Emissions", feature: "emissions", icon: Leaf },
+];
 
 // ── Public API ──
 

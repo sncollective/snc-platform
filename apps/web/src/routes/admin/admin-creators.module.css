@@ -151,6 +151,9 @@
 /* ── Action Buttons ── */
 
 .actionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -234,9 +237,21 @@
 /* ── Empty State ── */
 
 .emptyState {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
   padding: var(--space-xl) 0;
+  text-align: center;
   color: var(--color-text-muted);
+}
+
+.emptyState svg {
+  opacity: 0.5;
+}
+
+.emptyState p {
+  margin: 0;
 }
 
 /* ── Responsive ── */

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { Link } from "@tanstack/react-router";
+import { LogOut, Menu } from "lucide-react";
 import type { Role } from "@snc/shared";
 
 import { NAV_LINKS } from "../../config/navigation.js";
@@ -84,10 +85,12 @@ function AuthenticatedNav({ currentPath, effectiveRoles, onClose, onLogout }: Au
             rel="noopener noreferrer"
             onClick={onClose}
           >
+            <item.icon size={16} aria-hidden="true" />
             {item.label}
           </a>
         ) : (
           <MobileNavLink key={item.key} to={item.to} currentPath={currentPath} onClick={onClose}>
+            <item.icon size={16} aria-hidden="true" />
             {item.label}
           </MobileNavLink>
         )
@@ -98,6 +101,7 @@ function AuthenticatedNav({ currentPath, effectiveRoles, onClose, onLogout }: Au
         onClick={onLogout}
         type="button"
       >
+        <LogOut size={16} aria-hidden="true" />
         Log out
       </button>
     </div>
@@ -156,9 +160,7 @@ export function MobileMenu({ currentPath, serverAuth }: MobileMenuProps) {
         aria-label={isOpen ? "Close menu" : "Open menu"}
         type="button"
       >
-        <span className={styles.hamburgerLine} />
-        <span className={styles.hamburgerLine} />
-        <span className={styles.hamburgerLine} />
+        <Menu size={24} aria-hidden="true" />
       </button>
 
       {isOpen && (

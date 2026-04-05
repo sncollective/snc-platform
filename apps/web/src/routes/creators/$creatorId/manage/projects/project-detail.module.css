@@ -80,7 +80,7 @@
   color: var(--color-error);
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-md);
-  background: rgba(239, 83, 80, 0.1);
+  background: var(--color-error-bg);
   border-radius: var(--radius-sm);
 }
 

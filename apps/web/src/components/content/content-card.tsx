@@ -3,6 +3,7 @@ import type React from "react";
 import type { FeedItem } from "@snc/shared";
 
 import { clsx } from "clsx/lite";
+import { Lock } from "lucide-react";
 
 import { OptionalImage } from "../ui/optional-image.js";
 import { RelativeTime } from "../ui/relative-time.js";
@@ -47,16 +48,7 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
           </span>
           {item.visibility === "subscribers" && !item.mediaUrl && !item.body && (
             <span className={styles.lockOverlay} aria-label="Subscribers only">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M11 7V5a3 3 0 0 0-6 0v2H4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1ZM7 5a1 1 0 1 1 2 0v2H7V5Z" />
-              </svg>
+              <Lock size={16} aria-hidden="true" />
             </span>
           )}
         </div>
@@ -67,9 +59,7 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
           </span>
           {item.visibility === "subscribers" && !item.mediaUrl && !item.body && (
             <span className={styles.lockInline} aria-label="Subscribers only">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M11 7V5a3 3 0 0 0-6 0v2H4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1ZM7 5a1 1 0 1 1 2 0v2H7V5Z" />
-              </svg>
+              <Lock size={14} aria-hidden="true" />
             </span>
           )}
         </div>

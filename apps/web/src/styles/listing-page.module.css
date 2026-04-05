@@ -13,6 +13,27 @@
   padding: var(--space-2xl) 0;
 }
 
+/* ── Empty State (icon + message) ── */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}
+
+.empty svg {
+  opacity: 0.5;
+}
+
+.empty p {
+  margin: 0;
+}
+
 /* ── Load More ── */
 
 .loadMoreWrapper {

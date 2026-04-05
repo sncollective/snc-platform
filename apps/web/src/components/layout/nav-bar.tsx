@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { NAV_LINKS } from "../../config/navigation.js";
+import { NotificationBell } from "../notification-bell.js";
 import { UserMenu } from "./user-menu.js";
 import { MobileMenu } from "./mobile-menu.js";
 import { NavLinkItem } from "./nav-link-item.js";
@@ -21,6 +22,10 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const effectiveRoles = session.isPending
     ? serverAuth?.roles ?? []
     : roles;
+
+  const user = session.isPending
+    ? serverAuth?.user ?? null
+    : session.data?.user ?? null;
 
   return (
     <header className={styles.header}>
@@ -44,6 +49,7 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
         </ul>
 
         <div className={styles.right}>
+          {user && <NotificationBell />}
           <UserMenu {...(serverAuth !== undefined ? { serverAuth } : {})} />
           <MobileMenu currentPath={currentPath} {...(serverAuth !== undefined ? { serverAuth } : {})} />
         </div>

@@ -471,3 +471,8 @@ export function useChat(): ChatContextValue {
   if (!ctx) throw new Error("useChat must be used within ChatProvider");
   return ctx;
 }
+
+/** Access chat state and actions if available. Returns null when used outside ChatProvider. */
+export function useChatOptional(): ChatContextValue | null {
+  return useContext(ChatContext);
+}

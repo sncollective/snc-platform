@@ -24,6 +24,7 @@ import { GlobalPlayer } from "../components/media/global-player.js";
 import { MiniUploadIndicator } from "../components/upload/mini-upload-indicator.js";
 import { DEMO_MODE } from "../lib/config.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
+import { ToastProvider } from "../components/ui/toast.js";
 import globalCss from "../styles/global.css?url";
 import styles from "./__root.module.css";
 
@@ -86,6 +87,7 @@ export function RootLayout() {
           <AppShell serverAuth={authState} />
         </UploadProvider>
       </GlobalPlayerProvider>
+      <ToastProvider />
     </div>
   );
 }

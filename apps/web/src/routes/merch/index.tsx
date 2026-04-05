@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
+import { Package } from "lucide-react";
 import * as z from "zod/mini";
 import type { MerchProduct } from "@snc/shared";
 
@@ -71,7 +72,10 @@ function MerchPage(): React.ReactElement {
       ) : error !== null && items.length === 0 ? (
         <p className={listingStyles.status}>Merch coming soon.</p>
       ) : items.length === 0 ? (
-        <p className={listingStyles.status}>No products found.</p>
+        <div className={listingStyles.empty}>
+          <Package size={32} aria-hidden="true" />
+          <p>No products found.</p>
+        </div>
       ) : (
         <>
           <div className="content-grid">

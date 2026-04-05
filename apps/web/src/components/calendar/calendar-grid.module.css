@@ -78,7 +78,7 @@
   font-size: var(--font-size-xs);
   padding: 1px 4px;
   border-radius: 2px;
-  background: rgba(245, 166, 35, 0.15);
+  background: var(--color-accent-subtle);
   color: var(--color-accent);
   border: none;
   cursor: pointer;
@@ -96,7 +96,7 @@
 
 .spanBar {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-base);
   font-family: var(--font-ui);
   font-size: var(--font-size-xs);
   padding: 1px 6px;

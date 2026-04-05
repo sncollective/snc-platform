@@ -2,6 +2,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
+import { FileText } from "lucide-react";
 
 import type {
   ContentType,
@@ -137,7 +138,10 @@ function CreatorDetailPage(): React.ReactElement {
         {isLoading && items.length === 0 ? (
           <p className={listingStyles.status}>Loading...</p>
         ) : items.length === 0 ? (
-          <p className={listingStyles.status}>No content yet.</p>
+          <div className={listingStyles.empty}>
+            <FileText size={32} aria-hidden="true" />
+            <p>No content yet.</p>
+          </div>
         ) : (
           <>
             <div className="content-grid">

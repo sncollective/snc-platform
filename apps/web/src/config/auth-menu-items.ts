@@ -1,4 +1,5 @@
 import type { Role } from "@snc/shared";
+import { CreditCard, FolderOpen, type LucideIcon, Settings, Shield, Users } from "lucide-react";
 
 import { isFeatureEnabled } from "../lib/config.js";
 import { hasRole } from "../lib/auth.js";
@@ -9,6 +10,7 @@ export interface AuthMenuItem {
   readonly key: string;
   readonly to: string;
   readonly label: string;
+  readonly icon: LucideIcon;
   readonly external?: boolean;
 }
 
@@ -23,21 +25,21 @@ export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly Auth
   const items: AuthMenuItem[] = [];
 
   if (hasRole(effectiveRoles, "admin")) {
-    items.push({ key: "admin", to: "/admin", label: "Admin" });
+    items.push({ key: "admin", to: "/admin", label: "Admin", icon: Shield });
   }
 
   if (hasRole(effectiveRoles, "stakeholder")) {
-    items.push({ key: "governance", to: "/governance", label: "Co-op" });
+    items.push({ key: "governance", to: "/governance", label: "Co-op", icon: Users });
   }
 
   if (hasRole(effectiveRoles, "stakeholder") || hasRole(effectiveRoles, "admin")) {
-    items.push({ key: "files", to: "https://files.s-nc.org", label: "Files", external: true });
+    items.push({ key: "files", to: "https://files.s-nc.org", label: "Files", icon: FolderOpen, external: true });
   }
 
-  items.push({ key: "settings", to: "/settings", label: "Settings" });
+  items.push({ key: "settings", to: "/settings", label: "Settings", icon: Settings });
 
   if (isFeatureEnabled("subscription")) {
-    items.push({ key: "subscriptions", to: "/settings/subscriptions", label: "Subscriptions" });
+    items.push({ key: "subscriptions", to: "/settings/subscriptions", label: "Subscriptions", icon: CreditCard });
   }
 
   return items;

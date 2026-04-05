@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
+import { Users } from "lucide-react";
 import type { AdminUser, Role } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
@@ -92,7 +93,10 @@ function AdminPage(): React.ReactElement {
           </div>
 
           {users.length === 0 && !isLoading && (
-            <p className={listingStyles.status}>No users found</p>
+            <div className={listingStyles.empty}>
+              <Users size={32} aria-hidden="true" />
+              <p>No users found</p>
+            </div>
           )}
 
           {nextCursor !== null && (

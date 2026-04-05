@@ -161,3 +161,47 @@ interface User {
   createdAt: Date;
 }
 ```
+
+---
+
+## 5. Design Token Compliance
+
+When writing or editing CSS, use design tokens from `styles/tokens/` for all visual values. Never hardcode colors, spacing, shadows, z-index, transition durations, or border radii.
+
+**Rules:**
+
+- Colors: `var(--color-*)` — never hex, rgb, rgba, or hsl literals
+- Spacing: `var(--space-*)` — never raw rem/px for margins, padding, or gaps
+- Shadows: `var(--shadow-*)` — never inline `box-shadow` values
+- Z-index: `var(--z-*)` — never bare numbers
+- Transitions: `var(--duration-*)` and `var(--ease-*)` — never hardcoded `0.15s` or `ease-in-out`
+- Border radius: `var(--radius-*)` — never raw `4px`, `8px`, `12px`
+- Font sizes: `var(--font-size-*)` — never raw rem values
+- Font weights: `var(--font-weight-*)` — never bare `400`, `500`, `700`
+
+When editing an existing CSS file that contains hardcoded values, replace them with tokens while you're there (boy scout rule).
+
+**Good:**
+
+```css
+.toast {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-md);
+  z-index: var(--z-toast);
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+```
+
+**Bad:**
+
+```css
+.toast {
+  background: #252542;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  z-index: 500;
+  transition: opacity 0.2s ease-out;
+}

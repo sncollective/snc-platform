@@ -1,4 +1,5 @@
 import type React from "react";
+import { Users } from "lucide-react";
 import type { CreatorListResponse } from "@snc/shared";
 
 import { CreatorCard } from "../creator/creator-card.js";
@@ -19,9 +20,10 @@ export function FeaturedCreators({
     <section className={sectionStyles.section}>
       <h2 className={sectionStyles.heading}>Featured Creators</h2>
       {creators.length === 0 ? (
-        <p className={sectionStyles.loading}>
-          No creators yet — be the first!
-        </p>
+        <div className={sectionStyles.empty}>
+          <Users size={32} aria-hidden="true" />
+          <p>No creators yet — be the first!</p>
+        </div>
       ) : (
         <div
           className={styles.scrollContainer}

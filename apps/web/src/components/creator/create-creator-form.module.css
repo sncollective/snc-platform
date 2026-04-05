@@ -4,7 +4,7 @@
 
 .helperText {
   display: block;
-  margin-top: var(--space-1, 0.25rem);
+  margin-top: var(--space-xs);
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-muted, #666);
 }

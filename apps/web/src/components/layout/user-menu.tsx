@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 
 import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
@@ -105,6 +106,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
                 rel="noopener noreferrer"
                 onClick={handleClose}
               >
+                <item.icon size={16} aria-hidden="true" />
                 {item.label}
               </a>
             ) : (
@@ -114,6 +116,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
                 className={styles.menuItem}
                 onClick={handleClose}
               >
+                <item.icon size={16} aria-hidden="true" />
                 {item.label}
               </Link>
             )
@@ -126,6 +129,7 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
             onClick={handleLogout}
             type="button"
           >
+            <LogOut size={16} aria-hidden="true" />
             Log out
           </button>
         </div>

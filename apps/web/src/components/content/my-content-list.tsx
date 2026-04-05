@@ -1,4 +1,5 @@
 import type React from "react";
+import { FileText } from "lucide-react";
 import type { FeedItem } from "@snc/shared";
 
 import { ContentCard } from "./content-card.js";
@@ -43,7 +44,12 @@ export function MyContentList({
   }
 
   if (items.length === 0) {
-    return <p className={listingStyles.status}>No content yet. Create your first piece above.</p>;
+    return (
+      <div className={listingStyles.empty}>
+        <FileText size={32} aria-hidden="true" />
+        <p>No content yet. Create your first piece above.</p>
+      </div>
+    );
   }
 
   return (

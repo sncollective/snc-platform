@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useCallback } from "react";
 import type React from "react";
+import { Archive, Check, Pause, RotateCcw, Users } from "lucide-react";
 
 import {
   useReactTable,
@@ -80,6 +81,7 @@ function StatusActions({ creator, onStatusChange }: StatusActionsProps): React.R
           disabled={busy}
           onClick={() => { void handle("active"); }}
         >
+          <Check size={14} aria-hidden="true" />
           Activate
         </button>
       )}
@@ -90,6 +92,7 @@ function StatusActions({ creator, onStatusChange }: StatusActionsProps): React.R
             disabled={busy}
             onClick={() => { void handle("inactive"); }}
           >
+            <Pause size={14} aria-hidden="true" />
             Deactivate
           </button>
           <button
@@ -97,6 +100,7 @@ function StatusActions({ creator, onStatusChange }: StatusActionsProps): React.R
             disabled={busy}
             onClick={() => { void handle("archived"); }}
           >
+            <Archive size={14} aria-hidden="true" />
             Archive
           </button>
         </>
@@ -107,6 +111,7 @@ function StatusActions({ creator, onStatusChange }: StatusActionsProps): React.R
           disabled={busy}
           onClick={() => { void handle("active"); }}
         >
+          <RotateCcw size={14} aria-hidden="true" />
           Restore
         </button>
       )}
@@ -407,7 +412,10 @@ function AdminCreatorsPage(): React.ReactElement {
 
       {/* Creator table */}
       {table.getRowModel().rows.length === 0 ? (
-        <p className={styles.emptyState}>No creators found.</p>
+        <div className={styles.emptyState}>
+          <Users size={32} aria-hidden="true" />
+          <p>No creators found.</p>
+        </div>
       ) : (
         <table className={styles.table}>
           <thead>

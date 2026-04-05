@@ -1,0 +1,46 @@
+.root {
+  width: 100%;
+}
+
+.content {
+  overflow: hidden;
+}
+
+.content[data-state="open"] {
+  animation: expandDown var(--duration-normal) var(--ease-out);
+}
+
+.content[data-state="closed"] {
+  animation: collapseUp var(--duration-fast) var(--ease-in);
+}
+
+.indicator {
+  display: inline-flex;
+  transition: transform var(--duration-fast) var(--ease-default);
+}
+
+.indicator[data-state="open"] {
+  transform: rotate(90deg);
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    height: 0;
+  }
+  to {
+    opacity: 1;
+    height: var(--height);
+  }
+}
+
+@keyframes collapseUp {
+  from {
+    opacity: 1;
+    height: var(--height);
+  }
+  to {
+    opacity: 0;
+    height: 0;
+  }
+}

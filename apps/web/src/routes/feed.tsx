@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
+import { Inbox } from "lucide-react";
 import type { ContentType, FeedItem, FeedResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
@@ -60,7 +61,10 @@ function FeedPage(): React.ReactElement {
       {isLoading && items.length === 0 ? (
         <p className={listingStyles.status}>Loading...</p>
       ) : items.length === 0 ? (
-        <p className={listingStyles.status}>No content found.</p>
+        <div className={listingStyles.empty}>
+          <Inbox size={32} aria-hidden="true" />
+          <p>No content found.</p>
+        </div>
       ) : (
         <>
           <div className="content-grid">
