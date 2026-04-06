@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ReactionPicker } from "../../../../src/components/chat/reaction-picker.js";
@@ -40,22 +40,18 @@ describe("ReactionPicker", () => {
     expect(screen.getByRole("dialog", { name: "Reaction picker" })).toBeInTheDocument();
   });
 
-  it("clicking outside closes picker — panel removed", async () => {
+  it("pressing Escape closes picker — trigger no longer expanded", async () => {
     const user = userEvent.setup();
-    render(
-      <div>
-        <div data-testid="outside">Outside</div>
-        <ReactionPicker {...defaultProps} />
-      </div>,
-    );
+    render(<ReactionPicker {...defaultProps} />);
 
     // Open the picker
     await user.click(screen.getByLabelText("Add reaction"));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    const trigger = screen.getByLabelText("Add reaction");
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
 
-    // Click outside
-    await user.click(screen.getByTestId("outside"));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    // Ark Popover closes on Escape key
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
   });
 
   it("clicking an emoji calls onReact and closes picker", async () => {
@@ -63,11 +59,13 @@ describe("ReactionPicker", () => {
     const onReact = vi.fn();
     render(<ReactionPicker {...defaultProps} onReact={onReact} />);
 
-    await user.click(screen.getByLabelText("Add reaction"));
+    const trigger = screen.getByLabelText("Add reaction");
+    await user.click(trigger);
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
     await user.click(screen.getByLabelText("👍"));
 
     expect(onReact).toHaveBeenCalledWith("👍");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
   });
 
   it("already-reacted emoji shown as active in picker — calls onUnreact", async () => {
@@ -90,10 +88,11 @@ describe("ReactionPicker", () => {
     const thumbsUpBtn = screen.getByLabelText("👍");
     expect(thumbsUpBtn).toHaveAttribute("aria-pressed", "true");
 
+    const trigger = screen.getByLabelText("Add reaction");
     await user.click(thumbsUpBtn);
 
     expect(onUnreact).toHaveBeenCalledWith("👍");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
   });
 
   it("renders all 6 supported emojis in picker", async () => {

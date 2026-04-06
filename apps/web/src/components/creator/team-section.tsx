@@ -9,6 +9,17 @@ import type {
 import { CREATOR_MEMBER_ROLES, CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
 
 import {
+  createListCollection,
+  SelectRoot,
+  SelectControl,
+  SelectTrigger,
+  SelectValueText,
+  SelectContent,
+  SelectItem,
+  SelectItemText,
+} from "../ui/select.js";
+
+import {
   fetchCreatorMembers,
   addCreatorMember,
   updateCreatorMember,
@@ -41,6 +52,10 @@ const ROLE_BADGE_CLASS: Record<CreatorMemberRole, string> = {
 };
 
 const DEBOUNCE_MS = 300;
+
+const ROLE_COLLECTION = createListCollection({
+  items: CREATOR_MEMBER_ROLES.map((r) => ({ value: r, label: r })),
+});
 
 // ── Public API ──
 
@@ -256,20 +271,24 @@ export function TeamSection({
                   x
                 </button>
               </div>
-              <select
-                value={addRole}
-                onChange={(e) =>
-                  setAddRole(e.target.value as CreatorMemberRole)
-                }
-                className={formStyles.select}
-                aria-label="Role for new member"
+              <SelectRoot
+                collection={ROLE_COLLECTION}
+                value={[addRole]}
+                onValueChange={(details) => { setAddRole(details.value[0] as CreatorMemberRole); }}
               >
-                {CREATOR_MEMBER_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+                <SelectControl>
+                  <SelectTrigger aria-label="Role for new member">
+                    <SelectValueText placeholder="Select role" />
+                  </SelectTrigger>
+                </SelectControl>
+                <SelectContent>
+                  {ROLE_COLLECTION.items.map((item) => (
+                    <SelectItem key={item.value} item={item}>
+                      <SelectItemText>{item.label}</SelectItemText>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </SelectRoot>
               <button
                 type="button"
                 className={styles.addButton}
@@ -345,18 +364,24 @@ export function TeamSection({
                   className={formStyles.input}
                   aria-label="Invite email"
                 />
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as CreatorMemberRole)}
-                  className={formStyles.select}
-                  aria-label="Invite role"
+                <SelectRoot
+                  collection={ROLE_COLLECTION}
+                  value={[inviteRole]}
+                  onValueChange={(details) => { setInviteRole(details.value[0] as CreatorMemberRole); }}
                 >
-                  {CREATOR_MEMBER_ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  <SelectControl>
+                    <SelectTrigger aria-label="Invite role">
+                      <SelectValueText placeholder="Select role" />
+                    </SelectTrigger>
+                  </SelectControl>
+                  <SelectContent>
+                    {ROLE_COLLECTION.items.map((item) => (
+                      <SelectItem key={item.value} item={item}>
+                        <SelectItemText>{item.label}</SelectItemText>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </SelectRoot>
                 <button type="submit" disabled={isInviting}>
                   {isInviting ? "Sending..." : "Send Invite"}
                 </button>
@@ -393,24 +418,30 @@ export function TeamSection({
                       {member.displayName}
                     </span>
                     {canManageMembers ? (
-                      <select
-                        value={member.role}
-                        onChange={(e) =>
+                      <SelectRoot
+                        collection={ROLE_COLLECTION}
+                        value={[member.role]}
+                        onValueChange={(details) => {
                           void handleChangeRole(
                             member.userId,
-                            e.target.value as CreatorMemberRole,
-                          )
-                        }
-                        className={formStyles.select}
+                            details.value[0] as CreatorMemberRole,
+                          );
+                        }}
                         disabled={isSoleOwner}
-                        aria-label={`Role for ${member.displayName}`}
                       >
-                        {CREATOR_MEMBER_ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectControl>
+                          <SelectTrigger aria-label={`Role for ${member.displayName}`}>
+                            <SelectValueText placeholder="Select role" />
+                          </SelectTrigger>
+                        </SelectControl>
+                        <SelectContent>
+                          {ROLE_COLLECTION.items.map((item) => (
+                            <SelectItem key={item.value} item={item}>
+                              <SelectItemText>{item.label}</SelectItemText>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </SelectRoot>
                     ) : (
                       <span
                         className={clsx(styles.roleBadge, ROLE_BADGE_CLASS[member.role])}

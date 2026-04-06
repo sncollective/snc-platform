@@ -19,6 +19,7 @@ import { NavBar } from "../components/layout/nav-bar.js";
 import { Footer } from "../components/layout/footer.js";
 import { DemoBanner } from "../components/layout/demo-banner.js";
 import { GlobalPlayerProvider, useGlobalPlayer } from "../contexts/global-player-context.js";
+import { NotificationProvider } from "../contexts/notification-context.js";
 import { UploadProvider } from "../contexts/upload-context.js";
 import { GlobalPlayer } from "../components/media/global-player.js";
 import { MiniUploadIndicator } from "../components/upload/mini-upload-indicator.js";
@@ -82,11 +83,13 @@ export function RootLayout() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <GlobalPlayerProvider>
-        <UploadProvider>
-          <AppShell serverAuth={authState} />
-        </UploadProvider>
-      </GlobalPlayerProvider>
+      <NotificationProvider userId={authState?.user?.id ?? null}>
+        <GlobalPlayerProvider>
+          <UploadProvider>
+            <AppShell serverAuth={authState} />
+          </UploadProvider>
+        </GlobalPlayerProvider>
+      </NotificationProvider>
       <ToastProvider />
     </div>
   );

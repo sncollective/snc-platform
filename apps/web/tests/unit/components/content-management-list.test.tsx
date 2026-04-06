@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
@@ -180,6 +181,7 @@ describe("ContentManagementList", () => {
   });
 
   it("calls deleteContent on kebab delete action after confirmation", async () => {
+    const user = userEvent.setup();
     vi.stubGlobal("confirm", () => true);
     mockDeleteContent.mockResolvedValue(undefined);
 
@@ -191,11 +193,10 @@ describe("ContentManagementList", () => {
 
     render(<ContentManagementList {...DEFAULT_PROPS} />);
 
-    const kebabButton = screen.getByRole("button", { name: "More actions" });
-    fireEvent.click(kebabButton);
+    await user.click(screen.getByRole("button", { name: "More actions" }));
 
-    const deleteButton = screen.getByRole("button", { name: "Delete" });
-    fireEvent.click(deleteButton);
+    const deleteButton = await screen.findByRole("menuitem", { name: "Delete" });
+    await user.click(deleteButton);
 
     await waitFor(() => {
       expect(mockDeleteContent).toHaveBeenCalledWith("content-to-delete");
@@ -204,7 +205,8 @@ describe("ContentManagementList", () => {
     vi.unstubAllGlobals();
   });
 
-  it("does not call deleteContent when confirm is cancelled", () => {
+  it("does not call deleteContent when confirm is cancelled", async () => {
+    const user = userEvent.setup();
     vi.stubGlobal("confirm", () => false);
 
     mockUseCursorPagination
@@ -215,11 +217,10 @@ describe("ContentManagementList", () => {
 
     render(<ContentManagementList {...DEFAULT_PROPS} />);
 
-    const kebabButton = screen.getByRole("button", { name: "More actions" });
-    fireEvent.click(kebabButton);
+    await user.click(screen.getByRole("button", { name: "More actions" }));
 
-    const deleteButton = screen.getByRole("button", { name: "Delete" });
-    fireEvent.click(deleteButton);
+    const deleteButton = await screen.findByRole("menuitem", { name: "Delete" });
+    await user.click(deleteButton);
 
     expect(mockDeleteContent).not.toHaveBeenCalled();
 

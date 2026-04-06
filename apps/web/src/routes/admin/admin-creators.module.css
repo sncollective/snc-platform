@@ -186,31 +186,7 @@
   align-items: center;
 }
 
-/* ── Invite Dialog (extracted from inline styles) ── */
-
-.dialogOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.dialog {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  min-width: 360px;
-  max-width: 480px;
-  width: 100%;
-}
-
-.dialogTitle {
-  margin: 0 0 var(--space-md);
-}
+/* ── Invite Dialog ── */
 
 .dialogField {
   display: block;

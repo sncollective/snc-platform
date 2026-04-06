@@ -24,7 +24,6 @@ export interface ChatState {
   readonly isConnected: boolean;
   readonly viewerCount: number;
   readonly users: readonly PresenceUser[];
-  readonly notificationCount: number;
   readonly slowModeSeconds: number;
   readonly isTimedOut: boolean;
   readonly timedOutUntil: string | null;
@@ -64,7 +63,6 @@ export const INITIAL_STATE: ChatState = {
   isConnected: false,
   viewerCount: 0,
   users: [],
-  notificationCount: 0,
   slowModeSeconds: 0,
   isTimedOut: false,
   timedOutUntil: null,
@@ -87,7 +85,6 @@ type ChatAction =
   | { readonly type: "SET_PRESENCE"; readonly viewerCount: number; readonly users: readonly PresenceUser[] }
   | { readonly type: "USER_JOINED"; readonly user: PresenceUser }
   | { readonly type: "USER_LEFT"; readonly userId: string }
-  | { readonly type: "SET_NOTIFICATION_COUNT"; readonly count: number }
   | { readonly type: "SET_SLOW_MODE"; readonly seconds: number }
   | { readonly type: "SET_TIMED_OUT"; readonly until: string | null }
   | { readonly type: "SET_BANNED"; readonly banned: boolean }
@@ -157,8 +154,6 @@ export function chatReducer(
         ...state,
         users: state.users.filter((u) => u.userId !== action.userId),
       };
-    case "SET_NOTIFICATION_COUNT":
-      return { ...state, notificationCount: action.count };
     case "SET_SLOW_MODE":
       return { ...state, slowModeSeconds: action.seconds };
     case "SET_TIMED_OUT":
@@ -286,7 +281,7 @@ export function ChatProvider({
             dispatch({ type: "USER_LEFT", userId: data.userId });
             break;
           case "notification_count":
-            dispatch({ type: "SET_NOTIFICATION_COUNT", count: data.count });
+            // Handled by NotificationProvider at app root — ignore here
             break;
           case "slow_mode_changed":
             dispatch({ type: "SET_SLOW_MODE", seconds: data.seconds });

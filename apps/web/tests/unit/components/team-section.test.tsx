@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import {
   makeMockCreatorMember,
@@ -276,6 +277,7 @@ describe("TeamSection", () => {
   });
 
   it("changes member role", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     const updatedMembers = [
       OWNER_MEMBER,
       makeMockCreatorMember({
@@ -294,11 +296,11 @@ describe("TeamSection", () => {
       expect(screen.getByLabelText("Role for Editor User")).toBeInTheDocument();
     });
 
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText("Role for Editor User"), {
-        target: { value: "viewer" },
-      });
-    });
+    // Open the Ark Select dropdown for Editor User's role
+    await user.click(screen.getByLabelText("Role for Editor User"));
+
+    // Click the "viewer" option in the dropdown
+    await user.click(screen.getByRole("option", { name: "viewer" }));
 
     await waitFor(() => {
       expect(mockUpdateCreatorMember).toHaveBeenCalledWith(

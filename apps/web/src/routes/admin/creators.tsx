@@ -1,6 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useCallback } from "react";
 import type React from "react";
+
+import {
+  DialogRoot,
+  DialogBackdrop,
+  DialogContent,
+  DialogTitle,
+} from "../../components/ui/dialog.js";
 import { Archive, Check, Pause, RotateCcw, Users } from "lucide-react";
 
 import {
@@ -127,13 +134,11 @@ interface InviteCreatorDialogProps {
   readonly onSuccess: () => void;
 }
 
-function InviteCreatorDialog({ open, onClose, onSuccess }: InviteCreatorDialogProps): React.ReactElement | null {
+function InviteCreatorDialog({ open, onClose, onSuccess }: InviteCreatorDialogProps): React.ReactElement {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -159,17 +164,10 @@ function InviteCreatorDialog({ open, onClose, onSuccess }: InviteCreatorDialogPr
   };
 
   return (
-    <div
-      className={styles.dialogOverlay}
-      onClick={onClose}
-    >
-      <div
-        className={styles.dialog}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label="Invite Creator"
-      >
-        <h3 className={styles.dialogTitle}>Invite Creator</h3>
+    <DialogRoot open={open} onOpenChange={(details) => { if (!details.open) onClose(); }} lazyMount unmountOnExit>
+      <DialogBackdrop />
+      <DialogContent>
+        <DialogTitle>Invite Creator</DialogTitle>
         <form onSubmit={(e) => { void handleSubmit(e); }}>
           {error && (
             <p className={errorStyles.error} role="alert">
@@ -205,8 +203,8 @@ function InviteCreatorDialog({ open, onClose, onSuccess }: InviteCreatorDialogPr
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </DialogRoot>
   );
 }
 

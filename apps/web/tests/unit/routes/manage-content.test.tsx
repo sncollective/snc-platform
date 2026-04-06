@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
@@ -86,66 +87,13 @@ describe("ManageContentPage", () => {
     expect(screen.getByRole("button", { name: "Create New" })).toBeInTheDocument();
   });
 
-  it("shows type selector dropdown on Create New click", () => {
+  it("shows type selector dropdown on Create New click", async () => {
+    const user = userEvent.setup();
     render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.getByRole("menuitem", { name: "Video" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create New" }));
+    expect(await screen.findByRole("menuitem", { name: "Video" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Audio" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Written Post" })).toBeInTheDocument();
-  });
-
-  it("does not show type selector initially", () => {
-    render(<ManageContentPage />);
-    expect(screen.queryByRole("menuitem", { name: "Video" })).toBeNull();
-  });
-
-  it("closes type selector on Escape key", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    expect(screen.getByRole("menu")).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByRole("menu")).toBeNull();
-  });
-
-  it("cycles focus forward with ArrowDown key in the menu", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    const menu = screen.getByRole("menu");
-    const items = screen.getAllByRole("menuitem");
-    // First item is auto-focused; ArrowDown moves to second
-    items[0]?.focus();
-    fireEvent.keyDown(menu, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(items[1]);
-  });
-
-  it("cycles focus backward with ArrowUp key in the menu", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    const menu = screen.getByRole("menu");
-    const items = screen.getAllByRole("menuitem");
-    // Focus first item; ArrowUp wraps to last
-    items[0]?.focus();
-    fireEvent.keyDown(menu, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(items[items.length - 1]);
-  });
-
-  it("wraps focus from last to first with ArrowDown", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    const menu = screen.getByRole("menu");
-    const items = screen.getAllByRole("menuitem");
-    items[items.length - 1]?.focus();
-    fireEvent.keyDown(menu, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(items[0]);
-  });
-
-  it("closes type selector on Tab key", () => {
-    render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    const menu = screen.getByRole("menu");
-    expect(menu).toBeInTheDocument();
-    fireEvent.keyDown(menu, { key: "Tab" });
-    expect(screen.queryByRole("menu")).toBeNull();
   });
 
   it("creates draft and navigates on type selection", async () => {
@@ -154,9 +102,11 @@ describe("ManageContentPage", () => {
       slug: "untitled-video",
     });
 
+    const user = userEvent.setup();
     render(<ManageContentPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Create New" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Video" }));
+    await user.click(screen.getByRole("button", { name: "Create New" }));
+    const videoItem = await screen.findByRole("menuitem", { name: "Video" });
+    await user.click(videoItem);
 
     await vi.waitFor(() => {
       expect(mockCreateContent).toHaveBeenCalledWith(

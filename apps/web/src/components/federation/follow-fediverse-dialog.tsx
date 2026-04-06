@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 
+import {
+  DialogRoot,
+  DialogBackdrop,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "../ui/dialog.js";
 import { FediverseAddress } from "./fediverse-address.js";
 import styles from "./follow-fediverse-dialog.module.css";
 
@@ -22,27 +29,7 @@ export function FollowFediverseDialog({
   open,
   onClose,
 }: FollowFediverseDialogProps): React.ReactElement {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [instance, setInstance] = useState("");
-
-  // Sync open state with native <dialog> API
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  // Close on backdrop click
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>): void => {
-    if (e.target === dialogRef.current) {
-      onClose();
-    }
-  };
 
   const handleFollow = (): void => {
     let cleaned = instance.trim();
@@ -57,18 +44,14 @@ export function FollowFediverseDialog({
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
-      onClose={onClose}
-      onClick={handleBackdropClick}
-    >
-      <div className={styles.content}>
-        <h2 className={styles.heading}>Follow on the Fediverse</h2>
+    <DialogRoot open={open} onOpenChange={(details) => { if (!details.open) onClose(); }} lazyMount unmountOnExit>
+      <DialogBackdrop />
+      <DialogContent>
+        <DialogTitle>Follow on the Fediverse</DialogTitle>
 
-        <p className={styles.description}>
+        <DialogDescription>
           Share this address or paste it into any Fediverse app (Mastodon, Pixelfed, etc.):
-        </p>
+        </DialogDescription>
 
         <FediverseAddress handle={handle} domain={domain} size="md" />
 
@@ -107,7 +90,7 @@ export function FollowFediverseDialog({
         >
           Close
         </button>
-      </div>
-    </dialog>
+      </DialogContent>
+    </DialogRoot>
   );
 }

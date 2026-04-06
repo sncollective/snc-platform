@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
@@ -117,8 +117,9 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const coopLink = screen.getByRole("link", { name: "Co-op" });
-    expect(coopLink).toHaveAttribute("href", "/governance");
+    // MenuItem with asChild renders as role="menuitem" (Ark overrides role)
+    const coopItem = await screen.findByRole("menuitem", { name: /Co-op/ });
+    expect(coopItem).toHaveAttribute("href", "/governance");
   });
 
   it("hides 'Co-op' link when user lacks stakeholder role", async () => {
@@ -130,7 +131,11 @@ describe("NavBar", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.queryByRole("link", { name: "Co-op" })).toBeNull();
+    // Wait for the menu to open, then confirm Co-op is absent
+    await waitFor(() =>
+      expect(screen.getByText("Log out")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("menuitem", { name: /Co-op/ })).toBeNull();
   });
 
 });

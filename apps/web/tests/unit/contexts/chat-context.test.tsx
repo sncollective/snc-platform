@@ -152,29 +152,6 @@ describe("chatReducer", () => {
     expect(result.isConnected).toBe(true);
   });
 
-  it("SET_NOTIFICATION_COUNT updates notificationCount", () => {
-    const result = chatReducer(INITIAL_STATE, {
-      type: "SET_NOTIFICATION_COUNT",
-      count: 7,
-    });
-    expect(result.notificationCount).toBe(7);
-  });
-
-  it("SET_NOTIFICATION_COUNT resets to zero", () => {
-    const stateWithCount: ChatState = {
-      ...INITIAL_STATE,
-      notificationCount: 5,
-    };
-    const result = chatReducer(stateWithCount, {
-      type: "SET_NOTIFICATION_COUNT",
-      count: 0,
-    });
-    expect(result.notificationCount).toBe(0);
-  });
-
-  it("INITIAL_STATE has notificationCount 0", () => {
-    expect(INITIAL_STATE.notificationCount).toBe(0);
-  });
 });
 
 // ── Tests: useChat hook ──

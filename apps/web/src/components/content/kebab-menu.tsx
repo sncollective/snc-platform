@@ -1,6 +1,6 @@
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
 
+import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from "../ui/menu.js";
 import styles from "./content-management-list.module.css";
 
 // ── Public Types ──
@@ -15,47 +15,33 @@ export interface KebabMenuProps {
 
 /** Overflow action menu for a content row with a confirm-before-delete action. */
 export function KebabMenu({ itemId, deletingId, onDelete }: KebabMenuProps): React.ReactElement {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  const isDeleting = deletingId === itemId;
 
   return (
-    <div className={styles.kebabWrapper} ref={ref}>
-      <button
-        type="button"
-        className={styles.kebabButton}
-        onClick={() => setOpen((v) => !v)}
-        aria-label="More actions"
-      >
-        ⋯
-      </button>
-      {open && (
-        <div className={styles.kebabMenu}>
-          <button
-            type="button"
-            className={styles.deleteAction}
-            onClick={() => {
-              setOpen(false);
-              if (window.confirm("Delete this content? This cannot be undone.")) {
-                onDelete(itemId);
-              }
-            }}
-            disabled={deletingId === itemId}
-          >
-            {deletingId === itemId ? "Deleting..." : "Delete"}
-          </button>
-        </div>
-      )}
-    </div>
+    <MenuRoot>
+      <MenuTrigger asChild>
+        <button
+          type="button"
+          className={styles.kebabButton}
+          aria-label="More actions"
+        >
+          ⋯
+        </button>
+      </MenuTrigger>
+      <MenuContent>
+        <MenuItem
+          value="delete"
+          className={styles.deleteAction}
+          disabled={isDeleting}
+          onSelect={() => {
+            if (window.confirm("Delete this content? This cannot be undone.")) {
+              onDelete(itemId);
+            }
+          }}
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </MenuItem>
+      </MenuContent>
+    </MenuRoot>
   );
 }

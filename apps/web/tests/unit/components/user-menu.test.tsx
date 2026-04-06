@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { Role } from "@snc/shared";
@@ -84,7 +84,7 @@ describe("UserMenu", () => {
     expect(button).toHaveTextContent("JD");
   });
 
-  it("toggles dropdown menu on avatar click", async () => {
+  it("opens dropdown menu on avatar click", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
@@ -92,11 +92,16 @@ describe("UserMenu", () => {
 
     render(<UserMenu />);
 
-    expect(screen.queryByText("Log out")).toBeNull();
+    // The menu content is in the Portal from the start — verify it's initially closed
+    const menuContent = document.querySelector("[data-scope='menu'][data-part='content']");
+    expect(menuContent).not.toHaveAttribute("data-state", "open");
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.getByText("Log out")).toBeInTheDocument();
+    await waitFor(() => {
+      const openMenu = document.querySelector("[data-scope='menu'][data-part='content']");
+      expect(openMenu).toHaveAttribute("data-state", "open");
+    });
   });
 
   it("does not show 'Creator Settings' link", async () => {
@@ -110,6 +115,10 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
+    // Wait for the menu to open, then assert the link is absent
+    await waitFor(() =>
+      expect(screen.getByText("Log out")).toBeInTheDocument(),
+    );
     expect(
       screen.queryByText("Creator Settings"),
     ).toBeNull();
@@ -126,7 +135,9 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.getByLabelText("Patron")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Patron")).toBeInTheDocument(),
+    );
   });
 
   it("hides patron badge when isPatron is false", async () => {
@@ -140,6 +151,10 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
+    // Wait for the menu to open, then confirm patron badge is absent
+    await waitFor(() =>
+      expect(screen.getByText("Log out")).toBeInTheDocument(),
+    );
     expect(screen.queryByLabelText("Patron")).toBeNull();
   });
 
@@ -154,8 +169,9 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const coopLink = screen.getByRole("link", { name: "Co-op" });
-    expect(coopLink).toHaveAttribute("href", "/governance");
+    // MenuItem with asChild renders as role="menuitem"; check href attribute directly
+    const coopItem = await screen.findByRole("menuitem", { name: /Co-op/ });
+    expect(coopItem).toHaveAttribute("href", "/governance");
   });
 
   it("hides 'Co-op' link for users without stakeholder role", async () => {
@@ -169,8 +185,12 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
+    // Wait for menu to open, then confirm Co-op is absent
+    await waitFor(() =>
+      expect(screen.getByText("Log out")).toBeInTheDocument(),
+    );
     expect(
-      screen.queryByRole("link", { name: "Co-op" }),
+      screen.queryByRole("menuitem", { name: /Co-op/ }),
     ).toBeNull();
   });
 
@@ -184,14 +204,12 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
-    expect(
-      screen.getByRole("link", { name: "Subscriptions" }),
-    ).toHaveAttribute("href", "/settings/subscriptions");
-    expect(screen.queryByRole("link", { name: "My Bookings" })).toBeNull();
+    // MenuItem with asChild renders as role="menuitem" (Ark overrides role)
+    const settingsItem = await screen.findByRole("menuitem", { name: /Settings/ });
+    expect(settingsItem).toHaveAttribute("href", "/settings");
+    const subsItem = await screen.findByRole("menuitem", { name: /Subscriptions/ });
+    expect(subsItem).toHaveAttribute("href", "/settings/subscriptions");
+    expect(screen.queryByRole("menuitem", { name: /My Bookings/ })).toBeNull();
   });
 
   it("shows skeleton while session is pending and no serverAuth", () => {
@@ -297,7 +315,7 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByLabelText("User menu"));
 
-    const coopLink = screen.getByRole("link", { name: "Co-op" });
-    expect(coopLink).toHaveAttribute("href", "/governance");
+    const coopItem = await screen.findByRole("menuitem", { name: /Co-op/ });
+    expect(coopItem).toHaveAttribute("href", "/governance");
   });
 });

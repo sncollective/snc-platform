@@ -1,13 +1,13 @@
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import type React from "react";
 
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { format, parse } from "date-fns";
 
-import { useDismiss } from "../../hooks/use-dismiss.js";
 import { clsx } from "clsx/lite";
 
+import { PopoverRoot, PopoverTrigger, PopoverContent } from "../ui/popover.js";
 import formStyles from "../../styles/form.module.css";
 import styles from "./date-picker-input.module.css";
 
@@ -36,8 +36,7 @@ export function DatePickerInput({
   className,
   hasError,
 }: DatePickerInputProps): React.ReactElement {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
 
   // Parse the string value to a Date for DayPicker's `selected` prop
   const selectedDate = value
@@ -48,46 +47,39 @@ export function DatePickerInput({
     if (day) {
       onChange(format(day, "yyyy-MM-dd"));
     }
-    setIsOpen(false);
+    setOpen(false);
   };
-
-  const handleClose = useCallback(() => setIsOpen(false), []);
-  useDismiss(containerRef, handleClose, isOpen);
 
   const displayValue = selectedDate
     ? format(selectedDate, "MMM d, yyyy")
     : "";
 
   return (
-    <div ref={containerRef} className={styles.container}>
-      <input
-        id={id}
-        type="text"
-        readOnly
-        value={displayValue}
-        placeholder="Select date"
-        onClick={() => setIsOpen(!isOpen)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setIsOpen(!isOpen);
-          }
-        }}
-        className={clsx(className ?? formStyles.input, hasError && formStyles.inputError)}
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-      />
-      {isOpen && (
-        <div className={styles.popover} role="dialog" aria-label="Date picker">
-          <DayPicker
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleSelect}
-            {...(selectedDate !== undefined && { defaultMonth: selectedDate })}
-          />
-        </div>
-      )}
-    </div>
+    <PopoverRoot open={open} onOpenChange={(details) => { setOpen(details.open); }}>
+      <PopoverTrigger asChild>
+        <input
+          id={id}
+          type="text"
+          readOnly
+          value={displayValue}
+          placeholder="Select date"
+          className={clsx(className ?? formStyles.input, hasError && formStyles.inputError)}
+          role="combobox"
+          aria-haspopup="dialog"
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        role="dialog"
+        aria-label="Date picker"
+        className={styles.popover}
+      >
+        <DayPicker
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleSelect}
+          {...(selectedDate !== undefined && { defaultMonth: selectedDate })}
+        />
+      </PopoverContent>
+    </PopoverRoot>
   );
 }

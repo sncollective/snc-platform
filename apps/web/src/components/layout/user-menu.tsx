@@ -1,9 +1,6 @@
-import { useRef } from "react";
-
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 
-import { useMenuToggle } from "../../hooks/use-menu-toggle.js";
 import { authClient } from "../../lib/auth-client.js";
 import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
@@ -11,6 +8,13 @@ import { getAuthMenuItems } from "../../config/auth-menu-items.js";
 import { clsx } from "clsx/lite";
 
 import { getInitials } from "../../lib/format.js";
+import {
+  MenuRoot,
+  MenuTrigger,
+  MenuContent,
+  MenuItem,
+  MenuSeparator,
+} from "../ui/menu.js";
 import styles from "./user-menu.module.css";
 
 // ── Public API ──
@@ -20,8 +24,6 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const session = useSession();
   const { roles, isPatron } = useAuthExtras();
   const navigate = useNavigate();
-  const menuRef = useRef<HTMLDivElement>(null);
-  const { isOpen, handleToggle, handleClose } = useMenuToggle(menuRef);
 
   const handleLogout = async () => {
     try {
@@ -29,7 +31,6 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
     } catch {
       // Sign-out failed — navigate to login as fallback
     }
-    handleClose();
     void navigate({ to: "/login" });
   };
 
@@ -66,74 +67,64 @@ export function UserMenu({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const initials = getInitials(user.name);
 
   return (
-    <div className={styles.menu} ref={menuRef}>
-      <button
-        className={styles.avatarButton}
-        onClick={handleToggle}
-        aria-expanded={isOpen}
-        aria-haspopup="true"
-        aria-label="User menu"
-        type="button"
-      >
-        <span className={clsx(styles.avatar, effectiveIsPatron && styles.patronAvatar)}>
-          {initials}
-        </span>
-      </button>
+    <MenuRoot>
+      <MenuTrigger asChild>
+        <button
+          className={styles.avatarButton}
+          aria-label="User menu"
+          type="button"
+        >
+          <span className={clsx(styles.avatar, effectiveIsPatron && styles.patronAvatar)}>
+            {initials}
+          </span>
+        </button>
+      </MenuTrigger>
 
-      {isOpen && (
-        <div className={styles.dropdown}>
-          <div className={styles.userInfo}>
-            <span className={styles.userName}>
-              {user.name}
-              {effectiveIsPatron && (
-                <span className={styles.patronBadge} aria-label="Patron">
-                  patron
-                </span>
-              )}
-            </span>
-            <span className={styles.userEmail}>{user.email}</span>
-          </div>
+      <MenuContent>
+        <div className={styles.userInfo}>
+          <span className={styles.userName}>
+            {user.name}
+            {effectiveIsPatron && (
+              <span className={styles.patronBadge} aria-label="Patron">
+                patron
+              </span>
+            )}
+          </span>
+          <span className={styles.userEmail}>{user.email}</span>
+        </div>
 
-          <div className={styles.divider} />
+        <MenuSeparator />
 
-          {getAuthMenuItems(effectiveRoles).map((item) =>
-            item.external ? (
+        {getAuthMenuItems(effectiveRoles).map((item) =>
+          item.external ? (
+            <MenuItem key={item.key} value={item.key} asChild>
               <a
-                key={item.key}
                 href={item.to}
-                className={styles.menuItem}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={handleClose}
+                className={styles.menuItem}
               >
                 <item.icon size={16} aria-hidden="true" />
                 {item.label}
               </a>
-            ) : (
-              <Link
-                key={item.key}
-                to={item.to}
-                className={styles.menuItem}
-                onClick={handleClose}
-              >
+            </MenuItem>
+          ) : (
+            <MenuItem key={item.key} value={item.key} asChild>
+              <Link to={item.to} className={styles.menuItem}>
                 <item.icon size={16} aria-hidden="true" />
                 {item.label}
               </Link>
-            )
-          )}
+            </MenuItem>
+          )
+        )}
 
-          <div className={styles.divider} />
+        <MenuSeparator />
 
-          <button
-            className={styles.logoutButton}
-            onClick={handleLogout}
-            type="button"
-          >
-            <LogOut size={16} aria-hidden="true" />
-            Log out
-          </button>
-        </div>
-      )}
-    </div>
+        <MenuItem value="logout" onSelect={() => void handleLogout()}>
+          <LogOut size={16} aria-hidden="true" />
+          Log out
+        </MenuItem>
+      </MenuContent>
+    </MenuRoot>
   );
 }

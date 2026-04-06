@@ -1,0 +1,36 @@
+/* ── EmptyState ── */
+
+/* Matches the visual contract of .empty in listing-page.module.css */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}
+
+/* Icon slot — 50% opacity to match existing .empty svg rule */
+.icon {
+  display: contents;
+}
+
+.icon > svg,
+.icon svg {
+  opacity: 0.5;
+}
+
+.title {
+  color: var(--color-text-muted);
+}
+
+.message {
+  margin: 0;
+}
+
+.action {
+  margin-top: var(--space-sm);
+}

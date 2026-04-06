@@ -28,7 +28,6 @@ const DEFAULT_CHAT_STATE = {
   isConnected: true,
   viewerCount: 0,
   users: [],
-  notificationCount: 0,
   slowModeSeconds: 0,
   isTimedOut: false,
   timedOutUntil: null,

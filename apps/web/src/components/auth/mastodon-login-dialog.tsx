@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 
+import {
+  DialogRoot,
+  DialogBackdrop,
+  DialogContent,
+  DialogTitle,
+} from "../ui/dialog.js";
 import { apiMutate } from "../../lib/fetch-utils.js";
 import { navigateExternal } from "../../lib/url.js";
 import formStyles from "../../styles/form.module.css";
@@ -25,35 +31,10 @@ export interface MastodonLoginDialogProps {
 export function MastodonLoginDialog({
   open,
   onClose,
-}: MastodonLoginDialogProps): React.ReactElement | null {
-  if (!open) return null;
-
-  return <MastodonLoginDialogInner onClose={onClose} />;
-}
-
-// ── Private ──
-
-function MastodonLoginDialogInner({
-  onClose,
-}: {
-  onClose: () => void;
-}): React.ReactElement {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+}: MastodonLoginDialogProps): React.ReactElement {
   const [domain, setDomain] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (!dialog.open) dialog.showModal();
-  }, []);
-
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>): void => {
-    if (e.target === dialogRef.current) {
-      onClose();
-    }
-  };
 
   const cleanDomain = (raw: string): string => {
     let cleaned = raw.trim();
@@ -88,14 +69,10 @@ function MastodonLoginDialogInner({
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
-      onClose={onClose}
-      onClick={handleBackdropClick}
-    >
-      <div className={styles.content}>
-        <h2 className={styles.heading}>Log in with Mastodon</h2>
+    <DialogRoot open={open} onOpenChange={(details) => { if (!details.open) onClose(); }} lazyMount unmountOnExit>
+      <DialogBackdrop />
+      <DialogContent>
+        <DialogTitle>Log in with Mastodon</DialogTitle>
 
         <form onSubmit={(e) => void handleSubmit(e)}>
           {error && (
@@ -131,12 +108,12 @@ function MastodonLoginDialogInner({
 
         <button
           type="button"
-          className={styles.closeButton}
+          className={styles.cancelButton}
           onClick={onClose}
         >
           Cancel
         </button>
-      </div>
-    </dialog>
+      </DialogContent>
+    </DialogRoot>
   );
 }

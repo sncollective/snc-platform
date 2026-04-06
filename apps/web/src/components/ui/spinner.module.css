@@ -1,0 +1,71 @@
+/* ── Spinner ── */
+
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Size scale — matches shared size table (16/18/20 px) */
+
+.spinner[data-size="sm"] {
+  width: 16px;
+  height: 16px;
+}
+
+.spinner[data-size="md"] {
+  width: 18px;
+  height: 18px;
+}
+
+.spinner[data-size="lg"] {
+  width: 20px;
+  height: 20px;
+}
+
+/* SVG fills the wrapper */
+
+.svg {
+  width: 100%;
+  height: 100%;
+  animation: spin calc(var(--duration-slow) * 2) linear infinite;
+}
+
+/* Track (background ring) */
+
+.track {
+  stroke: currentColor;
+  opacity: 0.2;
+}
+
+/* Arc (animated segment) */
+
+.arc {
+  stroke: currentColor;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 10;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Visually hidden label — readable by screen readers, invisible on screen */
+
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
