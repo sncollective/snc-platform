@@ -68,6 +68,18 @@
   display: none;
 }
 
+/* ── Thumbnail (Edit Mode) ── */
+
+.coverArt {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+.coverArtPlaceholder {
+  display: none;
+}
+
 /* ── Replace/Remove Actions (Edit Mode) ── */
 
 .editMediaActions {

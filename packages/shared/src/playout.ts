@@ -40,7 +40,7 @@ export const MAX_FILM_YEAR = 2100;
 
 export const PlayoutItemSchema = z.object({
   id: z.string(),
-  title: z.string(),
+  title: z.string().nullable(),
   year: z.number().int().nullable(),
   director: z.string().nullable(),
   duration: z.number().nullable(),
@@ -70,7 +70,7 @@ export const PlayoutItemListResponseSchema = z.object({
 export type PlayoutItemListResponse = z.infer<typeof PlayoutItemListResponseSchema>;
 
 export const CreatePlayoutItemSchema = z.object({
-  title: z.string().min(1).max(255),
+  title: z.string().max(255).nullable().optional().default(null),
   year: z.number().int().min(MIN_FILM_YEAR).max(MAX_FILM_YEAR).nullable().optional(),
   director: z.string().max(255).nullable().optional(),
 });

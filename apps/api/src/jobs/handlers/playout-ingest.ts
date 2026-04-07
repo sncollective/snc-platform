@@ -94,13 +94,17 @@ export const handlePlayoutIngest = async (
     }
 
     // ── Auto-fill metadata from probe tags ──
-    // title is always admin-provided at creation (CreatePlayoutItemSchema requires min(1)).
-    // year and director default to null — fill them from probe tags only when still null.
+    // Fill null fields from probe tags. Title is nullable since 0.2.1
+    // (allows MKV tag auto-fill when admin leaves it blank).
     const metadataUpdate: {
+      title?: string | null;
       year?: number | null;
       director?: string | null;
     } = {};
 
+    if (item.title === null && probe.tags.title) {
+      metadataUpdate.title = probe.tags.title;
+    }
     if (item.year === null && probe.tags.year !== null) {
       metadataUpdate.year = probe.tags.year;
     }

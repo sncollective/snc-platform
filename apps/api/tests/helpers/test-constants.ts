@@ -64,6 +64,9 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => ({
   FEDERATION_DOMAIN: "s-nc.test",
   FEATURE_FEDERATION: false,
   FEATURE_STREAMING: true,
+  IMGPROXY_URL: undefined as string | undefined,
+  IMGPROXY_KEY: undefined as string | undefined,
+  IMGPROXY_SALT: undefined as string | undefined,
   ...overrides,
 });
 

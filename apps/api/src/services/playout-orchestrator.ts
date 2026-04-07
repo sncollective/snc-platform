@@ -44,7 +44,7 @@ export type PlayoutOrchestrator = ReturnType<typeof createPlayoutOrchestrator>;
 
 const toQueueEntry = (
   row: typeof playoutQueue.$inferSelect & {
-    title: string;
+    title: string | null;
     duration: number | null;
   },
 ): PlayoutQueueEntry => ({
@@ -62,7 +62,7 @@ const toQueueEntry = (
 const toChannelContent = (
   row: typeof channelContent.$inferSelect & {
     sourceType: "playout" | "content";
-    title: string;
+    title: string | null;
     duration: number | null;
   },
 ): ChannelContent => ({
@@ -563,7 +563,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       contentId: string | null;
       sourceType: "playout" | "content";
       processingStatus: string | null;
-      title: string;
+      title: string | null;
       duration: number | null;
       lastPlayedAt: Date | null;
       playCount: number;
@@ -774,7 +774,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       LEFT JOIN creator_profiles cp ON cp.id = c.creator_id
       WHERE c.title ILIKE ${searchPattern}
         AND c.type = 'video'
-        AND c.processing_status = 'completed'
+        AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
         AND c.id NOT IN (
           SELECT content_id FROM channel_content
           WHERE channel_id = ${channelId}

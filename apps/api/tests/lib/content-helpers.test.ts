@@ -31,6 +31,10 @@ const setupContentHelpers = async (
     toISOOrNull: (d: Date | null) => d?.toISOString() ?? null,
   }));
 
+  vi.doMock("../../src/config.js", () => ({
+    config: { IMGPROXY_URL: undefined, IMGPROXY_KEY: undefined, IMGPROXY_SALT: undefined, S3_BUCKET: "snc-storage" },
+  }));
+
   return await import("../../src/lib/content-helpers.js");
 };
 
@@ -80,6 +84,7 @@ describe("content-helpers", () => {
 
       expect(result.id).toBe("content-1");
       expect(result.thumbnailUrl).toBe("/api/content/content-1/thumbnail");
+      expect(result.thumbnail).toBeNull();
       expect(result.mediaUrl).toBe("/api/content/content-1/media");
       expect(result.title).toBe("Test Video");
       expect(result.visibility).toBe("public");

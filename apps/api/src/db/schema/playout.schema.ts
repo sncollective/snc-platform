@@ -12,7 +12,7 @@ export const playoutItems = pgTable(
   "playout_items",
   {
     id: text("id").primaryKey(),
-    title: text("title").notNull(),
+    title: text("title"),
     year: integer("year"),
     director: text("director"),
     s3KeyPrefix: text("s3_key_prefix").notNull(),

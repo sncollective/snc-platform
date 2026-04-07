@@ -27,6 +27,9 @@ const makeProbeResult = (overrides: Record<string, unknown> = {}) => ({
   duration: 120.5,
   bitrate: 5000000,
   dataStreamCount: 0,
+  colorTransfer: null,
+  colorPrimaries: null,
+  isHdr: false,
   ...overrides,
 });
 
@@ -150,7 +153,7 @@ describe("handleProbeCodec", () => {
 
     await handleProbeCodec([makeJob() as never], mockBoss as never);
 
-    expect(mockBossSend).toHaveBeenCalledWith("media:transcode", { contentId: "content-1" });
+    expect(mockBossSend).toHaveBeenCalledWith("media:transcode", { contentId: "content-1", isHdr: false, sourceHeight: 1080 });
   });
 
   it("does NOT queue transcode for H.264 video", async () => {
@@ -239,5 +242,32 @@ describe("handleProbeCodec", () => {
     await handleProbeCodec([makeJob() as never], mockBoss as never);
 
     expect(mockCleanupTemp).toHaveBeenCalledWith("/tmp/snc-media/uuid-probe.mov");
+  });
+
+  it("queues transcode for H.264 when HDR is detected", async () => {
+    const { handleProbeCodec, mockBoss, mockProbeMedia, mockBossSend } = await setupModule();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: makeProbeResult({ videoCodec: "h264", isHdr: true, colorTransfer: "smpte2084", colorPrimaries: "bt2020" }),
+    });
+
+    await handleProbeCodec([makeJob() as never], mockBoss as never);
+
+    expect(mockBossSend).toHaveBeenCalledWith("media:transcode", { contentId: "content-1", isHdr: true, sourceHeight: 1080 });
+  });
+
+  it("does NOT mark HDR H.264 content as ready without transcoding", async () => {
+    const { handleProbeCodec, mockBoss, mockProbeMedia, mockUpdateContentProcessing } = await setupModule();
+    mockProbeMedia.mockResolvedValue({
+      ok: true,
+      value: makeProbeResult({ videoCodec: "h264", isHdr: true, colorTransfer: "smpte2084", colorPrimaries: "bt2020" }),
+    });
+
+    await handleProbeCodec([makeJob() as never], mockBoss as never);
+
+    expect(mockUpdateContentProcessing).not.toHaveBeenCalledWith(
+      "content-1",
+      expect.objectContaining({ processingStatus: "ready" }),
+    );
   });
 });

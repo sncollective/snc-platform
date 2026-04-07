@@ -82,6 +82,38 @@ services:
       retries: 5
       start_period: 30s
 
+  snc-imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:v3
+    container_name: snc-imgproxy
+    environment:
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: "http://snc-garage:3900"
+      IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
+      IMGPROXY_S3_REGION: "garage"
+      AWS_ACCESS_KEY_ID: "${GARAGE_IMGPROXY_ACCESS_KEY:-}"
+      AWS_SECRET_ACCESS_KEY: "${GARAGE_IMGPROXY_SECRET_KEY:-}"
+      IMGPROXY_KEY: "${IMGPROXY_KEY:-}"
+      IMGPROXY_SALT: "${IMGPROXY_SALT:-}"
+      IMGPROXY_ENFORCE_WEBP: "true"
+      IMGPROXY_ENFORCE_AVIF: "true"
+      IMGPROXY_QUALITY: "80"
+      IMGPROXY_FORMAT_QUALITY: "webp=79,avif=50,jpeg=80"
+      IMGPROXY_TTL: "31536000"
+      IMGPROXY_MAX_SRC_RESOLUTION: "50"
+      IMGPROXY_STRIP_METADATA: "true"
+      IMGPROXY_AUTO_ROTATE: "true"
+    ports:
+      - "8081:8080"
+    depends_on:
+      snc-garage:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   snc-pgdata:
   snc-garage-meta:

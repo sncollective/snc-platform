@@ -10,11 +10,21 @@ export interface OptionalImageProps {
   readonly loading?: "lazy" | "eager";
   readonly width?: number;
   readonly height?: number;
+  /** Width-descriptor or DPR-descriptor srcSet string. */
+  readonly srcSet?: string | null;
+  /** Sizes attribute for width-descriptor srcSet. */
+  readonly sizes?: string | null;
 }
 
 // ── Public API ──
 
-/** Render an `<img>` when a src URL is provided, or a styled placeholder `<div>` when src is null/undefined. */
+/**
+ * Render an `<img>` when a src URL is provided, or a styled placeholder
+ * `<div>` when src is null/undefined.
+ *
+ * When `srcSet` and `sizes` are provided, the browser selects the best
+ * image variant. `src` is the fallback for browsers without srcSet support.
+ */
 export function OptionalImage({
   src,
   alt,
@@ -23,6 +33,8 @@ export function OptionalImage({
   loading,
   width,
   height,
+  srcSet,
+  sizes,
 }: OptionalImageProps): React.ReactElement {
   if (src) {
     return (
@@ -34,6 +46,8 @@ export function OptionalImage({
         decoding="async"
         width={width}
         height={height}
+        {...(srcSet ? { srcSet } : {})}
+        {...(sizes ? { sizes } : {})}
       />
     );
   }

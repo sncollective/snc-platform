@@ -16,7 +16,7 @@ export const ChannelContentSchema = z.object({
   contentId: z.string().nullable(),
   sourceType: z.enum(["playout", "content"]),
   processingStatus: z.enum(PLAYOUT_PROCESSING_STATUSES).nullable(),
-  title: z.string(),
+  title: z.string().nullable(),
   duration: z.number().nullable(),
   lastPlayedAt: z.string().datetime().nullable(),
   playCount: z.number().int(),
@@ -48,7 +48,7 @@ export const PlayoutQueueEntrySchema = z.object({
   pushedToLiquidsoap: z.boolean(),
   createdAt: z.string().datetime(),
   // Denormalized from playout_items for display
-  title: z.string(),
+  title: z.string().nullable(),
   duration: z.number().nullable(),
 });
 

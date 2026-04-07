@@ -74,12 +74,17 @@ export const handleProbeCodec = async (
 
     await updateJob(jobRecord.id, { status: "completed", progress: 100, completedAt: new Date() });
 
-    if (requiresTranscode(probe.videoCodec)) {
-      logger.info({ videoCodec: probe.videoCodec }, "Codec requires transcoding — queuing transcode job");
-      await boss.send(JOB_QUEUES.TRANSCODE, { contentId });
+    if (probe.isHdr) {
+      logger.info({ contentId, colorTransfer: probe.colorTransfer }, "hdr-upload-detected");
+      logger.info({ colorTransfer: probe.colorTransfer, colorPrimaries: probe.colorPrimaries }, "HDR content detected — will tone-map during transcode");
+    }
+
+    if (requiresTranscode(probe.videoCodec) || probe.isHdr) {
+      logger.info({ videoCodec: probe.videoCodec, isHdr: probe.isHdr }, "Queuing transcode job");
+      await boss.send(JOB_QUEUES.TRANSCODE, { contentId, isHdr: probe.isHdr, sourceHeight: probe.height });
     } else {
       await updateContentProcessing(contentId, { processingStatus: "ready" });
-      logger.info("Codec compatible — marking ready");
+      logger.info("Codec compatible and SDR — marking ready");
     }
 
     if (!contentRow.thumbnailKey && (probe.videoCodec || contentRow.type === "video")) {

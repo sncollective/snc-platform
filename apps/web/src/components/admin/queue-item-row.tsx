@@ -41,13 +41,13 @@ export function QueueItemRow({
   return (
     <li className={styles.queueItem}>
       <span className={styles.queueItemPosition}>{entry.position}</span>
-      <span className={styles.queueItemTitle}>{entry.title}</span>
+      <span className={styles.queueItemTitle}>{entry.title ?? "—"}</span>
       <span className={styles.queueItemEstimate}>{estimateLabel}</span>
       <button
         type="button"
         className={styles.deleteButton}
         onClick={onRemove}
-        aria-label={`Remove ${entry.title} from queue`}
+        aria-label={`Remove ${entry.title ?? "item"} from queue`}
       >
         Remove
       </button>

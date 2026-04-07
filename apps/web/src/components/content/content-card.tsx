@@ -25,7 +25,9 @@ export interface ContentCardProps {
 // ── Public API ──
 
 export function ContentCard({ item }: ContentCardProps): React.ReactElement {
-  const thumbnailSrc = item.thumbnailUrl;
+  const thumbnailSrc = item.thumbnail?.src ?? item.thumbnailUrl;
+  const thumbnailSrcSet = item.thumbnail?.srcSet ?? null;
+  const thumbnailSizes = item.thumbnail?.sizes ?? null;
 
   const badgeClass = TYPE_BADGE_CLASSES[item.type];
   const hasThumbnail = thumbnailSrc !== null;
@@ -42,6 +44,8 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
             className={styles.thumbnail!}
             placeholderClassName={styles.thumbnailPlaceholder!}
             loading="lazy"
+            srcSet={thumbnailSrcSet}
+            sizes={thumbnailSizes}
           />
           <span className={clsx(styles.badge, badgeClass)}>
             {TYPE_BADGE_LABELS[item.type]}

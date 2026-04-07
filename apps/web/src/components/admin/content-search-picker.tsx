@@ -39,7 +39,7 @@ export function ContentSearchPicker({
   const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search with abort on new input
+  // Debounced search with abort on new input — loads default results on mount
   useEffect(() => {
     const debounceId = setTimeout(() => {
       if (abortRef.current) {
@@ -47,11 +47,6 @@ export function ContentSearchPicker({
       }
       const controller = new AbortController();
       abortRef.current = controller;
-
-      if (!query.trim()) {
-        setResults([]);
-        return;
-      }
 
       setIsLoading(true);
       searchAvailableContent(channelId, query.trim(), controller.signal)
@@ -64,7 +59,7 @@ export function ContentSearchPicker({
           setResults([]);
           setIsLoading(false);
         });
-    }, 300);
+    }, query.trim() ? 300 : 0);
 
     return () => {
       clearTimeout(debounceId);
@@ -103,8 +98,7 @@ export function ContentSearchPicker({
     onClose();
   };
 
-  const showEmpty = !isLoading && query.trim() && results.length === 0;
-  const showPrompt = !query.trim();
+  const showEmpty = !isLoading && results.length === 0;
 
   return (
     <div className={styles.searchPicker} ref={containerRef}>
@@ -119,11 +113,6 @@ export function ContentSearchPicker({
         aria-label="Search content"
       />
       <div className={styles.searchPickerResults}>
-        {showPrompt && (
-          <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
-            Start typing to search
-          </p>
-        )}
         {isLoading && (
           <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
             Searching…

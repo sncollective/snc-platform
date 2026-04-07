@@ -12,6 +12,9 @@ services:
   snc-liquidsoap:
     networks:
       - claude-net
+  snc-imgproxy:
+    networks:
+      - claude-net
 
 networks:
   claude-net:

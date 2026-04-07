@@ -149,11 +149,21 @@ describe("playout routes", () => {
       expect(mockCreatePlayoutItem).toHaveBeenCalledWith({ title: "New Film" });
     });
 
-    it("returns 400 on invalid body", async () => {
+    it("creates item with null title when title is omitted", async () => {
       const res = await ctx.app.request("/api/playout/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "" }), // empty title
+        body: JSON.stringify({}), // title is optional — defaults to null
+      });
+
+      expect(res.status).toBe(201);
+    });
+
+    it("returns 400 on invalid body when title exceeds max length", async () => {
+      const res = await ctx.app.request("/api/playout/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "x".repeat(256) }), // title too long
       });
 
       expect(res.status).toBe(400);

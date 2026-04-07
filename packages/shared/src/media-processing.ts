@@ -32,6 +32,9 @@ export const ProbeResultSchema = z.object({
   bitrate: z.number().int().nullable(),
   dataStreamCount: z.number().int(),
   tags: ProbeTagsSchema,
+  colorTransfer: z.string().nullable(),
+  colorPrimaries: z.string().nullable(),
+  isHdr: z.boolean(),
 });
 
 export type ProbeResult = z.infer<typeof ProbeResultSchema>;

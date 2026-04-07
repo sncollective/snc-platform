@@ -45,8 +45,11 @@ export function CreatorHeader({
   const showFediverseUI =
     isFeatureEnabled("federation") && creator.handle !== null && creator.handle !== undefined;
 
-  const bannerSrc = creator.bannerUrl;
-  const avatarSrc = creator.avatarUrl;
+  const bannerSrc = creator.banner?.src ?? creator.bannerUrl;
+  const bannerSrcSet = creator.banner?.srcSet ?? null;
+  const bannerSizes = creator.banner?.sizes ?? null;
+  const avatarSrc = creator.avatar?.src ?? creator.avatarUrl;
+  const avatarSrcSet = creator.avatar?.srcSet ?? null;
 
   const isAuthenticated = session.data !== null && session.data !== undefined;
 
@@ -61,6 +64,8 @@ export function CreatorHeader({
           placeholderClassName={styles.bannerPlaceholder!}
           width={800}
           height={200}
+          srcSet={bannerSrcSet}
+          sizes={bannerSizes}
         />
       </div>
 
@@ -74,6 +79,7 @@ export function CreatorHeader({
             placeholderClassName={styles.avatarPlaceholder!}
             width={96}
             height={96}
+            srcSet={avatarSrcSet}
           />
         </div>
 

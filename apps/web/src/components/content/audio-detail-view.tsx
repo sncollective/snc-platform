@@ -31,7 +31,8 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
     return () => actions.setActiveDetail(null);
   }, [item.id, state.media?.id, actions]);
 
-  const coverArtSrc = item.thumbnailUrl;
+  const coverArtSrc = item.thumbnail?.src ?? item.thumbnailUrl;
+  const coverArtSrcSet = item.thumbnail?.srcSet ?? undefined;
   const mediaSrc = item.mediaUrl;
   const isPlaying = state.media?.id === item.id;
   const playerExpanded = isPlaying && presentation === "expanded";
@@ -55,6 +56,7 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
               className={styles.coverArt}
               width={280}
               height={280}
+              {...(coverArtSrcSet ? { srcSet: coverArtSrcSet, sizes: "280px" } : {})}
             />
           ) : (
             <div className={styles.coverArtPlaceholder} />
@@ -79,7 +81,7 @@ export function AudioDetailView({ item, locked, plans }: AudioDetailViewProps): 
     contentType: "audio",
     title: item.title,
     artist: item.creatorName,
-    posterUrl: item.thumbnailUrl,
+    posterUrl: item.thumbnail?.src ?? item.thumbnailUrl,
     source: { src: mediaSrc, type: "audio/mpeg" },
     streamType: "on-demand",
     contentUrl,

@@ -124,6 +124,9 @@ describe("ProbeResultSchema", () => {
       bitrate: 4000000,
       dataStreamCount: 0,
       tags: nullTags,
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.videoCodec).toBe("h264");
     expect(result.audioCodec).toBe("aac");
@@ -146,6 +149,9 @@ describe("ProbeResultSchema", () => {
       bitrate: 4000000,
       dataStreamCount: 0,
       tags: nullTags,
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.subtitleCodec).toBe("subrip");
   });
@@ -161,6 +167,9 @@ describe("ProbeResultSchema", () => {
       bitrate: 128000,
       dataStreamCount: 0,
       tags: nullTags,
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.audioCodec).toBe("mp3");
@@ -179,6 +188,9 @@ describe("ProbeResultSchema", () => {
       bitrate: null,
       dataStreamCount: 0,
       tags: nullTags,
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.videoCodec).toBeNull();
     expect(result.duration).toBeNull();
@@ -195,6 +207,9 @@ describe("ProbeResultSchema", () => {
       bitrate: 111863903,
       dataStreamCount: 1,
       tags: nullTags,
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.dataStreamCount).toBe(1);
   });
@@ -210,6 +225,9 @@ describe("ProbeResultSchema", () => {
       bitrate: 4000000,
       dataStreamCount: 0,
       tags: { title: "Test Film", year: 2021, director: "Jane Doe" },
+      colorTransfer: null,
+      colorPrimaries: null,
+      isHdr: false,
     });
     expect(result.tags.title).toBe("Test Film");
     expect(result.tags.year).toBe(2021);
@@ -230,9 +248,33 @@ describe("ProbeResultSchema", () => {
         height: 1080,
         duration: 10,
         bitrate: 1000,
+        dataStreamCount: 0,
         tags: nullTags,
+        colorTransfer: null,
+        colorPrimaries: null,
+        isHdr: false,
       }),
     ).toThrow();
+  });
+
+  it("validates an HDR probe result with smpte2084 color transfer", () => {
+    const result = ProbeResultSchema.parse({
+      videoCodec: "h264",
+      audioCodec: "aac",
+      subtitleCodec: null,
+      width: 3840,
+      height: 2160,
+      duration: 60.0,
+      bitrate: 50000000,
+      dataStreamCount: 0,
+      tags: nullTags,
+      colorTransfer: "smpte2084",
+      colorPrimaries: "bt2020",
+      isHdr: true,
+    });
+    expect(result.colorTransfer).toBe("smpte2084");
+    expect(result.colorPrimaries).toBe("bt2020");
+    expect(result.isHdr).toBe(true);
   });
 });
 

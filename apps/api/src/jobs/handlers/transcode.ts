@@ -23,6 +23,8 @@ import { rootLogger } from "../../logging/logger.js";
 
 export type TranscodeJobData = {
   readonly contentId: string;
+  readonly isHdr?: boolean;
+  readonly sourceHeight?: number | null;
 };
 
 // ── Handler ──
@@ -62,6 +64,8 @@ export const handleTranscode = async (
       onProgress: (percent) => {
         void updateJob(jobRecord.id, { progress: percent });
       },
+      ...(job.data.isHdr !== undefined ? { isHdr: job.data.isHdr } : {}),
+      ...(job.data.sourceHeight != null ? { maxHeight: job.data.sourceHeight } : {}),
     });
 
     if (!transcodeResult.ok) {

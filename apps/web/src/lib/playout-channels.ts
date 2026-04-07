@@ -79,6 +79,13 @@ export const assignChannelContent = (
     body: { playoutItemIds, contentIds },
   });
 
+/** Create a new playout channel with the given name. */
+export const createChannel = (name: string): Promise<{ channelId: string }> =>
+  apiMutate<{ channelId: string }>("/api/playout/channels", {
+    method: "POST",
+    body: { name },
+  });
+
 /** Remove playout items or creator content from a channel's pool. */
 export const removeChannelContent = (
   channelId: string,

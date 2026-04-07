@@ -64,7 +64,7 @@ export function ContentPoolTable({
       <tbody>
         {items.map((item) => (
           <tr key={item.id}>
-            <td className={styles.poolTableCell}>{item.title}</td>
+            <td className={styles.poolTableCell}>{item.title ?? "—"}</td>
             <td className={styles.poolTableCell}>
               {item.duration !== null ? formatDuration(item.duration) : "—"}
             </td>
@@ -85,7 +85,7 @@ export function ContentPoolTable({
                     type="button"
                     className={styles.retryButton}
                     onClick={() => onRetry(item)}
-                    aria-label={`Retry ingest for ${item.title}`}
+                    aria-label={`Retry ingest for ${item.title ?? "item"}`}
                   >
                     Retry
                   </button>
@@ -94,7 +94,7 @@ export function ContentPoolTable({
                 type="button"
                 className={styles.deleteButton}
                 onClick={() => onRemove(item)}
-                aria-label={`Remove ${item.title} from pool`}
+                aria-label={`Remove ${item.title ?? "item"} from pool`}
               >
                 Remove
               </button>

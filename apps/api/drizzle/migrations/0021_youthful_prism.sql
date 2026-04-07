@@ -1,0 +1,1 @@
+ALTER TABLE "playout_items" ALTER COLUMN "title" DROP NOT NULL;

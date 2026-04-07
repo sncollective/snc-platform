@@ -14,6 +14,7 @@ import styles from "../../routes/admin/playout.module.css";
 export interface AddContentFormProps {
   readonly channelId: string;
   readonly onAdded: (item: PlayoutItem) => void;
+  readonly onUploadComplete?: () => void;
   readonly onCancel: () => void;
 }
 
@@ -23,99 +24,59 @@ export interface AddContentFormProps {
 export function AddContentForm({
   channelId,
   onAdded,
+  onUploadComplete,
   onCancel,
 }: AddContentFormProps): React.ReactElement {
   const { actions } = useUpload();
   const [title, setTitle] = useState("");
   const [year, setYear] = useState("");
   const [director, setDirector] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingItem, setPendingItem] = useState<PlayoutItem | null>(null);
 
-  const handleMetaSubmit = async (
-    e: React.FormEvent,
-  ): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!title.trim()) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Step 1: Create item + assign to pool
       const item = await createPlayoutItem({
-        title: title.trim(),
+        title: title.trim() || null,
         year: year ? parseInt(year, 10) : null,
         director: director.trim() || null,
       });
-      // Auto-assign newly created item to the channel's content pool
       await assignChannelContent(channelId, [item.id]);
-      setPendingItem(item);
+
+      // Step 2: Start upload if file selected
+      if (selectedFile) {
+        actions.startUpload({
+          file: selectedFile,
+          purpose: "playout-media",
+          resourceId: item.id,
+          onComplete: () => {
+            onAdded(item);
+            onUploadComplete?.();
+          },
+          onError: (err) => {
+            // Item created but upload failed — still add to pool, show error
+            setError(err.message);
+            onAdded(item);
+          },
+        });
+      } else {
+        // No file — item added to pool without media
+        onAdded(item);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create content");
       setIsSubmitting(false);
     }
   };
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
-    const file = e.target.files?.[0];
-    if (!file || !pendingItem) return;
-
-    actions.startUpload({
-      file,
-      purpose: "playout-media",
-      resourceId: pendingItem.id,
-      onComplete: () => {
-        onAdded(pendingItem);
-      },
-      onError: (err) => {
-        setError(err.message);
-      },
-    });
-  };
-
-  if (pendingItem !== null) {
-    return (
-      <div className={styles.addFilmForm}>
-        <p className={styles.uploadPrompt}>
-          <strong>{pendingItem.title}</strong> created and added to the pool.
-          Select the source video file to upload:
-        </p>
-        {error !== null && (
-          <div className={errorStyles.error} role="alert">
-            {error}
-          </div>
-        )}
-        <div className={styles.uploadActions}>
-          <label className={styles.fileLabel}>
-            Choose file
-            <input
-              type="file"
-              accept="video/*,audio/*"
-              className={styles.fileInput}
-              onChange={handleFileChange}
-            />
-          </label>
-          <button
-            type="button"
-            className={styles.cancelButton}
-            onClick={() => {
-              onAdded(pendingItem);
-            }}
-          >
-            Skip upload
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <form
-      className={styles.addFilmForm}
-      onSubmit={(e) => void handleMetaSubmit(e)}
-    >
+    <form className={styles.addFilmForm} onSubmit={(e) => void handleSubmit(e)}>
       <div className={formStyles.fieldGroup}>
         <label className={formStyles.label} htmlFor="content-title">
           Title
@@ -126,7 +87,7 @@ export function AddContentForm({
           className={formStyles.input}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          required
+          placeholder="Leave blank to auto-fill from file tags"
           disabled={isSubmitting}
         />
       </div>
@@ -161,6 +122,23 @@ export function AddContentForm({
         />
       </div>
 
+      <div className={formStyles.fieldGroup}>
+        <label className={formStyles.label} htmlFor="content-file">
+          Source File
+        </label>
+        <label className={styles.fileLabel}>
+          {selectedFile ? selectedFile.name : "Choose file"}
+          <input
+            id="content-file"
+            type="file"
+            accept="video/*,audio/*"
+            className={styles.fileInput}
+            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            disabled={isSubmitting}
+          />
+        </label>
+      </div>
+
       {error !== null && (
         <div className={errorStyles.error} role="alert">
           {error}
@@ -171,7 +149,7 @@ export function AddContentForm({
         <button
           type="submit"
           className={formStyles.submitButton}
-          disabled={isSubmitting || !title.trim()}
+          disabled={isSubmitting}
         >
           {isSubmitting ? "Creating…" : "Add Content"}
         </button>

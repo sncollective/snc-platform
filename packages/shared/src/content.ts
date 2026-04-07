@@ -40,6 +40,28 @@ export const UpdateContentSchema = z.object({
   clearMedia: z.boolean().optional(),
 });
 
+// ── Responsive Image Schemas ──
+
+export const ResponsiveImageSchema = z.object({
+  /** Primary image URL (fallback src). */
+  src: z.string(),
+  /** Width-descriptor srcSet string (e.g. "url 320w, url 640w"). */
+  srcSet: z.string().nullable(),
+  /** Suggested sizes attribute (e.g. "(max-width: 768px) 100vw, 33vw"). */
+  sizes: z.string().nullable(),
+});
+
+export type ResponsiveImage = z.infer<typeof ResponsiveImageSchema>;
+
+export const DprImageSchema = z.object({
+  /** Primary image URL (1x fallback). */
+  src: z.string(),
+  /** DPR-descriptor srcSet string (e.g. "url 1x, url 2x, url 3x"). */
+  srcSet: z.string().nullable(),
+});
+
+export type DprImage = z.infer<typeof DprImageSchema>;
+
 export const ContentResponseSchema = z.object({
   id: z.string(),
   creatorId: z.string(),
@@ -51,6 +73,7 @@ export const ContentResponseSchema = z.object({
   visibility: VisibilitySchema,
   sourceType: z.enum(SOURCE_TYPES),
   thumbnailUrl: z.string().nullable(),
+  thumbnail: ResponsiveImageSchema.nullable(),
   mediaUrl: z.string().nullable(),
   publishedAt: z.string().nullable(),
   createdAt: z.string(),

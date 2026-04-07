@@ -17,7 +17,8 @@ export interface CreatorCardProps {
 
 /** Render a creator in grid card or list row format with avatar, display name, bio, and content count. */
 export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): React.ReactElement {
-  const avatarSrc = creator.avatarUrl;
+  const avatarSrc = creator.avatar?.src ?? creator.avatarUrl;
+  const avatarSrcSet = creator.avatar?.srcSet ?? null;
   const creatorSlug = creator.handle ?? creator.id;
 
   const postLabel = `${creator.contentCount} ${creator.contentCount === 1 ? "post" : "posts"}`;
@@ -45,6 +46,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
               loading="lazy"
               width={40}
               height={40}
+              srcSet={avatarSrcSet}
             />
           </div>
           <span className={styles.listDisplayName}>
@@ -92,6 +94,7 @@ export function CreatorCard({ creator, viewMode = "grid" }: CreatorCardProps): R
             loading="lazy"
             width={80}
             height={80}
+            srcSet={avatarSrcSet}
           />
         </div>
         <div className={styles.info}>

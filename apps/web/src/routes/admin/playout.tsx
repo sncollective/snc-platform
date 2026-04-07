@@ -12,10 +12,12 @@ import { RouteErrorBoundary } from "../../components/error/route-error-boundary.
 import { AddContentForm } from "../../components/admin/add-content-form.js";
 import { ContentPoolTable } from "../../components/admin/content-pool-table.js";
 import { ContentSearchPicker } from "../../components/admin/content-search-picker.js";
+import { PoolItemPicker } from "../../components/admin/pool-item-picker.js";
 import { QueueItemRow } from "../../components/admin/queue-item-row.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
   assignChannelContent,
+  createChannel,
   fetchChannelContent,
   fetchChannelQueue,
   insertQueueItem,
@@ -25,6 +27,7 @@ import {
 } from "../../lib/playout-channels.js";
 import { retryPlayoutIngest } from "../../lib/playout.js";
 import errorStyles from "../../styles/error-alert.module.css";
+import formStyles from "../../styles/form.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
 import listingStyles from "../../styles/listing-page.module.css";
 import styles from "./playout.module.css";
@@ -152,6 +155,11 @@ function PlayoutPage(): React.ReactElement {
   const [skipError, setSkipError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Channel creation state (Unit 4)
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+
   // Fetch content pool when selected channel changes
   useEffect(() => {
     if (!selectedChannelId) return;
@@ -180,12 +188,12 @@ function PlayoutPage(): React.ReactElement {
     }
   };
 
-  const handlePlayNext = async (item: PoolCandidate): Promise<void> => {
-    if (!selectedChannelId) return;
+  const handlePlayNext = async (item: ChannelContent): Promise<void> => {
+    if (!selectedChannelId || !item.playoutItemId) return;
     setActionError(null);
     setShowSearchPicker(null);
     try {
-      await insertQueueItem(selectedChannelId, item.id, 1);
+      await insertQueueItem(selectedChannelId, item.playoutItemId, 1);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to queue item");
     }
@@ -239,6 +247,39 @@ function PlayoutPage(): React.ReactElement {
     }
   };
 
+  // Poll pool data 3 times at 2-second intervals after upload completes,
+  // catching ingest completion (duration extraction) (Unit 1)
+  const handleUploadComplete = (): void => {
+    let attempts = 0;
+    const pollInterval = setInterval(() => {
+      attempts++;
+      if (!selectedChannelId || attempts > 3) {
+        clearInterval(pollInterval);
+        return;
+      }
+      fetchChannelContent(selectedChannelId)
+        .then((data) => setPoolItems(data.items))
+        .catch(() => {/* ignore transient failures */});
+    }, 2000);
+  };
+
+  // Create a new playout channel (Unit 4)
+  const handleCreateChannel = async (): Promise<void> => {
+    if (!newChannelName.trim()) return;
+    setIsCreatingChannel(true);
+    try {
+      await createChannel(newChannelName.trim());
+      setShowCreateChannel(false);
+      setNewChannelName("");
+      // Channels come from the route loader — reload to show the new channel
+      window.location.reload();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to create channel");
+    } finally {
+      setIsCreatingChannel(false);
+    }
+  };
+
   // Compute cumulative estimated start times for each upcoming queue entry
   const upcomingWithEstimates = (queueStatus?.upcoming ?? []).map((entry, index, arr) => {
     const cumulativeSecs = arr.slice(0, index).reduce<number | null>((acc, e) => {
@@ -255,32 +296,71 @@ function PlayoutPage(): React.ReactElement {
       <BroadcastStatus channels={allChannels} />
 
       {/* Channel Tabs */}
-      {playoutChannels.length > 0 ? (
-        <div className={styles.channelTabs} role="tablist" aria-label="Playout channels">
-          {playoutChannels.map((ch) => (
-            <button
-              key={ch.id}
-              type="button"
-              role="tab"
-              aria-selected={ch.id === selectedChannelId}
-              className={
-                ch.id === selectedChannelId
-                  ? `${styles.channelTab} ${styles.channelTabActive}`
-                  : styles.channelTab
-              }
-              onClick={() => {
-                setSelectedChannelId(ch.id);
-                setShowAddForm(false);
-                setShowSearchPicker(null);
-              }}
-            >
-              {ch.name}
-            </button>
-          ))}
+      <div>
+        {playoutChannels.length > 0 ? (
+          <div className={styles.channelTabs} role="tablist" aria-label="Playout channels">
+            {playoutChannels.map((ch) => (
+              <button
+                key={ch.id}
+                type="button"
+                role="tab"
+                aria-selected={ch.id === selectedChannelId}
+                className={
+                  ch.id === selectedChannelId
+                    ? `${styles.channelTab} ${styles.channelTabActive}`
+                    : styles.channelTab
+                }
+                onClick={() => {
+                  setSelectedChannelId(ch.id);
+                  setShowAddForm(false);
+                  setShowSearchPicker(null);
+                }}
+              >
+                {ch.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className={listingStyles.status}>No playout channels configured.</p>
+        )}
+        <div style={{ marginTop: "var(--space-sm)", display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={() => setShowCreateChannel(!showCreateChannel)}
+          >
+            + New Channel
+          </button>
+          {showCreateChannel && (
+            <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+              <input
+                type="text"
+                className={formStyles.input}
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                placeholder="Channel name"
+                disabled={isCreatingChannel}
+              />
+              <button
+                type="button"
+                className={formStyles.submitButton}
+                onClick={() => void handleCreateChannel()}
+                disabled={isCreatingChannel || !newChannelName.trim()}
+              >
+                {isCreatingChannel ? "Creating…" : "Create"}
+              </button>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={() => { setShowCreateChannel(false); setNewChannelName(""); }}
+                disabled={isCreatingChannel}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
-      ) : (
-        <p className={listingStyles.status}>No playout channels configured.</p>
-      )}
+      </div>
 
       {selectedChannelId !== null && (
         <>
@@ -305,7 +385,7 @@ function PlayoutPage(): React.ReactElement {
               <div className={styles.nowPlayingCard}>
                 <div className={styles.nowPlayingInfo}>
                   <span className={styles.nowPlayingTitle}>
-                    {queueStatus.nowPlaying.title}
+                    {queueStatus.nowPlaying.title ?? "—"}
                   </span>
                   {queueStatus.nowPlaying.duration !== null && (
                     <span className={styles.nowPlayingTime}>
@@ -343,8 +423,8 @@ function PlayoutPage(): React.ReactElement {
                   + Play Next
                 </button>
                 {showSearchPicker === "queue" && (
-                  <ContentSearchPicker
-                    channelId={selectedChannelId}
+                  <PoolItemPicker
+                    poolItems={poolItems}
                     onSelect={(item) => void handlePlayNext(item)}
                     onClose={() => setShowSearchPicker(null)}
                   />
@@ -409,14 +489,13 @@ function PlayoutPage(): React.ReactElement {
             {showAddForm && (
               <AddContentForm
                 channelId={selectedChannelId}
-                onAdded={(item) => {
-                  // Pool is refreshed after assignChannelContent in the form
+                onAdded={() => {
                   fetchChannelContent(selectedChannelId)
                     .then((data) => setPoolItems(data.items))
                     .catch(() => {});
                   setShowAddForm(false);
-                  void item; // suppress unused var
                 }}
+                onUploadComplete={handleUploadComplete}
                 onCancel={() => setShowAddForm(false)}
               />
             )}

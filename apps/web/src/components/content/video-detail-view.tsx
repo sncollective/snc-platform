@@ -31,7 +31,7 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
     return () => actions.setActiveDetail(null);
   }, [item.id, state.media?.id, actions]);
 
-  const posterSrc = item.thumbnailUrl;
+  const posterSrc = item.thumbnail?.src ?? item.thumbnailUrl;
   const mediaSrc = item.mediaUrl;
   // Hide overlay only when the GlobalPlayer is actually expanded and rendering
   const playerExpanded = state.media?.id === item.id && presentation === "expanded";
@@ -66,7 +66,7 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
     contentType: "video",
     title: item.title,
     artist: item.creatorName,
-    posterUrl: item.thumbnailUrl,
+    posterUrl: item.thumbnail?.src ?? item.thumbnailUrl,
     source: { src: mediaSrc, type: "video/mp4" },
     streamType: "on-demand",
     contentUrl,
@@ -81,7 +81,17 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
           onClick={() => actions.play(videoMetadata)}
           aria-label="Play video"
         >
-          {posterSrc && <img src={posterSrc} alt="" className={styles.poster} width={640} height={360} />}
+          {posterSrc && (
+            <img
+              src={posterSrc}
+              alt=""
+              className={styles.poster}
+              width={640}
+              height={360}
+              {...(item.thumbnail?.srcSet ? { srcSet: item.thumbnail.srcSet } : {})}
+              sizes="(max-width: 768px) 100vw, 640px"
+            />
+          )}
           <div className={styles.playIcon}>{"\u25B6"}</div>
         </button>
       )}

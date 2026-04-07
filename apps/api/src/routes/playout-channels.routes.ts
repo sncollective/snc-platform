@@ -8,10 +8,54 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { config } from "../config.js";
+import { ensurePlayout } from "../services/channels.js";
 import { orchestrator } from "./playout-channels.init.js";
 
 /** Playout channel queue management and Liquidsoap webhook endpoints. */
 export const playoutChannelRoutes = new Hono<AuthEnv>();
+
+// ── Channel Creation (admin) ──
+
+playoutChannelRoutes.post(
+  "/channels",
+  requireAuth,
+  requireRole("admin"),
+  describeRoute({
+    description: "Create a new playout channel.",
+    tags: ["playout"],
+    responses: {
+      201: { description: "Channel created" },
+      400: { description: "Invalid request" },
+      401: { description: "Unauthorized" },
+      403: { description: "Forbidden" },
+      500: { description: "Internal server error" },
+    },
+  }),
+  validator(
+    "json",
+    z.object({
+      name: z.string().min(1).max(100),
+    }),
+  ),
+  async (c) => {
+    const { name } = c.req.valid("json");
+    // Generate srsStreamName from name: lowercase, kebab-case, prefixed with "channel-"
+    const srsStreamName =
+      "channel-" +
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    const result = await ensurePlayout({ name, srsStreamName });
+    if (!result.ok) {
+      return c.json(
+        { error: { code: result.error.code, message: result.error.message } },
+        result.error.statusCode as 400 | 500,
+      );
+    }
+    return c.json(result.value, 201);
+  },
+);
 
 // ── Track Event Webhook (Liquidsoap → API) ──
 

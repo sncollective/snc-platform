@@ -25,6 +25,10 @@ export const ENV_SCHEMA = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  // imgproxy (optional — image proxy disabled when IMGPROXY_URL absent)
+  IMGPROXY_URL: z.string().url().optional(),
+  IMGPROXY_KEY: z.string().optional(),
+  IMGPROXY_SALT: z.string().optional(),
   // Phase 7: Stripe (optional — API returns 503 BILLING_NOT_CONFIGURED when absent)
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DprImageSchema, ResponsiveImageSchema } from "./content.js";
 import { createPaginationQuery } from "./pagination.js";
 
 // ── Public Constants ──
@@ -153,6 +154,8 @@ export const CreatorProfileResponseSchema = z.object({
   handle: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   bannerUrl: z.string().nullable(),
+  avatar: DprImageSchema.nullable(),
+  banner: ResponsiveImageSchema.nullable(),
   socialLinks: z.array(SocialLinkSchema),
   contentCount: z.number().int().min(0),
   status: CreatorStatusSchema,

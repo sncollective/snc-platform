@@ -61,6 +61,8 @@ export type TranscodeOptions = {
   readonly videoBitrate?: string;
   readonly audioBitrate?: string;
   readonly onProgress?: (percent: number) => void;
+  readonly isHdr?: boolean;
+  readonly maxHeight?: number;
 };
 
 export type RenditionTranscodeOptions = {
@@ -155,6 +157,8 @@ export const probeMedia = async (
         codec_name?: string;
         width?: number;
         height?: number;
+        color_transfer?: string;
+        color_primaries?: string;
       }>;
     };
 
@@ -166,6 +170,10 @@ export const probeMedia = async (
       (s) => s.codec_type && !knownTypes.has(s.codec_type),
     ).length ?? 0;
 
+    const colorTransfer = videoStream?.color_transfer ?? null;
+    const colorPrimaries = videoStream?.color_primaries ?? null;
+    const isHdr = colorTransfer === "smpte2084" || colorTransfer === "arib-std-b67";
+
     return ok({
       videoCodec: videoStream?.codec_name ?? null,
       audioCodec: audioStream?.codec_name ?? null,
@@ -176,6 +184,9 @@ export const probeMedia = async (
       bitrate: data.format?.bit_rate ? parseInt(data.format.bit_rate, 10) : null,
       dataStreamCount,
       tags: extractProbeTags(data.format?.tags),
+      colorTransfer,
+      colorPrimaries,
+      isHdr,
     });
   } catch (e) {
     return err(wrapFfmpegError(e));
@@ -205,6 +216,19 @@ export const transcodeToH264 = async (
         "-i", input,
         "-map", "0:v:0",
         "-map", "0:a:0",
+      ];
+
+      // HDR tone-mapping: convert to SDR
+      if (options?.isHdr) {
+        let vfChain = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p";
+        // Cap HDR sources at 1080p (CPU tone-mapping is expensive at 4K)
+        if (options.maxHeight && options.maxHeight > 1080) {
+          vfChain += ",scale=-2:1080";
+        }
+        args.push("-vf", vfChain);
+      }
+
+      args.push(
         "-c:v", "libx264",
         "-preset", "medium",
         "-crf", "23",
@@ -214,7 +238,7 @@ export const transcodeToH264 = async (
         "-movflags", "+faststart",
         "-y",
         output,
-      ];
+      );
 
       const proc = spawn("ffmpeg", args);
 
