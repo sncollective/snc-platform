@@ -21,6 +21,11 @@ export const DEFAULT_EVENT_TYPE_LABELS: Readonly<Record<(typeof DEFAULT_EVENT_TY
   "other": "Other",
 };
 
+/** Allowed visibility values for calendar events. */
+export const EVENT_VISIBILITY = ["public", "internal"] as const;
+export type EventVisibility = (typeof EVENT_VISIBILITY)[number];
+export const EventVisibilitySchema = z.enum(EVENT_VISIBILITY);
+
 /** Maximum calendar event title length. */
 export const MAX_EVENT_TITLE_LENGTH = 200;
 /** Maximum calendar event description length. */
@@ -41,6 +46,7 @@ export const CalendarEventSchema = z.object({
   allDay: z.boolean(),
   eventType: EventTypeSchema,
   location: z.string(),
+  visibility: EventVisibilitySchema,
   createdBy: z.string(),
   creatorId: z.string().nullable(),
   creatorName: z.string().nullable(),
@@ -59,6 +65,7 @@ export const CreateCalendarEventSchema = z.object({
   allDay: z.boolean().default(false),
   eventType: EventTypeSchema,
   location: z.string().max(MAX_EVENT_LOCATION_LENGTH).default(""),
+  visibility: EventVisibilitySchema.default("internal"),
   projectId: z.string().nullable().default(null),
 });
 
@@ -70,6 +77,7 @@ export const UpdateCalendarEventSchema = z.object({
   allDay: z.boolean().optional(),
   eventType: EventTypeSchema.optional(),
   location: z.string().max(MAX_EVENT_LOCATION_LENGTH).optional(),
+  visibility: EventVisibilitySchema.optional(),
   projectId: z.string().nullable().optional(),
 });
 
@@ -95,6 +103,25 @@ export const FeedTokenResponseSchema = z.object({
   url: z.string(),
 });
 
+/** Public-safe upcoming event shape — excludes internal fields like createdBy, projectId, deletedAt. */
+export const UpcomingEventSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  startAt: z.iso.datetime(),
+  endAt: z.iso.datetime().nullable(),
+  allDay: z.boolean(),
+  eventType: z.string(),
+  location: z.string(),
+  creatorId: z.string().nullable(),
+  creatorName: z.string().nullable(),
+});
+
+/** Response shape for the public upcoming events endpoint. */
+export const UpcomingEventsResponseSchema = z.object({
+  items: z.array(UpcomingEventSchema),
+});
+
 // ── Public Types ──
 
 export type CalendarEvent = z.infer<typeof CalendarEventSchema>;
@@ -104,3 +131,5 @@ export type CalendarEventsQuery = z.infer<typeof CalendarEventsQuerySchema>;
 export type CalendarEventResponse = z.infer<typeof CalendarEventResponseSchema>;
 export type CalendarEventsResponse = z.infer<typeof CalendarEventsResponseSchema>;
 export type FeedTokenResponse = z.infer<typeof FeedTokenResponseSchema>;
+export type UpcomingEvent = z.infer<typeof UpcomingEventSchema>;
+export type UpcomingEventsResponse = z.infer<typeof UpcomingEventsResponseSchema>;

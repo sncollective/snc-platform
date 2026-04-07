@@ -1,26 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import type { CreatorListResponse, FeedResponse, SubscriptionPlan } from "@snc/shared";
+import type {
+  CreatorListResponse,
+  FeedResponse,
+  SubscriptionPlan,
+  ChannelListResponse,
+  UpcomingEventsResponse,
+} from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { ssrLogger } from "../lib/logger.js";
 import { HeroSection } from "../components/landing/hero-section.js";
-import { FeaturedCreators } from "../components/landing/featured-creators.js";
+import { WhatsOn } from "../components/landing/whats-on.js";
 import { RecentContent } from "../components/landing/recent-content.js";
+import { ComingUp } from "../components/landing/coming-up.js";
+import { FeaturedCreators } from "../components/landing/featured-creators.js";
 import { LandingPricing } from "../components/landing/landing-pricing.js";
 
 export interface LandingData {
   creators: CreatorListResponse["items"];
   recentContent: FeedResponse["items"];
   plans: SubscriptionPlan[];
+  channels: ChannelListResponse;
+  upcomingEvents: UpcomingEventsResponse["items"];
 }
 
 export const Route = createFileRoute("/")({
   errorComponent: RouteErrorBoundary,
   loader: async (): Promise<LandingData> => {
-    const [creators, recentContent, plans] = await Promise.all([
+    const [creators, recentContent, plans, channels, upcomingEvents] = await Promise.all([
       (
         fetchApiServer({
           data: "/api/creators?limit=8",
@@ -53,8 +63,21 @@ export const Route = createFileRoute("/")({
               return [] as SubscriptionPlan[];
             })
         : ([] as SubscriptionPlan[]),
+      // Streaming status (no auth needed)
+      (fetchApiServer({ data: "/api/streaming/status" }) as Promise<ChannelListResponse>)
+        .catch((e: unknown) => {
+          ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load streaming status");
+          return { channels: [], defaultChannelId: null } as ChannelListResponse;
+        }),
+      // Upcoming events (no auth needed)
+      (fetchApiServer({ data: "/api/events/upcoming?limit=5" }) as Promise<UpcomingEventsResponse>)
+        .then((r) => r.items)
+        .catch((e: unknown) => {
+          ssrLogger.warn({ error: e instanceof Error ? e.message : String(e) }, "Failed to load upcoming events");
+          return [] as UpcomingEventsResponse["items"];
+        }),
     ]);
-    return { creators, recentContent, plans };
+    return { creators, recentContent, plans, channels, upcomingEvents };
   },
   head: () => ({
     meta: [
@@ -74,8 +97,10 @@ function LandingPage(): React.ReactElement {
   return (
     <>
       <HeroSection plans={data.plans} />
-      <FeaturedCreators creators={data.creators} />
+      <WhatsOn channels={data.channels} />
       <RecentContent items={data.recentContent} />
+      <ComingUp events={data.upcomingEvents} />
+      <FeaturedCreators creators={data.creators} />
       {isFeatureEnabled("subscription") && <LandingPricing plans={data.plans} />}
     </>
   );

@@ -1,6 +1,6 @@
 .hero {
   background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-hero-gradient) 100%);
-  padding: var(--space-2xl) var(--space-md);
+  padding: var(--space-xl) var(--space-md);
   text-align: center;
   animation: fadeIn 0.3s ease-out both;
   border-radius: var(--radius-lg);
@@ -13,29 +13,25 @@
 
 .heading {
   font-family: var(--font-heading);
-  font-size: 2.5rem;
+  font-size: var(--font-size-3xl-fluid);
   line-height: 1.2;
   margin: 0 0 var(--space-md);
 }
 
 .subheading {
   font-family: var(--font-ui);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   color: var(--color-text-muted);
   margin: 0;
   line-height: 1.6;
 }
 
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .hero {
-    padding: var(--space-xl) var(--space-md);
-  }
-
-  .heading {
-    font-size: 1.75rem;
+    padding: var(--space-2xl) var(--space-md);
   }
 
   .subheading {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
   }
 }

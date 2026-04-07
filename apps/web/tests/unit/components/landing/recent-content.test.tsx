@@ -15,11 +15,11 @@ import { RecentContent } from "../../../../src/components/landing/recent-content
 // ── Tests ──
 
 describe("RecentContent", () => {
-  it("renders section heading 'Recent Content'", () => {
+  it("renders section heading 'Fresh Drops'", () => {
     render(<RecentContent items={[makeMockFeedItem()]} />);
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Recent Content" }),
+      screen.getByRole("heading", { level: 2, name: "Fresh Drops" }),
     ).toBeInTheDocument();
   });
 
@@ -49,5 +49,19 @@ describe("RecentContent", () => {
     render(<RecentContent items={[]} />);
 
     expect(screen.getByText(/No content yet/)).toBeInTheDocument();
+  });
+
+  it("renders first item in hero slot and rest in grid", () => {
+    const items = [
+      makeMockFeedItem({ id: "c1", title: "Hero Item" }),
+      makeMockFeedItem({ id: "c2", title: "Grid Item One" }),
+      makeMockFeedItem({ id: "c3", title: "Grid Item Two" }),
+    ];
+
+    render(<RecentContent items={items} />);
+
+    expect(screen.getByText("Hero Item")).toBeInTheDocument();
+    expect(screen.getByText("Grid Item One")).toBeInTheDocument();
+    expect(screen.getByText("Grid Item Two")).toBeInTheDocument();
   });
 });

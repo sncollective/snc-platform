@@ -18,7 +18,7 @@ export function FeaturedCreators({
 }: FeaturedCreatorsProps): React.ReactElement {
   return (
     <section className={sectionStyles.section}>
-      <h2 className={sectionStyles.heading}>Featured Creators</h2>
+      <h2 className={sectionStyles.heading}>Creators</h2>
       {creators.length === 0 ? (
         <div className={sectionStyles.empty}>
           <Users size={32} aria-hidden="true" />
@@ -28,7 +28,7 @@ export function FeaturedCreators({
         <div
           className={styles.scrollContainer}
           role="region"
-          aria-label="Featured creators"
+          aria-label="Creators"
           tabIndex={0}
         >
           {creators.map((creator) => (

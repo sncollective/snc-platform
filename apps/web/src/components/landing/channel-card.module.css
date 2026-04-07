@@ -1,0 +1,117 @@
+/* ── Base Card ── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text);
+  min-width: 200px;
+  max-width: 280px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  transition: border-color var(--duration-normal) var(--ease-default),
+    box-shadow var(--duration-normal) var(--ease-default);
+}
+
+.card:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Live Variant ── */
+
+.cardLive {
+  composes: card;
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 1px var(--color-error);
+}
+
+.cardLive:hover {
+  border-color: var(--color-error);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--color-error);
+}
+
+/* ── Header Row ── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ── Badges ── */
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-error);
+  letter-spacing: 0.05em;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-error);
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot {
+    animation: none;
+  }
+}
+
+.nowPlayingBadge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+}
+
+.viewerCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* ── Info ── */
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channelName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.creatorName {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.trackTitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

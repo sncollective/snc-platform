@@ -25,6 +25,14 @@ vi.mock("../../../src/components/landing/hero-section.js", async () => {
   };
 });
 
+vi.mock("../../../src/components/landing/whats-on.js", async () => {
+  const React = await import("react");
+  return {
+    WhatsOn: () =>
+      React.createElement("section", { "data-testid": "whats-on" }, "What's On"),
+  };
+});
+
 vi.mock("../../../src/components/landing/featured-creators.js", async () => {
   const React = await import("react");
   return {
@@ -46,6 +54,14 @@ vi.mock("../../../src/components/landing/recent-content.js", async () => {
         { "data-testid": "recent-content" },
         "Content",
       ),
+  };
+});
+
+vi.mock("../../../src/components/landing/coming-up.js", async () => {
+  const React = await import("react");
+  return {
+    ComingUp: () =>
+      React.createElement("section", { "data-testid": "coming-up" }, "Coming Up"),
   };
 });
 
@@ -72,6 +88,8 @@ beforeEach(() => {
     creators: [],
     recentContent: [],
     plans: [],
+    channels: { channels: [], defaultChannelId: null },
+    upcomingEvents: [],
   });
 });
 
@@ -98,15 +116,17 @@ describe("LandingPage", () => {
     expect(screen.getByTestId("landing-pricing")).toBeInTheDocument();
   });
 
-  it("renders all four sections in correct order", () => {
+  it("renders all sections in correct order", () => {
     const { container } = render(<LandingPage />);
     const sections = container.querySelectorAll("section");
 
-    expect(sections).toHaveLength(4);
+    expect(sections).toHaveLength(6);
     expect(sections[0]).toHaveAttribute("data-testid", "hero-section");
-    expect(sections[1]).toHaveAttribute("data-testid", "featured-creators");
+    expect(sections[1]).toHaveAttribute("data-testid", "whats-on");
     expect(sections[2]).toHaveAttribute("data-testid", "recent-content");
-    expect(sections[3]).toHaveAttribute("data-testid", "landing-pricing");
+    expect(sections[3]).toHaveAttribute("data-testid", "coming-up");
+    expect(sections[4]).toHaveAttribute("data-testid", "featured-creators");
+    expect(sections[5]).toHaveAttribute("data-testid", "landing-pricing");
   });
 
   it("does not render a <main> tag (root layout provides it)", () => {

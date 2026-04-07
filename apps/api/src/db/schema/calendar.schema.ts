@@ -24,6 +24,7 @@ export const calendarEvents = pgTable(
     allDay: boolean("all_day").notNull().default(false),
     eventType: text("event_type").notNull(),
     location: text("location").notNull().default(""),
+    visibility: text("visibility").notNull().default("internal"),
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

@@ -1,8 +1,9 @@
-/* ── Table Container (Desktop) ── */
+/* ── Table Container ── */
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  display: none;
 }
 
 .headerRow th {
@@ -119,7 +120,7 @@
 /* ── Mobile Card Layout ── */
 
 .cardList {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
@@ -160,14 +161,14 @@
   margin-top: var(--space-sm);
 }
 
-/* ── Responsive ── */
+/* ── Container Query: table when parent wide enough ── */
 
-@media (max-width: 767px) {
+@container dashboard (min-width: 640px) {
   .table {
-    display: none;
+    display: table;
   }
 
   .cardList {
-    display: flex;
+    display: none;
   }
 }

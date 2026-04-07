@@ -29,12 +29,13 @@
 
 .kpiRow {
   display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
 }
 
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .kpiRow {
-    flex-direction: column;
+    flex-direction: row;
   }
 }
 

@@ -11,7 +11,7 @@
 
 .collapsedBar {
   position: fixed;
-  bottom: 0;
+  bottom: var(--tab-bar-height, 0px);
   left: 0;
   right: 0;
   height: 64px;
@@ -26,9 +26,9 @@
 
 .collapsedOverlay {
   position: fixed;
-  bottom: calc(var(--space-lg) + var(--mini-upload-height, 0px));
-  right: var(--space-lg);
-  width: 320px;
+  bottom: calc(var(--space-md) + var(--mini-upload-height, 0px) + var(--tab-bar-height, 0px));
+  right: var(--space-md);
+  width: 200px;
   aspect-ratio: 16 / 9;
   z-index: 200;
   border-radius: var(--radius-md);
@@ -38,11 +38,11 @@
   background: var(--color-media-bg);
 }
 
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .collapsedOverlay {
-    width: 200px;
-    bottom: calc(var(--space-md) + var(--mini-upload-height, 0px));
-    right: var(--space-md);
+    width: 320px;
+    bottom: calc(var(--space-lg) + var(--mini-upload-height, 0px) + var(--tab-bar-height, 0px));
+    right: var(--space-lg);
   }
 }
 

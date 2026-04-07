@@ -13,22 +13,36 @@
 
 .dateRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
 }
 
 /* When not all-day, expand to 4 columns for date+time pairs */
 .dateRowWithTime {
   display: grid;
-  grid-template-columns: 3fr 2fr 3fr 2fr;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
 }
 
 /* When not all-day and no end date, 2 columns for start date + start time */
 .dateRowStartOnly {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .dateRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dateRowWithTime {
+    grid-template-columns: 3fr 2fr 3fr 2fr;
+  }
+
+  .dateRowStartOnly {
+    grid-template-columns: 3fr 2fr;
+  }
 }
 
 .addEndButton {

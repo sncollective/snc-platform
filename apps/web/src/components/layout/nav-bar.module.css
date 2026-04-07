@@ -32,9 +32,15 @@
 }
 
 .links {
-  display: flex;
+  display: none;
   gap: var(--space-lg);
   list-style: none;
+}
+
+@media (min-width: 768px) {
+  .links {
+    display: flex;
+  }
 }
 
 .navLink {
@@ -70,10 +76,3 @@
   gap: var(--space-sm);
 }
 
-/* ── Responsive ── */
-
-@media (max-width: 767px) {
-  .links {
-    display: none;
-  }
-}

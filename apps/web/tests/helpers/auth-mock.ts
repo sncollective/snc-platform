@@ -11,7 +11,7 @@
  *     createAuthMock({ useSession: mockUseSession }),
  *   );
  *
- * Usage (useSession + useAuthExtras + hasRole — nav-bar, user-menu, mobile-menu):
+ * Usage (useSession + useAuthExtras + hasRole — nav-bar, user-menu):
  *   const { mockUseSession, mockUseAuthExtras } = vi.hoisted(() => ({
  *     mockUseSession: vi.fn(),
  *     mockUseAuthExtras: vi.fn(),

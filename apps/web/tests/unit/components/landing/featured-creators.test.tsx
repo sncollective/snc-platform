@@ -15,13 +15,13 @@ import { FeaturedCreators } from "../../../../src/components/landing/featured-cr
 // ── Tests ──
 
 describe("FeaturedCreators", () => {
-  it("renders section heading 'Featured Creators'", () => {
+  it("renders section heading 'Creators'", () => {
     render(
       <FeaturedCreators creators={[makeMockCreatorListItem()]} />,
     );
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Featured Creators" }),
+      screen.getByRole("heading", { level: 2, name: "Creators" }),
     ).toBeInTheDocument();
   });
 
@@ -45,7 +45,7 @@ describe("FeaturedCreators", () => {
     );
 
     const region = screen.getByRole("region", {
-      name: "Featured creators",
+      name: "Creators",
     });
     expect(region).toBeInTheDocument();
   });

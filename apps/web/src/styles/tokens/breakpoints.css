@@ -1,0 +1,15 @@
+/*
+ * ── Breakpoint Reference Tokens ──
+ *
+ * CSS custom properties cannot appear in @media conditions.
+ * This file is the single source of truth — all media queries
+ * reference these values by convention.
+ *
+ * Mobile-first: use min-width exclusively.
+ *
+ *   @media (min-width: 640px)  → sm: large phones / small tablets
+ *   @media (min-width: 768px)  → md: tablets / small laptops
+ *   @media (min-width: 1024px) → lg: desktops
+ *
+ * Scan rule `breakpoint-literal` enforces these values.
+ */

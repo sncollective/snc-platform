@@ -17,23 +17,16 @@ export function GlobalPlayer() {
   const { state, presentation, actions } = useGlobalPlayer();
   const modules = useVidstackModules();
 
-  // Set mini player height CSS variable and body padding for collapsed modes
+  // Set mini player height CSS variable for collapsed modes
   useEffect(() => {
     if (presentation === "collapsed") {
       const height = state.media?.contentType === "audio" ? "64px" : "0px";
       document.body.style.setProperty("--mini-player-height", height);
-      if (state.media?.contentType === "audio") {
-        document.body.style.paddingBottom = "64px";
-      } else {
-        document.body.style.paddingBottom = "";
-      }
     } else {
       document.body.style.removeProperty("--mini-player-height");
-      document.body.style.paddingBottom = "";
     }
     return () => {
       document.body.style.removeProperty("--mini-player-height");
-      document.body.style.paddingBottom = "";
     };
   }, [presentation, state.media?.contentType]);
 

@@ -142,6 +142,9 @@ export function EventForm({
   const [eventType, setEventType] = useState(event?.eventType ?? defaultEventType ?? "");
   const [customEventTypeLabel, setCustomEventTypeLabel] = useState("");
   const [location, setLocation] = useState(event?.location ?? "");
+  const [visibility, setVisibility] = useState<string>(
+    event?.visibility ?? (eventType === "show" ? "public" : "internal"),
+  );
   const [projectId, setProjectId] = useState<string>(event?.projectId ?? defaultProjectId ?? "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
@@ -203,6 +206,12 @@ export function EventForm({
       );
     }
   }, [eventTypeToReconcile, knownEventTypes]);
+
+  useEffect(() => {
+    if (eventType === "show") {
+      setVisibility("public");
+    }
+  }, [eventType]);
 
   const isOtherSelected = eventType === "other";
   const customSlug = toSlug(customEventTypeLabel);
@@ -281,6 +290,7 @@ export function EventForm({
         allDay,
         eventType: data.eventType,
         location: data.location,
+        visibility,
         projectId: projectId || null,
       };
 
@@ -563,6 +573,21 @@ export function EventForm({
           </div>
         );
       })()}
+
+      <div className={formStyles.fieldGroup}>
+        <label className={formStyles.label} htmlFor="visibility">
+          Visibility
+        </label>
+        <select
+          id="visibility"
+          className={formStyles.select}
+          value={visibility}
+          onChange={(e) => setVisibility(e.target.value)}
+        >
+          <option value="internal">Internal</option>
+          <option value="public">Public</option>
+        </select>
+      </div>
 
       <div className={formStyles.fieldGroup}>
         <label htmlFor="event-location" className={formStyles.label}>

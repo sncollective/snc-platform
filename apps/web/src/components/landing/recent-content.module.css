@@ -1,3 +1,11 @@
+/* ── Hero Slot ── */
+
+.heroSlot {
+  container-type: inline-size;
+  container-name: hero-card;
+  margin-bottom: var(--space-lg);
+}
+
 /* ── View All Link ── */
 
 .viewAll {

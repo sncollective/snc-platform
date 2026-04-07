@@ -1,0 +1,1 @@
+ALTER TABLE "calendar_events" ADD COLUMN "visibility" text DEFAULT 'internal' NOT NULL;

@@ -79,6 +79,16 @@
 .table {
   width: 100%;
   border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .table {
+    display: table;
+    overflow-x: visible;
+  }
 }
 
 .table th {
@@ -230,12 +240,3 @@
   margin: 0;
 }
 
-/* ── Responsive ── */
-
-@media (max-width: 768px) {
-  .table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}

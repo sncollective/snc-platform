@@ -23,6 +23,7 @@ import { NotificationProvider } from "../contexts/notification-context.js";
 import { UploadProvider } from "../contexts/upload-context.js";
 import { GlobalPlayer } from "../components/media/global-player.js";
 import { MiniUploadIndicator } from "../components/upload/mini-upload-indicator.js";
+import { BottomTabBar } from "../components/layout/bottom-tab-bar.js";
 import { DEMO_MODE } from "../lib/config.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
 import { ToastProvider } from "../components/ui/toast.js";
@@ -129,6 +130,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
         />
       </main>
       <MiniUploadIndicator />
+      <BottomTabBar />
       {!isLiveLayout && !isTheater && <Footer />}
     </>
   );

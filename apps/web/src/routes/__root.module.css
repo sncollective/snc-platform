@@ -1,14 +1,13 @@
 /* ── Live Layout Grid ── */
 
 .liveGrid {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  grid-template-rows: auto 1fr;
-  height: calc(100vh - var(--nav-height));
-  max-width: none;
-  padding: 0 0 0 var(--space-xl);
-  margin: 0;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+  overflow: visible;
   min-height: 0;
 }
 
@@ -27,9 +26,9 @@
 }
 
 .chatPortal {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  border-left: 1px solid var(--color-border);
+  border-left: none;
+  border-top: 1px solid var(--color-border);
+  height: 400px;
   overflow: hidden;
 }
 
@@ -54,23 +53,25 @@
   display: none;
 }
 
-/* ── Mobile: revert to stacked ── */
+/* ── Desktop: grid layout ── */
 
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .liveGrid {
-    display: flex;
-    flex-direction: column;
-    height: auto;
-    padding: var(--space-lg) var(--space-md);
-    max-width: var(--content-max-width);
-    margin: 0 auto;
-    overflow: visible;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    height: calc(100vh - var(--nav-height));
+    max-width: none;
+    padding: 0 0 0 var(--space-xl);
+    margin: 0;
+    overflow: hidden;
   }
 
   .chatPortal {
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    height: 400px;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    border-left: 1px solid var(--color-border);
+    border-top: none;
+    height: auto;
   }
-
 }

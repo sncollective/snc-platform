@@ -3,6 +3,8 @@ import { describe, it, expect } from "vitest";
 import {
   DEFAULT_EVENT_TYPES,
   DEFAULT_EVENT_TYPE_LABELS,
+  EVENT_VISIBILITY,
+  EventVisibilitySchema,
   EventTypeSchema,
   CalendarEventSchema,
   CreateCalendarEventSchema,
@@ -11,6 +13,8 @@ import {
   CalendarEventResponseSchema,
   CalendarEventsResponseSchema,
   FeedTokenResponseSchema,
+  UpcomingEventSchema,
+  UpcomingEventsResponseSchema,
   type CalendarEvent,
   type CreateCalendarEvent,
   type UpdateCalendarEvent,
@@ -18,6 +22,8 @@ import {
   type CalendarEventResponse,
   type CalendarEventsResponse,
   type FeedTokenResponse,
+  type UpcomingEvent,
+  type UpcomingEventsResponse,
 } from "../src/index.js";
 
 const VALID_EVENT = {
@@ -29,6 +35,7 @@ const VALID_EVENT = {
   allDay: false,
   eventType: "recording-session",
   location: "Studio A",
+  visibility: "internal" as const,
   createdBy: "user_abc",
   creatorId: null,
   creatorName: null,
@@ -445,6 +452,137 @@ describe("FeedTokenResponseSchema", () => {
     expect(() =>
       FeedTokenResponseSchema.parse({ token: "abc" }),
     ).toThrow();
+  });
+});
+
+describe("EVENT_VISIBILITY / EventVisibilitySchema", () => {
+  it("contains exactly public and internal", () => {
+    expect(EVENT_VISIBILITY).toStrictEqual(["public", "internal"]);
+  });
+
+  it("accepts public", () => {
+    expect(EventVisibilitySchema.parse("public")).toBe("public");
+  });
+
+  it("accepts internal", () => {
+    expect(EventVisibilitySchema.parse("internal")).toBe("internal");
+  });
+
+  it("rejects unknown values", () => {
+    expect(() => EventVisibilitySchema.parse("private")).toThrow();
+  });
+});
+
+describe("CalendarEventSchema visibility", () => {
+  it("accepts public visibility", () => {
+    const result = CalendarEventSchema.parse({ ...VALID_EVENT, visibility: "public" });
+    expect(result.visibility).toBe("public");
+  });
+
+  it("accepts internal visibility", () => {
+    const result = CalendarEventSchema.parse({ ...VALID_EVENT, visibility: "internal" });
+    expect(result.visibility).toBe("internal");
+  });
+
+  it("rejects invalid visibility", () => {
+    expect(() =>
+      CalendarEventSchema.parse({ ...VALID_EVENT, visibility: "private" }),
+    ).toThrow();
+  });
+});
+
+describe("CreateCalendarEventSchema visibility", () => {
+  const VALID_CREATE = {
+    title: "New Event",
+    startAt: "2026-04-01T10:00:00.000Z",
+    eventType: "meeting",
+  };
+
+  it("defaults to internal when omitted", () => {
+    const result = CreateCalendarEventSchema.parse(VALID_CREATE);
+    expect(result.visibility).toBe("internal");
+  });
+
+  it("accepts public", () => {
+    const result = CreateCalendarEventSchema.parse({ ...VALID_CREATE, visibility: "public" });
+    expect(result.visibility).toBe("public");
+  });
+
+  it("rejects invalid visibility", () => {
+    expect(() =>
+      CreateCalendarEventSchema.parse({ ...VALID_CREATE, visibility: "private" }),
+    ).toThrow();
+  });
+});
+
+describe("UpdateCalendarEventSchema visibility", () => {
+  it("accepts optional visibility update", () => {
+    const result = UpdateCalendarEventSchema.parse({ visibility: "public" });
+    expect(result.visibility).toBe("public");
+  });
+
+  it("omits visibility when not provided", () => {
+    const result = UpdateCalendarEventSchema.parse({});
+    expect(result.visibility).toBeUndefined();
+  });
+});
+
+const VALID_UPCOMING: UpcomingEvent = {
+  id: "evt_upcoming1",
+  title: "Live Show",
+  description: "Evening performance",
+  startAt: "2026-05-01T19:00:00.000Z",
+  endAt: "2026-05-01T22:00:00.000Z",
+  allDay: false,
+  eventType: "show",
+  location: "Main Stage",
+  creatorId: "creator_abc",
+  creatorName: "The Noisy Band",
+};
+
+describe("UpcomingEventSchema", () => {
+  it("validates a complete upcoming event", () => {
+    const result = UpcomingEventSchema.parse(VALID_UPCOMING);
+    expect(result.id).toBe("evt_upcoming1");
+    expect(result.creatorName).toBe("The Noisy Band");
+  });
+
+  it("accepts null endAt", () => {
+    const result = UpcomingEventSchema.parse({ ...VALID_UPCOMING, endAt: null });
+    expect(result.endAt).toBeNull();
+  });
+
+  it("accepts null creatorId and creatorName", () => {
+    const result = UpcomingEventSchema.parse({
+      ...VALID_UPCOMING,
+      creatorId: null,
+      creatorName: null,
+    });
+    expect(result.creatorId).toBeNull();
+    expect(result.creatorName).toBeNull();
+  });
+
+  it("rejects missing required fields", () => {
+    expect(() => UpcomingEventSchema.parse({})).toThrow();
+  });
+});
+
+describe("UpcomingEventsResponseSchema", () => {
+  it("validates items array", () => {
+    const result: UpcomingEventsResponse = UpcomingEventsResponseSchema.parse({
+      items: [VALID_UPCOMING],
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).toBe("evt_upcoming1");
+  });
+
+  it("validates empty items array", () => {
+    const result = UpcomingEventsResponseSchema.parse({ items: [] });
+    expect(result.items).toHaveLength(0);
+  });
+
+  it("rejects missing items field", () => {
+    expect(() => UpcomingEventsResponseSchema.parse({})).toThrow();
   });
 });
 

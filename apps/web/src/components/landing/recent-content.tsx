@@ -7,19 +7,15 @@ import { ContentCard } from "../content/content-card.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./recent-content.module.css";
 
-// ── Public API ──
-
 interface RecentContentProps {
   readonly items: readonly FeedResponse["items"][number][];
 }
 
-/** Render the recent content section on the landing page. */
-export function RecentContent({
-  items,
-}: RecentContentProps): React.ReactElement {
+/** Render the "Fresh Drops" section with hero card + supporting grid. */
+export function RecentContent({ items }: RecentContentProps): React.ReactElement {
   return (
     <section className={sectionStyles.section}>
-      <h2 className={sectionStyles.heading}>Recent Content</h2>
+      <h2 className={sectionStyles.heading}>Fresh Drops</h2>
       {items.length === 0 ? (
         <div className={sectionStyles.empty}>
           <FileText size={32} aria-hidden="true" />
@@ -27,11 +23,18 @@ export function RecentContent({
         </div>
       ) : (
         <>
-          <div className="content-grid">
-            {items.map((item) => (
-              <ContentCard key={item.id} item={item} />
-            ))}
-          </div>
+          {items.length > 0 && (
+            <div className={styles.heroSlot}>
+              <ContentCard item={items[0]!} />
+            </div>
+          )}
+          {items.length > 1 && (
+            <div className="content-grid">
+              {items.slice(1).map((item) => (
+                <ContentCard key={item.id} item={item} />
+              ))}
+            </div>
+          )}
           <Link to="/feed" className={styles.viewAll}>
             View all content →
           </Link>

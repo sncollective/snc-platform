@@ -22,8 +22,14 @@
   padding: 0;
   margin: 0 0 var(--space-lg);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
+}
+
+@media (min-width: 768px) {
+  .features {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
 }
 
 .feature {
@@ -46,8 +52,3 @@
   margin: 0;
 }
 
-@media (max-width: 767px) {
-  .features {
-    grid-template-columns: 1fr;
-  }
-}

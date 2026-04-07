@@ -1,0 +1,24 @@
+/* ── Channel Strip (horizontal scroll) ── */
+
+.channelStrip {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  padding-bottom: var(--space-sm);
+}
+
+.channelStrip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.channelStrip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.channelStrip::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}

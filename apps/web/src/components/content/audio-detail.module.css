@@ -10,45 +10,25 @@
 
 .header {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--space-xl);
-  align-items: flex-start;
-}
-
-@media (max-width: 767px) {
-  .header {
-    flex-direction: column;
-    align-items: center;
-  }
 }
 
 .coverArt {
-  width: 280px;
-  height: 280px;
+  width: 240px;
+  height: 240px;
   object-fit: cover;
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 
-@media (max-width: 767px) {
-  .coverArt {
-    width: 240px;
-    height: 240px;
-  }
-}
-
 .coverArtPlaceholder {
-  width: 280px;
-  height: 280px;
+  width: 240px;
+  height: 240px;
   border-radius: var(--radius-md);
   flex-shrink: 0;
   background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-elevated) 100%);
-}
-
-@media (max-width: 767px) {
-  .coverArtPlaceholder {
-    width: 240px;
-    height: 240px;
-  }
 }
 
 /* ── Track Info ── */
@@ -85,8 +65,8 @@
   border-radius: var(--radius-md);
   padding: var(--space-xl) var(--space-lg);
   background: var(--color-bg);
-  width: 280px;
-  height: 280px;
+  width: 240px;
+  height: 240px;
   flex-shrink: 0;
 }
 
@@ -145,4 +125,28 @@
 .removeButton:hover {
   background: var(--color-error);
   color: var(--color-bg);
+}
+
+/* ── Desktop: row layout + larger cover art ── */
+
+@media (min-width: 768px) {
+  .header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .coverArt {
+    width: 280px;
+    height: 280px;
+  }
+
+  .coverArtPlaceholder {
+    width: 280px;
+    height: 280px;
+  }
+
+  .uploadPlaceholder {
+    width: 280px;
+    height: 280px;
+  }
 }

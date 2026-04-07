@@ -10,6 +10,10 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
 
+  /* Fluid layout spacing — scales with viewport */
+  --space-section-fluid: clamp(1.5rem, 1rem + 2vw, 3rem);
+  --space-layout-fluid: clamp(1rem, 0.5rem + 1.5vw, 2rem);
+
   /* Layout */
   --content-max-width: 1200px;
   --nav-height: 64px;
@@ -18,4 +22,11 @@
   --context-topbar-height: 48px;
   --mini-player-height: 0px;
   --mini-upload-height: 0px;
+  --tab-bar-height: 56px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --tab-bar-height: 0px;
+  }
 }

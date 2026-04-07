@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "@snc/shared";
+import type { CalendarEvent, EventVisibility } from "@snc/shared";
 
 import type { calendarEvents } from "../db/schema/calendar.schema.js";
 
@@ -20,6 +20,7 @@ export const toEventResponse = (
   allDay: row.allDay,
   eventType: row.eventType,
   location: row.location,
+  visibility: row.visibility as EventVisibility,
   createdBy: row.createdBy,
   creatorId: row.creatorId ?? null,
   creatorName: creatorName ?? null,

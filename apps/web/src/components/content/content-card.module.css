@@ -135,3 +135,25 @@
   align-items: center;
   color: var(--color-text-muted);
 }
+
+/* ── Container Query: horizontal layout in wide containers ── */
+
+@container (min-width: 500px) {
+  .card {
+    flex-direction: row;
+  }
+
+  .thumbnailWrapper {
+    width: 45%;
+    flex-shrink: 0;
+  }
+
+  .info {
+    justify-content: center;
+    padding: var(--space-md);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+}

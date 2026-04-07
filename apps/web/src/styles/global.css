@@ -6,6 +6,7 @@
 @import "./tokens/elevation.css";
 @import "./tokens/motion.css";
 @import "./tokens/radius.css";
+@import "./tokens/breakpoints.css";
 
 /* Backwards-compat aliases (remove when consumers migrate) */
 :root {
@@ -51,15 +52,15 @@ h6 {
 }
 
 h1 {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-3xl-fluid);
 }
 
 h2 {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-2xl-fluid);
 }
 
 h3 {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-xl-fluid);
 }
 
 /* ── Links ── */
@@ -105,9 +106,11 @@ a:hover {
 .main-content {
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: var(--space-lg) var(--space-md);
-  padding-bottom: calc(var(--space-lg) + var(--mini-player-height) + var(--mini-upload-height));
+  padding: var(--space-section-fluid) var(--space-layout-fluid);
+  padding-bottom: calc(var(--space-section-fluid) + var(--tab-bar-height) + var(--mini-player-height) + var(--mini-upload-height));
   min-height: calc(100vh - var(--nav-height) - 120px);
+  container-type: inline-size;
+  container-name: main-content;
 }
 
 /* ── Screen Reader Only ── */

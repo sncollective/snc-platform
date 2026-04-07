@@ -5,14 +5,13 @@ import type { AuthState } from "../../lib/auth.js";
 import { NAV_LINKS } from "../../config/navigation.js";
 import { NotificationBell } from "../notification-bell.js";
 import { UserMenu } from "./user-menu.js";
-import { MobileMenu } from "./mobile-menu.js";
 import { NavLinkItem } from "./nav-link-item.js";
 
 import styles from "./nav-bar.module.css";
 
 // ── Public API ──
 
-/** Top-level navigation header with desktop link list, user menu, and mobile hamburger menu. */
+/** Top-level navigation header with desktop link list and user menu. */
 export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
@@ -51,7 +50,6 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
         <div className={styles.right}>
           {user && <NotificationBell />}
           <UserMenu {...(serverAuth !== undefined ? { serverAuth } : {})} />
-          <MobileMenu currentPath={currentPath} {...(serverAuth !== undefined ? { serverAuth } : {})} />
         </div>
       </nav>
     </header>
