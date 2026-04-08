@@ -71,10 +71,7 @@ services:
       API_CALLBACK_HOST: snc-api
       API_CALLBACK_PORT: "3000"
       PLAYOUT_CALLBACK_SECRET: ${PLAYOUT_CALLBACK_SECRET:-}
-      CHANNEL_CLASSICS_ID: ${CHANNEL_CLASSICS_ID:-}
-      CHANNEL_CLASSICS_STREAM: ${CHANNEL_CLASSICS_STREAM:-channel-classics}
       CHANNEL_SNCTV_STREAM: ${CHANNEL_SNCTV_STREAM:-snc-tv}
-      DEFAULT_PLAYOUT_STREAM: ${DEFAULT_PLAYOUT_STREAM:-channel-classics}
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8888/health"]
       interval: 15s
