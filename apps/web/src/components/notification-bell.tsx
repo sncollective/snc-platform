@@ -39,6 +39,7 @@ export function NotificationBell(): React.ReactElement {
           if (details.open) void fetchNotifications();
         }}
         unmountOnExit
+        positioning={{ placement: "bottom-end", gutter: 8, flip: true }}
       >
         <PopoverTrigger asChild>
           <button

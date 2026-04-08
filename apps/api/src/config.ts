@@ -72,6 +72,10 @@ export const ENV_SCHEMA = z.object({
   PLAYOUT_CALLBACK_SECRET: z.string().min(32).optional(),
   LIQUIDSOAP_API_URL: z.string().url().optional(),
   LIQUIDSOAP_RTMP_URL: z.string().default("rtmp://snc-liquidsoap:1936/live/stream"),
+  LIQUIDSOAP_CONFIG_DIR: z.string().optional(),
+  LIQUIDSOAP_CALLBACK_HOST: z.string().optional(),
+  LIQUIDSOAP_CALLBACK_PORT: z.string().optional(),
+  SRS_RTMP_HOST: z.string().optional(),
   // Media processing
   MEDIA_TEMP_DIR: z.string().default("/tmp/snc-media"),
   MEDIA_FFMPEG_CONCURRENCY: z.coerce.number().int().min(1).default(2),

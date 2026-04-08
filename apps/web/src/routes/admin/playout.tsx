@@ -14,6 +14,7 @@ import { ContentPoolTable } from "../../components/admin/content-pool-table.js";
 import { ContentSearchPicker } from "../../components/admin/content-search-picker.js";
 import { PoolItemPicker } from "../../components/admin/pool-item-picker.js";
 import { QueueItemRow } from "../../components/admin/queue-item-row.js";
+import { toaster } from "../../components/ui/toast.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
   assignChannelContent,
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/admin/playout")({
     allChannels: ChannelListResponse["channels"];
     playoutChannels: ChannelListResponse["channels"];
   }> => {
+    // Fetch channel list only — queue status is deferred to useChannelQueue (client-side 3s poll)
     const channels = await (
       fetchApiServer({ data: "/api/streaming/status" }) as Promise<ChannelListResponse>
     ).catch(() => null);
@@ -155,10 +157,13 @@ function PlayoutPage(): React.ReactElement {
   const [skipError, setSkipError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Channel creation state (Unit 4)
+  // Channel creation state
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+
+  // Engine restart status indicator
+  const [engineStatus, setEngineStatus] = useState<"ready" | "restarting" | null>(null);
 
   // Fetch content pool when selected channel changes
   useEffect(() => {
@@ -263,16 +268,60 @@ function PlayoutPage(): React.ReactElement {
     }, 2000);
   };
 
-  // Create a new playout channel (Unit 4)
+  // Poll Liquidsoap health until ready or timeout
+  const pollEngineHealth = (): void => {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (attempts > 15) {
+        clearInterval(interval);
+        setEngineStatus(null);
+        toaster.warning({
+          title: "Playout engine slow to restart",
+          description: "The engine may still be starting up. Refresh the page in a moment.",
+        });
+        return;
+      }
+      if (selectedChannelId) {
+        fetchChannelQueue(selectedChannelId)
+          .then(() => {
+            clearInterval(interval);
+            setEngineStatus("ready");
+            toaster.success({ title: "Playout engine ready" });
+          })
+          .catch(() => {
+            // Still restarting — continue polling
+          });
+      }
+    }, 2000);
+  };
+
+  // Create a new playout channel
   const handleCreateChannel = async (): Promise<void> => {
     if (!newChannelName.trim()) return;
     setIsCreatingChannel(true);
     try {
-      await createChannel(newChannelName.trim());
+      const result = await createChannel(newChannelName.trim());
       setShowCreateChannel(false);
       setNewChannelName("");
-      // Channels come from the route loader — reload to show the new channel
-      window.location.reload();
+
+      if (result.engineRestarting) {
+        setEngineStatus("restarting");
+        toaster.info({
+          title: "Channel created",
+          description: "Playout engine restarting with new configuration...",
+        });
+
+        if (result.engineReady) {
+          setEngineStatus("ready");
+          toaster.success({ title: "Playout engine ready" });
+        } else {
+          pollEngineHealth();
+        }
+      }
+
+      // Reload to pick up new channel in tabs (after toasts are shown)
+      setTimeout(() => { window.location.reload(); }, 500);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to create channel");
     } finally {
@@ -305,11 +354,13 @@ function PlayoutPage(): React.ReactElement {
                 type="button"
                 role="tab"
                 aria-selected={ch.id === selectedChannelId}
-                className={
-                  ch.id === selectedChannelId
-                    ? `${styles.channelTab} ${styles.channelTabActive}`
-                    : styles.channelTab
-                }
+                className={[
+                  styles.channelTab,
+                  ch.id === selectedChannelId ? styles.channelTabActive : null,
+                  engineStatus === "restarting" ? styles.channelTabRestarting : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => {
                   setSelectedChannelId(ch.id);
                   setShowAddForm(false);
@@ -420,7 +471,7 @@ function PlayoutPage(): React.ReactElement {
                     setShowSearchPicker(showSearchPicker === "queue" ? null : "queue")
                   }
                 >
-                  + Play Next
+                  + Add to Queue
                 </button>
                 {showSearchPicker === "queue" && (
                   <PoolItemPicker

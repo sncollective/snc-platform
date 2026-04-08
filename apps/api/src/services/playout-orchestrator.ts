@@ -169,6 +169,88 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     });
   };
 
+  /** Batch-fetch queue status for multiple channels in two queries instead of 3×N. */
+  const getMultiChannelQueueStatus = async (
+    channelIds: string[],
+  ): Promise<Map<string, ChannelQueueStatus>> => {
+    const result = new Map<string, ChannelQueueStatus>();
+    if (channelIds.length === 0) return result;
+
+    // Fetch channel names
+    const channelRows = await db
+      .select({ id: channels.id, name: channels.name })
+      .from(channels)
+      .where(inArray(channels.id, channelIds));
+
+    const channelNameMap = new Map(channelRows.map((r) => [r.id, r.name]));
+
+    // Single query: all queue rows across all channels
+    const queueRows = await db
+      .select({
+        id: playoutQueue.id,
+        channelId: playoutQueue.channelId,
+        playoutItemId: playoutQueue.playoutItemId,
+        position: playoutQueue.position,
+        status: playoutQueue.status,
+        pushedToLiquidsoap: playoutQueue.pushedToLiquidsoap,
+        createdAt: playoutQueue.createdAt,
+        title: playoutItems.title,
+        duration: playoutItems.duration,
+      })
+      .from(playoutQueue)
+      .innerJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .where(
+        and(
+          inArray(playoutQueue.channelId, channelIds),
+          inArray(playoutQueue.status, ["queued", "playing"]),
+        ),
+      )
+      .orderBy(asc(playoutQueue.position));
+
+    // Single query: pool counts grouped by channel
+    const poolCounts = await db
+      .select({
+        channelId: channelContent.channelId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(channelContent)
+      .where(inArray(channelContent.channelId, channelIds))
+      .groupBy(channelContent.channelId);
+
+    const poolCountMap = new Map(poolCounts.map((r) => [r.channelId, r.count]));
+
+    // Group queue rows by channel
+    const queueByChannel = new Map<string, typeof queueRows>();
+    for (const row of queueRows) {
+      let arr = queueByChannel.get(row.channelId);
+      if (!arr) {
+        arr = [];
+        queueByChannel.set(row.channelId, arr);
+      }
+      arr.push(row);
+    }
+
+    // Build result map — include every requested channel even if it has no queue entries
+    for (const channelId of channelIds) {
+      const name = channelNameMap.get(channelId);
+      if (!name) continue; // channel not found in DB
+
+      const rows = queueByChannel.get(channelId) ?? [];
+      const nowPlaying = rows.find((r) => r.status === "playing") ?? null;
+      const upcoming = rows.filter((r) => r.status === "queued");
+
+      result.set(channelId, {
+        channelId,
+        channelName: name,
+        nowPlaying: nowPlaying ? toQueueEntry(nowPlaying) : null,
+        upcoming: upcoming.map(toQueueEntry),
+        poolSize: poolCountMap.get(channelId) ?? 0,
+      });
+    }
+
+    return result;
+  };
+
   // ── Track Event ──
 
   /**
@@ -619,29 +701,30 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     // ORDER BY: last_played_at ASC NULLS FIRST, play_count ASC, random()
     // Note: db.execute() with postgres-js returns rows directly as an array (not { rows: [...] })
     const candidateRows = (await db.execute(sql`
-      SELECT cc.id, cc.playout_item_id, cc.last_played_at, cc.play_count
-      FROM channel_content cc
-      JOIN playout_items pi ON pi.id = cc.playout_item_id
-      WHERE cc.channel_id = ${channelId}
-        AND cc.playout_item_id IS NOT NULL
-        AND pi.processing_status = 'ready'
-        AND cc.playout_item_id NOT IN (
-          SELECT playout_item_id FROM playout_queue
-          WHERE channel_id = ${channelId}
-            AND status IN ('queued', 'playing')
-            AND playout_item_id IS NOT NULL
-        )
+      SELECT * FROM (
+        SELECT cc.id, cc.playout_item_id, cc.last_played_at, cc.play_count
+        FROM channel_content cc
+        JOIN playout_items pi ON pi.id = cc.playout_item_id
+        WHERE cc.channel_id = ${channelId}
+          AND cc.playout_item_id IS NOT NULL
+          AND pi.processing_status = 'ready'
+          AND cc.playout_item_id NOT IN (
+            SELECT playout_item_id FROM playout_queue
+            WHERE channel_id = ${channelId}
+              AND status IN ('queued', 'playing')
+              AND playout_item_id IS NOT NULL
+          )
 
-      UNION ALL
+        UNION ALL
 
-      SELECT cc.id, cc.content_id AS playout_item_id, cc.last_played_at, cc.play_count
-      FROM channel_content cc
-      JOIN content c ON c.id = cc.content_id
-      WHERE cc.channel_id = ${channelId}
-        AND cc.content_id IS NOT NULL
-        AND c.processing_status = 'completed'
-        AND c.type = 'video'
-
+        SELECT cc.id, cc.content_id AS playout_item_id, cc.last_played_at, cc.play_count
+        FROM channel_content cc
+        JOIN content c ON c.id = cc.content_id
+        WHERE cc.channel_id = ${channelId}
+          AND cc.content_id IS NOT NULL
+          AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
+          AND c.type = 'video'
+      ) candidates
       ORDER BY
         last_played_at ASC NULLS FIRST,
         play_count ASC,
@@ -828,6 +911,18 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     for (const channel of playoutChannels) {
       try {
         await autoFill(channel.id);
+      } catch (error) {
+        logger.error(
+          {
+            channelId: channel.id,
+            err: error,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          "Auto-fill failed during initialization",
+        );
+      }
+
+      try {
         await pushPrefetchBuffer(channel.id);
       } catch (error) {
         logger.error(
@@ -836,7 +931,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
             err: error,
             error: error instanceof Error ? error.message : String(error),
           },
-          "Failed to initialize playout channel",
+          "Prefetch push failed during initialization",
         );
       }
     }
@@ -849,6 +944,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
   return {
     getChannelQueueStatus,
+    getMultiChannelQueueStatus,
     onTrackStarted,
     insertIntoQueue,
     removeFromQueue,

@@ -87,6 +87,24 @@
   text-transform: capitalize;
 }
 
+.roleBadgeButton {
+  composes: roleBadge;
+  background: none;
+  border: 1px solid transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.roleBadgeButton:hover:not(:disabled) {
+  border-color: var(--color-border);
+}
+
+.roleBadgeButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .roleBadgeOwner {
   background: var(--color-accent-bg);
   color: var(--color-accent);

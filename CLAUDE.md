@@ -4,7 +4,8 @@ Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with 
 
 ## Build & Test
 
-- `pnpm --filter @snc/api test` / `pnpm --filter @snc/web test` / `pnpm --filter @snc/shared test`
+- `pnpm --filter @snc/api test:unit` / `pnpm --filter @snc/web test` / `pnpm --filter @snc/shared test` — unit tests
+- `pnpm --filter @snc/api test:integration` — integration tests (real dev env, pre-review gate)
 - `pnpm --filter @snc/e2e test` — Playwright golden-path e2e (staging env, localhost:3082)
 - `pnpm --filter @snc/api dev` / `pnpm --filter @snc/web dev` — dev servers
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL
@@ -38,10 +39,11 @@ Structured commands for pipeline skills. Run from the project root.
 - build-shared: `pnpm --filter @snc/shared build`
 - test-shared: `pnpm --filter @snc/shared test`
 - build-api: `pnpm --filter @snc/api build`
-- test-api: `pnpm --filter @snc/api test`
+- test-api: `pnpm --filter @snc/api test:unit`
+- test-api-integration: `pnpm --filter @snc/api test:integration`
 - build-web: `pnpm --filter @snc/web build`
 - test-web: `pnpm --filter @snc/web test`
-- test-all: `pnpm --filter @snc/shared test && pnpm --filter @snc/api test && pnpm --filter @snc/web test`
+- test-all: `pnpm --filter @snc/shared test && pnpm --filter @snc/api test:unit && pnpm --filter @snc/web test`
 - db-generate: `pnpm --filter @snc/api db:generate`
 - db-migrate: `pnpm --filter @snc/api db:migrate`
 - test-e2e: `pnpm --filter @snc/e2e test`

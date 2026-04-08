@@ -55,7 +55,7 @@ export function DatePickerInput({
     : "";
 
   return (
-    <PopoverRoot open={open} onOpenChange={(details) => { setOpen(details.open); }}>
+    <PopoverRoot open={open} onOpenChange={(details) => { setOpen(details.open); }} positioning={{ placement: "bottom-start", gutter: 4, flip: true }}>
       <PopoverTrigger asChild>
         <input
           id={id}

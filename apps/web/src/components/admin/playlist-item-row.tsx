@@ -83,9 +83,9 @@ export function PlaylistItemRow({
           className={styles.playNextButton}
           onClick={onPlayNext}
           disabled={item.processingStatus !== "ready"}
-          aria-label={`Play ${item.title} next`}
+          aria-label={`Add ${item.title} to queue`}
         >
-          Play Next
+          Add to Queue
         </button>
 
         <button

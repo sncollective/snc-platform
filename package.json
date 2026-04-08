@@ -14,7 +14,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter @snc/api dev & pnpm --filter @snc/web dev",
     "start": "docker compose up -d --wait && pnpm install --frozen-lockfile && pnpm --filter @snc/api db:migrate && pnpm dev",
-    "test": "pnpm -r test",
+    "test:unit": "pnpm --filter @snc/shared test && pnpm --filter @snc/web test && pnpm --filter @snc/api test:unit",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },

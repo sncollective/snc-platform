@@ -30,7 +30,7 @@ const makeSrsStreamsResponse = (
 
 const mockGetActiveChannels = vi.fn();
 const mockSelectDefaultChannel = vi.fn();
-const mockGetChannelQueueStatus = vi.fn().mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
+const mockGetMultiChannelQueueStatus = vi.fn().mockResolvedValue(new Map());
 const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
 
 // ── Setup Factories ──
@@ -44,7 +44,7 @@ const setupSrsService = async () => {
   }));
   vi.doMock("../../src/routes/playout-channels.init.js", () => ({
     orchestrator: {
-      getChannelQueueStatus: mockGetChannelQueueStatus,
+      getMultiChannelQueueStatus: mockGetMultiChannelQueueStatus,
     },
   }));
   vi.doMock("../../src/services/liquidsoap.js", () => ({
@@ -64,7 +64,7 @@ const setupUnconfiguredSrsService = async () => {
   }));
   vi.doMock("../../src/routes/playout-channels.init.js", () => ({
     orchestrator: {
-      getChannelQueueStatus: mockGetChannelQueueStatus,
+      getMultiChannelQueueStatus: mockGetMultiChannelQueueStatus,
     },
   }));
   vi.doMock("../../src/services/liquidsoap.js", () => ({
@@ -75,7 +75,7 @@ const setupUnconfiguredSrsService = async () => {
 
 // Restore defaults before each test (vi.resetAllMocks() in afterEach clears return values)
 beforeEach(() => {
-  mockGetChannelQueueStatus.mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
+  mockGetMultiChannelQueueStatus.mockResolvedValue(new Map());
   mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
 });
 
@@ -232,21 +232,27 @@ describe("srs service", () => {
       mockGetActiveChannels.mockResolvedValue([channel]);
       mockSelectDefaultChannel.mockReturnValue("channel-1");
       mockFetch.mockReturnValue(mockFetchResponse(makeSrsStreamsResponse([])));
-      mockGetChannelQueueStatus.mockResolvedValue({
-        ok: true,
-        value: {
-          nowPlaying: {
-            id: "queue-1",
-            playoutItemId: "item-1",
-            title: "Test Film",
-            duration: 90.0,
-            status: "playing",
-            createdAt: "2026-01-01T00:00:00.000Z",
-          },
-          upcoming: [],
-          poolSize: 5,
-        },
-      });
+      mockGetMultiChannelQueueStatus.mockResolvedValue(
+        new Map([
+          [
+            "channel-1",
+            {
+              channelId: "channel-1",
+              channelName: "S/NC Radio",
+              nowPlaying: {
+                id: "queue-1",
+                playoutItemId: "item-1",
+                title: "Test Film",
+                duration: 90.0,
+                status: "playing",
+                createdAt: "2026-01-01T00:00:00.000Z",
+              },
+              upcoming: [],
+              poolSize: 5,
+            },
+          ],
+        ]),
+      );
 
       const { getChannelList } = await setupSrsService();
       const result = await getChannelList();
@@ -267,10 +273,20 @@ describe("srs service", () => {
       mockGetActiveChannels.mockResolvedValue([channel]);
       mockSelectDefaultChannel.mockReturnValue("channel-1");
       mockFetch.mockReturnValue(mockFetchResponse(makeSrsStreamsResponse([])));
-      mockGetChannelQueueStatus.mockResolvedValue({
-        ok: true,
-        value: { nowPlaying: null, upcoming: [], poolSize: 0 },
-      });
+      mockGetMultiChannelQueueStatus.mockResolvedValue(
+        new Map([
+          [
+            "channel-1",
+            {
+              channelId: "channel-1",
+              channelName: "S/NC Radio",
+              nowPlaying: null,
+              upcoming: [],
+              poolSize: 0,
+            },
+          ],
+        ]),
+      );
 
       const { getChannelList } = await setupSrsService();
       const result = await getChannelList();

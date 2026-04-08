@@ -14,6 +14,7 @@ import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
 import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
 import type { NotificationSendJobData } from "./handlers/notification-send.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
+import { writeConfigOnly } from "../services/liquidsoap-config.js";
 
 // ── Job Queue Names ──
 
@@ -105,6 +106,10 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     { concurrency, queues: Object.values(JOB_QUEUES) },
     "Media processing workers registered",
   );
+
+  // Write Liquidsoap config from DB state before orchestrator starts
+  // No restart signal — Liquidsoap reads the file on its own startup
+  await writeConfigOnly();
 
   await orchestrator.initialize();
   rootLogger.info("Playout orchestrator initialized");

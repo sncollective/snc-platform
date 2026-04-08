@@ -67,74 +67,87 @@ export const getChannelList = async (): Promise<
   try {
     const activeChannels = await getActiveChannels();
 
-    // Fetch SRS viewer counts (best-effort — default to 0 on failure)
-    const srsViewerCounts = new Map<string, number>();
-    try {
-      const response = await fetch(`${SRS_API_URL!}/api/v1/streams/`, {
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (response.ok) {
+    // Kick off SRS streams fetch, Liquidsoap now-playing, and batch queue status in parallel
+    const playoutIds = activeChannels
+      .filter((ch) => ch.type === "playout")
+      .map((ch) => ch.id);
+    const hasBroadcast = activeChannels.some((ch) => ch.type === "broadcast");
+
+    const [srsResult, liquidsoapResult, queueStatusMap] = await Promise.allSettled([
+      fetch(`${SRS_API_URL!}/api/v1/streams/`, {
+        signal: AbortSignal.timeout(2_000),
+      }).then(async (response) => {
+        if (!response.ok) return new Map<string, number>();
         const data = (await response.json()) as SrsStreamsResponse;
+        const counts = new Map<string, number>();
         for (const stream of data.streams) {
           if (stream.publish.active) {
-            srsViewerCounts.set(stream.name, stream.clients);
+            counts.set(stream.name, stream.clients);
           }
         }
-      }
-    } catch {
-      // SRS unreachable — continue with 0 viewer counts
-    }
+        return counts;
+      }),
+      hasBroadcast ? getLiquidsoapNowPlaying() : Promise.resolve(null),
+      playoutIds.length > 0
+        ? orchestrator.getMultiChannelQueueStatus(playoutIds)
+        : Promise.resolve(new Map<string, import("@snc/shared").ChannelQueueStatus>()),
+    ]);
+
+    const srsViewerCounts = srsResult.status === "fulfilled"
+      ? srsResult.value
+      : new Map<string, number>();
+    const liquidsoapNowPlaying = liquidsoapResult.status === "fulfilled"
+      ? liquidsoapResult.value
+      : null;
+    const queueMap = queueStatusMap.status === "fulfilled"
+      ? queueStatusMap.value
+      : new Map<string, import("@snc/shared").ChannelQueueStatus>();
 
     const enrichedBase = activeChannels.map((ch) => ({
       ...ch,
       viewerCount: srsViewerCounts.get(ch.srsStreamName) ?? 0,
     }));
 
-    // Enrich playout and broadcast channels with now-playing metadata (best-effort)
-    const enriched = await Promise.all(
-      enrichedBase.map(async (ch) => {
-        if (ch.type === "playout") {
-          // Playout: DB queue is source of truth — no Liquidsoap round-trip needed
-          const queueStatus = await orchestrator.getChannelQueueStatus(ch.id);
-          if (queueStatus.ok && queueStatus.value.nowPlaying) {
-            const np = queueStatus.value.nowPlaying;
-            return {
-              ...ch,
-              nowPlaying: {
-                itemId: np.playoutItemId,
-                title: np.title,
-                year: null,
-                director: null,
-                duration: np.duration,
-                elapsed: -1, // DB doesn't track elapsed; Phase 3 can add Liquidsoap poll
-                remaining: -1,
-              },
-            };
-          }
-          return { ...ch, nowPlaying: null };
-        }
-
-        if (ch.type === "broadcast") {
-          // Broadcast: use Liquidsoap's /now-playing backward-compat endpoint for live elapsed/remaining
-          const raw = await getLiquidsoapNowPlaying();
-          if (!raw) return { ...ch, nowPlaying: null };
+    // Enrich playout and broadcast channels with now-playing metadata
+    const enriched = enrichedBase.map((ch) => {
+      if (ch.type === "playout") {
+        const status = queueMap.get(ch.id);
+        if (status?.nowPlaying) {
+          const np = status.nowPlaying;
           return {
             ...ch,
             nowPlaying: {
-              itemId: null,
-              title: raw.title ?? null,
+              itemId: np.playoutItemId,
+              title: np.title,
               year: null,
               director: null,
-              duration: null,
-              elapsed: raw.elapsed,
-              remaining: raw.remaining,
+              duration: np.duration,
+              elapsed: -1, // DB doesn't track elapsed; Phase 3 can add Liquidsoap poll
+              remaining: -1,
             },
           };
         }
-
         return { ...ch, nowPlaying: null };
-      }),
-    );
+      }
+
+      if (ch.type === "broadcast") {
+        if (!liquidsoapNowPlaying) return { ...ch, nowPlaying: null };
+        return {
+          ...ch,
+          nowPlaying: {
+            itemId: null,
+            title: liquidsoapNowPlaying.title ?? null,
+            year: null,
+            director: null,
+            duration: null,
+            elapsed: liquidsoapNowPlaying.elapsed,
+            remaining: liquidsoapNowPlaying.remaining,
+          },
+        };
+      }
+
+      return { ...ch, nowPlaying: null };
+    });
 
     return ok({
       channels: enriched,

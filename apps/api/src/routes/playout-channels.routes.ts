@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
+import { and, eq } from "drizzle-orm";
 
 import { AssignContentSchema, RemoveContentSchema, TrackEventSchema } from "@snc/shared";
 
@@ -8,7 +9,10 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { config } from "../config.js";
+import { db } from "../db/connection.js";
+import { channels } from "../db/schema/streaming.schema.js";
 import { ensurePlayout } from "../services/channels.js";
+import { regenerateAndRestart, waitForHealth } from "../services/liquidsoap-config.js";
 import { orchestrator } from "./playout-channels.init.js";
 
 /** Playout channel queue management and Liquidsoap webhook endpoints. */
@@ -53,7 +57,51 @@ playoutChannelRoutes.post(
         result.error.statusCode as 400 | 500,
       );
     }
-    return c.json(result.value, 201);
+
+    const regenResult = await regenerateAndRestart();
+    const engineReady = regenResult.ok ? await waitForHealth() : false;
+
+    return c.json({ ...result.value, engineRestarting: regenResult.ok, engineReady }, 201);
+  },
+);
+
+// ── Channel Deactivation (admin) ──
+
+playoutChannelRoutes.delete(
+  "/channels/:channelId",
+  requireAuth,
+  requireRole("admin"),
+  describeRoute({
+    description: "Deactivate a playout channel and regenerate config.",
+    tags: ["playout"],
+    responses: {
+      200: { description: "Channel deactivated" },
+      401: { description: "Unauthorized" },
+      403: { description: "Forbidden" },
+      404: { description: "Channel not found" },
+    },
+  }),
+  async (c) => {
+    const channelId = c.req.param("channelId");
+
+    const [channel] = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.type, "playout")));
+
+    if (!channel) {
+      return c.json({ error: { code: "NOT_FOUND", message: "Channel not found" } }, 404);
+    }
+
+    await db
+      .update(channels)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(channels.id, channelId));
+
+    const regenResult = await regenerateAndRestart();
+    const engineReady = regenResult.ok ? await waitForHealth() : false;
+
+    return c.json({ ok: true, engineRestarting: regenResult.ok, engineReady });
   },
 );
 

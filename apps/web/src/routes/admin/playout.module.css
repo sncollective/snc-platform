@@ -415,6 +415,27 @@
   font-weight: 600;
 }
 
+.channelTabRestarting {
+  position: relative;
+}
+
+.channelTabRestarting::after {
+  content: "";
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: var(--color-warning, hsl(40 90% 55%));
+  animation: pulse var(--duration-slow, 1.5s) ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* ── Queue Section ── */
 
 .queueList {

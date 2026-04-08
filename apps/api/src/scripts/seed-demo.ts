@@ -31,6 +31,8 @@ import { content } from "../db/schema/content.schema.js";
 import { subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { services, bookingRequests } from "../db/schema/booking.schema.js";
 import { emissions } from "../db/schema/emission.schema.js";
+import { inboxNotifications } from "../db/schema/notification-inbox.schema.js";
+import { creatorFollows } from "../db/schema/notification.schema.js";
 import { createSeedStorage, bufferToStream } from "./seed-storage.js";
 
 // ── Storage ──
@@ -1096,6 +1098,87 @@ try {
   }
 
   console.log(`  Emissions: ${emissionRows.length} actual + ${projectedRows.length} projected seeded`);
+
+  // ── Notifications ──
+
+  // Pat follows Maya (for go_live / new_content notifications)
+  await db
+    .insert(creatorFollows)
+    .values({ userId: USER_IDS.pat, creatorId: USER_IDS.maya })
+    .onConflictDoNothing();
+
+  const NOTIFICATION_IDS = {
+    n01: "00000000-0000-4000-a000-000000000501",
+    n02: "00000000-0000-4000-a000-000000000502",
+    n03: "00000000-0000-4000-a000-000000000503",
+    n04: "00000000-0000-4000-a000-000000000504",
+    n05: "00000000-0000-4000-a000-000000000505",
+  } as const;
+
+  const notificationRows = [
+    {
+      id: NOTIFICATION_IDS.n01,
+      userId: USER_IDS.pat,
+      type: "go_live" as const,
+      title: "Maya Chen is live!",
+      body: "Maya Chen started streaming: Late Night Sessions",
+      actionUrl: "/live",
+      read: true,
+      createdAt: new Date("2026-04-06T21:00:00Z"),
+    },
+    {
+      id: NOTIFICATION_IDS.n02,
+      userId: USER_IDS.pat,
+      type: "new_content" as const,
+      title: "New release from Maya Chen",
+      body: "Maya Chen published: Neon Drift",
+      actionUrl: `/creators/${USER_IDS.maya}`,
+      read: true,
+      createdAt: new Date("2026-04-05T14:30:00Z"),
+    },
+    {
+      id: NOTIFICATION_IDS.n03,
+      userId: USER_IDS.pat,
+      type: "new_content" as const,
+      title: "New release from Maya Chen",
+      body: "Maya Chen published: Urban Sketches",
+      actionUrl: `/creators/${USER_IDS.maya}`,
+      read: false,
+      createdAt: new Date("2026-04-07T10:00:00Z"),
+    },
+    {
+      id: NOTIFICATION_IDS.n04,
+      userId: USER_IDS.pat,
+      type: "system" as const,
+      title: "Welcome to S/NC",
+      body: "Your account is set up. Explore creators and start following.",
+      actionUrl: "/creators",
+      read: true,
+      createdAt: new Date("2026-04-01T09:00:00Z"),
+    },
+    {
+      id: NOTIFICATION_IDS.n05,
+      userId: USER_IDS.alex,
+      type: "system" as const,
+      title: "New creator application",
+      body: "A new creator has applied for review.",
+      actionUrl: "/admin/creators",
+      read: false,
+      createdAt: new Date("2026-04-07T08:15:00Z"),
+    },
+  ];
+
+  for (const n of notificationRows) {
+    await db
+      .insert(inboxNotifications)
+      .values(n)
+      .onConflictDoUpdate({
+        target: inboxNotifications.id,
+        set: { title: n.title, body: n.body, read: n.read },
+      });
+  }
+
+  console.log(`  Notifications: ${notificationRows.length} inbox notifications + 1 follow seeded`);
 
   console.log("\nDemo seed complete. All users share password: password123");
 } catch (e) {

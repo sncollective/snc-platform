@@ -80,11 +80,18 @@ export const assignChannelContent = (
   });
 
 /** Create a new playout channel with the given name. */
-export const createChannel = (name: string): Promise<{ channelId: string }> =>
-  apiMutate<{ channelId: string }>("/api/playout/channels", {
+export const createChannel = (name: string): Promise<{ channelId: string; engineRestarting: boolean; engineReady: boolean }> =>
+  apiMutate<{ channelId: string; engineRestarting: boolean; engineReady: boolean }>("/api/playout/channels", {
     method: "POST",
     body: { name },
   });
+
+/** Deactivate a playout channel by ID. */
+export const deleteChannel = (channelId: string): Promise<{ ok: boolean; engineRestarting: boolean; engineReady: boolean }> =>
+  apiMutate<{ ok: boolean; engineRestarting: boolean; engineReady: boolean }>(
+    `/api/playout/channels/${channelId}`,
+    { method: "DELETE" },
+  );
 
 /** Remove playout items or creator content from a channel's pool. */
 export const removeChannelContent = (
