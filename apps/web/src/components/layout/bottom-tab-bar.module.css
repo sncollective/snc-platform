@@ -49,6 +49,26 @@
   color: var(--color-accent);
 }
 
+/* ── Icon Wrapper ── */
+
+.tabIconWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ── Notification Badge Dot ── */
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
 /* ── Label ── */
 
 .tabLabel {

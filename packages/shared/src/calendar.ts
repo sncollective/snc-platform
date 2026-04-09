@@ -115,6 +115,7 @@ export const UpcomingEventSchema = z.object({
   location: z.string(),
   creatorId: z.string().nullable(),
   creatorName: z.string().nullable(),
+  reminded: z.boolean(),
 });
 
 /** Response shape for the public upcoming events endpoint. */

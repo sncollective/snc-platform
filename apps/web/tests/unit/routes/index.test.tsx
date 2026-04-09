@@ -17,6 +17,14 @@ vi.mock("../../../src/lib/api-server.js", () => ({
   fetchApiServer: vi.fn(),
 }));
 
+vi.mock("../../../src/lib/fetch-utils.js", () => ({
+  apiMutate: vi.fn(),
+}));
+
+vi.mock("../../../src/hooks/use-platform-auth.js", () => ({
+  usePlatformAuth: () => ({ isAuthenticated: false, isSubscribed: false }),
+}));
+
 vi.mock("../../../src/components/landing/hero-section.js", async () => {
   const React = await import("react");
   return {

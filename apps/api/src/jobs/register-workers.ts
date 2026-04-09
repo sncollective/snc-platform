@@ -8,13 +8,14 @@ import { handleTranscode } from "./handlers/transcode.js";
 import { handleExtractThumbnail } from "./handlers/extract-thumbnail.js";
 import { handlePlayoutIngest } from "./handlers/playout-ingest.js";
 import { handleNotificationSend } from "./handlers/notification-send.js";
+import { handleEventReminderDispatch } from "./handlers/event-reminder.js";
 import type { ProbeJobData } from "./handlers/probe-codec.js";
 import type { TranscodeJobData } from "./handlers/transcode.js";
 import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
 import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
 import type { NotificationSendJobData } from "./handlers/notification-send.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
-import { writeConfigOnly } from "../services/liquidsoap-config.js";
+import { writeConfigOnly, waitForHealth } from "../services/liquidsoap-config.js";
 
 // ── Job Queue Names ──
 
@@ -107,9 +108,27 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     "Media processing workers registered",
   );
 
+  // Event reminder cron — dispatch notifications every 5 minutes
+  const REMINDER_INTERVAL_MS = 5 * 60 * 1000;
+  setInterval(() => {
+    handleEventReminderDispatch().catch((err) =>
+      rootLogger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        "Event reminder dispatch failed",
+      ),
+    );
+  }, REMINDER_INTERVAL_MS);
+  rootLogger.info("Event reminder cron registered (every 5 minutes)");
+
   // Write Liquidsoap config from DB state before orchestrator starts
   // No restart signal — Liquidsoap reads the file on its own startup
   await writeConfigOnly();
+
+  // Wait for Liquidsoap to be healthy before pushing tracks
+  const healthy = await waitForHealth(15, 2000);
+  if (!healthy) {
+    rootLogger.warn("Liquidsoap not healthy after 30s — orchestrator will initialize without prefetch");
+  }
 
   await orchestrator.initialize();
   rootLogger.info("Playout orchestrator initialized");

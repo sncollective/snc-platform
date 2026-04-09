@@ -3,6 +3,7 @@ import type React from "react";
 import { Home, Rss, Radio, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { useNotificationCount } from "../../contexts/notification-context.js";
 import styles from "./bottom-tab-bar.module.css";
 
 // ── Private Constants ──
@@ -27,6 +28,7 @@ const TAB_ITEMS: readonly TabItem[] = [
 export function BottomTabBar(): React.ReactElement {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const unreadCount = useNotificationCount();
 
   return (
     <nav
@@ -46,7 +48,12 @@ export function BottomTabBar(): React.ReactElement {
             className={isActive ? styles.tabActive : styles.tab}
             aria-current={isActive ? "page" : undefined}
           >
-            <Icon size={20} aria-hidden="true" />
+            <div className={styles.tabIconWrapper}>
+              <Icon size={20} aria-hidden="true" />
+              {item.exact && unreadCount > 0 && (
+                <span className={styles.badge} aria-label="Unread notifications" />
+              )}
+            </div>
             <span className={styles.tabLabel}>{item.label}</span>
           </Link>
         );

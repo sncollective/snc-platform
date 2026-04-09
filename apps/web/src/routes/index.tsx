@@ -1,17 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
+import { useState, useCallback } from "react";
 import type {
   CreatorListResponse,
   FeedResponse,
   SubscriptionPlan,
   ChannelListResponse,
   UpcomingEventsResponse,
+  UpcomingEvent,
 } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { ssrLogger } from "../lib/logger.js";
+import { apiMutate } from "../lib/fetch-utils.js";
+import { usePlatformAuth } from "../hooks/use-platform-auth.js";
 import { HeroSection } from "../components/landing/hero-section.js";
 import { WhatsOn } from "../components/landing/whats-on.js";
 import { RecentContent } from "../components/landing/recent-content.js";
@@ -94,12 +99,56 @@ export const Route = createFileRoute("/")({
 
 function LandingPage(): React.ReactElement {
   const data = Route.useLoaderData();
+  const navigate = useNavigate();
+  const { isAuthenticated } = usePlatformAuth();
+
+  const [events, setEvents] = useState<UpcomingEvent[]>(data.upcomingEvents);
+  const [remindingEventId, setRemindingEventId] = useState<string | null>(null);
+
+  const handleToggleRemind = useCallback(
+    async (eventId: string) => {
+      if (!isAuthenticated) {
+        void navigate({ to: "/login" });
+        return;
+      }
+
+      const prev = events;
+      setRemindingEventId(eventId);
+
+      // Optimistic update
+      setEvents((current) =>
+        current.map((e) => (e.id === eventId ? { ...e, reminded: !e.reminded } : e)),
+      );
+
+      try {
+        const result = await apiMutate<{ reminded: boolean }>(
+          `/api/events/${eventId}/remind`,
+          { method: "POST" },
+        );
+        // Reconcile with server response
+        setEvents((current) =>
+          current.map((e) => (e.id === eventId ? { ...e, reminded: result.reminded } : e)),
+        );
+      } catch {
+        // Revert optimistic update on error
+        setEvents(prev);
+      } finally {
+        setRemindingEventId(null);
+      }
+    },
+    [isAuthenticated, events, navigate],
+  );
+
   return (
     <>
       <HeroSection plans={data.plans} />
       <WhatsOn channels={data.channels} />
       <RecentContent items={data.recentContent} />
-      <ComingUp events={data.upcomingEvents} />
+      <ComingUp
+        events={events}
+        onToggleRemind={(eventId) => void handleToggleRemind(eventId)}
+        remindingEventId={remindingEventId}
+      />
       <FeaturedCreators creators={data.creators} />
       {isFeatureEnabled("subscription") && <LandingPricing plans={data.plans} />}
     </>

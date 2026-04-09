@@ -36,8 +36,8 @@ const logger = rootLogger.child({ service: "liquidsoap-config" });
 /** Escape a string for use in Liquidsoap string literals. */
 const escLiq = (s: string): string => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-/** Convert a UUID to a valid Liquidsoap identifier (replace hyphens with underscores, prefix with underscore). */
-const liqId = (id: string): string => `_${id.replaceAll("-", "_")}`;
+/** Convert a UUID to a valid Liquidsoap identifier (replace hyphens with underscores, prefix with `ch_`). */
+const liqId = (id: string): string => `ch_${id.replaceAll("-", "_")}`;
 
 /** Generate the Liquidsoap block for a single playout channel. */
 const renderChannelBlock = (
@@ -60,11 +60,11 @@ ${vid}_source.on_metadata(synchronous=false, fun(m) -> begin
   ignore(http.post(
     headers=[("Content-Type", "application/json")],
     data='{"uri":"#{${vid}_uri()}","title":"#{${vid}_title()}"}',
-    "http://${opts.apiHost}:${opts.apiPort}/api/playout/channels/${ch.id}/track-event?secret=${opts.callbackSecret}"
+    "http://#{api_host}:#{api_port}/api/playout/channels/${ch.id}/track-event?secret=#{callback_secret}"
   ))
 end)
 
-output.url(url="rtmp://${opts.srsHost}:1935/live/${escLiq(ch.srsStreamName)}?key=${opts.streamKey}", enc, ${vid}_source)
+output.url(url="rtmp://#{srs_host}:1935/live/${escLiq(ch.srsStreamName)}?key=#{playout_key}", enc, ${vid}_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/${ch.id}/queue", fun(req, res) -> begin
   ${vid}_queue.push.uri(req.body())

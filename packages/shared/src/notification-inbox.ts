@@ -8,6 +8,7 @@ export const INBOX_NOTIFICATION_TYPES = [
   "subscription_welcome",
   "new_content",
   "system",
+  "event_reminder",
 ] as const;
 
 // ── Public Types ──

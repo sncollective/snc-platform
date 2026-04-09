@@ -20,6 +20,7 @@ function makeMockUpcomingEvent(overrides?: Partial<UpcomingEvent>): UpcomingEven
     location: "Studio A",
     creatorId: "user-1",
     creatorName: "Test Creator",
+    reminded: false,
     ...overrides,
   };
 }

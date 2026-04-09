@@ -57,6 +57,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./liquidsoap:/etc/liquidsoap
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ["/etc/liquidsoap/playout.liq"]
     ports:
       - "8888:8888"
@@ -68,7 +70,7 @@ services:
       AWS_DEFAULT_REGION: garage
       AWS_ENDPOINT: http://snc-garage:3900
       SRS_RTMP_HOST: snc-srs
-      API_CALLBACK_HOST: snc-api
+      API_CALLBACK_HOST: ${API_CALLBACK_HOST:-host.docker.internal}
       API_CALLBACK_PORT: "3000"
       PLAYOUT_CALLBACK_SECRET: ${PLAYOUT_CALLBACK_SECRET:-}
       CHANNEL_SNCTV_STREAM: ${CHANNEL_SNCTV_STREAM:-snc-tv}

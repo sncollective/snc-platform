@@ -72,51 +72,5 @@ describe("ENV_SCHEMA feature flag defaults", () => {
   });
 });
 
-describe("conditional route registration", () => {
-  it("returns 404 for disabled feature routes", async () => {
-    vi.doMock("../src/storage/index.js", () => ({
-      storage: { download: vi.fn(), upload: vi.fn(), delete: vi.fn(), head: vi.fn() },
-      s3Multipart: null,
-    }));
-    vi.doMock("../src/config.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../src/config.js")>();
-      return {
-        ...actual,
-        features: {
-          ...actual.features,
-          merch: false,
-        },
-      };
-    });
-
-    const { app } = await import("../src/app.js");
-    const res = await app.request("/api/merch");
-
-    expect(res.status).toBe(404);
-  });
-
-  it("keeps health endpoint regardless of feature flags", async () => {
-    vi.doMock("../src/storage/index.js", () => ({
-      storage: { download: vi.fn(), upload: vi.fn(), delete: vi.fn(), head: vi.fn() },
-      s3Multipart: null,
-    }));
-    vi.doMock("../src/config.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../src/config.js")>();
-      return {
-        ...actual,
-        features: {
-          subscription: false,
-          merch: false,
-          booking: false,
-          emissions: false,
-          federation: false,
-        },
-      };
-    });
-
-    const { app } = await import("../src/app.js");
-    const res = await app.request("/health");
-
-    expect(res.status).toBe(200);
-  });
-});
+// conditional route registration tests moved to tests/integration/feature-flags.test.ts
+// (full app import requires real env + higher timeout)

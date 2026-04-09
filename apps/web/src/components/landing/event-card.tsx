@@ -1,5 +1,6 @@
 import type React from "react";
-import { Bell, MapPin } from "lucide-react";
+import { Bell, BellRing, MapPin } from "lucide-react";
+import { clsx } from "clsx/lite";
 import type { UpcomingEvent } from "@snc/shared";
 import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import type { DEFAULT_EVENT_TYPES } from "@snc/shared";
@@ -8,10 +9,13 @@ import styles from "./event-card.module.css";
 
 export interface EventCardProps {
   readonly event: UpcomingEvent;
+  readonly reminded: boolean;
+  readonly onToggleRemind?: () => void;
+  readonly isToggling?: boolean;
 }
 
 /** Render an upcoming event card with date badge, title, and details. */
-export function EventCard({ event }: EventCardProps): React.ReactElement {
+export function EventCard({ event, reminded, onToggleRemind, isToggling }: EventCardProps): React.ReactElement {
   const startDate = new Date(event.startAt);
   const month = startDate.toLocaleString("en-US", { month: "short" }).toUpperCase();
   const day = startDate.getDate();
@@ -43,12 +47,14 @@ export function EventCard({ event }: EventCardProps): React.ReactElement {
       </div>
       <button
         type="button"
-        className={styles.remindButton}
-        disabled
-        title="Coming soon"
-        aria-label={`Remind me about ${event.title}`}
+        className={clsx(styles.remindButton, reminded && styles.reminded)}
+        disabled={isToggling}
+        onClick={onToggleRemind}
+        aria-label={reminded ? `Remove reminder for ${event.title}` : `Remind me about ${event.title}`}
       >
-        <Bell size={16} aria-hidden="true" />
+        {reminded
+          ? <BellRing size={16} aria-hidden="true" />
+          : <Bell size={16} aria-hidden="true" />}
       </button>
     </article>
   );

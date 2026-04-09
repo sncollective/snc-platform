@@ -10,10 +10,12 @@ import styles from "./coming-up.module.css";
 
 export interface ComingUpProps {
   readonly events: UpcomingEventsResponse["items"];
+  readonly onToggleRemind?: (eventId: string) => void;
+  readonly remindingEventId?: string | null;
 }
 
 /** Render the "Coming Up" section with upcoming public events. */
-export function ComingUp({ events }: ComingUpProps): React.ReactElement {
+export function ComingUp({ events, onToggleRemind, remindingEventId }: ComingUpProps): React.ReactElement {
   if (events.length === 0) {
     return (
       <section className={sectionStyles.section}>
@@ -31,7 +33,13 @@ export function ComingUp({ events }: ComingUpProps): React.ReactElement {
       <h2 className={sectionStyles.heading}>Coming Up</h2>
       <div className={styles.eventList}>
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard
+            key={event.id}
+            event={event}
+            reminded={event.reminded}
+            onToggleRemind={onToggleRemind ? () => onToggleRemind(event.id) : undefined}
+            isToggling={remindingEventId === event.id}
+          />
         ))}
       </div>
     </section>

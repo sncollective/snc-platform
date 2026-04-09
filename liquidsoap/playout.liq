@@ -55,42 +55,42 @@ end)
 
 # ── Channel: S/NC Classics (playout) ──
 
-_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue = request.queue(id="channel-903e6a20-0dea-42b1-8dd5-86afbec496ac")
-_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = fallback(track_sensitive=false, [_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue, mksafe(blank())])
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue = request.queue(id="channel-903e6a20-0dea-42b1-8dd5-86afbec496ac")
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = fallback(track_sensitive=false, [ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue, mksafe(blank())])
 
-_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri = ref("")
-_903e6a20_0dea_42b1_8dd5_86afbec496ac_title = ref("")
-_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.on_metadata(synchronous=false, fun(m) -> begin
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri = ref("")
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title = ref("")
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
-  _903e6a20_0dea_42b1_8dd5_86afbec496ac_uri := if u == "" then m["filename"] else u end
-  _903e6a20_0dea_42b1_8dd5_86afbec496ac_title := m["title"]
+  ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri := if u == "" then m["filename"] else u end
+  ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title := m["title"]
   ignore(http.post(
     headers=[("Content-Type", "application/json")],
-    data='{"uri":"#{_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri()}","title":"#{_903e6a20_0dea_42b1_8dd5_86afbec496ac_title()}"}',
-    "http://snc-api:3000/api/playout/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/track-event?secret="
+    data='{"uri":"#{ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri()}","title":"#{ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title()}"}',
+    "http://#{api_host}:#{api_port}/api/playout/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/track-event?secret=#{callback_secret}"
   ))
 end)
 
-output.url(url="rtmp://snc-srs:1935/live/channel-main?key=dev-playout-key", enc, _903e6a20_0dea_42b1_8dd5_86afbec496ac_source)
+output.url(url="rtmp://#{srs_host}:1935/live/channel-main?key=#{playout_key}", enc, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/queue", fun(req, res) -> begin
-  _903e6a20_0dea_42b1_8dd5_86afbec496ac_queue.push.uri(req.body())
+  ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue.push.uri(req.body())
   res.data("queued")
 end)
 
 harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/skip", fun(_req, res) -> begin
-  _903e6a20_0dea_42b1_8dd5_86afbec496ac_source.skip()
+  ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.skip()
   res.data("skipped")
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing", fun(_req, res) -> begin
-  e = _903e6a20_0dea_42b1_8dd5_86afbec496ac_source.elapsed()
-  r = _903e6a20_0dea_42b1_8dd5_86afbec496ac_source.remaining()
+  e = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.elapsed()
+  r = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.remaining()
   safe_elapsed = if e == infinity or e != e then -1. else e end
   safe_remaining = if r == infinity or r != r then -1. else r end
   res.json({
-    uri = _903e6a20_0dea_42b1_8dd5_86afbec496ac_uri(),
-    title = _903e6a20_0dea_42b1_8dd5_86afbec496ac_title(),
+    uri = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri(),
+    title = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title(),
     elapsed = safe_elapsed,
     remaining = safe_remaining
   })
@@ -99,42 +99,42 @@ end)
 
 # ── Channel: S/NC Music (playout) ──
 
-_e199559b_24b4_4069_bb94_4175d49c5ebe_queue = request.queue(id="channel-e199559b-24b4-4069-bb94-4175d49c5ebe")
-_e199559b_24b4_4069_bb94_4175d49c5ebe_source = fallback(track_sensitive=false, [_e199559b_24b4_4069_bb94_4175d49c5ebe_queue, mksafe(blank())])
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_queue = request.queue(id="channel-e199559b-24b4-4069-bb94-4175d49c5ebe")
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source = fallback(track_sensitive=false, [ch_e199559b_24b4_4069_bb94_4175d49c5ebe_queue, mksafe(blank())])
 
-_e199559b_24b4_4069_bb94_4175d49c5ebe_uri = ref("")
-_e199559b_24b4_4069_bb94_4175d49c5ebe_title = ref("")
-_e199559b_24b4_4069_bb94_4175d49c5ebe_source.on_metadata(synchronous=false, fun(m) -> begin
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri = ref("")
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title = ref("")
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
-  _e199559b_24b4_4069_bb94_4175d49c5ebe_uri := if u == "" then m["filename"] else u end
-  _e199559b_24b4_4069_bb94_4175d49c5ebe_title := m["title"]
+  ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri := if u == "" then m["filename"] else u end
+  ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title := m["title"]
   ignore(http.post(
     headers=[("Content-Type", "application/json")],
-    data='{"uri":"#{_e199559b_24b4_4069_bb94_4175d49c5ebe_uri()}","title":"#{_e199559b_24b4_4069_bb94_4175d49c5ebe_title()}"}',
-    "http://snc-api:3000/api/playout/channels/e199559b-24b4-4069-bb94-4175d49c5ebe/track-event?secret="
+    data='{"uri":"#{ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri()}","title":"#{ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title()}"}',
+    "http://#{api_host}:#{api_port}/api/playout/channels/e199559b-24b4-4069-bb94-4175d49c5ebe/track-event?secret=#{callback_secret}"
   ))
 end)
 
-output.url(url="rtmp://snc-srs:1935/live/channel-s-nc-music?key=dev-playout-key", enc, _e199559b_24b4_4069_bb94_4175d49c5ebe_source)
+output.url(url="rtmp://#{srs_host}:1935/live/channel-s-nc-music?key=#{playout_key}", enc, ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/e199559b-24b4-4069-bb94-4175d49c5ebe/queue", fun(req, res) -> begin
-  _e199559b_24b4_4069_bb94_4175d49c5ebe_queue.push.uri(req.body())
+  ch_e199559b_24b4_4069_bb94_4175d49c5ebe_queue.push.uri(req.body())
   res.data("queued")
 end)
 
 harbor.http.register(port=8888, method="POST", "/channels/e199559b-24b4-4069-bb94-4175d49c5ebe/skip", fun(_req, res) -> begin
-  _e199559b_24b4_4069_bb94_4175d49c5ebe_source.skip()
+  ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source.skip()
   res.data("skipped")
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/e199559b-24b4-4069-bb94-4175d49c5ebe/now-playing", fun(_req, res) -> begin
-  e = _e199559b_24b4_4069_bb94_4175d49c5ebe_source.elapsed()
-  r = _e199559b_24b4_4069_bb94_4175d49c5ebe_source.remaining()
+  e = ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source.elapsed()
+  r = ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source.remaining()
   safe_elapsed = if e == infinity or e != e then -1. else e end
   safe_remaining = if r == infinity or r != r then -1. else r end
   res.json({
-    uri = _e199559b_24b4_4069_bb94_4175d49c5ebe_uri(),
-    title = _e199559b_24b4_4069_bb94_4175d49c5ebe_title(),
+    uri = ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri(),
+    title = ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title(),
     elapsed = safe_elapsed,
     remaining = safe_remaining
   })
@@ -145,7 +145,7 @@ end)
 live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
 snc_tv_queue = request.queue(id="snc-tv-queue")
 
-snc_tv = fallback(track_sensitive=false, [live_source, snc_tv_queue, _903e6a20_0dea_42b1_8dd5_86afbec496ac_source, mksafe(blank())])
+snc_tv = fallback(track_sensitive=false, [live_source, snc_tv_queue, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source, mksafe(blank())])
 
 snc_tv_uri = ref("")
 snc_tv_title = ref("")

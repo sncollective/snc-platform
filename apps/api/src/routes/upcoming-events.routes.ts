@@ -9,6 +9,12 @@ import { db } from "../db/connection.js";
 import { calendarEvents } from "../db/schema/calendar.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { toISO, toISOOrNull } from "../lib/response-helpers.js";
+import { optionalAuth } from "../middleware/optional-auth.js";
+import type { OptionalAuthEnv } from "../middleware/optional-auth.js";
+import { requireAuth } from "../middleware/require-auth.js";
+import type { AuthEnv } from "../middleware/auth-env.js";
+import { ERROR_401, ERROR_404 } from "../lib/openapi-errors.js";
+import { toggleReminder, getUserReminders } from "../services/event-reminder.js";
 
 // ── Query Schema ──
 
@@ -16,13 +22,18 @@ const UpcomingEventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).default(5),
 });
 
+const EventIdParam = z.object({ eventId: z.string().min(1) });
+
+const RemindResponseSchema = z.object({ reminded: z.boolean() });
+
 // ── Routes ──
 
-/** Public upcoming events for the landing page. No auth required. */
-const upcomingEventsRoutes = new Hono();
+const upcomingEventsRoutes = new Hono<OptionalAuthEnv & AuthEnv>();
 
+/** Public upcoming events for the landing page. Optionally enriched with reminder status. */
 upcomingEventsRoutes.get(
   "/",
+  optionalAuth,
   describeRoute({
     description: "List upcoming public events (no auth required)",
     tags: ["events"],
@@ -56,6 +67,12 @@ upcomingEventsRoutes.get(
       .orderBy(asc(calendarEvents.startAt))
       .limit(limit);
 
+    const user = c.get("user");
+    const eventIds = rows.map(({ event: row }) => row.id);
+    const remindedSet = user
+      ? await getUserReminders(user.id, eventIds)
+      : new Set<string>();
+
     const items = rows.map(({ event: row, creatorName }) => ({
       id: row.id,
       title: row.title,
@@ -67,9 +84,40 @@ upcomingEventsRoutes.get(
       location: row.location,
       creatorId: row.creatorId ?? null,
       creatorName: creatorName ?? null,
+      reminded: remindedSet.has(row.id),
     }));
 
     return c.json({ items });
+  },
+);
+
+/** Toggle a reminder for an upcoming event. */
+upcomingEventsRoutes.post(
+  "/:eventId/remind",
+  requireAuth,
+  describeRoute({
+    description: "Toggle a reminder for a calendar event",
+    tags: ["events"],
+    responses: {
+      200: {
+        description: "Reminder toggled",
+        content: {
+          "application/json": { schema: resolver(RemindResponseSchema) },
+        },
+      },
+      401: ERROR_401,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", EventIdParam),
+  async (c) => {
+    const { eventId } = c.req.valid("param");
+    const user = c.get("user");
+
+    const result = await toggleReminder(user.id, eventId);
+    if (!result.ok) throw result.error;
+
+    return c.json(result.value);
   },
 );
 

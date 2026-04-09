@@ -908,6 +908,19 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       return;
     }
 
+    // Reset pushed_to_liquidsoap for all active queue items — Liquidsoap's
+    // in-memory queue is empty after a restart, so everything needs re-pushing.
+    await db
+      .update(playoutQueue)
+      .set({ pushedToLiquidsoap: false })
+      .where(
+        and(
+          inArray(playoutQueue.channelId, playoutChannels.map((c) => c.id)),
+          inArray(playoutQueue.status, ["queued", "playing"]),
+          eq(playoutQueue.pushedToLiquidsoap, true),
+        ),
+      );
+
     for (const channel of playoutChannels) {
       try {
         await autoFill(channel.id);
