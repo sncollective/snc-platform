@@ -60,7 +60,7 @@ ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = fallback(track_sensitive=false,
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri = ref("")
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title = ref("")
-ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.on_metadata(synchronous=false, fun(m) -> begin
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
   ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri := if u == "" then m["filename"] else u end
   ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title := m["title"]
@@ -104,7 +104,7 @@ ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source = fallback(track_sensitive=false,
 
 ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri = ref("")
 ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title = ref("")
-ch_e199559b_24b4_4069_bb94_4175d49c5ebe_source.on_metadata(synchronous=false, fun(m) -> begin
+ch_e199559b_24b4_4069_bb94_4175d49c5ebe_queue.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
   ch_e199559b_24b4_4069_bb94_4175d49c5ebe_uri := if u == "" then m["filename"] else u end
   ch_e199559b_24b4_4069_bb94_4175d49c5ebe_title := m["title"]

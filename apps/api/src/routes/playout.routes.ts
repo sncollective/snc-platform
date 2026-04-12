@@ -30,8 +30,14 @@ const PlayoutIdParam = z.object({ id: z.string().min(1) });
 /** Playout item management and Liquidsoap control. */
 export const playoutRoutes = new Hono<AuthEnv>();
 
-// All playout routes require admin role
-playoutRoutes.use("*", requireAuth, requireRole("admin"));
+// Playout item + status routes require admin role.
+// Note: paths under /channels/* live in playoutChannelRoutes (same /api/playout mount)
+// and manage their own auth — track-event uses shared-secret auth, not session auth.
+playoutRoutes.use("/items", requireAuth, requireRole("admin"));
+playoutRoutes.use("/items/*", requireAuth, requireRole("admin"));
+playoutRoutes.use("/status", requireAuth, requireRole("admin"));
+playoutRoutes.use("/skip", requireAuth, requireRole("admin"));
+playoutRoutes.use("/queue/*", requireAuth, requireRole("admin"));
 
 // GET /items — list all playout items
 playoutRoutes.get(
