@@ -63,7 +63,7 @@ export const Route = createFileRoute("/subscribe")({
 });
 ```
 
-> **Note:** Feature flag checks are only needed for unshipped features. Shipped features mount unconditionally — no `isFeatureEnabled` guard. See `platform/.claude/rules/feature-flags.md` for the full flag lifecycle.
+> **Note:** Feature flag checks are only needed for unshipped features. Shipped features mount unconditionally — no `isFeatureEnabled` guard. See `platform/docs/feature-flags.md` for the full flag lifecycle.
 
 ### Example 2: Guest-only route with returnTo support
 **File**: `apps/web/src/routes/login.tsx:12`

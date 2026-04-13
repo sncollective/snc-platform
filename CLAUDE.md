@@ -24,7 +24,7 @@ Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with 
 
 **Code style:** TypeScript strict mode (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). `const` assertions over enums. `async/await` only, no `.then()` chains. `validator` (from `hono-openapi`) on all route inputs with `describeRoute` for OpenAPI docs.
 
-**Docs:** JSDoc on exports from shared packages, services, middleware. Focus on intent, not type restatement. `@throws` when function throws. See `.claude/rules/inline-documentation.md`.
+**Docs:** See `.claude/rules/inline-documentation.md`.
 
 **CSS:** Design tokens via `var(--token-name)` from `global.css`. Only import your own `.module.css`.
 
