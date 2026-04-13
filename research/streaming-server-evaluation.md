@@ -4,7 +4,7 @@
 **Date:** 2026-03-25
 **Decision record:** `boards/platform/s-nc-tv/DECISIONS.md`
 
-Formal evaluation of streaming server options for S-NC.tv Phase 3+. Synthesizes research from `streaming-infrastructure.md`, `irl-streaming.md`, `boards/platform/s-nc-tv/design/tv-model-architecture.md`, and competitive analysis from `../../docs/research/competitive/streaming.md`.
+Formal evaluation of streaming server options for S-NC.tv Phase 3+. Synthesizes research from `streaming-infrastructure.md`, `irl-streaming.md`, `boards/platform/s-nc-tv/design/tv-model-architecture.md`, and competitive analysis from `../../org/research/competitive/streaming.md`.
 
 **Context:** S-NC.tv Phases 1-2 shipped with Owncast (HLS streaming + chat + ActivityPub) + Restreamer (multi-destination relay). The architecture is shifting to a TV model (always-on playout channel + dynamic live channels) that requires multi-channel support. Owncast is single-channel by design. Restreamer development paused Dec 2025. A unified replacement is needed before Phase 3.
 
@@ -241,7 +241,7 @@ SRS is selected as the unified streaming server replacing Owncast + Restreamer f
 - `streaming-infrastructure.md` — original streaming tool evaluation
 - `irl-streaming.md` — SRS vs MediaMTX comparison tables, IRL streaming architecture
 - `boards/platform/s-nc-tv/design/tv-model-architecture.md` — TV model architecture decision (now closed)
-- `../../docs/research/competitive/streaming.md` — Twitch, YouTube Live, Kick competitive analysis
+- `../../org/research/competitive/streaming.md` — Twitch, YouTube Live, Kick competitive analysis
 - `boards/platform/s-nc-tv/DECISIONS.md` — formal decision record
 - `boards/platform/s-nc-tv/design/vod-recording-spike.md` — VOD recording architecture (updated for SRS DVR)
 

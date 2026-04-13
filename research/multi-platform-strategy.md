@@ -177,7 +177,7 @@ Not estimates of time — estimates of relative complexity:
 - `streaming-server-evaluation.md` — SRS capabilities
 - `irl-streaming.md` — mobile/field streaming hardware
 - `media-player-libraries.md` — Vidstack selection, Video.js v10 watch
-- `../../docs/research/competitive/streaming.md` — Twitch/YouTube/Kick comparison
+- `../../org/research/competitive/streaming.md` — Twitch/YouTube/Kick comparison
 - `boards/platform/s-nc-tv/BOARD.md` — ABR transcoding item (Competitive Parity)
 - `boards/platform/media-pipeline/BOARD.md` — VOD transcoding pipeline
 - `boards/infra/guides/streaming-deploy-phase1-2.md` — VAAPI hardware encoding setup
