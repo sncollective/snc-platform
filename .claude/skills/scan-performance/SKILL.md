@@ -43,4 +43,4 @@ React.memo, useMemo, or useCallback — these are handled by the compiler.
 For general independent async operations, see the `concurrent-awaits` rule in
 scan-stylistic. This library covers DB-specific and web-vitals-specific patterns.
 
-See `docs/research/scan-rules-perf-a11y-2026-03.md` for full research justification.
+See `research/scan-rules-perf-a11y-2026-03.md` (at monorepo root) for full research justification.
