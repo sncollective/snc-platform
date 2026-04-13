@@ -34,5 +34,5 @@ value by checking patterns across files (heading hierarchy), flagging architectu
 gaps (route announcements, media alternatives), and integrating with the refactor
 board pipeline for tracked remediation.
 
-See `research/scan-rules-perf-a11y-2026-03.md` (at monorepo root) for WCAG
-criteria mapping and authoritative sources.
+See `../../../research/scan-rules-perf-a11y-2026-03.md` for WCAG criteria
+mapping and authoritative sources.

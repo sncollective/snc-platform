@@ -174,4 +174,4 @@ Light mode. Primitive color scales + semantic tokens. `[data-theme="dark"]` sele
 - Lucide icons: lucide.dev
 - Ladle component playground: ladle.dev
 - UX patterns research: `content-management-ux-patterns.md`
-- UX decisions framework: `docs/ux-decisions.md`
+- UX decisions framework: `../docs/ux-decisions.md`
