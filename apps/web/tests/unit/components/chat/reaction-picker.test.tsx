@@ -49,9 +49,18 @@ describe("ReactionPicker", () => {
     const trigger = screen.getByLabelText("Add reaction");
     await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
 
-    // Ark Popover closes on Escape key
-    await user.keyboard("{Escape}");
-    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+    // Ark Popover closes on Escape key. Use fireEvent rather than
+    // user.keyboard so the dispatch is synchronous and doesn't depend on
+    // user-event's internal async delays, which flake in slower CI runners.
+    // Target the popover content (where focus sits after the popover opens)
+    // so the keydown reaches Ark's FocusScope handler regardless of whether
+    // jsdom has fully moved focus off the trigger.
+    const dialog = screen.getByRole("dialog", { name: "Reaction picker" });
+    fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+    await waitFor(
+      () => expect(trigger).toHaveAttribute("aria-expanded", "false"),
+      { timeout: 3000 },
+    );
   });
 
   it("clicking an emoji calls onReact and closes picker", async () => {
