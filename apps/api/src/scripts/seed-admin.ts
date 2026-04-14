@@ -7,7 +7,7 @@ import { users, userRoles } from "../db/schema/user.schema.js";
 const email = process.argv[2];
 
 if (!email) {
-  console.error("Usage: pnpm --filter @snc/api seed:admin <email>");
+  console.error("Usage: bun run --filter @snc/api seed:admin <email>");
   console.error("  The user must already exist (sign up via the web UI first).");
   process.exit(1);
 }

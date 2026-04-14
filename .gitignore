@@ -46,8 +46,8 @@ apps/e2e/auth/*.json
 
 # Logs
 *.log
-pnpm-debug.log*
-.pnpm-store
+bun-debug.log*
+.bun-cache
 
 # Core dumps
 core.*

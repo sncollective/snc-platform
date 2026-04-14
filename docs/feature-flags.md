@@ -87,7 +87,7 @@ Checklist for adding a feature flag end-to-end:
    - **Component-level guard** (most routes): check `isFeatureEnabled` at the top of the page component and return `<ComingSoon feature="<flag>" />` if disabled. The loader should also short-circuit and return empty data.
    - **`beforeLoad` redirect** (auth-gated routes like admin, dashboard): call `isFeatureEnabled` in `beforeLoad` and `throw redirect({ to: "/" })` if disabled. This prevents the page from rendering at all.
 
-9. **Rebuild shared** -- run `pnpm --filter @snc/shared build` so downstream packages pick up the new type.
+9. **Rebuild shared** -- run `bun run --filter @snc/shared build` so downstream packages pick up the new type.
 
 10. **Update tests** -- add the new flag to any test config helpers (e.g., `makeTestConfig` in `apps/api/tests/helpers/test-constants.ts`).
 

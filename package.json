@@ -10,25 +10,27 @@
   "homepage": "https://s-nc.org",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm --filter @snc/api dev & pnpm --filter @snc/web dev",
-    "start": "docker compose up -d --wait && pnpm install --frozen-lockfile && pnpm --filter @snc/api db:migrate && pnpm dev",
-    "test:unit": "pnpm --filter @snc/shared test && pnpm --filter @snc/web test && pnpm --filter @snc/api test:unit",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "build": "bun run --filter '*' build",
+    "dev": "bun run --filter @snc/api dev & bun run --filter @snc/web dev",
+    "start": "docker compose up -d --wait && bun install --frozen-lockfile && bun run --filter @snc/api db:migrate && bun run dev",
+    "test:unit": "bun run --filter @snc/shared test && bun run --filter @snc/web test && bun run --filter @snc/api test:unit",
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "bun@1.3.12",
   "engines": {
     "node": ">=24.0.0",
-    "pnpm": ">=10.0.0"
+    "bun": ">=1.3.0"
   },
-  "pnpm": {
-    "overrides": {
-      "hono": "^4.12.8"
-    }
+  "resolutions": {
+    "hono": "^4.12.8"
   }
 }

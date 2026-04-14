@@ -18,7 +18,7 @@ See [reference.md](reference.md) for full options, code examples, and migration 
 ## Installation
 
 ```bash
-pnpm add @uppy/tus
+bun add @uppy/tus
 # tus-js-client is a direct dependency — installed automatically
 ```
 

@@ -1,7 +1,7 @@
 ---
 name: scan-structural
 description: >
-  Project structural organization rules for the SNC platform (Hono API + TanStack Start + pnpm monorepo).
+  Project structural organization rules for the SNC platform (Hono API + TanStack Start + Bun monorepo).
   Proactively scans for organizational issues and produces a prioritized backlog.
   Defines the team's preferred file, folder, and module structure.
 allowed-tools: Read, Glob, Grep, Bash, Agent, Write

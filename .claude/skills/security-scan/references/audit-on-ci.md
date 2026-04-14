@@ -1,6 +1,6 @@
 # Rule: Audit on CI
 
-> CI pipelines run `pnpm audit` and fail on critical/high vulnerabilities.
+> CI pipelines run `bun audit` and fail on critical/high vulnerabilities.
 
 **Domain**: cross-cutting
 
@@ -19,9 +19,9 @@ jobs:
   test:
     steps:
       - uses: actions/checkout@v4
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm build
+      - run: bun install --frozen-lockfile
+      - run: bun run test:unit
+      - run: bun run build
 ```
 
 **After:**
@@ -30,30 +30,29 @@ jobs:
   test:
     steps:
       - uses: actions/checkout@v4
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --prod --audit-level=high
-      - run: pnpm test
-      - run: pnpm build
+      - run: bun install --frozen-lockfile
+      - run: bun audit --audit-level=high
+      - run: bun run test:unit
+      - run: bun run build
 ```
 
 ### Synthetic example: ignoring audit results
 
 **Before:**
 ```yaml
-- run: pnpm audit || true  # Ignores all vulnerabilities
+- run: bun audit || true  # Ignores all vulnerabilities
 ```
 
 **After:**
 ```yaml
-- run: pnpm audit --prod --audit-level=high  # Fails on high/critical
+- run: bun audit --audit-level=high  # Fails on high/critical
 ```
 
 ## Exceptions
 
-- Dev dependencies (`--prod` flag excludes them — dev tools don't ship to production)
-- Known false positives can be suppressed via `.pnpmauditrc` with documented rationale
+- Bun audit does not currently support a `--prod` filter, so dev-tree advisories surface alongside production ones. Filter by severity (`--audit-level=high`) and suppress known false positives via `--ignore <CVE-ID>` with a documented rationale.
 
 ## Scope
 
-- Applies to: `.forgejo/workflows/test-and-build.yml`, any CI pipeline that builds production artifacts
+- Applies to: `.forgejo/workflows/platform-*.yml`, any CI pipeline that builds production artifacts
 - Does NOT apply to: local development, manual audits (which are supplementary)

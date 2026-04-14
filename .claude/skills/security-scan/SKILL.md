@@ -29,11 +29,11 @@ Each rule has a reference file in `${CLAUDE_SKILL_DIR}/references/` with rationa
 | rate-limit-auth | code | Auth endpoints (login, signup, OTP) have strict per-IP rate limits | [details](references/rate-limit-auth.md) |
 | defense-in-depth-headers | code | `secureHeaders()` applied globally as app-level complement to Caddy | [details](references/defense-in-depth-headers.md) |
 | presigned-url-controls | cross-cutting | S3 presigned URLs use minimum expiry; uploads enforce MIME/size limits | [details](references/presigned-url-controls.md) |
-| audit-on-ci | cross-cutting | CI runs `pnpm audit`; fails on critical/high vulnerabilities | [details](references/audit-on-ci.md) |
+| audit-on-ci | cross-cutting | CI runs `bun audit`; fails on critical/high vulnerabilities | [details](references/audit-on-ci.md) |
 
 ## Step 1: Load Context
 
-1. Read `platform/CLAUDE.md` for project conventions and Agent Commands.
+1. Read `platform/AGENTS.md` for project conventions and Agent Commands.
 2. Read the rule reference files relevant to the scan scope. If `$ARGUMENTS` specifies a scope (e.g., "routes", "auth", "storage"), read only the rules that apply. If no scope, read all rules.
 3. Read the target boards:
    - **Security board**: `boards/platform/security/BOARD.md` (must have `pipeline: security`)

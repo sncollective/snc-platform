@@ -21,7 +21,7 @@ Built as an alternative to extractive platforms.
 | **Object Storage** | [Garage](https://garagehq.deuxfleurs.fr) (S3-compatible, production) |
 | **Logging** | [pino](https://getpino.io) (structured JSON, request-scoped via hono-pino) |
 | **Styling** | CSS Modules + CSS custom properties (design tokens) |
-| **Package Manager** | [pnpm](https://pnpm.io) 10+ with workspaces |
+| **Package Manager** | [Bun](https://bun.sh) 1.3+ with workspaces |
 | **Reverse Proxy** | [Caddy](https://caddyserver.com) (dev + production) |
 
 ## Repository Structure
@@ -76,7 +76,7 @@ CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-gene
 ## Prerequisites
 
 - **Node.js** >= 24.0.0
-- **pnpm** >= 10.0.0
+- **Bun** >= 1.3.0
 - **Docker** (for PostgreSQL)
 - **Caddy** (optional — reverse proxy for unified `:3080` entry point; without it, access API on `:3000` and web on `:3001` directly)
 
@@ -85,7 +85,7 @@ CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-gene
 ### 1. Install dependencies
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### 2. Start PostgreSQL
@@ -146,7 +146,7 @@ VITE_API_URL=http://localhost:3000
 ### 4. Run database migrations
 
 ```bash
-pnpm --filter @snc/api db:migrate
+bun run --filter @snc/api db:migrate
 ```
 
 ### 4b. Seed demo data (optional)
@@ -154,7 +154,7 @@ pnpm --filter @snc/api db:migrate
 To populate the database with demo creators, content, users, and subscription plans:
 
 ```bash
-pnpm --filter @snc/api seed:demo
+bun run --filter @snc/api seed:demo
 ```
 
 This creates three demo users (admin, stakeholder, subscriber) with sample content — useful for seeing the full app working. Skip this if you prefer to start with an empty database and seed manually (see [Seeding Data](#seeding-data) below).
@@ -165,16 +165,16 @@ Start all three processes — API, web, and Caddy reverse proxy:
 
 ```bash
 # Terminal 1: API server (port 3000)
-pnpm --filter @snc/api dev
+bun run --filter @snc/api dev
 
 # Terminal 2: Web server (port 3001)
-pnpm --filter @snc/web dev
+bun run --filter @snc/web dev
 
 # Terminal 3: Caddy reverse proxy (port 3080)
 caddy run --config Caddyfile.dev
 ```
 
-Or start API + web together with `pnpm dev`, plus Caddy in a separate terminal. There's also `pnpm start` which runs Docker, installs dependencies, migrates, and starts dev servers in one command (still needs `.env` configured first, and doesn't start Caddy).
+Or start API + web together with `bun run dev`, plus Caddy in a separate terminal. There's also `bun run start` which runs Docker, installs dependencies, migrates, and starts dev servers in one command (still needs `.env` configured first, and doesn't start Caddy).
 
 The API runs with `--watch` for automatic restarts. The web server uses Vite HMR. Caddy routes `/api`, `/health`, and `/uploads` to the API and everything else to the web server.
 
@@ -189,15 +189,15 @@ The API runs with `--watch` for automatic restarts. The web server uses Vite HMR
 
 ```bash
 # All unit tests
-pnpm test
+bun run test:unit
 
 # By workspace
-pnpm --filter @snc/api test
-pnpm --filter @snc/web test
-pnpm --filter @snc/shared test
+bun run --filter @snc/api test
+bun run --filter @snc/web test
+bun run --filter @snc/shared test
 
 # Watch mode
-pnpm --filter @snc/api test -- --watch
+bun run --filter @snc/api test -- --watch
 ```
 
 Unit tests mock all external services (Stripe, Shopify, database). No running services are needed.
@@ -205,21 +205,21 @@ Unit tests mock all external services (Stripe, Shopify, database). No running se
 E2E tests use Playwright against a running dev environment. Install browsers first (one-time):
 
 ```bash
-npx playwright install
-pnpm --filter @snc/e2e test
+bunx playwright install
+bun run --filter @snc/e2e test
 ```
 
 ## Available Scripts
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Start API + web dev servers |
-| `pnpm test` | Run all tests |
-| `pnpm build` | Build all workspaces |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm lint` | Lint all workspaces (via `tsc --noEmit`) |
-| `pnpm --filter @snc/api db:generate` | Generate new Drizzle migration |
-| `pnpm --filter @snc/api db:migrate` | Apply pending migrations |
+| `bun run dev` | Start API + web dev servers |
+| `bun run test:unit` | Run all unit tests |
+| `bun run build` | Build all workspaces |
+| `bun run typecheck` | TypeScript type checking |
+| `bun run lint` | Lint all workspaces (via `tsc --noEmit`) |
+| `bun run --filter @snc/api db:generate` | Generate new Drizzle migration |
+| `bun run --filter @snc/api db:migrate` | Apply pending migrations |
 
 ## Environment Variables Reference
 
@@ -368,7 +368,7 @@ See [CLAUDE.md](./CLAUDE.md) for the full coding conventions reference.
 
 ## Architecture Notes
 
-- **Monorepo** — pnpm workspaces, no Turborepo/Nx. Root scripts run across all packages.
+- **Monorepo** — Bun workspaces, no Turborepo/Nx. Root scripts run across all packages.
 - **Shared package** — `@snc/shared` contains all Zod schemas, TypeScript types, error classes, and the `Result<T, E>` type. Both API and web import from it for end-to-end type safety.
 - **Storage abstraction** — The `StorageProvider` interface supports local filesystem (dev) and S3-compatible storage (production) without changing route handlers.
 - **Content gating** — `checkContentAccess()` middleware enforces 5 priority rules (public, unauth, owner bypass, active subscription, reject) for subscription-based access control.

@@ -11,12 +11,12 @@ See the [README](README.md) for setup instructions — install dependencies, sta
 1. Fork the repository
 2. Create a feature branch from `main`
 3. Make your changes
-4. Run the full test suite: `pnpm test`
+4. Run the full test suite: `bun run test:unit`
 5. Submit a pull request
 
 ## Code Conventions
 
-Full conventions are documented in [CLAUDE.md](CLAUDE.md). Key points:
+Full conventions are documented in [AGENTS.md](AGENTS.md). Key points:
 
 - **Named exports only** — no default exports
 - **kebab-case filenames** — `booking-form.tsx`, `content.routes.ts`
@@ -30,11 +30,11 @@ Full conventions are documented in [CLAUDE.md](CLAUDE.md). Key points:
 Never hand-write migration SQL files. Always use:
 
 ```bash
-pnpm --filter @snc/api db:generate
-pnpm --filter @snc/api db:migrate
+bun run --filter @snc/api db:generate
+bun run --filter @snc/api db:migrate
 ```
 
-See the migration conventions in [CLAUDE.md](CLAUDE.md) for details.
+See the migration conventions in [AGENTS.md](AGENTS.md) for details.
 
 ## Platform Documentation
 

@@ -66,14 +66,14 @@ export default defineConfig({
   webServer: IS_CI
     ? [
         {
-          command: "pnpm --filter @snc/api dev",
+          command: "bun run --filter @snc/api dev",
           port: 3000,
           reuseExistingServer: false,
           env: { ...PROD_FLAGS },
           cwd: "../..",
         },
         {
-          command: "pnpm --filter @snc/web dev",
+          command: "bun run --filter @snc/web dev",
           port: 3002,
           reuseExistingServer: false,
           env: { ...VITE_FLAGS, VITE_API_URL: "http://localhost:3000" },

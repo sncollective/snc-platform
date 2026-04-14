@@ -12,8 +12,8 @@ paths:
 
 ```
 1. Edit Drizzle schema files (src/db/schema/*.schema.ts)
-2. Run:  pnpm -C platform --filter @snc/api db:generate
-3. Run:  pnpm -C platform --filter @snc/api db:migrate
+2. Run:  bun run --filter @snc/api db:generate
+3. Run:  bun run --filter @snc/api db:migrate
 ```
 
 There is no other path. Do not create `.sql` files by hand. Do not add entries to `_journal.json` by hand. Do not write `INSERT`, `ALTER TABLE`, or any DDL directly.
@@ -39,7 +39,7 @@ If you see any of these, the migration was hand-written and needs to be regenera
 If a migration needs custom SQL that drizzle-kit can't generate from schema changes:
 
 ```
-pnpm -C platform --filter @snc/api db:generate --custom
+bun run --filter @snc/api db:generate --custom
 ```
 
 This creates a blank `.sql` file with a proper journal entry and snapshot. Fill in the SQL, then run `db:migrate`. Never create the file yourself.

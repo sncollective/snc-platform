@@ -10,9 +10,9 @@ Three tiers, ordered by speed. Always use explicit script names — there is no 
 
 | Tier | Script | Environment | Speed | When to run |
 |------|--------|-------------|-------|-------------|
-| Unit | `pnpm --filter @snc/api test:unit` | Fake env vars, all externals mocked | ~5s | During development, agent workflows, CI |
-| Integration | `pnpm --filter @snc/api test:integration` | Real `.env`, real Postgres + Garage | ~15-30s | Pre-review quality gate |
-| E2E | `pnpm --filter @snc/e2e test` | Full staging (localhost:3082) | ~60s+ | Pre-deploy quality gate |
+| Unit | `bun run --filter @snc/api test:unit` | Fake env vars, all externals mocked | ~5s | During development, agent workflows, CI |
+| Integration | `bun run --filter @snc/api test:integration` | Real `.env`, real Postgres + Garage | ~15-30s | Pre-review quality gate |
+| E2E | `bun run --filter @snc/e2e test` | Full staging (localhost:3082) | ~60s+ | Pre-deploy quality gate |
 
 ## Unit tests
 

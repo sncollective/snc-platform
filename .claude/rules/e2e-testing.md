@@ -16,10 +16,10 @@ Playwright tests in `apps/e2e/` covering all routes not behind an active feature
 
 ## Commands
 
-- `pnpm --filter @snc/e2e test` — full suite
-- `pnpm --filter @snc/e2e test:headed` — visible browser
-- `pnpm --filter @snc/e2e test:debug` — step-through
-- `pnpm --filter @snc/e2e report` — view HTML report
+- `bun run --filter @snc/e2e test` — full suite
+- `bun run --filter @snc/e2e test:headed` — visible browser
+- `bun run --filter @snc/e2e test:debug` — step-through
+- `bun run --filter @snc/e2e report` — view HTML report
 
 ## When to update
 
