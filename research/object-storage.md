@@ -428,7 +428,7 @@ Two systems, clean split. Seafile for studio desktop sync (block-level dedup on 
 - **VOD pipeline integration** — Owncast `STREAM_STOPPED` webhook triggers a recording capture service that writes to `vod/` prefix in `snc-storage`. Details TBD in VOD pipeline design.
 - **Start with presigned URLs** — tus upgrade path via `tus-node-server` if upload reliability on bad connections becomes an issue.
 
-Deployment guide: `boards/platform/s-nc-tv/design/garage-deploy.md`
+Deployment guide: see the Garage deployment design doc in the parent monorepo (`boards/platform/release-0.1/design/garage-deploy.md`).
 
 ---
 

@@ -7,7 +7,7 @@ Technical research on self-hosted live streaming infrastructure for the S/NC pla
 
 **Key decision (Phase 1-2):** Owncast as primary streaming backend + Restreamer as multi-destination relay. Both MIT/Apache 2.0, Docker-deployable alongside the existing stack.
 
-**Key decision (Phase 3+, 2026-03-25):** SRS replaces both Owncast and Restreamer as a unified streaming server. SRS handles multi-channel ingest (TV model), simulcast forwarding, DVR recording, and HTTP callback auth. See `streaming-server-evaluation.md` for the full three-option evaluation and `boards/platform/s-nc-tv/DECISIONS.md` for the decision record.
+**Key decision (Phase 3+, 2026-03-25):** SRS replaces both Owncast and Restreamer as a unified streaming server. SRS handles multi-channel ingest (TV model), simulcast forwarding, DVR recording, and HTTP callback auth. See `streaming-server-evaluation.md` for the full three-option evaluation; the decision record lives on the streaming board in the parent monorepo.
 
 **Latency:** HLS (10-30s) is acceptable. Sub-second WebRTC (via SRS) noted as future upgrade path only.
 
@@ -292,7 +292,7 @@ See [IRL streaming research](irl-streaming.md) for full details covering Belabox
 ## Outstanding Decisions
 
 - **Stream key management for multiple creators** — SRS HTTP callback auth (`on_publish`) validates per-creator stream keys. Platform API issues and rotates keys per creator session.
-- **VOD storage + content pipeline** — resolved. SRS DVR records FLV → media-pipeline job queue remuxes to MP4 with faststart → uploads to Garage S3. See `boards/platform/s-nc-tv/design/vod-recording-spike.md` for the original spike (Restreamer approach, superseded) and `streaming-server-evaluation.md` for the SRS approach.
+- **VOD storage + content pipeline** — resolved. SRS DVR records FLV → media-pipeline job queue remuxes to MP4 with faststart → uploads to Garage S3. The original VOD recording spike (Restreamer approach, superseded) is in the parent monorepo's boards history; see `streaming-server-evaluation.md` in this directory for the SRS approach.
 - **Chat** — resolved: platform-built. Owncast provided chat for free; SRS has no chat. Platform builds its own with patron badges, platform-native identity, moderation, and emotes.
 - **Carbon accounting for streaming** — transcoding is CPU-intensive, HLS delivery is bandwidth-intensive. Both have CO2 implications. Need to extend the emissions tracking methodology (`../../research/carbon-calculation-methodology.md`) to cover streaming infrastructure.
 - **AT Protocol streaming integration** — adopt Stream.Place's lexicon patterns into S/NC's `com.snc.media.*` lexicons, or wait for the AT Protocol community to standardize live video?
@@ -302,7 +302,7 @@ See [IRL streaming research](irl-streaming.md) for full details covering Belabox
 
 ## VOD Recording (Spike — 2026-03-21)
 
-Full spike documented at `boards/platform/s-nc-tv/design/vod-recording-spike.md`. Summary:
+Full spike documented in the parent monorepo's boards history (superseded by the SRS DVR approach). Summary:
 
 **Recommended approach:** Use datarhei Core's process API (the engine under Restreamer) to create a recording FFmpeg process alongside the existing relay processes. The recording process reads from the same ingest stream and writes directly to Garage S3 via Core's native S3 filesystem support. No new infrastructure — recording runs inside the already-deployed Restreamer instance.
 

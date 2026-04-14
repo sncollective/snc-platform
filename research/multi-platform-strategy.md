@@ -7,7 +7,7 @@ Research doc mapping the device landscape for S/NC streaming and content deliver
 S/NC delivers live streams and VOD content via the **web app** only:
 - **Live**: SRS → HLS (H.264 + AAC, 2s fragments) → Vidstack player
 - **VOD**: Garage S3 → H.264 + AAC MP4 → Vidstack player
-- **ABR**: Not yet implemented; single quality stream. Planned as FFmpeg sidecar with VAAPI hardware encoding (see s-nc-tv board, Competitive Parity)
+- **ABR**: Not yet implemented; single quality stream. Planned as FFmpeg sidecar with VAAPI hardware encoding (see streaming board, Competitive Parity)
 
 The web app works on any device with a modern browser, but native apps are required for push notifications, background playback, PiP, casting, and living room device UIs (10-foot interface).
 
@@ -71,7 +71,7 @@ The "lean back" experience. Users watch on TV, interact minimally (remote contro
 
 ### Live Streaming (ABR)
 
-The FFmpeg sidecar approach (planned on s-nc-tv board) produces multiple HLS renditions from a single ingest stream.
+The FFmpeg sidecar approach (planned on the streaming board) produces multiple HLS renditions from a single ingest stream.
 
 **Proposed rendition ladder:**
 
@@ -157,7 +157,7 @@ Not estimates of time — estimates of relative complexity:
 
 ## Recommended Expansion Order
 
-1. **ABR + audio-only rendition** — prerequisite for good mobile experience (planned on s-nc-tv board)
+1. **ABR + audio-only rendition** — prerequisite for good mobile experience (planned on the streaming board)
 2. **Auth token support** — unblocks all native app development
 3. **React Native mobile app** (iOS + Android) — highest impact, most audience reach
 4. **Android TV / Fire TV** — extends Android codebase to living room
@@ -178,6 +178,6 @@ Not estimates of time — estimates of relative complexity:
 - `irl-streaming.md` — mobile/field streaming hardware
 - `media-player-libraries.md` — Vidstack selection, Video.js v10 watch
 - `../../org/research/competitive/streaming.md` — Twitch/YouTube/Kick comparison
-- `boards/platform/s-nc-tv/BOARD.md` — ABR transcoding item (Competitive Parity)
+- Streaming board (parent monorepo) — ABR transcoding item under Competitive Parity
 - `boards/platform/media-pipeline/BOARD.md` — VOD transcoding pipeline
 - `boards/infra/guides/streaming-deploy-phase1-2.md` — VAAPI hardware encoding setup

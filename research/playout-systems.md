@@ -1,6 +1,6 @@
 # Playout System Evaluation
 
-Research for the Phase 5 playout spike on the s-nc-tv board. Evaluates approaches for running an always-on TV channel that plays pre-recorded content continuously and yields to live streams when creators go live.
+Research for the Phase 5 playout spike on the streaming board. Evaluates approaches for running an always-on TV channel that plays pre-recorded content continuously and yields to live streams when creators go live.
 
 ## Requirements
 
@@ -194,6 +194,6 @@ If Liquidsoap proves too opaque (scripting language friction, RTMP output issues
 - [Tunarr GitHub](https://github.com/chrisbenincasa/tunarr) — active, TypeScript, Zlib license
 - [ffplayout GitHub](https://github.com/ffplayout/ffplayout) — archived Mar 2026, Rust, GPL-3.0
 - [ErsatzTV archival](https://github.com/ErsatzTV/ErsatzTV/issues/2839) — archived Feb 2026
-- `boards/platform/s-nc-tv/design/tv-model-architecture.md` — TV model architecture decision
+- TV model architecture decision — parent monorepo, `boards/platform/release-0.2/design/tv-model-architecture.md`
 - `boards/infra/guides/streaming-deploy-phase1-2.md` — VAAPI/CQP workaround documentation
 - `multi-platform-strategy.md` — codec strategy and rendition ladder

@@ -231,7 +231,7 @@ For comparison, studio OBS latency is ~10-30s (HLS segment length dominates). IR
 
 Both SRS and MediaMTX were candidates to replace Restreamer, whose development paused in December 2025 (issue [#960](https://github.com/datarhei/restreamer/issues/960)). Either would simplify the IRL pipeline by accepting SRT natively, eliminating the ffmpeg bridge.
 
-**Decision (2026-03-25):** SRS selected as the unified streaming server replacing both Owncast and Restreamer. See `streaming-server-evaluation.md` for the full evaluation and `boards/platform/s-nc-tv/DECISIONS.md` for the decision record. The comparison below remains as reference.
+**Decision (2026-03-25):** SRS selected as the unified streaming server replacing both Owncast and Restreamer. See `streaming-server-evaluation.md` for the full evaluation; the decision record lives on the streaming board in the monorepo parent. The comparison below remains as reference.
 
 ### Project Health
 
