@@ -287,7 +287,7 @@ Both SRS and MediaMTX were candidates to replace Restreamer, whose development p
 - YAML configuration — simpler to understand and version control
 - Half the Docker footprint (~24.5 MB vs ~49 MB)
 - Automatic protocol bridging (SRT in → RTMP/HLS/WebRTC out, zero config)
-- fMP4 recording format — crash-safe AND browser-playable, potentially eliminating the MKV→MP4 remux step identified in the [VOD recording spike](../../boards/platform/s-nc-tv/design/vod-recording-spike.md)
+- fMP4 recording format — crash-safe AND browser-playable, potentially eliminating the MKV→MP4 remux step identified in the earlier VOD recording spike
 - OpenAPI spec for programmatic integration
 - Go codebase — more forkable than C++ if maintenance becomes necessary
 
@@ -339,8 +339,7 @@ Oryx ([ossrs/oryx](https://github.com/ossrs/oryx)) is an application layer built
 - [MediaMTX](https://github.com/bluenviron/mediamtx)
 - [NOALBS](https://github.com/NOALBS/nginx-obs-automatic-low-bitrate-switching)
 - [S/NC streaming infrastructure research](streaming-infrastructure.md)
-- [S/NC VOD recording spike](../../boards/platform/s-nc-tv/design/vod-recording-spike.md)
-- [S/NC S-NC.tv board](../../boards/platform/s-nc-tv/BOARD.md)
+- [S/NC streaming board](../../boards/platform/streaming/BOARD.md)
 
 ---
 
