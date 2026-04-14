@@ -16,18 +16,14 @@ import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
 import type { NotificationSendJobData } from "./handlers/notification-send.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
 import { writeConfigOnly, waitForHealth } from "../services/liquidsoap-config.js";
+import { JOB_QUEUES } from "./queue-names.js";
 
 // ── Job Queue Names ──
 
-/** Canonical pg-boss queue names for media, playout, and notification jobs. */
-export const JOB_QUEUES = {
-  PROBE_CODEC: "media/probe-codec",
-  TRANSCODE: "media/transcode",
-  EXTRACT_THUMBNAIL: "media/extract-thumbnail",
-  VOD_REMUX: "media/vod-remux",
-  PLAYOUT_INGEST: "playout/ingest",
-  NOTIFICATION_SEND: "notification/send",
-} as const;
+// JOB_QUEUES lives in ./queue-names.ts so services can reference it without
+// pulling in this file's handler imports. Re-exported here for backward
+// compatibility with existing consumers and tests that mock register-workers.
+export { JOB_QUEUES };
 
 // ── Public API ──
 

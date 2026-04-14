@@ -6,7 +6,7 @@ import type { NotificationEventType, InboxNotificationType } from "@snc/shared";
 import { db } from "../db/connection.js";
 import { notificationPreferences, notificationJobs } from "../db/schema/notification.schema.js";
 import { getBoss } from "../jobs/boss.js";
-import { JOB_QUEUES } from "../jobs/register-workers.js";
+import { JOB_QUEUES } from "../jobs/queue-names.js";
 import { resolveAudience } from "./follows.js";
 import { rootLogger } from "../logging/logger.js";
 import { createNotification } from "./notification-inbox.js";

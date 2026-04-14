@@ -36,7 +36,7 @@ import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { getBoss } from "../jobs/boss.js";
-import { JOB_QUEUES } from "../jobs/register-workers.js";
+import { JOB_QUEUES } from "../jobs/queue-names.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
 import { sanitizeFilename } from "../lib/file-utils.js";

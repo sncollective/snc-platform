@@ -12,7 +12,7 @@ import type {
 } from "@snc/shared";
 
 import { getBoss } from "../jobs/boss.js";
-import { JOB_QUEUES } from "../jobs/register-workers.js";
+import { JOB_QUEUES } from "../jobs/queue-names.js";
 
 import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
