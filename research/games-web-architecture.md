@@ -13,7 +13,7 @@ How to structure web-based collaboration tools for S/NC Games (asset management,
 
 S/NC Games needs internal web tools for game designers. These tools are CRUD-heavy and overlap heavily with existing platform patterns — Hono API middleware, Better Auth, shared types (errors, Result, roles), React hooks, CSS design tokens. Building from scratch would duplicate most of this work. But the tools should eventually be a separate project so game contributors don't need the full platform codebase.
 
-The platform (`snc-platform`) is a pnpm monorepo with `apps/api`, `apps/web`, and `packages/shared`. It's a git submodule in the parent SNC repo. Games web tools need to consume shared code from it without creating git conflicts or tight coupling.
+The platform (`snc-platform`) is a Bun monorepo with `apps/api`, `apps/web`, and `packages/shared`. It's a git submodule in the parent SNC repo. Games web tools need to consume shared code from it without creating git conflicts or tight coupling.
 
 **Key fact:** Git submodules are just commit pointers at different paths. Sibling submodules (`platform/` and a future `games-web/`) never conflict with each other. The real question is code sharing friction, not git conflicts.
 
@@ -23,7 +23,7 @@ The platform (`snc-platform`) is a pnpm monorepo with `apps/api`, `apps/web`, an
 
 ### 1. Monorepo expansion — add games apps to snc-platform
 
-Add `apps/games-api/` and `apps/games-web/` to the existing platform pnpm workspace.
+Add `apps/games-api/` and `apps/games-web/` to the existing platform Bun workspace.
 
 | Factor | Assessment |
 |--------|-----------|
@@ -69,13 +69,13 @@ Only viable if the shared surface area is tiny and stable. It isn't — auth, er
 
 | Factor | Assessment |
 |--------|-----------|
-| Code sharing | Fragile — pnpm can't span into submodules cleanly |
+| Code sharing | Fragile — Bun workspaces can't span into submodules cleanly |
 | Independent deployment | Good |
 | Contributor independence | Poor — game devs must init platform submodule |
 | Setup complexity | Very high — tooling fights at every step |
 | Fits SNC structure | Poor — double-nested submodules in parent repo |
 
-pnpm workspaces, TypeScript project references, and git submodules were not designed for this nesting. Rejected.
+Bun workspaces, TypeScript project references, and git submodules were not designed for this nesting. Rejected.
 
 ---
 
@@ -117,7 +117,7 @@ Create `platform/packages/core/` with the genuinely cross-project code that curr
 | `storage.ts` | StorageProvider interface, ACCEPTED_MIME_TYPES, MAX_FILE_SIZES |
 | `storage-contract.ts` | Contract test suite for StorageProvider implementations |
 
-`@snc/shared` re-exports everything from `@snc/core` so existing imports don't break. Platform-specific schemas (content, creator, subscription, merch, booking, etc.) stay in `@snc/shared`. `pnpm-workspace.yaml` already globs `packages/*`, so `packages/core/` is auto-discovered.
+`@snc/shared` re-exports everything from `@snc/core` so existing imports don't break. Platform-specific schemas (content, creator, subscription, merch, booking, etc.) stay in `@snc/shared`. The root `package.json#workspaces` array already globs `packages/*`, so `packages/core/` is auto-discovered.
 
 ### Phase 2: Extract reusable middleware and hooks
 
@@ -137,7 +137,7 @@ Update `apps/api` and `apps/web` to import from the new packages.
 ### Phase 3: Create `snc-games-web` as a separate repo
 
 - New repo on Forgejo: `snc-games-web`
-- pnpm monorepo with `apps/` and `packages/games-shared/`
+- Bun monorepo with `apps/` and `packages/games-shared/`
 - Depends on `@snc/core`, `@snc/hono-middleware`, `@snc/react-lib` via Forgejo npm registry
 - Added as submodule in parent SNC repo (location TBD)
 - Mirrored to GitHub like all other repos
