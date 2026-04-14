@@ -135,7 +135,7 @@ export function extractFieldErrors<K extends string>(
 
 ## When NOT to Use
 
-- `packages/shared` or `apps/api` — use full `zod` there per CLAUDE.md
+- `packages/shared` or `apps/api` — use full `zod` there per AGENTS.md
 - Read-only forms or forms without validation — skip Zod schema and `extractFieldErrors`
 - Server-side validation only — don't duplicate server schema on the client just to add this pattern
 
