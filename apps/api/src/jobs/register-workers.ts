@@ -9,6 +9,7 @@ import { handleExtractThumbnail } from "./handlers/extract-thumbnail.js";
 import { handlePlayoutIngest } from "./handlers/playout-ingest.js";
 import { handleNotificationSend } from "./handlers/notification-send.js";
 import { handleEventReminderDispatch } from "./handlers/event-reminder.js";
+import { handlePlayoutQueueCleanup } from "./handlers/playout-queue-cleanup.js";
 import type { ProbeJobData } from "./handlers/probe-codec.js";
 import type { TranscodeJobData } from "./handlers/transcode.js";
 import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
@@ -115,6 +116,18 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     );
   }, REMINDER_INTERVAL_MS);
   rootLogger.info("Event reminder cron registered (every 5 minutes)");
+
+  // Playout queue cleanup cron — trim `played` rows to per-channel cap every hour
+  const PLAYOUT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+  setInterval(() => {
+    handlePlayoutQueueCleanup().catch((err) =>
+      rootLogger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        "Playout queue cleanup failed",
+      ),
+    );
+  }, PLAYOUT_CLEANUP_INTERVAL_MS);
+  rootLogger.info("Playout queue cleanup cron registered (every hour)");
 
   // Write Liquidsoap config from DB state before orchestrator starts
   // No restart signal — Liquidsoap reads the file on its own startup

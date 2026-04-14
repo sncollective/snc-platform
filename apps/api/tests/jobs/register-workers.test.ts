@@ -51,6 +51,10 @@ const setupRegisterWorkers = async () => {
     handlePlayoutIngest: vi.fn(),
   }));
 
+  vi.doMock("../../src/jobs/handlers/playout-queue-cleanup.js", () => ({
+    handlePlayoutQueueCleanup: vi.fn(),
+  }));
+
   vi.doMock("../../src/routes/playout-channels.init.js", () => ({
     orchestrator: {
       initialize: mockInitialize,
