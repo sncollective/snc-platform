@@ -538,6 +538,7 @@ const VALID_UPCOMING: UpcomingEvent = {
   location: "Main Stage",
   creatorId: "creator_abc",
   creatorName: "The Noisy Band",
+  reminded: false,
 };
 
 describe("UpcomingEventSchema", () => {
