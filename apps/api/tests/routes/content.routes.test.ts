@@ -27,9 +27,10 @@ const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 // access query which uses: select -> from -> innerJoin -> where -> limit (no orderBy)
 const mockSubLimit = vi.fn();
 // buildContentAccessContext awaits the where() result directly (no .limit/.orderBy),
-// so mockFeedWhere must return a thenable that also has chainable properties
+// so mockFeedWhere must return a thenable that also has chainable properties.
+// Each call creates a fresh chainable so per-test mutations don't leak.
 const mockBatchAccessRows: unknown[] = [];
-const mockFeedWhere = vi.fn(() =>
+const mockFeedWhere: ReturnType<typeof vi.fn> = vi.fn(() =>
   chainablePromise(mockBatchAccessRows, { orderBy: mockOrderBy, limit: mockSubLimit }),
 );
 const mockInnerJoin = vi.fn(() => ({ where: mockFeedWhere }));
@@ -48,7 +49,7 @@ const mockInsertValues = vi.fn(() => ({ returning: mockInsertReturning }));
 const mockInsert = vi.fn(() => ({ values: mockInsertValues }));
 
 const mockUpdateReturning = vi.fn();
-const mockUpdateWhere = vi.fn(() =>
+const mockUpdateWhere: ReturnType<typeof vi.fn> = vi.fn(() =>
   chainablePromise(undefined, { returning: mockUpdateReturning }),
 );
 const mockUpdateSet = vi.fn(() => ({ where: mockUpdateWhere }));
@@ -806,7 +807,7 @@ describe("content routes", () => {
       expect(res.status).toBe(200);
       expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg");
       expect(mockUpdateSet).toHaveBeenCalledOnce();
-      const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
+      const setArg = (mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(setArg.thumbnailKey).toBeNull();
       expect(setArg).not.toHaveProperty("clearThumbnail");
     });
@@ -844,7 +845,7 @@ describe("content routes", () => {
       expect(res.status).toBe(200);
       expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
       expect(mockUpdateSet).toHaveBeenCalledOnce();
-      const setArg = mockUpdateSet.mock.calls[0][0] as Record<string, unknown>;
+      const setArg = (mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(setArg.mediaKey).toBeNull();
       expect(setArg).not.toHaveProperty("clearMedia");
     });
@@ -1197,7 +1198,7 @@ describe("content routes", () => {
       const body = await res.json();
       expect(body.publishedAt).toBeNull();
       // Verify the inserted values always pass publishedAt as null
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      const insertCall = (mockInsertValues.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(insertCall.publishedAt).toBeNull();
     });
 
@@ -1222,7 +1223,7 @@ describe("content routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.publishedAt).toBeNull();
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      const insertCall = (mockInsertValues.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(insertCall.publishedAt).toBeNull();
     });
 
@@ -1247,7 +1248,7 @@ describe("content routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.publishedAt).toBeNull();
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      const insertCall = (mockInsertValues.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(insertCall.publishedAt).toBeNull();
     });
 
@@ -1272,7 +1273,7 @@ describe("content routes", () => {
       });
 
       expect(res.status).toBe(201);
-      const insertCall = mockInsertValues.mock.calls[0]![0] as Record<string, unknown>;
+      const insertCall = (mockInsertValues.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
       expect(insertCall.slug).toBe("my-post");
     });
   });

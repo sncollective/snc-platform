@@ -16,7 +16,7 @@ const setupModule = async () => {
 
   const mockBossSend = vi.fn().mockResolvedValue("job-id");
   const mockBoss = { send: mockBossSend };
-  const mockGetBoss = vi.fn(() => mockBoss);
+  const mockGetBoss = vi.fn().mockReturnValue(mockBoss);
 
   const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 

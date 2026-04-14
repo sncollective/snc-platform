@@ -43,6 +43,7 @@ export const makeMockContent = (
   visibility: "public",
   sourceType: "upload",
   thumbnailUrl: null,
+  thumbnail: null,
   mediaUrl: null,
   publishedAt: "2026-01-01T00:00:00.000Z",
   createdAt: "2026-01-01T00:00:00.000Z",

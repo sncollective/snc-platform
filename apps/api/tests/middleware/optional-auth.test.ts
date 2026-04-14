@@ -141,7 +141,7 @@ describe("optionalAuth middleware", () => {
     });
 
     expect(mockGetSession).toHaveBeenCalledOnce();
-    const callArg = mockGetSession.mock.calls[0][0];
+    const callArg = mockGetSession.mock.calls[0]?.[0] as { headers: Headers };
     expect(callArg).toHaveProperty("headers");
     expect(callArg.headers).toBeInstanceOf(Headers);
   });

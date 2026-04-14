@@ -103,7 +103,7 @@ describe("shopify service", () => {
       const { getProducts } = await setupShopifyService();
       await getProducts({ creatorId: "user_abc" });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: { query?: string };
       };
       expect(body.variables.query).toBe("tag:snc-creator:user_abc");
@@ -117,7 +117,7 @@ describe("shopify service", () => {
       const { getProducts } = await setupShopifyService();
       await getProducts({ after: "cursor_xyz" });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: { after?: string };
       };
       expect(body.variables.after).toBe("cursor_xyz");
@@ -131,7 +131,7 @@ describe("shopify service", () => {
       const { getProducts } = await setupShopifyService();
       await getProducts();
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: { first: number };
       };
       expect(body.variables.first).toBe(12);
@@ -145,7 +145,7 @@ describe("shopify service", () => {
       const { getProducts } = await setupShopifyService();
       await getProducts({ first: 6 });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: { first: number };
       };
       expect(body.variables.first).toBe(6);
@@ -198,7 +198,7 @@ describe("shopify service", () => {
       const { getProducts } = await setupShopifyService();
       await getProducts();
 
-      const headers = mockFetch.mock.calls[0][1].headers as Record<
+      const headers = mockFetch.mock.calls[0]![1]!.headers as Record<
         string,
         string
       >;
@@ -259,7 +259,7 @@ describe("shopify service", () => {
       const { getProductByHandle } = await setupShopifyService();
       await getProductByHandle("test-tshirt");
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: { handle: string };
       };
       expect(body.variables.handle).toBe("test-tshirt");
@@ -320,7 +320,7 @@ describe("shopify service", () => {
       const { createCheckoutUrl } = await setupShopifyService();
       await createCheckoutUrl(checkoutParams);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+      const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string) as {
         variables: {
           input: {
             lines: Array<{ merchandiseId: string; quantity: number }>;

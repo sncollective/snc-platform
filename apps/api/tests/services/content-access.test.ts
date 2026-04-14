@@ -7,15 +7,22 @@ import { TEST_CONFIG } from "../helpers/test-constants.js";
 // ── Mock State ──
 
 // SELECT chain for innerJoin path: db.select().from().innerJoin().where().limit()
+// Factory-style impls so each call returns a fresh chain object; the
+// `ReturnType<typeof vi.fn>` annotation widens T back to Procedure so
+// later `.mockResolvedValue([])` in beforeEach is accepted.
 const mockSubscriptionLimit = vi.fn();
-const mockSubscriptionWhere = vi.fn(() => ({ limit: mockSubscriptionLimit }));
+const mockSubscriptionWhere: ReturnType<typeof vi.fn> = vi.fn(() => ({
+  limit: mockSubscriptionLimit,
+}));
 const mockInnerJoin = vi.fn(() => ({ where: mockSubscriptionWhere }));
 
 // SELECT chain for direct where path: db.select().from().where()
 // Used by creatorMembers queries (no innerJoin)
 // The where() result needs .limit() for the "any membership" query in checkContentAccess
 const mockMemberLimit = vi.fn();
-const mockMemberWhere = vi.fn(() => ({ limit: mockMemberLimit }));
+const mockMemberWhere: ReturnType<typeof vi.fn> = vi.fn(() => ({
+  limit: mockMemberLimit,
+}));
 
 // Track which table is being queried to route to the right chain
 const mockSelectFrom = vi.fn((table: unknown) => {
@@ -547,10 +554,18 @@ describe("applyContentGate", () => {
     visibility: "subscribers",
     sourceType: "upload",
     thumbnailUrl: null,
+    thumbnail: null,
     mediaUrl: "/api/content/content_123/media",
     publishedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    processingStatus: null,
+    videoCodec: null,
+    audioCodec: null,
+    width: null,
+    height: null,
+    duration: null,
+    bitrate: null,
     ...overrides,
   });
 

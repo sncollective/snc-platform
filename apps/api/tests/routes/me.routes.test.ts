@@ -180,7 +180,7 @@ describe("GET /api/me", () => {
     });
 
     expect(mockGetSession).toHaveBeenCalledOnce();
-    const callArg = mockGetSession.mock.calls[0][0];
+    const callArg = mockGetSession.mock.calls[0]?.[0];
     expect(callArg).toHaveProperty("headers");
   });
 });

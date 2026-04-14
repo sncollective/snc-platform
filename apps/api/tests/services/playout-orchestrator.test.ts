@@ -6,10 +6,12 @@ import type { LiquidsoapClient } from "../../src/services/liquidsoap-client.js";
 
 const mockPushTrack = vi.fn();
 const mockSkipTrack = vi.fn();
+const mockGetNowPlaying = vi.fn();
 
 const mockLiquidsoapClient: LiquidsoapClient = {
   pushTrack: mockPushTrack,
   skipTrack: mockSkipTrack,
+  getNowPlaying: mockGetNowPlaying,
 };
 
 // ── Mock DB State ──

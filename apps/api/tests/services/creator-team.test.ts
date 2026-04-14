@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ForbiddenError, CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
+import type { CreatorPermission } from "@snc/shared";
 
 // ── Mock State ──
 
@@ -79,7 +80,7 @@ describe("checkCreatorPermission", () => {
   let checkCreatorPermission: (
     userId: string,
     creatorId: string,
-    permission: string,
+    permission: CreatorPermission,
     userRoles?: string[],
   ) => Promise<boolean>;
 
@@ -205,7 +206,7 @@ describe("requireCreatorPermission", () => {
   let requireCreatorPermission: (
     userId: string,
     creatorId: string,
-    permission: string,
+    permission: CreatorPermission,
     userRoles?: string[],
   ) => Promise<void>;
 

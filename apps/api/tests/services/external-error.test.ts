@@ -32,6 +32,7 @@ describe("wrapExternalError", () => {
 describe("wrapStripeErrorGranular", () => {
   it("maps StripeCardError to 400", () => {
     const err = new Stripe.errors.StripeCardError({
+      type: "card_error",
       message: "Your card was declined",
     });
     const result = wrapStripeErrorGranular(err);
@@ -44,6 +45,7 @@ describe("wrapStripeErrorGranular", () => {
 
   it("maps StripeInvalidRequestError to 400", () => {
     const err = new Stripe.errors.StripeInvalidRequestError({
+      type: "invalid_request_error",
       message: "Invalid price ID",
     });
     const result = wrapStripeErrorGranular(err);
@@ -54,6 +56,7 @@ describe("wrapStripeErrorGranular", () => {
 
   it("maps StripeRateLimitError to 429 with generic message", () => {
     const err = new Stripe.errors.StripeRateLimitError({
+      type: "rate_limit_error",
       message: "Too many requests",
     });
     const result = wrapStripeErrorGranular(err);
@@ -65,6 +68,7 @@ describe("wrapStripeErrorGranular", () => {
 
   it("maps StripeAuthenticationError to 500 with generic message", () => {
     const err = new Stripe.errors.StripeAuthenticationError({
+      type: "authentication_error",
       message: "Invalid API key provided: sk_test_****XXXX",
     });
     const result = wrapStripeErrorGranular(err);
@@ -76,6 +80,7 @@ describe("wrapStripeErrorGranular", () => {
 
   it("maps StripeConnectionError to 502 with generic message", () => {
     const err = new Stripe.errors.StripeConnectionError({
+      type: "api_error",
       message: "Connection refused",
     });
     const result = wrapStripeErrorGranular(err);
@@ -87,6 +92,7 @@ describe("wrapStripeErrorGranular", () => {
 
   it("maps StripeAPIError to 502 with generic message", () => {
     const err = new Stripe.errors.StripeAPIError({
+      type: "api_error",
       message: "Internal Stripe error",
     });
     const result = wrapStripeErrorGranular(err);

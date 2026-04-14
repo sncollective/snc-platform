@@ -33,6 +33,8 @@ const RAW_USER = {
 const RAW_SESSION = {
   ...makeMockSession(),
   expiresAt: new Date("2025-02-01T00:00:00Z"),
+  createdAt: new Date("2025-01-01T00:00:00Z"),
+  updatedAt: new Date("2025-01-01T00:00:00Z"),
 };
 
 // ── Tests ──

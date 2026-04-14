@@ -421,7 +421,7 @@ describe("chat room manager", () => {
 
       const send = client.ws.send as ReturnType<typeof vi.fn>;
       expect(send).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(send.mock.calls[0][0] as string)).toEqual({
+      expect(JSON.parse(send.mock.calls[0]?.[0] as string)).toEqual({
         type: "notification_count",
         count: 5,
       });

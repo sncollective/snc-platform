@@ -863,8 +863,8 @@ describe("creator routes", () => {
 
     it("updates socialLinks with valid entries", async () => {
       const socialLinks = [
-        { platform: "bandcamp", url: "https://myband.bandcamp.com" },
-        { platform: "spotify", url: "https://open.spotify.com/artist/123" },
+        { platform: "bandcamp" as const, url: "https://myband.bandcamp.com" },
+        { platform: "spotify" as const, url: "https://open.spotify.com/artist/123" },
       ];
       const dbProfile = makeMockDbCreatorProfile();
       const updatedProfile = makeMockDbCreatorProfile({ socialLinks });

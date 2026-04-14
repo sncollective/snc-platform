@@ -258,7 +258,7 @@ describe("webhook routes", () => {
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
-        const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({ status: "active" });
         expect(setArgs[0].currentPeriodEnd).toBeInstanceOf(Date);
       });
@@ -281,7 +281,7 @@ describe("webhook routes", () => {
 
         await postWebhook(JSON.stringify(event));
 
-        const setArgs = mockUpdateSet.mock.calls[0] as [{ currentPeriodEnd: Date }];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [{ currentPeriodEnd: Date }];
         const expectedDate = new Date(periodEndUnix * 1000);
         expect(setArgs[0].currentPeriodEnd).toEqual(expectedDate);
       });
@@ -296,7 +296,7 @@ describe("webhook routes", () => {
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
-        const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({ status: "past_due" });
       });
     });
@@ -310,7 +310,7 @@ describe("webhook routes", () => {
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
-        const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({
           status: "active",
           cancelAtPeriodEnd: false,
@@ -336,7 +336,7 @@ describe("webhook routes", () => {
 
         await postWebhook(JSON.stringify(event));
 
-        const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({
           status: "canceled",
           cancelAtPeriodEnd: true,
@@ -353,7 +353,7 @@ describe("webhook routes", () => {
 
         expect(res.status).toBe(200);
         expect(mockUpdate).toHaveBeenCalled();
-        const setArgs = mockUpdateSet.mock.calls[0] as [Record<string, unknown>];
+        const setArgs = mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>];
         expect(setArgs[0]).toMatchObject({ status: "canceled" });
       });
     });

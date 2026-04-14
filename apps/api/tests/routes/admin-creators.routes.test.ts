@@ -151,8 +151,8 @@ describe("admin creator routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as { items: Array<{ status: string; displayName: string }>; nextCursor: string | null };
       expect(body.items).toHaveLength(2);
-      expect(body.items[0].status).toBe("active");
-      expect(body.items[1].status).toBe("inactive");
+      expect(body.items[0]!.status).toBe("active");
+      expect(body.items[1]!.status).toBe("inactive");
     });
 
     it("filters by status query param", async () => {
@@ -178,7 +178,7 @@ describe("admin creator routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as { items: Array<{ status: string }> };
       expect(body.items).toHaveLength(1);
-      expect(body.items[0].status).toBe("inactive");
+      expect(body.items[0]!.status).toBe("inactive");
     });
 
     it("returns 401 without auth", async () => {

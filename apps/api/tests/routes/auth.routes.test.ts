@@ -272,7 +272,7 @@ describe("auth routes", () => {
       await ctx.app.request("/api/auth/get-session");
 
       expect(mockHandler).toHaveBeenCalledOnce();
-      const callArg = mockHandler.mock.calls[0][0];
+      const callArg = mockHandler.mock.calls[0]?.[0];
       expect(callArg).toBeInstanceOf(Request);
     });
 

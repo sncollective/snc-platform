@@ -291,7 +291,7 @@ describe("stripe service", () => {
   describe("granular error mapping", () => {
     it("maps StripeCardError to 400 with STRIPE_CARD_ERROR code", async () => {
       mockCustomersSearch.mockRejectedValue(
-        new Stripe.errors.StripeCardError({ message: "Card declined" }),
+        new Stripe.errors.StripeCardError({ type: "card_error", message: "Card declined" }),
       );
 
       const { getOrCreateCustomer } = await setupStripeService();
@@ -307,6 +307,7 @@ describe("stripe service", () => {
     it("maps StripeInvalidRequestError to 400", async () => {
       mockCheckoutSessionsCreate.mockRejectedValue(
         new Stripe.errors.StripeInvalidRequestError({
+          type: "invalid_request_error",
           message: "Invalid price",
         }),
       );
@@ -331,6 +332,7 @@ describe("stripe service", () => {
     it("maps StripeRateLimitError to 429", async () => {
       mockSubscriptionsUpdate.mockRejectedValue(
         new Stripe.errors.StripeRateLimitError({
+          type: "rate_limit_error",
           message: "Too many requests",
         }),
       );
@@ -348,6 +350,7 @@ describe("stripe service", () => {
     it("maps StripeAuthenticationError to 500", async () => {
       mockCustomersSearch.mockRejectedValue(
         new Stripe.errors.StripeAuthenticationError({
+          type: "authentication_error",
           message: "Invalid API key",
         }),
       );
@@ -365,6 +368,7 @@ describe("stripe service", () => {
     it("maps StripeConnectionError to 502", async () => {
       mockCustomersSearch.mockRejectedValue(
         new Stripe.errors.StripeConnectionError({
+          type: "api_error",
           message: "Connection refused",
         }),
       );
@@ -382,6 +386,7 @@ describe("stripe service", () => {
     it("maps StripeAPIError to 502", async () => {
       mockCustomersSearch.mockRejectedValue(
         new Stripe.errors.StripeAPIError({
+          type: "api_error",
           message: "Internal Stripe error",
         }),
       );

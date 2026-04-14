@@ -197,6 +197,7 @@ describe("revenue service", () => {
       const Stripe = await import("stripe");
       mockInvoicesList.mockImplementation(() => {
         throw new Stripe.default.errors.StripeRateLimitError({
+          type: "rate_limit_error",
           message: "Too many requests",
         });
       });

@@ -823,7 +823,7 @@ describe("streaming routes", () => {
       }));
       vi.doMock("../../src/db/connection.js", () => {
         const makeWhere = (): Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } } => {
-          const p = Promise.resolve([]) as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
+          const p = Promise.resolve([]) as unknown as Promise<unknown[]> & { orderBy: () => { limit: () => Promise<unknown[]> } };
           p.orderBy = vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([]),
           });

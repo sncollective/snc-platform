@@ -50,7 +50,7 @@ describe("requestLogger middleware", () => {
     app.use("*", requestIdMiddleware);
     app.use("*", requestLogger);
     app.get("/test", (c) => {
-      const logger = c.var.logger;
+      const logger = (c.var as { logger?: unknown }).logger;
       return c.json({ hasLogger: logger !== undefined });
     });
 
