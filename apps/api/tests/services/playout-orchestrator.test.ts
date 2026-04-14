@@ -893,6 +893,15 @@ describe("playout orchestrator", () => {
           }),
         });
 
+      // initialize() resets pushedToLiquidsoap for all active queue items
+      // before looping channels: db.update(playoutQueue).set(...).where(...)
+      // Landed in commit 85d2b0b (2026-04-09) — test mock was never updated.
+      mockDbUpdate.mockReturnValueOnce({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      });
+
       // autoFill SQL query returns no candidates
       mockDbExecute.mockResolvedValue([]);
 
