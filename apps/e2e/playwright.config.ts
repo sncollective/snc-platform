@@ -40,7 +40,11 @@ export default defineConfig({
     : [["html", { open: "on-failure" }]],
 
   use: {
-    baseURL: IS_CI ? "http://localhost:3001" : "http://localhost:3082",
+    // CI uses ports 3100/3101 to avoid colliding with the host's 3000/3001
+    // (the Forgejo runner shares host-network mode — see
+    // boards/workflow/BOARD.md park item on 2026-04-14). Local mode hits
+    // staging via Caddy on 3082.
+    baseURL: IS_CI ? "http://localhost:3101" : "http://localhost:3082",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -67,16 +71,16 @@ export default defineConfig({
     ? [
         {
           command: "bun run --filter @snc/api dev",
-          port: 3000,
+          port: 3100,
           reuseExistingServer: false,
-          env: { ...PROD_FLAGS },
+          env: { ...PROD_FLAGS, PORT: "3100" },
           cwd: "../..",
         },
         {
-          command: "bun run --filter @snc/web dev",
-          port: 3002,
+          command: "cd apps/web && bun run vite -- --port 3101",
+          port: 3101,
           reuseExistingServer: false,
-          env: { ...VITE_FLAGS, VITE_API_URL: "http://localhost:3000" },
+          env: { ...VITE_FLAGS, VITE_API_URL: "http://localhost:3100" },
           cwd: "../..",
         },
       ]
