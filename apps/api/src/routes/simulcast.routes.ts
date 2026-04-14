@@ -63,7 +63,9 @@ simulcastRoutes.post(
   }),
   validator("json", CreateSimulcastDestinationSchema),
   async (c) => {
-    const body = c.req.valid("json" as never);
+    const body = c.req.valid("json" as never) as z.infer<
+      typeof CreateSimulcastDestinationSchema
+    >;
     const result = await createSimulcastDestination(body);
     if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 201);
@@ -89,7 +91,9 @@ simulcastRoutes.patch(
   validator("json", UpdateSimulcastDestinationSchema),
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };
-    const body = c.req.valid("json" as never);
+    const body = c.req.valid("json" as never) as z.infer<
+      typeof UpdateSimulcastDestinationSchema
+    >;
     const result = await updateSimulcastDestination(id, body);
     if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 200);

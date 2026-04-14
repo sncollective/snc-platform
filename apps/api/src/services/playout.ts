@@ -238,7 +238,7 @@ export const getPlayoutStatus = async (): Promise<PlayoutStatus> => {
     nowPlaying,
     queuedItems: upcoming.map((entry) => ({
       itemId: entry.playoutItemId,
-      title: entry.title,
+      title: entry.title ?? "Untitled",
       queuedAt: entry.createdAt,
     })),
   };

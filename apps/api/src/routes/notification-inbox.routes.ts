@@ -58,8 +58,8 @@ notificationInboxRoutes.get(
 
     const result = await getNotifications({
       userId: user.id,
-      before,
       limit,
+      ...(before !== undefined && { before }),
     });
     if (!result.ok) throw result.error;
 

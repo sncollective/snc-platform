@@ -131,7 +131,15 @@ emissionsRoutes.post(
   async (c) => {
     const body = c.req.valid("json");
     const row = await insertEmission(
-      { date: body.date, source: body.source, description: body.description, amount: body.amount, unit: body.unit, method: body.method, metadata: body.metadata },
+      {
+        date: body.date,
+        source: body.source,
+        description: body.description,
+        amount: body.amount,
+        unit: body.unit,
+        method: body.method,
+        ...(body.metadata !== undefined && { metadata: body.metadata }),
+      },
       { scope: body.scope, category: body.category, subcategory: body.subcategory, co2Kg: body.co2Kg, projected: body.projected },
     );
     return c.json(toEntryResponse(row), 201);
@@ -161,7 +169,15 @@ emissionsRoutes.post(
   async (c) => {
     const body = c.req.valid("json");
     const row = await insertEmission(
-      { date: body.date, source: body.source, description: body.description, amount: body.amount, unit: body.unit, method: body.method, metadata: body.metadata },
+      {
+        date: body.date,
+        source: body.source,
+        description: body.description,
+        amount: body.amount,
+        unit: body.unit,
+        method: body.method,
+        ...(body.metadata !== undefined && { metadata: body.metadata }),
+      },
       { scope: 0, category: "offset", subcategory: "offset", co2Kg: -Math.abs(body.co2Kg) },
     );
     return c.json(toEntryResponse(row), 201);

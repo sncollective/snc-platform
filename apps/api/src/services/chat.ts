@@ -41,7 +41,7 @@ const toMessageResponse = (
   userId: row.userId,
   userName: row.userName,
   avatarUrl: row.avatarUrl,
-  badges: row.badges ?? [],
+  badges: (row.badges ?? []) as BadgeType[],
   content: row.content,
   createdAt: row.createdAt.toISOString(),
 });

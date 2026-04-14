@@ -120,7 +120,11 @@ chatRoutes.get(
       limit: number;
     };
 
-    const result = await getMessageHistory({ roomId, before, limit });
+    const result = await getMessageHistory({
+      roomId,
+      limit,
+      ...(before !== undefined && { before }),
+    });
     if (!result.ok) throw result.error;
 
     return c.json(result.value);
@@ -249,7 +253,7 @@ chatRoutes.get(
               moderatorUserId: client.userId,
               moderatorUserName: client.userName,
               durationSeconds: parsed.durationSeconds,
-              reason: parsed.reason,
+              ...(parsed.reason !== undefined && { reason: parsed.reason }),
             }).then((result) => {
               if (!result.ok) {
                 const errorMessage = result.error instanceof AppError
@@ -281,7 +285,7 @@ chatRoutes.get(
               targetUserId: parsed.targetUserId,
               moderatorUserId: client.userId,
               moderatorUserName: client.userName,
-              reason: parsed.reason,
+              ...(parsed.reason !== undefined && { reason: parsed.reason }),
             }).then((result) => {
               if (!result.ok) {
                 const errorMessage = result.error instanceof AppError
@@ -451,7 +455,11 @@ chatRoutes.get(
       limit: number;
     };
 
-    const result = await getModerationHistory({ roomId, before, limit });
+    const result = await getModerationHistory({
+      roomId,
+      limit,
+      ...(before !== undefined && { before }),
+    });
     if (!result.ok) throw result.error;
 
     return c.json(result.value);

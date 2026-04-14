@@ -644,8 +644,11 @@ const _contentTypeCheck: ContentType = "video";
 const _visibilityCheck: Visibility = "public";
 const _contentStatusCheck: ContentStatus = "draft";
 const _createContentCheck: CreateContent = {
+  creatorId: "creator_abc",
   title: "Test",
   type: "written",
+  visibility: "public",
+  sourceType: "upload",
 };
 const _updateContentCheck: UpdateContent = { clearThumbnail: true, clearMedia: false };
 const _contentResponseCheck: ContentResponse = VALID_CONTENT_RESPONSE;

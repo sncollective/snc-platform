@@ -63,7 +63,9 @@ const shutdown = async () => {
   // Hard timeout — force exit if any cleanup stage hangs
   const forceExit = setTimeout(() => {
     rootLogger.error("Shutdown timed out, forcing exit");
-    server.closeAllConnections();
+    if ("closeAllConnections" in server) {
+      server.closeAllConnections();
+    }
     process.exit(1);
   }, 30_000);
   forceExit.unref(); // Don't keep process alive just for this timer

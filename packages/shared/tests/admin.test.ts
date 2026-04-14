@@ -17,7 +17,7 @@ import {
 
 // ── Test Fixtures ──
 
-const VALID_ADMIN_USER = {
+const VALID_ADMIN_USER: AdminUser = {
   id: "user_abc123",
   name: "Admin User",
   email: "admin@example.com",

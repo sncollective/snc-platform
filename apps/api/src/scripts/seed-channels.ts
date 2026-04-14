@@ -39,7 +39,7 @@ const main = async (): Promise<void> => {
   // Seed broadcast channel with first playout channel as default fallback
   const broadcastResult = await ensureBroadcast({
     ...BROADCAST_CHANNEL,
-    defaultPlayoutChannelId: playoutIds[0],
+    ...(playoutIds[0] !== undefined && { defaultPlayoutChannelId: playoutIds[0] }),
   });
   if (broadcastResult.ok) {
     await ensureChannelRoom(broadcastResult.value.channelId, BROADCAST_CHANNEL.name);

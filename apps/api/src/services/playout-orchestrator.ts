@@ -64,6 +64,7 @@ const toChannelContent = (
     sourceType: "playout" | "content";
     title: string | null;
     duration: number | null;
+    processingStatus: ChannelContent["processingStatus"];
   },
 ): ChannelContent => ({
   id: row.id,
@@ -71,6 +72,7 @@ const toChannelContent = (
   playoutItemId: row.playoutItemId ?? null,
   contentId: row.contentId ?? null,
   sourceType: row.sourceType,
+  processingStatus: row.processingStatus,
   title: row.title,
   duration: row.duration,
   lastPlayedAt: row.lastPlayedAt?.toISOString() ?? null,

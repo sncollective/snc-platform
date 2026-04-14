@@ -592,8 +592,14 @@ describe("UpcomingEventsResponseSchema", () => {
 const _eventCheck: CalendarEvent = { ...VALID_EVENT, completedAt: null };
 const _createCheck: CreateCalendarEvent = {
   title: "Event",
+  description: "",
   startAt: "2026-04-01T10:00:00.000Z",
+  endAt: null,
+  allDay: false,
   eventType: "meeting",
+  location: "",
+  visibility: "internal",
+  projectId: null,
 };
 const _updateCheck: UpdateCalendarEvent = { title: "Updated" };
 const _queryCheck: CalendarEventsQuery = { limit: 50 };

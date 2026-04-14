@@ -43,7 +43,7 @@ export const ValidateInviteResponseSchema = z.object({
   type: InviteTypeSchema,
   email: z.string(),
   expiresAt: z.string(),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 // ── Public Types (derived) ──

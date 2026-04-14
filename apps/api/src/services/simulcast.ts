@@ -173,10 +173,11 @@ export async function createCreatorSimulcastDestination(
   if (!ownerCheck.ok) return ownerCheck;
 
   // Enforce per-creator cap
-  const [{ count }] = await db
+  const countRows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(simulcastDestinations)
     .where(eq(simulcastDestinations.creatorId, creatorId));
+  const count = countRows[0]?.count ?? 0;
 
   if (count >= MAX_CREATOR_SIMULCAST_DESTINATIONS) {
     return err(

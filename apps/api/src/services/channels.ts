@@ -69,6 +69,7 @@ export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
         displayName: creatorProfiles.displayName,
         handle: creatorProfiles.handle,
         avatarKey: creatorProfiles.avatarKey,
+        bannerKey: creatorProfiles.bannerKey,
       })
       .from(creatorProfiles)
       .where(inArray(creatorProfiles.id, creatorIds));

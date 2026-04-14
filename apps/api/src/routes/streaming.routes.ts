@@ -119,7 +119,7 @@ const isPlayoutStream = async (streamName: string): Promise<boolean> => {
 
 const extractStreamKey = (param: string): string | null => {
   const match = param.match(/[?&]key=([^&]*)/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 };
 
 const toErrorDetail = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
@@ -550,7 +550,9 @@ streamingRoutes.post(
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
-    const body = c.req.valid("json" as never);
+    const body = c.req.valid("json" as never) as z.infer<
+      typeof CreateSimulcastDestinationSchema
+    >;
     const result = await createCreatorSimulcastDestination(
       user.id,
       creatorId,
@@ -580,7 +582,9 @@ streamingRoutes.patch(
   async (c) => {
     const { creatorId, id } = c.req.valid("param" as never) as { creatorId: string; id: string };
     const user = c.get("user");
-    const body = c.req.valid("json" as never);
+    const body = c.req.valid("json" as never) as z.infer<
+      typeof UpdateSimulcastDestinationSchema
+    >;
     const result = await updateCreatorSimulcastDestination(
       user.id,
       creatorId,

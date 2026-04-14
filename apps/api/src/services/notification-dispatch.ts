@@ -129,12 +129,13 @@ export const dispatchNotification = async (
     });
 
     // Also create an inbox notification for the user
+    const actionUrl = deriveNotificationActionUrl(event.payload);
     void createNotification({
       userId: member.userId,
       type: event.eventType as InboxNotificationType,
       title: deriveNotificationTitle(event.eventType, event.payload),
       body: deriveNotificationBody(event.eventType, event.payload),
-      actionUrl: deriveNotificationActionUrl(event.payload),
+      ...(actionUrl !== undefined && { actionUrl }),
     }).catch(() => {
       // Inbox creation failure should not block email dispatch
     });

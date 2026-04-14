@@ -1,8 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
-import type { WebSocket } from "ws";
-import type { Server } from "node:http";
+import type { ServerType } from "@hono/node-server";
 
 // ── Module-Level State ──
 
@@ -23,16 +22,16 @@ export const initWebSocket = (app: Hono) => {
  * Upgrade a Hono route to a WebSocket endpoint.
  * Delegates to @hono/node-ws upgradeWebSocket — must be called after initWebSocket().
  */
-export const upgradeWebSocket: UpgradeWebSocket<WebSocket> = (...args) => {
+export const upgradeWebSocket: UpgradeWebSocket = ((...args: Parameters<UpgradeWebSocket>) => {
   if (!_nodeWs) throw new Error("WebSocket not initialized — call initWebSocket(app) first");
   return _nodeWs.upgradeWebSocket(...args);
-};
+}) as UpgradeWebSocket;
 
 /**
  * Inject WebSocket handling into the Node.js HTTP server.
  * Must be called after initWebSocket().
  */
-export const injectWebSocket = (server: Server) => {
+export const injectWebSocket = (server: ServerType) => {
   if (!_nodeWs) throw new Error("WebSocket not initialized — call initWebSocket(app) first");
   _nodeWs.injectWebSocket(server);
 };
