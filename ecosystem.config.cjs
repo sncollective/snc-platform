@@ -5,7 +5,7 @@ module.exports = {
       cwd: "./apps/api",
       script: "./node_modules/.bin/tsx",
       args: "watch --ignore './uploads/**' --import ./src/env.ts src/index.ts",
-      interpreter: "bash",
+      interpreter: "node",
       env: {
         NODE_ENV: "development",
         CORS_ORIGIN: "http://localhost:3080,http://localhost:3082",
@@ -24,7 +24,7 @@ module.exports = {
       cwd: "./apps/web",
       script: "./node_modules/.bin/vite",
       args: "--port 3001 --strictPort",
-      interpreter: "bash",
+      interpreter: "node",
       env: {
         NODE_ENV: "development",
       },
@@ -40,7 +40,7 @@ module.exports = {
       cwd: "./apps/web",
       script: "./node_modules/.bin/vite",
       args: "--port 3002 --strictPort",
-      interpreter: "bash",
+      interpreter: "node",
       env: {
         NODE_ENV: "development",
         VITE_FEATURE_CONTENT: "true",
