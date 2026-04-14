@@ -54,10 +54,18 @@ function makeMockDraft(overrides?: Partial<ContentResponse>): ContentResponse {
     visibility: "public",
     sourceType: "upload",
     thumbnailUrl: null,
+    thumbnail: null,
     mediaUrl: null,
     publishedAt: null,
     createdAt: "2026-03-01T00:00:00.000Z",
     updatedAt: "2026-03-01T00:00:00.000Z",
+    processingStatus: null,
+    videoCodec: null,
+    audioCodec: null,
+    width: null,
+    height: null,
+    duration: null,
+    bitrate: null,
     ...overrides,
   };
 }

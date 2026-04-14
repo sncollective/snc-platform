@@ -54,7 +54,7 @@ export async function reorderPlayoutItems(
 ): Promise<PlayoutItemListResponse> {
   return apiMutate<PlayoutItemListResponse>("/api/playout/items/reorder", {
     method: "PUT",
-    body: { orderedIds } satisfies ReorderPlayoutItems,
+    body: { orderedIds: [...orderedIds] } satisfies ReorderPlayoutItems,
   });
 }
 

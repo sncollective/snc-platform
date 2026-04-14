@@ -44,7 +44,7 @@ function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
 
 describe("chatReducer", () => {
   it("SET_ROOMS updates rooms", () => {
-    const rooms = [makeRoom(), makeRoom({ id: "room-2", type: "stream" })];
+    const rooms = [makeRoom(), makeRoom({ id: "room-2", type: "channel" })];
     const result = chatReducer(INITIAL_STATE, { type: "SET_ROOMS", rooms });
     expect(result.rooms).toEqual(rooms);
     expect(result.activeRoomId).toBeNull();
@@ -109,7 +109,7 @@ describe("chatReducer", () => {
 
   it("ROOM_CLOSED does not affect other rooms", () => {
     const room1 = makeRoom({ id: "room-1" });
-    const room2 = makeRoom({ id: "room-2", type: "stream" });
+    const room2 = makeRoom({ id: "room-2", type: "channel" });
     const stateWithRooms: ChatState = {
       ...INITIAL_STATE,
       rooms: [room1, room2],

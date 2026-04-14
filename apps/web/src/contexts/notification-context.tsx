@@ -35,7 +35,7 @@ export function NotificationProvider({
 }: NotificationProviderProps): React.ReactElement {
   const [wsCount, setWsCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
   useEffect(() => {

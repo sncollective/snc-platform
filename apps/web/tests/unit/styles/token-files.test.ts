@@ -37,10 +37,10 @@ describe("design token files", () => {
       const properties = block.match(/--[\w-]+:\s*[^;]+/g) ?? [];
       for (const prop of properties) {
         const [name, value] = prop.split(/:\s*/) as [string, string];
-        expect(value.trim()).toMatch(
-          /^var\(/,
+        expect(
+          value.trim(),
           `${name} in global.css :root should be an alias (var() reference), not a literal value. Move literal definitions to token files.`,
-        );
+        ).toMatch(/^var\(/);
       }
     }
   });

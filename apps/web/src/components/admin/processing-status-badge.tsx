@@ -15,7 +15,7 @@ export interface ProcessingStatusBadgeProps {
 export function ProcessingStatusBadge({
   status,
 }: ProcessingStatusBadgeProps): React.ReactElement {
-  const classMap: Record<PlayoutItem["processingStatus"], string> = {
+  const classMap: Record<PlayoutItem["processingStatus"], string | undefined> = {
     pending: styles.statusPending,
     uploading: styles.statusUploading,
     processing: styles.statusProcessing,

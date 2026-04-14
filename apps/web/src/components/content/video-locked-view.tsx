@@ -12,7 +12,7 @@ import styles from "./video-locked-view.module.css";
 
 export interface VideoLockedViewProps {
   readonly item: FeedItem;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

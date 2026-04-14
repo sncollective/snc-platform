@@ -26,7 +26,7 @@ export interface AudioDetailEditCallbacks {
 export interface AudioDetailProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
   readonly isEditing?: boolean;
   readonly editCallbacks?: AudioDetailEditCallbacks;
   /** When true, skip rendering EditableContentMeta/ContentMeta/ContentFooter (metadata handled externally). */

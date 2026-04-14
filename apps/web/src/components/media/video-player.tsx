@@ -2,6 +2,8 @@ import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
+import type { PlayerSrc } from "@vidstack/react";
+
 import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
 import styles from "./video-player.module.css";
 
@@ -29,7 +31,9 @@ export function VideoPlayer({ src, poster, mimeType }: VideoPlayerProps) {
   return (
     <div className={styles.wrapper}>
       <MediaPlayer
-        src={mimeType !== undefined ? { src, type: mimeType } : src}
+        src={
+          (mimeType !== undefined ? { src, type: mimeType } : src) as PlayerSrc
+        }
         aspectRatio="16/9"
         crossOrigin=""
         {...(poster !== undefined ? { poster } : {})}

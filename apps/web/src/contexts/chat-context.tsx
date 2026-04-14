@@ -220,7 +220,7 @@ export function ChatProvider({
   userIdRef.current = userId;
   const wsRef = useRef<WebSocket | null>(null);
   const activeRoomRef = useRef<string | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
   // Keep ref in sync with state for use in WebSocket callbacks

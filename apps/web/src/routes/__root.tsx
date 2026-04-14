@@ -106,7 +106,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
 
   return (
     <>
-      {!isTheater && <NavBar serverAuth={serverAuth} />}
+      {!isTheater && <NavBar {...(serverAuth !== undefined && { serverAuth })} />}
       <main
         id="main-content"
         className={clsx(

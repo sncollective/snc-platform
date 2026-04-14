@@ -15,11 +15,11 @@ export interface NavLinkItemProps {
   readonly currentPath: string;
   readonly effectiveRoles: readonly Role[];
   /** CSS class for the base (non-active, non-disabled) link. */
-  readonly linkClass: string;
+  readonly linkClass: string | undefined;
   /** CSS class applied when the link is active. */
-  readonly activeClass: string;
+  readonly activeClass: string | undefined;
   /** CSS class applied when the link is disabled. */
-  readonly disabledClass: string;
+  readonly disabledClass: string | undefined;
   readonly onClick?: () => void;
 }
 

@@ -46,6 +46,7 @@ function ManageContentPage(): React.ReactElement {
         title: `Untitled ${TYPE_LABELS[type]}`,
         type,
         visibility: "public",
+        sourceType: "upload",
       });
       void navigate({
         to: "/creators/$creatorId/manage/content/$contentId",

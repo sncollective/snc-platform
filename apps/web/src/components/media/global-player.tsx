@@ -5,6 +5,8 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import "@vidstack/react/player/styles/default/layouts/audio.css";
 
+import type { PlayerSrc } from "@vidstack/react";
+
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
 import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
 
@@ -51,7 +53,7 @@ export function GlobalPlayer() {
         return (
           <MediaPlayer
             key={media.id}
-            src={media.source}
+            src={media.source as PlayerSrc}
             autoPlay={state.shouldAutoPlay || isLive}
             title={media.title}
             artist={media.artist}

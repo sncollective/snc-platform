@@ -28,7 +28,7 @@ export interface VideoDetailEditCallbacks {
 export interface VideoDetailProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
   readonly isEditing?: boolean;
   readonly editCallbacks?: VideoDetailEditCallbacks;
   /** When true, skip rendering EditableContentMeta/ContentMeta/ContentFooter (metadata handled externally). */

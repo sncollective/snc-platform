@@ -12,7 +12,7 @@ import styles from "./audio-locked-view.module.css";
 
 export interface AudioLockedViewProps {
   readonly item: FeedItem;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

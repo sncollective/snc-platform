@@ -71,16 +71,19 @@ export function useCalendarState(options: UseCalendarStateOptions = {}): UseCale
 
   const navigation = useCalendarNavigation();
 
-  const filters = useCalendarFilters({ creatorId, includeCreatorFilter });
+  const filters = useCalendarFilters({
+    includeCreatorFilter,
+    ...(creatorId !== undefined && { creatorId }),
+  });
 
   const eventsState = useCalendarEvents({
-    creatorId,
-    initialEvents,
     monthOffset: navigation.monthOffset,
     viewMode: navigation.viewMode,
     eventTypeFilter: filters.eventTypeFilter,
     creatorFilter: filters.creatorFilter,
     projectFilter: filters.projectFilter,
+    ...(creatorId !== undefined && { creatorId }),
+    ...(initialEvents !== undefined && { initialEvents }),
   });
 
   const form = useCalendarForm({

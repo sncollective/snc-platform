@@ -66,6 +66,7 @@ function makeMockChannelContent(
     playoutItemId: "item_001",
     contentId: null,
     sourceType: "playout",
+    processingStatus: "ready",
     title: "Metropolis",
     duration: 9000,
     lastPlayedAt: null,

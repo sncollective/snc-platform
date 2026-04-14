@@ -12,7 +12,7 @@ import styles from "./written-detail.module.css";
 export interface WrittenDetailViewProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

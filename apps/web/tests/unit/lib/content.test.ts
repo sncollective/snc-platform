@@ -27,10 +27,18 @@ const MOCK_CONTENT: ContentResponse = {
   visibility: "subscribers",
   sourceType: "upload",
   thumbnailUrl: null,
+  thumbnail: null,
   mediaUrl: "/storage/media/test.mp3",
   publishedAt: "2026-03-01T00:00:00.000Z",
   createdAt: "2026-03-01T00:00:00.000Z",
   updatedAt: "2026-03-01T00:00:00.000Z",
+  processingStatus: null,
+  videoCodec: null,
+  audioCodec: null,
+  width: null,
+  height: null,
+  duration: null,
+  bitrate: null,
 };
 
 // ── createContent ──

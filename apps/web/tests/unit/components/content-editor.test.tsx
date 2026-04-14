@@ -91,7 +91,7 @@ function makeDefaultManagement() {
     isSaving: false,
     isPublishing: false,
     isDeleting: false,
-    error: null,
+    error: null as string | null,
     save: mockSave,
     publish: mockPublish,
     unpublish: mockUnpublish,

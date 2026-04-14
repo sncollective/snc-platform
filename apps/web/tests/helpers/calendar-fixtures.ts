@@ -13,6 +13,7 @@ export const makeMockCalendarEvent = (
   allDay: false,
   eventType: "recording-session",
   location: "Studio A",
+  visibility: "internal",
   createdBy: "user_test123",
   creatorId: null,
   creatorName: null,

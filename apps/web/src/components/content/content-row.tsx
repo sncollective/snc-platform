@@ -138,7 +138,7 @@ export function ContentRow({
           {cellRenderers[col.key]?.(item)}
         </div>
       ))}
-      <div className={styles.gridCell}>{cellRenderers._actions(item)}</div>
+      <div className={styles.gridCell}>{cellRenderers._actions?.(item)}</div>
     </div>
   );
 }

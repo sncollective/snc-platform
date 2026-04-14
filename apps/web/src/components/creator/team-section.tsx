@@ -146,7 +146,7 @@ const AddMemberForm = memo(function AddMemberForm({
           </button>
         </div>
         <SelectRoot
-          collection={ROLE_COLLECTION}
+          collection={ROLE_COLLECTION as unknown as never}
           value={[addRole]}
           onValueChange={(details) => { setAddRole(details.value[0] as CreatorMemberRole); }}
         >
@@ -285,7 +285,7 @@ const InviteForm = memo(function InviteForm({
           aria-label="Invite email"
         />
         <SelectRoot
-          collection={ROLE_COLLECTION}
+          collection={ROLE_COLLECTION as unknown as never}
           value={[role]}
           onValueChange={(details) => { setRole(details.value[0] as CreatorMemberRole); }}
         >
@@ -518,7 +518,7 @@ export function TeamSection({
       {/* Shared role selector — one instance positioned over the active badge */}
       {editingMember && (
         <SelectRoot
-          collection={ROLE_COLLECTION}
+          collection={ROLE_COLLECTION as unknown as never}
           value={[editingMember.role]}
           onValueChange={(details) => {
             void handleChangeRole(

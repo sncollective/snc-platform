@@ -4,14 +4,7 @@ import type { Project } from "@snc/shared";
 // ── Public Types ──
 
 export interface ProjectBaseItemStyles {
-  readonly projectItem: string;
-  readonly projectItemHeader: string;
-  readonly projectItemMeta: string;
-  readonly completedBadge: string;
-  readonly projectItemActions: string;
-  readonly actionButton: string;
-  readonly deleteButton: string;
-  readonly projectDescription: string;
+  readonly [className: string]: string | undefined;
 }
 
 export interface ProjectBaseItemProps {

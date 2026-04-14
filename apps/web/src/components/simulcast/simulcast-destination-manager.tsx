@@ -53,7 +53,7 @@ export function SimulcastDestinationManager({
   // Form fields
   const [platform, setPlatform] = useState<SimulcastPlatform>("twitch");
   const [label, setLabel] = useState("");
-  const [rtmpUrl, setRtmpUrl] = useState(SIMULCAST_PLATFORMS.twitch.rtmpPrefix ?? "");
+  const [rtmpUrl, setRtmpUrl] = useState<string>(SIMULCAST_PLATFORMS.twitch.rtmpPrefix ?? "");
   const [streamKey, setStreamKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);

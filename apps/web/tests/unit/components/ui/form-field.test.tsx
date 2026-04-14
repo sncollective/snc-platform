@@ -118,7 +118,7 @@ describe("FormField", () => {
       const describedBy = input.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       // The described element should contain the hint text
-      const hintEl = document.getElementById(describedBy!.split(" ")[0]);
+      const hintEl = document.getElementById(describedBy!.split(" ")[0]!);
       // aria-describedby may reference multiple ids; check any contains the hint
       const ids = describedBy!.split(" ");
       const hintFound = ids.some((id) => {

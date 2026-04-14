@@ -15,7 +15,7 @@ import styles from "./video-detail-view.module.css";
 export interface VideoDetailViewProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

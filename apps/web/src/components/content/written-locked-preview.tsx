@@ -14,7 +14,7 @@ const TRUNCATE_WORD_COUNT = 200;
 
 export interface WrittenLockedPreviewProps {
   readonly item: FeedItem;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

@@ -15,7 +15,7 @@ import styles from "./audio-detail-view.module.css";
 export interface AudioDetailViewProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
 }
 
 // ── Public API ──

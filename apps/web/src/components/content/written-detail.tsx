@@ -21,7 +21,7 @@ export interface WrittenDetailEditCallbacks {
 export interface WrittenDetailProps {
   readonly item: FeedItem;
   readonly locked?: boolean;
-  readonly plans?: readonly SubscriptionPlan[];
+  readonly plans?: readonly SubscriptionPlan[] | undefined;
   readonly isEditing?: boolean;
   readonly editCallbacks?: WrittenDetailEditCallbacks;
   /** When true, skip rendering EditableContentMeta/ContentMeta (metadata handled externally). */

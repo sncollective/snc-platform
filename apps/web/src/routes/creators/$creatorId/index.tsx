@@ -39,8 +39,9 @@ export const Route = createFileRoute("/creators/$creatorId/")({
 
 // ── Component ──
 
-function CreatorDetailPage(): React.ReactElement {
+function CreatorDetailPage(): React.ReactElement | null {
   const creator = parentRoute.useLoaderData() as CreatorProfileResponse | null;
+  const creatorId = creator?.id ?? "";
   const session = useSession();
   const [activeFilter, setActiveFilter] = useState<ContentType | null>(null);
   const [creatorPlans, setCreatorPlans] = useState<SubscriptionPlan[]>([]);
@@ -50,18 +51,19 @@ function CreatorDetailPage(): React.ReactElement {
 
   // Fetch supplementary data in parallel (all non-critical)
   useEffect(() => {
+    if (creatorId === "") return;
     let cancelled = false;
 
     const loadSupplementary = async () => {
       const [plansResult, subscriptionsResult, merchResult, authResult] =
         await Promise.allSettled([
-          fetchPlans({ creatorId: creator.id }),
+          fetchPlans({ creatorId }),
           session.data
             ? fetchMySubscriptions()
             : Promise.resolve(
                 [] as Awaited<ReturnType<typeof fetchMySubscriptions>>,
               ),
-          fetchProducts({ creatorId: creator.id, limit: 6 }),
+          fetchProducts({ creatorId, limit: 6 }),
           session.data
             ? fetchAuthState()
             : Promise.resolve(GUEST_AUTH_STATE),
@@ -80,7 +82,7 @@ function CreatorDetailPage(): React.ReactElement {
             sub.status === "active" &&
             (sub.plan.type === "platform" ||
               (sub.plan.type === "creator" &&
-                sub.plan.creatorId === creator.id)),
+                sub.plan.creatorId === creatorId)),
         );
         setIsSubscribed(subscribed);
       }
@@ -100,17 +102,17 @@ function CreatorDetailPage(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [creator.id, session.data]);
+  }, [creatorId, session.data]);
 
   const { items, nextCursor, isLoading, loadMore } =
     useCursorPagination<FeedItem>({
       buildUrl: (cursor) =>
         buildContentListUrl("/api/content", {
-          creatorId: creator.id,
+          creatorId,
           type: activeFilter,
           cursor,
         }),
-      deps: [activeFilter, creator.id],
+      deps: [activeFilter, creatorId],
     });
 
   const handleFilterChange = (filter: ContentType | null) => {

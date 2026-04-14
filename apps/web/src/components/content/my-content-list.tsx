@@ -26,7 +26,9 @@ export function MyContentList({
   refreshKey,
   onDeleted,
 }: MyContentListProps): React.ReactElement {
-  const { deletingId, handleDelete } = useContentDelete({ onDeleted });
+  const { deletingId, handleDelete } = useContentDelete(
+    onDeleted !== undefined ? { onDeleted } : {},
+  );
 
   const { items, nextCursor, isLoading, error, loadMore } =
     useCursorPagination<FeedItem>({

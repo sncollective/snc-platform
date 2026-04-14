@@ -142,7 +142,7 @@ export function EventForm({
   const [eventType, setEventType] = useState(event?.eventType ?? defaultEventType ?? "");
   const [customEventTypeLabel, setCustomEventTypeLabel] = useState("");
   const [location, setLocation] = useState(event?.location ?? "");
-  const [visibility, setVisibility] = useState<string>(
+  const [visibility, setVisibility] = useState<"public" | "internal">(
     event?.visibility ?? (eventType === "show" ? "public" : "internal"),
   );
   const [projectId, setProjectId] = useState<string>(event?.projectId ?? defaultProjectId ?? "");
@@ -582,7 +582,7 @@ export function EventForm({
           id="visibility"
           className={formStyles.select}
           value={visibility}
-          onChange={(e) => setVisibility(e.target.value)}
+          onChange={(e) => setVisibility(e.target.value as "public" | "internal")}
         >
           <option value="internal">Internal</option>
           <option value="public">Public</option>

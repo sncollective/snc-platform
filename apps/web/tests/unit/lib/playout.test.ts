@@ -58,7 +58,7 @@ function makeMockPlayoutStatus(
       elapsed: 120,
       remaining: 5280,
     },
-    queuedUri: null,
+    queuedItems: [],
     ...overrides,
   };
 }
@@ -162,19 +162,19 @@ describe("createPlayoutItem", () => {
 
 describe("updatePlayoutItem", () => {
   it("PATCHes /api/playout/items/:id with update data", async () => {
-    const item = makeMockPlayoutItem({ enabled: false });
+    const item = makeMockPlayoutItem({ title: "Updated" });
     getMockFetch().mockResolvedValue(
       new Response(JSON.stringify(item), { status: 200 }),
     );
 
-    const result = await updatePlayoutItem("item_001", { enabled: false });
+    const result = await updatePlayoutItem("item_001", { title: "Updated" });
 
     expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/playout/items/item_001",
       expect.objectContaining({
         method: "PATCH",
         credentials: "include",
-        body: JSON.stringify({ enabled: false }),
+        body: JSON.stringify({ title: "Updated" }),
       }),
     );
     expect(result).toEqual(item);

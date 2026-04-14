@@ -37,8 +37,10 @@ export function ComingUp({ events, onToggleRemind, remindingEventId }: ComingUpP
             key={event.id}
             event={event}
             reminded={event.reminded}
-            onToggleRemind={onToggleRemind ? () => onToggleRemind(event.id) : undefined}
             isToggling={remindingEventId === event.id}
+            {...(onToggleRemind && {
+              onToggleRemind: () => onToggleRemind(event.id),
+            })}
           />
         ))}
       </div>

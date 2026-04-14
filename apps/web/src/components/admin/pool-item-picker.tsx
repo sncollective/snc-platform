@@ -68,7 +68,7 @@ export function PoolItemPicker({
 
   const filtered = query.trim()
     ? queueableItems.filter((item) =>
-        item.title.toLowerCase().includes(query.toLowerCase()),
+        item.title?.toLowerCase().includes(query.toLowerCase()) ?? false,
       )
     : queueableItems;
 
