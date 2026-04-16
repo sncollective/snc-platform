@@ -18,7 +18,7 @@ Seafile CE handles file sync well — block-level dedup, desktop clients, proven
 
 - **Platform uploads** — user avatars, media attachments, content assets uploaded through the web UI need an API-accessible storage layer, not a sync client
 - **Streaming VOD** — Owncast doesn't record streams natively; a `STREAM_STOPPED` webhook needs somewhere to land recorded segments for the VOD pipeline
-- **Web-based large file upload** — Seafile's own web portal struggles with multi-GB uploads (noted in `../../research/collaboration-suite.md`); a proper chunked upload UI could fill this gap
+- **Web-based large file upload** — Seafile's own web portal struggles with multi-GB uploads (noted in `../../.memory/research/collaboration-suite.md`); a proper chunked upload UI could fill this gap
 - **Restreamer recordings** — can write to S3-compatible storage
 - **Future services** — any self-hosted service that speaks S3 (Mastodon media, Matrix attachments, game asset CDN) gets a shared backend
 
@@ -452,7 +452,7 @@ Deployment guide: see the Garage deployment design doc in the parent monorepo (`
 - [FilePond](https://pqina.nl/filepond/) — lightweight upload library, MIT
 - [tus protocol](https://tus.io/) — open resumable upload standard
 - [tus-node-server](https://github.com/tus/tus-node-server) — Node.js tus server with S3 backend
-- [S/NC collaboration suite](../../research/collaboration-suite.md) — Seafile deployment and status
+- [S/NC collaboration suite](../../.memory/research/collaboration-suite.md) — Seafile deployment and status
 - [S/NC streaming infrastructure](streaming-infrastructure.md) — Owncast/Restreamer and VOD pipeline
 
 *Last updated: 2026-03-13*

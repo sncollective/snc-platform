@@ -96,7 +96,7 @@ Explicit migration plan: when Video.js v10 reaches GA (expected mid-2026), evalu
 
 ## Related
 
-- [../../research/media-player-libraries.md](../../research/media-player-libraries.md) — full evaluation covering Vidstack / Plyr / Media Chrome / Video.js v8 / Video.js v10, landscape consolidation under Mux, governance and cooperative-values lens, elimination reasoning
+- [../../.memory/research/media-player-libraries.md](../../.memory/research/media-player-libraries.md) — full evaluation covering Vidstack / Plyr / Media Chrome / Video.js v8 / Video.js v10, landscape consolidation under Mux, governance and cooperative-values lens, elimination reasoning
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — SRS produces the HLS streams Vidstack plays (live and VOD)
 - [platform-0002-garage-s3-object-storage.md](platform-0002-garage-s3-object-storage.md) — Garage serves VOD content Vidstack loads
 - Tech-reference skill: [`platform/.claude/skills/vidstack-v1/SKILL.md`](../../.claude/skills/vidstack-v1/SKILL.md) — Vidstack v1 reference for implementation work

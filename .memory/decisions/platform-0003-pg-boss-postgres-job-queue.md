@@ -91,7 +91,7 @@ Primary reasons:
 
 ## Related
 
-- [../../research/job-queue-libraries.md](../../research/job-queue-libraries.md) — full evaluation of pg-boss vs BullMQ vs Graphile Worker vs Temporal vs Custom SKIP LOCKED
+- [../../.memory/research/job-queue-libraries.md](../../.memory/research/job-queue-libraries.md) — full evaluation of pg-boss vs BullMQ vs Graphile Worker vs Temporal vs Custom SKIP LOCKED
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — SRS as streaming server; pg-boss is the queue for SRS DVR post-processing
 - [platform-0002-garage-s3-object-storage.md](platform-0002-garage-s3-object-storage.md) — Garage as object storage; pg-boss coordinates VOD writes into Garage
 - Pipeline foundation brief — in the parent monorepo under `boards/platform/release-0.2/design/pipeline-foundation.brief.md` (prose reference to preserve standalone cloning)

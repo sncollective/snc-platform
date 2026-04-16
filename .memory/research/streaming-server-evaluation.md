@@ -6,7 +6,7 @@
 
 > Revised 2026-04-16 — the backing decision was promoted from the parent monorepo's `boards/platform/streaming/DECISIONS.md` into the structured submodule decision record linked above, as Item 3a of the Level 3 critical path. Content of this evaluation is unchanged; the Decision record pointer and the References section now link the submodule record instead of carrying a parent-monorepo prose reference.
 
-Formal evaluation of streaming server options for S-NC.tv Phase 3+. Synthesizes research from [streaming-infrastructure.md](streaming-infrastructure.md), [irl-streaming.md](irl-streaming.md), the TV model architecture design doc (parent monorepo), and competitive analysis from `../../org/research/competitive/streaming.md`.
+Formal evaluation of streaming server options for S-NC.tv Phase 3+. Synthesizes research from [streaming-infrastructure.md](streaming-infrastructure.md), [irl-streaming.md](irl-streaming.md), the TV model architecture design doc (parent monorepo), and competitive analysis from `../../org/.memory/research/competitive/streaming.md`.
 
 **Context:** S-NC.tv Phases 1-2 shipped with Owncast (HLS streaming + chat + ActivityPub) + Restreamer (multi-destination relay). The architecture is shifting to a TV model (always-on playout channel + dynamic live channels) that requires multi-channel support. Owncast is single-channel by design. Restreamer development paused Dec 2025. A unified replacement is needed before Phase 3.
 
@@ -244,6 +244,6 @@ SRS is selected as the unified streaming server replacing Owncast + Restreamer f
 - [irl-streaming.md](irl-streaming.md) — SRS vs MediaMTX comparison tables, IRL streaming architecture
 - [../.memory/decisions/platform-0001-srs-unified-streaming-server.md](../.memory/decisions/platform-0001-srs-unified-streaming-server.md) — formal decision record (promoted into the submodule 2026-04-16)
 - TV model architecture design doc — in the parent monorepo under `boards/platform/release-0.2/design/tv-model-architecture.md`
-- `../../org/research/competitive/streaming.md` — Twitch, YouTube Live, Kick competitive analysis
+- `../../org/.memory/research/competitive/streaming.md` — Twitch, YouTube Live, Kick competitive analysis
 
 *Last updated: 2026-03-25*

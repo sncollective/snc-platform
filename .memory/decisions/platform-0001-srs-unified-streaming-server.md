@@ -57,7 +57,7 @@ Primary reasons:
 5. **Built-in HTTP callback auth** (`on_publish` / `on_play`) — fits multi-creator stream key rotation without building an external auth server
 6. **Native SRT ingest** (`srt_to_rtmp`) — eliminates FFmpeg SRT→RTMP bridge in the IRL pipeline's SRTLA relay LXC
 
-Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restreamer 32. See [streaming-server-evaluation.md](../../research/streaming-server-evaluation.md) §Scoring Matrix for the per-requirement breakdown and §Competitive Feature Impact for how each option positions S/NC against Twitch, YouTube Live, and Kick.
+Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restreamer 32. See [streaming-server-evaluation.md](../../.memory/research/streaming-server-evaluation.md) §Scoring Matrix for the per-requirement breakdown and §Competitive Feature Impact for how each option positions S/NC against Twitch, YouTube Live, and Kick.
 
 ## Consequences
 
@@ -84,11 +84,11 @@ Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restrea
 
 ## Related
 
-- [../../research/streaming-server-evaluation.md](../../research/streaming-server-evaluation.md) — full evaluation, requirement weighting, scoring matrix, competitive analysis
-- [../../research/streaming-infrastructure.md](../../research/streaming-infrastructure.md) — original streaming tool research that motivated the evaluation
-- [../../research/irl-streaming.md](../../research/irl-streaming.md) — SRS vs MediaMTX comparison tables and IRL streaming architecture
+- [../../.memory/research/streaming-server-evaluation.md](../../.memory/research/streaming-server-evaluation.md) — full evaluation, requirement weighting, scoring matrix, competitive analysis
+- [../../.memory/research/streaming-infrastructure.md](../../.memory/research/streaming-infrastructure.md) — original streaming tool research that motivated the evaluation
+- [../../.memory/research/irl-streaming.md](../../.memory/research/irl-streaming.md) — SRS vs MediaMTX comparison tables and IRL streaming architecture
 - TV model architecture design doc — in the parent monorepo under `boards/platform/release-0.2/design/tv-model-architecture.md` (prose reference to preserve standalone cloning)
-- Competitive streaming research — in the parent monorepo under `org/research/competitive/streaming.md` (prose reference)
+- Competitive streaming research — in the parent monorepo under `org/.memory/research/competitive/streaming.md` (prose reference)
 - Streaming board — in the parent monorepo under `boards/platform/streaming/` (prose reference)
 
 Supersedes the prior `boards/platform/streaming/DECISIONS.md` entry dated 2026-03-25. Content promoted from the board-directory decision convention into the structured decision record format as Item 3a of the Level 3 critical path (2026-04-16). No position change from the 2026-03-25 decision — this is a format migration, not a reversal.

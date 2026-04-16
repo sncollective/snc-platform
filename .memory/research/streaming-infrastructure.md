@@ -294,7 +294,7 @@ See [IRL streaming research](irl-streaming.md) for full details covering Belabox
 - **Stream key management for multiple creators** — SRS HTTP callback auth (`on_publish`) validates per-creator stream keys. Platform API issues and rotates keys per creator session.
 - **VOD storage + content pipeline** — resolved. SRS DVR records FLV → media-pipeline job queue remuxes to MP4 with faststart → uploads to Garage S3. The original VOD recording spike (Restreamer approach, superseded) is in the parent monorepo's boards history; see `streaming-server-evaluation.md` in this directory for the SRS approach.
 - **Chat** — resolved: platform-built. Owncast provided chat for free; SRS has no chat. Platform builds its own with patron badges, platform-native identity, moderation, and emotes.
-- **Carbon accounting for streaming** — transcoding is CPU-intensive, HLS delivery is bandwidth-intensive. Both have CO2 implications. Need to extend the emissions tracking methodology (`../../research/carbon-calculation-methodology.md`) to cover streaming infrastructure.
+- **Carbon accounting for streaming** — transcoding is CPU-intensive, HLS delivery is bandwidth-intensive. Both have CO2 implications. Need to extend the emissions tracking methodology (`../../.memory/research/carbon-calculation-methodology.md`) to cover streaming infrastructure.
 - **AT Protocol streaming integration** — adopt Stream.Place's lexicon patterns into S/NC's `com.snc.media.*` lexicons, or wait for the AT Protocol community to standardize live video?
 - **C2PA content provenance** — worth adopting for stream authenticity? Complements the no-DRM stance (proves origin without restricting playback). Implementation cost and viewer-side verification support are unknowns.
 

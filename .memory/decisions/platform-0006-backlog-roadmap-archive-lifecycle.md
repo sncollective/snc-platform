@@ -27,7 +27,7 @@ Completed roadmap phases move from `ROADMAP.md` to `ARCHIVE.md` once done. `BACK
 
 **Pattern overlaps with board-convention ARCHIVE lifecycle.** The 2026-04-14 [board-convention.md](../../../.claude/rules/board-convention.md) §Archive lifecycle codifies a similar pattern for kanban boards (fresh `[x]` inline → aged-out `ARCHIVE.md` → periodic trim). This doc lifecycle predates that convention; they're similar in spirit, different in domain (doc planning vs. board items).
 
-**Revisit tied to the items-tier decision.** If the items-tier trial (see [research/agent-memory-co-development.md Position 9 partial resolution](../../../research/agent-memory-co-development.md)) resolves in a direction that captures state transitions as item frontmatter rather than file-per-lifecycle, this lifecycle pattern likely folds into that — and the ROADMAP/ARCHIVE files retire.
+**Revisit tied to the items-tier decision.** If the items-tier trial (see [.memory/research/agent-memory-co-development.md Position 9 partial resolution](../../../.memory/research/agent-memory-co-development.md)) resolves in a direction that captures state transitions as item frontmatter rather than file-per-lifecycle, this lifecycle pattern likely folds into that — and the ROADMAP/ARCHIVE files retire.
 
 ## Related
 

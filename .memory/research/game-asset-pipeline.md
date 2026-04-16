@@ -287,7 +287,7 @@ The S/NC platform publishes the canonical card data via API. Community tools con
 
 ## Governance & Sustainability of Key Tools
 
-Full audit at `research/tool-governance-audit.md`. Summary for tools specific to this pipeline:
+Full audit at `.memory/research/tool-governance-audit.md`. Summary for tools specific to this pipeline:
 
 | Tool | Bus Factor | Funding | Abandon Risk | Notes |
 |------|-----------|---------|-------------|-------|
