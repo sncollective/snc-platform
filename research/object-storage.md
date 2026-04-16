@@ -1,7 +1,10 @@
 # Object Storage
 
-**Status:** Draft
+**Status:** Complete — Garage selected
 **Date:** 2026-03-13
+**Decision record:** [../.memory/decisions/platform-0002-garage-s3-object-storage.md](../.memory/decisions/platform-0002-garage-s3-object-storage.md)
+
+> Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3b of the Level 3 critical path. Content of this research is unchanged; Status flipped from Draft → Complete to reflect that the decision has been load-bearing for platform work since March 2026. A Decision record line was added pointing to the structured record.
 
 Research on self-hosted S3-compatible object storage for S/NC. Evaluates open-source storage backends for uploaded content (user media, platform assets), streaming VOD, and potential Seafile replacement for collaboration files. Covers Garage, SeaweedFS, RustFS, Ceph RGW, and the MinIO situation. Evaluates upload UI libraries (Uppy, FilePond, Dropzone) and upload architecture patterns (presigned URLs, tus protocol, proxied uploads) for building large-file upload into the S/NC platform.
 

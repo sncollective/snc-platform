@@ -1,5 +1,10 @@
 # Node.js Job Queue Libraries (March 2026)
 
+**Status:** Complete — pg-boss selected
+**Decision record:** [../.memory/decisions/platform-0003-pg-boss-postgres-job-queue.md](../.memory/decisions/platform-0003-pg-boss-postgres-job-queue.md)
+
+> Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3c of the Level 3 critical path. Content of this research is unchanged; a Status + Decision record pointer was added. pg-boss has been load-bearing for platform work since March 2026.
+
 Evaluated for the S/NC media processing pipeline: FFmpeg transcoding (5-60+ minutes), codec probing, thumbnail extraction, and VOD recording post-processing. Stack: Hono v4, PostgreSQL 16 (deployed), Node.js 24, TypeScript strict mode, no Redis.
 
 ## Comparison

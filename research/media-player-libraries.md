@@ -1,5 +1,10 @@
 # Media Player Libraries — Evaluation (March 2026)
 
+**Status:** Complete — Vidstack selected, Video.js v10 as migration watch target
+**Decision record:** [../.memory/decisions/platform-0004-vidstack-media-player.md](../.memory/decisions/platform-0004-vidstack-media-player.md)
+
+> Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3d of the Level 3 critical path. Content of this research is unchanged; Status + Decision record pointer added. Vidstack has been load-bearing for release-0.2 phase 2 work since March 2026.
+
 Evaluated for the S/NC web platform (React 19 + TypeScript + TanStack Start). Decision context: replacing a bare HTML5 `<video>` element with a full-featured player that supports buffering indicators, keyboard navigation, accessibility, and eventually HLS/DASH adaptive streaming.
 
 ## The Mux Consolidation

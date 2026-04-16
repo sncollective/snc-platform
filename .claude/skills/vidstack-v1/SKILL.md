@@ -472,4 +472,5 @@ const captionOptions = useCaptionOptions({ off: 'Off' })
   be needed for audio boost beyond 100%.
 
 **Research:**
-- `platform/research/media-player-libraries.md` — rationale for choosing vidstack over Plyr, Media Chrome, Video.js
+- `platform/.memory/decisions/platform-0004-vidstack-media-player.md` — formal decision record (promoted 2026-04-16); rationale for Vidstack over Plyr, Media Chrome, Video.js v8, with Video.js v10 as explicit migration watch target
+- `platform/research/media-player-libraries.md` — full evaluation with governance analysis and landscape consolidation under Mux

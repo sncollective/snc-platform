@@ -176,7 +176,7 @@ Not estimates of time — estimates of relative complexity:
 - `video-codec-compatibility.md` — codec support matrix
 - `streaming-server-evaluation.md` — SRS capabilities
 - `irl-streaming.md` — mobile/field streaming hardware
-- `media-player-libraries.md` — Vidstack selection, Video.js v10 watch
+- `media-player-libraries.md` — Vidstack selection, Video.js v10 watch (decision record at `../.memory/decisions/platform-0004-vidstack-media-player.md`, promoted 2026-04-16)
 - `../../org/research/competitive/streaming.md` — Twitch/YouTube/Kick comparison
 - Streaming board (parent monorepo) — ABR transcoding item under Competitive Parity
 - `boards/platform/media-pipeline/BOARD.md` — VOD transcoding pipeline

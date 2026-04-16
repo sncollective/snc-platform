@@ -567,6 +567,6 @@ The proprietary DAWs aren't second-class citizens — Level 1-3 covers the full 
 - `nle-platform-integration.md` — video NLE integration patterns (same model, different medium)
 - `org/docs/creative-tool-strategy.md` — strategic thesis: platform as publish layer
 - `object-storage.md` — Garage S3 infrastructure, Seafile for studio sync
-- `job-queue-libraries.md` — pg-boss evaluation for background processing
+- `job-queue-libraries.md` — pg-boss evaluation for background processing (decision record at `../.memory/decisions/platform-0003-pg-boss-postgres-job-queue.md`, promoted 2026-04-16)
 - `boards/platform/media-pipeline/BOARD.md` — planned media pipeline (audio ingest extends this)
 - `boards/platform/media-pipeline/design/pipeline-foundation.brief.md` — media pipeline design brief
