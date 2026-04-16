@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Audio Production–Platform Integration (March 2026)
 
 Integration architecture for connecting desktop audio production tools to S/NC's Garage S3 backend, stem interchange format, and media pipeline. Companion to the DAW landscape survey at `audio-production-tools.md`.

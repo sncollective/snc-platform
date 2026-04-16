@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Responsive Design Best Practices (2025-2026)
 
 Research compiled April 2026 to inform responsive patterns for the S/NC platform (TanStack Start + React 19 + CSS Modules + Ark UI on Vite). Focuses on techniques with stable Baseline browser support and minimal runtime overhead.

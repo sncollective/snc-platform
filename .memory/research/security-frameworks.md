@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Security Frameworks & Domain Taxonomy
 
 Research validating S/NC's security domain taxonomy against established frameworks, with a threat model grounded in the cooperative's infrastructure.

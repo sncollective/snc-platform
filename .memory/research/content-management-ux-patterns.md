@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Content Management UX Patterns
 
 Research into how creator platforms and CMS tools handle content management, editing, and publishing. Conducted March 2026 to inform the S/NC content management redesign.

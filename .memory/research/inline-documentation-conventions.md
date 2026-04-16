@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Inline Documentation Conventions Research — 2026-03-24
 
 Research grounding for the inline documentation convention and `scan-documentation` rule library added to `platform/.claude/skills/`. This doc captures the analysis so the convention is grounded in research, not opinion.

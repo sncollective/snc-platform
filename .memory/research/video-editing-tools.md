@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Video Editing & Collaboration Tools (March 2026)
 
 Evaluated for the S/NC web platform — a platform cooperative for media production. Grounded in existing stack decisions: FFmpeg (direct CLI via child_process) for server-side processing, pg-boss job queue, Vidstack player, Garage S3 storage, Hono v4 API + TanStack Start (React 19), H.264+AAC delivery format.

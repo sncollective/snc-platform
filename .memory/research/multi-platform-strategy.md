@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Multi-Platform Device Strategy
 
 Research doc mapping the device landscape for S/NC streaming and content delivery. Goal: understand what it takes to reach feature parity with Twitch/YouTube across devices, and surface decisions that affect current architecture.

@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Playout Content: Public Domain Films
 
 Content sourcing list for the s-nc.tv always-on playout channels. Starting with classic/retro films — expanding to multiple themed channels over time.

@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Research: DRM, Monopsony, and Creator Rights
 
 > Status: Complete

@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Research: Podcasting 2.0, Value4Value, and the Podcast Namespace
 
 **Status:** Research complete

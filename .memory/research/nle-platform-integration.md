@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # NLE–Platform Integration Patterns (March 2026)
 
 Research into how S/NC's web platform can integrate with open-source desktop video editors (NLEs) as a media hub and collaboration layer. Part of the broader strategy: S/NC handles storage, collaboration, transcoding, and delivery — desktop tools handle heavy editing.

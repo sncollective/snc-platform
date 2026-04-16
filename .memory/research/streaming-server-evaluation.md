@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Streaming Server Evaluation: SRS vs MediaMTX vs Owncast + Restreamer
 
 **Status:** Complete — SRS selected

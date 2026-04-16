@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Node.js Job Queue Libraries (March 2026)
 
 **Status:** Complete — pg-boss selected

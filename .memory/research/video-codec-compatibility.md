@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Video Codec Compatibility & Browser Playback (March 2026)
 
 Evaluated for the S/NC web platform, which accepts .mp4, .webm, and .mov uploads and serves them via HTML5 video / Vidstack player.

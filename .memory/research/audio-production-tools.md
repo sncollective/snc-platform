@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Open-Source Audio Production Tools (March 2026)
 
 Evaluated for S/NC — a platform cooperative with a recording studio handling music production, podcasting, and live streaming. The strategic context: S/NC is the collaboration/storage/publish layer, not building a browser DAW. Desktop tools handle heavy creative work.

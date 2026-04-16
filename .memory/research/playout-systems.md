@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Playout System Evaluation
 
 Research for the Phase 5 playout spike on the streaming board. Evaluates approaches for running an always-on TV channel that plays pre-recorded content continuously and yields to live streams when creators go live.

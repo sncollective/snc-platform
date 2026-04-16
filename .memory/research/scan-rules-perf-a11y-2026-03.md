@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Scan Rules Research: Performance & Accessibility — 2026-03-23
 
 Research grounding for the `scan-performance` and `scan-accessibility` rule libraries added to `platform/.claude/skills/`. This doc captures authoritative sources and rationale so the rules aren't just opinions.

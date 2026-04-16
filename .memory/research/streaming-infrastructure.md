@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Streaming Infrastructure (S-NC.tv)
 
 **Status:** Draft

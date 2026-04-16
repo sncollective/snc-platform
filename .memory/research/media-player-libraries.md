@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Media Player Libraries — Evaluation (March 2026)
 
 **Status:** Complete — Vidstack selected, Video.js v10 as migration watch target

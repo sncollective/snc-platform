@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Games Web Architecture
 
 **Status:** Research complete — implementation deferred until platform refactor finishes

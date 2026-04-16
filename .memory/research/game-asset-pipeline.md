@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Game Asset Production Pipeline (March 2026)
 
 Research into tools and approaches for a board game card asset production pipeline. Evaluated for S/NC's game publishing workflow: structured card data → templated rendering → print/digital/community outputs.

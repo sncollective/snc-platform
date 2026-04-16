@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Platform AGENTS.md
 
 Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with Bun workspaces: `@snc/api`, `@snc/web`, `@snc/shared`, `@snc/e2e`.

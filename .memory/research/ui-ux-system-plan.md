@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # UI/UX System Plan
 
 **Status:** Active reference

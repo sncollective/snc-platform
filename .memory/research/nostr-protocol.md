@@ -1,3 +1,7 @@
+---
+updated: 2026-04-16
+---
+
 # Nostr Protocol Research for S/NC Media Cooperative
 
 **Status:** Research complete
