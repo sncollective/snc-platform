@@ -452,7 +452,6 @@ Deployment guide: see the Garage deployment design doc in the parent monorepo (`
 - [FilePond](https://pqina.nl/filepond/) — lightweight upload library, MIT
 - [tus protocol](https://tus.io/) — open resumable upload standard
 - [tus-node-server](https://github.com/tus/tus-node-server) — Node.js tus server with S3 backend
-- [S/NC collaboration suite](../../.memory/research/collaboration-suite.md) — Seafile deployment and status
 - [S/NC streaming infrastructure](streaming-infrastructure.md) — Owncast/Restreamer and VOD pipeline
 
 *Last updated: 2026-03-13*

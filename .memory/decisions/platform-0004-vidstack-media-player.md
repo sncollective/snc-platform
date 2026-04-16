@@ -78,7 +78,7 @@ Explicit migration plan: when Video.js v10 reaches GA (expected mid-2026), evalu
 ## Consequences
 
 **Enabled:**
-- Phase 2 live page player (first Vidstack usage in the app per [`boards/platform/release-0.2/design/phase-2-live-page.brief.md`](../../../boards/platform/release-0.2/design/phase-2-live-page.brief.md))
+- Live page player (first Vidstack usage in the app, landed in the platform's release-0.2 phase 2 work)
 - VOD playback with HLS streams delivered from Garage (integrates with [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) and [platform-0002-garage-s3-object-storage.md](platform-0002-garage-s3-object-storage.md))
 - Bare `<video>` replacement across the app (content board has a parked upgrade item)
 - Accessible playback controls (WCAG 2.2 Level AA baseline)
@@ -96,12 +96,9 @@ Explicit migration plan: when Video.js v10 reaches GA (expected mid-2026), evalu
 
 ## Related
 
-- [../../.memory/research/media-player-libraries.md](../../.memory/research/media-player-libraries.md) — full evaluation covering Vidstack / Plyr / Media Chrome / Video.js v8 / Video.js v10, landscape consolidation under Mux, governance and cooperative-values lens, elimination reasoning
+- [../research/media-player-libraries.md](../research/media-player-libraries.md) — full evaluation covering Vidstack / Plyr / Media Chrome / Video.js v8 / Video.js v10, landscape consolidation under Mux, governance and cooperative-values lens, elimination reasoning
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — SRS produces the HLS streams Vidstack plays (live and VOD)
 - [platform-0002-garage-s3-object-storage.md](platform-0002-garage-s3-object-storage.md) — Garage serves VOD content Vidstack loads
-- Tech-reference skill: [`platform/.claude/skills/vidstack-v1/SKILL.md`](../../.claude/skills/vidstack-v1/SKILL.md) — Vidstack v1 reference for implementation work
-- Phase 2 live page brief — in the parent monorepo under `boards/platform/release-0.2/design/phase-2-live-page.brief.md` (prose reference to preserve standalone cloning)
-- Media streaming briefs — in the parent monorepo under `boards/platform/release-0.2/design/media-streaming.brief.md` and `media-streaming-vidstack.brief.md` (prose references)
-- Content board upgrade item — in the parent monorepo under `boards/platform/content/design/media-streaming.brief.md` (prose reference)
+- Tech-reference skill: [.claude/skills/vidstack-v1/SKILL.md](../../.claude/skills/vidstack-v1/SKILL.md) — Vidstack v1 reference for implementation work
 
 No prior decision record to supersede — this is a fresh promotion from research to a structured decision record as Item 3d of the Level 3 critical path (2026-04-16). No position change from the March 2026 research conclusions. The Vidstack adoption has been load-bearing for release-0.2 phase 2 work and is referenced from the `vidstack-v1` tech reference skill.

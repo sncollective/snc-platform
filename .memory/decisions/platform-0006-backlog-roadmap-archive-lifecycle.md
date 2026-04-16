@@ -25,11 +25,6 @@ Completed roadmap phases move from `ROADMAP.md` to `ARCHIVE.md` once done. `BACK
 
 **Archive preserves history without inflating agent context.** Agents loading ROADMAP.md on every session don't pay the cost of reading historical phases. Anyone wanting the history opens ARCHIVE.md explicitly or walks git history.
 
-**Pattern overlaps with board-convention ARCHIVE lifecycle.** The 2026-04-14 [board-convention.md](../../../.claude/rules/board-convention.md) §Archive lifecycle codifies a similar pattern for kanban boards (fresh `[x]` inline → aged-out `ARCHIVE.md` → periodic trim). This doc lifecycle predates that convention; they're similar in spirit, different in domain (doc planning vs. board items).
+**Mirrors a generic three-stage archive pattern** (fresh inline → aged-out archive → periodic trim) that's also used for platform kanban boards. This doc lifecycle predates the broader convention; they're similar in spirit, different in domain (doc planning vs. board items).
 
-**Revisit tied to the items-tier decision.** If the items-tier trial (see [.memory/research/agent-memory-co-development.md Position 9 partial resolution](../../../.memory/research/agent-memory-co-development.md)) resolves in a direction that captures state transitions as item frontmatter rather than file-per-lifecycle, this lifecycle pattern likely folds into that — and the ROADMAP/ARCHIVE files retire.
-
-## Related
-
-- Platform documentation board — `boards/platform/documentation/BOARD.md`
-- [.claude/rules/board-convention.md](../../../.claude/rules/board-convention.md) §Archive lifecycle — analogous pattern for board items
+**Revisit tied to the items-tier decision.** If a future structured items tier captures state transitions as item frontmatter rather than file-per-lifecycle, this lifecycle pattern likely folds into that — and the ROADMAP/ARCHIVE files retire.

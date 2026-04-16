@@ -11,7 +11,7 @@ user-invocable: false
 
 > **Library:** pino + hono-pino
 > **Config:** `apps/api/src/logging/logger.ts`
-> **Docs:** [platform/docs/logging.md](../../platform/docs/logging.md)
+> **Docs:** [docs/logging.md](../../../docs/logging.md)
 
 ## Architecture
 

@@ -351,6 +351,5 @@ Restreamer development was paused as of Dec 2025 (issue [#960](https://github.co
 - [C2PA specification](https://c2pa.org/)
 - [S/NC federation protocols research](federation-protocols.md)
 - [S/NC IRL streaming research](irl-streaming.md)
-- [S/NC feature backlog — S-NC.tv section](../../org/docs/feature-backlog.md#s-nctv--live-streaming-platform)
 
 *Last updated: 2026-03-21*

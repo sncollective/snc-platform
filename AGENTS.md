@@ -16,6 +16,21 @@ Library-specific quick references live under `.claude/skills/<lib>/SKILL.md` —
 
 Scan rule libraries (`scan-structural`, `scan-quality`, `scan-accessibility`, `scan-performance`, `scan-seo`, `scan-documentation`, `scan-stylistic`) live alongside the tech references and follow the same convention.
 
+## Memory tiers
+
+Platform has a `.memory/` directory holding durable working memory across sessions and agents. Eight tiers, six git-tracked, two ephemeral:
+
+- **`canon/`** — committed current-state knowledge (architecture, conventions, domain). Empty initially; populated as content earns its place.
+- **`research/`** — provisional exploration. Multiple passes on the same topic expected; rewritten in place. Not committed positions.
+- **`decisions/`** — structured position records with rationale, alternatives, and `revisit_if` conditions. Filename: `platform-NNNN-<slug>.md` (currently `platform-0001` through `platform-0007`).
+- **`designs/`** — scoping and design briefs supporting work items. Filename: `<date>-<slug>.brief.md` or `.design.md`.
+- **`sessions/`** — short episodic summaries of significant recent work.
+- **`releases/`** — late-binding release bundles by version.
+- **`scratchpad/`** (gitignored) — ephemeral in-flight artifacts. Promote anything worth keeping to a durable tier; the rest auto-deletes.
+- **`agents/`** (gitignored) — per-agent private state.
+
+When in doubt about which tier, scratchpad is safe — anything worth keeping gets promoted explicitly. Promotion is currently manual (agent-judgment + human prompt).
+
 ## Coding Conventions
 
 **Naming:** camelCase vars/functions, PascalCase types/components, SCREAMING_SNAKE constants, kebab-case files. Suffix: `.routes.ts` (Hono), `.schema.ts` (Drizzle).

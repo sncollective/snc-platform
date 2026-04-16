@@ -101,11 +101,8 @@ Two-system architecture (Garage alongside Seafile) resolves the "Web-based large
 
 ## Related
 
-- [../../.memory/research/object-storage.md](../../.memory/research/object-storage.md) — full evaluation of Garage vs SeaweedFS vs RustFS vs Ceph RGW vs MinIO, upload pattern comparison (presigned vs tus vs proxy), upload UI library comparison (Uppy vs FilePond vs Dropzone), Seafile coexistence analysis, integration effort estimate
-- [../../.memory/research/collaboration-suite.md](../../.memory/research/collaboration-suite.md) — Seafile deployment and status (cross-submodule link; this doc may not be available when platform is cloned standalone)
-- [../../.memory/research/streaming-infrastructure.md](../../.memory/research/streaming-infrastructure.md) — VOD pipeline integration points
+- [../research/object-storage.md](../research/object-storage.md) — full evaluation of Garage vs SeaweedFS vs RustFS vs Ceph RGW vs MinIO, upload pattern comparison (presigned vs tus vs proxy), upload UI library comparison (Uppy vs FilePond vs Dropzone), integration effort estimate
+- [../research/streaming-infrastructure.md](../research/streaming-infrastructure.md) — VOD pipeline integration points
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — SRS as streaming server; Garage is the VOD landing zone for SRS DVR recordings
-- Garage deployment design — in the parent monorepo under `boards/platform/release-0.1/design/garage-deploy.md` (prose reference to preserve standalone cloning)
-- S3 storage presigned uploads design — in the parent monorepo under `boards/platform/release-0.1/design/s3-storage-presigned-uploads.md` (prose reference)
 
 No prior decision record to supersede — this is a fresh promotion from research to a structured decision record as Item 3b of the Level 3 critical path (2026-04-16). No position change from the 2026-03-13 research conclusions — the decision has been load-bearing for platform work throughout that window.
