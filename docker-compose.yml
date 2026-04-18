@@ -81,6 +81,19 @@ services:
       retries: 5
       start_period: 30s
 
+  snc-mailpit:
+    image: axllent/mailpit:latest
+    container_name: snc-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   snc-imgproxy:
     image: ghcr.io/imgproxy/imgproxy:v3
     container_name: snc-imgproxy

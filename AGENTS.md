@@ -55,7 +55,13 @@ When in doubt about which tier, scratchpad is safe — anything worth keeping ge
 
 ## Docker Networking
 
-Running inside a Docker container on `claude-net`. Services: `snc-postgres:5432`, `snc-garage:3900` (S3). Fallback: `host.docker.internal`.
+Dockerized services (Postgres, Garage S3, SRS, Liquidsoap, imgproxy, Mailpit) run on the `platform_default` docker network and publish their ports to the host. Code that runs **outside** the docker network — pm2-managed API/web on the dev host, drizzle-kit, ad-hoc `bun` shells — reaches them via `localhost:<published-port>`. That's what `.env.example` defaults to.
+
+Code that runs **inside** the docker network (container-to-container calls) uses the docker service names (`snc-postgres:5432`, `snc-garage:3900`, `snc-srs:1935`, `snc-liquidsoap:1936`).
+
+## Email in dev (Mailpit)
+
+`docker-compose.yml` runs Mailpit as `snc-mailpit`: SMTP listener on `localhost:1025`, web inbox at `http://localhost:8025`. Default `.env.example` SMTP values point at it. Outgoing mail is captured but never delivered — safe to test password resets, invites, notifications etc. without touching a real relay. Override `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` for staging/prod relays.
 
 ## Agent Commands
 
