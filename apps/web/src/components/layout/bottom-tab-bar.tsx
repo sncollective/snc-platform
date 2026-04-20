@@ -1,9 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import type React from "react";
-import { Home, Rss, Radio, Users } from "lucide-react";
+import { Home, Rss, Radio, Users, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useNotificationCount } from "../../contexts/notification-context.js";
+import { NavOverflowSheet } from "./nav-overflow-sheet.js";
 import styles from "./bottom-tab-bar.module.css";
 
 // ── Private Constants ──
@@ -22,6 +24,10 @@ const TAB_ITEMS: readonly TabItem[] = [
   { to: "/creators", label: "Creators", icon: Users },
 ];
 
+/** Paths covered by the overflow sheet — used to highlight the More tab as
+ *  active when the current route is Studio / Merch / Emissions. */
+const OVERFLOW_PATHS = ["/studio", "/merch", "/emissions"] as const;
+
 // ── Public API ──
 
 /** Fixed bottom tab bar for mobile navigation. Hidden on desktop (≥768px). */
@@ -29,35 +35,56 @@ export function BottomTabBar(): React.ReactElement {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const unreadCount = useNotificationCount();
+  const [overflowOpen, setOverflowOpen] = useState(false);
+
+  const isOverflowActive = OVERFLOW_PATHS.some(
+    (path) => currentPath === path || currentPath.startsWith(`${path}/`),
+  );
 
   return (
-    <nav
-      className={styles.tabBar}
-      aria-label="Primary navigation"
-    >
-      {TAB_ITEMS.map((item) => {
-        const isActive = item.exact
-          ? currentPath === item.to
-          : currentPath === item.to || currentPath.startsWith(`${item.to}/`);
-        const Icon = item.icon;
+    <>
+      <nav
+        className={styles.tabBar}
+        aria-label="Primary navigation"
+      >
+        {TAB_ITEMS.map((item) => {
+          const isActive = item.exact
+            ? currentPath === item.to
+            : currentPath === item.to || currentPath.startsWith(`${item.to}/`);
+          const Icon = item.icon;
 
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={isActive ? styles.tabActive : styles.tab}
-            aria-current={isActive ? "page" : undefined}
-          >
-            <div className={styles.tabIconWrapper}>
-              <Icon size={20} aria-hidden="true" />
-              {item.exact && unreadCount > 0 && (
-                <span className={styles.badge} aria-label="Unread notifications" />
-              )}
-            </div>
-            <span className={styles.tabLabel}>{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={isActive ? styles.tabActive : styles.tab}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <div className={styles.tabIconWrapper}>
+                <Icon size={20} aria-hidden="true" />
+                {item.exact && unreadCount > 0 && (
+                  <span className={styles.badge} aria-label="Unread notifications" />
+                )}
+              </div>
+              <span className={styles.tabLabel}>{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={isOverflowActive ? styles.tabActive : styles.tab}
+          onClick={() => { setOverflowOpen(true); }}
+          aria-label="More navigation"
+          aria-expanded={overflowOpen}
+          aria-haspopup="dialog"
+        >
+          <div className={styles.tabIconWrapper}>
+            <MoreHorizontal size={20} aria-hidden="true" />
+          </div>
+          <span className={styles.tabLabel}>More</span>
+        </button>
+      </nav>
+      <NavOverflowSheet open={overflowOpen} onOpenChange={setOverflowOpen} />
+    </>
   );
 }

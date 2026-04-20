@@ -190,6 +190,15 @@ export function EventForm({
     void loadProjects();
   }, [selectedCreatorId]);
 
+  // Auto-set visibility to "public" when event type switches to "show" on a
+  // new event. Shows are public by default; user can override via the
+  // visibility select. Skip for edits (preserve the saved choice).
+  useEffect(() => {
+    if (!event && eventType === "show") {
+      setVisibility("public");
+    }
+  }, [eventType, event]);
+
   // Once known types load, reconcile: if editing an event whose type is now
   // a known type (custom default), select it directly instead of showing "Other"
   const eventTypeToReconcile = event?.eventType;

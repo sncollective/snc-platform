@@ -16,19 +16,9 @@
   font-size: var(--font-size-sm);
   cursor: pointer;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-.message:hover .trigger,
-.trigger:focus-visible {
-  opacity: 1;
 }
 
 .panel {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
   display: flex;
   gap: var(--space-xs);
   padding: var(--space-xs);
@@ -36,7 +26,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  z-index: var(--z-raised);
   white-space: nowrap;
 }
 

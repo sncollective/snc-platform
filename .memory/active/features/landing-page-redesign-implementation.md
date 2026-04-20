@@ -1,11 +1,11 @@
 ---
 id: feature-landing-page-redesign-implementation
 kind: feature
-stage: review
+stage: done
 tags: [content, community, calendar]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: landing-page-redesign
@@ -15,18 +15,28 @@ parent: landing-page-redesign
 
 ## Tasks
 
-- [ ] **Shared types** — Unit 1: `EventVisibility`, `UpcomingEvent` schemas
-- [ ] **DB migration** — Unit 2: `visibility` column on `calendar_events`
-- [ ] **API endpoint** — Unit 3: `GET /api/events/upcoming` (public, no auth)
-- [ ] **Event form visibility** — Unit 4: visibility select field
-- [ ] **Channel card** — Unit 5: `channel-card.tsx` + CSS
-- [ ] **What's On section** — Unit 6: `whats-on.tsx` + CSS
-- [ ] **Event card** — Unit 7: `event-card.tsx` + CSS
-- [ ] **Coming Up section** — Unit 8: `coming-up.tsx` + CSS
-- [ ] **Fresh Drops layout** — Unit 9: `recent-content.tsx` hero slot + grid
-- [ ] **ContentCard CQ** — Unit 10: `@container (min-width: 500px)` horizontal variant
-- [ ] **Landing page wiring** — Unit 11: loader + section order
-- [ ] **Section voice pass** — Unit 12: "Fresh Drops", "Creators"
+- [x] **Shared types** — Unit 1: `EventVisibility`, `UpcomingEvent` schemas
+- [x] **DB migration** — Unit 2: `visibility` column on `calendar_events`
+- [x] **API endpoint** — Unit 3: `GET /api/events/upcoming` (public, no auth)
+- [x] **Event form visibility** — Unit 4: visibility select field
+- [x] **Channel card** — Unit 5: `channel-card.tsx` + CSS
+- [x] **What's On section** — Unit 6: `whats-on.tsx` + CSS
+- [x] **Event card** — Unit 7: `event-card.tsx` + CSS
+- [x] **Coming Up section** — Unit 8: `coming-up.tsx` + CSS
+- [x] **Fresh Drops layout** — Unit 9: `recent-content.tsx` hero slot + grid
+- [x] **ContentCard CQ** — Unit 10: `@container (min-width: 500px)` horizontal variant
+- [x] **Landing page wiring** — Unit 11: loader + section order
+- [x] **Section voice pass** — Unit 12: "Fresh Drops", "Creators"
+
+## Review outcome (2026-04-20)
+
+Signed off against the live dev environment — all 12 top-level tasks verified: migration applied (`0020_far_bulldozer.sql`), API endpoint responding, all four landing components mounted and rendering, ContentCard container query active, section voice applied, 8 unit test files under `tests/unit/components/landing/`.
+
+**Fix in-flight:** Unit 4's acceptance criterion *"Switching event type to 'show' auto-sets visibility to 'public'"* was not actually met — the `visibility` state was set via a `useState` initializer that only runs once on mount, so changing `eventType` to `"show"` after mount didn't re-derive visibility. A `useEffect` synced to `eventType` now flips visibility to `"public"` whenever event type becomes `"show"` on a new event (edit mode preserves the saved visibility). Surfaced because the acceptance smoke-test event was saved with `visibility: "internal"` despite being a `show` type and so didn't appear on the landing page's Coming Up section. See [event-form.tsx:193-200](../../apps/web/src/components/calendar/event-form.tsx#L193-L200).
+
+**Also parked from acceptance session** (observations beyond this feature's scope):
+- [event-location-map-link](../../backlog/event-location-map-link.md) — make event card location tap-to-map
+- [live-page-player-hover-controls-escape-at-narrow-width](../../backlog/live-page-player-hover-controls-escape-at-narrow-width.md) — player hover controls break out of container at certain widths (related to the earlier-parked global-player layout item)
 
 ---
 
@@ -111,12 +121,12 @@ export type UpcomingEventsResponse = z.infer<typeof UpcomingEventsResponseSchema
 
 **Acceptance Criteria**:
 
-- [ ] `EventVisibility` type and `EventVisibilitySchema` exported
-- [ ] `CalendarEventSchema` includes `visibility`
-- [ ] `CreateCalendarEventSchema` includes `visibility` with `"internal"` default
-- [ ] `UpdateCalendarEventSchema` includes optional `visibility`
-- [ ] `UpcomingEventSchema` and `UpcomingEventsResponseSchema` exported
-- [ ] `toEventResponse` includes `visibility` in output
+- [x] `EventVisibility` type and `EventVisibilitySchema` exported
+- [x] `CalendarEventSchema` includes `visibility`
+- [x] `CreateCalendarEventSchema` includes `visibility` with `"internal"` default
+- [x] `UpdateCalendarEventSchema` includes optional `visibility`
+- [x] `UpcomingEventSchema` and `UpcomingEventsResponseSchema` exported
+- [x] `toEventResponse` includes `visibility` in output
 
 ---
 
@@ -136,9 +146,9 @@ Add after the `location` column.
 
 **Acceptance Criteria**:
 
-- [ ] `visibility` column exists on `calendar_events` table
-- [ ] Existing events default to `"internal"`
-- [ ] Migration generated and applied
+- [x] `visibility` column exists on `calendar_events` table
+- [x] Existing events default to `"internal"`
+- [x] Migration generated and applied
 
 ---
 
@@ -231,13 +241,13 @@ app.route("/api/events/upcoming", upcomingEventsRoutes);
 
 **Acceptance Criteria**:
 
-- [ ] `GET /api/events/upcoming` returns upcoming public events without auth
-- [ ] Only `visibility: "public"` events returned
-- [ ] Only future events returned (startAt > now)
-- [ ] Deleted events excluded
-- [ ] Ordered by `startAt ASC`
-- [ ] `limit` query param works (default 5, max 20)
-- [ ] Mounted in `app.ts`
+- [x] `GET /api/events/upcoming` returns upcoming public events without auth
+- [x] Only `visibility: "public"` events returned
+- [x] Only future events returned (startAt > now)
+- [x] Deleted events excluded
+- [x] Ordered by `startAt ASC`
+- [x] `limit` query param works (default 5, max 20)
+- [x] Mounted in `app.ts`
 
 ---
 
@@ -290,10 +300,10 @@ useEffect(() => {
 
 **Acceptance Criteria**:
 
-- [ ] Visibility select field appears in event form
-- [ ] Default is `"internal"` for non-show types, `"public"` for shows
-- [ ] Switching event type to "show" auto-sets visibility to "public"
-- [ ] Visibility included in create and update API payloads
+- [x] Visibility select field appears in event form
+- [x] Default is `"internal"` for non-show types, `"public"` for shows
+- [x] Switching event type to "show" auto-sets visibility to "public"
+- [x] Visibility included in create and update API payloads
 
 ---
 
@@ -308,11 +318,11 @@ Card sizing (200-280px, flex 0 0 auto) matches the existing `featured-creators` 
 
 **Acceptance Criteria**:
 
-- [ ] `ChannelCard` renders channel name, now-playing info, and badges
-- [ ] Live channels show red border + LIVE badge + pulsing dot + viewer count
-- [ ] Playout channels show "NOW PLAYING" badge + track title
-- [ ] Cards link to `/live`
-- [ ] `prefers-reduced-motion` disables pulse animation
+- [x] `ChannelCard` renders channel name, now-playing info, and badges
+- [x] Live channels show red border + LIVE badge + pulsing dot + viewer count
+- [x] Playout channels show "NOW PLAYING" badge + track title
+- [x] Cards link to `/live`
+- [x] `prefers-reduced-motion` disables pulse animation *(skip-with-note 2026-04-20: CSS inspection confirms `@media (prefers-reduced-motion: reduce) { animation: none }` is present at [channel-card.module.css:73-75](../../apps/web/src/components/landing/channel-card.module.css#L73-L75); live visual verification deferred — requires an active live channel + DevTools emulation of the media query)*
 
 ---
 
@@ -327,10 +337,10 @@ Note: the "live hero takeover" (a live channel promoting to hero position) is de
 
 **Acceptance Criteria**:
 
-- [ ] Channel strip renders all channels in a horizontal scrollable row
-- [ ] Empty state shown when no channels active
-- [ ] Scroll snap behavior matches featured creators pattern
-- [ ] Keyboard-accessible via `tabIndex={0}` and `role="region"`
+- [x] Channel strip renders all channels in a horizontal scrollable row
+- [x] Empty state shown when no channels active
+- [x] Scroll snap behavior matches featured creators pattern
+- [x] Keyboard-accessible via `tabIndex={0}` and `role="region"`
 
 ---
 
@@ -343,10 +353,10 @@ Event card renders: date badge (month + day), title, event type tag, location (w
 
 **Acceptance Criteria**:
 
-- [ ] Event card shows date badge (month + day), title, type tag, location, creator
-- [ ] "Remind Me" button renders disabled with bell icon
-- [ ] Known event types show human-readable labels, custom types show raw string
-- [ ] Location only shown when present
+- [x] Event card shows date badge (month + day), title, type tag, location, creator
+- [x] "Remind Me" button renders disabled with bell icon
+- [x] Known event types show human-readable labels, custom types show raw string
+- [x] Location only shown when present
 
 ---
 
@@ -359,8 +369,8 @@ Vertical list of `EventCard` components. `Calendar` icon (lucide-react) for the 
 
 **Acceptance Criteria**:
 
-- [ ] Event list renders vertically
-- [ ] Empty state when no events
+- [x] Event list renders vertically
+- [x] Empty state when no events
 
 ---
 
@@ -421,10 +431,10 @@ Restructure to show the first item in a hero slot and remaining items in the gri
 
 **Acceptance Criteria**:
 
-- [ ] First content item renders in `.heroSlot` (full width)
-- [ ] Remaining items render in the standard `content-grid`
-- [ ] Section heading is "Fresh Drops"
-- [ ] `.heroSlot` has `container-type: inline-size`
+- [x] First content item renders in `.heroSlot` (full width)
+- [x] Remaining items render in the standard `content-grid`
+- [x] Section heading is "Fresh Drops"
+- [x] `.heroSlot` has `container-type: inline-size`
 
 ---
 
@@ -462,11 +472,11 @@ The `@container` rule is unnamed — it responds to ANY ancestor with `container
 
 **Acceptance Criteria**:
 
-- [ ] ContentCard switches to horizontal layout when container is ≥500px wide
-- [ ] Thumbnail takes 45% width in horizontal mode
-- [ ] Title font scales up in horizontal mode
-- [ ] Cards in `content-grid` cells remain vertical (cells are <500px)
-- [ ] Card in `.heroSlot` goes horizontal on tablets+
+- [x] ContentCard switches to horizontal layout when container is ≥500px wide
+- [x] Thumbnail takes 45% width in horizontal mode
+- [x] Title font scales up in horizontal mode
+- [x] Cards in `content-grid` cells remain vertical (cells are <500px)
+- [x] Card in `.heroSlot` goes horizontal on tablets+
 
 ---
 
@@ -504,11 +514,11 @@ Both new fetches have `.catch()` handlers matching the existing pattern — the 
 
 **Acceptance Criteria**:
 
-- [ ] Landing page loader fetches streaming status and upcoming events in parallel
-- [ ] Both new fetches have error fallbacks (empty data, warn log)
-- [ ] Section order: Hero → What's On → Fresh Drops → Coming Up → Creators → Pricing
-- [ ] Page renders without errors even if streaming/calendar APIs fail
-- [ ] `LandingData` type updated with new fields
+- [x] Landing page loader fetches streaming status and upcoming events in parallel
+- [x] Both new fetches have error fallbacks (empty data, warn log)
+- [x] Section order: Hero → What's On → Fresh Drops → Coming Up → Creators → Pricing
+- [x] Page renders without errors even if streaming/calendar APIs fail
+- [x] `LandingData` type updated with new fields
 
 ---
 
@@ -527,10 +537,10 @@ The new components (Units 6, 8) already use the new headings. Only two existing 
 
 **Acceptance Criteria**:
 
-- [ ] "Recent Content" → "Fresh Drops"
-- [ ] "Featured Creators" → "Creators"
-- [ ] New sections use "What's On" and "Coming Up"
-- [ ] `aria-label` values match new headings
+- [x] "Recent Content" → "Fresh Drops"
+- [x] "Featured Creators" → "Creators"
+- [x] New sections use "What's On" and "Coming Up"
+- [x] `aria-label` values match new headings
 
 ---
 

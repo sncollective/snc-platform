@@ -14,11 +14,14 @@ export function PopoverRoot(props: ComponentProps<typeof ArkPopover.Root>) {
 export const PopoverTrigger = ArkPopover.Trigger;
 
 /** Positioned popover content. Renders in a Portal. */
-export function PopoverContent(props: ComponentProps<typeof ArkPopover.Content>) {
+export function PopoverContent({ className, ...props }: ComponentProps<typeof ArkPopover.Content>) {
   return (
     <Portal>
       <ArkPopover.Positioner className={styles.positioner}>
-        <ArkPopover.Content className={styles.content} {...props} />
+        <ArkPopover.Content
+          className={className ? `${styles.content} ${className}` : styles.content}
+          {...props}
+        />
       </ArkPopover.Positioner>
     </Portal>
   );

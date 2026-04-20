@@ -275,6 +275,20 @@
   margin-left: calc(20px + var(--space-xs)); /* align under content, past avatar */
 }
 
+/* Hide the "Add reaction" trigger until the message is hovered or the
+   trigger itself is focused. Targets the reaction-picker's trigger button
+   via its stable aria-label — the picker component ships opacity-1 by
+   default so it's usable outside chat contexts. */
+.message button[aria-label="Add reaction"] {
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.message:hover button[aria-label="Add reaction"],
+.message button[aria-label="Add reaction"]:focus-visible {
+  opacity: 1;
+}
+
 .reactionPill,
 .reactionPillActive {
   display: inline-flex;

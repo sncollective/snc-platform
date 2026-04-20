@@ -1,17 +1,21 @@
 ---
 id: epic-mobile-nav-redesign
 kind: epic
-stage: review
+stage: done
 tags: [design-system, ux-polish]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null
 ---
 
 # Mobile Nav Redesign
+
+> **Epic sign-off (2026-04-20):** both children shipped and bound to 0.3.0.
+> - `mobile-nav-redesign-implementation` — bottom tab bar with Home/Feed/Live/Creators, UserMenu visible at all widths, mobile-menu + useMenuToggle + useDismiss chain fully deleted.
+> - `mobile-nav-overflow-access` — 5th "More" tab opening an overflow sheet with Studio/Merch/Emissions, scoped mid-review when the gap surfaced that the 4-tab bar left those routes mobile-unreachable.
 
 Replace the hamburger menu with a fixed bottom tab bar on mobile. Make UserMenu visible at all widths. Delete the mobile-menu component and its hook chain. Integrate the tab bar into the existing fixed-bottom stacking model (GlobalPlayer, MiniUploadIndicator) via a new `--tab-bar-height` CSS variable.
 

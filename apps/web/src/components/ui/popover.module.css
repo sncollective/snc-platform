@@ -1,5 +1,5 @@
 .positioner {
-  z-index: var(--z-dropdown);
+  z-index: var(--z-popover);
 }
 
 .content {

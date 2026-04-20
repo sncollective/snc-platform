@@ -1,0 +1,64 @@
+/* ── Sheet positioning ──
+   Overrides the dialog wrapper's flex-center alignment to anchor the content
+   to the bottom edge of the viewport, above the bottom tab bar. Uses the
+   className-merge pattern in dialog.tsx so the base .content styles
+   (background, border, shadow) still apply. */
+
+.sheet {
+  position: absolute;
+  bottom: var(--tab-bar-height, 0px);
+  left: 0;
+  right: 0;
+  max-width: 100%;
+  width: 100%;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 0;
+}
+
+/* ── Visually-hidden title for screen readers ── */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Link list ── */
+
+.list {
+  list-style: none;
+  padding: var(--space-sm);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  text-decoration: none;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--ease-default);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--color-surface-hover);
+}
+
+.item:active {
+  background: var(--color-surface-hover);
+}

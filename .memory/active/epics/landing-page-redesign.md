@@ -1,11 +1,11 @@
 ---
 id: epic-landing-page-redesign
 kind: epic
-stage: review
+stage: done
 tags: [content, community]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null

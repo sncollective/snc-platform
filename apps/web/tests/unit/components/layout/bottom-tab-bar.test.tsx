@@ -105,4 +105,27 @@ describe("BottomTabBar", () => {
     expect(screen.getByRole("link", { name: /Live/i })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: /Creators/i })).not.toHaveAttribute("aria-current");
   });
+
+  it("renders a More tab that opens the overflow sheet", () => {
+    render(<BottomTabBar />);
+
+    const moreTab = screen.getByRole("button", { name: "More navigation" });
+    expect(moreTab).toBeInTheDocument();
+    expect(moreTab).toHaveAttribute("aria-haspopup", "dialog");
+    expect(moreTab).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("More tab becomes active on overflow paths like /studio, /merch, /emissions", () => {
+    for (const path of ["/studio", "/merch", "/emissions"]) {
+      mockUseRouterState.mockReturnValue({ location: { pathname: path } });
+      const { unmount } = render(<BottomTabBar />);
+
+      const moreTab = screen.getByRole("button", { name: "More navigation" });
+      // Active state is encoded via styles.tabActive class; the button doesn't
+      // carry aria-current because it's not a page link. Verify via className.
+      expect(moreTab.className).toMatch(/tabActive/);
+
+      unmount();
+    }
+  });
 });

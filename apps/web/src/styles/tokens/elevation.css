@@ -19,6 +19,7 @@
   --z-sticky: 200;
   --z-overlay: 300;
   --z-modal: 400;
+  --z-popover: 450;
   --z-toast: 500;
   --z-skip-link: 1000;
 }
