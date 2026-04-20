@@ -13,7 +13,7 @@ parent: null
 
 # Upload/Edit UX Overhaul
 
-Processing state machine, inline upload progress, orphaned thumbnail cleanup, video layout shift fix. [from content]
+Processing state machine, inline upload progress, orphaned thumbnail cleanup, video layout shift fix.
 
 ## Sub-units
 

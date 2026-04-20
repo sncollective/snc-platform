@@ -3,7 +3,7 @@ id: feature-dynamic-liquidsoap-config
 kind: feature
 stage: done
 tags: [streaming]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []

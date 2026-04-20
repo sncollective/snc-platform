@@ -1,11 +1,11 @@
 ---
 id: feature-design-system-foundation-shared-component-conventions
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: design-system-foundation
@@ -25,13 +25,13 @@ parent: design-system-foundation
 
 Establishes the shared API vocabulary for the Phase 2 pattern components (Button, FormField, Heading, Spinner, EmptyState) so they compose consistently and new components later inherit the same conventions. Not a full per-component design — those emerge from real call sites. This doc pins down the decisions that would otherwise drift across the 5 components if each is built in isolation.
 
-The conventions document is done (marked `[x]` in the Design lane). The 5 components above are review-pending.
+Conventions document and all five components were signed off 2026-04-20 during the Phase 2 review.
 
 **Supersedes:** `styles/button.module.css` (`.primaryButton`, `.primaryButtonLink`) and ad-hoc `.primaryButton`/`.secondaryButton` CSS duplicated across `components/error/error-page.module.css` and other per-route modules.
 
 ## Follow-up
 
-After Button + FormField land, promote this doc's conventions to a `snc-components` reference skill (tracked on release-0.2.6 under Skills & Tools). Skill auto-triggers on `components/ui/` edits.
+After Button + FormField land, promote this doc's conventions to a `snc-components` reference skill (parked on backlog as `promote-shared-component-conventions-to-skill`). Skill auto-triggers on `components/ui/` edits.
 
 ---
 
@@ -118,7 +118,7 @@ components/ui/
   button.module.css      — all variant + size styles
 ```
 
-Re-export from `components/ui/index.ts` for single-import surface.
+Consumers import directly from each component file (e.g. `import { Button } from "../../components/ui/button.js"`). No `index.ts` barrel — direct per-file imports keep tree-shaking trivial and match the established pattern across all `components/ui/` primitives.
 
 ---
 

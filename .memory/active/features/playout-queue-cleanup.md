@@ -13,8 +13,6 @@ parent: null
 
 # Playout Queue Cleanup
 
-[from streaming, 0.2.1 review]
-
 Daily cron job that enforces a per-channel cap of 100 `played` rows in `playout_queue`. Handler at `jobs/handlers/playout-queue-cleanup.ts`, registered in `register-workers.ts`, integration test at `tests/integration/jobs/playout-queue-cleanup.test.ts` (6 scenarios, all passing).
 
 ## Tasks

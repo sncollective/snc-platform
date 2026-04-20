@@ -3,7 +3,7 @@ id: feature-admin-mutations-502
 kind: feature
 stage: done
 tags: [admin-console]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -22,8 +22,6 @@ parent: null
 POST, PATCH, PUT, and DELETE requests to `/api/**` return 502 when triggered from
 admin pages (`/admin/playout`, `/admin/simulcast`, `/admin/creators`). GET requests
 to the same endpoints work correctly.
-
-Brief: board item "Admin mutations 502" — `[from role-based-nav]`
 
 ### Root Cause
 

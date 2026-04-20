@@ -81,7 +81,7 @@ These need no responsive rewrite — they already adapt intrinsically.
 
 **Layout shell:**
 - `nav-bar.module.css` — hides desktop nav items `<767px`
-- `mobile-menu.module.css` — shows hamburger sheet `<767px` *(deferred to 0.2.7 nav redesign)*
+- `mobile-menu.module.css` — shows hamburger sheet `<767px` *(deferred to the `mobile-nav-redesign` epic)*
 - `user-menu.module.css` — hides user menu `<767px`
 - `context-shell.module.css` — adjusts shell layout `<768px`
 - `global-player.module.css` — simplifies player chrome `<768px`
@@ -228,7 +228,7 @@ This is safe to batch by file. Each file is self-contained (CSS Modules scope pr
 - Page-level responsive passes (all non-nav pages)
 - Event form responsive collapse (pulled from calendar domain)
 
-**Deferred to later in 0.2.7 (blocked on 0.2.6 Review):**
+**Deferred (handled by the `mobile-nav-redesign` epic after `design-system-adoption` review):**
 - Mobile nav redesign (bottom tab bar, retire mobile-menu/useMenuToggle/useDismiss)
 
 **Deferred to separate release/design:**

@@ -3,7 +3,7 @@ id: story-s3-presign-expiry-per-purpose
 kind: story
 stage: done
 tags: [security]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []

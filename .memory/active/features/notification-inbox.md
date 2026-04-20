@@ -15,7 +15,7 @@ parent: null
 
 In-app notification system decoupled from chat. Notifications are stored in a database table and fetched via paginated REST API. The frontend polls on page load and periodic refresh. When the chat WebSocket is connected, the server pushes a lightweight `notification_count` event so the unread badge updates instantly without dedicated notification WebSocket infrastructure.
 
-**Integration with 0.2.2 notification dispatch:** `dispatchNotification()` should also create an `inbox_notifications` entry and push the WS nudge when a notification is dispatched. The inbox table is complementary to `notification_jobs` (which tracks email delivery state), not a replacement.
+**Integration with notification dispatch:** `dispatchNotification()` should also create an `inbox_notifications` entry and push the WS nudge when a notification is dispatched. The inbox table is complementary to `notification_jobs` (which tracks email delivery state), not a replacement.
 
 The key integration point is a userId-to-WebSocket-client index in the chat-rooms module. Currently `chat-rooms.ts` tracks clients by room membership only. This design adds a parallel `connectedUsers` map so the notification service can push count updates to any connected user without knowing which rooms they are in.
 

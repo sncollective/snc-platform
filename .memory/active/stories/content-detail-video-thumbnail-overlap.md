@@ -13,4 +13,4 @@ parent: null
 
 # Content Detail Video Thumbnail Overlap
 
-Content detail page — video thumbnail oversized/overlapping sidebar. `.coverArt` max-width constraint added to `video-detail.module.css`. [from ux-polish]
+Content detail page — video thumbnail oversized/overlapping sidebar. `.coverArt` max-width constraint added to `video-detail.module.css`.

@@ -3,7 +3,7 @@ id: feature-invite-flow
 kind: feature
 stage: done
 tags: [identity, creators]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []

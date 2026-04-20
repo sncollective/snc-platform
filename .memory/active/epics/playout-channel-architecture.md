@@ -3,7 +3,7 @@ id: epic-playout-channel-architecture
 kind: epic
 stage: done
 tags: [streaming, media-pipeline]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -15,7 +15,7 @@ parent: null
 
 Revised 2026-04-01 from interactive scoping session. Supersedes the original brief.
 
-> **Epic sign-off (2026-04-18):** all three phases reviewed and bound to 0.2.1 during this session — Phase 1 skip-with-note (backend foundation verified in code, end-to-end observation blocked by the now-resolved `streaming-callback-rate-limit` story), Phase 2 verification-only pass (Units 3-11 verified in code; Units 1-2 superseded by the `dynamic-liquidsoap-config` feature which chose the template-regeneration alternative), Phase 3 verification-only pass (Units 1-13 verified in code; trivial orphan file cleanup during the flip). The architectural direction set in this brief — queue as single playback stream, API as orchestrator, Liquidsoap as dumb player, data-driven channels — is observationally realized and was verified live via the admin UI and streaming endpoints. The "Phase Status" table below is now historical — all three phases are `done`. Epic bound to 0.2.1 per the `item-pipelines.md §Release binding lifecycle` "epics bind to their release" rule so the subtree archives together under `/release-deploy`.
+> **Epic sign-off (2026-04-18):** all three phases reviewed and bound to 0.3.0 during this session — Phase 1 skip-with-note (backend foundation verified in code, end-to-end observation blocked by the now-resolved `streaming-callback-rate-limit` story), Phase 2 verification-only pass (Units 3-11 verified in code; Units 1-2 superseded by the `dynamic-liquidsoap-config` feature which chose the template-regeneration alternative), Phase 3 verification-only pass (Units 1-13 verified in code; trivial orphan file cleanup during the flip). The architectural direction set in this brief — queue as single playback stream, API as orchestrator, Liquidsoap as dumb player, data-driven channels — is observationally realized and was verified live via the admin UI and streaming endpoints. The "Phase Status" table below is now historical — all three phases are `done`. Epic bound to 0.3.0 per the `item-pipelines.md §Release binding lifecycle` "epics bind to their release" rule so the subtree archives together under `/release-deploy`.
 
 ## Problem
 

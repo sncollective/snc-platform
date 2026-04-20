@@ -3,7 +3,7 @@ id: feature-playout-channel-architecture-phase1
 kind: feature
 stage: done
 tags: [streaming]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -13,7 +13,7 @@ parent: playout-channel-architecture
 
 # Playout Channel Architecture — Phase 1 (Backend Foundation)
 
-> **Review outcome (2026-04-18):** skip-with-note. Phase 1's code-level acceptance is verified — new tables (`channel_content`, `playout_queue`) are migrated, `createPlayoutOrchestrator` returns the designed methods (`onTrackStarted`, `insertIntoQueue`, `removeFromQueue`, `skip`, `assignContent`, `removeContent`, `listContent`, `autoFill`, `initialize`), the auto-fill query uses the least-recently-played + random strategy, the track-event webhook route responds, and the admin CRUD routes are wired through. User-visible end-to-end testing (watch queue advance correctly as content plays on the stream) was **blocked by a downstream issue**: the API's `srsCallbackLimiter` on `/api/streaming/callbacks/*` interacts with a Liquidsoap RTMP retry loop to produce a queue-thrash cycle that prevents any content from actually broadcasting. That issue is neither a Phase 1 design gap nor a Phase 1 implementation bug — the orchestrator is behaving as designed; the visible brokenness sits in the rate-limiter ↔ Liquidsoap retry interaction. Parked as the active story `streaming-callback-rate-limit`. The earlier status note claimed Phase 1 was blocked by Phase 2; that was stale — Phase 2 is now also `done` and its real `LiquidsoapClient` is wired up. Bound to 0.2.1.
+> **Review outcome (2026-04-18):** skip-with-note. Phase 1's code-level acceptance is verified — new tables (`channel_content`, `playout_queue`) are migrated, `createPlayoutOrchestrator` returns the designed methods (`onTrackStarted`, `insertIntoQueue`, `removeFromQueue`, `skip`, `assignContent`, `removeContent`, `listContent`, `autoFill`, `initialize`), the auto-fill query uses the least-recently-played + random strategy, the track-event webhook route responds, and the admin CRUD routes are wired through. User-visible end-to-end testing (watch queue advance correctly as content plays on the stream) was **blocked by a downstream issue**: the API's `srsCallbackLimiter` on `/api/streaming/callbacks/*` interacts with a Liquidsoap RTMP retry loop to produce a queue-thrash cycle that prevents any content from actually broadcasting. That issue is neither a Phase 1 design gap nor a Phase 1 implementation bug — the orchestrator is behaving as designed; the visible brokenness sits in the rate-limiter ↔ Liquidsoap retry interaction. Parked as the active story `streaming-callback-rate-limit`. The earlier status note claimed Phase 1 was blocked by Phase 2; that was stale — Phase 2 is now also `done` and its real `LiquidsoapClient` is wired up. Bound to 0.3.0.
 
 ## Overview
 

@@ -13,7 +13,7 @@ parent: null
 
 # Responsive Images
 
-imgproxy Docker service, URL builder, shared types, API resolution, OptionalImage srcSet/sizes, consumer updates, Garage read-only key. [from content]
+imgproxy Docker service, URL builder, shared types, API resolution, OptionalImage srcSet/sizes, consumer updates, Garage read-only key.
 
 ## Sub-units
 

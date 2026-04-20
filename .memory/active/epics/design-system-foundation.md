@@ -1,11 +1,11 @@
 ---
 id: epic-design-system-foundation
 kind: epic
-stage: implementing
+stage: done
 tags: [design-system, platform]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null
@@ -15,16 +15,16 @@ parent: null
 
 Foundation work for the UI/UX system. Token restructuring, icon system, first headless primitives (Ark UI), and shared pattern components. Reference: `.memory/research/ui-ux-system-plan.md`.
 
-> Ark UI component migration (dialogs, menus, popovers, selects, dismiss-hook retirement) split to release-0.2.6 — "Design System Adoption".
+> Ark UI component migration (dialogs, menus, popovers, selects, dismiss-hook retirement) split to the `design-system-adoption` feature.
 
 ## Child Features
 
-- `design-system-foundation-token-restructuring` — Phase 0 (done, bound to 0.2.1)
-- `design-system-foundation-ark-ui-primitives` — Phase 1 (done, bound to 0.2.1)
-- `design-system-foundation-shared-component-conventions` — Phase 2 (review, not yet bound)
-- `design-system-foundation-lucide-react-integration` — Phase 4 (done, bound to 0.2.1)
+- `design-system-foundation-token-restructuring` — Phase 0 (done, bound to 0.3.0)
+- `design-system-foundation-ark-ui-primitives` — Phase 1 (done, bound to 0.3.0)
+- `design-system-foundation-shared-component-conventions` — Phase 2 (done, bound to 0.3.0)
+- `design-system-foundation-lucide-react-integration` — Phase 4 (done, bound to 0.3.0)
 
-Phase 3 (Responsive Overhaul) is scoped to release-0.2.7. Phases 5 and 6 are in backlog.
+Phase 3 (Responsive Overhaul) lives as the `responsive-overhaul` active epic (bound to 0.3.0). Phases 5 and 6 remain in backlog.
 
 ---
 

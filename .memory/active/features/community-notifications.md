@@ -3,7 +3,7 @@ id: feature-community-notifications
 kind: feature
 stage: done
 tags: [community, content, calendar]
-release_binding: "0.2.1"
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -13,9 +13,7 @@ parent: null
 
 # Community Notifications
 
-[from community]
-
-Tab bar notification badges + "Remind Me" event wiring. Extends the notification infrastructure shipped in 0.2.2–0.2.3.
+Tab bar notification badges + "Remind Me" event wiring. Extends the `notifications` infrastructure in this release.
 
 ## Tasks
 
@@ -30,7 +28,7 @@ Tab bar notification badges + "Remind Me" event wiring. Extends the notification
 
 ## Design
 
-Two notification features that extend the existing infrastructure shipped in 0.2.2–0.2.3.
+Two notification features that extend the existing `notifications` infrastructure in this release.
 
 ### Existing infrastructure
 

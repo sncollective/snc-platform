@@ -13,9 +13,7 @@ parent: null
 
 # Design System Adoption
 
-Consolidation release. Migrates existing ad-hoc dialogs, dropdown menus, popovers, and native selects to the Ark UI primitives shipped in 0.2.5 (Phase 1). Retires custom dismiss hooks once consumers migrate. No new user-facing features — pure DX + a11y + consistency win.
-
-Carried forward from 0.2.5 backlog (split to keep 0.2.5 focused on token foundation + Phase 2 Boy-Scout components).
+Consolidation release. Migrates existing ad-hoc dialogs, dropdown menus, popovers, and native selects to the Ark UI primitives (Phase 1 of the `design-system-foundation` epic). Retires custom dismiss hooks once consumers migrate. No new user-facing features — pure DX + a11y + consistency win.
 
 ## Migration checklist
 
@@ -43,4 +41,4 @@ Carried forward from 0.2.5 backlog (split to keep 0.2.5 focused on token foundat
 
 ## Deferred
 
-**`mobile-menu.tsx` retained on useMenuToggle for 0.2.6.** Migration attempt surfaced that Popover's floating-ui Positioner fights full-width sheet layouts. Rather than invest in a Sheet primitive workaround, the whole component is being retired in release-0.2.7 via a bottom-tab-bar redesign. Migration attempt reverted; component stays on `useMenuToggle` in the interim.
+**`mobile-menu.tsx` retained on useMenuToggle.** Migration attempt surfaced that Popover's floating-ui Positioner fights full-width sheet layouts. Rather than invest in a Sheet primitive workaround, the whole component is being retired via the `mobile-nav-redesign` epic's bottom-tab-bar redesign. Migration attempt reverted; component stays on `useMenuToggle` in the interim.

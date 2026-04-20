@@ -3,7 +3,7 @@ id: story-error-retry-loading-feedback
 kind: story
 stage: done
 tags: [ux-polish]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -45,6 +45,6 @@ The `disabled` attribute is set on the button while the retry request is in flig
 
 Trigger an error state, click Retry, and observe that the button becomes visually disabled during the retry. Confirm it returns to normal state after the retry completes (whether successful or unsuccessful).
 
-## 0.2.4 follow-up
+## Follow-up
 
-Retry button now also shows a "Retrying..." label while the retry is in flight. The 0.2.1 pass added the visual disabled state (opacity + cursor); 0.2.4 polished the text label to make the in-progress state more explicit. Both changes target the same retry button in the error page component.
+Retry button now also shows a "Retrying..." label while the retry is in flight. The earlier pass added the visual disabled state (opacity + cursor); this follow-up polished the text label to make the in-progress state more explicit. Both changes target the same retry button in the error page component.

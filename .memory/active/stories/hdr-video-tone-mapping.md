@@ -13,4 +13,4 @@ parent: null
 
 # HDR Video Tone-Mapping
 
-HDR video tone-mapping — ffprobe HDR detection (`color_transfer`), zscale tone-map filter chain in transcode pipeline, 1080p cap for HDR sources, HDR upload logging. [from content]
+HDR video tone-mapping — ffprobe HDR detection (`color_transfer`), zscale tone-map filter chain in transcode pipeline, 1080p cap for HDR sources, HDR upload logging.

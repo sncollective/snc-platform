@@ -13,11 +13,11 @@ parent: null
 
 # Admin Creators Data Table
 
-> The original polish backlog item (CSS module, status badge colors, filter tab styling, create form layout, status action buttons — carried from 0.2.1) was folded into this TanStack Table rewrite. That work is covered here in full.
+> The original polish backlog item (CSS module, status badge colors, filter tab styling, create form layout, status action buttons) was folded into this TanStack Table rewrite. That work is covered here in full.
 
 ## Overview
 
-Replace the bare `<ul>` list on the admin creators page with a TanStack Table. Columns: name (link), handle, status badge, content count, actions. Status filter tabs, search by name/handle. Full CSS module replacing all inline styles. The invite dialog (recently added in 0.2.2) gets extracted into the CSS module too.
+Replace the bare `<ul>` list on the admin creators page with a TanStack Table. Columns: name (link), handle, status badge, content count, actions. Status filter tabs, search by name/handle. Full CSS module replacing all inline styles. The invite dialog gets extracted into the CSS module too.
 
 The admin API already returns `CreatorProfileResponse` with `displayName`, `handle`, `status`, `contentCount`. No API changes needed — this is a pure frontend rewrite.
 

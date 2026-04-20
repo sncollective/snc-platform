@@ -3,7 +3,7 @@ id: feature-playout-channel-architecture-phase2
 kind: feature
 stage: done
 tags: [streaming]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -13,7 +13,7 @@ parent: playout-channel-architecture
 
 # Playout Channel Architecture — Phase 2 (Liquidsoap + Cleanup)
 
-> **Review outcome (2026-04-18):** verification-only pass. Units 1-2 (env-var parameterized `playout.liq` + docker-compose channel env vars) were **superseded** by the `dynamic-liquidsoap-config` feature, which chose the "template regeneration" option this design listed as an alternative — `playout.liq` is now generated from DB channel rows on CRUD, and the hardcoded channel env vars were removed. Units 3-11 (real `LiquidsoapClient`, orchestrator init switch, `getNowPlaying`, dynamic `PLAYOUT_STREAM_NAMES`, streaming status via orchestrator, playlist/liquidsoap.ts cleanup, ingest handler cleanup, tests) were **verified in code**: `liquidsoap-client.ts` has the real implementation alongside the test stub, `playout-channels.init.ts` switches on `LIQUIDSOAP_API_URL`, `srs.ts` routes playout channels through `orchestrator.getMultiChannelQueueStatus`, no stale `regeneratePlaylist`/`writePlaylist`/`CHANNEL_NOW_PLAYING_PATHS`/`PLAYOUT_STREAM_NAMES` references remain, and `liquidsoap-client.test.ts` + `playout-orchestrator.test.ts` exist. Work happened on a different machine between the 2026-04-06 board snapshot and the 2026-04-18 migration; the old board was never updated to reflect completion. Bound to 0.2.1.
+> **Review outcome (2026-04-18):** verification-only pass. Units 1-2 (env-var parameterized `playout.liq` + docker-compose channel env vars) were **superseded** by the `dynamic-liquidsoap-config` feature, which chose the "template regeneration" option this design listed as an alternative — `playout.liq` is now generated from DB channel rows on CRUD, and the hardcoded channel env vars were removed. Units 3-11 (real `LiquidsoapClient`, orchestrator init switch, `getNowPlaying`, dynamic `PLAYOUT_STREAM_NAMES`, streaming status via orchestrator, playlist/liquidsoap.ts cleanup, ingest handler cleanup, tests) were **verified in code**: `liquidsoap-client.ts` has the real implementation alongside the test stub, `playout-channels.init.ts` switches on `LIQUIDSOAP_API_URL`, `srs.ts` routes playout channels through `orchestrator.getMultiChannelQueueStatus`, no stale `regeneratePlaylist`/`writePlaylist`/`CHANNEL_NOW_PLAYING_PATHS`/`PLAYOUT_STREAM_NAMES` references remain, and `liquidsoap-client.test.ts` + `playout-orchestrator.test.ts` exist. Work happened on a different machine between the 2026-04-06 board snapshot and the 2026-04-18 migration; the old board was never updated to reflect completion. Bound to 0.3.0.
 
 ## Overview
 

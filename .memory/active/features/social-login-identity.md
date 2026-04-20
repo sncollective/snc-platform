@@ -3,7 +3,7 @@ id: feature-social-login-identity
 kind: feature
 stage: done
 tags: [identity]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-20
 related_decisions: []

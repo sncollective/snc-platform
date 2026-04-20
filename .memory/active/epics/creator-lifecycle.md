@@ -3,7 +3,7 @@ id: epic-creator-lifecycle
 kind: epic
 stage: done
 tags: [creators]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -85,4 +85,4 @@ Extend admin routes with creator management:
 
 ## Child
 
-Implementation: [creator-lifecycle-status-and-admin-crud](../features/creator-lifecycle-status-and-admin-crud.md) — shipped 2026-04-02 as part of release 0.2.1.
+Implementation: [creator-lifecycle-status-and-admin-crud](../features/creator-lifecycle-status-and-admin-crud.md) — landed 2026-04-02.

@@ -13,7 +13,7 @@ parent: null
 
 # systemd Graceful Exit
 
-**Fix landed in 0.2.3.** Shutdown lifecycle rewritten with a 30s timeout, re-entry guard, per-stage logging, pg-boss stop timeout, and PM2 `kill_timeout`. `systemctl restart snc-api` no longer hangs.
+**Fix landed.** Shutdown lifecycle rewritten with a 30s timeout, re-entry guard, per-stage logging, pg-boss stop timeout, and PM2 `kill_timeout`. `systemctl restart snc-api` no longer hangs.
 
 ## Original problem
 

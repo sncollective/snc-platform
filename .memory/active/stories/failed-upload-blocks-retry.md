@@ -13,7 +13,7 @@ parent: null
 
 # Failed Upload Blocks Retry
 
-**Fix landed in 0.2.3.** `onError` and completion-error handlers now remove the file from Uppy, triggering S3 multipart abort. Retrying after a failed upload no longer presents "already exists" errors.
+**Fix landed.** `onError` and completion-error handlers now remove the file from Uppy, triggering S3 multipart abort. Retrying after a failed upload no longer presents "already exists" errors.
 
 ## Original problem
 

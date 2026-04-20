@@ -13,7 +13,7 @@ parent: null
 
 # Resumable Uploads via tus
 
-tusd + `@uppy/tus`, dual-path (tus for large media, S3 presign for small files), hook-based completion, orphan cleanup. [from content]
+tusd + `@uppy/tus`, dual-path (tus for large media, S3 presign for small files), hook-based completion, orphan cleanup.
 
 ## Sub-units
 

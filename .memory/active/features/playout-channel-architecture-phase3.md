@@ -3,7 +3,7 @@ id: feature-playout-channel-architecture-phase3
 kind: feature
 stage: done
 tags: [streaming, admin-console]
-release_binding: 0.2.1
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -13,7 +13,7 @@ parent: playout-channel-architecture
 
 # Playout Channel Architecture — Phase 3 (Admin UI)
 
-> **Review outcome (2026-04-18):** verification-only pass, same pattern as Phase 2. Units 1-13 verified in code as already shipped: `contentId` column on `channel_content`, orchestrator's `assignContent` / `resolveContentUri` / `searchAvailableContent`, shared types (`sourceType`, `PoolCandidate`, `contentIds`), `/channels/:id/content/search` endpoint, web client `playout-channels.ts` exports, `useChannelQueue` polling hook, admin page rewrite with per-channel tabs + queue + content pool, all three new components (`content-search-picker`, `queue-item-row`, `content-pool-table`), `AddContentForm` rename, old `PUT /items/reorder` + `PUT /playlist` routes removed. User observed the full shipped UI live during this session (channel tabs, Now Playing + Skip, Queue with positions + estimated times + Remove, Content Pool with counts + search). One trivial gap — Unit 11 said "rename `AddFilmForm` → `AddContentForm`" but the old `add-film-form.tsx` was left orphaned alongside the new file; deleted as a fix-in-flight during this pass. Bound to 0.2.1.
+> **Review outcome (2026-04-18):** verification-only pass, same pattern as Phase 2. Units 1-13 verified in code as already shipped: `contentId` column on `channel_content`, orchestrator's `assignContent` / `resolveContentUri` / `searchAvailableContent`, shared types (`sourceType`, `PoolCandidate`, `contentIds`), `/channels/:id/content/search` endpoint, web client `playout-channels.ts` exports, `useChannelQueue` polling hook, admin page rewrite with per-channel tabs + queue + content pool, all three new components (`content-search-picker`, `queue-item-row`, `content-pool-table`), `AddContentForm` rename, old `PUT /items/reorder` + `PUT /playlist` routes removed. User observed the full shipped UI live during this session (channel tabs, Now Playing + Skip, Queue with positions + estimated times + Remove, Content Pool with counts + search). One trivial gap — Unit 11 said "rename `AddFilmForm` → `AddContentForm`" but the old `add-film-form.tsx` was left orphaned alongside the new file; deleted as a fix-in-flight during this pass. Bound to 0.3.0.
 
 ## Overview
 

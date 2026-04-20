@@ -26,7 +26,7 @@ parent: responsive-overhaul
 - [ ] **Component passes** — Unit 8: studio-hero, studio-service-section, audio-detail ×3
 - [ ] **Pending bookings table CQ** — Unit 10: `@container dashboard` on bookings table
 - [ ] **Main content container** — Unit 11: `container-type: inline-size` on `.main-content` (global player stays `@media`)
-- [ ] **Event form responsive** — Unit 12: date row grid mobile collapse [from calendar]
+- [ ] **Event form responsive** — Unit 12: date row grid mobile collapse
 - [ ] **Mobile viewport e2e project** — `Pixel 7` project in `playwright.config.ts`
 - [ ] **Horizontal scroll guard** — `responsive/no-horizontal-scroll.spec.ts`
 
@@ -601,7 +601,7 @@ Five more files with the same mechanical inversion.
 }
 ```
 
-`mobile-menu.module.css` is explicitly **not touched** — deferred to the 0.2.7 nav redesign. Its `max-width: 767px` query stays as-is until the whole component is deleted.
+`mobile-menu.module.css` is explicitly **not touched** — deferred to the `mobile-nav-redesign` epic. Its `max-width: 767px` query stays as-is until the whole component is deleted.
 
 **Acceptance Criteria**:
 

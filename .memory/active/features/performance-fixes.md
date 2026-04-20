@@ -3,7 +3,7 @@ id: feature-performance-fixes
 kind: feature
 stage: done
 tags: [admin-console, streaming, design-system]
-release_binding: "0.2.1"
+release_binding: 0.3.0
 created: 2026-04-18
 updated: 2026-04-18
 related_decisions: []
@@ -13,9 +13,7 @@ parent: null
 
 # Performance Fixes — Playout Admin + Team Section
 
-[from streaming, 0.2.1 review] [from release-0.2.6]
-
-Two unrelated performance regressions surfaced during 0.2.1 and 0.2.6 review cycles.
+Two unrelated performance regressions surfaced during prior review cycles.
 
 ## Tasks
 
@@ -29,7 +27,7 @@ Two unrelated performance regressions surfaced during 0.2.1 and 0.2.6 review cyc
 
 ## Design
 
-### Fix 1: Playout admin page slow to load [from streaming, 0.2.1 review]
+### Fix 1: Playout admin page slow to load
 
 **Root cause:** The route loader blocks on `GET /api/streaming/status`, which does sequential work per channel:
 
@@ -79,7 +77,7 @@ In `getChannelList()`, restructure the data assembly:
 
 ---
 
-### Fix 2: Team section slow render [from release-0.2.6]
+### Fix 2: Team section slow render
 
 **Root cause:** `team-section.tsx` renders one `<SelectRoot>` per team member in the member list, plus 2 more for the add/invite forms. For a 10-member team: 12 SelectRoot instances, each with full Ark UI machinery (Zag state machine, floating-ui positioning, event listeners). The cost scales linearly with member count.
 
