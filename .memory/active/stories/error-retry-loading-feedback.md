@@ -44,3 +44,7 @@ The `disabled` attribute is set on the button while the retry request is in flig
 ## Verification
 
 Trigger an error state, click Retry, and observe that the button becomes visually disabled during the retry. Confirm it returns to normal state after the retry completes (whether successful or unsuccessful).
+
+## 0.2.4 follow-up
+
+Retry button now also shows a "Retrying..." label while the retry is in flight. The 0.2.1 pass added the visual disabled state (opacity + cursor); 0.2.4 polished the text label to make the in-progress state more explicit. Both changes target the same retry button in the error page component.
