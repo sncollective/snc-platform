@@ -1,11 +1,11 @@
 ---
 id: feature-social-login-identity
 kind: feature
-stage: review
+stage: done
 tags: [identity]
-release_binding: null
+release_binding: 0.2.1
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null
