@@ -1,7 +1,7 @@
 ---
 tags: [streaming, identity]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Connected Accounts for Simulcast (OAuth Platform Integrations)

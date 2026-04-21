@@ -1,7 +1,7 @@
 ---
 tags: [streaming, observability]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Stream Health Monitoring Dashboard

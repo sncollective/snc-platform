@@ -1,7 +1,7 @@
 ---
 tags: [testing, ux-polish]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: empty-state rendering e2e coverage

@@ -1,7 +1,7 @@
 ---
 tags: [documentation, identity]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Manage Area Access Model — Docs Coverage Check

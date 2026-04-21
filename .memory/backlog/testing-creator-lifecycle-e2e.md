@@ -1,7 +1,7 @@
 ---
 tags: [testing, streaming, creators]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: creator lifecycle e2e coverage

@@ -1,7 +1,7 @@
 ---
 tags: [testing, streaming, community]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: go-live notification dispatch e2e coverage

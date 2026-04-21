@@ -1,7 +1,7 @@
 ---
 tags: [streaming, admin-console]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Playout Channel Architecture Rethink: Phase 3 Admin UI

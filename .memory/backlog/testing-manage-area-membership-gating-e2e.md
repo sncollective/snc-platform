@@ -1,7 +1,7 @@
 ---
 tags: [testing, creators]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: manage area membership gating e2e coverage

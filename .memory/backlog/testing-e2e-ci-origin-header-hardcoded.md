@@ -1,7 +1,7 @@
 ---
 tags: [testing]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: e2e CI hardcoded Origin header in global.setup.ts

@@ -1,7 +1,7 @@
 ---
 tags: [testing, content]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: content manage SSR/client fetch race (2026-04-15 CI run)

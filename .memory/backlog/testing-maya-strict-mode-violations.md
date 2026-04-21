@@ -1,7 +1,7 @@
 ---
 tags: [testing]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: Maya strict-mode selector violations (2026-04-15 CI run)

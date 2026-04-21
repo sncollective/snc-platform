@@ -1,7 +1,7 @@
 ---
 tags: [documentation, streaming]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Streaming Account Connect — Docs Coverage Check

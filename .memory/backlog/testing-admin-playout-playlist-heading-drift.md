@@ -1,7 +1,7 @@
 ---
 tags: [testing, streaming]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Testing: admin playout "Playlist" heading drift (2026-04-15 CI run)

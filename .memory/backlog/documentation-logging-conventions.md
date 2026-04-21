@@ -1,7 +1,7 @@
 ---
 tags: [documentation]
 release_binding: null
-created: 2026-04-21
+created: 2026-04-20
 ---
 
 # Logging Conventions — Add Pino Section to CLAUDE.md
