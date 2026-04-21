@@ -2,6 +2,7 @@
 tags: [streaming, ux-polish]
 release_binding: null
 created: 2026-04-20
+updated: 2026-04-21
 ---
 
 # Live page player hover controls escape player at narrow width
@@ -22,3 +23,11 @@ Related to the `global-player` layout issue also observed this session (see [glo
 - [ ] Resize `/live` across the 768px / 1024px / 1280px breakpoints — hover controls stay inside the player box at every width
 - [ ] Same check on the global player (PiP / mini mode) — see sibling backlog item
 - [ ] Both live and playout channel sources exercised
+
+## Pattern references
+
+See [live-streaming-ux-patterns.md](../research/live-streaming-ux-patterns.md) for convention reinforcement:
+
+- **§1.2 Mobile layout** — responsive touch target scaling (40px desktop / 48px tablet / 56px mobile); controls fade after ~2s touch-idle with opacity transition.
+- **§1.3 Control bar** — hover-overlay controls (including top-left PiP/expand cluster) anchor to the *player container*, not the page; escaping the container is the bug this item describes.
+- **§1.1 Desktop layout modes — sidebar chat** — video on left (~70–75% width), chat on right (~25–30%). Control chrome must respect that column boundary.

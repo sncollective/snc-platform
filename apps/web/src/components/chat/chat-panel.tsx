@@ -228,9 +228,15 @@ export function ChatPanel({
                 </span>
               )}
               <span className={styles.content}>{msg.content}</span>
-              {/* Reaction pills + picker trigger */}
-              {(msgReactions.filter((r) => r.count > 0).length > 0 ||
-                (state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt)) && (
+              {state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt && (
+                <ReactionPicker
+                  messageId={msg.id}
+                  existingReactions={msgReactions}
+                  onReact={(emoji) => actions.addReaction(msg.id, emoji)}
+                  onUnreact={(emoji) => actions.removeReaction(msg.id, emoji)}
+                />
+              )}
+              {msgReactions.filter((r) => r.count > 0).length > 0 && (
                 <div className={styles.reactionRow}>
                   {msgReactions.filter((r) => r.count > 0).map((reaction) => (
                     <button
@@ -253,14 +259,6 @@ export function ChatPanel({
                       {reaction.emoji} {reaction.count}
                     </button>
                   ))}
-                  {state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt && (
-                    <ReactionPicker
-                      messageId={msg.id}
-                      existingReactions={msgReactions}
-                      onReact={(emoji) => actions.addReaction(msg.id, emoji)}
-                      onUnreact={(emoji) => actions.removeReaction(msg.id, emoji)}
-                    />
-                  )}
                 </div>
               )}
             </div>

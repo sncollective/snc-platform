@@ -1,11 +1,11 @@
 ---
 id: feature-message-reactions
 kind: feature
-stage: review
+stage: done
 tags: [streaming, community]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-21
 related_decisions: []
 related_designs: []
 parent: null
@@ -66,3 +66,33 @@ Allow authenticated chat users to react to messages with a curated set of six em
 - [ ] Manual: closed room — "+" picker not rendered.
 - [ ] Manual: banned user — "+" picker not rendered.
 - [ ] Reaction delivery latency imperceptible (< 100ms round trip on local dev).
+
+---
+
+## Review addendum — 2026-04-21
+
+**Reaction-row position.** Unit 6 originally shipped reaction pills + `+` trigger inline to the right of each chat message. Neither major reference does this: Discord renders per-message reactions *below* the message content, YouTube Live has no per-message reactions at all (floating-burst from the bottom of the player instead), Twitch has none. See [live-streaming-ux-patterns.md §2.5](../../research/live-streaming-ux-patterns.md). Fixed during review on 2026-04-21:
+
+- [x] `.reactionRow` in [apps/web/src/components/chat/chat-panel.module.css](../../apps/web/src/components/chat/chat-panel.module.css) now renders as a block-level row below message content via `flex-basis: 100%` on the row and `flex-wrap: wrap` on `.message`. Existing `margin-left: calc(20px + var(--space-xs))` aligns past the avatar.
+- [x] Multi-line word-wrapped messages render reactions cleanly under the last line.
+- [x] `<ReactionPicker>` pulled out of `.reactionRow` in [chat-panel.tsx](../../apps/web/src/components/chat/chat-panel.tsx) and inlined with message content (opacity-0 until `.message:hover` via existing aria-label CSS rule). Picker no longer inside the reaction row — this was necessary so the row could be conditional on reaction count without sacrificing the always-connected picker trigger.
+- [x] `.reactionRow` now only renders when `msgReactions.filter((r) => r.count > 0).length > 0` — messages with zero reactions no longer reserve an empty vertical line below them.
+
+Merged from backlog item `chat-reactions-render-below-message` on 2026-04-21.
+
+## Revisit if
+
+The committed per-message reactions model may prove sub-optimal for live-stream chat pacing — research §2.5 flags floating-burst as the lower-friction primitive for live engagement signal, with per-message reactions earning their keep in Q&A or clip-worthy moments. Revisit the model (not just the layout) if:
+
+- Per-message reactions see low engagement in live chat once shipped — signals the model doesn't fit live pacing.
+- A Q&A or clip-moment feature ships that could use per-message reactions as its natural surface — confirms the model earns its keep for that use case.
+- Floating-burst reactions ship as a separate primitive — at that point, reconsider whether per-message is still needed, or whether floating-burst alone covers the space.
+
+Model-level revisit is a new scoping pass, not a change to this feature.
+
+## Review Pass 1 — 2026-04-21 (passed)
+
+**Outcome:** `stage: review → done`, bound to `0.3.0`. Findings:
+
+- **Fixed in-flight + user-verified (2026-04-21)** — reaction-row layout (right-of-message → below-message). See Review addendum above for shipped details. User verified empty messages render without blank vertical space and reacted messages show pills on a row below the content.
+- **Parked to backlog** — [chat-reconnect-to-messages-slow](../../backlog/chat-reconnect-to-messages-slow.md) surfaced during acceptance testing. Pre-existing; not caused by this feature. Bound to `0.3.0` as potentially release-blocking so it surfaces at the 0.3.0 gate; if confirmed blocking, resolve before ship.
