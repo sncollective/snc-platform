@@ -74,6 +74,57 @@
   padding: var(--space-lg) var(--space-md);
 }
 
+/* ── Mobile chip bar ── */
+
+.chipBar {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: var(--z-raised);
+  /* Break out of main-content's padding box so the bar is flush under the
+     top nav from load and spans full viewport width like a tab bar. */
+  margin-top: calc(-1 * var(--space-section-fluid));
+  margin-left: calc(-1 * var(--space-layout-fluid));
+  margin-right: calc(-1 * var(--space-layout-fluid));
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-layout-fluid);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chipBar::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.chip:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.chipActive {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
 /* ── Desktop: sidebar visible, shell becomes row ── */
 
 @media (min-width: 768px) {
@@ -93,6 +144,10 @@
     top: var(--nav-height);
     height: calc(100vh - var(--nav-height));
     overflow-y: auto;
+  }
+
+  .chipBar {
+    display: none;
   }
 
   .content {

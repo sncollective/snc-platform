@@ -1,11 +1,11 @@
 ---
 id: epic-responsive-overhaul
 kind: epic
-stage: review
+stage: done
 tags: [design-system, ux-polish]
 release_binding: null
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null

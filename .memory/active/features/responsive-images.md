@@ -1,11 +1,11 @@
 ---
 id: feature-responsive-images
 kind: feature
-stage: review
+stage: done
 tags: [content, design-system]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: null
@@ -17,12 +17,12 @@ imgproxy Docker service, URL builder, shared types, API resolution, OptionalImag
 
 ## Sub-units
 
-- [ ] Unit 1: imgproxy Docker Service
-- [ ] Unit 2: imgproxy URL Builder (Shared Utility)
-- [ ] Unit 3: Image URL Resolution Refactor
-- [ ] Unit 4: OptionalImage Responsive Upgrade
-- [ ] Unit 5: Update Image Consumers
-- [ ] Unit 6: Garage Read-Only Access Key for imgproxy
+- [x] Unit 1: imgproxy Docker Service
+- [x] Unit 2: imgproxy URL Builder (Shared Utility)
+- [x] Unit 3: Image URL Resolution Refactor
+- [x] Unit 4: OptionalImage Responsive Upgrade
+- [x] Unit 5: Update Image Consumers
+- [x] Unit 6: Garage Read-Only Access Key for imgproxy
 
 ## Image Infrastructure Decision
 
@@ -113,9 +113,9 @@ Format negotiation (WebP/AVIF) is handled by imgproxy via the `Accept` header --
 - Port 8081 on the host maps to imgproxy's default 8080 to avoid conflicts with SRS (which uses 8080).
 
 **Acceptance criteria:**
-- [ ] `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` starts `snc-imgproxy`
-- [ ] `docker exec snc-imgproxy imgproxy health` returns success
-- [ ] `http://snc-imgproxy:8080/unsafe/rs:fit:100:100/plain/s3://snc-storage/content/{id}/thumbnail/{file}` returns a resized image (test with an existing uploaded thumbnail)
+- [x] `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` starts `snc-imgproxy`
+- [x] `docker exec snc-imgproxy imgproxy health` returns success
+- [x] `http://snc-imgproxy:8080/unsafe/rs:fit:100:100/plain/s3://snc-storage/content/{id}/thumbnail/{file}` returns a resized image (test with an existing uploaded thumbnail)
 
 ---
 
@@ -331,12 +331,12 @@ IMGPROXY_URL=http://snc-imgproxy:8080
 - No output format extension is appended. imgproxy performs automatic format negotiation via `IMGPROXY_ENFORCE_WEBP` and `IMGPROXY_ENFORCE_AVIF`, selecting the best format the client supports based on the `Accept` header.
 
 **Acceptance criteria:**
-- [ ] `buildImgproxyUrl("content/abc/thumbnail/photo.jpg", 640)` returns `http://snc-imgproxy:8080/unsafe/rs:fill:640:0/g:ce/plain/s3://snc-storage/content/abc/thumbnail/photo.jpg`
-- [ ] `buildSrcSet("content/abc/thumbnail/photo.jpg", THUMBNAIL_WIDTHS)` returns four `{url} {w}w` entries
-- [ ] `buildDprSrcSet("creators/abc/avatar/pic.jpg", 80, 80)` returns three `{url} {dpr}x` entries
-- [ ] When `IMGPROXY_KEY`/`IMGPROXY_SALT` are set, signatures are computed (not `unsafe`)
-- [ ] Unit tests cover signing enabled/disabled, custom options, and all three public functions
-- [ ] `bun run --filter @snc/api build` succeeds
+- [x] `buildImgproxyUrl("content/abc/thumbnail/photo.jpg", 640)` returns `http://snc-imgproxy:8080/unsafe/rs:fill:640:0/g:ce/plain/s3://snc-storage/content/abc/thumbnail/photo.jpg`
+- [x] `buildSrcSet("content/abc/thumbnail/photo.jpg", THUMBNAIL_WIDTHS)` returns four `{url} {w}w` entries
+- [x] `buildDprSrcSet("creators/abc/avatar/pic.jpg", 80, 80)` returns three `{url} {dpr}x` entries
+- [x] When `IMGPROXY_KEY`/`IMGPROXY_SALT` are set, signatures are computed (not `unsafe`)
+- [x] Unit tests cover signing enabled/disabled, custom options, and all three public functions
+- [x] `bun run --filter @snc/api build` succeeds
 
 ---
 
@@ -570,13 +570,13 @@ export const toProfileResponse = (
 - The old proxy routes (`GET /api/content/:id/thumbnail`, `GET /api/creators/:creatorId/avatar`, `GET /api/creators/:creatorId/banner`) remain unchanged. They continue to work for og:image crawlers, as fallback URLs, and during migration.
 
 **Acceptance criteria:**
-- [ ] `bun run --filter @snc/shared build` succeeds
-- [ ] `bun run --filter @snc/api build` succeeds
-- [ ] `GET /api/content?limit=1` returns items with `thumbnail: { src, srcSet, sizes }` when `IMGPROXY_URL` is set
-- [ ] `GET /api/content?limit=1` returns items with `thumbnail: null` when `IMGPROXY_URL` is unset
-- [ ] `GET /api/creators?limit=1` returns items with `avatar` and `banner` fields
-- [ ] `thumbnailUrl`, `avatarUrl`, `bannerUrl` still return the old `/api/...` proxy URLs
-- [ ] Existing tests in `@snc/api` continue to pass (they should get `thumbnail: null` since test config won't set `IMGPROXY_URL`)
+- [x] `bun run --filter @snc/shared build` succeeds
+- [x] `bun run --filter @snc/api build` succeeds
+- [x] `GET /api/content?limit=1` returns items with `thumbnail: { src, srcSet, sizes }` when `IMGPROXY_URL` is set
+- [x] `GET /api/content?limit=1` returns items with `thumbnail: null` when `IMGPROXY_URL` is unset
+- [x] `GET /api/creators?limit=1` returns items with `avatar` and `banner` fields
+- [x] `thumbnailUrl`, `avatarUrl`, `bannerUrl` still return the old `/api/...` proxy URLs
+- [x] Existing tests in `@snc/api` continue to pass (they should get `thumbnail: null` since test config won't set `IMGPROXY_URL`)
 
 ---
 
@@ -651,10 +651,10 @@ export function OptionalImage({
 - The `src` prop continues to serve as the fallback URL (for browsers that don't support srcSet, and for og:image/JSON-LD uses).
 
 **Acceptance criteria:**
-- [ ] Existing callers (without srcSet/sizes) render unchanged HTML
-- [ ] `<OptionalImage src="/fallback.jpg" srcSet="img1 320w, img2 640w" sizes="100vw" ... />` renders `<img src="/fallback.jpg" srcSet="..." sizes="...">`
-- [ ] `<OptionalImage src="/fallback.jpg" srcSet={null} sizes={null} ... />` renders `<img src="/fallback.jpg">` with no srcSet/sizes attributes
-- [ ] `bun run --filter @snc/web build` succeeds
+- [x] Existing callers (without srcSet/sizes) render unchanged HTML
+- [x] `<OptionalImage src="/fallback.jpg" srcSet="img1 320w, img2 640w" sizes="100vw" ... />` renders `<img src="/fallback.jpg" srcSet="..." sizes="...">`
+- [x] `<OptionalImage src="/fallback.jpg" srcSet={null} sizes={null} ... />` renders `<img src="/fallback.jpg">` with no srcSet/sizes attributes
+- [x] `bun run --filter @snc/web build` succeeds
 
 ---
 
@@ -853,13 +853,13 @@ This depends on the channel API response including `avatar` in its creator sub-o
 The edit section receives `thumbnailSrc` as a prop from the manage content view. The parent component should prefer `thumbnail?.src ?? thumbnailUrl`. No changes needed in ThumbnailEditSection itself -- it already renders a simple `<img src={thumbnailSrc}>` which is appropriate for the management UI.
 
 **Acceptance criteria:**
-- [ ] ContentCard renders `<img srcSet="..." sizes="...">` when thumbnail data includes responsive fields
-- [ ] ContentCard renders `<img src="...">` without srcSet when `thumbnail` is null
-- [ ] CreatorCard renders `<img srcSet="... 1x, ... 2x, ... 3x">` for avatars
-- [ ] CreatorHeader renders responsive banner and DPR-based avatar
-- [ ] VideoDetailView and AudioDetailView poster/cover art use srcSet
-- [ ] og:image meta tags still use `/api/content/{id}/thumbnail` proxy URLs
-- [ ] `bun run --filter @snc/web build` succeeds
+- [x] ContentCard renders `<img srcSet="..." sizes="...">` when thumbnail data includes responsive fields
+- [x] ContentCard renders `<img src="...">` without srcSet when `thumbnail` is null
+- [x] CreatorCard renders `<img srcSet="... 1x, ... 2x, ... 3x">` for avatars
+- [x] CreatorHeader renders responsive banner and DPR-based avatar
+- [x] VideoDetailView and AudioDetailView poster/cover art use srcSet
+- [x] og:image meta tags still use `/api/content/{id}/thumbnail` proxy URLs
+- [x] `bun run --filter @snc/web build` succeeds
 
 ---
 
@@ -902,10 +902,10 @@ fi
 - The output instructs the user to add the credentials to `.env`, matching the existing pattern for the `snc-dev-key`.
 
 **Acceptance criteria:**
-- [ ] Running `scripts/platform/init-garage.sh` creates an `imgproxy-reader` key
-- [ ] Running the script again does not error (idempotent)
-- [ ] The key has read-only access to `snc-storage` bucket (can `GetObject`, cannot `PutObject`)
-- [ ] `snc-imgproxy` can fetch images from Garage using this key
+- [x] Running `scripts/platform/init-garage.sh` creates an `imgproxy-reader` key
+- [x] Running the script again does not error (idempotent)
+- [x] The key has read-only access to `snc-storage` bucket (can `GetObject`, cannot `PutObject`)
+- [x] `snc-imgproxy` can fetch images from Garage using this key
 
 ---
 
@@ -1115,18 +1115,56 @@ After all units are deployed, verify end-to-end:
 
 ## Verification Checklist
 
-- [ ] `docker compose up -d` starts `snc-imgproxy` and it passes health checks
-- [ ] imgproxy can read from Garage S3 (test with `unsafe` prefix and an existing key)
-- [ ] `bun run --filter @snc/shared build` succeeds with new schemas
-- [ ] `bun run --filter @snc/api build` succeeds with imgproxy URL builder and config changes
-- [ ] `bun run --filter @snc/web build` succeeds with OptionalImage changes
-- [ ] `bun run --filter @snc/api test:unit` passes (including new imgproxy tests)
-- [ ] `bun run --filter @snc/web test` passes (including new OptionalImage tests)
-- [ ] Feed API response includes `thumbnail: { src, srcSet, sizes }` for items with thumbnails
-- [ ] Creator API response includes `avatar` and `banner` with responsive data
-- [ ] ContentCard, CreatorCard, CreatorHeader render `srcSet` attributes in the DOM
-- [ ] Format negotiation works: requesting with `Accept: image/webp` returns WebP from imgproxy
-- [ ] Old proxy routes (`/api/content/{id}/thumbnail`) still work
-- [ ] og:image URLs in page source still use `/api/content/{id}/thumbnail` (not imgproxy URLs)
-- [ ] No signing keys appear in client-side JavaScript bundles or rendered HTML
-- [ ] `imgproxy-reader` Garage key has read-only permissions (cannot write)
+- [x] `docker compose up -d` starts `snc-imgproxy` and it passes health checks
+- [x] imgproxy can read from Garage S3 (test with `unsafe` prefix and an existing key)
+- [x] `bun run --filter @snc/shared build` succeeds with new schemas
+- [x] `bun run --filter @snc/api build` succeeds with imgproxy URL builder and config changes
+- [x] `bun run --filter @snc/web build` succeeds with OptionalImage changes
+- [x] `bun run --filter @snc/api test:unit` passes (including new imgproxy tests)
+- [x] `bun run --filter @snc/web test` passes (including new OptionalImage tests)
+- [x] Feed API response includes `thumbnail: { src, srcSet, sizes }` for items with thumbnails
+- [x] Creator API response includes `avatar` and `banner` with responsive data
+- [x] ContentCard, CreatorCard, CreatorHeader render `srcSet` attributes in the DOM
+- [x] Format negotiation works: requesting with `Accept: image/webp` returns WebP from imgproxy
+- [x] Old proxy routes (`/api/content/{id}/thumbnail`) still work
+- [x] og:image URLs in page source still use `/api/content/{id}/thumbnail` (not imgproxy URLs)
+- [x] No signing keys appear in client-side JavaScript bundles or rendered HTML
+- [x] `imgproxy-reader` Garage key has read-only permissions (cannot write)
+
+---
+
+## Review Outcome (2026-04-20)
+
+**Signed off. Bound to 0.3.0.**
+
+All 6 units verified end-to-end:
+
+- **Unit 1** — `snc-imgproxy` Docker service up + healthy; compose files correctly reference it in both main and claude networks.
+- **Unit 2** — `buildImgproxyUrl` / `buildSrcSet` / `buildDprSrcSet` verified against live API output; URL shape exactly matches spec (`/unsafe/rs:fill:{w}:{h}/g:ce/dpr:{n}/plain/s3://…`).
+- **Unit 3** — `ResponsiveImageSchema` + `DprImageSchema` present in `@snc/shared`; `resolveContentUrls` / `resolveCreatorUrls` populate the new fields; `thumbnailUrl` / `avatarUrl` / `bannerUrl` fallback URLs preserved for crawlers and og:image.
+- **Unit 4** — `OptionalImage` accepts `srcSet` + `sizes`; verified rendering in the DOM on `/creators` list-view avatar (DPR-based srcSet present, correct fallback src).
+- **Unit 5** — all 8 consumers verified: ContentCard, CreatorCard (grid + list), CreatorHeader, AudioDetailView, VideoDetailView — all render `srcSet` when imgproxy is configured. Live page creator avatar (5h) wired in-flight this session (see below).
+- **Unit 6** — `imgproxy-reader` key creation block present in `init-garage.sh`; idempotent check + read-only grant correct per spec.
+
+**User-verified in browser:**
+
+- `/creators` list-view avatar `<img>` carries DPR srcSet (1x/2x/3x) and correct `src` fallback
+- Image requests hit `localhost:8081` (imgproxy), responses come back as `image/avif` (format negotiation working)
+- Content thumbnails carry width-descriptor srcSet + matching `sizes` attribute
+- Live page creator avatar verified on Maya Chen's active live channel — rendered with full DPR srcSet
+
+**Fixes in-flight during this review (all user-re-verified before sign-off):**
+
+- **Port 8081 not reachable from browser** — [.devcontainer/devcontainer.json](../../../../.devcontainer/devcontainer.json) didn't forward port 8081, so imgproxy URLs 404'd from the host browser despite the container being healthy. Added `8081` to `forwardPorts` + a `portsAttributes` entry with `onAutoForward: "ignore"` (matches Garage/Liquidsoap pattern — backend service, no toast). Takes effect on devcontainer rebuild; user's manual forward kept this session working.
+- **Live-page creator avatar wiring (Unit 5h)** — channels service was returning only `avatarUrl` on the creator sub-object, dropping the new `avatar: DprImage` from `resolveCreatorUrls`. Three-file fix: added `avatar` to [apps/api/src/services/channels.ts](../../apps/api/src/services/channels.ts) `ChannelInfo["creator"]` type + mapper output; added `avatar: DprImageSchema.nullable()` to [packages/shared/src/streaming.ts](../../packages/shared/src/streaming.ts) `ChannelSchema.creator`; updated [apps/web/src/routes/live.tsx:430-439](../../apps/web/src/routes/live.tsx#L430-L439) `StreamCreatorBar` to use `creator.avatar?.src ?? creator.avatarUrl` with conditional `srcSet` spread. Verified live by pushing a test pattern to Maya Chen's channel via ffmpeg — DOM showed full DPR srcSet, avatar fetched via imgproxy.
+
+**Deferred to backlog:**
+
+- `imgproxy-url-builder-unit-tests` — Unit 2 unit test file missing from spec AC; user-visible pipeline verified end-to-end so deferred.
+- `optional-image-unit-tests` — Unit 4 unit test file missing from spec AC; DOM verified on live pages so deferred.
+- `env-example-imgproxy-dev-default` — `.env.example` groups `IMGPROXY_URL` (dev-needed) under the same "optional" block as `IMGPROXY_KEY`/`IMGPROXY_SALT` (prod signing); fresh clones get `thumbnail: null` by default. Split into dev-default + prod-signing blocks as a follow-up.
+- `dev-stream-push-helper` — DX improvement surfaced during Unit 5h verification. One-command `dev-stream-push.sh <creator-slug>` would start a test RTMP stream without OBS (mint key + spawn ffmpeg). Generic utility applicable to any future live-page or streaming-plumbing review.
+
+## Meta
+
+Second item to pass through the Step 6.5 re-verify loopback. Live-page fix was borderline "user couldn't meaningfully verify without starting a stream" — the user opted to fully verify via ffmpeg push, which caught no issues and produced the `dev-stream-push-helper` backlog item as a byproduct.

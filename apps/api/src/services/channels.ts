@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { ok, err, AppError } from "@snc/shared";
-import type { Result, ChannelType } from "@snc/shared";
+import type { Result, ChannelType, DprImage } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
@@ -26,6 +26,7 @@ export type ChannelInfo = {
     displayName: string;
     handle: string | null;
     avatarUrl: string | null;
+    avatar: DprImage | null;
   } | null;
   isActive: boolean;
 };
@@ -81,6 +82,7 @@ export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
         displayName: profile.displayName,
         handle: profile.handle,
         avatarUrl: urls.avatarUrl,
+        avatar: urls.avatar,
       });
     }
   }

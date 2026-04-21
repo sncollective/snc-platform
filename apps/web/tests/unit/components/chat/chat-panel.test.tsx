@@ -34,6 +34,7 @@ const DEFAULT_CHAT_STATE = {
   isBanned: false,
   lastFilteredAt: null,
   isModerator: false,
+  currentUserId: null,
   reactions: new Map(),
 };
 

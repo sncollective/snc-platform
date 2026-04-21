@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DprImageSchema } from "./content.js";
 import { NowPlayingSchema } from "./playout.js";
 
 // ── Channel Types ──
@@ -20,6 +21,7 @@ export const ChannelSchema = z.object({
       displayName: z.string(),
       handle: z.string().nullable(),
       avatarUrl: z.string().nullable(),
+      avatar: DprImageSchema.nullable(),
     })
     .nullable(),
   startedAt: z.string().datetime().nullable(),

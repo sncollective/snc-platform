@@ -1,5 +1,6 @@
 import type React from "react";
 import type { ReactNode } from "react";
+import { useRef, useEffect } from "react";
 
 import { Link, useRouterState } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
@@ -22,6 +23,41 @@ export interface ContextShellProps {
   readonly itemFilter?: (item: ContextNavItem) => boolean;
 }
 
+// ── Private Types ──
+
+interface RenderedItem {
+  readonly item: ContextNavItem;
+  readonly itemPath: string;
+  readonly isActive: boolean;
+}
+
+// ── Private Helpers ──
+
+/**
+ * Single source of truth for nav item visibility and active-state.
+ *
+ * Applies feature-flag filtering, itemFilter, and active-state computation
+ * so that both the sidebar nav and the mobile chip bar share identical output
+ * without duplicating conditional logic.
+ */
+function useRenderedItems(
+  config: ContextNavConfig,
+  itemFilter: ((item: ContextNavItem) => boolean) | undefined,
+  currentPath: string,
+): readonly RenderedItem[] {
+  return config.items
+    .filter((item) => !item.featureFlag || isFeatureEnabled(item.featureFlag))
+    .filter((item) => !itemFilter || itemFilter(item))
+    .map((item) => {
+      const itemPath = `${config.basePath}${item.to}`;
+      const isActive =
+        item.to === ""
+          ? currentPath === config.basePath || currentPath === `${config.basePath}/`
+          : currentPath.startsWith(itemPath);
+      return { item, itemPath, isActive };
+    });
+}
+
 // ── Public API ──
 
 /** Sidebar layout shell for internal contexts. Replaces the public nav. */
@@ -33,6 +69,16 @@ export function ContextShell({
 }: ContextShellProps): React.ReactElement {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
   useContextAnnouncer(config.label);
+
+  const chipBarRef = useRef<HTMLElement | null>(null);
+  const renderedItems = useRenderedItems(config, itemFilter, currentPath);
+
+  useEffect(() => {
+    const active = chipBarRef.current?.querySelector(`.${styles.chipActive}`);
+    if (active instanceof HTMLElement) {
+      active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [currentPath]);
 
   return (
     <div className={styles.shell}>
@@ -47,28 +93,35 @@ export function ContextShell({
         {headerSlot && <div className={styles.headerSlot}>{headerSlot}</div>}
 
         <nav className={styles.nav}>
-          {config.items.map((item) => {
-            if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return null;
-            if (itemFilter && !itemFilter(item)) return null;
-
-            const itemPath = `${config.basePath}${item.to}`;
-            const isActive =
-              item.to === ""
-                ? currentPath === config.basePath || currentPath === `${config.basePath}/`
-                : currentPath.startsWith(itemPath);
-
-            return (
-              <Link
-                key={item.to}
-                to={itemPath}
-                className={clsx(styles.navItem, isActive && styles.navItemActive)}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {renderedItems.map(({ item, itemPath, isActive }) => (
+            <Link
+              key={item.to}
+              to={itemPath}
+              className={clsx(styles.navItem, isActive && styles.navItemActive)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </aside>
+
+      <nav
+        ref={chipBarRef}
+        className={styles.chipBar}
+        aria-label={`${config.label} mobile navigation`}
+      >
+        {renderedItems.map(({ item, itemPath, isActive }) => (
+          <Link
+            key={item.to}
+            to={itemPath}
+            className={clsx(styles.chip, isActive && styles.chipActive)}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
 
       <div className={styles.content}>
         {children}

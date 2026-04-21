@@ -1,11 +1,11 @@
 ---
 id: feature-responsive-overhaul-implementation
 kind: feature
-stage: review
+stage: done
 tags: [design-system, ux-polish]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-20
 related_decisions: []
 related_designs: []
 parent: responsive-overhaul
@@ -15,20 +15,20 @@ parent: responsive-overhaul
 
 ## Tasks
 
-- [ ] **Breakpoint tokens** — Unit 1: `tokens/breakpoints.css` + import in `global.css`
-- [ ] **Fluid typography completion** — Unit 2: `--font-size-xl-fluid`, `--font-size-lg-fluid` + global heading rules
-- [ ] **Fluid spacing tokens** — Unit 3: `--space-section-fluid`, `--space-layout-fluid` + `.main-content`
-- [ ] **Global utilities** — Unit 4: confirmed `.content-grid` already correct
-- [ ] **Layout shell** — Unit 5: `context-shell`, `nav-bar`, `global-player`
-- [ ] **User menu** — Unit 9: mobile-first rewrite
-- [ ] **Live page** — Unit 6: `__root.module.css` + `live.module.css`
-- [ ] **Page-level passes** — Unit 7: dashboard, emissions, admin-creators, content-manage, pending-bookings-table (hero-section skipped — absorbed into landing page redesign)
-- [ ] **Component passes** — Unit 8: studio-hero, studio-service-section, audio-detail ×3
-- [ ] **Pending bookings table CQ** — Unit 10: `@container dashboard` on bookings table
-- [ ] **Main content container** — Unit 11: `container-type: inline-size` on `.main-content` (global player stays `@media`)
-- [ ] **Event form responsive** — Unit 12: date row grid mobile collapse
-- [ ] **Mobile viewport e2e project** — `Pixel 7` project in `playwright.config.ts`
-- [ ] **Horizontal scroll guard** — `responsive/no-horizontal-scroll.spec.ts`
+- [x] **Breakpoint tokens** — Unit 1: `tokens/breakpoints.css` + import in `global.css`
+- [x] **Fluid typography completion** — Unit 2: `--font-size-xl-fluid`, `--font-size-lg-fluid` + global heading rules
+- [x] **Fluid spacing tokens** — Unit 3: `--space-section-fluid`, `--space-layout-fluid` + `.main-content`
+- [x] **Global utilities** — Unit 4: confirmed `.content-grid` already correct
+- [x] **Layout shell** — Unit 5: `context-shell`, `nav-bar`, `global-player`
+- [x] **User menu** — Unit 9: mobile-first rewrite
+- [x] **Live page** — Unit 6: `__root.module.css` + `live.module.css`
+- [x] **Page-level passes** — Unit 7: dashboard, emissions, admin-creators, content-manage, pending-bookings-table (hero-section skipped — absorbed into landing page redesign)
+- [x] **Component passes** — Unit 8: studio-hero, studio-service-section, audio-detail ×3
+- [x] **Pending bookings table CQ** — Unit 10: `@container dashboard` on bookings table
+- [x] **Main content container** — Unit 11: `container-type: inline-size` on `.main-content` (global player stays `@media`)
+- [x] **Event form responsive** — Unit 12: date row grid mobile collapse
+- [x] **Mobile viewport e2e project** — `Pixel 7` project in `playwright.config.ts`
+- [x] **Horizontal scroll guard** — `responsive/no-horizontal-scroll.spec.ts`
 
 ---
 
@@ -74,9 +74,9 @@ Add after the existing `@import "./tokens/radius.css";` line.
 
 **Acceptance Criteria**:
 
-- [ ] `tokens/breakpoints.css` exists with documented sm/md/lg values
-- [ ] `global.css` imports it
-- [ ] No `:root` declarations in the file (comment-only)
+- [x] `tokens/breakpoints.css` exists with documented sm/md/lg values
+- [x] `global.css` imports it
+- [x] No `:root` declarations in the file (comment-only)
 
 ---
 
@@ -113,9 +113,9 @@ h3 {
 
 **Acceptance Criteria**:
 
-- [ ] `--font-size-xl-fluid` and `--font-size-lg-fluid` tokens defined
-- [ ] `h1`/`h2`/`h3` global rules use fluid tokens
-- [ ] Text remains readable at 200% browser zoom (min values ≥1rem)
+- [x] `--font-size-xl-fluid` and `--font-size-lg-fluid` tokens defined
+- [x] `h1`/`h2`/`h3` global rules use fluid tokens
+- [x] Text remains readable at 200% browser zoom (min values ≥1rem)
 
 ---
 
@@ -146,9 +146,9 @@ Add fluid spacing tokens after the existing scale:
 
 **Acceptance Criteria**:
 
-- [ ] `--space-section-fluid` and `--space-layout-fluid` tokens defined
-- [ ] `.main-content` uses fluid spacing tokens
-- [ ] No change to fixed spacing scale
+- [x] `--space-section-fluid` and `--space-layout-fluid` tokens defined
+- [x] `.main-content` uses fluid spacing tokens
+- [x] No change to fixed spacing scale
 
 ---
 
@@ -160,7 +160,7 @@ No changes required — `.content-grid` already uses `min-width` with the exact 
 
 **Acceptance Criteria**:
 
-- [ ] `.content-grid` confirmed as mobile-first with md/lg breakpoints (no edit needed)
+- [x] `.content-grid` confirmed as mobile-first with md/lg breakpoints (no edit needed)
 
 ---
 
@@ -261,10 +261,10 @@ Three files, each following the mechanical sweep pattern: move current mobile (`
 
 **Acceptance Criteria**:
 
-- [ ] `context-shell.module.css` — base styles are mobile, sidebar shows at md+
-- [ ] `nav-bar.module.css` — `.links` hidden by default, shown at md+
-- [ ] `global-player.module.css` — `.collapsedOverlay` starts at 200px, scales to 320px at md+
-- [ ] No `max-width` media queries remain in these three files
+- [x] `context-shell.module.css` — base styles are mobile, sidebar shows at md+
+- [x] `nav-bar.module.css` — `.links` hidden by default, shown at md+
+- [x] `global-player.module.css` — `.collapsedOverlay` starts at 200px, scales to 320px at md+
+- [x] No `max-width` media queries remain in these three files
 
 ---
 
@@ -342,9 +342,9 @@ Three files, each following the mechanical sweep pattern: move current mobile (`
 
 **Acceptance Criteria**:
 
-- [ ] `__root.module.css` — liveGrid is flex-column by default, grid at md+
-- [ ] `live.module.css` — theater/chat controls hidden by default, shown at md+
-- [ ] No `max-width` media queries remain in either file
+- [x] `__root.module.css` — liveGrid is flex-column by default, grid at md+
+- [x] `live.module.css` — theater/chat controls hidden by default, shown at md+
+- [x] No `max-width` media queries remain in either file
 
 ---
 
@@ -455,10 +455,10 @@ Six files, each a mechanical `max-width` → `min-width` inversion.
 
 **Acceptance Criteria**:
 
-- [ ] All six files use `min-width: 768px` exclusively
-- [ ] No `max-width` media queries remain
-- [ ] Mobile styles are base, desktop styles are inside `@media`
-- [ ] Hero heading uses `--font-size-3xl-fluid` instead of hardcoded sizes
+- [x] All six files use `min-width: 768px` exclusively
+- [x] No `max-width` media queries remain
+- [x] Mobile styles are base, desktop styles are inside `@media`
+- [x] Hero heading uses `--font-size-3xl-fluid` instead of hardcoded sizes
 
 ---
 
@@ -558,10 +558,10 @@ Five more files with the same mechanical inversion.
 
 **Acceptance Criteria**:
 
-- [ ] All five files use `min-width: 768px` exclusively
-- [ ] Hero components use `--font-size-3xl-fluid` for headings
-- [ ] Audio detail components: 3 queries → 1 consolidated query per file
-- [ ] No `max-width` media queries remain
+- [x] All five files use `min-width: 768px` exclusively
+- [x] Hero components use `--font-size-3xl-fluid` for headings
+- [x] Audio detail components: 3 queries → 1 consolidated query per file
+- [x] No `max-width` media queries remain
 
 ---
 
@@ -605,9 +605,9 @@ Five more files with the same mechanical inversion.
 
 **Acceptance Criteria**:
 
-- [ ] User menu elements hidden by default, shown at md+
-- [ ] `mobile-menu.module.css` unchanged
-- [ ] No `max-width` media queries remain in `user-menu.module.css`
+- [x] User menu elements hidden by default, shown at md+
+- [x] `mobile-menu.module.css` unchanged
+- [x] No `max-width` media queries remain in `user-menu.module.css`
 
 ---
 
@@ -657,9 +657,9 @@ Breakpoint is 640px (sm) not 768px — the table layout works in narrower contai
 
 **Acceptance Criteria**:
 
-- [ ] Dashboard page has `container-type: inline-size`
-- [ ] Bookings table switches layout via `@container` not `@media`
-- [ ] Table shows when container ≥640px, cards when narrower
+- [x] Dashboard page has `container-type: inline-size`
+- [x] Bookings table switches layout via `@container` not `@media`
+- [x] Table shows when container ≥640px, cards when narrower
 
 ---
 
@@ -679,8 +679,8 @@ The `.collapsedOverlay` is `position: fixed` — positioned relative to the view
 
 **Acceptance Criteria**:
 
-- [ ] Global player stays with `@media` query (not CQ) — documented decision
-- [ ] `container-type: inline-size` added to `.main-content` (still useful for other CQ consumers)
+- [x] Global player stays with `@media` query (not CQ) — documented decision
+- [x] `container-type: inline-size` added to `.main-content` (still useful for other CQ consumers)
 
 ---
 
@@ -725,9 +725,9 @@ The `.collapsedOverlay` is `position: fixed` — positioned relative to the view
 
 **Acceptance Criteria**:
 
-- [ ] All three date row variants stack to single column on mobile
-- [ ] Desktop layout restored at md+ with original proportions
-- [ ] Form remains usable at 320px viewport width
+- [x] All three date row variants stack to single column on mobile
+- [x] Desktop layout restored at md+ with original proportions
+- [x] Form remains usable at 320px viewport width
 
 ---
 
@@ -770,3 +770,37 @@ grep -r "max-width" platform/apps/web/src --include="*.css" --include="*.module.
 ```
 
 Expected: only `mobile-menu.module.css` retains `max-width` (deferred to nav redesign).
+
+---
+
+## Review Outcome (2026-04-20)
+
+**Signed off. Bound to 0.3.0.**
+
+All 14 tasks verified as shipped-as-designed:
+
+- Breakpoint tokens (`tokens/breakpoints.css` + import in `global.css`)
+- Fluid typography + spacing tokens (`--font-size-xl-fluid`, `--font-size-lg-fluid`, `--space-section-fluid`, `--space-layout-fluid`)
+- Zero `@media (max-width: …)` queries remain in `apps/web/src` — stronger than the spec, which expected `mobile-menu.module.css` to retain its query; the whole file was deleted by `mobile-nav-redesign-implementation` earlier this session
+- Container queries landed on dashboard + pending-bookings-table (`@container dashboard`) and `.main-content` (`container-name: main-content`)
+- Event-form Unit 12 date-row variants stack at base, restore grid at md+
+- Mobile e2e: `mobile` project (Pixel 7) added to `apps/e2e/playwright.config.ts`; `tests/responsive/no-horizontal-scroll.spec.ts` guards `/`, `/live`, `/creators` at 320×568
+- Web build clean, 1526/1526 unit tests green
+
+**Fixes in-flight during this review (both user-re-verified before sign-off):**
+
+- **Footer obscured by fixed bottom tab bar on mobile** — `components/layout/footer.module.css` had no bottom spacing to clear the `position: fixed` 56px tab bar (footer lives outside `.main-content`, so the main-content `padding-bottom` calc didn't cover it). Added `padding-bottom: calc(var(--space-lg) + var(--tab-bar-height))`; at md+ `--tab-bar-height` collapses to 0 so desktop unchanged.
+- **Creators list-view row squished at mobile** — `components/creator/creator-card.module.css` `.listItem` had fixed `min-width` on name/posts/subscriber/last-post columns totaling ~412px, overflowing past `.listItemLink` at 320px viewport and colliding with the `.manageLink` sibling. Made mobile-first (drop min-widths, `flex: 1` on `.listDisplayName` with ellipsis, hide `.listMeta` columns, restore desktop proportions at `min-width: 768px`). Second pass added `gap: var(--space-md)` to `.listItem` so "N posts" reads clear of the Manage link. First pass closed the overlap; second pass added breathing room — both user-verified.
+
+**Scoped as a new child (blocks epic rollup):**
+
+- `context-shell-mobile-sub-nav` (story, at drafting, bound to 0.3.0, parent: responsive-overhaul) — Admin (`/admin/*`) and Creator Manage (`/creators/$creatorId/manage/*`) use `context-shell` sidebar as their sub-navigation; Unit 5 correctly hides the sidebar at `<768px` per spec, but no mobile entry point was designed for intra-section navigation. Proposed shape: horizontal scrollable chip bar sticky below nav. Must ship in 0.3.0 (both sections are reachable during the April 24 event).
+
+**Parked to backlog:**
+
+- `calendar-month-view-vertical-mobile-polish` — month grid usable at 320px but event chips truncate aggressively; epic brief explicitly parked `calendar-grid.module.css` as out-of-scope for the sweep.
+- `creators-list-view-hydration-flash` — `getInitialViewMode()` returns `"grid"` on server, reads localStorage on client; list-preference users see a grid→list flash on hard refresh. Unrelated to the responsive sweep (pre-existing pattern). Cookie-backed preference is the likely fix.
+
+## Meta
+
+First item passed through the new Step 6.5 "verify fix-in-flight" loopback (added to `review/SKILL.md` during this review in response to reviewer critique that visual fixes were being flipped to done without user re-verification). Second pass on F2 caught a missed gap that the first fix didn't close — the loopback did its job.

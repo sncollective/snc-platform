@@ -45,6 +45,10 @@ import {
   getWordFilters,
 } from "../services/chat-word-filters.js";
 import {
+  canModerateRoom,
+  getRoomState,
+} from "../services/chat-moderation-auth.js";
+import {
   addReaction,
   removeReaction,
   getReactionsForMessage,
@@ -175,6 +179,41 @@ chatRoutes.get(
               roomId: parsed.roomId,
               viewerCount: presence.viewerCount,
               users: presence.users,
+            });
+
+            // Send moderator-status (sender-only) so the UI can reveal
+            // moderation controls on join. Anonymous joiners get false.
+            if (client.userId) {
+              void canModerateRoom(client.userId, parsed.roomId).then((result) => {
+                sendEvent(ws, {
+                  type: "moderator_status",
+                  roomId: parsed.roomId,
+                  isModerator: result.ok,
+                });
+              });
+            } else {
+              sendEvent(ws, {
+                type: "moderator_status",
+                roomId: parsed.roomId,
+                isModerator: false,
+              });
+            }
+
+            // Send room-state (sender-only) for session rehydration: slow mode,
+            // ban, and timeout status. Lets the client restore UI on reconnect
+            // or room switch without waiting for a server broadcast.
+            void getRoomState(client.userId, parsed.roomId).then((roomState) => {
+              if (!roomState) return; // room not found — skip
+              sendEvent(ws, {
+                type: "room_state",
+                roomId: parsed.roomId,
+                slowModeSeconds: roomState.slowModeSeconds,
+                isBanned: roomState.isBanned,
+                banModeratorUserName: roomState.banModeratorUserName,
+                isTimedOut: roomState.isTimedOut,
+                timedOutUntil: roomState.timedOutUntil,
+                timeoutModeratorUserName: roomState.timeoutModeratorUserName,
+              });
             });
 
             // Send recent history on join, followed by reactions batch

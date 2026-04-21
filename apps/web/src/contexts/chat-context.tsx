@@ -14,6 +14,8 @@ import type { ReactNode } from "react";
 
 import type { ChatMessage, ChatRoom, MessageReaction, PresenceUser, ReactionEmoji, ServerEvent } from "@snc/shared";
 
+import { toaster } from "../components/ui/toast.js";
+
 // ── Public Types ──
 
 export interface ChatState {
@@ -30,6 +32,8 @@ export interface ChatState {
   readonly isBanned: boolean;
   readonly lastFilteredAt: number | null;
   readonly isModerator: boolean;
+  /** The current viewer's own user ID (from the session prop on ChatProvider). */
+  readonly currentUserId: string | null;
   /** Map of messageId to per-emoji reaction state */
   readonly reactions: ReadonlyMap<string, readonly MessageReaction[]>;
 }
@@ -69,6 +73,7 @@ export const INITIAL_STATE: ChatState = {
   isBanned: false,
   lastFilteredAt: null,
   isModerator: false,
+  currentUserId: null,
   reactions: new Map(),
 };
 
@@ -91,6 +96,7 @@ type ChatAction =
   | { readonly type: "MESSAGE_FILTERED" }
   | { readonly type: "SET_MODERATOR"; readonly isModerator: boolean }
   | { readonly type: "CLEAR_FILTERED" }
+  | { readonly type: "SET_CURRENT_USER"; readonly userId: string | null }
   | { readonly type: "SET_REACTIONS_BATCH"; readonly reactions: Record<string, readonly MessageReaction[]> }
   | { readonly type: "UPDATE_REACTION"; readonly messageId: string; readonly emoji: ReactionEmoji; readonly count: number; readonly userIds: readonly string[]; readonly currentUserId: string | null };
 
@@ -170,6 +176,8 @@ export function chatReducer(
       return { ...state, lastFilteredAt: null };
     case "SET_MODERATOR":
       return { ...state, isModerator: action.isModerator };
+    case "SET_CURRENT_USER":
+      return { ...state, currentUserId: action.userId };
     case "SET_REACTIONS_BATCH": {
       const next = new Map(state.reactions);
       for (const [messageId, emojis] of Object.entries(action.reactions)) {
@@ -215,9 +223,17 @@ export function ChatProvider({
   readonly children: ReactNode;
   readonly userId?: string | null;
 }): React.ReactElement {
-  const [state, dispatch] = useReducer(chatReducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(chatReducer, {
+    ...INITIAL_STATE,
+    currentUserId: userId,
+  });
   const userIdRef = useRef<string | null>(userId);
   userIdRef.current = userId;
+
+  // Keep currentUserId in state in sync with the userId prop
+  useEffect(() => {
+    dispatch({ type: "SET_CURRENT_USER", userId });
+  }, [userId]);
   const wsRef = useRef<WebSocket | null>(null);
   const activeRoomRef = useRef<string | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -257,9 +273,24 @@ export function ChatProvider({
           case "room_closed":
             dispatch({ type: "ROOM_CLOSED", roomId: data.roomId });
             break;
-          case "error":
-            // Errors are displayed by the UI — no dispatch needed
+          case "error": {
+            // Surface moderation-relevant WS errors to the user via toast.
+            // MESSAGE_FILTERED is handled by its own event — not here.
+            const ERROR_TITLES: Partial<Record<string, string>> = {
+              USER_BANNED: "You're banned from this room",
+              USER_TIMED_OUT: "You're timed out",
+              SLOW_MODE_RATE_LIMIT: "Slow mode — please wait",
+              FORBIDDEN: "Not allowed",
+              NOT_FOUND: "Not found",
+              INVALID_MESSAGE: "Invalid message",
+              UNAUTHORIZED: "You need to be signed in",
+            };
+            const title = ERROR_TITLES[data.code];
+            if (title !== undefined) {
+              toaster.error({ title, description: data.message || undefined });
+            }
             break;
+          }
           case "presence":
             dispatch({
               type: "SET_PRESENCE",
@@ -287,20 +318,38 @@ export function ChatProvider({
             dispatch({ type: "SET_SLOW_MODE", seconds: data.seconds });
             break;
           case "user_timed_out":
-            // Note: server broadcasts to all room members; individual UI components
-            // should compare targetUserId against the current user before rendering
-            // timed-out state. The SET_TIMED_OUT action stores the most recent event.
-            dispatch({ type: "SET_TIMED_OUT", until: data.expiresAt });
+            // Server broadcasts to all room members; only apply to state if
+            // the target is the current user. Moderators and bystanders
+            // receive the event but shouldn't see themselves timed out.
+            if (data.targetUserId === userIdRef.current) {
+              dispatch({ type: "SET_TIMED_OUT", until: data.expiresAt });
+            }
             break;
           case "user_banned":
-            dispatch({ type: "SET_BANNED", banned: true });
+            if (data.targetUserId === userIdRef.current) {
+              dispatch({ type: "SET_BANNED", banned: true });
+            }
             break;
           case "user_unbanned":
-            dispatch({ type: "SET_BANNED", banned: false });
+            if (data.targetUserId === userIdRef.current) {
+              dispatch({ type: "SET_BANNED", banned: false });
+            }
             break;
           case "message_filtered":
             dispatch({ type: "MESSAGE_FILTERED" });
             setTimeout(() => dispatch({ type: "CLEAR_FILTERED" }), 3000);
+            break;
+          case "moderator_status":
+            dispatch({ type: "SET_MODERATOR", isModerator: data.isModerator });
+            break;
+          case "room_state":
+            // Rehydrate slow-mode, ban, and timeout state on join / reconnect.
+            dispatch({ type: "SET_SLOW_MODE", seconds: data.slowModeSeconds });
+            dispatch({ type: "SET_BANNED", banned: data.isBanned });
+            dispatch({
+              type: "SET_TIMED_OUT",
+              until: data.isTimedOut ? data.timedOutUntil : null,
+            });
             break;
           case "reactions_batch":
             dispatch({ type: "SET_REACTIONS_BATCH", reactions: data.reactions });

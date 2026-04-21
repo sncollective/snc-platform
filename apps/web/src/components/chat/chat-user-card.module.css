@@ -1,0 +1,246 @@
+/* ── Trigger ── */
+
+.trigger {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text);
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  outline-offset: 2px;
+}
+
+.trigger:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+/* ── Card ── */
+
+.card {
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ── Identity Header ── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatarPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold, 600);
+  flex-shrink: 0;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.displayName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Mod Cluster ── */
+
+.modCluster {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-sm);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.sectionLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold, 600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Timeout Presets ── */
+
+.timeoutRow {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.timeoutButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--duration-fast, 150ms) var(--ease-out, ease-out),
+    color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.timeoutButton:hover:not(:disabled) {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.timeoutButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Ban / Unban ── */
+
+.banButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  cursor: pointer;
+  transition: background var(--duration-fast, 150ms) var(--ease-out, ease-out),
+    color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.banButton:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-bg);
+}
+
+.banButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unbanButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-success, var(--color-primary));
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-success, var(--color-primary));
+  cursor: pointer;
+  transition: background var(--duration-fast, 150ms) var(--ease-out, ease-out),
+    color var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.unbanButton:hover:not(:disabled) {
+  background: var(--color-success, var(--color-primary));
+  color: var(--color-bg);
+}
+
+.unbanButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Confirm Rows ── */
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.confirmText {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  flex: 1 0 auto;
+}
+
+.banConfirmButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-error);
+  font-size: var(--font-size-xs);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+.banConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unbanConfirmButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-success, var(--color-primary));
+  font-size: var(--font-size-xs);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+.unbanConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* ── Ban status loading ── */
+
+.banLoading {
+  display: flex;
+  align-items: center;
+}
+
+.loadingDots {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

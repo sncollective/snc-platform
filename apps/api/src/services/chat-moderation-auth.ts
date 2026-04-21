@@ -1,4 +1,4 @@
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, or } from "drizzle-orm";
 
 import { ok, err, ForbiddenError } from "@snc/shared";
 import type { Result, AppError } from "@snc/shared";
@@ -133,4 +133,97 @@ export const isUserTimedOut = async (
   }
 
   return { timedOut: false, expiresAt: null };
+};
+
+/** Shape returned by `getRoomState`, ready to emit as a `room_state` WS event. */
+export type RoomStateData = {
+  readonly slowModeSeconds: number;
+  readonly isBanned: boolean;
+  readonly banModeratorUserName: string | null;
+  readonly isTimedOut: boolean;
+  readonly timedOutUntil: string | null;
+  readonly timeoutModeratorUserName: string | null;
+};
+
+/**
+ * Fetch all rehydration data for a joining client in one call.
+ *
+ * Returns slow-mode seconds (always), plus ban / timeout status for
+ * authenticated users. Anonymous callers (userId = null) receive false
+ * for all sanction flags but still get the correct slowModeSeconds.
+ *
+ * Returns null if the room does not exist.
+ */
+export const getRoomState = async (
+  userId: string | null,
+  roomId: string,
+): Promise<RoomStateData | null> => {
+  const [room] = await db
+    .select({ slowModeSeconds: chatRooms.slowModeSeconds })
+    .from(chatRooms)
+    .where(eq(chatRooms.id, roomId));
+
+  if (!room) return null;
+
+  if (!userId) {
+    return {
+      slowModeSeconds: room.slowModeSeconds,
+      isBanned: false,
+      banModeratorUserName: null,
+      isTimedOut: false,
+      timedOutUntil: null,
+      timeoutModeratorUserName: null,
+    };
+  }
+
+  // Run ban check and timeout check in parallel
+  const [banned, timedOutResult] = await Promise.all([
+    isUserBanned(userId, roomId),
+    isUserTimedOut(userId, roomId),
+  ]);
+
+  // Look up moderator metadata only when needed
+  let banModeratorUserName: string | null = null;
+  let timeoutModeratorUserName: string | null = null;
+
+  if (banned || timedOutResult.timedOut) {
+    // Fetch the most-recent ban action and/or most-recent active timeout action
+    const actionFilters = [];
+    if (banned) actionFilters.push(eq(chatModerationActions.action, "ban"));
+    if (timedOutResult.timedOut) actionFilters.push(eq(chatModerationActions.action, "timeout"));
+
+    const recentActions = await db
+      .select({
+        action: chatModerationActions.action,
+        moderatorUserName: chatModerationActions.moderatorUserName,
+      })
+      .from(chatModerationActions)
+      .where(
+        and(
+          eq(chatModerationActions.targetUserId, userId),
+          eq(chatModerationActions.roomId, roomId),
+          or(...actionFilters),
+        ),
+      )
+      .orderBy(desc(chatModerationActions.createdAt));
+
+    for (const row of recentActions) {
+      if (row.action === "ban" && banModeratorUserName === null) {
+        banModeratorUserName = row.moderatorUserName;
+      }
+      if (row.action === "timeout" && timeoutModeratorUserName === null) {
+        timeoutModeratorUserName = row.moderatorUserName;
+      }
+      if (banModeratorUserName !== null && timeoutModeratorUserName !== null) break;
+    }
+  }
+
+  return {
+    slowModeSeconds: room.slowModeSeconds,
+    isBanned: banned,
+    banModeratorUserName: banned ? banModeratorUserName : null,
+    isTimedOut: timedOutResult.timedOut,
+    timedOutUntil: timedOutResult.expiresAt,
+    timeoutModeratorUserName: timedOutResult.timedOut ? timeoutModeratorUserName : null,
+  };
 };

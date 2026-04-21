@@ -315,6 +315,40 @@ export type ServerMessageFilteredEvent = {
   readonly roomId: string;
 };
 
+/**
+ * Sender-only event delivered after a successful room join, carrying the
+ * authenticated user's moderation permission for that room. Drives the
+ * client's moderator-gated UI (mod panel, per-message actions, mod-only
+ * banners). Anonymous / logged-out joiners receive `isModerator: false`.
+ */
+export type ServerModeratorStatusEvent = {
+  readonly type: "moderator_status";
+  readonly roomId: string;
+  readonly isModerator: boolean;
+};
+
+/**
+ * Sender-only rehydration event emitted on room join after moderator_status.
+ * Carries all sanction and slow-mode state needed to restore the client on
+ * reconnect or room switch. Anonymous joiners receive false for all flags.
+ */
+export type ServerRoomStateEvent = {
+  readonly type: "room_state";
+  readonly roomId: string;
+  /** Slow mode delay in seconds; 0 means disabled. */
+  readonly slowModeSeconds: number;
+  /** Whether the joining user is currently banned from this room. */
+  readonly isBanned: boolean;
+  /** Moderator username who issued the ban, or null if not banned. */
+  readonly banModeratorUserName: string | null;
+  /** Whether the joining user is currently timed out in this room. */
+  readonly isTimedOut: boolean;
+  /** ISO8601 expiry of the active timeout, or null if not timed out. */
+  readonly timedOutUntil: string | null;
+  /** Moderator username who issued the timeout, or null if not timed out. */
+  readonly timeoutModeratorUserName: string | null;
+};
+
 // ── Reaction Server Events ──
 
 /**
@@ -358,6 +392,8 @@ export type ServerEvent =
   | ServerUserUnbannedEvent
   | ServerSlowModeChangedEvent
   | ServerMessageFilteredEvent
+  | ServerModeratorStatusEvent
+  | ServerRoomStateEvent
   | ServerReactionUpdatedEvent
   | ServerReactionsBatchEvent;
 

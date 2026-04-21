@@ -7,7 +7,7 @@ import type { ActiveRoomsResponse, BadgeType } from "@snc/shared";
 import { useChat } from "../../contexts/chat-context.js";
 import { apiGet } from "../../lib/fetch-utils.js";
 import { ChatModerationPanel } from "./chat-moderation-panel.js";
-import { ChatUserActions } from "./chat-user-actions.js";
+import { ChatUserCard } from "./chat-user-card.js";
 import { ReactionPicker } from "./reaction-picker.js";
 
 import styles from "./chat-panel.module.css";
@@ -32,7 +32,6 @@ export function ChatPanel({
   const { state, actions } = useChat();
   const [input, setInput] = useState("");
   const [usersExpanded, setUsersExpanded] = useState(false);
-  const [hoveredMessageUserId, setHoveredMessageUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
@@ -179,6 +178,15 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* Moderator controls — slow mode slider. Rendered above messages so
+          moderators see it on entry without having to scroll past chat. */}
+      {state.isModerator && activeRoom && !activeRoom.closedAt && (
+        <ChatModerationPanel
+          slowModeSeconds={state.slowModeSeconds}
+          onSetSlowMode={actions.setSlowMode}
+        />
+      )}
+
       {/* Messages */}
       <div className={styles.messages}>
         {state.messages.map((msg) => {
@@ -187,8 +195,6 @@ export function ChatPanel({
             <div
               key={msg.id}
               className={styles.message}
-              onMouseEnter={() => state.isModerator ? setHoveredMessageUserId(msg.userId) : undefined}
-              onMouseLeave={() => state.isModerator ? setHoveredMessageUserId(null) : undefined}
             >
               {msg.avatarUrl && (
                 <img
@@ -199,7 +205,14 @@ export function ChatPanel({
                   height={20}
                 />
               )}
-              <span className={styles.userName}>{msg.userName}</span>
+              <ChatUserCard
+                targetUserId={msg.userId}
+                targetUserName={msg.userName}
+                targetAvatarUrl={msg.avatarUrl}
+                roomId={state.activeRoomId}
+              >
+                {msg.userName}
+              </ChatUserCard>
               {msg.badges.length > 0 && (
                 <span className={styles.badges}>
                   {msg.badges.map((badge) => (
@@ -215,14 +228,6 @@ export function ChatPanel({
                 </span>
               )}
               <span className={styles.content}>{msg.content}</span>
-              {state.isModerator && hoveredMessageUserId === msg.userId && (
-                <ChatUserActions
-                  targetUserId={msg.userId}
-                  targetUserName={msg.userName}
-                  onTimeout={actions.timeoutUser}
-                  onBan={actions.banUser}
-                />
-              )}
               {/* Reaction pills + picker trigger */}
               {(msgReactions.filter((r) => r.count > 0).length > 0 ||
                 (state.isConnected && !state.isBanned && activeRoom && !activeRoom.closedAt)) && (
@@ -267,12 +272,6 @@ export function ChatPanel({
       {/* Input (auth-gated) */}
       {activeRoom && !activeRoom.closedAt ? (
         <>
-          {state.isModerator && (
-            <ChatModerationPanel
-              slowModeSeconds={state.slowModeSeconds}
-              onSetSlowMode={actions.setSlowMode}
-            />
-          )}
           <form onSubmit={handleSubmit} className={styles.inputForm}>
             <input
               type="text"

@@ -2,6 +2,7 @@
 
 .footer {
   padding: var(--space-lg) var(--space-md);
+  padding-bottom: calc(var(--space-lg) + var(--tab-bar-height));
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }

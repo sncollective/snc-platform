@@ -261,4 +261,127 @@ describe("chat-moderation-auth service", () => {
       expect(result.expiresAt).toBeNull();
     });
   });
+
+  describe("getRoomState", () => {
+    // ── Chain helpers specific to getRoomState ──
+
+    // getRoomState calls db.select({ slowModeSeconds }).from(...).where(...)
+    const buildRoomSelectChain = (rows: unknown[]) => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(rows),
+      }),
+    });
+
+    // isUserBanned calls db.select().from(...).where(...).orderBy(...)
+    const buildBanCheckChain = (rows: unknown[]) => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue(rows),
+        }),
+      }),
+    });
+
+    // isUserTimedOut calls db.select().from(...).where(...).orderBy(...).limit(1)
+    const buildTimeoutCheckChain = (rows: unknown[]) => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(rows),
+          }),
+        }),
+      }),
+    });
+
+    // moderator metadata query: db.select().from(...).where(...).orderBy(...)
+    const buildModMetaChain = (rows: unknown[]) => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue(rows),
+        }),
+      }),
+    });
+
+    it("returns null when room does not exist", async () => {
+      mockDbSelect.mockReturnValueOnce(buildRoomSelectChain([]));
+
+      const { getRoomState } = await setupService();
+      const result = await getRoomState("user-1", "nonexistent");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns all-false flags with slowModeSeconds for anonymous user", async () => {
+      mockDbSelect.mockReturnValueOnce(
+        buildRoomSelectChain([{ slowModeSeconds: 30 }]),
+      );
+
+      const { getRoomState } = await setupService();
+      const result = await getRoomState(null, "room-1");
+
+      expect(result).not.toBeNull();
+      expect(result?.slowModeSeconds).toBe(30);
+      expect(result?.isBanned).toBe(false);
+      expect(result?.isTimedOut).toBe(false);
+      expect(result?.banModeratorUserName).toBeNull();
+      expect(result?.timedOutUntil).toBeNull();
+      expect(result?.timeoutModeratorUserName).toBeNull();
+    });
+
+    it("returns isBanned true with moderator name for banned user", async () => {
+      mockDbSelect
+        .mockReturnValueOnce(buildRoomSelectChain([{ slowModeSeconds: 0 }])) // room fetch
+        .mockReturnValueOnce(buildBanCheckChain([{ action: "ban" }])) // isUserBanned
+        .mockReturnValueOnce(buildTimeoutCheckChain([])) // isUserTimedOut
+        .mockReturnValueOnce(buildModMetaChain([ // moderator metadata
+          { action: "ban", moderatorUserName: "mod-alice" },
+        ]));
+
+      const { getRoomState } = await setupService();
+      const result = await getRoomState("user-1", "room-1");
+
+      expect(result?.isBanned).toBe(true);
+      expect(result?.banModeratorUserName).toBe("mod-alice");
+      expect(result?.isTimedOut).toBe(false);
+      expect(result?.timedOutUntil).toBeNull();
+    });
+
+    it("returns isTimedOut true with expiry and moderator name for timed-out user", async () => {
+      const futureExpiry = new Date(Date.now() + 60000);
+      mockDbSelect
+        .mockReturnValueOnce(buildRoomSelectChain([{ slowModeSeconds: 10 }])) // room fetch
+        .mockReturnValueOnce(buildBanCheckChain([])) // isUserBanned → not banned
+        .mockReturnValueOnce(buildTimeoutCheckChain([ // isUserTimedOut → timed out
+          { action: "timeout", expiresAt: futureExpiry },
+        ]))
+        .mockReturnValueOnce(buildModMetaChain([ // moderator metadata
+          { action: "timeout", moderatorUserName: "mod-bob" },
+        ]));
+
+      const { getRoomState } = await setupService();
+      const result = await getRoomState("user-1", "room-1");
+
+      expect(result?.isTimedOut).toBe(true);
+      expect(result?.timedOutUntil).toBe(futureExpiry.toISOString());
+      expect(result?.timeoutModeratorUserName).toBe("mod-bob");
+      expect(result?.isBanned).toBe(false);
+      expect(result?.slowModeSeconds).toBe(10);
+    });
+
+    it("returns slowModeSeconds with no sanctions for clean authenticated user", async () => {
+      mockDbSelect
+        .mockReturnValueOnce(buildRoomSelectChain([{ slowModeSeconds: 60 }])) // room fetch
+        .mockReturnValueOnce(buildBanCheckChain([])) // isUserBanned → false
+        .mockReturnValueOnce(buildTimeoutCheckChain([])); // isUserTimedOut → false
+
+      const { getRoomState } = await setupService();
+      const result = await getRoomState("user-1", "room-1");
+
+      expect(result?.slowModeSeconds).toBe(60);
+      expect(result?.isBanned).toBe(false);
+      expect(result?.isTimedOut).toBe(false);
+      expect(result?.banModeratorUserName).toBeNull();
+      expect(result?.timedOutUntil).toBeNull();
+      expect(result?.timeoutModeratorUserName).toBeNull();
+    });
+  });
 });

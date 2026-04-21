@@ -1,6 +1,18 @@
-import { describe, it, expect } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
+
+// ── Toast mock (hoisted so vi.mock factory can reference it) ──
+const { mockToasterError } = vi.hoisted(() => ({
+  mockToasterError: vi.fn(),
+}));
+
+vi.mock("../../../src/components/ui/toast.js", () => ({
+  toaster: {
+    success: vi.fn(),
+    error: mockToasterError,
+  },
+}));
 
 import {
   chatReducer,
@@ -341,5 +353,180 @@ describe("chatReducer moderation actions", () => {
       roomId: "room-2",
     });
     expect(result.reactions.size).toBe(0);
+  });
+});
+
+// ── Tests: room_state dispatch (reducer level) ──
+
+describe("chatReducer room_state dispatch sequence", () => {
+  it("SET_SLOW_MODE + SET_BANNED + SET_TIMED_OUT sets all rehydration fields", () => {
+    const until = "2026-05-01T12:00:00.000Z";
+    let state = chatReducer(INITIAL_STATE, { type: "SET_SLOW_MODE", seconds: 30 });
+    state = chatReducer(state, { type: "SET_BANNED", banned: true });
+    state = chatReducer(state, { type: "SET_TIMED_OUT", until });
+
+    expect(state.slowModeSeconds).toBe(30);
+    expect(state.isBanned).toBe(true);
+    expect(state.isTimedOut).toBe(true);
+    expect(state.timedOutUntil).toBe(until);
+  });
+
+  it("all-false room_state clears any prior sanction state", () => {
+    const stateWithSanctions = {
+      ...INITIAL_STATE,
+      slowModeSeconds: 60,
+      isBanned: true,
+      isTimedOut: true,
+      timedOutUntil: "2026-05-01T12:00:00.000Z",
+    };
+    let state = chatReducer(stateWithSanctions, { type: "SET_SLOW_MODE", seconds: 0 });
+    state = chatReducer(state, { type: "SET_BANNED", banned: false });
+    state = chatReducer(state, { type: "SET_TIMED_OUT", until: null });
+
+    expect(state.slowModeSeconds).toBe(0);
+    expect(state.isBanned).toBe(false);
+    expect(state.isTimedOut).toBe(false);
+    expect(state.timedOutUntil).toBeNull();
+  });
+
+  it("SET_ACTIVE_ROOM clears slow/ban/timeout state before room_state arrives", () => {
+    const stateWithSanctions = {
+      ...INITIAL_STATE,
+      slowModeSeconds: 30,
+      isBanned: true,
+      isTimedOut: true,
+      timedOutUntil: "2026-05-01T12:00:00.000Z",
+    };
+    const result = chatReducer(stateWithSanctions, {
+      type: "SET_ACTIVE_ROOM",
+      roomId: "room-new",
+    });
+
+    expect(result.slowModeSeconds).toBe(0);
+    expect(result.isBanned).toBe(false);
+    expect(result.isTimedOut).toBe(false);
+    expect(result.timedOutUntil).toBeNull();
+    expect(result.activeRoomId).toBe("room-new");
+  });
+});
+
+// ── Tests: WS error handler fires toaster ──
+
+describe("ChatProvider WS error handler", () => {
+  // Capture the WebSocket instance created during connect() so we can fire messages
+  let capturedOnMessage: ((event: { data: string }) => void) | null = null;
+
+  beforeEach(() => {
+    capturedOnMessage = null;
+    mockToasterError.mockClear();
+
+    // Provide a controlled WebSocket stub
+    vi.stubGlobal("WebSocket", class MockWebSocket {
+      onopen: (() => void) | null = null;
+      onmessage: ((event: { data: string }) => void) | null = null;
+      onclose: (() => void) | null = null;
+      readyState = 1; // OPEN
+
+      constructor() {
+        // Store reference so tests can fire messages
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        capturedOnMessage = (ev) => this.onmessage?.(ev);
+      }
+
+      send() {}
+      close() {}
+    });
+  });
+
+  const fireMessage = (data: unknown) => {
+    capturedOnMessage?.({ data: JSON.stringify(data) });
+  };
+
+  it("fires toaster.error for USER_BANNED code", () => {
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "USER_BANNED", message: "You are banned" });
+    });
+
+    expect(mockToasterError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "You're banned from this room" }),
+    );
+  });
+
+  it("fires toaster.error for USER_TIMED_OUT code", () => {
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "USER_TIMED_OUT", message: "Timeout active" });
+    });
+
+    expect(mockToasterError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "You're timed out" }),
+    );
+  });
+
+  it("fires toaster.error for SLOW_MODE_RATE_LIMIT code", () => {
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "SLOW_MODE_RATE_LIMIT", message: "Wait 5s" });
+    });
+
+    expect(mockToasterError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Slow mode — please wait" }),
+    );
+  });
+
+  it("fires toaster.error for UNAUTHORIZED code", () => {
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "UNAUTHORIZED", message: "Sign in required" });
+    });
+
+    expect(mockToasterError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "You need to be signed in" }),
+    );
+  });
+
+  it("does NOT fire toaster.error for unknown/unlisted error codes", () => {
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "INTERNAL_ERROR", message: "Something broke" });
+    });
+
+    expect(mockToasterError).not.toHaveBeenCalled();
+  });
+
+  it("does NOT fire toaster.error for MESSAGE_FILTERED (handled by separate event)", () => {
+    // MESSAGE_FILTERED comes via a 'message_filtered' event, not an 'error' event.
+    // Verify that even if someone were to send it as error code, it's not in the whitelist.
+    const wrapper = ({ children }: { readonly children: ReactNode }) => (
+      <ChatProvider>{children}</ChatProvider>
+    );
+    renderHook(() => useChat(), { wrapper });
+
+    act(() => {
+      fireMessage({ type: "error", code: "MESSAGE_FILTERED", message: "Filtered" });
+    });
+
+    expect(mockToasterError).not.toHaveBeenCalled();
   });
 });

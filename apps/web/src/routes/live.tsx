@@ -12,6 +12,7 @@ import { ChatPanel } from "../components/chat/chat-panel.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { apiGet } from "../lib/fetch-utils.js";
 import { ChatProvider } from "../contexts/chat-context.js";
+import { useSession } from "../lib/auth.js";
 
 import styles from "./live.module.css";
 
@@ -146,6 +147,8 @@ function LivePage(): React.ReactElement {
   const { initial } = Route.useLoaderData();
   const { data: channelList, isLoading } = useChannelList(initial);
   const { actions, chatPortalRef } = useGlobalPlayer();
+  const session = useSession();
+  const currentUserId = session.data?.user?.id ?? null;
 
   const channels = channelList?.channels ?? [];
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -311,7 +314,7 @@ function LivePage(): React.ReactElement {
 
       {/* Streaming-only UI: theater, chat, overlays */}
       {isStreaming && (
-        <ChatProvider>
+        <ChatProvider userId={currentUserId}>
           <button
             type="button"
             className={clsx(
@@ -427,14 +430,15 @@ function StreamCreatorBar({
 }): React.ReactElement {
   return (
     <div className={styles.creatorBar}>
-      {creator.avatarUrl && (
+      {(creator.avatar?.src ?? creator.avatarUrl) && (
         <img
-          src={creator.avatarUrl}
+          src={creator.avatar?.src ?? creator.avatarUrl ?? undefined}
           alt=""
           className={styles.creatorAvatar}
           width={32}
           height={32}
           decoding="async"
+          {...(creator.avatar?.srcSet ? { srcSet: creator.avatar.srcSet } : {})}
         />
       )}
       <span className={styles.creatorName}>{creator.displayName}</span>
