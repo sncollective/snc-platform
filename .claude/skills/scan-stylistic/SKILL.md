@@ -24,7 +24,7 @@ Each style has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Write the refactoring backlog to `docs/scan-stylistic-backlog.md`.
+Write the refactoring backlog to `{docs-dir}/scan-stylistic-backlog.md`.
 
 The document should be a **prioritized refactoring backlog** with three tiers:
 

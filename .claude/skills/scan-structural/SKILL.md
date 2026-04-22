@@ -26,7 +26,7 @@ Each rule has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Write the refactoring backlog to `docs/structural-refactor-backlog.md` in the platform directory.
+Write the refactoring backlog to `{docs-dir}/structural-refactor-backlog.md` in the platform directory.
 
 The document should be a **prioritized refactoring backlog** with three tiers:
 
