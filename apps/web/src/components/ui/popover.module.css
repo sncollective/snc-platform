@@ -1,5 +1,9 @@
 .positioner {
-  z-index: var(--z-popover);
+  /* Ark-UI applies inline `z-index: var(--z-index)` with `--z-index: auto`
+     as its default. Inline beats class-based rules in the cascade, so we
+     can't override via `--z-index` on this class. `!important` on the
+     direct property is the only way to supersede the inline declaration. */
+  z-index: var(--z-popover) !important;
 }
 
 .content {

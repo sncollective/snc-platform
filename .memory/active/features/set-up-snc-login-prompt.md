@@ -1,17 +1,25 @@
 ---
 id: feature-set-up-snc-login-prompt
 kind: feature
-stage: review
+stage: done
 tags: [identity]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-22
 related_decisions: []
 related_designs: []
 parent: null
 ---
 
 # Set Up S/NC Login Prompt
+
+**Reviewed 2026-04-22.** All 3 units landed. Verified end-to-end by temporarily flipping Pat's `accounts.provider_id` from `credential` to `google` to simulate an OAuth-only user, then restoring after:
+
+- Banner appears on `/settings` for OAuth-only users; hidden for users with `credential` provider.
+- "Dismiss" persists via `localStorage.snc-set-password-dismissed`; survives page reload.
+- Clearing the localStorage key re-shows the banner on next load.
+- "Set password" → "Send verification code" triggers the OTP flow (`authClient.emailOtp.sendVerificationOtp` with `type: "forget-password"`); OTP email delivered to Mailpit with a 6-digit code.
+- In-banner success message points Pat to `/forgot-password` to complete setup.
 
 ## Overview
 

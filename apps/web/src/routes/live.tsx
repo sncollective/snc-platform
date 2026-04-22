@@ -266,7 +266,7 @@ function LivePage(): React.ReactElement {
     <>
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
       <div className={styles.routeContent}>
-        {!isStreaming && !isLoading && <ComingSoonPlaceholder />}
+        {!hasChannels && !isLoading && <ComingSoonPlaceholder />}
 
         {hasChannels && (
           <div className={styles.streamInfo}>

@@ -1,17 +1,25 @@
 ---
 id: feature-notification-inbox
 kind: feature
-stage: review
+stage: done
 tags: [community, content]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-22
 related_decisions: []
 related_designs: []
 parent: null
 ---
 
 # In-App Notification Inbox
+
+**Reviewed 2026-04-22.** Seeded demo notifications for Pat (4 unread, 12 total after top-up) and walked the happy path — bell badge, dropdown open, scrollbar past ~7 items, click-to-mark-read + navigate, mark-all-read, WebSocket count updates all work.
+
+Two fix-in-flight findings surfaced and resolved:
+
+1. **Dropdown bounced on page scroll.** The Ark UI Popover defaulted to `strategy: "absolute"`, positioning relative to the document. With the trigger inside the sticky nav, the positioner's document-space coordinates drifted as the page scrolled while floating-ui's `autoUpdate` lagged the recompute. Added `strategy: "fixed"` to the `positioning` prop at [notification-bell.tsx:42](platform/apps/web/src/components/notification-bell.tsx#L42) so the popover sits in viewport coords matching the sticky trigger.
+
+2. **Dropdown rendered behind the nav bar (z-order).** Zag-JS's Popper applies `z-index: var(--z-index)` as an **inline style** on the positioner, which beat our `.positioner { z-index: var(--z-popover) }` class. The same issue was already solved on `menu.module.css` with `!important`; applied the same pattern at [popover.module.css:1-7](platform/apps/web/src/components/ui/popover.module.css#L1-L7) — `z-index: var(--z-popover) !important`. Applies across all Popover usages, not just notification-bell.
 
 In-app notification system decoupled from chat. Notifications are stored in a database table and fetched via paginated REST API. The frontend polls on page load and periodic refresh. When the chat WebSocket is connected, the server pushes a lightweight `notification_count` event so the unread badge updates instantly without dedicated notification WebSocket infrastructure.
 

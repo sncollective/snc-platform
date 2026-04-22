@@ -1,17 +1,25 @@
 ---
 id: feature-patron-badges
 kind: feature
-stage: review
+stage: done
 tags: [streaming, community]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-22
 related_decisions: []
 related_designs: []
 parent: null
 ---
 
 # Patron Badges in Chat
+
+**Reviewed 2026-04-22.** All units landed. Seeded fake active subscriptions for Pat (platform S/NC Monthly + creator Maya Chen Monthly) — bypasses Stripe since `resolveUserBadges` only reads local subscription state. Verified:
+
+- Platform-only rooms (S/NC TV, S/NC Classics) → Pat's messages render with `Patron` badge only.
+- Maya's channel room → Pat's messages render with both `Patron` + `Sub` badges, platform-first ordering preserved.
+- Badges persist to `chat_messages.badges` column at send time — historical correctness confirmed by DB inspection.
+
+One design-iteration request parked for 0.3.1: [patron-badges-icon-variant](../../backlog/patron-badges-icon-variant.md) — swap text pills for lucide icons.
 
 Show patron badges next to usernames in chat messages. Badges are denormalized onto each message at send time so they are historically accurate — they reflect the user's subscription status at the moment they sent the message, not their current status.
 
