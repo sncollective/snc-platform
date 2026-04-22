@@ -5,6 +5,7 @@ description: >
   PgBoss, job queue, background jobs, boss.send, boss.work, boss.schedule, boss.fetch,
   boss.createQueue, worker queue, job processing.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # pg-boss v12 Reference

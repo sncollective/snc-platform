@@ -5,6 +5,7 @@ description: >
   imgproxy, image optimization, responsive images, srcSet, OptionalImage,
   image proxy, WebP, AVIF, format negotiation, IMGPROXY_.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # imgproxy v3 Reference

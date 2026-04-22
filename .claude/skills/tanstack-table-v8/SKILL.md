@@ -4,6 +4,7 @@ description: >
   TanStack Table v8 headless table reference. Auto-loads when working with
   useReactTable, createColumnHelper, ColumnDef, flexRender, sorting, filtering, pagination.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # TanStack Table Reference

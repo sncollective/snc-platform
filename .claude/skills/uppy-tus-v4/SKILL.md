@@ -5,6 +5,7 @@ description: >
   @uppy/tus, Uppy tus, resumable uploads, tus-js-client, upload resume,
   Tus plugin, uppy.use(Tus).
 user-invocable: false
+updated: 2026-04-14
 ---
 
 # @uppy/tus v4 Reference

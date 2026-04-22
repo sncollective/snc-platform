@@ -6,6 +6,7 @@ description: >
   RTMP push, live streaming automation, playout.liq, annotate, metadata,
   on_metadata, s3 protocol, request.queue.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Liquidsoap v2.4 Reference

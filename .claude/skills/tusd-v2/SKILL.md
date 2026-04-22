@@ -5,6 +5,7 @@ description: >
   tusd, tus protocol, resumable uploads, tus hooks, pre-create, post-finish,
   tus S3 backend, upload server, TUSD_.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # tusd v2 Reference

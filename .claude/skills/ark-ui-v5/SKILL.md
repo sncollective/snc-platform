@@ -6,6 +6,7 @@ description: >
   RadioGroup, Collapsible, Accordion, Combobox, Field, Progress, Pagination, headless
   primitives, data-scope, data-part, data-state, accessible components.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Ark UI React Reference

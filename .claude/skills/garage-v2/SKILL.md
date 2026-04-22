@@ -5,6 +5,7 @@ description: >
   Garage, S3 storage, bucket management, @aws-sdk/client-s3, presigned URLs,
   multipart uploads, object storage, PutObjectCommand, GetObjectCommand.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Garage v2 Reference

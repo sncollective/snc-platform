@@ -5,6 +5,7 @@ description: >
   MediaPlayer, MediaProvider, useMediaState, useMediaPlayer, vidstack, video player,
   audio player, HLS, DASH, media playback, captions, streaming, picture-in-picture.
 user-invocable: false
+updated: 2026-04-16
 ---
 
 # Vidstack React Reference

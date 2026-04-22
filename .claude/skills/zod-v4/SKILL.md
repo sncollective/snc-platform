@@ -4,6 +4,7 @@ description: >
   Zod v4 validation library reference. Auto-loads when working with Zod schemas,
   validation, z.object, z.string, z.infer, safeParse, transforms, discriminatedUnion.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Zod v4 Reference

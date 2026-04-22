@@ -4,6 +4,7 @@ description: >
   TanStack Query v5 (React Query) reference. Auto-loads when working with
   useQuery, useMutation, useInfiniteQuery, queryOptions, QueryClient, invalidateQueries.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # TanStack Query Reference

@@ -6,6 +6,7 @@ description: >
   WHIP, WHEP, WebRTC streaming, streaming server, srs.conf, forward, simulcast,
   edge, relay, SRT ingest, raw_api, config reload.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # SRS v6 Reference

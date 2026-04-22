@@ -4,6 +4,7 @@ description: >
   Drizzle ORM v0.45+ reference for PostgreSQL. Auto-loads when working with
   drizzle-orm, pgTable, schema definitions, drizzle queries, migrations, drizzle-kit.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Drizzle ORM Reference

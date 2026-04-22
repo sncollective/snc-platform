@@ -5,6 +5,7 @@ description: >
   with pino, rootLogger, c.var.logger, logger.info, logger.warn, logger.error,
   request-logger, logging-env, audit logging, structured logging.
 user-invocable: false
+updated: 2026-04-16
 ---
 
 # Pino Logging Conventions

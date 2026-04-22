@@ -4,6 +4,7 @@ description: >
   TanStack Router v1 reference. Auto-loads when working with createFileRoute,
   file-based routing, useNavigate, useParams, useSearch, Link, route loaders.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # TanStack Router Reference

@@ -4,6 +4,7 @@ description: >
   Hono v4 web framework reference. Auto-loads when working with Hono routes,
   middleware, hono-openapi, validator, streamSSE, HTTPException, hono/factory, RPC client.
 user-invocable: false
+updated: 2026-04-13
 ---
 
 # Hono Reference
