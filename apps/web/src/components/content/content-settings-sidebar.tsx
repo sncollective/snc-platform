@@ -5,6 +5,7 @@ import { MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH, VISIBILITY } from "@snc/share
 
 import { ProcessingIndicator } from "./processing-indicator.js";
 import { formatDate } from "../../lib/format.js";
+import type { ContentDisplayState } from "../../hooks/use-content-display-state.js";
 
 import styles from "./content-settings-sidebar.module.css";
 
@@ -13,6 +14,8 @@ import styles from "./content-settings-sidebar.module.css";
 export interface ContentSettingsSidebarProps {
   /** The content item (with current edit state applied). */
   readonly item: FeedItem;
+  /** Unified display state derived from item + active upload. Controls the Media section. */
+  readonly displayState: ContentDisplayState;
   /** Whether the form fields are editable. */
   readonly isEditing: boolean;
   /** Metadata change callbacks (from useContentManagement). */
@@ -64,6 +67,7 @@ function PublishConfirmation({
 /** Settings sidebar for the content edit page. Renders metadata fields, slug display, media status, and publish controls. */
 export function ContentSettingsSidebar({
   item,
+  displayState,
   isEditing,
   onTitleChange,
   onDescriptionChange,
@@ -139,15 +143,22 @@ export function ContentSettingsSidebar({
         <section className={styles.section}>
           <h3 className={styles.sectionHeading}>Media</h3>
           <div className={styles.mediaStatus}>
-            {item.mediaUrl ? (
+            {displayState.phase === "ready" && (
               <span className={styles.mediaReady}>Media uploaded</span>
-            ) : (
+            )}
+            {displayState.phase === "no-media" && (
               <span className={styles.mediaNeeded}>No media uploaded</span>
             )}
+            {displayState.phase === "uploading" && (
+              <span className={styles.mediaUploading}>Uploading...</span>
+            )}
+            {displayState.phase === "processing" && (
+              <ProcessingIndicator status={displayState.status} />
+            )}
+            {displayState.phase === "failed" && (
+              <span className={styles.mediaFailed}>Processing failed</span>
+            )}
           </div>
-          {item.processingStatus && item.processingStatus !== "ready" && (
-            <ProcessingIndicator status={item.processingStatus} />
-          )}
         </section>
       )}
 
@@ -178,7 +189,7 @@ export function ContentSettingsSidebar({
             >
               {isPublishing ? "Publishing..." : "Publish"}
             </button>
-            {!canPublish && item.type !== "written" && !item.mediaUrl && (
+            {!canPublish && item.type !== "written" && displayState.phase === "no-media" && (
               <p className={styles.publishHint}>Upload media before publishing</p>
             )}
           </>

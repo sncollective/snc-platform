@@ -1,15 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import { makeMockFeedItem } from "../../helpers/content-fixtures.js";
 import { stubComponent } from "../../helpers/component-stubs.js";
 import { createFormatMock, DEFAULT_FORMAT_DATE } from "../../helpers/format-mock.js";
+import { deriveContentDisplayState } from "../../../src/hooks/use-content-display-state.js";
+import type { FeedItem } from "@snc/shared";
 
 // ── Hoisted Mocks ──
 
-const { mockVideoPlayer, mockContentFooter } = vi.hoisted(() => ({
+const { mockVideoPlayer, mockContentFooter, mockUseContentDisplayState } = vi.hoisted(() => ({
   mockVideoPlayer: vi.fn(),
   mockContentFooter: vi.fn(),
+  mockUseContentDisplayState: vi.fn(),
 }));
 
 vi.mock("../../../src/components/media/video-player.js", () =>
@@ -23,9 +26,27 @@ vi.mock("../../../src/lib/format.js", () =>
   createFormatMock({ formatDate: DEFAULT_FORMAT_DATE }),
 );
 
+// Mock useContentDisplayState to derive state from item without upload context
+vi.mock("../../../src/hooks/use-content-display-state.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/hooks/use-content-display-state.js")>();
+  return {
+    ...actual,
+    useContentDisplayState: mockUseContentDisplayState,
+  };
+});
+
 // ── Component Under Test ──
 
 import { VideoDetail } from "../../../src/components/content/video-detail.js";
+
+// ── Setup ──
+
+beforeEach(() => {
+  // Default: derive state from item alone (no active upload), matching pre-hook behavior
+  mockUseContentDisplayState.mockImplementation((item: FeedItem) =>
+    deriveContentDisplayState({ mediaUrl: item.mediaUrl, processingStatus: item.processingStatus, activeUpload: undefined }),
+  );
+});
 
 // ── Tests ──
 
@@ -196,6 +217,34 @@ describe("VideoDetail", () => {
     });
     render(<VideoDetail item={item} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Draft Video");
+  });
+
+  describe("uploading phase", () => {
+    it("renders InlineUploadProgress when displayState.phase is uploading", () => {
+      const item = makeMockFeedItem({ type: "video", mediaUrl: null });
+      mockUseContentDisplayState.mockReturnValue({
+        phase: "uploading",
+        upload: {
+          id: "uppy-1",
+          filename: "video.mp4",
+          progress: 42,
+          status: "uploading",
+          resourceId: item.id,
+          purpose: "content-media" as const,
+        },
+      });
+      render(<VideoDetail item={item} />);
+      expect(screen.getByText("video.mp4")).toBeInTheDocument();
+      expect(screen.getByText("42%")).toBeInTheDocument();
+    });
+  });
+
+  describe("processing phase", () => {
+    it("renders ProcessingIndicator when displayState.phase is processing", () => {
+      const item = makeMockFeedItem({ type: "video", mediaUrl: null, processingStatus: "processing" });
+      render(<VideoDetail item={item} />);
+      expect(screen.getByText("Processing media...")).toBeInTheDocument();
+    });
   });
 
   describe("edit mode upload placeholders", () => {

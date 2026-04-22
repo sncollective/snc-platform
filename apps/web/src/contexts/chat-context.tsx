@@ -87,9 +87,9 @@ type ChatAction =
   | { readonly type: "ADD_MESSAGE"; readonly message: ChatMessage }
   | { readonly type: "ROOM_CLOSED"; readonly roomId: string }
   | { readonly type: "CLEAR_MESSAGES" }
-  | { readonly type: "SET_PRESENCE"; readonly viewerCount: number; readonly users: readonly PresenceUser[] }
-  | { readonly type: "USER_JOINED"; readonly user: PresenceUser }
-  | { readonly type: "USER_LEFT"; readonly userId: string }
+  | { readonly type: "SET_PRESENCE"; readonly roomId: string; readonly viewerCount: number; readonly users: readonly PresenceUser[] }
+  | { readonly type: "USER_JOINED"; readonly roomId: string; readonly user: PresenceUser }
+  | { readonly type: "USER_LEFT"; readonly roomId: string; readonly userId: string }
   | { readonly type: "SET_SLOW_MODE"; readonly seconds: number }
   | { readonly type: "SET_TIMED_OUT"; readonly until: string | null }
   | { readonly type: "SET_BANNED"; readonly banned: boolean }
@@ -147,8 +147,13 @@ export function chatReducer(
     case "CLEAR_MESSAGES":
       return { ...state, messages: [], hasMore: false };
     case "SET_PRESENCE":
+      // Ignore presence snapshots for rooms the user has navigated away from —
+      // otherwise a late broadcast for the previous room overwrites the current
+      // room's state.
+      if (action.roomId !== state.activeRoomId) return state;
       return { ...state, viewerCount: action.viewerCount, users: action.users };
     case "USER_JOINED":
+      if (action.roomId !== state.activeRoomId) return state;
       return {
         ...state,
         users: state.users.some((u) => u.userId === action.user.userId)
@@ -156,6 +161,7 @@ export function chatReducer(
           : [...state.users, action.user],
       };
     case "USER_LEFT":
+      if (action.roomId !== state.activeRoomId) return state;
       return {
         ...state,
         users: state.users.filter((u) => u.userId !== action.userId),
@@ -294,6 +300,7 @@ export function ChatProvider({
           case "presence":
             dispatch({
               type: "SET_PRESENCE",
+              roomId: data.roomId,
               viewerCount: data.viewerCount,
               users: data.users,
             });
@@ -301,6 +308,7 @@ export function ChatProvider({
           case "user_joined":
             dispatch({
               type: "USER_JOINED",
+              roomId: data.roomId,
               user: {
                 userId: data.userId,
                 userName: data.userName,
@@ -309,7 +317,7 @@ export function ChatProvider({
             });
             break;
           case "user_left":
-            dispatch({ type: "USER_LEFT", userId: data.userId });
+            dispatch({ type: "USER_LEFT", roomId: data.roomId, userId: data.userId });
             break;
           case "notification_count":
             // Handled by NotificationProvider at app root — ignore here

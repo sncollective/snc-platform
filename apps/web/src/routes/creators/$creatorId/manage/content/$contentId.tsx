@@ -4,11 +4,14 @@ import type { FeedItem } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../../../../components/error/route-error-boundary.js";
 import { useContentManagement } from "../../../../../hooks/use-content-management.js";
+import { useContentDisplayState } from "../../../../../hooks/use-content-display-state.js";
 import { VideoDetail } from "../../../../../components/content/video-detail.js";
 import { AudioDetail } from "../../../../../components/content/audio-detail.js";
 import { WrittenDetail } from "../../../../../components/content/written-detail.js";
 import { ContentSettingsSidebar } from "../../../../../components/content/content-settings-sidebar.js";
 import { fetchApiServer } from "../../../../../lib/api-server.js";
+
+import type { ContentDisplayState } from "../../../../../hooks/use-content-display-state.js";
 
 import styles from "../content-manage.module.css";
 
@@ -47,16 +50,10 @@ export const Route = createFileRoute(
 
 // ── Helpers ──
 
-/** Determine whether a content item is ready to publish. */
-function canPublish(item: FeedItem): boolean {
+/** Determine whether a content item is ready to publish. Uses unified display state to gate media types. */
+function canPublish(item: FeedItem, displayState: ContentDisplayState): boolean {
   if (item.publishedAt) return false;
-  if (item.type !== "written" && !item.mediaUrl) return false;
-  if (
-    item.type !== "written" &&
-    item.processingStatus !== "ready" &&
-    item.processingStatus !== null
-  )
-    return false;
+  if (item.type !== "written" && displayState.phase !== "ready") return false;
   return true;
 }
 
@@ -67,6 +64,7 @@ function ContentEditPage(): React.ReactElement {
   const { creator } = manageRoute.useLoaderData();
   const creatorSlug = creator.handle ?? creator.id;
   const mgmt = useContentManagement(item, true);
+  const displayState = useContentDisplayState(mgmt.editingItem);
 
   return (
     <div className={styles.editPage}>
@@ -136,6 +134,7 @@ function ContentEditPage(): React.ReactElement {
         {/* Right: Settings sidebar */}
         <ContentSettingsSidebar
           item={mgmt.editingItem}
+          displayState={displayState}
           isEditing={mgmt.isEditing}
           onTitleChange={mgmt.editCallbacks?.onTitleChange ?? (() => {})}
           onDescriptionChange={mgmt.editCallbacks?.onDescriptionChange ?? (() => {})}
@@ -143,7 +142,7 @@ function ContentEditPage(): React.ReactElement {
           onPublish={() => mgmt.publish()}
           onUnpublish={() => mgmt.unpublish()}
           isPublishing={mgmt.isPublishing}
-          canPublish={canPublish(mgmt.editingItem)}
+          canPublish={canPublish(mgmt.editingItem, displayState)}
         />
       </div>
     </div>

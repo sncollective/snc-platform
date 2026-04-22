@@ -865,6 +865,115 @@ describe("content routes", () => {
       expect(res.status).toBe(200);
       expect(mockStorageDelete).not.toHaveBeenCalled();
     });
+
+    it("clears thumbnail, transcodedMediaKey and processing metadata on clearMedia for video content", async () => {
+      const existing = makeMockDbContent({
+        type: "video",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+        thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
+        transcodedMediaKey: "content/00000000-0000-4000-a000-000000000001/transcoded/video.mp4",
+        processingStatus: "ready",
+        videoCodec: "h264",
+        audioCodec: "aac",
+        width: 1920,
+        height: 1080,
+        duration: 120,
+        bitrate: 5000000,
+      });
+      const updated = makeMockDbContent({
+        type: "video",
+        mediaKey: null,
+        thumbnailKey: null,
+        transcodedMediaKey: null,
+        processingStatus: null,
+        videoCodec: null,
+        audioCodec: null,
+        width: null,
+        height: null,
+        duration: null,
+        bitrate: null,
+      });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearMedia: true }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.thumbnailUrl).toBeNull();
+      expect(body.processingStatus).toBeNull();
+
+      const setArg = (mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
+      expect(setArg.thumbnailKey).toBeNull();
+      expect(setArg.transcodedMediaKey).toBeNull();
+      expect(setArg.processingStatus).toBeNull();
+      expect(setArg.videoCodec).toBeNull();
+      expect(setArg.audioCodec).toBeNull();
+      expect(setArg.width).toBeNull();
+      expect(setArg.height).toBeNull();
+      expect(setArg.duration).toBeNull();
+      expect(setArg.bitrate).toBeNull();
+    });
+
+    it("calls storage delete for mediaKey, thumbnailKey, and transcodedMediaKey on video clearMedia", async () => {
+      const existing = makeMockDbContent({
+        type: "video",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/video.mp4",
+        thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
+        transcodedMediaKey: "content/00000000-0000-4000-a000-000000000001/transcoded/video.mp4",
+      });
+      const updated = makeMockDbContent({ type: "video", mediaKey: null, thumbnailKey: null, transcodedMediaKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearMedia: true }),
+      });
+
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg");
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/transcoded/video.mp4");
+      expect(mockStorageDelete).toHaveBeenCalledTimes(3);
+    });
+
+    it("preserves thumbnailKey (cover art) on clearMedia for audio content", async () => {
+      const existing = makeMockDbContent({
+        type: "audio",
+        mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.mp3",
+        thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/cover.jpg",
+      });
+      const updated = makeMockDbContent({
+        type: "audio",
+        mediaKey: null,
+        thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/cover.jpg",
+      });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearMedia: true }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.thumbnailUrl).not.toBeNull();
+
+      // Storage delete called only for mediaKey, not for thumbnailKey
+      expect(mockStorageDelete).toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/media/audio.mp3");
+      expect(mockStorageDelete).not.toHaveBeenCalledWith("content/00000000-0000-4000-a000-000000000001/thumbnail/cover.jpg");
+      expect(mockStorageDelete).toHaveBeenCalledTimes(1);
+
+      const setArg = (mockUpdateSet.mock.calls[0] as unknown as [Record<string, unknown>])[0] as Record<string, unknown>;
+      expect(setArg).not.toHaveProperty("thumbnailKey");
+    });
   });
 
   // ── DELETE /api/content/:id ──

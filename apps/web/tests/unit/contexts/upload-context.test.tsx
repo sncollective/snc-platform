@@ -83,6 +83,8 @@ describe("uploadReducer", () => {
       type: "ADD_UPLOAD",
       id: "file-1",
       filename: "video.mp4",
+      resourceId: "content-1",
+      purpose: "content-media",
     });
 
     expect(result.activeUploads).toHaveLength(1);
@@ -91,16 +93,70 @@ describe("uploadReducer", () => {
       filename: "video.mp4",
       progress: 0,
       status: "uploading",
+      resourceId: "content-1",
+      purpose: "content-media",
     });
     expect(result.isUploading).toBe(true);
+  });
+
+  it("ADD_UPLOAD with resourceId and purpose stores both fields on the upload entry", () => {
+    const result = uploadReducer(INITIAL_UPLOAD_STATE, {
+      type: "ADD_UPLOAD",
+      id: "file-2",
+      filename: "audio.mp3",
+      resourceId: "content-42",
+      purpose: "content-thumbnail",
+    });
+
+    const upload = result.activeUploads[0];
+    expect(upload?.resourceId).toBe("content-42");
+    expect(upload?.purpose).toBe("content-thumbnail");
+  });
+
+  it("resourceId persists through UPDATE_PROGRESS", () => {
+    const afterAdd = uploadReducer(INITIAL_UPLOAD_STATE, {
+      type: "ADD_UPLOAD",
+      id: "file-1",
+      filename: "video.mp4",
+      resourceId: "content-7",
+      purpose: "content-media",
+    });
+
+    const afterProgress = uploadReducer(afterAdd, {
+      type: "UPDATE_PROGRESS",
+      id: "file-1",
+      progress: 75,
+    });
+
+    expect(afterProgress.activeUploads[0]?.resourceId).toBe("content-7");
+    expect(afterProgress.activeUploads[0]?.purpose).toBe("content-media");
+  });
+
+  it("resourceId persists through SET_STATUS", () => {
+    const afterAdd = uploadReducer(INITIAL_UPLOAD_STATE, {
+      type: "ADD_UPLOAD",
+      id: "file-1",
+      filename: "video.mp4",
+      resourceId: "content-7",
+      purpose: "content-media",
+    });
+
+    const afterStatus = uploadReducer(afterAdd, {
+      type: "SET_STATUS",
+      id: "file-1",
+      status: "completing",
+    });
+
+    expect(afterStatus.activeUploads[0]?.resourceId).toBe("content-7");
+    expect(afterStatus.activeUploads[0]?.purpose).toBe("content-media");
   });
 
   it("UPDATE_PROGRESS updates the correct upload's progress", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading" },
-        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading" },
+        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading", resourceId: "c-1", purpose: "content-media" },
+        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading", resourceId: "c-2", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -119,7 +175,7 @@ describe("uploadReducer", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 100, status: "uploading" },
+        { id: "file-1", filename: "a.mp4", progress: 100, status: "uploading", resourceId: "c-1", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -138,7 +194,7 @@ describe("uploadReducer", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading" },
+        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading", resourceId: "c-1", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -158,8 +214,8 @@ describe("uploadReducer", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading" },
-        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading" },
+        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading", resourceId: "c-1", purpose: "content-media" },
+        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading", resourceId: "c-2", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -178,7 +234,7 @@ describe("uploadReducer", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading" },
+        { id: "file-1", filename: "a.mp4", progress: 0, status: "uploading", resourceId: "c-1", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -196,9 +252,9 @@ describe("uploadReducer", () => {
     const state: UploadState = {
       ...INITIAL_UPLOAD_STATE,
       activeUploads: [
-        { id: "file-1", filename: "a.mp4", progress: 100, status: "complete" },
-        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading" },
-        { id: "file-3", filename: "c.mp4", progress: 0, status: "error", error: "fail" },
+        { id: "file-1", filename: "a.mp4", progress: 100, status: "complete", resourceId: "c-1", purpose: "content-media" },
+        { id: "file-2", filename: "b.mp4", progress: 0, status: "uploading", resourceId: "c-2", purpose: "content-media" },
+        { id: "file-3", filename: "c.mp4", progress: 0, status: "error", error: "fail", resourceId: "c-3", purpose: "content-media" },
       ],
       isUploading: true,
     };
@@ -255,6 +311,25 @@ describe("useUpload", () => {
     });
 
     expect(result.current.state.activeUploads.length).toBeGreaterThan(0);
+  });
+
+  it("startUpload includes resourceId and purpose on the created upload entry", async () => {
+    const { result } = renderHook(() => useUpload(), { wrapper });
+
+    const file = new File(["data"], "audio.mp3", { type: "audio/mpeg" });
+
+    await act(async () => {
+      result.current.actions.startUpload({
+        file,
+        purpose: "content-media",
+        resourceId: "content-99",
+      });
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    const upload = result.current.state.activeUploads[0];
+    expect(upload?.resourceId).toBe("content-99");
+    expect(upload?.purpose).toBe("content-media");
   });
 
   it("cancelUpload removes upload from state", async () => {

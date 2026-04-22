@@ -147,7 +147,7 @@ callback_secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
 enc = %ffmpeg(
   format="flv",
   %video(codec="libx264", preset="ultrafast", b="2500k", g="60"),
-  %audio(codec="aac", b="128k")
+  %audio(codec="aac", b="256k")
 )
 
 settings.harbor.bind_addrs := ["0.0.0.0"]

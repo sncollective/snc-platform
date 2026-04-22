@@ -419,16 +419,23 @@ function AdminCreatorsPage(): React.ReactElement {
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {header.column.getIsSorted() === "asc" ? " \u2191" : ""}
-                    {header.column.getIsSorted() === "desc" ? " \u2193" : ""}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+                  const canSort = header.column.getCanSort();
+                  return (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {canSort && (
+                        <span className={styles.sortIndicator} aria-hidden="true">
+                          {sorted === "asc" ? "\u2191" : sorted === "desc" ? "\u2193" : ""}
+                        </span>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>

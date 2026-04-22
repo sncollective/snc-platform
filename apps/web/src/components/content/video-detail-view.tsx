@@ -75,25 +75,27 @@ export function VideoDetailView({ item, locked, plans }: VideoDetailViewProps): 
   return (
     <div className={styles.videoDetail}>
       {!playerExpanded && (
-        <button
-          type="button"
-          className={styles.playOverlay}
-          onClick={() => actions.play(videoMetadata)}
-          aria-label="Play video"
-        >
-          {posterSrc && (
-            <img
-              src={posterSrc}
-              alt=""
-              className={styles.poster}
-              width={640}
-              height={360}
-              {...(item.thumbnail?.srcSet ? { srcSet: item.thumbnail.srcSet } : {})}
-              sizes="(max-width: 768px) 100vw, 640px"
-            />
-          )}
-          <div className={styles.playIcon}>{"\u25B6"}</div>
-        </button>
+        <div className={styles.videoArea}>
+          <button
+            type="button"
+            className={styles.playOverlay}
+            onClick={() => actions.play(videoMetadata)}
+            aria-label="Play video"
+          >
+            {posterSrc && (
+              <img
+                src={posterSrc}
+                alt=""
+                className={styles.poster}
+                width={640}
+                height={360}
+                {...(item.thumbnail?.srcSet ? { srcSet: item.thumbnail.srcSet } : {})}
+                sizes="(max-width: 768px) 100vw, 640px"
+              />
+            )}
+            <div className={styles.playIcon}>{"\u25B6"}</div>
+          </button>
+        </div>
       )}
       <ContentMeta
         title={item.title}

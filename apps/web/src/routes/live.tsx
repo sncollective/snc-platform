@@ -154,24 +154,26 @@ function LivePage(): React.ReactElement {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LayoutPrefs>(getInitialPrefs);
 
-  // ── Controls visibility (hover/touch) ──
+  // ── Controls visibility (window-level hover/touch) ──
+  // Handlers live on window because the player is rendered at root-grid level
+  // via global-player-context, outside this component's JSX tree — a route-scoped
+  // element can't cover the player region.
   const [controlsVisible, setControlsVisible] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showControls = useCallback(() => {
-    setControlsVisible(true);
-    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-    hideTimeoutRef.current = setTimeout(() => setControlsVisible(false), 2000);
-  }, []);
-
-  const showControlsTouch = useCallback(() => {
-    setControlsVisible(true);
-    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-    hideTimeoutRef.current = setTimeout(() => setControlsVisible(false), 3000);
-  }, []);
-
   useEffect(() => {
+    const showControls = (timeoutMs: number) => {
+      setControlsVisible(true);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = setTimeout(() => setControlsVisible(false), timeoutMs);
+    };
+    const onMouseMove = () => showControls(2000);
+    const onTouchStart = () => showControls(3000);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("touchstart", onTouchStart);
     return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("touchstart", onTouchStart);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
   }, []);
@@ -263,15 +265,7 @@ function LivePage(): React.ReactElement {
   return (
     <>
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
-      <div
-        className={clsx(styles.routeContent, styles.contentArea)}
-        onMouseMove={showControls}
-        onMouseLeave={() => {
-          if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-          setControlsVisible(false);
-        }}
-        onTouchStart={showControlsTouch}
-      >
+      <div className={styles.routeContent}>
         {!isStreaming && !isLoading && <ComingSoonPlaceholder />}
 
         {hasChannels && (
@@ -332,33 +326,29 @@ function LivePage(): React.ReactElement {
           </button>
 
           {prefs.theater && (
-            <TheaterOverlay
-              channel={selectedChannel}
-              onExitTheater={() => updatePrefs({ theater: false })}
-              visible={controlsVisible}
-            />
+            <TheaterOverlay channel={selectedChannel} visible={controlsVisible} />
           )}
 
           {portalTarget && !prefs.chatCollapsed &&
             createPortal(
-              <ChatPanel
-                channelId={selectedChannelId}
-                onCollapse={() => updatePrefs({ chatCollapsed: true })}
-              />,
+              <ChatPanel channelId={selectedChannelId} />,
               portalTarget,
             )}
 
-          {prefs.chatCollapsed && (
-            <button
-              type="button"
-              className={clsx(styles.chatExpandTab, controlsVisible && styles.controlVisible)}
-              onClick={() => updatePrefs({ chatCollapsed: false })}
-              aria-label="Show chat"
-              title="Show chat"
-            >
-              {"\u2190"}
-            </button>
-          )}
+          <button
+            type="button"
+            className={clsx(
+              styles.chatToggleTab,
+              prefs.theater && styles.chatToggleTheater,
+              prefs.chatCollapsed && styles.chatToggleCollapsed,
+              controlsVisible && styles.controlVisible,
+            )}
+            onClick={() => updatePrefs({ chatCollapsed: !prefs.chatCollapsed })}
+            aria-label={prefs.chatCollapsed ? "Show chat" : "Hide chat"}
+            title={prefs.chatCollapsed ? "Show chat" : "Hide chat"}
+          >
+            {prefs.chatCollapsed ? "\u2190" : "\u2192"}
+          </button>
         </ChatProvider>
       )}
     </>
@@ -369,11 +359,9 @@ function LivePage(): React.ReactElement {
 /** Channel info overlay shown during theater mode. Visibility is driven by the parent's `visible` prop. */
 function TheaterOverlay({
   channel,
-  onExitTheater,
   visible,
 }: {
   readonly channel: Channel | null;
-  readonly onExitTheater: () => void;
   readonly visible: boolean;
 }): React.ReactElement | null {
   if (!channel) return null;
@@ -384,13 +372,6 @@ function TheaterOverlay({
       <span className={styles.theaterViewerCount}>
         {channel.viewerCount} {channel.viewerCount === 1 ? "viewer" : "viewers"}
       </span>
-      <button
-        type="button"
-        className={styles.theaterExitButton}
-        onClick={onExitTheater}
-      >
-        Exit Theater
-      </button>
     </div>
   );
 }

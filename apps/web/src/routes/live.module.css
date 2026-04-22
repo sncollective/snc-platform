@@ -12,9 +12,8 @@
 
 .theaterToggle {
   position: fixed;
-  top: 50%;
-  right: calc(340px + var(--space-sm));
-  transform: translateY(-50%);
+  top: calc(var(--nav-height) + var(--space-sm));
+  right: calc(340px + var(--space-sm) + 32px + var(--space-sm));
   width: 32px;
   height: 32px;
   display: none;
@@ -38,10 +37,12 @@
   composes: theaterToggle;
   color: var(--color-text);
   background: var(--color-surface);
+  /* Nav is hidden in theater mode — anchor to viewport top. */
+  top: var(--space-sm);
 }
 
 .theaterToggleCollapsed {
-  right: var(--space-sm);
+  right: calc(var(--space-sm) + 32px + var(--space-sm));
 }
 
 /* ── Theater Overlay (hover info bar) ── */
@@ -62,10 +63,8 @@
   z-index: var(--z-raised);
 }
 
-.theaterOverlay:hover,
 .theaterOverlayVisible {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .theaterChannelName {
@@ -79,27 +78,12 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.theaterExitButton {
-  margin-left: auto;
-  padding: var(--space-xs) var(--space-sm);
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-sm);
-  color: white;
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-}
+/* ── Chat Toggle Tab (unified collapse/expand button, top-right of player) ── */
 
-.theaterExitButton:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* ── Chat Expand Tab (when collapsed) ── */
-
-.chatExpandTab {
+.chatToggleTab {
   position: fixed;
   top: calc(var(--nav-height) + var(--space-sm));
-  right: var(--space-sm);
+  right: calc(340px + var(--space-sm));
   width: 32px;
   height: 32px;
   display: none;
@@ -114,9 +98,38 @@
   z-index: var(--z-raised);
 }
 
-.chatExpandTab:hover {
+.chatToggleTab:hover {
   color: var(--color-text);
   background: var(--color-surface);
+}
+
+.chatToggleCollapsed {
+  right: var(--space-sm);
+}
+
+.chatToggleTheater {
+  /* Nav is hidden in theater mode — anchor to viewport top. */
+  top: var(--space-sm);
+}
+
+/* ── Control visibility (fade shared across theater toggle + chat toggle tab) ── */
+
+.controlVisible {
+  /* Marker class so the CSS module exports styles.controlVisible.
+     Combined rules below drive opacity + pointer-events. */
+}
+
+.theaterToggle,
+.chatToggleTab {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.theaterToggle.controlVisible,
+.chatToggleTab.controlVisible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ── Desktop: show layout controls ── */
@@ -126,7 +139,7 @@
     display: flex;
   }
 
-  .chatExpandTab {
+  .chatToggleTab {
     display: flex;
   }
 }

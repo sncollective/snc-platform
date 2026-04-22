@@ -114,6 +114,16 @@
   font-size: var(--font-size-sm);
 }
 
+.mediaUploading {
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+}
+
+.mediaFailed {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
 /* ── Publish Controls ── */
 
 .publishedInfo {

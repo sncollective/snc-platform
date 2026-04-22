@@ -72,6 +72,12 @@
   color: var(--color-text);
 }
 
+/* Inset focus ring so the indicator isn't clipped by .panel's overflow: hidden. */
+.userListToggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 .userListItems {
   list-style: none;
   margin: 0;

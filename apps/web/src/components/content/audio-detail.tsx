@@ -2,12 +2,15 @@ import type React from "react";
 import type { FeedItem, SubscriptionPlan, Visibility } from "@snc/shared";
 
 import { useFileInput } from "../../hooks/use-file-input.js";
+import { useContentDisplayState } from "../../hooks/use-content-display-state.js";
 import { AudioPlayer } from "../media/audio-player.js";
 import { ContentMeta } from "./content-meta.js";
 import { EditableContentMeta } from "./editable-content-meta.js";
 import { ContentFooter } from "./content-footer.js";
 import { ThumbnailEditSection } from "./thumbnail-edit-section.js";
 import { AudioLockedView } from "./audio-locked-view.js";
+import { InlineUploadProgress } from "./inline-upload-progress.js";
+import { ProcessingIndicator } from "./processing-indicator.js";
 
 import styles from "./audio-detail.module.css";
 
@@ -33,9 +36,48 @@ export interface AudioDetailProps {
   readonly hideMetadata?: boolean;
 }
 
+// ── Private Helpers ──
+
+function TrackMeta({
+  item,
+  isEditing,
+  editCallbacks,
+  hideMetadata,
+}: {
+  item: FeedItem;
+  isEditing?: boolean;
+  editCallbacks?: AudioDetailEditCallbacks;
+  hideMetadata?: boolean;
+}): React.ReactElement | null {
+  if (hideMetadata) return null;
+  return (
+    <>
+      {isEditing && editCallbacks ? (
+        <EditableContentMeta
+          title={item.title}
+          creatorName={item.creatorName}
+          publishedAt={item.publishedAt}
+          description={item.description}
+          visibility={item.visibility}
+          isEditing={true}
+          onTitleChange={editCallbacks.onTitleChange}
+          onDescriptionChange={editCallbacks.onDescriptionChange}
+          onVisibilityChange={editCallbacks.onVisibilityChange}
+        />
+      ) : (
+        <ContentMeta
+          title={item.title}
+          creatorName={item.creatorName}
+          publishedAt={item.publishedAt}
+        />
+      )}
+    </>
+  );
+}
+
 // ── Public API ──
 
-/** Detail view for audio content showing cover art, metadata, and an inline audio player. Supports locked (subscribe-gated), missing-media, and editing states with media/thumbnail upload controls. */
+/** Detail view for audio content showing cover art, metadata, and an inline audio player. Supports locked (subscribe-gated), uploading, processing, ready, failed, and no-media states with media/thumbnail upload controls. */
 export function AudioDetail({
   item,
   locked,
@@ -45,8 +87,8 @@ export function AudioDetail({
   hideMetadata,
 }: AudioDetailProps): React.ReactElement {
   const { inputRef: mediaInputRef, triggerSelect: handleMediaClick, handleChange: handleMediaChange } = useFileInput(editCallbacks?.onMediaUpload);
-
   const coverArtSrc = item.thumbnailUrl;
+  const displayState = useContentDisplayState(item);
 
   if (locked === true) {
     return (
@@ -56,126 +98,194 @@ export function AudioDetail({
     );
   }
 
-  if (item.mediaUrl === null) {
-    return (
-      <div className={styles.audioDetail}>
-        <div className={styles.header}>
-          <ThumbnailEditSection
-            thumbnailSrc={coverArtSrc}
-            title={item.title}
-            isEditing={!!isEditing && !!editCallbacks}
-            onThumbnailUpload={editCallbacks?.onThumbnailUpload}
-            onThumbnailRemove={editCallbacks?.onThumbnailRemove}
-            styles={styles}
-            imgSize={{ width: 280, height: 280 }}
-          />
-          <div className={styles.trackInfo}>
-            {!hideMetadata && (isEditing && editCallbacks ? (
-              <EditableContentMeta
-                title={item.title}
-                creatorName={item.creatorName}
-                publishedAt={item.publishedAt}
-                description={item.description}
-                visibility={item.visibility}
-                isEditing={true}
-                onTitleChange={editCallbacks.onTitleChange}
-                onDescriptionChange={editCallbacks.onDescriptionChange}
-                onVisibilityChange={editCallbacks.onVisibilityChange}
-              />
-            ) : (
-              <ContentMeta
-                title={item.title}
-                creatorName={item.creatorName}
-                publishedAt={item.publishedAt}
-              />
-            ))}
-            {isEditing && editCallbacks?.onMediaUpload ? (
-              <div className={styles.uploadPlaceholder}>
-                <button
-                  type="button"
-                  className={styles.uploadPlaceholderButton}
-                  onClick={handleMediaClick}
-                >
-                  Upload Audio
-                </button>
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  className={styles.hiddenInput}
-                  accept="audio/*"
-                  aria-label="Upload audio file"
-                  onChange={handleMediaChange}
-                />
-              </div>
-            ) : (
-              <p className={styles.mediaUnavailableText}>Media not yet available</p>
-            )}
+  switch (displayState.phase) {
+    case "uploading":
+      return (
+        <div className={styles.audioDetail}>
+          <div className={styles.header}>
+            <ThumbnailEditSection
+              thumbnailSrc={coverArtSrc}
+              title={item.title}
+              isEditing={!!isEditing && !!editCallbacks}
+              onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+              onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+              styles={styles}
+              imgSize={{ width: 280, height: 280 }}
+            />
+            <div className={styles.trackInfo}>
+              <TrackMeta item={item} isEditing={isEditing} editCallbacks={editCallbacks} hideMetadata={hideMetadata} />
+              <InlineUploadProgress upload={displayState.upload} variant="audio" />
+            </div>
           </div>
+          {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
         </div>
-        {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
-      </div>
-    );
-  }
+      );
 
-  const mediaSrc = item.mediaUrl;
-
-  return (
-    <div className={styles.audioDetail}>
-      <div className={styles.header}>
-        <ThumbnailEditSection
-          thumbnailSrc={coverArtSrc}
-          title={item.title}
-          isEditing={!!isEditing && !!editCallbacks}
-          onThumbnailUpload={editCallbacks?.onThumbnailUpload}
-          onThumbnailRemove={editCallbacks?.onThumbnailRemove}
-          styles={styles}
-          imgSize={{ width: 280, height: 280 }}
-        />
-        <div className={styles.trackInfo}>
-          {!hideMetadata && (isEditing && editCallbacks ? (
-            <EditableContentMeta
+    case "processing":
+      return (
+        <div className={styles.audioDetail}>
+          <div className={styles.header}>
+            <ThumbnailEditSection
+              thumbnailSrc={coverArtSrc}
               title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-              description={item.description}
-              visibility={item.visibility}
-              isEditing={true}
-              onTitleChange={editCallbacks.onTitleChange}
-              onDescriptionChange={editCallbacks.onDescriptionChange}
-              onVisibilityChange={editCallbacks.onVisibilityChange}
+              isEditing={!!isEditing && !!editCallbacks}
+              onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+              onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+              styles={styles}
+              imgSize={{ width: 280, height: 280 }}
             />
-          ) : (
-            <ContentMeta
-              title={item.title}
-              creatorName={item.creatorName}
-              publishedAt={item.publishedAt}
-            />
-          ))}
-          <div className={styles.playerWrapper}>
-            <AudioPlayer
-              src={mediaSrc}
-              title={item.title}
-              creator={item.creatorName}
-              {...(coverArtSrc !== null ? { coverArtUrl: coverArtSrc } : {})}
-              contentId={item.id}
-            />
+            <div className={styles.trackInfo}>
+              <TrackMeta item={item} isEditing={isEditing} editCallbacks={editCallbacks} hideMetadata={hideMetadata} />
+              <ProcessingIndicator status={displayState.status} />
+            </div>
           </div>
-          {isEditing && editCallbacks && (
-            <div className={styles.editMediaActions}>
-              <button type="button" className={styles.replaceButton} onClick={handleMediaClick}>
-                Replace Audio
-              </button>
-              <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="audio/*" aria-label="Upload audio file" onChange={handleMediaChange} />
-              {editCallbacks.onMediaRemove && (
-                <button type="button" className={styles.removeButton} onClick={editCallbacks.onMediaRemove}>
-                  Remove Audio
-                </button>
+          {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
+        </div>
+      );
+
+    case "failed":
+      return (
+        <div className={styles.audioDetail}>
+          <div className={styles.header}>
+            <ThumbnailEditSection
+              thumbnailSrc={coverArtSrc}
+              title={item.title}
+              isEditing={!!isEditing && !!editCallbacks}
+              onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+              onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+              styles={styles}
+              imgSize={{ width: 280, height: 280 }}
+            />
+            <div className={styles.trackInfo}>
+              <TrackMeta item={item} isEditing={isEditing} editCallbacks={editCallbacks} hideMetadata={hideMetadata} />
+              <p className={styles.mediaUnavailableText}>Media processing failed</p>
+            </div>
+          </div>
+          {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
+        </div>
+      );
+
+    case "no-media":
+      return (
+        <div className={styles.audioDetail}>
+          <div className={styles.header}>
+            <ThumbnailEditSection
+              thumbnailSrc={coverArtSrc}
+              title={item.title}
+              isEditing={!!isEditing && !!editCallbacks}
+              onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+              onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+              styles={styles}
+              imgSize={{ width: 280, height: 280 }}
+            />
+            <div className={styles.trackInfo}>
+              {!hideMetadata && (isEditing && editCallbacks ? (
+                <EditableContentMeta
+                  title={item.title}
+                  creatorName={item.creatorName}
+                  publishedAt={item.publishedAt}
+                  description={item.description}
+                  visibility={item.visibility}
+                  isEditing={true}
+                  onTitleChange={editCallbacks.onTitleChange}
+                  onDescriptionChange={editCallbacks.onDescriptionChange}
+                  onVisibilityChange={editCallbacks.onVisibilityChange}
+                />
+              ) : (
+                <ContentMeta
+                  title={item.title}
+                  creatorName={item.creatorName}
+                  publishedAt={item.publishedAt}
+                />
+              ))}
+              {isEditing && editCallbacks?.onMediaUpload ? (
+                <div className={styles.uploadPlaceholder}>
+                  <button
+                    type="button"
+                    className={styles.uploadPlaceholderButton}
+                    onClick={handleMediaClick}
+                  >
+                    Upload Audio
+                  </button>
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    className={styles.hiddenInput}
+                    accept="audio/*"
+                    aria-label="Upload audio file"
+                    onChange={handleMediaChange}
+                  />
+                </div>
+              ) : (
+                <p className={styles.mediaUnavailableText}>Media not yet available</p>
               )}
             </div>
-          )}
+          </div>
+          {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
         </div>
-      </div>
-      {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
-    </div>
-  );
+      );
+
+    case "ready": {
+      const mediaSrc = item.mediaUrl!;
+      return (
+        <div className={styles.audioDetail}>
+          <div className={styles.header}>
+            <ThumbnailEditSection
+              thumbnailSrc={coverArtSrc}
+              title={item.title}
+              isEditing={!!isEditing && !!editCallbacks}
+              onThumbnailUpload={editCallbacks?.onThumbnailUpload}
+              onThumbnailRemove={editCallbacks?.onThumbnailRemove}
+              styles={styles}
+              imgSize={{ width: 280, height: 280 }}
+            />
+            <div className={styles.trackInfo}>
+              {!hideMetadata && (isEditing && editCallbacks ? (
+                <EditableContentMeta
+                  title={item.title}
+                  creatorName={item.creatorName}
+                  publishedAt={item.publishedAt}
+                  description={item.description}
+                  visibility={item.visibility}
+                  isEditing={true}
+                  onTitleChange={editCallbacks.onTitleChange}
+                  onDescriptionChange={editCallbacks.onDescriptionChange}
+                  onVisibilityChange={editCallbacks.onVisibilityChange}
+                />
+              ) : (
+                <ContentMeta
+                  title={item.title}
+                  creatorName={item.creatorName}
+                  publishedAt={item.publishedAt}
+                />
+              ))}
+              <div className={styles.playerWrapper}>
+                <AudioPlayer
+                  src={mediaSrc}
+                  title={item.title}
+                  creator={item.creatorName}
+                  {...(coverArtSrc !== null ? { coverArtUrl: coverArtSrc } : {})}
+                  contentId={item.id}
+                />
+              </div>
+              {isEditing && editCallbacks && (
+                <div className={styles.editMediaActions}>
+                  <button type="button" className={styles.replaceButton} onClick={handleMediaClick}>
+                    Replace Audio
+                  </button>
+                  <input ref={mediaInputRef} type="file" className={styles.hiddenInput} accept="audio/*" aria-label="Upload audio file" onChange={handleMediaChange} />
+                  {editCallbacks.onMediaRemove && (
+                    <button type="button" className={styles.removeButton} onClick={editCallbacks.onMediaRemove}>
+                      Remove Audio
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          {!hideMetadata && <ContentFooter description={isEditing ? null : item.description} />}
+        </div>
+      );
+    }
+  }
 }

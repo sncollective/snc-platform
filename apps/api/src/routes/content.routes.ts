@@ -496,6 +496,36 @@ contentRoutes.patch(
         }
       }
       updates.mediaKey = null;
+
+      if (existing.type === "video") {
+        // Thumbnail is auto-generated from video — orphan it when the video is removed.
+        if (existing.thumbnailKey) {
+          const thumbResult = await storage.delete(existing.thumbnailKey);
+          if (!thumbResult.ok) {
+            c.var.logger.warn({ error: thumbResult.error.message, key: existing.thumbnailKey }, "Failed to delete orphaned thumbnail");
+          }
+        }
+        updates.thumbnailKey = null;
+
+        // transcodedMediaKey is derived from the same source video.
+        if (existing.transcodedMediaKey) {
+          const transcodedResult = await storage.delete(existing.transcodedMediaKey);
+          if (!transcodedResult.ok) {
+            c.var.logger.warn({ error: transcodedResult.error.message, key: existing.transcodedMediaKey }, "Failed to delete transcoded media");
+          }
+        }
+        updates.transcodedMediaKey = null;
+
+        // Clear processing metadata — stale metadata from a prior upload must not persist.
+        updates.processingStatus = null;
+        updates.videoCodec = null;
+        updates.audioCodec = null;
+        updates.width = null;
+        updates.height = null;
+        updates.duration = null;
+        updates.bitrate = null;
+      }
+
       delete updates.clearMedia;
     }
 

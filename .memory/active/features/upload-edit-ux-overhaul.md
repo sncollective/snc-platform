@@ -1,11 +1,11 @@
 ---
 id: feature-upload-edit-ux-overhaul
 kind: feature
-stage: implementing
+stage: done
 tags: [content, ux-polish]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-21
 related_decisions: []
 related_designs: []
 parent: null
@@ -15,12 +15,19 @@ parent: null
 
 Processing state machine, inline upload progress, orphaned thumbnail cleanup, video layout shift fix.
 
+## Review notes (2026-04-21)
+
+- **Unit 4 mental-model correction** — the original design assumed the GlobalPlayer's expanded mode renders into VideoDetailView's reserved space via a portal. It does not — it renders as a sibling of `<Outlet>` at root layout scope (`__root.tsx`). The first implementation always rendered `.videoArea` as a 16:9 reservation, producing an empty black box when the player expanded above. Fix: wrap `.videoArea + .playOverlay` in `{!playerExpanded && …}` so both disappear together on play. Metadata reflows upward on play (as it did pre-feature) — a full portal-based player-in-place solution is deferred; see `content-processing-state-auto-refresh` backlog family and future `video-detail-player-portal` scope for the cleaner eventual answer.
+- **Sidebar ↔ content area sync (spec check #6)** — not interactively exercised at review time. Both sides now consume the same `displayState` computed once in the content edit page and passed as a prop, so sync is a structural guarantee rather than a convergent behavior. Skip-with-note: low-risk given the data-flow shape.
+- **Related findings parked:** `../../backlog/content-processing-state-auto-refresh.md` (UI stays at "Processing media…" after upload until manual refresh — pre-existing gap surfaced by the clearer new state machine).
+- **Prod-only residual lifted to release 0.3.0 `## Prod verification`:** S3 object-level verification of `thumbnailKey` + `transcodedMediaKey` cascade-delete on video clearMedia against the real prod bucket.
+
 ## Sub-units
 
-- [ ] Unit 1: Processing State Machine Cleanup
-- [ ] Unit 2: Inline Upload Progress on Content Detail Page
-- [ ] Unit 3: Orphaned Thumbnail Cleanup on Video Removal
-- [ ] Unit 4: Video Detail Layout Shift Fix
+- [x] Unit 1: Processing State Machine Cleanup
+- [x] Unit 2: Inline Upload Progress on Content Detail Page
+- [x] Unit 3: Orphaned Thumbnail Cleanup on Video Removal
+- [x] Unit 4: Video Detail Layout Shift Fix
 
 ## Overview
 

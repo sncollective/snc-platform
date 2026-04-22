@@ -1,0 +1,61 @@
+/* Video variant: 16:9 container matching upload placeholder */
+.containerVideo {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 2px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+/* Audio variant: compact inline block */
+.containerAudio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+}
+
+.filename {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  width: 100%;
+  max-width: 300px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-bg-alt);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+  transition: transform var(--duration-normal, 0.2s) var(--ease-out, ease-out);
+  transform-origin: left;
+}
+
+.percentage {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.statusText {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+}

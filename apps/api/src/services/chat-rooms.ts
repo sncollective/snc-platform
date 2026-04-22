@@ -25,10 +25,28 @@ const rooms = new Map<string, Set<ChatClient>>();
 
 // ── Presence Helpers ──
 
+/**
+ * Remove clients whose WebSocket is no longer open from a room's member Set.
+ *
+ * Mutates the Set in place. Called at the top of state-changing room operations
+ * so a stale ref (tab close not yet detected via TCP teardown, interrupted
+ * reconnect) gets culled before presence math runs — otherwise stale refs
+ * inflate viewerCount and suppress user_joined/user_left broadcasts via
+ * hasOtherConnections.
+ */
+const pruneStaleClients = (members: Set<ChatClient>): void => {
+  for (const client of members) {
+    if (client.ws == null || client.ws.readyState !== 1) {
+      members.delete(client);
+    }
+  }
+};
+
 /** Derive deduplicated presence state for a room. */
 export const getRoomPresence = (roomId: string): RoomPresence => {
   const members = rooms.get(roomId);
   if (!members) return { viewerCount: 0, users: [] };
+  pruneStaleClients(members);
 
   const seen = new Set<string>();
   const users: PresenceUser[] = [];
@@ -81,6 +99,7 @@ export const joinRoom = (roomId: string, client: ChatClient): void => {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, new Set());
   }
+  pruneStaleClients(rooms.get(roomId)!);
 
   // Check before adding — hasOtherConnections reflects pre-join state
   const isNewUser =
@@ -111,6 +130,7 @@ export const joinRoom = (roomId: string, client: ChatClient): void => {
 export const leaveRoom = (roomId: string, client: ChatClient): void => {
   const members = rooms.get(roomId);
   if (!members) return;
+  pruneStaleClients(members);
   members.delete(client);
 
   // Check after removing — hasOtherConnections reflects post-leave state
@@ -150,6 +170,7 @@ export const leaveAllRooms = (client: ChatClient): void => {
 export const broadcastToRoom = (roomId: string, data: unknown): void => {
   const members = rooms.get(roomId);
   if (!members) return;
+  pruneStaleClients(members);
   const json = JSON.stringify(data);
   for (const client of members) {
     if (client.ws.readyState === 1) {

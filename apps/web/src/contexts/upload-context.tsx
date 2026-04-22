@@ -38,6 +38,8 @@ export interface ActiveUpload {
   readonly progress: number; // 0-100
   readonly status: "uploading" | "completing" | "complete" | "error";
   readonly error?: string;
+  readonly resourceId: string;
+  readonly purpose: UploadPurpose;
 }
 
 export interface UploadState {
@@ -78,7 +80,7 @@ export const INITIAL_UPLOAD_STATE: UploadState = {
 // ── Reducer ──
 
 type UploadAction =
-  | { readonly type: "ADD_UPLOAD"; readonly id: string; readonly filename: string }
+  | { readonly type: "ADD_UPLOAD"; readonly id: string; readonly filename: string; readonly resourceId: string; readonly purpose: UploadPurpose }
   | { readonly type: "UPDATE_PROGRESS"; readonly id: string; readonly progress: number }
   | { readonly type: "SET_STATUS"; readonly id: string; readonly status: ActiveUpload["status"]; readonly error?: string }
   | { readonly type: "REMOVE_UPLOAD"; readonly id: string }
@@ -99,6 +101,8 @@ export function uploadReducer(
         filename: action.filename,
         progress: 0,
         status: "uploading",
+        resourceId: action.resourceId,
+        purpose: action.purpose,
       };
       const activeUploads = [...state.activeUploads, upload];
       return {
@@ -372,12 +376,12 @@ export function UploadProvider({
             meta: { purpose, resourceId },
           });
           callbacksRef.current.set(fileId, { onComplete, onError });
-          dispatch({ type: "ADD_UPLOAD", id: fileId, filename: file.name });
+          dispatch({ type: "ADD_UPLOAD", id: fileId, filename: file.name, resourceId, purpose });
         } else {
           // Legacy fallback path (STORAGE_TYPE=local)
           const legacyId = `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           callbacksRef.current.set(legacyId, { onComplete, onError });
-          dispatch({ type: "ADD_UPLOAD", id: legacyId, filename: file.name });
+          dispatch({ type: "ADD_UPLOAD", id: legacyId, filename: file.name, resourceId, purpose });
 
           try {
             await uploadLegacy(file, purpose, resourceId);

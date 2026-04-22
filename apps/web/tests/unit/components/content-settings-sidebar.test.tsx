@@ -15,12 +15,17 @@ vi.mock("@tanstack/react-router", () => ({
 
 import { ContentSettingsSidebar } from "../../../src/components/content/content-settings-sidebar.js";
 import type { ContentSettingsSidebarProps } from "../../../src/components/content/content-settings-sidebar.js";
+import type { ContentDisplayState } from "../../../src/hooks/use-content-display-state.js";
 
 // ── Helpers ──
+
+const noMediaState: ContentDisplayState = { phase: "no-media" };
+const readyState: ContentDisplayState = { phase: "ready" };
 
 function makeDefaultProps(overrides?: Partial<ContentSettingsSidebarProps>): ContentSettingsSidebarProps {
   return {
     item: makeMockFeedItem({ processingStatus: null, videoCodec: null, audioCodec: null, width: null, height: null, duration: null, bitrate: null }),
+    displayState: noMediaState,
     isEditing: true,
     onTitleChange: vi.fn(),
     onDescriptionChange: vi.fn(),
@@ -181,7 +186,8 @@ describe("ContentSettingsSidebar", () => {
       duration: null,
       bitrate: null,
     });
-    render(<ContentSettingsSidebar {...makeDefaultProps({ item })} />);
+    const displayState: ContentDisplayState = { phase: "processing", status: "processing" };
+    render(<ContentSettingsSidebar {...makeDefaultProps({ item, displayState })} />);
     // ProcessingIndicator renders for non-ready statuses
     expect(screen.getByText("Processing media...")).toBeInTheDocument();
   });
@@ -212,5 +218,49 @@ describe("ContentSettingsSidebar", () => {
     });
     rerender(<ContentSettingsSidebar {...makeDefaultProps({ item: writtenItem })} />);
     expect(screen.queryByText("Media")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Media uploaded' when displayState.phase is ready", () => {
+    const item = makeMockFeedItem({
+      type: "video",
+      mediaUrl: "/api/content/c1/media",
+      processingStatus: "ready",
+    });
+    render(<ContentSettingsSidebar {...makeDefaultProps({ item, displayState: readyState })} />);
+    expect(screen.getByText("Media uploaded")).toBeInTheDocument();
+  });
+
+  it("shows 'No media uploaded' when displayState.phase is no-media", () => {
+    const item = makeMockFeedItem({
+      type: "video",
+      mediaUrl: null,
+      processingStatus: null,
+    });
+    render(<ContentSettingsSidebar {...makeDefaultProps({ item, displayState: noMediaState })} />);
+    expect(screen.getByText("No media uploaded")).toBeInTheDocument();
+  });
+
+  it("shows 'Uploading...' when displayState.phase is uploading", () => {
+    const item = makeMockFeedItem({ type: "video", mediaUrl: null });
+    const displayState: ContentDisplayState = {
+      phase: "uploading",
+      upload: {
+        id: "uppy-1",
+        filename: "video.mp4",
+        progress: 50,
+        status: "uploading",
+        resourceId: item.id,
+        purpose: "content-media",
+      },
+    };
+    render(<ContentSettingsSidebar {...makeDefaultProps({ item, displayState })} />);
+    expect(screen.getByText("Uploading...")).toBeInTheDocument();
+  });
+
+  it("shows 'Processing failed' when displayState.phase is failed", () => {
+    const item = makeMockFeedItem({ type: "video", mediaUrl: null, processingStatus: "failed" });
+    const displayState: ContentDisplayState = { phase: "failed" };
+    render(<ContentSettingsSidebar {...makeDefaultProps({ item, displayState })} />);
+    expect(screen.getByText("Processing failed")).toBeInTheDocument();
   });
 });

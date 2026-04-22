@@ -43,16 +43,6 @@
   padding-left: 0;
 }
 
-/* ── Chat Collapsed ── */
-
-.liveGridChatCollapsed {
-  grid-template-columns: 1fr;
-}
-
-.liveGridChatCollapsed .chatPortal {
-  display: none;
-}
-
 /* ── Desktop: grid layout ── */
 
 @media (min-width: 768px) {
@@ -73,5 +63,13 @@
     border-left: 1px solid var(--color-border);
     border-top: none;
     height: auto;
+  }
+
+  .liveGridChatCollapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .liveGridChatCollapsed .chatPortal {
+    display: none;
   }
 }

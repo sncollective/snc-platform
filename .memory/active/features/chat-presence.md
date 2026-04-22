@@ -1,11 +1,11 @@
 ---
 id: feature-chat-presence
 kind: feature
-stage: review
+stage: done
 tags: [streaming, community]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-21
 related_decisions: []
 related_designs: []
 parent: null
