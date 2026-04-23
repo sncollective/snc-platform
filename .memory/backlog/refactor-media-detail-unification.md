@@ -1,14 +1,6 @@
 ---
-id: feature-refactor-media-detail-unification
-kind: feature
-stage: drafting
 tags: [refactor, quality, content]
-release_binding: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
-related_designs: []
-parent: null
 ---
 
 Three near-identical pairs of content-detail components exist across the web app's content layer. Each pair handles audio and video variants of the same UI pattern with ~90% shared logic. The duplication is structural — it spans orchestration, locked-gate state, and player integration — meaning any future change to content detail behavior (e.g., adding a new media state, changing footer rendering, updating player hooks) requires touching six files instead of two or three. The design step needs to commit to a unification approach before implementation so that the sweep is consistent rather than piecemeal.

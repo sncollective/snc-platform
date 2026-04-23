@@ -1,14 +1,6 @@
 ---
-id: story-refactor-bookings-desktop-mobile-dedup
-kind: story
-stage: implementing
 tags: [refactor, quality, studio]
-release_binding: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
-related_designs: []
-parent: null
 ---
 
 Eliminate the near-identical desktop and mobile renderers in the dashboard bookings table by extracting shared cell components and collapsing to a single responsive tree.

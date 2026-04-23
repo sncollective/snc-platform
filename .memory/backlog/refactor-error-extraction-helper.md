@@ -1,14 +1,6 @@
 ---
-id: feature-refactor-error-extraction-helper
-kind: feature
-stage: implementing
 tags: [refactor, quality]
-release_binding: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
-related_designs: []
-parent: null
 ---
 
 The pattern `e instanceof Error ? e.message : "Failed to <action>"` appears 20+ times across route handler catch blocks. Each site reinvents the same defensive check with a locally-varied fallback string. This makes the fallback messages inconsistent in phrasing, forces reviewers to verify correctness at every call site, and couples error-handling boilerplate to business logic. A single `extractErrorMessage(e, fallback)` utility centralizes the pattern and makes the intent explicit at each call site.

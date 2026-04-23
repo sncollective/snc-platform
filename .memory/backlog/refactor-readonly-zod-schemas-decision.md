@@ -1,14 +1,6 @@
 ---
-id: feature-refactor-readonly-zod-schemas-decision
-kind: feature
-stage: drafting
 tags: [refactor, stylistic]
-release_binding: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
-related_designs: []
-parent: null
 ---
 
 Zod-inferred types produce mutable properties by default. Several contained fixes have already shipped at specific sites across the codebase, but there is no settled policy for the general case. The codebase-wide decision on how to enforce immutability on Zod-inferred types is unresolved and high-impact — it affects every consumer of the shared package's Zod exports and any inferred types imported into api or web. The design step needs to make the policy call so that a subsequent sweep can run consistently across all affected sites rather than accruing ad-hoc fixes.
