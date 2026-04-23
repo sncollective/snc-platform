@@ -130,7 +130,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
         />
       </main>
       <MiniUploadIndicator />
-      <BottomTabBar />
+      {!isTheater && <BottomTabBar />}
       {!isLiveLayout && !isTheater && <Footer />}
     </>
   );

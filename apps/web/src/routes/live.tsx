@@ -212,7 +212,7 @@ function LivePage(): React.ReactElement {
     return () => actions.setChatCollapsed(false);
   }, [prefs.chatCollapsed, isStreaming, actions]);
 
-  // ── Keyboard shortcut: 't' for theater ──
+  // ── Keyboard shortcuts: 't' to toggle theater, 'Escape' to exit theater ──
   useEffect(() => {
     if (!isStreaming) return;
     const handler = (e: KeyboardEvent) => {
@@ -226,6 +226,9 @@ function LivePage(): React.ReactElement {
       }
       if (e.key === "t" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         updatePrefs({ theater: !prefs.theater });
+      }
+      if (e.key === "Escape" && prefs.theater) {
+        updatePrefs({ theater: false });
       }
     };
     window.addEventListener("keydown", handler);
