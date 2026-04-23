@@ -11,38 +11,86 @@ related_designs: []
 parent: null
 ---
 
-When a user sends a chat message, it briefly appears twice in the message list, then collapses to one copy on page refresh. Classic optimistic-update + server-echo duplication: the client adds the message locally on send AND receives it again via the WebSocket broadcast from the server, with no client-side dedup on messageId.
-
-Observed 2026-04-20 in the live-stream chat panel during the `design-system-adoption` review (non-blocking). Most visible viewer-facing chat bug on the 0.3.0 release surface.
+When a user sends a chat message, it briefly appears twice in the message list, then collapses to one copy on page refresh. Observed 2026-04-20 in the live-stream chat panel during the `design-system-adoption` review (non-blocking). Most visible viewer-facing chat bug on the 0.3.0 release surface.
 
 ## Root cause
 
-In `apps/web/src/contexts/chat-context.tsx` (or wherever chat state is managed), the `sendMessage` action appends an optimistic message to state immediately, then the server broadcasts the canonical message back via the WebSocket `message` event and the reducer appends it again. Refresh reloads from REST → single copy wins because duplicates don't exist server-side.
+Not optimistic-insert + server-echo (there is no client-side optimistic insert today — `sendMessage` at `chat-context.tsx:415` just calls `safeSend` with no dispatch). Actual cause: **reconnect-loop + React strict-mode double-mount creates orphan WebSocket connections that all server-side-join the same chat room, so one server broadcast hits the same browser tab multiple times.**
+
+Trace in dev (React 18 strict mode on):
+
+1. Mount effect fires → `connect()` creates WS1, `wsRef.current = ws1`.
+2. Strict-mode cleanup fires → `ws1.close()` queued (async).
+3. Strict-mode remount → `connect()` creates WS2, `wsRef.current = ws2`.
+4. WS1's `onclose` fires later → unconditionally sets `wsRef.current = null` (wiping WS2's ref) + schedules reconnect timeout.
+5. Reconnect fires → `connect()` creates WS3, `wsRef.current = ws3`.
+6. WS2 is open but orphaned (no ref in wsRef).
+7. If user is in a room, `onopen` auto-rejoins (chat-context.tsx:255-262) → both WS2 and WS3 join room A server-side.
+8. User sends message via WS3 → server broadcasts to room A → `broadcastToRoom` (chat-rooms.ts:170-180) iterates all members, hits both WS2 and WS3.
+9. Both `ws.onmessage` handlers fire in the same tab → two `ADD_MESSAGE` dispatches → message renders twice.
+
+Refresh collapses to one copy because the page reload drops all orphan sockets; REST-loaded history returns the single persisted DB row (server-side has no duplication).
+
+Strict mode in dev is the most visible trigger but the same race exists in prod on any transient network blip that closes WS1 while the cleanup hasn't flagged it as intentional.
 
 ## Approach
 
-**Option 2 — client dedup with `clientId` round-trip.** Covers the primary bug plus reconnect-replay and cross-tab duplication paths that option 1 (server-excludes-sender) misses. No DB migration — only a WebSocket message-shape change to add a `clientId` field, likely in `@snc/shared` if the type lives there.
+Targeted fix in `apps/web/src/contexts/chat-context.tsx` — two guards on the `onclose` handler:
 
-Flow:
-1. Client generates a `clientId` (UUID) when creating the optimistic message.
-2. Client sends the message over WS (or REST, whichever the send path uses) with `clientId` attached.
-3. Server echoes `clientId` back in the broadcast `message` event alongside its assigned `id` and `createdAt`.
-4. Reducer on `message` event: if a state entry matches `clientId`, merge (promote from optimistic to canonical, backfilling `id` + `createdAt`) instead of appending.
+1. **Abort flag** — cleanup marks the WS as "don't reconnect" before calling `close()`.
+2. **Identity check** — `onclose` only acts if `wsRef.current` still points at itself; orphan closes no-op.
+
+```typescript
+const connect = useCallback(() => {
+  const ws = new WebSocket(...) as WebSocket & { __abortReconnect?: boolean };
+  // ... onopen, onmessage unchanged ...
+  ws.onclose = () => {
+    if (ws.__abortReconnect) return;          // cleanup close — no reconnect
+    if (wsRef.current !== ws) return;         // orphan close — already superseded
+    dispatch({ type: "SET_CONNECTED", isConnected: false });
+    wsRef.current = null;
+    const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30_000);
+    reconnectAttemptsRef.current += 1;
+    reconnectTimeoutRef.current = setTimeout(connect, delay);
+  };
+  wsRef.current = ws;
+}, []);
+
+useEffect(() => {
+  connect();
+  return () => {
+    clearTimeout(reconnectTimeoutRef.current);
+    const ws = wsRef.current;
+    if (ws) {
+      (ws as WebSocket & { __abortReconnect?: boolean }).__abortReconnect = true;
+      ws.close();
+    }
+  };
+}, [connect]);
+```
+
+No shared-type changes. No server changes. No reducer changes. Root cause is duplicate *deliveries*, not duplicate *dispatches from a single delivery* — so client-side dedup is the wrong layer to fix it.
 
 ## Tasks
 
-- [ ] Add `clientId: string` (optional, UUID) to the chat WebSocket message shape in `@snc/shared` (or wherever the type is defined) — both send and broadcast directions.
-- [ ] Server: echo incoming `clientId` back in the broadcast payload.
-- [ ] Client: generate `clientId` on optimistic insert; dedup-or-merge in reducer on `message` event.
-- [ ] Add unit coverage for the reducer's merge path (optimistic + canonical with matching clientId → single entry with server fields).
+- [ ] Add the `__abortReconnect` flag + identity check in `chat-context.tsx` onclose handler.
+- [ ] Update the cleanup path to set the flag before calling `close()`.
+- [ ] Verify no-regression on legitimate reconnect: still reconnects on real network drop (not just cleanup close).
 
 ## Risks
 
-**Medium.** Chat is event-day-critical. Regressing chat at the live show is worse than the duplicate-flicker bug. Pre-ship verification against a local + staging WS must cover all four points in §Verification before the story flips to `review`.
+**Low.** Localized to one hook in one file. No protocol changes, no DB, no types. The identity check is strictly defensive — it narrows the conditions under which reconnect fires, not widens them.
+
+Main risk is a real-reconnect regression (network drop + cleanup race causing reconnect to be falsely suppressed). Covered by the identity check only firing when `wsRef.current !== ws` — which means some newer WS is already current, so the reconnect is genuinely unwanted. Real network drops leave `wsRef.current === ws` at the moment onclose fires, so reconnect still schedules.
 
 ## Verification
 
-- [ ] Send a message; exactly one copy appears immediately (no flicker-to-two-then-collapse)
-- [ ] Message has server-assigned `createdAt` + `id` after send completes (no stuck "sending" state)
-- [ ] Reconnect mid-session does not duplicate messages already in state
-- [ ] Other tabs receive the new message exactly once
+- [ ] Send a message in dev (strict mode on); exactly one copy appears (no flicker-to-two).
+- [ ] Simulate network drop (DevTools → Network → Offline/Online toggle); reconnect fires, active room auto-rejoins.
+- [ ] Component unmount (navigate away from chat page) → no orphan WS left, no stray reconnect timer.
+- [ ] Reconnect mid-session does not duplicate messages already in state.
+- [ ] Other tabs receive the new message exactly once.
+
+## Revision note
+
+Story was originally scoped (2026-04-20 backlog park; 2026-04-23 active promotion) with a `clientId` round-trip approach assuming optimistic-insert duplication. `/implement` grounding surfaced the actual cause — orphan WS connections from reconnect-loop + strict-mode remount — which is a different and smaller fix. Schema and server paths untouched.
