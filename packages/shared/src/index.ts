@@ -22,6 +22,7 @@ export * from "./simulcast.js";
 export * from "./streaming.js";
 export * from "./studio.js";
 export * from "./uploads.js";
+export * from "./tusd.js";
 export * from "./chat.js";
 export * from "./media-processing.js";
 export * from "./playout.js";

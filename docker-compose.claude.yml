@@ -15,6 +15,9 @@ services:
   snc-imgproxy:
     networks:
       - claude-net
+  snc-tusd:
+    networks:
+      - claude-net
 
 networks:
   claude-net:

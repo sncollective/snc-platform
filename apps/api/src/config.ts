@@ -25,6 +25,9 @@ export const ENV_SCHEMA = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  // Garage admin token — authorizes POST /v2/CleanupIncompleteUploads on :3903.
+  // Defaults to the dev admin token in garage.toml; set a real value in prod.
+  GARAGE_ADMIN_TOKEN: z.string().default("dev-admin-token"),
   // imgproxy (optional — image proxy disabled when IMGPROXY_URL absent)
   IMGPROXY_URL: z.string().url().optional(),
   IMGPROXY_KEY: z.string().optional(),

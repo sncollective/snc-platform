@@ -23,6 +23,7 @@
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.1",
     "@uppy/react": "^5.2.0",
+    "@uppy/tus": "^5.1.1",
     "@vidstack/react": "1.12.13",
     "better-auth": "^1.5.4",
     "clsx": "^2.1.1",

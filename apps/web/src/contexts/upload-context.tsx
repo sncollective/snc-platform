@@ -12,8 +12,9 @@ import type React from "react";
 import type { ReactNode } from "react";
 
 import Uppy from "@uppy/core";
-import type { Body, Meta, UppyFile } from "@uppy/core";
+import type { Meta, UppyEventMap } from "@uppy/core";
 import AwsS3 from "@uppy/aws-s3";
+import Tus from "@uppy/tus";
 import type { UploadPurpose } from "@snc/shared";
 import { MULTIPART_THRESHOLD, MULTIPART_CHUNK_SIZE } from "@snc/shared";
 
@@ -76,6 +77,15 @@ export const INITIAL_UPLOAD_STATE: UploadState = {
   isUploading: false,
   isExpanded: false,
 };
+
+/** Upload purposes routed through tus (large media files). */
+const TUS_UPLOAD_PURPOSES: ReadonlySet<UploadPurpose> = new Set<UploadPurpose>([
+  "content-media",
+  "playout-media",
+]);
+
+/** Endpoint for tus uploads — proxied to tusd via Caddy. Matches tusd's base-path. */
+const TUS_ENDPOINT = "/uploads/";
 
 // ── Reducer ──
 
@@ -196,24 +206,46 @@ const UploadContext = createContext<UploadContextValue | null>(null);
 
 // ── Provider ──
 
-/** Manage file uploads via Uppy with S3 multipart support and legacy fallback. Tracks per-file progress, completion, and errors. Consume with `useUpload`. */
+/**
+ * Manage file uploads via dual Uppy instances with tus resumable uploads for
+ * large media files and S3 multipart for thumbnails/avatars/banners.
+ *
+ * Routing: `content-media` and `playout-media` go through `@uppy/tus` →
+ * tusd (proxied via Caddy at `/uploads/`). All other purposes go through
+ * `@uppy/aws-s3` with presign/multipart. Legacy fallback (STORAGE_TYPE=local)
+ * used when S3 is unconfigured.
+ *
+ * Tracks per-file progress, completion, and errors. Consume with `useUpload`.
+ */
 export function UploadProvider({
   children,
 }: Readonly<{ children: ReactNode }>): React.ReactElement {
   const [state, dispatch] = useReducer(uploadReducer, INITIAL_UPLOAD_STATE);
   const stateRef = useRef(state);
   stateRef.current = state;
-  const uppyRef = useRef<Uppy | null>(null);
+
+  const tusUppyRef = useRef<Uppy | null>(null);
+  const s3UppyRef = useRef<Uppy | null>(null);
   const s3AvailableRef = useRef<boolean | null>(null); // null = unknown
   const callbacksRef = useRef<
     Map<string, { onComplete?: ((key: string) => void) | undefined; onError?: ((error: Error) => void) | undefined }>
   >(new Map());
 
-  // Lazy Uppy initialization
-  if (!uppyRef.current) {
-    uppyRef.current = new Uppy({
-      autoProceed: true,
-    }).use(AwsS3, {
+  // Lazy tus Uppy initialization — for content-media and playout-media
+  if (!tusUppyRef.current) {
+    tusUppyRef.current = new Uppy({ autoProceed: true }).use(Tus, {
+      endpoint: TUS_ENDPOINT,
+      retryDelays: [100, 1000, 3000, 5000],
+      removeFingerprintOnSuccess: true,
+      allowedMetaFields: ["purpose", "resourceId"],
+      chunkSize: MULTIPART_CHUNK_SIZE,
+      // Cookies are sent automatically by tus-js-client on same-origin requests.
+    });
+  }
+
+  // Lazy S3 Uppy initialization — for thumbnails, avatars, banners
+  if (!s3UppyRef.current) {
+    s3UppyRef.current = new Uppy({ autoProceed: true }).use(AwsS3, {
       shouldUseMultipart: (file) => (file.size ?? 0) > MULTIPART_THRESHOLD,
       getChunkSize: () => MULTIPART_CHUNK_SIZE,
 
@@ -225,7 +257,7 @@ export function UploadProvider({
           contentType: file.type ?? "application/octet-stream",
           size: file.size ?? 0,
         });
-        uppyRef.current?.setFileMeta(file.id, { key: resp.key });
+        s3UppyRef.current?.setFileMeta(file.id, { key: resp.key });
         return {
           method: "PUT",
           url: resp.url,
@@ -241,7 +273,7 @@ export function UploadProvider({
           contentType: file.type ?? "application/octet-stream",
           size: file.size ?? 0,
         });
-        uppyRef.current?.setFileMeta(file.id, { key: resp.key });
+        s3UppyRef.current?.setFileMeta(file.id, { key: resp.key });
         return resp;
       },
 
@@ -269,12 +301,17 @@ export function UploadProvider({
     });
   }
 
-  // Uppy event listeners
+  // Uppy event listeners — wired to both instances.
+  // Handler types are derived from UppyEventMap to satisfy strict generics.
+  // `Record<string, never>` matches Uppy's default Body generic.
   useEffect(() => {
-    const uppy = uppyRef.current;
-    if (!uppy) return;
+    const tusUppy = tusUppyRef.current;
+    const s3Uppy = s3UppyRef.current;
+    if (!tusUppy || !s3Uppy) return;
 
-    const onProgress = (file: UppyFile<Meta, Body> | undefined, progress: { bytesUploaded: number; bytesTotal: number | null }) => {
+    type EM = UppyEventMap<Meta, Record<string, never>>;
+
+    const onProgress: EM["upload-progress"] = (file, progress) => {
       if (file?.id && progress.bytesUploaded != null && progress.bytesTotal) {
         const pct = Math.round((progress.bytesUploaded / progress.bytesTotal) * 100);
         const current = stateRef.current.activeUploads.find((u) => u.id === file.id);
@@ -284,8 +321,23 @@ export function UploadProvider({
       }
     };
 
-    const onSuccess = (file: UppyFile<Meta, Body> | undefined, response: NonNullable<UppyFile<Meta, Body>["response"]>) => {
-      const key = (response.body as Record<string, unknown> | undefined)?.key as string ?? file?.meta?.key as string ?? "";
+    // tus success: the hook already wrote the DB record on post-finish.
+    // Mark complete and fire the callback with empty-string key (client doesn't
+    // know the server-side storage key after a tus upload).
+    const onTusSuccess: EM["upload-success"] = (file, _response) => {
+      const fileId = file?.id;
+      if (!fileId) return;
+      dispatch({ type: "SET_STATUS", id: fileId, status: "complete" });
+      callbacksRef.current.get(fileId)?.onComplete?.("");
+      callbacksRef.current.delete(fileId);
+    };
+
+    // S3 success: call completeUpload with retry/backoff, then fire callback.
+    const onS3Success: EM["upload-success"] = (file, response) => {
+      const key =
+        (response.body as Record<string, unknown> | undefined)?.key as string ??
+        (file?.meta?.key as string | undefined) ??
+        "";
       const fileId = file?.id;
       if (!fileId) return;
 
@@ -301,33 +353,43 @@ export function UploadProvider({
           callbacksRef.current.delete(fileId);
         })
         .catch((err: Error) => {
-          uppyRef.current?.removeFile(fileId);
+          s3UppyRef.current?.removeFile(fileId);
           dispatch({ type: "SET_STATUS", id: fileId, status: "error", error: err.message });
           callbacksRef.current.get(fileId)?.onError?.(err);
           callbacksRef.current.delete(fileId);
         });
     };
 
-    const onError = (file: UppyFile<Meta, Body> | undefined, error: Error) => {
+    // upload-error event passes a structured error object, not a raw Error.
+    const onError: EM["upload-error"] = (file, error) => {
       const fileId = file?.id;
       if (!fileId) return;
-      // Remove file from Uppy to clean up stale multipart state (uploadId, parts).
-      // This triggers the AwsS3 plugin's abortMultipartUpload handler if a
-      // multipart upload was in progress, preventing "already exists" on retry.
-      uppyRef.current?.removeFile(fileId);
+      // Remove file from whichever instance owns it to clean up stale plugin state
+      // (multipart uploadId/parts for S3; tus fingerprint for tus).
+      if (tusUppy.getFile(fileId)) {
+        tusUppy.removeFile(fileId);
+      } else {
+        s3Uppy.removeFile(fileId);
+      }
       dispatch({ type: "SET_STATUS", id: fileId, status: "error", error: error.message });
-      callbacksRef.current.get(fileId)?.onError?.(error);
+      callbacksRef.current.get(fileId)?.onError?.(new Error(error.message));
       callbacksRef.current.delete(fileId);
     };
 
-    uppy.on("upload-progress", onProgress);
-    uppy.on("upload-success", onSuccess);
-    uppy.on("upload-error", onError);
+    tusUppy.on("upload-progress", onProgress);
+    tusUppy.on("upload-success", onTusSuccess);
+    tusUppy.on("upload-error", onError);
+    s3Uppy.on("upload-progress", onProgress);
+    s3Uppy.on("upload-success", onS3Success);
+    s3Uppy.on("upload-error", onError);
 
     return () => {
-      uppy.off("upload-progress", onProgress);
-      uppy.off("upload-success", onSuccess);
-      uppy.off("upload-error", onError);
+      tusUppy.off("upload-progress", onProgress);
+      tusUppy.off("upload-success", onTusSuccess);
+      tusUppy.off("upload-error", onError);
+      s3Uppy.off("upload-progress", onProgress);
+      s3Uppy.off("upload-success", onS3Success);
+      s3Uppy.off("upload-error", onError);
     };
   }, []);
 
@@ -345,8 +407,10 @@ export function UploadProvider({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      uppyRef.current?.destroy();
-      uppyRef.current = null;
+      tusUppyRef.current?.destroy();
+      tusUppyRef.current = null;
+      s3UppyRef.current?.destroy();
+      s3UppyRef.current = null;
     };
   }, []);
 
@@ -355,7 +419,7 @@ export function UploadProvider({
     startUpload: (options: StartUploadOptions) => {
       const { file, purpose, resourceId, onComplete, onError } = options;
 
-      // Probe S3 availability on first call, then fire-and-forget
+      // Probe S3 availability on first call, then cache the result
       const doUpload = async () => {
         const s3 = await probeS3Availability(s3AvailableRef, {
           purpose,
@@ -366,8 +430,8 @@ export function UploadProvider({
         });
 
         if (s3) {
-          // S3 path: add file to Uppy (autoProceed handles upload start)
-          const uppy = uppyRef.current;
+          // Route to the correct Uppy instance based on purpose
+          const uppy = TUS_UPLOAD_PURPOSES.has(purpose) ? tusUppyRef.current : s3UppyRef.current;
           if (!uppy) return;
           const fileId = uppy.addFile({
             name: file.name,
@@ -408,14 +472,20 @@ export function UploadProvider({
         // Can't cancel legacy uploads — just remove from state
         dispatch({ type: "REMOVE_UPLOAD", id: fileId });
       } else {
-        uppyRef.current?.removeFile(fileId);
+        // Try both instances; whichever owns the file handles cleanup
+        if (tusUppyRef.current?.getFile(fileId)) {
+          tusUppyRef.current.removeFile(fileId);
+        } else {
+          s3UppyRef.current?.removeFile(fileId);
+        }
         dispatch({ type: "REMOVE_UPLOAD", id: fileId });
       }
       callbacksRef.current.delete(fileId);
     },
 
     cancelAll: () => {
-      uppyRef.current?.cancelAll();
+      tusUppyRef.current?.cancelAll();
+      s3UppyRef.current?.cancelAll();
       const current = stateRef.current.activeUploads;
       for (const upload of current) {
         callbacksRef.current.delete(upload.id);

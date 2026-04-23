@@ -126,6 +126,42 @@ services:
       timeout: 5s
       retries: 3
 
+  snc-tusd:
+    image: tusproject/tusd:latest
+    container_name: snc-tusd
+    ports:
+      - "8070:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      AWS_REGION: garage
+    command:
+      - -s3-bucket=${S3_BUCKET:-snc-uploads}
+      - -s3-endpoint=http://snc-garage:3900
+      - -s3-object-prefix=tus/
+      - -base-path=/uploads/
+      - -behind-proxy
+      - -hooks-http=http://host.docker.internal:3000/api/tusd/hooks
+      - -hooks-http-forward-headers=Authorization,Cookie
+      - -hooks-http-retry=3
+      - -hooks-http-backoff=2s
+      - -hooks-enabled-events=pre-create,post-finish,post-terminate
+      - -cors-allow-origin=https?://localhost(:\d+)?
+      - -max-size=21474836480
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      snc-garage:
+        condition: service_healthy
+    tmpfs:
+      - /tmp:size=256M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -S -q -O /dev/null http://localhost:8080/uploads/ 2>&1 | grep -qE 'HTTP/[0-9.]+ (200|405)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   snc-pgdata:
   snc-garage-meta:

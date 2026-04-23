@@ -10,6 +10,7 @@ const {
   mockUppyCancelAll,
   mockUppyAddFile,
   mockUppyRemoveFile,
+  mockUppyGetFile,
   mockUppyDestroy,
   mockUppySetFileMeta,
   mockUppyUse,
@@ -19,6 +20,7 @@ const {
   mockUppyCancelAll: vi.fn(),
   mockUppyAddFile: vi.fn().mockReturnValue("uppy-file-id"),
   mockUppyRemoveFile: vi.fn(),
+  mockUppyGetFile: vi.fn().mockReturnValue(undefined),
   mockUppyDestroy: vi.fn(),
   mockUppySetFileMeta: vi.fn(),
   mockUppyUse: vi.fn(),
@@ -31,6 +33,7 @@ vi.mock("@uppy/core", () => {
     this.cancelAll = mockUppyCancelAll;
     this.addFile = mockUppyAddFile;
     this.removeFile = mockUppyRemoveFile;
+    this.getFile = mockUppyGetFile;
     this.destroy = mockUppyDestroy;
     this.setFileMeta = mockUppySetFileMeta;
     this.use = mockUppyUse.mockReturnThis();
@@ -39,6 +42,7 @@ vi.mock("@uppy/core", () => {
 });
 
 vi.mock("@uppy/aws-s3", () => ({ default: vi.fn() }));
+vi.mock("@uppy/tus", () => ({ default: vi.fn() }));
 
 vi.mock("../../../src/lib/uploads.js", () => ({
   presignUpload: vi.fn().mockRejectedValue(new Error("S3_NOT_CONFIGURED")),
@@ -281,6 +285,7 @@ describe("useUpload", () => {
     mockUppyOn.mockReset();
     mockUppyOff.mockReset();
     mockUppyAddFile.mockReturnValue("uppy-file-id");
+    mockUppyGetFile.mockReturnValue(undefined);
   });
 
   it("throws when used outside UploadProvider", () => {

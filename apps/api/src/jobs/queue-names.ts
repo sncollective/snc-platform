@@ -13,4 +13,5 @@ export const JOB_QUEUES = {
   VOD_REMUX: "media/vod-remux",
   PLAYOUT_INGEST: "playout/ingest",
   NOTIFICATION_SEND: "notification/send",
+  CLEANUP_INCOMPLETE_UPLOADS: "storage/cleanup-incomplete-uploads",
 } as const;

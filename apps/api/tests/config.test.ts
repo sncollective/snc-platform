@@ -31,6 +31,7 @@ describe("parseConfig", () => {
       STORAGE_TYPE: "local",
       STORAGE_LOCAL_DIR: "./uploads",
       S3_REGION: "garage",
+      GARAGE_ADMIN_TOKEN: "dev-admin-token",
       STRIPE_SECRET_KEY: TEST_STRIPE_SECRET_KEY,
       STRIPE_WEBHOOK_SECRET: TEST_STRIPE_WEBHOOK_SECRET,
       SMTP_PORT: 587,

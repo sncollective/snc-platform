@@ -39,6 +39,7 @@ import { followRoutes } from "./routes/follow.routes.js";
 import { notificationPreferencesRoutes } from "./routes/notification-preferences.routes.js";
 import { inviteRoutes } from "./routes/invite.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
+import { tusdHookRoutes } from "./routes/tusd-hooks.routes.js";
 import { initWebSocket } from "./ws.js";
 // federation.routes uses @fedify/fedify which may not be installed;
 // imported dynamically below so the server boots even without it.
@@ -120,6 +121,7 @@ app.route("/api/me", meRoutes);
 app.route("/api/me/creators", meCreatorsRoutes);
 app.route("/api/me/notifications", notificationPreferencesRoutes);
 app.route("/api/uploads", uploadRoutes);
+app.route("/api/tusd", tusdHookRoutes);
 
 // Shipped features — unconditionally mounted
 app.route("/api/content", contentRoutes);

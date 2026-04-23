@@ -1,11 +1,11 @@
 ---
 id: feature-resumable-uploads-tus
 kind: feature
-stage: implementing
+stage: review
 tags: [content, media-pipeline]
 release_binding: null
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-04-23
 related_decisions: []
 related_designs: []
 parent: null
@@ -17,12 +17,27 @@ tusd + `@uppy/tus`, dual-path (tus for large media, S3 presign for small files),
 
 ## Sub-units
 
-- [ ] Unit 1: tusd Docker Service
-- [ ] Unit 2: tusd Hook Types (Shared Package)
-- [ ] Unit 3: tusd Hook Route (API)
-- [ ] Unit 4: Upload Context Migration (Web)
-- [ ] Unit 5: Completion Flow Refactor
-- [ ] Unit 6: Orphan Cleanup Job
+- [x] Unit 1: tusd Docker Service
+- [x] Unit 2: tusd Hook Types (Shared Package)
+- [x] Unit 3: tusd Hook Route (API)
+- [x] Unit 4: Upload Context Migration (Web)
+- [x] Unit 5: Completion Flow Refactor
+- [x] Unit 6: Orphan Cleanup Job
+
+## Implementation notes (2026-04-23)
+
+Two deliberate deviations from the design matter above:
+
+- **Routing substrate is Caddy, not Vite.** The design proposed a Vite dev proxy `/uploads/` → tusd. The actual dev entry point is Caddyfile.dev on `:3080`/`:3082`, which already had a stale `handle /uploads/*` → API route; repointed to `localhost:8070`. Tusd gets `-base-path=/uploads/` so the path matches through the proxy. Web client uses relative `/uploads/` and works same-origin without CORS fuss.
+- **`GARAGE_ADMIN_TOKEN` in `config.ts`**, not a module-level constant. Added as an env var with `"dev-admin-token"` default so production can override without touching source.
+
+Minor adjustments:
+
+- `JOB_QUEUES.CLEANUP_INCOMPLETE_UPLOADS` lives in `queue-names.ts` (the dedicated dependency-free file), not `register-workers.ts`. Worker registration stays in `register-workers.ts`.
+- `verifyOwnership` preserved its `{ contentType?: string }` return shape (used by presign/multipart routes) and continues to throw `UnauthorizedError` rather than raw `AppError`.
+- `@uppy/aws-s3` stays installed — the dual-Uppy design still uses it for thumbnail/avatar/banner uploads. The design bullet saying "remove after migration" was internally inconsistent with the dual-instance plan.
+
+Uppy version: installed `@uppy/tus@^5.1.1` to match the existing Uppy v5 line in the web app (the in-repo `uppy-tus-v4` skill is still labeled v4 but its API surface matches v5).
 
 ## Overview
 

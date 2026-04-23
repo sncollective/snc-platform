@@ -10,11 +10,13 @@ import { handlePlayoutIngest } from "./handlers/playout-ingest.js";
 import { handleNotificationSend } from "./handlers/notification-send.js";
 import { handleEventReminderDispatch } from "./handlers/event-reminder.js";
 import { handlePlayoutQueueCleanup } from "./handlers/playout-queue-cleanup.js";
+import { handleCleanupIncompleteUploads } from "./handlers/cleanup-incomplete-uploads.js";
 import type { ProbeJobData } from "./handlers/probe-codec.js";
 import type { TranscodeJobData } from "./handlers/transcode.js";
 import type { ThumbnailJobData } from "./handlers/extract-thumbnail.js";
 import type { PlayoutIngestJobData } from "./handlers/playout-ingest.js";
 import type { NotificationSendJobData } from "./handlers/notification-send.js";
+import type { CleanupIncompleteUploadsJobData } from "./handlers/cleanup-incomplete-uploads.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
 import { writeConfigOnly, waitForHealth } from "../services/liquidsoap-config.js";
 import { JOB_QUEUES } from "./queue-names.js";
@@ -98,6 +100,24 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     JOB_QUEUES.NOTIFICATION_SEND,
     { localConcurrency: 3 },
     (jobs) => handleNotificationSend(jobs as [Job<NotificationSendJobData>]),
+  );
+
+  await boss.createQueue(JOB_QUEUES.CLEANUP_INCOMPLETE_UPLOADS, {
+    retryLimit: 2,
+    expireInSeconds: 300,
+    deleteAfterSeconds: 60 * 60 * 24 * 7,
+  });
+
+  await boss.work<CleanupIncompleteUploadsJobData>(
+    JOB_QUEUES.CLEANUP_INCOMPLETE_UPLOADS,
+    { localConcurrency: 1 },
+    (jobs) => handleCleanupIncompleteUploads(jobs as [Job<CleanupIncompleteUploadsJobData>]),
+  );
+
+  await boss.schedule(
+    JOB_QUEUES.CLEANUP_INCOMPLETE_UPLOADS,
+    "0 3 * * *",
+    { olderThanSecs: 86400 },
   );
 
   rootLogger.info(
