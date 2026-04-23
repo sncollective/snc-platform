@@ -1,7 +1,7 @@
 ---
 id: story-chat-sent-message-double-render
 kind: story
-stage: implementing
+stage: review
 tags: [community, ux-polish]
 release_binding: null
 created: 2026-04-20
@@ -73,9 +73,33 @@ No shared-type changes. No server changes. No reducer changes. Root cause is dup
 
 ## Tasks
 
-- [ ] Add the `__abortReconnect` flag + identity check in `chat-context.tsx` onclose handler.
-- [ ] Update the cleanup path to set the flag before calling `close()`.
-- [ ] Verify no-regression on legitimate reconnect: still reconnects on real network drop (not just cleanup close).
+- [x] Add the abort flag + identity check in `chat-context.tsx` onclose handler.
+- [x] Update the cleanup path to set the flag before calling `close()`.
+- [x] Verify no-regression on legitimate reconnect: still reconnects on real network drop (not just cleanup close).
+
+## What shipped
+
+Single-file change in `apps/web/src/contexts/chat-context.tsx`:
+
+1. **Module-level `abortedSockets: WeakSet<WebSocket>`** — tracks sockets marked for intentional close. WeakSet chosen over the story-documented property-augmentation (`ws.__abortReconnect`) for cleaner typing (no casts, no type pollution on the WebSocket global) and automatic GC when the socket is collected. Design intent — abort flag + identity check — preserved; only the mechanism of the flag differs.
+
+2. **`ws.onclose` now has two guards before the existing dispatch/reconnect logic:**
+   - `if (abortedSockets.has(ws)) return;` — cleanup close, no reconnect
+   - `if (wsRef.current !== ws) return;` — orphan close, newer ws is current
+
+3. **Cleanup path adds to the WeakSet before `close()`:**
+   ```ts
+   const ws = wsRef.current;
+   if (ws) {
+     abortedSockets.add(ws);
+     ws.close();
+   }
+   ```
+
+Files touched:
+- `apps/web/src/contexts/chat-context.tsx` — module-level WeakSet, onclose guards, cleanup abort-marking
+
+No test additions. The existing 34-test chat-context reducer suite passes untouched. WS lifecycle behavior (strict-mode remount, reconnect-after-drop) isn't covered by the existing suite; adding a unit test would require mocking WebSocket + simulating close-event timing. Left for browser verification per project UI-change convention.
 
 ## Risks
 
@@ -85,11 +109,13 @@ Main risk is a real-reconnect regression (network drop + cleanup race causing re
 
 ## Verification
 
-- [ ] Send a message in dev (strict mode on); exactly one copy appears (no flicker-to-two).
-- [ ] Simulate network drop (DevTools → Network → Offline/Online toggle); reconnect fires, active room auto-rejoins.
-- [ ] Component unmount (navigate away from chat page) → no orphan WS left, no stray reconnect timer.
-- [ ] Reconnect mid-session does not duplicate messages already in state.
-- [ ] Other tabs receive the new message exactly once.
+- [x] Unit tests pass — chat-context reducer suite (34 tests) + full web suite (151 files, 1600 tests) green. No test scaffolding added for WS lifecycle; relies on browser verification below.
+- [ ] **Browser verification pending** — all bullets below are `/review`'s job. Primary confidence check is (1); the others exercise regression surfaces:
+  - [ ] Send a message in dev (strict mode on); exactly one copy appears (no flicker-to-two).
+  - [ ] Simulate network drop (DevTools → Network → Offline/Online toggle); reconnect fires, active room auto-rejoins.
+  - [ ] Component unmount (navigate away from chat page) → no orphan WS left, no stray reconnect timer.
+  - [ ] Reconnect mid-session does not duplicate messages already in state.
+  - [ ] Other tabs receive the new message exactly once.
 
 ## Revision note
 

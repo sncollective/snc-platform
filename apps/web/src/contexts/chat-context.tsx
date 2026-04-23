@@ -16,6 +16,21 @@ import type { ChatMessage, ChatRoom, MessageReaction, PresenceUser, ReactionEmoj
 
 import { toaster } from "../components/ui/toast.js";
 
+// ── Module State ──
+
+/**
+ * WebSocket instances whose close should NOT trigger a reconnect — the cleanup
+ * path marks a ws as "intentionally closed by component unmount / re-mount"
+ * before calling close(). Without this, React 18 strict-mode's double-mount
+ * causes orphan reconnections: WS1 gets cleanup-closed, its onclose fires
+ * after WS2 is already live, and the default reconnect logic creates a
+ * phantom WS3 that joins rooms in parallel with WS2 — one server broadcast
+ * then renders in the tab multiple times.
+ *
+ * WeakSet auto-GCs entries when the ws is collected; no manual cleanup needed.
+ */
+const abortedSockets = new WeakSet<WebSocket>();
+
 // ── Public Types ──
 
 export interface ChatState {
@@ -379,6 +394,15 @@ export function ChatProvider({
     };
 
     ws.onclose = () => {
+      // Cleanup close — component unmount / re-mount marked this ws as aborted.
+      // Skip reconnect and any side effects.
+      if (abortedSockets.has(ws)) return;
+
+      // Orphan close — this ws was superseded by a newer one before its close
+      // event fired (strict-mode remount race). The newer ws owns connection
+      // state; we do nothing, including not nulling wsRef.
+      if (wsRef.current !== ws) return;
+
       dispatch({ type: "SET_CONNECTED", isConnected: false });
       wsRef.current = null;
 
@@ -395,7 +419,11 @@ export function ChatProvider({
     connect();
     return () => {
       clearTimeout(reconnectTimeoutRef.current);
-      wsRef.current?.close();
+      const ws = wsRef.current;
+      if (ws) {
+        abortedSockets.add(ws);
+        ws.close();
+      }
     };
   }, [connect]);
 
