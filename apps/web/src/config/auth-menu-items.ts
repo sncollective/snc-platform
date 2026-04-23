@@ -1,5 +1,5 @@
 import type { Role } from "@snc/shared";
-import { CreditCard, FolderOpen, type LucideIcon, Settings, Shield, Users } from "lucide-react";
+import { Bell, CreditCard, FolderOpen, type LucideIcon, Settings, Shield, Users } from "lucide-react";
 
 import { isFeatureEnabled } from "../lib/config.js";
 import { hasRole } from "../lib/auth.js";
@@ -18,7 +18,7 @@ export interface AuthMenuItem {
 
 /**
  * Returns the ordered list of authenticated user-action menu items for the given roles.
- * Covers: Admin, Co-op, Files, Settings, Subscriptions.
+ * Covers: Admin, Co-op, Files, Settings, Notifications, Subscriptions.
  * Used in both the desktop UserMenu dropdown and the mobile AuthenticatedNav section.
  */
 export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly AuthMenuItem[] {
@@ -37,6 +37,7 @@ export function getAuthMenuItems(effectiveRoles: readonly Role[]): readonly Auth
   }
 
   items.push({ key: "settings", to: "/settings", label: "Settings", icon: Settings });
+  items.push({ key: "notifications", to: "/settings/notifications", label: "Notifications", icon: Bell });
 
   if (isFeatureEnabled("subscription")) {
     items.push({ key: "subscriptions", to: "/settings/subscriptions", label: "Subscriptions", icon: CreditCard });

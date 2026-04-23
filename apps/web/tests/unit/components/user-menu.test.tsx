@@ -194,7 +194,7 @@ describe("UserMenu", () => {
     ).toBeNull();
   });
 
-  it("renders Settings and Subscriptions links (My Bookings removed)", async () => {
+  it("renders Settings, Notifications, and Subscriptions links (My Bookings removed)", async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue(
       makeLoggedInSessionResult({ name: "Jane Doe" }),
@@ -207,6 +207,8 @@ describe("UserMenu", () => {
     // MenuItem with asChild renders as role="menuitem" (Ark overrides role)
     const settingsItem = await screen.findByRole("menuitem", { name: /Settings/ });
     expect(settingsItem).toHaveAttribute("href", "/settings");
+    const notificationsItem = await screen.findByRole("menuitem", { name: /Notifications/ });
+    expect(notificationsItem).toHaveAttribute("href", "/settings/notifications");
     const subsItem = await screen.findByRole("menuitem", { name: /Subscriptions/ });
     expect(subsItem).toHaveAttribute("href", "/settings/subscriptions");
     expect(screen.queryByRole("menuitem", { name: /My Bookings/ })).toBeNull();
