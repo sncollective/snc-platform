@@ -3,6 +3,7 @@ import { clsx } from "clsx/lite";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { z } from "zod/mini";
 import type { Channel, ChannelListResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
@@ -57,6 +58,9 @@ function persistPrefs(prefs: LayoutPrefs): void {
 
 export const Route = createFileRoute("/live")({
   errorComponent: RouteErrorBoundary,
+  validateSearch: z.object({
+    channel: z.optional(z.string()),
+  }),
   loader: async (): Promise<{ initial: ChannelListResponse | null }> => {
     try {
       const initial = (await fetchApiServer({
@@ -145,6 +149,7 @@ function useChannelList(initial: ChannelListResponse | null): ChannelListState {
 /** Main live stream page. */
 function LivePage(): React.ReactElement {
   const { initial } = Route.useLoaderData();
+  const { channel: channelFromUrl } = Route.useSearch();
   const { data: channelList, isLoading } = useChannelList(initial);
   const { actions, chatPortalRef } = useGlobalPlayer();
   const session = useSession();
@@ -227,12 +232,13 @@ function LivePage(): React.ReactElement {
     return () => window.removeEventListener("keydown", handler);
   }, [prefs.theater, isStreaming, updatePrefs]);
 
-  // Auto-select default channel on first load only
+  // Auto-select channel on first load only.
+  // Priority: URL `channel` param (e.g. from mini-player expand) > default channel from API.
   useEffect(() => {
-    if (!selectedChannelId && channelList?.defaultChannelId) {
-      setSelectedChannelId(channelList.defaultChannelId);
-    }
-  }, [channelList?.defaultChannelId, selectedChannelId]);
+    if (selectedChannelId) return;
+    const seed = channelFromUrl ?? channelList?.defaultChannelId ?? null;
+    if (seed) setSelectedChannelId(seed);
+  }, [channelFromUrl, channelList?.defaultChannelId, selectedChannelId]);
 
   // Signal expanded mode while /live is mounted with a selected channel
   useEffect(() => {
@@ -253,7 +259,7 @@ function LivePage(): React.ReactElement {
         posterUrl: selectedChannel.thumbnailUrl ?? null,
         source: { src: selectedChannel.hlsUrl, type: "application/x-mpegurl" },
         streamType: "live",
-        contentUrl: "/live",
+        contentUrl: `/live?channel=${selectedChannel.id}`,
       };
       actions.play(metadata);
     }

@@ -7,9 +7,10 @@ import { createRouterMock } from "../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
 
-const { mockIsFeatureEnabled, mockUseLoaderData } = vi.hoisted(() => ({
+const { mockIsFeatureEnabled, mockUseLoaderData, mockUseSearch } = vi.hoisted(() => ({
   mockIsFeatureEnabled: vi.fn(),
   mockUseLoaderData: vi.fn(),
+  mockUseSearch: vi.fn(),
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({
@@ -19,7 +20,7 @@ vi.mock("../../../src/lib/config.js", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ useLoaderData: mockUseLoaderData }),
+  createRouterMock({ useLoaderData: mockUseLoaderData, useSearch: mockUseSearch }),
 );
 
 vi.mock("@vidstack/react", () => ({
@@ -88,6 +89,7 @@ const LivePage = extractRouteComponent(() => import("../../../src/routes/live.js
 
 beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
+  mockUseSearch.mockReturnValue({});
 });
 
 afterEach(() => {
@@ -150,6 +152,28 @@ describe("LivePage", () => {
     render(<LivePage />);
 
     expect(screen.getByRole("combobox", { name: "Select channel" })).toBeInTheDocument();
+  });
+
+  it("seeds selected channel from URL ?channel= search param (priority over defaultChannelId)", () => {
+    mockUseSearch.mockReturnValue({ channel: "url-channel" });
+    mockUseLoaderData.mockReturnValue({
+      initial: {
+        channels: [
+          makeChannel({ id: "url-channel", name: "URL Channel", viewerCount: 99 }),
+          makeChannel({ id: "default-channel", name: "Default", viewerCount: 42 }),
+        ],
+        defaultChannelId: "default-channel",
+      },
+    });
+
+    render(<LivePage />);
+
+    // URL channel is selected — its viewer count renders in both the hero panel
+    // and its dropdown option; the default channel only renders once (its option).
+    // So URL-selected count appears strictly more than the default's.
+    expect(screen.getAllByText(/99 viewers/).length).toBeGreaterThan(
+      screen.queryAllByText(/42 viewers/).length,
+    );
   });
 
   it("shows viewer count for selected channel", () => {
