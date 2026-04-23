@@ -1,4 +1,4 @@
-# @uppy/tus v4 Full Reference
+# @uppy/tus v5 Full Reference
 
 ## Table of Contents
 

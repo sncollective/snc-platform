@@ -1,26 +1,38 @@
 ---
-name: uppy-tus-v4
+name: uppy-tus-v5
 description: >
-  @uppy/tus v4 resumable upload plugin reference. Auto-loads when working with
+  @uppy/tus v5 resumable upload plugin reference. Auto-loads when working with
   @uppy/tus, Uppy tus, resumable uploads, tus-js-client, upload resume,
   Tus plugin, uppy.use(Tus).
 user-invocable: false
-updated: 2026-04-14
+updated: 2026-04-23
 ---
 
-# @uppy/tus v4 Reference
+# @uppy/tus v5 Reference
 
-> **Package:** `@uppy/tus` (wraps `tus-js-client ^4.2.3`)
+> **Package:** `@uppy/tus` v5 (wraps `tus-js-client ^4.2.3`)
+> **Peer dependency:** `@uppy/core ^5.2.0`
 > **Docs:** https://uppy.io/docs/tus/
 > **Source:** https://github.com/transloadit/uppy/tree/main/packages/%40uppy/tus
 
 See [reference.md](reference.md) for full options, code examples, and migration guide.
 
+## v5 context
+
+The `@uppy/tus` plugin API is **unchanged from v4** — same options, same event surface, same `tus-js-client` wrap. The major version bump is Uppy-ecosystem-wide alignment (coordinated monorepo release), not a plugin-level rewrite. What actually changed across the ecosystem:
+
+- **CSS import paths** — `@uppy/<pkg>/dist/styles.min.css` → `@uppy/<pkg>/css/styles.min.css`. Applies to packages with CSS (`@uppy/dashboard`, etc.); `@uppy/tus` has no CSS.
+- **Strict export maps** — deep imports like `@uppy/core/lib/foo.js` no longer work; only explicitly exported entry points resolve.
+- **Package consolidation** — `@uppy/status-bar` and `@uppy/informer` merged into `@uppy/dashboard`; `@uppy/progress-bar`, `@uppy/drag-drop`, `@uppy/file-input` deprecated.
+- **Peer-dep subpaths in `@uppy/react`** — `@uppy/react/dashboard` etc., so consumers install only needed peers.
+
+None of those affect code that uses `@uppy/tus` as a standalone plugin on top of `@uppy/core`. Existing v4 code migrates unchanged.
+
 ## Installation
 
 ```bash
-bun add @uppy/tus
-# tus-js-client is a direct dependency — installed automatically
+bun add @uppy/tus @uppy/core
+# tus-js-client is a direct dependency of @uppy/tus — installed automatically
 ```
 
 ## Minimal Setup

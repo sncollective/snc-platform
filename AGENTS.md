@@ -16,7 +16,7 @@ Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with 
 
 ## Tech References
 
-Library-specific quick references live under `.claude/skills/<lib>/SKILL.md` — read the body of the relevant one when working with that library. Each carries imports, API quick reference, gotchas, and anti-patterns. Available libraries: `hono-v4`, `drizzle-v0`, `tanstack-router-v1`, `tanstack-table-v8`, `zod-v4`, `ark-ui-v5`, `garage-v2`, `pg-boss-v12`, `imgproxy-v3`, `vidstack-v1`, `uppy-tus-v4`, `tusd-v2`, `liquidsoap-v2`, `srs-v6`, `pino-logging`. The YAML frontmatter is a Claude Code loading hint; non-Claude agents should read the markdown body directly. Treat as the in-repo source of truth for that library before reaching for upstream docs or `reference/`.
+Library-specific quick references live under `.claude/skills/<lib>/SKILL.md` — read the body of the relevant one when working with that library. Each carries imports, API quick reference, gotchas, and anti-patterns. Available libraries: `hono-v4`, `drizzle-v0`, `tanstack-router-v1`, `tanstack-table-v8`, `zod-v4`, `ark-ui-v5`, `garage-v2`, `pg-boss-v12`, `imgproxy-v3`, `vidstack-v1`, `uppy-tus-v5`, `tusd-v2`, `liquidsoap-v2`, `srs-v6`, `pino-logging`. The YAML frontmatter is a Claude Code loading hint; non-Claude agents should read the markdown body directly. Treat as the in-repo source of truth for that library before reaching for upstream docs or `reference/`.
 
 Scan rule libraries (`scan-structural`, `scan-quality`, `scan-accessibility`, `scan-performance`, `scan-seo`, `scan-documentation`, `scan-stylistic`) live alongside the tech references and follow the same convention.
 
