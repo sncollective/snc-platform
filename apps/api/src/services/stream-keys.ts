@@ -6,7 +6,7 @@ import type { Result, StreamKeyResponse, StreamKeyCreatedResponse } from "@snc/s
 
 import { db } from "../db/connection.js";
 import { streamKeys } from "../db/schema/streaming.schema.js";
-import { creatorMembers } from "../db/schema/creator.schema.js";
+import { checkCreatorPermission } from "./creator-team.js";
 
 // ── Private Helpers ──
 
@@ -27,25 +27,17 @@ const toKeyResponse = (row: typeof streamKeys.$inferSelect): StreamKeyResponse =
 });
 
 /**
- * Verify the user is an owner of the creator entity.
- * Stream key management is restricted to owners only.
+ * Gate stream-key management on the `manageStreaming` permission.
+ * Grants: creator owners; platform admins (admin role bypass inside checkCreatorPermission).
  */
-const requireOwner = async (
+const requireStreamKeyAccess = async (
   userId: string,
   creatorId: string,
+  userRoles: string[] | undefined,
 ): Promise<Result<void, AppError>> => {
-  const rows = await db
-    .select({ role: creatorMembers.role })
-    .from(creatorMembers)
-    .where(
-      and(
-        eq(creatorMembers.userId, userId),
-        eq(creatorMembers.creatorId, creatorId),
-      ),
-    );
-
-  if (rows.length === 0 || rows[0]!.role !== "owner") {
-    return err(new ForbiddenError("Only creator owners can manage stream keys"));
+  const allowed = await checkCreatorPermission(userId, creatorId, "manageStreaming", userRoles);
+  if (!allowed) {
+    return err(new ForbiddenError("Only creator owners or platform admins can manage stream keys"));
   }
   return ok(undefined);
 };
@@ -60,9 +52,10 @@ export const createStreamKey = async (
   userId: string,
   creatorId: string,
   name: string,
+  userRoles?: string[],
 ): Promise<Result<StreamKeyCreatedResponse, AppError>> => {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireStreamKeyAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const rawKey = generateStreamKey();
   const id = randomUUID();
@@ -90,9 +83,10 @@ export const createStreamKey = async (
 export const listStreamKeys = async (
   userId: string,
   creatorId: string,
+  userRoles?: string[],
 ): Promise<Result<StreamKeyResponse[], AppError>> => {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireStreamKeyAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const rows = await db
     .select()
@@ -110,9 +104,10 @@ export const revokeStreamKey = async (
   userId: string,
   creatorId: string,
   keyId: string,
+  userRoles?: string[],
 ): Promise<Result<StreamKeyResponse, AppError>> => {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireStreamKeyAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const [existing] = await db
     .select()

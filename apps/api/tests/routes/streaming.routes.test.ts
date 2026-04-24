@@ -574,9 +574,11 @@ describe("streaming routes", () => {
       param: "",
     });
 
-    it("returns active simulcast URLs for snc-tv (playout stream name)", async () => {
-      // snc-tv is recognized as a playout/broadcast channel via DB lookup
-      mockDbSelectWhere.mockReturnValue([{ id: "channel-snctv" }]);
+    it("returns active simulcast URLs for snc-tv (playout stream, no session)", async () => {
+      // Liquidsoap publishes with no session row; channel lookup identifies snc-tv as playout.
+      mockDbSelectWhere
+        .mockReturnValueOnce([]) // session lookup: no session
+        .mockReturnValueOnce([{ id: "channel-snctv" }]); // channel lookup: is playout
       mockGetActiveSimulcastUrls.mockResolvedValue([
         "rtmp://live.twitch.tv/app/live_sk_test",
       ]);
@@ -597,8 +599,9 @@ describe("streaming routes", () => {
     });
 
     it("returns empty array for snc-tv when no active destinations", async () => {
-      // snc-tv is recognized as a playout/broadcast channel via DB lookup
-      mockDbSelectWhere.mockReturnValue([{ id: "channel-snctv" }]);
+      mockDbSelectWhere
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([{ id: "channel-snctv" }]);
       mockGetActiveSimulcastUrls.mockResolvedValue([]);
 
       const res = await ctx.app.request(
@@ -616,9 +619,10 @@ describe("streaming routes", () => {
       expect(body.data.urls).toStrictEqual([]);
     });
 
-    it("returns active simulcast URLs for channel-classics (playout stream name)", async () => {
-      // channel-classics is recognized as a playout channel via DB lookup
-      mockDbSelectWhere.mockReturnValue([{ id: "channel-classics" }]);
+    it("returns active simulcast URLs for channel-classics (playout stream, no session)", async () => {
+      mockDbSelectWhere
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([{ id: "channel-classics" }]);
       mockGetActiveSimulcastUrls.mockResolvedValue([
         "rtmp://a.rtmp.youtube.com/live2/yt_sk_test",
       ]);
@@ -638,7 +642,13 @@ describe("streaming routes", () => {
       expect(body.data.urls).toStrictEqual(["rtmp://a.rtmp.youtube.com/live2/yt_sk_test"]);
     });
 
-    it("returns Liquidsoap RTMP URL for creator streams", async () => {
+    it("returns Liquidsoap + creator simulcast URLs when session matches creator", async () => {
+      // Session lookup finds creator — early return, isPlayoutStream never consulted.
+      mockDbSelectWhere.mockReturnValueOnce([{ creatorId: "creator-1" }]);
+      mockGetActiveSimulcastUrls.mockResolvedValue([
+        "rtmp://live.twitch.tv/app/sk_creator",
+      ]);
+
       const res = await ctx.app.request(
         "/api/streaming/callbacks/on-forward",
         {
@@ -652,6 +662,52 @@ describe("streaming routes", () => {
       const body = await res.json();
       expect(body.code).toBe(0);
       expect(body.data.urls).toContain("rtmp://snc-liquidsoap:1936/live/stream");
+      expect(body.data.urls).toContain("rtmp://live.twitch.tv/app/sk_creator");
+      expect(mockGetActiveSimulcastUrls).toHaveBeenCalledWith("creator-1");
+    });
+
+    it("session-first classifier ignores colliding playout channel name for creator publish", async () => {
+      // Regression: ensureLiveChannelWithChat auto-creates a channels row per creator go-live.
+      // isPlayoutStream would return true against that row; session-first must win.
+      mockDbSelectWhere.mockReturnValueOnce([{ creatorId: "creator-1" }]);
+      mockGetActiveSimulcastUrls.mockResolvedValue([
+        "rtmp://live.twitch.tv/app/sk_creator",
+      ]);
+
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // Stream name matches the auto-created live-takeover channel row.
+          body: JSON.stringify(makeForwardBody("livestream")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.urls).toContain("rtmp://snc-liquidsoap:1936/live/stream");
+      expect(body.data.urls).toContain("rtmp://live.twitch.tv/app/sk_creator");
+      // Creator branch queries creator destinations, not platform-level destinations.
+      expect(mockGetActiveSimulcastUrls).toHaveBeenCalledWith("creator-1");
+    });
+
+    it("returns empty urls when no session and not a playout stream", async () => {
+      // Unknown publish — no session row and no channels row match.
+      mockDbSelectWhere.mockReturnValueOnce([]).mockReturnValueOnce([]);
+
+      const res = await ctx.app.request(
+        "/api/streaming/callbacks/on-forward",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(makeForwardBody("unknown-stream")),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.urls).toStrictEqual([]);
     });
 
     it("returns 400 on invalid body", async () => {
@@ -955,6 +1011,7 @@ describe("streaming routes", () => {
         expect(mockListCreatorSimulcastDestinations).toHaveBeenCalledWith(
           expect.any(String),
           CREATOR_ID,
+          expect.any(Array),
         );
       });
 
@@ -988,6 +1045,7 @@ describe("streaming routes", () => {
           expect.any(String),
           CREATOR_ID,
           validDestBody,
+          expect.any(Array),
         );
       });
 
@@ -1025,6 +1083,7 @@ describe("streaming routes", () => {
           CREATOR_ID,
           DEST_ID,
           { isActive: false },
+          expect.any(Array),
         );
       });
 
@@ -1057,6 +1116,7 @@ describe("streaming routes", () => {
           expect.any(String),
           CREATOR_ID,
           DEST_ID,
+          expect.any(Array),
         );
       });
 

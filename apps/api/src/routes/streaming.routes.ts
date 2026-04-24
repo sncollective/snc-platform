@@ -103,6 +103,10 @@ const SrsOnForwardSchema = z.object({
 
 // ── Private Helpers ──
 
+/** Extract platform roles from the request context (empty array if none). */
+const getRoles = (c: { get: (key: "roles") => unknown }): string[] =>
+  (c.get("roles") as string[] | undefined) ?? [];
+
 /** Check if a stream name belongs to an active playout or broadcast channel (never forward these). */
 const isPlayoutStream = async (streamName: string): Promise<boolean> => {
   const [channel] = await db
@@ -388,20 +392,10 @@ streamingRoutes.post(
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnForwardSchema>;
 
-    // Playout stream — return admin simulcast destinations only (no Liquidsoap URL to prevent loops)
-    if (await isPlayoutStream(body.stream)) {
-      const urls = await getActiveSimulcastUrls();
-      return c.json({ code: 0, data: { urls } }, 200);
-    }
-
-    // Creator stream — forward to Liquidsoap for S/NC TV takeover
-    const urls: string[] = [];
-
-    if (config.LIQUIDSOAP_RTMP_URL) {
-      urls.push(config.LIQUIDSOAP_RTMP_URL);
-    }
-
-    // Look up creator from active session to fetch their simulcast destinations
+    // Session lookup discriminates creator publishes from Liquidsoap-originated playout publishes.
+    // Creator publishes carry a validated-stream-key session row written by on_publish;
+    // Liquidsoap publishes do not. Classifying by srsClientId avoids collisions with
+    // live-takeover channel rows that share a stream name with the creator's publish.
     const [session] = await db
       .select({ creatorId: streamSessions.creatorId })
       .from(streamSessions)
@@ -413,11 +407,35 @@ streamingRoutes.post(
       );
 
     if (session) {
+      const urls: string[] = [];
+      if (config.LIQUIDSOAP_RTMP_URL) {
+        urls.push(config.LIQUIDSOAP_RTMP_URL);
+      }
       const creatorUrls = await getActiveSimulcastUrls(session.creatorId);
       urls.push(...creatorUrls);
+      rootLogger.info(
+        { event: "on_forward_creator", clientId: body.client_id, stream: body.stream, creatorId: session.creatorId, urlCount: urls.length },
+        "on_forward creator branch",
+      );
+      return c.json({ code: 0, data: { urls } }, 200);
     }
 
-    return c.json({ code: 0, data: { urls } }, 200);
+    // No session — Liquidsoap publishing a playout channel. Platform destinations only; no Liquidsoap URL (loop prevention).
+    if (await isPlayoutStream(body.stream)) {
+      const urls = await getActiveSimulcastUrls();
+      rootLogger.info(
+        { event: "on_forward_playout", clientId: body.client_id, stream: body.stream, urlCount: urls.length },
+        "on_forward playout branch",
+      );
+      return c.json({ code: 0, data: { urls } }, 200);
+    }
+
+    // Unknown publish — no session, not a known playout stream. SRS still serves native HLS.
+    rootLogger.warn(
+      { event: "on_forward_unknown", clientId: body.client_id, stream: body.stream },
+      "on_forward received for publish with no session and no playout match",
+    );
+    return c.json({ code: 0, data: { urls: [] } }, 200);
   },
 );
 
@@ -426,7 +444,7 @@ streamingRoutes.post(
 streamingRoutes.get(
   "/keys/:creatorId",
   describeRoute({
-    description: "List stream keys for a creator (owner only)",
+    description: "List stream keys for a creator (owner or platform admin)",
     tags: ["streaming-keys"],
     responses: {
       200: {
@@ -444,7 +462,7 @@ streamingRoutes.get(
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
-    const result = await listStreamKeys(user.id, creatorId);
+    const result = await listStreamKeys(user.id, creatorId, getRoles(c));
     if (!result.ok) throw result.error;
     return c.json({ keys: result.value });
   },
@@ -453,7 +471,7 @@ streamingRoutes.get(
 streamingRoutes.post(
   "/keys/:creatorId",
   describeRoute({
-    description: "Create a named stream key for a creator (owner only)",
+    description: "Create a named stream key for a creator (owner or platform admin)",
     tags: ["streaming-keys"],
     responses: {
       201: {
@@ -474,7 +492,7 @@ streamingRoutes.post(
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
     const { name } = c.req.valid("json" as never) as z.infer<typeof CreateStreamKeySchema>;
-    const result = await createStreamKey(user.id, creatorId, name);
+    const result = await createStreamKey(user.id, creatorId, name, getRoles(c));
     if (!result.ok) throw result.error;
     return c.json(result.value, 201);
   },
@@ -483,7 +501,7 @@ streamingRoutes.post(
 streamingRoutes.delete(
   "/keys/:creatorId/:keyId",
   describeRoute({
-    description: "Revoke a stream key (owner only)",
+    description: "Revoke a stream key (owner or platform admin)",
     tags: ["streaming-keys"],
     responses: {
       200: {
@@ -502,18 +520,18 @@ streamingRoutes.delete(
   async (c) => {
     const { creatorId, keyId } = c.req.valid("param" as never) as { creatorId: string; keyId: string };
     const user = c.get("user");
-    const result = await revokeStreamKey(user.id, creatorId, keyId);
+    const result = await revokeStreamKey(user.id, creatorId, keyId, getRoles(c));
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },
 );
 
-// ── Creator Simulcast Destinations (owner-only) ──
+// ── Creator Simulcast Destinations (owner or platform admin) ──
 
 streamingRoutes.get(
   "/simulcast/:creatorId",
   describeRoute({
-    description: "List simulcast destinations for a creator (owner only)",
+    description: "List simulcast destinations for a creator (owner or platform admin)",
     tags: ["streaming-simulcast"],
     responses: {
       200: { description: "Destination list" },
@@ -526,7 +544,7 @@ streamingRoutes.get(
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const user = c.get("user");
-    const result = await listCreatorSimulcastDestinations(user.id, creatorId);
+    const result = await listCreatorSimulcastDestinations(user.id, creatorId, getRoles(c));
     if (!result.ok) throw result.error;
     return c.json({ destinations: result.value }, 200);
   },
@@ -535,7 +553,7 @@ streamingRoutes.get(
 streamingRoutes.post(
   "/simulcast/:creatorId",
   describeRoute({
-    description: "Create a simulcast destination for a creator (owner only, max 5)",
+    description: "Create a simulcast destination for a creator (owner or platform admin, max 5)",
     tags: ["streaming-simulcast"],
     responses: {
       201: { description: "Created" },
@@ -557,6 +575,7 @@ streamingRoutes.post(
       user.id,
       creatorId,
       body,
+      getRoles(c),
     );
     if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 201);
@@ -566,7 +585,7 @@ streamingRoutes.post(
 streamingRoutes.patch(
   "/simulcast/:creatorId/:id",
   describeRoute({
-    description: "Update a creator's simulcast destination (owner only)",
+    description: "Update a creator's simulcast destination (owner or platform admin)",
     tags: ["streaming-simulcast"],
     responses: {
       200: { description: "Updated" },
@@ -590,6 +609,7 @@ streamingRoutes.patch(
       creatorId,
       id,
       body,
+      getRoles(c),
     );
     if (!result.ok) throw result.error;
     return c.json({ destination: result.value }, 200);
@@ -599,7 +619,7 @@ streamingRoutes.patch(
 streamingRoutes.delete(
   "/simulcast/:creatorId/:id",
   describeRoute({
-    description: "Delete a creator's simulcast destination (owner only)",
+    description: "Delete a creator's simulcast destination (owner or platform admin)",
     tags: ["streaming-simulcast"],
     responses: {
       204: { description: "Deleted" },
@@ -617,6 +637,7 @@ streamingRoutes.delete(
       user.id,
       creatorId,
       id,
+      getRoles(c),
     );
     if (!result.ok) throw result.error;
     return c.body(null, 204);

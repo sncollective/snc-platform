@@ -99,9 +99,9 @@ export const CreatorMemberRoleSchema = z.enum(CREATOR_MEMBER_ROLES);
 
 /** Permission matrix mapping each creator member role to its allowed actions. */
 export const CREATOR_ROLE_PERMISSIONS = {
-  owner:  { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: true,  viewPrivate: true  },
-  editor: { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: false, viewPrivate: true  },
-  viewer: { editProfile: false, manageContent: false, manageScheduling: false, manageMembers: false, viewPrivate: true  },
+  owner:  { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: true,  viewPrivate: true, manageStreaming: true  },
+  editor: { editProfile: true,  manageContent: true,  manageScheduling: true,  manageMembers: false, viewPrivate: true, manageStreaming: false },
+  viewer: { editProfile: false, manageContent: false, manageScheduling: false, manageMembers: false, viewPrivate: true, manageStreaming: false },
 } as const satisfies Record<CreatorMemberRole, Record<string, boolean>>;
 
 /** An individual permission that can be checked against a creator member role. */

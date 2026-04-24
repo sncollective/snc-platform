@@ -22,7 +22,7 @@ import {
   channels,
   simulcastDestinations,
 } from "../db/schema/streaming.schema.js";
-import { creatorMembers } from "../db/schema/creator.schema.js";
+import { checkCreatorPermission } from "./creator-team.js";
 import { config } from "../config.js";
 import { toISO } from "../lib/response-helpers.js";
 import { rootLogger } from "../logging/logger.js";
@@ -49,24 +49,19 @@ function toDestinationResponse(
 
 // ── Private Helpers ──
 
-/** Check that userId is an owner of the creator. Matches stream-keys.ts pattern. */
-async function requireOwner(
+/**
+ * Gate creator-scoped simulcast management on the `manageStreaming` permission.
+ * Grants: creator owners; platform admins (admin role bypass inside checkCreatorPermission).
+ */
+async function requireSimulcastAccess(
   userId: string,
   creatorId: string,
+  userRoles: string[] | undefined,
 ): Promise<Result<void>> {
-  const rows = await db
-    .select({ role: creatorMembers.role })
-    .from(creatorMembers)
-    .where(
-      and(
-        eq(creatorMembers.userId, userId),
-        eq(creatorMembers.creatorId, creatorId),
-      ),
-    );
-
-  if (rows.length === 0 || rows[0]!.role !== "owner") {
+  const allowed = await checkCreatorPermission(userId, creatorId, "manageStreaming", userRoles);
+  if (!allowed) {
     return err(
-      new ForbiddenError("Only creator owners can manage simulcast destinations"),
+      new ForbiddenError("Only creator owners or platform admins can manage simulcast destinations"),
     );
   }
   return ok(undefined);
@@ -148,13 +143,14 @@ export async function deleteSimulcastDestination(
 
 // ── Creator-Scoped CRUD ──
 
-/** List simulcast destinations for a creator (owner only). */
+/** List simulcast destinations for a creator (owner or platform admin). */
 export async function listCreatorSimulcastDestinations(
   userId: string,
   creatorId: string,
+  userRoles?: string[],
 ): Promise<Result<SimulcastDestination[]>> {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireSimulcastAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const rows = await db
     .select()
@@ -163,14 +159,15 @@ export async function listCreatorSimulcastDestinations(
   return ok(rows.map(toDestinationResponse));
 }
 
-/** Create a simulcast destination for a creator (owner only, max 5). */
+/** Create a simulcast destination for a creator (owner or platform admin, max 5). */
 export async function createCreatorSimulcastDestination(
   userId: string,
   creatorId: string,
   input: CreateSimulcastDestination,
+  userRoles?: string[],
 ): Promise<Result<SimulcastDestination>> {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireSimulcastAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   // Enforce per-creator cap
   const countRows = await db
@@ -208,15 +205,16 @@ export async function createCreatorSimulcastDestination(
   return ok(toDestinationResponse(inserted));
 }
 
-/** Update a creator's simulcast destination (owner only). */
+/** Update a creator's simulcast destination (owner or platform admin). */
 export async function updateCreatorSimulcastDestination(
   userId: string,
   creatorId: string,
   destId: string,
   input: UpdateSimulcastDestination,
+  userRoles?: string[],
 ): Promise<Result<SimulcastDestination>> {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireSimulcastAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (input.platform !== undefined) updates.platform = input.platform;
@@ -241,14 +239,15 @@ export async function updateCreatorSimulcastDestination(
   return ok(toDestinationResponse(updated));
 }
 
-/** Delete a creator's simulcast destination (owner only). */
+/** Delete a creator's simulcast destination (owner or platform admin). */
 export async function deleteCreatorSimulcastDestination(
   userId: string,
   creatorId: string,
   destId: string,
+  userRoles?: string[],
 ): Promise<Result<void>> {
-  const ownerCheck = await requireOwner(userId, creatorId);
-  if (!ownerCheck.ok) return ownerCheck;
+  const access = await requireSimulcastAccess(userId, creatorId, userRoles);
+  if (!access.ok) return access;
 
   const [deleted] = await db
     .delete(simulcastDestinations)

@@ -7,6 +7,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
+const mockCheckCreatorPermission = vi.fn();
 
 // ── Setup Factory ──
 
@@ -27,12 +28,8 @@ const setupService = async () => {
       revokedAt: "revokedAt",
     },
   }));
-  vi.doMock("../../src/db/schema/creator.schema.js", () => ({
-    creatorMembers: {
-      userId: "userId",
-      creatorId: "creatorId",
-      role: "role",
-    },
+  vi.doMock("../../src/services/creator-team.js", () => ({
+    checkCreatorPermission: mockCheckCreatorPermission,
   }));
   return await import("../../src/services/stream-keys.js");
 };
@@ -99,28 +96,24 @@ const makeKeyRow = (overrides?: Partial<{
 describe("stream key service", () => {
   describe("createStreamKey", () => {
     it("returns raw key starting with sk_ and stores only hash", async () => {
-      // owner check → returns owner row
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([{ role: "owner" }]));
-      // insert → returns key row
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
 
       const { createStreamKey } = await setupService();
-      const result = await createStreamKey("user-1", "creator-1", "My Key");
+      const result = await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.rawKey).toMatch(/^sk_/);
-        // rawKey is not the stored hash (different from id)
         expect(result.value.rawKey).not.toBe(result.value.id);
       }
     });
 
     it("rejects non-owner with 403", async () => {
-      // owner check → returns editor row
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([{ role: "editor" }]));
+      mockCheckCreatorPermission.mockResolvedValueOnce(false);
 
       const { createStreamKey } = await setupService();
-      const result = await createStreamKey("user-1", "creator-1", "My Key");
+      const result = await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -129,29 +122,37 @@ describe("stream key service", () => {
     });
 
     it("rejects with 403 when user has no membership", async () => {
-      // owner check → returns empty (no membership)
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([]));
+      mockCheckCreatorPermission.mockResolvedValueOnce(false);
 
       const { createStreamKey } = await setupService();
-      const result = await createStreamKey("user-1", "creator-1", "My Key");
+      const result = await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.statusCode).toBe(403);
       }
     });
+
+    it("allows platform admin even without creator membership", async () => {
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
+      mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
+
+      const { createStreamKey } = await setupService();
+      const result = await createStreamKey("user-admin", "creator-1", "My Key", ["admin"]);
+
+      expect(result.ok).toBe(true);
+      expect(mockCheckCreatorPermission).toHaveBeenCalledWith("user-admin", "creator-1", "manageStreaming", ["admin"]);
+    });
   });
 
   describe("listStreamKeys", () => {
     it("returns keys without raw values", async () => {
       const keyRow = makeKeyRow();
-      // owner check → owner
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([{ role: "owner" }]));
-      // list → returns key rows
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbSelect.mockReturnValueOnce(buildSelectChain([keyRow]));
 
       const { listStreamKeys } = await setupService();
-      const result = await listStreamKeys("user-1", "creator-1");
+      const result = await listStreamKeys("user-1", "creator-1", ["stakeholder"]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -168,15 +169,12 @@ describe("stream key service", () => {
       const keyRow = makeKeyRow();
       const revokedRow = makeKeyRow({ revokedAt: new Date("2026-03-26T00:00:00Z") });
 
-      // owner check → owner
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([{ role: "owner" }]));
-      // find key → active key
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbSelect.mockReturnValueOnce(buildSelectChain([keyRow]));
-      // update → revoked key
       mockDbUpdate.mockReturnValueOnce(buildUpdateChain([revokedRow]));
 
       const { revokeStreamKey } = await setupService();
-      const result = await revokeStreamKey("user-1", "creator-1", "key-1");
+      const result = await revokeStreamKey("user-1", "creator-1", "key-1", ["stakeholder"]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -185,13 +183,11 @@ describe("stream key service", () => {
     });
 
     it("returns 404 for unknown key", async () => {
-      // owner check → owner
-      mockDbSelect.mockReturnValueOnce(buildSelectChain([{ role: "owner" }]));
-      // find key → not found
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbSelect.mockReturnValueOnce(buildSelectChain([]));
 
       const { revokeStreamKey } = await setupService();
-      const result = await revokeStreamKey("user-1", "creator-1", "unknown-key");
+      const result = await revokeStreamKey("user-1", "creator-1", "unknown-key", ["stakeholder"]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
