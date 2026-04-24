@@ -147,24 +147,25 @@ export default defineConfig({
     hmr: {
       clientPort: 3001,
     },
-    // When VITE_API_URL is set (e.g., in CI's e2e setup), proxy /api/* + /uploads/*
-    // to the API. Locally the same routing is done by Caddy on :3080/:3082; this
-    // keeps CI working without adding Caddy to the webServer list.
-    ...(process.env["VITE_API_URL"] && {
-      proxy: {
-        "/api": {
-          target: process.env["VITE_API_URL"],
-          changeOrigin: false,
-          ws: true,
-        },
-        "/uploads": {
-          target: process.env["VITE_API_URL"],
-          changeOrigin: false,
-        },
-      },
-    }),
   },
   nitro: {
     preset: "node-server",
+    // When VITE_API_URL is set (e.g., in CI's e2e setup), proxy /api/** +
+    // /uploads/** to the API. Nitro owns the dev server via nitro/vite, so
+    // Vite's server.proxy is ignored — devProxy is the correct hook.
+    // Locally Caddy on :3080/:3082 does the same routing; VITE_API_URL stays
+    // unset so this block is a no-op.
+    ...(process.env["VITE_API_URL"] && {
+      devProxy: {
+        "/api/**": {
+          target: process.env["VITE_API_URL"],
+          changeOrigin: true,
+        },
+        "/uploads/**": {
+          target: process.env["VITE_API_URL"],
+          changeOrigin: true,
+        },
+      },
+    }),
   },
 });
