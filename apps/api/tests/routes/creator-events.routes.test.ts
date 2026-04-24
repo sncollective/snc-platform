@@ -69,6 +69,7 @@ const ctx = setupRouteTest({
         allDay: {},
         eventType: {},
         location: {},
+        visibility: {},
         createdBy: {},
         creatorId: {},
         projectId: {},
@@ -375,6 +376,31 @@ describe("creator event routes", () => {
 
       expect(res.status).toBe(200);
       expect(body.event.title).toBe("Updated Title");
+    });
+
+    it("persists visibility change to the DB", async () => {
+      const event = makeMockCalendarEvent({ creatorId: "creator_1" });
+      const updated = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        visibility: "public",
+      });
+
+      mockSelectWhere.mockResolvedValueOnce([event]);
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_test001",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visibility: "public" }),
+        },
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ visibility: "public" }),
+      );
     });
 
     it("returns 404 when event belongs to different creator", async () => {

@@ -287,6 +287,7 @@ creatorEventRoutes.patch(
     if (data.eventType !== undefined) updates.eventType = data.eventType;
     if (data.location !== undefined) updates.location = data.location;
     if (data.projectId !== undefined) updates.projectId = data.projectId;
+    if (data.visibility !== undefined) updates.visibility = data.visibility;
 
     await db
       .update(calendarEvents)

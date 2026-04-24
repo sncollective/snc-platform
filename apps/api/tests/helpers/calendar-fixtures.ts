@@ -9,6 +9,7 @@ type DbCalendarEventRow = {
   allDay: boolean;
   eventType: string;
   location: string;
+  visibility: string;
   createdBy: string;
   creatorId: string | null;
   projectId: string | null;
@@ -51,6 +52,7 @@ export const makeMockCalendarEvent = (
   allDay: false,
   eventType: "recording-session",
   location: "Studio A",
+  visibility: "internal",
   createdBy: "user_test123",
   creatorId: null,
   projectId: null,
