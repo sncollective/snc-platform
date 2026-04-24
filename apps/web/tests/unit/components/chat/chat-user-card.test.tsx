@@ -93,7 +93,7 @@ const BANNED_RESPONSE = {
 const DEFAULT_CARD_PROPS = {
   targetUserId: "target-1",
   targetUserName: "Jordan",
-  targetAvatarUrl: null as string | null | undefined,
+  targetAvatarUrl: null as string | null,
   roomId: "room-1",
 };
 

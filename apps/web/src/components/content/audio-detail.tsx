@@ -45,9 +45,9 @@ function TrackMeta({
   hideMetadata,
 }: {
   item: FeedItem;
-  isEditing?: boolean;
-  editCallbacks?: AudioDetailEditCallbacks;
-  hideMetadata?: boolean;
+  isEditing?: boolean | undefined;
+  editCallbacks?: AudioDetailEditCallbacks | undefined;
+  hideMetadata?: boolean | undefined;
 }): React.ReactElement | null {
   if (hideMetadata) return null;
   return (

@@ -47,7 +47,7 @@ function renderShell(
   options: { itemFilter?: (item: ContextNavItem) => boolean } = {},
 ) {
   return render(
-    <ContextShell config={config} itemFilter={options.itemFilter}>
+    <ContextShell config={config} {...(options.itemFilter !== undefined && { itemFilter: options.itemFilter })}>
       <div>content</div>
     </ContextShell>,
   );

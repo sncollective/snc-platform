@@ -27,6 +27,7 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
       displayName: "Test Creator",
       handle: "test-creator",
       avatarUrl: null,
+      avatar: null,
     },
     startedAt: null,
     nowPlaying: {

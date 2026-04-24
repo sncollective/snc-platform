@@ -47,9 +47,9 @@ function MetaSection({
   hideMetadata,
 }: {
   item: FeedItem;
-  isEditing?: boolean;
-  editCallbacks?: VideoDetailEditCallbacks;
-  hideMetadata?: boolean;
+  isEditing?: boolean | undefined;
+  editCallbacks?: VideoDetailEditCallbacks | undefined;
+  hideMetadata?: boolean | undefined;
 }): React.ReactElement | null {
   if (hideMetadata) return null;
   return (
