@@ -73,7 +73,15 @@ export default defineConfig({
           command: "bun run --filter @snc/api dev",
           port: 3100,
           reuseExistingServer: false,
-          env: { ...PROD_FLAGS, PORT: "3100" },
+          env: {
+            ...PROD_FLAGS,
+            PORT: "3100",
+            // Web in CI runs on :3101 via Vite; API's default CORS_ORIGIN is
+            // :3080 (the prod-like Caddy port). Override so the API trusts
+            // requests coming from the CI web origin.
+            CORS_ORIGIN: "http://localhost:3101",
+            BETTER_AUTH_URL: "http://localhost:3101",
+          },
           cwd: "../..",
         },
         {
