@@ -71,6 +71,8 @@ export const emissionsRoutes = new Hono<AuthEnv>();
 
 emissionsRoutes.get(
   "/summary",
+  requireAuth,
+  requireRole("stakeholder"),
   describeRoute({
     description: "Emissions summary (total CO2, entry count, latest date)",
     tags: ["emissions"],
@@ -81,6 +83,8 @@ emissionsRoutes.get(
           "application/json": { schema: resolver(EmissionsSummarySchema) },
         },
       },
+      401: ERROR_401,
+      403: ERROR_403,
     },
   }),
   async (c) => {
@@ -90,6 +94,8 @@ emissionsRoutes.get(
 
 emissionsRoutes.get(
   "/breakdown",
+  requireAuth,
+  requireRole("stakeholder"),
   describeRoute({
     description: "Full emissions breakdown by scope, category, and month",
     tags: ["emissions"],
@@ -100,6 +106,8 @@ emissionsRoutes.get(
           "application/json": { schema: resolver(EmissionsBreakdownSchema) },
         },
       },
+      401: ERROR_401,
+      403: ERROR_403,
     },
   }),
   async (c) => {

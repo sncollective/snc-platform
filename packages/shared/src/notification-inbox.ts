@@ -22,7 +22,11 @@ export const InboxNotificationSchema = z.object({
   type: z.enum(INBOX_NOTIFICATION_TYPES),
   title: z.string(),
   body: z.string(),
-  actionUrl: z.string().nullable(),
+  // Relative-path only — the inbox client assigns this to `window.location.href`,
+  // so permitting absolute URLs would open a redirect / `javascript:`-URI vector.
+  actionUrl: z.string().refine((v) => v.startsWith("/"), {
+    message: "actionUrl must be a relative path starting with '/'",
+  }).nullable(),
   read: z.boolean(),
   createdAt: z.string().datetime(),
 });

@@ -73,7 +73,7 @@ describe("MiniUploadIndicator", () => {
 
   it("sets --mini-upload-height to 48px when uploads exist", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "video.mp4", progress: 50, status: "uploading" }],
+      activeUploads: [{ id: "u1", filename: "video.mp4", progress: 50, status: "uploading", resourceId: "r1", purpose: "content-media" }],
       isUploading: true,
     }));
 
@@ -93,7 +93,7 @@ describe("MiniUploadIndicator", () => {
 
   it("renders compact view with filename for single upload", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "my-video.mp4", progress: 42, status: "uploading" }],
+      activeUploads: [{ id: "u1", filename: "my-video.mp4", progress: 42, status: "uploading", resourceId: "r1", purpose: "content-media" }],
       isUploading: true,
     }));
 
@@ -106,8 +106,8 @@ describe("MiniUploadIndicator", () => {
   it("renders compact view with count for multiple uploads", () => {
     mockUseUpload.mockReturnValue(makeContext({
       activeUploads: [
-        { id: "u1", filename: "a.mp4", progress: 30, status: "uploading" },
-        { id: "u2", filename: "b.mp4", progress: 50, status: "uploading" },
+        { id: "u1", filename: "a.mp4", progress: 30, status: "uploading", resourceId: "r1", purpose: "content-media" },
+        { id: "u2", filename: "b.mp4", progress: 50, status: "uploading", resourceId: "r1", purpose: "content-media" },
       ],
       isUploading: true,
     }));
@@ -120,7 +120,7 @@ describe("MiniUploadIndicator", () => {
   it("shows 'Upload complete' when all done", () => {
     mockUseUpload.mockReturnValue(makeContext({
       activeUploads: [
-        { id: "u1", filename: "a.mp4", progress: 100, status: "complete" },
+        { id: "u1", filename: "a.mp4", progress: 100, status: "complete", resourceId: "r1", purpose: "content-media" },
       ],
       isUploading: false,
     }));
@@ -132,7 +132,7 @@ describe("MiniUploadIndicator", () => {
 
   it("shows 'Cancel all' button when uploading", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading", resourceId: "r1", purpose: "content-media" }],
       isUploading: true,
     }));
 
@@ -143,7 +143,7 @@ describe("MiniUploadIndicator", () => {
 
   it("shows 'Dismiss' button when not uploading", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete", resourceId: "r1", purpose: "content-media" }],
       isUploading: false,
     }));
 
@@ -154,7 +154,7 @@ describe("MiniUploadIndicator", () => {
 
   it("Cancel all button calls cancelAll action", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading", resourceId: "r1", purpose: "content-media" }],
       isUploading: true,
     }));
 
@@ -167,7 +167,7 @@ describe("MiniUploadIndicator", () => {
 
   it("Dismiss button calls dismissCompleted action", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete", resourceId: "r1", purpose: "content-media" }],
       isUploading: false,
     }));
 
@@ -180,7 +180,7 @@ describe("MiniUploadIndicator", () => {
 
   it("expand toggle calls toggleExpanded action", () => {
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 50, status: "uploading", resourceId: "r1", purpose: "content-media" }],
       isUploading: true,
     }));
 
@@ -195,7 +195,7 @@ describe("MiniUploadIndicator", () => {
   it("expanded view shows per-file rows when isExpanded", () => {
     mockUseUpload.mockReturnValue(makeContext({
       activeUploads: [
-        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading" },
+        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading", resourceId: "r1", purpose: "content-media" },
       ],
       isUploading: true,
       isExpanded: true,
@@ -210,7 +210,7 @@ describe("MiniUploadIndicator", () => {
   it("expanded view shows cancel button for uploading files", () => {
     mockUseUpload.mockReturnValue(makeContext({
       activeUploads: [
-        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading" },
+        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading", resourceId: "r1", purpose: "content-media" },
       ],
       isUploading: true,
       isExpanded: true,
@@ -224,7 +224,7 @@ describe("MiniUploadIndicator", () => {
   it("per-file cancel button calls cancelUpload with file id", () => {
     mockUseUpload.mockReturnValue(makeContext({
       activeUploads: [
-        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading" },
+        { id: "u1", filename: "video.mp4", progress: 60, status: "uploading", resourceId: "r1", purpose: "content-media" },
       ],
       isUploading: true,
       isExpanded: true,
@@ -241,7 +241,7 @@ describe("MiniUploadIndicator", () => {
     vi.useFakeTimers();
 
     mockUseUpload.mockReturnValue(makeContext({
-      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete" }],
+      activeUploads: [{ id: "u1", filename: "a.mp4", progress: 100, status: "complete", resourceId: "r1", purpose: "content-media" }],
       isUploading: false,
     }));
 

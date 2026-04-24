@@ -1,11 +1,11 @@
 ---
 id: story-notification-preferences-ui-nav-link
 kind: story
-stage: review
+stage: done
 tags: [community, content]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-23
+updated: 2026-04-24
 related_decisions: [platform-0010]
 related_designs: []
 parent: null

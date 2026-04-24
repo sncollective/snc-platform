@@ -64,7 +64,7 @@ export function useNotifications(): UseNotificationsResult {
         // Non-critical
       }
     }
-    if (notification.actionUrl) {
+    if (notification.actionUrl && notification.actionUrl.startsWith("/")) {
       window.location.href = notification.actionUrl;
     }
   }, []);

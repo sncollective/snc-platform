@@ -216,12 +216,6 @@ export function EventForm({
     }
   }, [eventTypeToReconcile, knownEventTypes]);
 
-  useEffect(() => {
-    if (eventType === "show") {
-      setVisibility("public");
-    }
-  }, [eventType]);
-
   const isOtherSelected = eventType === "other";
   const customSlug = toSlug(customEventTypeLabel);
   const resolvedEventType = isOtherSelected ? customSlug : eventType;

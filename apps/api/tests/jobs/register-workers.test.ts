@@ -4,10 +4,12 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 const mockCreateQueue = vi.fn().mockResolvedValue(undefined);
 const mockWork = vi.fn().mockResolvedValue(undefined);
+const mockSchedule = vi.fn().mockResolvedValue(undefined);
 
 const mockBoss = {
   createQueue: mockCreateQueue,
   work: mockWork,
+  schedule: mockSchedule,
 };
 
 // ── Setup ──

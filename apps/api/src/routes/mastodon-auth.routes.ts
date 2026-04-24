@@ -12,8 +12,33 @@ import { ERROR_400, ERROR_502 } from "../lib/openapi-errors.js";
 
 // ── Schemas ──
 
+/**
+ * Validate a Mastodon instance hostname. Rejects localhost, private IP
+ * ranges, container service names, and embedded protocol/paths to prevent
+ * SSRF via the app-registration fetch at `getOrRegisterApp`.
+ */
+const isPublicHostname = (value: string): boolean => {
+  // Must be a plain hostname — no protocol, no path, no userinfo, no port override.
+  if (/[\s:/?#@]/.test(value)) return false;
+  const lower = value.toLowerCase();
+  // Reject literal IPv4 (any address — we don't probe raw IPs).
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(lower)) return false;
+  // Reject localhost + common internal-only TLDs + container / k8s service names.
+  const forbiddenExact = new Set(["localhost", "localhost.localdomain"]);
+  if (forbiddenExact.has(lower)) return false;
+  const forbiddenSuffixes = [".local", ".internal", ".docker.internal", ".svc", ".svc.cluster.local"];
+  if (forbiddenSuffixes.some((suffix) => lower.endsWith(suffix))) return false;
+  // Must contain at least one dot (single-label names like `snc-postgres` or `mailpit` are reject-worthy).
+  if (!lower.includes(".")) return false;
+  // Length sanity per DNS RFC.
+  if (lower.length > 253) return false;
+  return true;
+};
+
 const StartMastodonAuthBody = z.object({
-  instanceDomain: z.string().min(1),
+  instanceDomain: z.string().min(1).refine(isPublicHostname, {
+    message: "instanceDomain must be a public hostname (no IPs, localhost, or internal TLDs)",
+  }),
 });
 
 const MastodonCallbackQuery = z.object({

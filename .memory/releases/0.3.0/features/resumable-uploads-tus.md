@@ -1,11 +1,11 @@
 ---
 id: feature-resumable-uploads-tus
 kind: feature
-stage: review
+stage: done
 tags: [content, media-pipeline]
-release_binding: null
+release_binding: 0.3.0
 created: 2026-04-18
-updated: 2026-04-23
+updated: 2026-04-24
 related_decisions: []
 related_designs: []
 parent: null

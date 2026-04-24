@@ -8,10 +8,11 @@ import { NotFoundError } from "@snc/shared";
 // module-level mocks. We re-mock getSignedUrl in beforeEach since the
 // module mock is only available after import.
 
-const { mockSend, mockGetSignedUrl } = vi.hoisted(() => {
+const { mockSend, mockGetSignedUrl, mockUploadDone } = vi.hoisted(() => {
   const mockSend = vi.fn();
   const mockGetSignedUrl = vi.fn();
-  return { mockSend, mockGetSignedUrl };
+  const mockUploadDone = vi.fn();
+  return { mockSend, mockGetSignedUrl, mockUploadDone };
 });
 
 vi.mock("@aws-sdk/client-s3", () => ({
@@ -22,6 +23,33 @@ vi.mock("@aws-sdk/client-s3", () => ({
   GetObjectCommand: vi.fn().mockImplementation((params: unknown) => ({ ...(params as object), type: "GetObject" })),
   DeleteObjectCommand: vi.fn().mockImplementation((params: unknown) => ({ ...(params as object), type: "DeleteObject" })),
   HeadObjectCommand: vi.fn().mockImplementation((params: unknown) => ({ ...(params as object), type: "HeadObject" })),
+}));
+
+// Mock lib-storage's Upload class so the tests don't exercise the real multipart flow.
+// The default `done` implementation drains the Body stream so the byte-counting PassThrough
+// in s3-storage.upload() fires its `data` events.
+vi.mock("@aws-sdk/lib-storage", () => ({
+  Upload: class MockUpload {
+    private readonly options: { params: { Body: NodeJS.ReadableStream } };
+    constructor(options: { params: { Body: NodeJS.ReadableStream } }) {
+      this.options = options;
+    }
+    async done(): Promise<{ ETag: string }> {
+      const impl = mockUploadDone.getMockImplementation();
+      if (impl) {
+        mockUploadDone();
+        return impl() as Promise<{ ETag: string }>;
+      }
+      const body = this.options.params.Body;
+      await new Promise<void>((resolve, reject) => {
+        body.on("end", () => resolve());
+        body.on("error", (e) => reject(e));
+        body.on("close", () => resolve());
+        if (typeof body.resume === "function") body.resume();
+      });
+      return { ETag: '"test-etag"' };
+    }
+  },
 }));
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -59,13 +87,10 @@ describe("createS3Storage", () => {
   // ── upload ──
 
   describe("upload", () => {
-    it("returns ok with key and size", async () => {
-      mockSend
-        .mockResolvedValueOnce({}) // PutObjectCommand
-        .mockResolvedValueOnce({ ContentLength: 8, ContentType: "text/plain" }); // HeadObjectCommand
-
+    it("returns ok with key and size from contentLength metadata when provided", async () => {
       const result = await storage.upload("content/abc/media/test.mp4", makeFakeStream(), {
         contentType: "video/mp4",
+        contentLength: 8,
       });
 
       expect(result.ok).toBe(true);
@@ -75,21 +100,20 @@ describe("createS3Storage", () => {
       }
     });
 
-    it("falls back to body byteLength when HeadObjectCommand returns no ContentLength", async () => {
-      mockSend
-        .mockResolvedValueOnce({}) // PutObjectCommand
-        .mockResolvedValueOnce({ ContentLength: undefined }); // HeadObjectCommand
-
+    it("falls back to bytes-streamed counter when contentLength metadata not provided", async () => {
       const result = await storage.upload("content/abc/media/test.mp4", makeFakeStream());
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.size).toBeGreaterThanOrEqual(0);
+        // makeFakeStream encodes "hello s3" which is 8 bytes.
+        expect(result.value.size).toBe(8);
       }
     });
 
-    it("returns err when S3 throws", async () => {
-      mockSend.mockRejectedValueOnce(new Error("S3 put failed"));
+    it("returns err when the upload throws", async () => {
+      mockUploadDone.mockImplementationOnce(async () => {
+        throw new Error("S3 put failed");
+      });
 
       const result = await storage.upload("content/abc/media/test.mp4", makeFakeStream());
 

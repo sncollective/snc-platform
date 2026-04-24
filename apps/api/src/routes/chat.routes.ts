@@ -494,6 +494,9 @@ chatRoutes.get(
       limit: number;
     };
 
+    const modCheck = await canModerateRoom(user.id, roomId);
+    if (!modCheck.ok) throw modCheck.error;
+
     const result = await getModerationHistory({
       roomId,
       limit,
@@ -522,6 +525,9 @@ chatRoutes.get(
     }
     const { roomId } = c.req.valid("param" as never) as { roomId: string };
 
+    const modCheck = await canModerateRoom(user.id, roomId);
+    if (!modCheck.ok) throw modCheck.error;
+
     const result = await getActiveSanctions(roomId);
     if (!result.ok) throw result.error;
 
@@ -545,6 +551,9 @@ chatRoutes.get(
       throw new AppError("UNAUTHORIZED", "Authentication required", 401);
     }
     const { roomId } = c.req.valid("param" as never) as { roomId: string };
+
+    const modCheck = await canModerateRoom(user.id, roomId);
+    if (!modCheck.ok) throw modCheck.error;
 
     const result = await getWordFilters(roomId);
     if (!result.ok) throw result.error;
@@ -578,6 +587,9 @@ chatRoutes.post(
       isRegex: boolean;
     };
 
+    const modCheck = await canModerateRoom(user.id, roomId);
+    if (!modCheck.ok) throw modCheck.error;
+
     const result = await addWordFilter({
       roomId,
       moderatorUserId: user.id,
@@ -605,10 +617,13 @@ chatRoutes.delete(
     if (!user) {
       throw new AppError("UNAUTHORIZED", "Authentication required", 401);
     }
-    const { filterId } = c.req.valid("param" as never) as {
+    const { roomId, filterId } = c.req.valid("param" as never) as {
       roomId: string;
       filterId: string;
     };
+
+    const modCheck = await canModerateRoom(user.id, roomId);
+    if (!modCheck.ok) throw modCheck.error;
 
     const result = await removeWordFilter({
       filterId,

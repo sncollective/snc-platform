@@ -1,3 +1,4 @@
+import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Hono } from "hono";
 
 import { UploadPurposeSchema } from "@snc/shared";
@@ -10,9 +11,14 @@ import type {
 
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { auth } from "../auth/auth.js";
+import { sanitizeFilename } from "../lib/file-utils.js";
 import { hydrateAuthContext } from "../middleware/auth-helpers.js";
-import { completeUploadFlow } from "../services/upload-completion.js";
-import { storage } from "../storage/index.js";
+import {
+  PURPOSE_FIELD,
+  PURPOSE_KEY_PREFIX,
+  completeUploadFlow,
+} from "../services/upload-completion.js";
+import { s3Bucket, s3Client, storage } from "../storage/index.js";
 import { rootLogger } from "../logging/logger.js";
 
 // ── Private Constants ──
@@ -87,9 +93,11 @@ async function handlePreCreate(
 }
 
 /**
- * Handle tusd post-finish hook: upload is committed to S3. Extract the
- * key and metadata, re-authenticate from forwarded headers, then run the
- * shared completion flow (ownership, size check, DB record, job queue).
+ * Handle tusd post-finish hook: upload is committed to S3 under the opaque
+ * `tus/<upload-id>` key. Rename it to the canonical `<prefix>/<resourceId>/
+ * <field>/<filename>` path so downstream processing (probe, transcode, URL
+ * resolution) can treat it like any direct-S3 upload, re-authenticate from
+ * forwarded headers, then run the shared completion flow.
  */
 async function handlePostFinish(body: TusdHookRequest): Promise<void> {
   const { Upload } = body.Event;
@@ -105,13 +113,22 @@ async function handlePostFinish(body: TusdHookRequest): Promise<void> {
 
   const rawPurpose = Upload.MetaData["purpose"];
   const resourceId = Upload.MetaData["resourceId"];
-  const s3Key = s3Storage.Key;
+  const tusKey = s3Storage.Key;
+  const filename = Upload.MetaData["filename"] ?? `${Upload.ID}.bin`;
 
   const purposeResult = UploadPurposeSchema.safeParse(rawPurpose);
-  if (!purposeResult.success || !resourceId || !s3Key) {
+  if (!purposeResult.success || !resourceId || !tusKey) {
     rootLogger.error(
-      { rawPurpose, resourceId, s3Key, tusId: Upload.ID },
+      { rawPurpose, resourceId, tusKey, tusId: Upload.ID },
       "tusd post-finish: missing or invalid metadata",
+    );
+    return;
+  }
+
+  if (!s3Client || !s3Bucket) {
+    rootLogger.error(
+      { tusId: Upload.ID },
+      "tusd post-finish: S3 client not configured; cannot rename to canonical path",
     );
     return;
   }
@@ -131,17 +148,43 @@ async function handlePostFinish(body: TusdHookRequest): Promise<void> {
 
   const hydrated = await hydrateAuthContext(session);
 
+  const purpose = purposeResult.data;
+  const canonicalKey = `${PURPOSE_KEY_PREFIX[purpose]}/${resourceId}/${PURPOSE_FIELD[purpose]}/${sanitizeFilename(filename)}`;
+
+  try {
+    await s3Client.send(new CopyObjectCommand({
+      Bucket: s3Bucket,
+      CopySource: `${s3Bucket}/${tusKey}`,
+      Key: canonicalKey,
+    }));
+  } catch (e) {
+    rootLogger.error(
+      { tusId: Upload.ID, tusKey, canonicalKey, error: e instanceof Error ? e.message : String(e) },
+      "tusd post-finish: failed to copy tus object to canonical path",
+    );
+    return;
+  }
+
+  for (const key of [tusKey, `${tusKey}.info`]) {
+    await s3Client.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }))
+      .catch((e) => {
+        rootLogger.warn(
+          { tusId: Upload.ID, key, error: e instanceof Error ? e.message : String(e) },
+          "tusd post-finish: failed to delete tus source or sidecar after copy",
+        );
+      });
+  }
+
   await completeUploadFlow({
-    body: { key: s3Key, purpose: purposeResult.data, resourceId },
+    body: { key: canonicalKey, purpose, resourceId },
     userId: hydrated.user.id,
     roles: hydrated.roles as string[],
     storage,
     logger: rootLogger,
-    skipKeyValidation: true,
   });
 
   rootLogger.info(
-    { tusId: Upload.ID, key: s3Key, purpose: purposeResult.data, resourceId },
+    { tusId: Upload.ID, tusKey, canonicalKey, purpose, resourceId },
     "tusd post-finish: upload recorded",
   );
 }

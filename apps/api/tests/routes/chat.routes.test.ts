@@ -12,6 +12,7 @@ const mockGetWordFilters = vi.fn();
 const mockAddWordFilter = vi.fn();
 const mockRemoveWordFilter = vi.fn();
 const mockGetReactionsForMessage = vi.fn();
+const mockCanModerateRoom = vi.fn();
 
 const ctx = setupRouteTest({
   mockAuth: true,
@@ -60,6 +61,10 @@ const ctx = setupRouteTest({
       removeReaction: vi.fn(),
       getReactionsForMessage: mockGetReactionsForMessage,
       getReactionsBatch: vi.fn().mockResolvedValue({ ok: true, value: {} }),
+    }));
+    vi.doMock("../../src/services/chat-moderation-auth.js", () => ({
+      canModerateRoom: mockCanModerateRoom,
+      getRoomState: vi.fn(),
     }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
@@ -111,6 +116,7 @@ const ctx = setupRouteTest({
       ok: true,
       value: [],
     });
+    mockCanModerateRoom.mockResolvedValue({ ok: true, value: true });
   },
 });
 

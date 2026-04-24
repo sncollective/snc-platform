@@ -1,3 +1,5 @@
+import { Readable, PassThrough } from "node:stream";
+
 import {
   S3Client,
   PutObjectCommand,
@@ -5,6 +7,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { ok, err, AppError, NotFoundError } from "@snc/shared";
@@ -43,19 +46,31 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
     metadata?: UploadMetadata,
   ): Promise<Result<UploadResult, AppError>> => {
     try {
-      const body = await new Response(stream).arrayBuffer();
-      const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: new Uint8Array(body),
-        ContentType: metadata?.contentType,
-      });
-      await client.send(command);
-
-      const headResponse = await client.send(
-        new HeadObjectCommand({ Bucket: bucket, Key: key }),
+      const nodeReadable = Readable.fromWeb(
+        stream as Parameters<typeof Readable.fromWeb>[0],
       );
-      return ok({ key, size: headResponse.ContentLength ?? body.byteLength });
+
+      // Count bytes streaming through so we can report size without a HEAD
+      // round-trip and without requiring callers to pass contentLength.
+      let bytesStreamed = 0;
+      const counter = new PassThrough();
+      counter.on("data", (chunk: Buffer) => {
+        bytesStreamed += chunk.length;
+      });
+      nodeReadable.pipe(counter);
+
+      const uploader = new Upload({
+        client,
+        params: {
+          Bucket: bucket,
+          Key: key,
+          Body: counter,
+          ContentType: metadata?.contentType,
+        },
+      });
+      await uploader.done();
+
+      return ok({ key, size: metadata?.contentLength ?? bytesStreamed });
     } catch (e) {
       return err(wrapS3Error(e, "S3_ERROR"));
     }

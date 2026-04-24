@@ -29,4 +29,13 @@ test.describe("Landing page", () => {
     await expect(nav.getByRole("link", { name: "Creators" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Live" })).toBeVisible();
   });
+
+  test("Coming Up section renders — visible with heading regardless of event count", async ({ page }) => {
+    await page.goto("/");
+
+    // The ComingUp section renders its heading in both populated and empty
+    // states, so the heading itself is the stable assertion.
+    const heading = page.getByRole("heading", { name: "Coming Up" });
+    await expect(heading).toBeVisible();
+  });
 });

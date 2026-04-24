@@ -93,6 +93,7 @@ describe("emissions routes", () => {
 
   describe("GET /api/emissions/summary", () => {
     it("returns emissions summary with gross/offset/net and projection fields", async () => {
+      ctx.auth.roles = ["stakeholder"];
       mockFetchEmissionsSummary.mockResolvedValueOnce({
         grossCo2Kg: 0.034443,
         projectedCo2Kg: 0.5,
@@ -121,6 +122,7 @@ describe("emissions routes", () => {
     });
 
     it("returns zeros when no entries", async () => {
+      ctx.auth.roles = ["stakeholder"];
       const res = await ctx.app.request("/api/emissions/summary");
       const body = await res.json() as Record<string, unknown>;
 
@@ -135,12 +137,20 @@ describe("emissions routes", () => {
       expect(body.additionalOffsetCo2Kg).toBe(0);
     });
 
-    it("returns 200 for unauthenticated request", async () => {
+    it("returns 401 for unauthenticated request", async () => {
       ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/emissions/summary");
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
+
+      const res = await ctx.app.request("/api/emissions/summary");
+
+      expect(res.status).toBe(403);
     });
   });
 
@@ -148,6 +158,7 @@ describe("emissions routes", () => {
 
   describe("GET /api/emissions/breakdown", () => {
     it("returns full breakdown with projection fields and split monthly data", async () => {
+      ctx.auth.roles = ["stakeholder"];
       const row = makeMockEmissionRow();
 
       mockFetchEmissionsBreakdown.mockResolvedValueOnce({
@@ -190,17 +201,24 @@ describe("emissions routes", () => {
       expect(body.entries[0].createdAt).toBe("2026-03-31T00:00:00.000Z");
     });
 
-    it("returns 200 for unauthenticated request", async () => {
+    it("returns 401 for unauthenticated request", async () => {
       ctx.auth.user = null;
 
       const res = await ctx.app.request("/api/emissions/breakdown");
-      const body = await res.json() as Record<string, any>;
 
-      expect(res.status).toBe(200);
-      expect(body.entries).toBeDefined();
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 for non-stakeholder", async () => {
+      ctx.auth.roles = [];
+
+      const res = await ctx.app.request("/api/emissions/breakdown");
+
+      expect(res.status).toBe(403);
     });
 
     it("strips sessionDates from entry metadata", async () => {
+      ctx.auth.roles = ["stakeholder"];
       const row = makeMockEmissionRow({
         metadata: {
           inputTokens: 100,

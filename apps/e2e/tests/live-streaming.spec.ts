@@ -31,4 +31,14 @@ test.describe("Live streaming page (authenticated)", () => {
       page.getByRole("button", { name: "Theater mode" }),
     ).toBeVisible();
   });
+
+  test("chat panel input mounts", async ({ page }) => {
+    await page.goto("/live");
+    // Chat input has aria-label="Chat message" — render-level check only.
+    // WebSocket connectivity is out of scope for this test; the input
+    // should be present even in a disconnected state.
+    await expect(
+      page.getByRole("textbox", { name: "Chat message" }),
+    ).toBeVisible();
+  });
 });

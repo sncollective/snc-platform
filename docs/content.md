@@ -51,23 +51,25 @@ Content items receive auto-generated URL slugs scoped per creator via `generateU
 
 ### Upload Paths
 
-The system probes S3 availability on the first upload attempt and selects one of two paths:
+The system selects between three upload paths based on upload purpose and S3 availability. The client-side `UploadProvider` (`apps/web/src/contexts/upload-context.tsx`) maintains two Uppy instances — a tus-backed instance for large media and an S3-presign-backed instance for everything else — and routes each file to the appropriate one.
 
-**S3 path (production):** Client obtains a presigned PUT URL from `POST /api/uploads/presign`, uploads directly to storage, then calls `POST /api/uploads/complete` to record the key in the database. The complete endpoint verifies the file exists via `HEAD` and enforces size limits server-side.
+**tus path (large media — `content-media` + `playout-media`):** Client uploads through the `@uppy/tus` v5 plugin to the `snc-tusd` sidecar (a [tusd](https://tus.io/) tus-protocol server), which writes to Garage under the `tus/` prefix. On successful upload, tusd fires a `post-finish` webhook to `POST /api/tusd/hooks`; the hook validates the session from forwarded `Authorization`/`Cookie` headers, S3-copies the object into the canonical `<prefix>/<resourceId>/<field>/<filename>` path, deletes the tus source (+ its `.info` sidecar), then runs the standard completion flow via `completeUploadFlow`. Cross-session resume is automatic via tus-js-client's localStorage fingerprinting — re-dropping the same file picks up from the last offset.
 
-**Legacy path (local development):** Client sends the file as multipart form data to `POST /api/content/:id/upload?field=media|thumbnail`. The API server streams it to local disk.
+**S3 presign path (small files — thumbnails, avatars, banners):** Client obtains a presigned PUT URL from `POST /api/uploads/presign`, uploads directly to storage, then calls `POST /api/uploads/complete` to record the key in the database. The complete endpoint verifies the file exists via `HEAD` and enforces size limits server-side.
 
-**Multipart chunked uploads (S3 only, large files):** Files above `MULTIPART_THRESHOLD` (50 MB) use S3 multipart upload:
+**S3 presign multipart path (S3 only, files above `MULTIPART_THRESHOLD` = 50 MB that are not routed through tus):** The original chunked path, still wired but largely superseded by the tus path for media. Retained for callers that don't go through the Uppy tus instance:
 
-1. `POST /api/uploads/s3/multipart` -- create upload, get `uploadId` + `key`
-2. `GET /api/uploads/s3/multipart/:uploadId/:partNumber?key=...` -- sign each part
+1. `POST /api/uploads/s3/multipart` — create upload, get `uploadId` + `key`
+2. `GET /api/uploads/s3/multipart/:uploadId/:partNumber?key=...` — sign each part
 3. Upload each chunk (50 MB per `MULTIPART_CHUNK_SIZE`) directly to the presigned URL
-4. `POST /api/uploads/s3/multipart/:uploadId/complete` -- finalize with parts manifest
-5. `POST /api/uploads/complete` -- record in database
+4. `POST /api/uploads/s3/multipart/:uploadId/complete` — finalize with parts manifest
+5. `POST /api/uploads/complete` — record in database
 
-Aborted uploads can be cleaned up via `DELETE /api/uploads/s3/multipart/:uploadId?key=...`. In-progress parts can be listed via `GET /api/uploads/s3/multipart/:uploadId?key=...` for resumption.
+Aborted multipart uploads can be cleaned up via `DELETE /api/uploads/s3/multipart/:uploadId?key=...`. In-progress parts can be listed via `GET /api/uploads/s3/multipart/:uploadId?key=...` for resumption.
 
-The client-side `UploadProvider` (`apps/web/src/contexts/upload-context.tsx`) orchestrates this using Uppy with the `@uppy/aws-s3` plugin. It manages per-file progress tracking, completion callbacks, error handling, and a `beforeunload` guard during active uploads.
+**Legacy direct-upload path (local development only):** Client sends the file as multipart form data to `POST /api/content/:id/upload?field=media|thumbnail`. The API server streams it to local disk. This path is only reachable when S3 is unavailable.
+
+**Orphan cleanup:** a daily pg-boss cron job (`storage/cleanup-incomplete-uploads`, 3 AM) aborts incomplete multipart uploads ≥24h old, preferring the Garage Admin API and falling back to S3 `ListMultipartUploads` + `AbortMultipartUpload`.
 
 ### Media Streaming
 
@@ -118,7 +120,13 @@ All content routes are mounted under `/api/content`. Upload routes are mounted u
 | `GET` | `/api/uploads/s3/multipart/:uploadId?key=...` | Required | List uploaded parts (for resumption). |
 | `POST` | `/api/uploads/complete` | Required | Record upload in DB after direct-to-storage upload. Verifies file via HEAD, enforces size limits, deletes old file if replacing. |
 
-Upload routes handle both content files and creator profile images. The `purpose` field (`content-media`, `content-thumbnail`, `creator-avatar`, `creator-banner`) determines validation rules and DB update target. See [creators.md](creators.md) for creator-specific upload context.
+### tus hooks (`apps/api/src/routes/tusd-hooks.routes.ts`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/tusd/hooks` | Forwarded session headers | tusd webhook dispatch. `pre-create` validates the forwarded session + purpose + resourceId; `post-finish` copies `tus/<id>` to the canonical key, deletes the tus source and `.info` sidecar, then runs `completeUploadFlow`; `post-terminate` logs the event. |
+
+Upload routes handle both content files and creator profile images. The `purpose` field (`content-media`, `content-thumbnail`, `creator-avatar`, `creator-banner`, `playout-media`) determines the selected upload path and DB update target. See [creators.md](creators.md) for creator-specific upload context.
 
 ## Schema
 

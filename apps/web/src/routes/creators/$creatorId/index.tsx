@@ -31,9 +31,6 @@ import listingStyles from "../../../styles/listing-page.module.css";
 const parentRoute = getRouteApi("/creators/$creatorId");
 
 export const Route = createFileRoute("/creators/$creatorId/")({
-  head: () => ({
-    meta: [{ title: "Creator — S/NC" }],
-  }),
   component: CreatorDetailPage,
 });
 

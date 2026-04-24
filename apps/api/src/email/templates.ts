@@ -1,8 +1,9 @@
 import { type StudioInquiry, STUDIO_SERVICE_LABELS } from "@snc/shared";
 
-// ── Private Helpers ──
+// ── Public Helpers ──
 
-const escapeHtml = (str: string): string =>
+/** Escape a user-supplied string for safe embedding in an HTML email body. */
+export const escapeHtml = (str: string): string =>
   str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

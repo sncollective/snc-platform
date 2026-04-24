@@ -237,7 +237,7 @@ export function UploadProvider({
       endpoint: TUS_ENDPOINT,
       retryDelays: [100, 1000, 3000, 5000],
       removeFingerprintOnSuccess: true,
-      allowedMetaFields: ["purpose", "resourceId"],
+      allowedMetaFields: ["purpose", "resourceId", "name", "type"],
       chunkSize: MULTIPART_CHUNK_SIZE,
       // Cookies are sent automatically by tus-js-client on same-origin requests.
     });

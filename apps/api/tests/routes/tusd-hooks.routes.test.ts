@@ -21,6 +21,16 @@ const mockStorage = {
   getPresignedUploadUrl: vi.fn(),
 };
 
+const mockS3Send = vi.fn();
+const mockS3Client = { send: mockS3Send };
+
+const MockCopyObjectCommand = vi.fn(function (this: { input: unknown }, input: unknown) {
+  this.input = input;
+});
+const MockDeleteObjectCommand = vi.fn(function (this: { input: unknown }, input: unknown) {
+  this.input = input;
+});
+
 // ── Test Setup ──
 
 const ctx = setupRouteTest({
@@ -40,10 +50,31 @@ const ctx = setupRouteTest({
 
     vi.doMock("../../src/services/upload-completion.js", () => ({
       completeUploadFlow: mockCompleteUploadFlow,
+      PURPOSE_KEY_PREFIX: {
+        "content-media": "content",
+        "content-thumbnail": "content",
+        "creator-avatar": "creators",
+        "creator-banner": "creators",
+        "playout-media": "playout",
+      },
+      PURPOSE_FIELD: {
+        "content-media": "media",
+        "content-thumbnail": "thumbnail",
+        "creator-avatar": "avatar",
+        "creator-banner": "banner",
+        "playout-media": "source",
+      },
     }));
 
     vi.doMock("../../src/storage/index.js", () => ({
       storage: mockStorage,
+      s3Client: mockS3Client,
+      s3Bucket: "snc-uploads",
+    }));
+
+    vi.doMock("@aws-sdk/client-s3", () => ({
+      CopyObjectCommand: MockCopyObjectCommand,
+      DeleteObjectCommand: MockDeleteObjectCommand,
     }));
 
     vi.doMock("../../src/logging/logger.js", () => ({
@@ -65,6 +96,9 @@ const ctx = setupRouteTest({
     mockLoggerError.mockReset();
     mockLoggerInfo.mockReset();
     mockLoggerWarn.mockReset();
+    mockS3Send.mockReset();
+    MockCopyObjectCommand.mockClear();
+    MockDeleteObjectCommand.mockClear();
 
     // Default: authenticated session + hydrated context
     const mockUser = makeMockUser();
@@ -75,7 +109,8 @@ const ctx = setupRouteTest({
       session: mockSession,
       roles: [],
     });
-    mockCompleteUploadFlow.mockResolvedValue({ key: "tus/upload-123" });
+    mockCompleteUploadFlow.mockResolvedValue({ key: "content/content-test-1/media/video.mp4" });
+    mockS3Send.mockResolvedValue({});
   },
 });
 
@@ -127,10 +162,18 @@ function makePostFinishBody(overrides?: Partial<{
   purpose: string;
   resourceId: string;
   cookieHeader: string;
+  filename: string;
 }>): object {
   const headers: Record<string, string[]> = {
     Cookie: [overrides?.cookieHeader ?? "session=abc123"],
   };
+
+  const meta: Record<string, string> = {
+    purpose: overrides?.purpose ?? "content-media",
+    resourceId: overrides?.resourceId ?? "content-test-1",
+  };
+  if (overrides?.filename !== undefined) meta["filename"] = overrides.filename;
+  else meta["filename"] = "video.mp4";
 
   return {
     Type: "post-finish",
@@ -140,10 +183,7 @@ function makePostFinishBody(overrides?: Partial<{
         Size: 10485760,
         SizeIsDeferred: false,
         Offset: 10485760,
-        MetaData: {
-          purpose: overrides?.purpose ?? "content-media",
-          resourceId: overrides?.resourceId ?? "content-test-1",
-        },
+        MetaData: meta,
         IsPartial: false,
         IsFinal: false,
         PartialUploads: null,
@@ -327,22 +367,112 @@ describe("tusd hook routes", () => {
   // ── POST /api/tusd/hooks — post-finish ──
 
   describe("post-finish hook", () => {
-    it("calls completeUploadFlow with skipKeyValidation: true and the S3 key", async () => {
+    it("copies tus object to the canonical path, deletes the tus source, and completes with the canonical key", async () => {
       const res = await ctx.app.request("/api/tusd/hooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(makePostFinishBody({ s3Key: "tus/upload-abc123" })),
+        body: JSON.stringify(makePostFinishBody({
+          s3Key: "tus/upload-abc123",
+          purpose: "content-media",
+          resourceId: "content-test-1",
+          filename: "My Video.mp4",
+        })),
       });
       const json = await res.json() as Record<string, unknown>;
 
       expect(res.status).toBe(200);
       expect(Object.keys(json)).toHaveLength(0);
+
+      expect(MockCopyObjectCommand).toHaveBeenCalledWith({
+        Bucket: "snc-uploads",
+        CopySource: "snc-uploads/tus/upload-abc123",
+        Key: "content/content-test-1/media/my-video.mp4",
+      });
+      expect(MockDeleteObjectCommand).toHaveBeenCalledWith({
+        Bucket: "snc-uploads",
+        Key: "tus/upload-abc123",
+      });
+      expect(MockDeleteObjectCommand).toHaveBeenCalledWith({
+        Bucket: "snc-uploads",
+        Key: "tus/upload-abc123.info",
+      });
+      expect(mockS3Send).toHaveBeenCalledTimes(3);
+
       expect(mockCompleteUploadFlow).toHaveBeenCalledOnce();
-      expect(mockCompleteUploadFlow).toHaveBeenCalledWith(
+      const completeCall = mockCompleteUploadFlow.mock.calls[0]?.[0] as {
+        body: { key: string; purpose: string; resourceId: string };
+        skipKeyValidation?: boolean;
+      };
+      expect(completeCall.body).toStrictEqual({
+        key: "content/content-test-1/media/my-video.mp4",
+        purpose: "content-media",
+        resourceId: "content-test-1",
+      });
+      expect(completeCall.skipKeyValidation).toBeUndefined();
+    });
+
+    it("routes playout-media to the playout canonical prefix", async () => {
+      mockHydrateAuthContext.mockResolvedValueOnce({
+        user: makeMockUser(),
+        session: makeMockSession(),
+        roles: ["admin"],
+      });
+
+      const res = await ctx.app.request("/api/tusd/hooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makePostFinishBody({
+          s3Key: "tus/upload-xyz",
+          purpose: "playout-media",
+          resourceId: "playout-item-1",
+          filename: "spot.mp4",
+        })),
+      });
+
+      expect(res.status).toBe(200);
+      expect(MockCopyObjectCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ Key: "playout/playout-item-1/source/spot.mp4" }),
+      );
+    });
+
+    it("falls back to a bin extension when filename metadata is missing", async () => {
+      const body = makePostFinishBody({
+        s3Key: "tus/upload-noname",
+      }) as { Event: { Upload: { MetaData: Record<string, string> } } };
+      delete body.Event.Upload.MetaData["filename"];
+
+      const res = await ctx.app.request("/api/tusd/hooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      expect(res.status).toBe(200);
+      expect(MockCopyObjectCommand).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: expect.objectContaining({ key: "tus/upload-abc123" }),
-          skipKeyValidation: true,
+          Key: expect.stringMatching(/^content\/content-test-1\/media\/tus-upload-finish-1\.bin$/),
         }),
+      );
+    });
+
+    it("logs error and skips completion when the S3 copy fails", async () => {
+      mockS3Send.mockRejectedValueOnce(new Error("AccessDenied"));
+
+      const res = await ctx.app.request("/api/tusd/hooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makePostFinishBody()),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockCompleteUploadFlow).not.toHaveBeenCalled();
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tusId: "tus-upload-finish-1",
+          tusKey: "tus/upload-abc123",
+          error: "AccessDenied",
+        }),
+        "tusd post-finish: failed to copy tus object to canonical path",
       );
     });
 
