@@ -5,7 +5,6 @@ session_type: implement
 related_items:
   - feature-resumable-uploads-tus
 related_decisions: []
-related_designs: []
 ---
 
 # Session: `resumable-uploads-tus` implemented — last event-enabling feature clears to review one day before Animal Future
