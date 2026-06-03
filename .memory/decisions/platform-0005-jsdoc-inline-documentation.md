@@ -57,6 +57,6 @@ Convention documented at `platform/.claude/rules/inline-documentation.md` (auto-
 
 ## Related
 
-- `platform/.memory/research/inline-documentation-conventions.md` — full evaluation (JSDoc vs TSDoc vs alternatives)
+- `.research/analysis/briefs/inline-documentation-conventions.md` — full evaluation (JSDoc vs TSDoc vs alternatives)
 - `platform/.claude/rules/inline-documentation.md` — the three-tier convention, auto-loaded
 - `platform/.claude/skills/scan-documentation/` — the scan rule library that enforces it

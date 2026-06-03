@@ -92,7 +92,7 @@ These may be refined in later UX passes without revisiting the shell pattern its
 - [platform-0004-vidstack-media-player.md](platform-0004-vidstack-media-player.md) — GlobalPlayer's content-column anchor is a corollary of the shell pattern
 - [platform-0005-jsdoc-inline-documentation.md](platform-0005-jsdoc-inline-documentation.md) — JSDoc on `ContextShell`, `CreatorSwitcher` follows the convention
 - `platform/docs/ux-decisions.md` — UX evidence base + decision process
-- `platform/.memory/research/content-management-ux-patterns.md` — adjacent research on content-surface nav
-- `platform/.memory/research/ui-ux-system-plan.md` — broader UX system thinking
+- `.research/analysis/briefs/content-management-ux-patterns.md` — adjacent research on content-surface nav
+- `.research/analysis/briefs/ui-ux-system-plan.md` — broader UX system thinking
 
 Promoted 2026-04-18 during boards-migration story 1 from `boards/platform/release-0.1/design/nav-architecture.{brief,}.md` pair.

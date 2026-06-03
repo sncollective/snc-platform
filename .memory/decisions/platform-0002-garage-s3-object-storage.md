@@ -101,8 +101,8 @@ Two-system architecture (Garage alongside Seafile) resolves the "Web-based large
 
 ## Related
 
-- [../research/object-storage.md](../research/object-storage.md) — full evaluation of Garage vs SeaweedFS vs RustFS vs Ceph RGW vs MinIO, upload pattern comparison (presigned vs tus vs proxy), upload UI library comparison (Uppy vs FilePond vs Dropzone), integration effort estimate
-- [../research/streaming-infrastructure.md](../research/streaming-infrastructure.md) — VOD pipeline integration points
+- [../research/object-storage.md](../../.research/analysis/briefs/object-storage.md) — full evaluation of Garage vs SeaweedFS vs RustFS vs Ceph RGW vs MinIO, upload pattern comparison (presigned vs tus vs proxy), upload UI library comparison (Uppy vs FilePond vs Dropzone), integration effort estimate
+- [../research/streaming-infrastructure.md](../../.research/analysis/briefs/streaming-infrastructure.md) — VOD pipeline integration points
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — SRS as streaming server; Garage is the VOD landing zone for SRS DVR recordings
 
 No prior decision record to supersede — this is a fresh promotion from research to a structured decision record as Item 3b of the Level 3 critical path (2026-04-16). No position change from the 2026-03-13 research conclusions — the decision has been load-bearing for platform work throughout that window.

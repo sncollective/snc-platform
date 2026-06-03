@@ -25,6 +25,11 @@ routeTree.gen.ts
 .memory/scratchpad/
 .memory/agents/
 
+# Research band — raw-layer convention (raw fetches + extracted text + ingest
+# holding-spot are not tracked; INDEX / README / attestation / analysis are).
+.research/reference/**/extracted/
+.research/reference/input/
+
 # IDE
 .vscode/
 .idea/

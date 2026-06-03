@@ -69,6 +69,6 @@ All "Yes" criteria passed in the 2026-03-25 spike.
 - [platform-0001-srs-unified-streaming-server.md](platform-0001-srs-unified-streaming-server.md) — RTMP target for playout output
 - [platform-0008-srs-vs-mediamtx-tv-model.md](platform-0008-srs-vs-mediamtx-tv-model.md) — TV model architectural context (playout is the always-on channel)
 - [platform-0002-garage-s3-object-storage.md](platform-0002-garage-s3-object-storage.md) — content source for playout
-- `platform/.memory/research/playout-systems.md` — full playout engine evaluation
+- `.research/analysis/briefs/playout-systems.md` — full playout engine evaluation
 
 Promoted 2026-04-18 during boards-migration story 1 from `boards/platform/release-0.2/design/phase-5-playout-spike.brief.md`.

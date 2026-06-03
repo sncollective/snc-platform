@@ -71,7 +71,7 @@ All three need platform solutions regardless of server choice.
 - [platform-0009-liquidsoap-playout-engine.md](platform-0009-liquidsoap-playout-engine.md) — engine for the always-on channel.
 - [platform-0004-vidstack-media-player.md](platform-0004-vidstack-media-player.md) — client-side player for multi-channel UI.
 - [platform-0003-pg-boss-postgres-job-queue.md](platform-0003-pg-boss-postgres-job-queue.md) — queue hosting the FLV→MP4 remux job.
-- `platform/.memory/research/streaming-server-evaluation.md` — full SRS vs MediaMTX evaluation.
-- `platform/.memory/research/irl-streaming.md` — SRS vs MediaMTX vs IRL-hardware considerations.
+- `.research/analysis/briefs/streaming-server-evaluation.md` — full SRS vs MediaMTX evaluation.
+- `.research/analysis/briefs/irl-streaming.md` — SRS vs MediaMTX vs IRL-hardware considerations.
 
 Promoted 2026-04-18 during boards-migration story 1 from `boards/platform/release-0.2/design/tv-model-architecture.md`.

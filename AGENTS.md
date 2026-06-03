@@ -20,20 +20,42 @@ Library-specific quick references live under `.claude/skills/<lib>/SKILL.md` —
 
 Scan rule libraries (`scan-structural`, `scan-quality`, `scan-accessibility`, `scan-performance`, `scan-seo`, `scan-documentation`, `scan-stylistic`) live alongside the tech references and follow the same convention.
 
-## Memory tiers
+## Substrate, work, and research bands
 
-Platform has a `.memory/` directory holding durable working memory across sessions and agents. Eight tiers, six git-tracked, two ephemeral:
+Platform's persistent state splits across three top-level bands by output-class: `.memory/` (internal substrate), `.work/` (work items — output-class), and `.research/` (research output, operationalizing ARD v0.1). The conventions for each are in `.claude/rules/` (auto-loaded on the relevant paths) and summarized here.
 
-- **`canon/`** — committed current-state knowledge (architecture, conventions, domain). Empty initially; populated as content earns its place.
-- **`research/`** — provisional exploration. Multiple passes on the same topic expected; rewritten in place. Not committed positions.
-- **`decisions/`** — structured position records with rationale, alternatives, and `revisit_if` conditions. Filename: `platform-NNNN-<slug>.md` (currently `platform-0001` through `platform-0007`).
-- **`designs/`** — scoping and design briefs supporting work items. Filename: `<date>-<slug>.brief.md` or `.design.md`.
+### `.memory/` — substrate (internal working state)
+
+- **`decisions/`** — structured position records with rationale, alternatives, and `revisit_if` conditions. Filename: `platform-NNNN-<slug>.md`.
 - **`sessions/`** — short episodic summaries of significant recent work.
-- **`releases/`** — late-binding release bundles by version.
-- **`scratchpad/`** (gitignored) — ephemeral in-flight artifacts. Promote anything worth keeping to a durable tier; the rest auto-deletes.
+- **`scratchpad/`** (gitignored) — ephemeral in-flight artifacts. Promote anything worth keeping; the rest auto-deletes.
 - **`agents/`** (gitignored) — per-agent private state.
 
-When in doubt about which tier, scratchpad is safe — anything worth keeping gets promoted explicitly. Promotion is currently manual (agent-judgment + human prompt).
+Design/scoping briefs are **not** a separate tier — item matter lives inline in the work-item file (the feature/story file *is* the design surface), per `.claude/rules/item-convention.md §Where matter lives`.
+
+### `.work/` — work items (output-class)
+
+Items are the unit of persistent work, carrying structured state in frontmatter (`kind` / `stage` / `tags` / `release_binding`). Tiers:
+
+- **`active/`** — scoped, in-flight, grouped by kind: `epics/`, `features/`, `stories/`.
+- **`backlog/`** — unscoped, parked ideas (flat files).
+- **`releases/`** — shipped version bundles (`<version>.md` + archived per-release item trees). Platform ships versioned releases, so items bind to a release at review-pass.
+- **`archive/`** — done items without a release binding (kind-grouped).
+
+Convention: `.claude/rules/item-convention.md` (structure), `item-pipelines.md` (stage flow + quality gates), `tag-taxonomy.md` (tag rubric).
+
+### `.research/` — research band (ARD v0.1)
+
+Platform **adopts ARD v0.1** (Agentic Research Discipline — MIT-licensed, agent-agnostic; codified per `.memory/decisions/platform-0013-adopt-work-research-bands.md`). The band carries external substrate + agent engagement with sources, read down-gradient only:
+
+- **`reference/`** — source-direct raw fetches (gitignored) + per-corpus INDEX/README.
+- **`attestation/`** — flat per-source-handle files (`<handle>.md`) — the citation anchor for `[handle]{N}` references.
+- **`precis/`** — engagement-unit aggregations authored from raw.
+- **`analysis/`** — cross-source work: `briefs/`, `campaigns/`, `positions/`, `hypothesis/`, and `<topic>.md` catalogs.
+
+The discipline (anti-fabrication core, per-source attestation, verification stack) is vendored in `.claude/rules/research-band-spec.md` (architecture) + `research-band-catalogs.md` (baseline inventory) + `research-band-platform.md` (platform's deployment mapping). MIT attribution for the research band is carried in those rule files.
+
+When in doubt about which tier, scratchpad is safe — anything worth keeping gets promoted explicitly.
 
 ## Coding Conventions
 

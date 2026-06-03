@@ -57,7 +57,7 @@ Primary reasons:
 5. **Built-in HTTP callback auth** (`on_publish` / `on_play`) — fits multi-creator stream key rotation without building an external auth server
 6. **Native SRT ingest** (`srt_to_rtmp`) — eliminates FFmpeg SRT→RTMP bridge in the IRL pipeline's SRTLA relay LXC
 
-Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restreamer 32. See [streaming-server-evaluation.md](../../.memory/research/streaming-server-evaluation.md) §Scoring Matrix for the per-requirement breakdown and §Competitive Feature Impact for how each option positions S/NC against Twitch, YouTube Live, and Kick.
+Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restreamer 32. See [streaming-server-evaluation.md](../../.research/analysis/briefs/streaming-server-evaluation.md) §Scoring Matrix for the per-requirement breakdown and §Competitive Feature Impact for how each option positions S/NC against Twitch, YouTube Live, and Kick.
 
 ## Consequences
 
@@ -84,9 +84,9 @@ Weighted scoring across 20 requirements: SRS 101, MediaMTX 63, Owncast + Restrea
 
 ## Related
 
-- [../../.memory/research/streaming-server-evaluation.md](../../.memory/research/streaming-server-evaluation.md) — full evaluation, requirement weighting, scoring matrix, competitive analysis
-- [../../.memory/research/streaming-infrastructure.md](../../.memory/research/streaming-infrastructure.md) — original streaming tool research that motivated the evaluation
-- [../../.memory/research/irl-streaming.md](../../.memory/research/irl-streaming.md) — SRS vs MediaMTX comparison tables and IRL streaming architecture
+- [../../.research/analysis/briefs/streaming-server-evaluation.md](../../.research/analysis/briefs/streaming-server-evaluation.md) — full evaluation, requirement weighting, scoring matrix, competitive analysis
+- [../../.research/analysis/briefs/streaming-infrastructure.md](../../.research/analysis/briefs/streaming-infrastructure.md) — original streaming tool research that motivated the evaluation
+- [../../.research/analysis/briefs/irl-streaming.md](../../.research/analysis/briefs/irl-streaming.md) — SRS vs MediaMTX comparison tables and IRL streaming architecture
 - TV model architecture design doc — in the parent monorepo under `boards/platform/release-0.2/design/tv-model-architecture.md` (prose reference to preserve standalone cloning)
 - Competitive streaming research — in the parent monorepo under `org/.memory/research/competitive/streaming.md` (prose reference)
 - Streaming board — in the parent monorepo under `boards/platform/streaming/` (prose reference)
