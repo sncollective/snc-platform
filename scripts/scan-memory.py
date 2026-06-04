@@ -87,6 +87,16 @@ VALID_PROVENANCE = {
     "generated-listing", "hybrid-curated",
 }
 
+# Canonical `source_class` soft enum — the ARD baseline (mirrors research-band-catalogs.md §2;
+# platform carries no `ard/` submodule, so the set is vendored here rather than read from a
+# kernel). Values outside it surface as informational consolidation candidates (soft-enum drift)
+# per ARD's closed-with-extension recipe.
+KNOWN_SOURCE_CLASSES = {
+    "paper", "book-chapter", "essays", "tool-doc", "blog-post",
+    "github-readme", "wiki-page", "light-form", "standard", "talk-podcast",
+}
+INDEX_SOURCE_CLASS_RE = re.compile(r"^-\s+\*\*Source class:\*\*\s+(.+?)\s*$", re.MULTILINE)
+
 # Typed-edge predicates (the closed-with-extension subset per the typed-edge
 # `related:` convention). Extensions are allowed but logged as informational, not error.
 TYPED_EDGE_PREDICATES = {
@@ -420,6 +430,9 @@ def check_schema(memory_roots, work_roots, research_roots):
         for index_file in research_dir.rglob("INDEX.md"):
             issues.extend(_check_research_index(index_file, scope))
 
+        # source_class soft-enum drift (informational consolidation candidates)
+        issues.extend(_check_source_class_consolidation(research_dir, scope))
+
         # Per-piece notes (skip README — tier-level orientation, not a per-piece note)
         notes_dir = research_dir / "notes"
         if notes_dir.is_dir():
@@ -501,6 +514,44 @@ def _check_active_item(md_file, scope, expected_kind, known_ids, archive=False):
                     (scope, rel, f"related: type '{edge_type}' not in 12-predicate subset (extension allowed; verify named source-ancestor)")
                 )
 
+    return issues
+
+
+def _check_source_class_consolidation(research_dir, scope):
+    """Surface `source_class` values outside the canonical ARD soft enum as consolidation
+    candidates (informational — soft-enum drift per ARD's closed-with-extension recipe). Walks
+    attestation frontmatter (`source_class:`) + per-corpus INDEX `Source class:` fields."""
+    issues = []
+    value_to_files = {}
+
+    att_dir = research_dir / "attestation"
+    if att_dir.is_dir():
+        for md_file in sorted(att_dir.glob("*.md")):
+            fm, _ = parse_frontmatter(md_file)
+            if not fm:
+                continue
+            value = fm.get("source_class")
+            if value and str(value).strip():
+                value_to_files.setdefault(str(value).strip(), []).append(md_file)
+
+    for index_file in research_dir.rglob("INDEX.md"):
+        if any(part in SKIP_DIRS for part in index_file.parts):
+            continue
+        try:
+            text = index_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in INDEX_SOURCE_CLASS_RE.finditer(text):
+            value = m.group(1).strip()
+            if value and not PENDING_RE.match(value):
+                value_to_files.setdefault(value, []).append(index_file)
+
+    for value, files in sorted(value_to_files.items()):
+        if value not in KNOWN_SOURCE_CLASSES:
+            rel = str(files[0].relative_to(REPO_ROOT))
+            issues.append((scope, rel,
+                f"source_class consolidation candidate: '{value}' ({len(files)} file(s)) not in the "
+                "canonical ARD soft enum — rename to a canonical value or coin it via the extension recipe"))
     return issues
 
 
