@@ -29,10 +29,14 @@
 
 import argparse
 import glob
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
+import urllib.error
+import urllib.parse
 import urllib.request
 
 # The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
@@ -101,13 +105,91 @@ def is_thin_attestation(body):
     return not (has_section or has_quote)
 
 
-def url_alive(url, timeout=5):
+# SSRF fence for the source_url liveness probe (ARD v0.4.1). The HEAD check is
+# restricted to public web targets so a hostile or compromised attestation
+# source_url cannot aim the linter at an internal address.
+_ALLOWED_SCHEMES = ("http", "https")
+_REDIRECT_CODES = (301, 302, 303, 307, 308)
+_MAX_REDIRECTS = 5
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Stop urllib auto-following redirects, so every hop is re-validated by hand."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _host_is_public(host):
+    """True iff every address `host` resolves to is a public IP.
+
+    Refuses loopback / link-local / private / reserved / multicast / unspecified —
+    closing the cloud-metadata endpoint (169.254.169.254) and internal-range probes.
+    All resolved addresses must pass (a host with one public + one private record
+    is refused).
+    """
     try:
-        req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return 200 <= getattr(resp, "status", 200) < 400
-    except Exception:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
         return False
+    if not infos:
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if (ip.is_loopback or ip.is_link_local or ip.is_private or ip.is_reserved
+                or ip.is_multicast or ip.is_unspecified):
+            return False
+    return True
+
+
+def _url_probe_safe(url):
+    """Scheme allow-list + public-IP-only host resolution. Gate before any connect."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme.lower() not in _ALLOWED_SCHEMES:
+        return False
+    if not parts.hostname:
+        return False
+    return _host_is_public(parts.hostname)
+
+
+def url_alive(url, timeout=5):
+    """SSRF-fenced HEAD liveness probe (ARD v0.4.1).
+
+    http(s)-only scheme, the resolved host must be a public IP, and every redirect
+    hop is re-validated before connecting. A refused or dead URL returns False,
+    surfacing as the existing low-severity unreachable-source warn — no new status.
+    """
+    opener = urllib.request.build_opener(_NoRedirect)
+    current = url
+    for _ in range(_MAX_REDIRECTS + 1):
+        if not _url_probe_safe(current):
+            return False
+        try:
+            req = urllib.request.Request(current, method="HEAD")
+            with opener.open(req, timeout=timeout) as resp:
+                status = getattr(resp, "status", 200)
+        except urllib.error.HTTPError as e:
+            status = e.code
+            if status in _REDIRECT_CODES:
+                loc = e.headers.get("Location") if e.headers else None
+                if not loc:
+                    return False
+                current = urllib.parse.urljoin(current, loc)
+                continue  # re-validate the redirect target on the next pass
+            return 200 <= status < 400
+        except Exception:
+            return False
+        if status in _REDIRECT_CODES:
+            loc = resp.headers.get("Location")
+            if not loc:
+                return False
+            current = urllib.parse.urljoin(current, loc)
+            continue
+        return 200 <= status < 400
+    return False  # too many redirects
 
 
 def intra_program_resolves(handle, analysis_dir):
