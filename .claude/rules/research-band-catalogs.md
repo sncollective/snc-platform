@@ -4,9 +4,9 @@ paths:
   - ".claude/skills/research-*/**"
 ---
 
-<!-- VENDORED from ARD v0.1 (Agentic Research Discipline) — MIT-licensed, agent-agnostic upstream framework. This is the inventory companion to research-band-spec.md; its catalogs are platform's v0.1 baseline and grow by the closed-with-extension recipe under platform's own empirical pressure. Pinned snapshot — upstream revisions arrive as a deliberate re-vendor. -->
+<!-- ARD v0.4.1 SNC-operationalization layer over the vendored catalog data (ard-kernel/catalogs.json), per platform-0014. The catalog *members* (failure shapes, lint categories, statuses, predicates, enums) live as data in ard-kernel/catalogs.json and are consumed by the lints; this file carries the SNC-operational prose — how the catalogs apply in platform — and defers enumerable member lists to the data rather than re-narrating them. Companion to research-band-spec.md. Re-sync members by cp -r of the kernel, not by hand-editing here. -->
 
-# ARD — Baseline Catalogs (v0.1)
+# ARD — SNC-Operationalization Catalogs (v0.4.1)
 
 The inventory companion to [SPEC.md](research-band-spec.md), which specifies ARD as a framework for grounded, verifiable research conducted by AI agents — a tunable control-space of always-on checks plus selectable gates. Where the spec names what is **invariant**, this file populates the framework's **current baseline** — the catalogs an adopter starts from and **extends**.
 
@@ -18,26 +18,21 @@ The **consolidation surface** — where surfaced ad-hoc options are reviewed for
 
 ## 1. Failure-shape inventory
 
-Failure shapes are named in ARD's **locus-of-failure** coordinate system (see [SPEC.md](research-band-spec.md) [§2](research-band-spec.md#2-the-failures-ard-addresses)) — seven loci keyed to *where in the trajectory the failure lives*: `AQ` Acquisition · `GR` Grounding · `CX` Context-use · `CO` Composition · `FR` Framing · `PR` Propagation · `WM` Warrant/meta. The v0.1 baseline is **fourteen shapes across six of the seven loci** (`WM` defined but unpopulated at baseline): 6 Grounding, 1 Context-use, 2 Acquisition, 1 Composition, 2 Framing, 2 Propagation. The full inventory is below; the **Fence** column carries each shape's committed fence, or `—` for the five **forward-looking** shapes — defined for legibility, with prevention/detection directions but no committed fence at v0.1 (each gains one when it earns it). It is a living artifact that grows as new reproductions are documented; a deployment maintains the full per-shape detail (mechanism + fence per shape) as its own analytical-tier artifact.
+Failure shapes are named in ARD's **locus-of-failure** coordinate system (see [SPEC.md](research-band-spec.md) [§2](research-band-spec.md#2-the-failures-ard-addresses)) — seven loci keyed to *where in the trajectory the failure lives*: `AQ` Acquisition · `GR` Grounding · `CX` Context-use · `CO` Composition · `FR` Framing · `PR` Propagation · `WM` Warrant/meta. The v0.4.1 baseline is **22 shapes across all seven loci** (the `WM` locus populated from v0.2). The full per-shape inventory — every shape, locus, status, and committed fence — lives as **data in `ard-kernel/catalogs.json`** (`failure_shapes`), consumed by the lints; this section keeps the **SNC-operational view**: the shapes platform's verification stack actively fences, and how.
 
-| Shape | Name | Fence |
+| Shape | Name | Platform fence |
 |---|---|---|
 | `GR.1a` | Anchor-and-drift — surrounding context composed while the anchor is fetched | per-source attestation + three-state citation + verification stack |
 | `GR.1b` | Within-source attribution swap (figures correct, mapping reversed) | per-source attestation + semantic citation-chain walk |
-| `GR.2` | Source unfetched — a training-recalled claim presented as cited | — *(forward-looking)* |
-| `GR.3` | Composed claims with no source attempt (effort estimates, counts, comparatives) | — *(forward-looking; forbidden by the [composed-claim discipline](research-band-spec.md#44-composed-claim-discipline))* |
 | `GR.4` | Quote-context distortion — quote accurate, surrounding qualifier stripped | adversarial-read quote-context walk |
 | `GR.5` | Thin attestation passing lint — frontmatter correct, body un-anchored | lint structural check + adversarial-read complement |
-| `CX.1` | Noise domination — less-relevant retrieved content used over more-relevant | adversarial-read relevance-weighting (**detection only** — see [SPEC.md](research-band-spec.md) [§11](research-band-spec.md#11-known-limitations-at-v01)) |
+| `CX.1` | Noise domination — less-relevant retrieved content used over more-relevant | adversarial-read relevance-weighting (**detection only** — see [SPEC.md](research-band-spec.md) [§11](research-band-spec.md#11-known-limitations)) |
 | `AQ.1` | Coverage gaps / unknown-unknowns | isolated-context evaluator (coverage component) |
-| `AQ.2` | Stale substrate — once-correct content now out of date | — *(forward-looking)* |
 | `CO.1` | Smoothed contradictions in cross-source synthesis | `## Contradictions` discipline + adversarial-read coherence-read |
 | `FR.1` | Self-confirming framing | isolated-context evaluator (structural isolation) |
-| `FR.2` | Premature commitment — a position asserted before its grounding substrate is engaged | — *(forward-looking)* |
-| `PR.1` | Drift-inheritance through paraphrase chains — small per-step distortion compounding across multi-step composition | — *(forward-looking)* |
 | `PR.2` | Decomposition-framing lock-in — a facet cut inherits a lens all downstream work runs inside | multi-sampling at `decompose` (≥3 candidates + comparative + bracket) + persisted rationale |
 
-The `GR.1` umbrella is the canonical anchor-and-drift region; `GR.1a` / `GR.1b` are its two sub-shapes (it carries no standalone row). **The ordinal indexes shapes within a locus and is independent of fence status** — a forward-looking shape keeps its ordinal when it earns a fence; the numbering never reflows.
+`GR.1a` / `GR.1b` are the two sub-shapes of the canonical `GR.1` anchor-and-drift umbrella. The remaining baseline shapes are carried in the catalog data and platform implements no dedicated fence for them beyond the always-on core: the **forward-looking** ones (`GR.2`, `GR.3`, `AQ.2`, `FR.2`, `PR.1` — named, no committed fence yet) and the v0.2 additions (`GR.1c`, `GR.6`, `GR.7`, `CO.2`, `CO.3`, and the `WM.1–3` warrant-locus shapes). The ordinal indexes shapes within a locus and is independent of fence status; the numbering never reflows.
 
 ---
 
@@ -62,6 +57,8 @@ Ten baseline source classes identify which attestation-body shape and handle con
 | `standard` | `<body>-<doc-number>` | version + section anchors (revise at section granularity) |
 | `talk-podcast` | `<speaker>-<talk-slug>` | transcript-source (hand-cleaned vs auto-captioned) |
 
+**Per-class IP profile + raw-layer treatment** (ARD v0.4.1 catalog layer): each source class also carries an intellectual-property profile governing how much of its raw may be retained and in what form. Platform's operational stance — reference raws are gitignored regardless of class ([research-band-platform.md](research-band-platform.md) §Substrate band layout), and the tracked attestation body follows the five-component write-discipline above, with `light-form` **paraphrase-only** (no verbatim posts; PII risk) as the table notes. The authoritative per-class profile is the upstream ARD v0.4.1 source-class layer; platform tightens it (more restrictive retention), never loosens it.
+
 **Engagement-time bracketing** (`bracket` verb) fires structurally when the goal is claim-validation or external-calibration, or for sources whose engagement mode is "audit existing framing"; it is optional otherwise, where the attestation primitive does the structural fence. Optional cross-class frontmatter: `extraction_pipeline` (records the pipeline used — drift-detectability across re-extractions) and `substrate_confidence` (`source-direct` / `search-summary` / `snippet-thin` — engagement depth, defaulting to source-direct).
 
 ---
@@ -81,7 +78,7 @@ The six **categories** are the invariant diagnostic targets; the specific **matc
 
 ### Citation-chain integrity check
 
-For every `[handle]{N}` occurrence, five sequential checks: (1) **handle resolution** — an attestation exists at the expected location; (2) **source-handle match** — the attestation's recorded handle equals the cited handle; (3) **source resolution** — the recorded URL/path resolves (URL failures warn, path failures error); (4) **provenance present** — both attestation and citing brief carry provenance; (5) **scope** — applies to all `[handle]{N}` in the linted files. Per-citation status: `resolved` / `unresolved-handle` / `mismatched-source-handle` / `unreachable-source` / `missing-provenance`, plus non-broken statuses for recognized analytical-tier intra-program references and deliberately-reduced-depth attestations. Default posture is lint-only-warn; blocking on a severity threshold is opt-in.
+For every `[handle]{N}` occurrence, six sequential checks: (1) **handle resolution** — an attestation exists at the expected location; (2) **source-handle match** — the attestation's recorded handle equals the cited handle; (3) **source resolution** — the recorded URL/path resolves (URL failures warn, path failures error; the URL liveness probe is SSRF-fenced — public web targets only); (4) **provenance present** — both attestation and citing brief carry provenance; (5) **handle uniqueness** (ARD v0.4.1) — a `source_handle` declared by two or more attestations resolves ambiguously and is flagged `colliding-handle` (a corpus-scan; platform also surfaces this via `audit-handles.py --collisions`); (6) **scope** — applies to all `[handle]{N}` in the linted files. Per-citation status: `resolved` / `unresolved-handle` / `mismatched-source-handle` / `colliding-handle` / `unreachable-source` / `missing-provenance`, plus the two **non-broken** statuses `intra-program-resolved` (resolves to an analytical-tier intra-program artifact) and `reduced-substrate-attestation` (valid but deliberately reduced-depth). The check + status sets are sourced as data from `ard-kernel/catalogs.json` (`lint.citation_chain_statuses`); default posture is lint-only-warn, blocking on a severity threshold is opt-in.
 
 ---
 
@@ -195,4 +192,10 @@ Artifact-local warrant, rendered visibly (see [SPEC.md](research-band-spec.md) [
 
 ---
 
-*This catalog is the v0.1 baseline. Extend it — the lists are designed to grow.*
+## 9. Typed cross-reference predicates (ARD v0.4.1)
+
+Typed cross-references ([SPEC.md](research-band-spec.md) [§10.5](research-band-spec.md#105-typed-cross-references-optional)) — the `related:` frontmatter edges between artifacts — draw their predicate from a **closed-with-extension vocabulary of twelve baseline predicates** (CiTO / IBIS-Toulmin / SKOS + substrate-native), vendored as data in `ard-kernel/catalogs.json` (`typed_edge_predicates`); each predicate carries its source-ancestor (the ontology term it derives from) and semantic there. Edges are directed from the carrier outward; `related` (SKOS-derived) is the only symmetric predicate. Extend only with a cited source-ancestor or an explicit no-ancestor rationale. Optional + opt-in — platform wires `related:` into `.research/` artifacts where typed cross-references serve; structural predicates (`parent`, `supersedes` / `superseded_by`) stay as established top-level fields, not under `related:`.
+
+---
+
+*The catalog members are vendored as data in `ard-kernel/catalogs.json` (ARD v0.4.1); this file is the SNC-operational layer over them. Extend by the closed-with-extension recipe; re-sync ARD members by `cp -r` of the kernel + conformance, not by hand-editing here.*

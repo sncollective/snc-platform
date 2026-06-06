@@ -6,11 +6,11 @@ paths:
 
 # Research band — platform operationalization
 
-Platform adopts **ARD v0.1** (Agentic Research Discipline) — MIT-licensed, agent-agnostic. The invariant architecture is vendored in `research-band-spec.md`; the baseline catalogs in `research-band-catalogs.md`. ARD names concepts ("the attestation tier", "a citation-chain lint mechanism", "the substrate band layout") and leaves each deployment to map them onto its own filesystem and tooling. This file is platform's concrete mapping — the deployment-specific half the spec defers.
+Platform adopts **ARD v0.4.1** (Agentic Research Discipline) — MIT-licensed, agent-agnostic. The invariant architecture is vendored in `research-band-spec.md`; the SNC-operationalization catalogs in `research-band-catalogs.md`. ARD names concepts ("the attestation tier", "a citation-chain lint mechanism", "the substrate band layout") and leaves each deployment to map them onto its own filesystem and tooling. This file is platform's concrete mapping — the deployment-specific half the spec defers.
 
 ## Version pin
 
-Platform tracks **ARD v0.1**. The vendored spec + catalogs are a pinned snapshot; upstream revisions arrive as a deliberate re-vendor (a position-changing commit), not automatically. Per ARD's SemVer, a MAJOR bump requires migration; MINOR/PATCH are free re-vendors.
+Platform tracks **ARD v0.4.1**, consumed via the **`kernel/` contract vendored in-tree at `ard-kernel/`** (per `platform-0014`): `ard-kernel/catalogs.json` is the catalog data the lints read; `ard-kernel/discipline.md` is the verbatim anti-fabrication bundle; `ard-kernel/conformance/` validates the vendored citation lint (16/16). The catalog *members* live in that data — the rule files keep the SNC-operationalization prose and defer enumerable member lists to it, rather than re-narrating them (which is what let the prior prose-vendor fall four releases behind). A re-sync is `cp -r <ARD>/kernel/. ard-kernel/` + conformance; per ARD's SemVer a MAJOR bump requires migration, MINOR/PATCH are free re-syncs. Boundary: the vendored copy is in-tree; nothing references root's `ard/` submodule.
 
 ## Substrate band layout (maps SPEC §10.2)
 

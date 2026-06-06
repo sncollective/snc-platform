@@ -1,16 +1,18 @@
 ---
 id: feature-ard-upgrade-v0-4-1
 kind: feature
-stage: drafting
+stage: done
 tags: [workflow]
 release_binding: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0013]
+related_decisions: [platform-0014, platform-0013]
 parent: null
 ---
 
 # Upgrade platform's ARD adoption from v0.1 to v0.4.1
+
+> **Done 2026-06-06.** All five children landed (1 decision + 4 stories, each review-passed + archived). Platform now consumes ARD **v0.4.1** via the in-tree `ard-kernel/` kernel contract (data + verbatim + conformance 16/16); both citation lints data-source from it; the three `research-band-*.md` rule files declare v0.4.1 with member lists deferred to the catalog data. Unbound (agent-facing dev/CI tooling + doctrine, no deploy surface). Consumption model decided in `platform-0014`.
 
 Platform's research band is pinned at **ARD v0.1** (declared in all three `research-band-*.md` rule files + `platform-0013`). Upstream is at **v0.4.1** — four releases ahead. This feature re-vendors platform's adoption to v0.4.1.
 
@@ -58,7 +60,7 @@ Code-grounded children are enumerated here, not written at scope time (they need
 4. **Lint catch-up — split into two stories** (both reference the vendored `ard-kernel/`). The child-#3 finding (platform has *two* stale citation lints in `scripts/`) made one combined child the wrong shape:
    - **4a — Replace `scripts/lint-citations.py` with the vendored reference.** ✅ Done · review-passed · archived → story `replace-lint-citations-with-vendored-reference`. `scripts/lint-citations.py` is now a 24-line runpy shim to `ard-kernel/lint-citations.py` (data-sourced, byte-identical delegation verified); subsumes the child-#2 SSRF patch; SSRF test re-pointed (11/11). Conformance 16/16.
    - **4b — Data-source `lint-research-claims.py` from `ard-kernel/catalogs.json`.** ✅ Done · review-passed · archived → story `lint-research-claims-data-source-catalogs`. `load_catalog_config` sources the category enumeration + non-broken-status set from the catalog (+ fallback); SNC matchers stay local; 2 category keys aligned to canonical ids. Output behavior-preserving (diff vs HEAD = only the 2 renamed labels); 5/5 new tests. (Note: `run.py` conformance is citation-lint-specific, doesn't apply to this lint.)
-5. **Slim + bump the prose rule files** — fold v0.4.1 content (inventory growth, typed cross-refs §10.5/§9, IP profiles, 6th citation check) into the SNC-operationalization layer; bump version markers + vendor banners. *(doctrine)*
+5. **Slim + bump the prose rule files** — ✅ Implemented, at `review` → story `slim-bump-research-band-rules-v0-4-1`. All three `research-band-*.md` files bumped to v0.4.1; member lists deferred to `ard-kernel/catalogs.json` (§1 slimmed to platform's 9-shape fence-map; §9 predicates + §3 statuses defer to data); §10.5 typed cross-refs + §3 `colliding-handle` 6th check + §2 IP-profile note added. Doc-links 20/20 OK; no residual v0.1 markers.
 
 ## Scope — what's in
 
