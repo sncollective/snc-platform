@@ -58,7 +58,7 @@ FACET_PREFIX = re.compile(r"^(f\d+)\b")
 # Severity reflects empirical reproduction risk per the four-reproduction substrate;
 # tuned high-recall per F3/DD1 (accept false positives; T3 suppression manages noise).
 PATTERN_SPECS = {
-    "decimal-with-paper-attribution": {
+    "decimal-with-attribution": {
         "severity": "high",
         "description": "Decimal % adjacent to comparison/improvement language (43.3% / KAG / HippoRAG shape)",
         "regex": re.compile(
@@ -71,7 +71,7 @@ PATTERN_SPECS = {
         "description": "Specific version number; risk of training-recall version-swap",
         "regex": re.compile(r"\bv?\d+\.\d+(?:\.\d+){0,2}(?:[-+]\w+)?\b"),
     },
-    "file-word-count": {
+    "count-without-unit-citation": {
         "severity": "medium",
         "description": "Specific count claim (files/words/pages/lines/chars)",
         "regex": re.compile(
@@ -108,6 +108,34 @@ PATTERN_SPECS = {
 }
 
 SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2}
+
+# Per platform-0014, the pattern-category *enumeration* + the non-broken citation-status
+# set are sourced from the vendored ARD catalog (`ard-kernel/catalogs.json`) at runtime,
+# so a MINOR ARD inventory bump is a data change consumed here with no code edit. The
+# matchers + severities in PATTERN_SPECS and the membership of RESOLVED_STATUSES above are
+# SNC deployment latitude and the built-in fallback when the catalog is absent.
+DEFAULT_CATALOGS_PATH = Path(__file__).resolve().parent.parent / "ard-kernel" / "catalogs.json"
+
+
+def load_catalog_config(catalogs_path: Path) -> tuple[dict, set]:
+    """Return (active pattern specs, non-broken citation-status set) sourced from the
+    catalog's `lint` section. The category ids are the invariant; the per-category matcher
+    + severity stay local (PATTERN_SPECS). Falls back to the built-in defaults when the
+    catalog is missing/unreadable, so the lint keeps working without the data file."""
+    try:
+        with open(catalogs_path, encoding="utf-8") as fh:
+            lint = json.load(fh)["lint"]
+        cat_ids = [c["id"] for c in lint["pattern_categories"]]
+        non_broken = {s["id"] for s in lint["citation_chain_statuses"] if not s["broken"]}
+    except (OSError, KeyError, ValueError):
+        return dict(PATTERN_SPECS), set(RESOLVED_STATUSES)
+    specs = {cid: PATTERN_SPECS[cid] for cid in cat_ids if cid in PATTERN_SPECS}
+    missing = [cid for cid in cat_ids if cid not in PATTERN_SPECS]
+    if missing:
+        print(f"[note] catalogs.json declares {len(missing)} pattern categor(ies) with no "
+              f"matcher in this lint: {', '.join(missing)} — add a matcher to cover them.",
+              file=sys.stderr)
+    return specs, (non_broken or set(RESOLVED_STATUSES))
 
 
 def parse_frontmatter(text: str) -> dict | None:
@@ -208,7 +236,7 @@ def lint_patterns(brief_path: Path, lines: list[str], frontmatter: dict | None) 
                         continue
                     if is_in_inline_code(line, match.start()):
                         continue
-                if category == "file-word-count":
+                if category == "count-without-unit-citation":
                     if is_attestation:
                         # Inside attestation files, structural-metadata file/word/page counts are source-attested
                         continue
@@ -220,7 +248,7 @@ def lint_patterns(brief_path: Path, lines: list[str], frontmatter: dict | None) 
                         continue
                     if is_attestation:
                         continue
-                if category == "decimal-with-paper-attribution":
+                if category == "decimal-with-attribution":
                     if is_attestation:
                         # Attestation files quote decimals from source; that's the discipline
                         continue
@@ -580,7 +608,14 @@ def main() -> int:
     parser.add_argument("--severity-min", choices=["low", "medium", "high"], default="low", help="Filter pattern findings (default: low)")
     parser.add_argument("--no-citation-check", action="store_true", help="Skip citation-chain verifier")
     parser.add_argument("--exit-code-on", choices=["high", "medium", "low", "none"], default="none", help="Exit code 1 if findings at-or-above severity (default: none)")
+    parser.add_argument("--catalogs", type=Path, default=DEFAULT_CATALOGS_PATH, help="ARD catalog data to source the pattern-category + non-broken-status sets from (default: vendored ard-kernel/catalogs.json; falls back to built-ins if absent)")
     args = parser.parse_args()
+
+    # Source the category enumeration + non-broken-status set from the vendored catalog
+    # (platform-0014). Rebinds the module defaults once at startup so the lint functions
+    # pick up the catalog-driven sets; a missing catalog falls back to the built-ins.
+    global PATTERN_SPECS, RESOLVED_STATUSES
+    PATTERN_SPECS, RESOLVED_STATUSES = load_catalog_config(args.catalogs)
 
     files = collect_files(args.paths)
     if not files:

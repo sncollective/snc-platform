@@ -24,8 +24,8 @@
 - `audit-handles.py [--by-file] [--by-handle] [--collisions]` — audit `[handle]{N}` citation-handle deployment. `--collisions` flags uniqueness failures: a handle minted by 2+ INDEX entries, or an attestation `source_handle:` ≠ filename.
 - `scan-memory.py [--face=…]` — mechanical lint sweep over `.memory/` + `.work/` + `.research/`. The `schema` face also surfaces `source_class` soft-enum drift (values outside the canonical ARD classes → informational consolidation candidates).
 - `check-doc-links.py` — markdown-link + boundary validation (also wired into pre-commit).
-- `lint-research-claims.py [paths…]` — ARD anchor-and-drift + citation-chain lint over `.research/`.
-- `lint-citations.py` — the zero-dependency ARD reference citation-chain lint.
+- `lint-research-claims.py [paths…]` — ARD anchor-and-drift + citation-chain lint over `.research/`. Sources its pattern-category enumeration + non-broken citation-status set from the vendored `ard-kernel/catalogs.json` (`--catalogs` to override; built-in fallback if absent); the SNC-tuned regex matchers + severities stay local.
+- `lint-citations.py` — entrypoint shim to the vendored ARD v0.4.1 reference citation-chain lint (`ard-kernel/lint-citations.py`), which data-sources its pattern-category + chain-status sets from `ard-kernel/catalogs.json` (built-in fallback if absent). Per `platform-0014`, platform consumes the citation lint as the vendored verbatim reference rather than a fork; the shim keeps this entrypoint stable for the research skills/agents that invoke it.
 
 ### Auto-loaded rules (`.claude/rules/`)
 
