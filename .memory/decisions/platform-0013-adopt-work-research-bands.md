@@ -31,6 +31,8 @@ Adopt the two output bands alongside the substrate band:
 
 ### ARD adoption level
 
+> **Revised by [platform-0014](platform-0014-adopt-ard-kernel-contract.md):** the consumption *mechanism* below (hand-narrated prose vendor) and the **v0.1** pin are superseded — platform now adopts the ARD `kernel/` consumption contract (data + verbatim + conformance) at **v0.4.1**, vendored in-tree. The band layout, self-containment posture, and verification-stack wiring in this record stand.
+
 Platform adopts at **Tier 1 (framework) + Tier 2 (catalogs) + Tier 4 (version-pin)** per ARD's adoption guide:
 
 - The architecture is **vendored** as `.claude/rules/research-band-spec.md` (← ARD SPEC) + `.claude/rules/research-band-catalogs.md` (← ARD CATALOGS), with `.claude/rules/research-band-platform.md` carrying platform's concrete deployment mapping (substrate layout, attestation tier path, citation lint, discipline-propagation mechanism). These are a **pinned snapshot of ARD v0.1**; upstream revisions arrive as a deliberate re-vendor, not automatically. MIT attribution is carried in-tree.
