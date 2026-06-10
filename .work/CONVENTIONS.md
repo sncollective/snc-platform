@@ -13,8 +13,10 @@ binding_guard: halt          # epics don't span releases; mismatch halts the rel
 epic_cohesion: total         # epics ship whole — every child binds to the same release
 research_completion: close-to-done   # [research] verification runs inline; no review-stage sign-off
 
-The `refactor` opt-in activates the gate-refactor seam: the eight `scan-*` rule libraries under
-`.claude/skills/scan-*` plug into the refactor gate automatically via this declaration alone. No
+The `refactor` opt-in activates the gate-refactor seam: the `scan-*` refactor rule libraries
+under `.claude/skills/scan-*` plug into the refactor gate automatically via this declaration
+alone (the gate discovers them by glob — `scan-memory` is a substrate lint that matches the
+glob and loads harmlessly). No
 additional configuration is needed.
 
 ## Terminal-tier retention
@@ -185,8 +187,9 @@ not automatable in CI and require production credentials.
 
 Shipping completes the plugin lifecycle (stage → `released`). Prod verification is a
 platform-local follow-through on the release file — it does not hold the plugin lifecycle open.
-The `## Prod verification` section is seeded by `/release-create` and filled in as items pass
-review; the operator walks it after deploy.
+The `## Prod verification` section is added to the release file by the review pass that first
+lifts a residual prod-only check (or by hand when the release is planned) and filled in as items
+pass review; the operator walks it after deploy.
 
 *Candidate upstream feature:* a `post_release_checklist:` field in release frontmatter that the
 plugin surfaces after `released` is set, for deployment-context checks that can't run in CI.

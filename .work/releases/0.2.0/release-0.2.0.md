@@ -10,6 +10,7 @@ gate_origin: null
 quality_gates_passed: [refactor, security, tests, docs]
 related_items: []
 created: 2026-04-18
+updated: 2026-06-10
 ---
 
 # Release 0.2.0 — Streaming Goes Live

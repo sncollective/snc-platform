@@ -7,9 +7,8 @@ surface the agentic-research plugin names as the substrate's contract.
 <!-- ARD framework used under MIT license (Agentic Research Discipline, ARD v0.5.1).
      Copyright 2025–2026 Kevoun Nklisch. See https://code.s-nc.org/Kevoun/ARD for the
      canonical framework. Attribution carried from the retiring band rules
-     (research-band-spec.md, research-band-catalogs.md, research-band-platform.md) per
-     the no-loss inventory recorded in the implementation notes of
-     story-subproject-adoption-platform-research-conversion. -->
+     (research-band-spec.md, research-band-catalogs.md, research-band-platform.md)
+     at plugin adoption, 2026-06-10. -->
 
 **Platform adopts ARD as a consumer, transitively through the agentic-research plugin.**
 The framework architecture (anti-fabrication core, verification stack, control-space model,
@@ -202,9 +201,10 @@ The agentic-research plugin's `scripts/lint-citations.py` is the citation-chain 
 over the band's attestation and analysis tiers:
 
 ```sh
-python3 <plugin-root>/scripts/lint-citations.py platform/.research/analysis/ \
-    --attestation-dir platform/.research/attestation/ \
-    --analysis-dir platform/.research/analysis/ \
+# from the project root
+python3 <plugin-root>/scripts/lint-citations.py .research/analysis/ \
+    --attestation-dir .research/attestation/ \
+    --analysis-dir .research/analysis/ \
     --stats
 ```
 

@@ -47,11 +47,11 @@ is a version-pin string + MIT attribution in `.research/CONVENTIONS.md`.
 
 ### Stay on the flat `.memory/` layout
 
-Keeping items and research under `.memory/` perpetuates split-brain against the monorepo's
-settled output-namespace structure and leaves platform's items invisible to the output-class
-tooling that keys on `.work/`. Rejected.
+Keeping items and research under `.memory/` perpetuates a layout at odds with the settled
+output-namespace structure (`.work/` items + `.research/` research as top-level bands) and
+leaves platform's items invisible to the output-class tooling that keys on `.work/`. Rejected.
 
-### Fork the monorepo's operationalized research rules
+### Fork an upstream deployment's operationalized research rules
 
 The available operationalized research rules carry ~1,955 lines woven with 143 cross-references
 and 42 decision-record citations into another scope's decision graph — a divergent fork that

@@ -19,7 +19,7 @@ plugin's drift-fenced vendored kernel. The prior in-tree `ard-kernel/` vendor is
 **Platform carries no in-tree ARD kernel copy and no ARD submodule.** The framework architecture
 (anti-fabrication core, verification stack, control-space model, data contracts), the baseline
 catalogs, the lint, and the discipline bundle are all provided by the agentic-research plugin
-as an external tool installed alongside the platform sub-project.
+as an external tool installed alongside this project.
 
 The working contract for how platform uses the research band is `.research/CONVENTIONS.md`,
 which names the plugin-provided surfaces (lint, catalogs, discipline bundle) as external tools.
@@ -43,9 +43,9 @@ consumed as data (not re-narrated), `kernel/discipline.md` was vendored verbatim
 re-narrated — the drift fence), `kernel/conformance/run.py` validated the vendored copy.
 
 This model's load-bearing cost: **a per-project kernel copy to maintain**. Platform carried its
-own `ard-kernel/` distinct from root's, because the project-boundary constraint (standalone-clone
-self-containment) prohibited referencing root's `ard/` submodule. Every ARD bump required a
-deliberate kernel re-sync.
+own `ard-kernel/` copy because the project-boundary constraint (standalone-clone
+self-containment) prohibited path-referencing any ARD checkout outside the project tree. Every
+ARD bump required a deliberate kernel re-sync.
 
 ### Current: plugin-provided kernel (ARD v0.5.1)
 
@@ -87,11 +87,11 @@ the plugin is installed externally, not via a path inside the project tree. Carr
 redundant in-tree copy alongside the plugin would create two competing kernel surfaces with
 no benefit.
 
-### Reference root's ard/ submodule directly
+### Path-reference an external ARD checkout directly
 
 Would eliminate the per-project copy. **Rejected:** Violates the project-boundary
-constraint — a markdown link or import path from inside `platform/` that escapes the submodule
-root is forbidden. A standalone clone of `platform/` does not include root's `ard/` submodule.
+constraint — a markdown link or import path that escapes the project root is forbidden. A
+standalone clone of this project does not include any external ARD checkout at a knowable path.
 
 ## Platform constraints it sets
 

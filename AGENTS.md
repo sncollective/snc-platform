@@ -1,5 +1,5 @@
 ---
-updated: 2026-04-16
+updated: 2026-06-10
 ---
 
 # Platform AGENTS.md
@@ -137,6 +137,7 @@ Pre-1.0 — all current releases. 1.0 reserved for cooperative launch.
 
 ## Agile-Workflow Substrate
 
+<!-- agile-workflow:start -->
 Work tracked in `.work/` as markdown items with YAML frontmatter
 (`id, kind, stage, tags, release_binding, depends_on, gate_origin, created, updated, parent`).
 A `[research]` item additionally carries its engagement registration in a `research_dials:`
@@ -165,6 +166,7 @@ are retired; the plugin's rules block and `.work/CONVENTIONS.md` are canonical.
 
 Full tag rubric, gate config, slug conventions, and platform-local conventions live in
 `.work/CONVENTIONS.md`.
+<!-- agile-workflow:end -->
 
 ### Platform specifics
 

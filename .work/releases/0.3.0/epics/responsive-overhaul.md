@@ -3,7 +3,7 @@ id: responsive-overhaul
 kind: epic
 stage: done
 tags: [design-system, ux-polish]
-release_binding: null
+release_binding: 0.3.0
 depends_on: []
 gate_origin: null
 created: 2026-04-18
