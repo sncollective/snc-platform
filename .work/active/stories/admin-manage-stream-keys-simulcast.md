@@ -3,7 +3,7 @@ id: story-admin-manage-stream-keys-simulcast
 kind: story
 stage: review
 tags: [streaming, access]
-release_binding: 0.3.1
+release_binding: null
 created: 2026-04-24
 updated: 2026-04-24
 related_decisions: []

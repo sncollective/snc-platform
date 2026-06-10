@@ -3,7 +3,7 @@ id: story-on-forward-session-first-classifier
 kind: story
 stage: review
 tags: [streaming]
-release_binding: 0.3.1
+release_binding: null
 created: 2026-04-24
 updated: 2026-04-24
 related_decisions: []
