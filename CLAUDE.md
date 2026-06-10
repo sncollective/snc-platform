@@ -29,6 +29,6 @@
 
 ### Auto-loaded rules (`.claude/rules/`)
 
-- **Work-item system:** `item-convention.md`, `item-pipelines.md`, `tag-taxonomy.md`, `document-evolution.md` (carries substrate-before-stance + the durability gradient + rules-describe-behavior-directly), `path-conventions.md`, `readme-discipline.md` (README authoring; auto-loads on `**/README.md`).
-- **Research band (ARD v0.1):** `research-band-spec.md`, `research-band-catalogs.md`, `research-band-platform.md`.
+- **Work-item system:** `document-evolution.md` (carries substrate-before-stance + the durability gradient + rules-describe-behavior-directly), `path-conventions.md`, `readme-discipline.md` (README authoring; auto-loads on `**/README.md`). Work-item structure, stage flow, and tag rubric are now plugin-managed — see `.agents/rules/agile-workflow.md` and `.work/CONVENTIONS.md`.
+- **Research band (ARD v0.4.1):** `research-band-spec.md`, `research-band-catalogs.md`, `research-band-platform.md`.
 - **Platform code:** `platform-patterns.md`, `inline-documentation.md`, `drizzle-migrations.md`, `testing-strategy.md`, `e2e-testing.md`.

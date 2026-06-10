@@ -31,7 +31,7 @@ Platform's persistent state splits across three top-level bands by output-class:
 - **`scratchpad/`** (gitignored) — ephemeral in-flight artifacts. Promote anything worth keeping; the rest auto-deletes.
 - **`agents/`** (gitignored) — per-agent private state.
 
-Design/scoping briefs are **not** a separate tier — item matter lives inline in the work-item file (the feature/story file *is* the design surface), per `.claude/rules/item-convention.md §Where matter lives`.
+Design/scoping briefs are **not** a separate tier — item matter lives inline in the work-item file (the feature/story file *is* the design surface).
 
 ### `.work/` — work items (output-class)
 
@@ -42,7 +42,7 @@ Items are the unit of persistent work, carrying structured state in frontmatter 
 - **`releases/`** — shipped version bundles (`<version>.md` + archived per-release item trees). Platform ships versioned releases, so items bind to a release at review-pass.
 - **`archive/`** — done items without a release binding (kind-grouped).
 
-Convention: `.claude/rules/item-convention.md` (structure), `item-pipelines.md` (stage flow + quality gates), `tag-taxonomy.md` (tag rubric).
+Convention: `.work/CONVENTIONS.md` (tag rubric, gate config, slug conventions, platform-local conventions) + `.agents/rules/agile-workflow.md` (plugin-managed rules block).
 
 ### `.research/` — research band (ARD v0.1)
 
@@ -121,3 +121,52 @@ Pre-1.0 — all current releases. 1.0 reserved for cooperative launch.
 - **Theme titles:** each release has a short theme used in the board heading (e.g., "Admin Polish + Playout Redesign").
 
 **Releases are scoping units, not deployment units.** Multiple releases can be active at different stages simultaneously. All development happens on main. Deployment ships everything that's been reviewed — which may span multiple releases. Quality gates run once against the combined deployment surface.
+
+## Agile-Workflow Substrate
+
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`id, kind, stage, tags, release_binding, depends_on, gate_origin, created, updated, parent`).
+A `[research]` item additionally carries its engagement registration in a `research_dials:`
+nested frontmatter block (`scope_authority, verification_rigor, intent, output_kind`) read
+by the orchestrator at dispatch. Layout: `.work/active/{epics,features,stories}/`,
+`.work/backlog/`, `.work/releases/<version>/`, `.work/archive/`.
+
+**Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind, parent, and
+dependency. Common patterns:
+- `work-view --ready` — items ready to work (deps satisfied)
+- `work-view --stage review` — items awaiting review
+- `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
+- `work-view --scope all` — include terminal tiers: `releases/` (summary docs + archived item
+  trees) and `archive/` (bodyless ref stubs). Default shows only active + backlog.
+- `work-view --help` for the full flag set
+
+Foundation docs in `docs/` describe the system's current state or intended future state,
+never the past; git history is the audit trail. Item files are the durable state — update the
+body with implementation discoveries, review findings, blockers, and decisions instead of
+relying on chat history.
+
+Agent rules live in `.agents/rules/agile-workflow.md` (plugin-managed; carry the
+`<!-- agile-workflow:rules:start/end -->` markers). Read them before designing, implementing,
+or reviewing. The three bespoke item rules (`item-convention`, `item-pipelines`, `tag-taxonomy`)
+are retired; the plugin's rules block and `.work/CONVENTIONS.md` are canonical.
+
+Full tag rubric, gate config, slug conventions, and platform-local conventions live in
+`.work/CONVENTIONS.md`.
+
+### Platform specifics
+
+- **Terminal-tier retention: `delete-refs`** — archive items become bodyless ref stubs going
+  forward; full bodies live in git history. Historical exception: the pre-conversion release
+  archive under `releases/0.3.0/` retains full bodies as a migrated exception (no retroactive
+  prune); `delete-refs` applies from conversion forward.
+- **Release mapping: `none`** — platform ships versioned releases as scoping units, but
+  deployment is user-at-station (manual ship from the operator's station). The plugin does not
+  tag or branch on release. After `stage: released` is set, the operator walks the `## Prod
+  verification` section of the release file for prod-only checks (OAuth/SMTP/SRS RTMP/real
+  follower paths) that require production credentials and can't run in CI.
+- **Fix-verify loopback** — each user-verifiable fix is re-confirmed by the user in the
+  running app before the story closes, stronger than the plugin's default bounce-and-re-review.
+  Applies wherever a non-agent can visually or behaviorally confirm the change.
+- **`scan-*` gate seam** — the eight `scan-*` rule libraries under `.claude/skills/scan-*`
+  plug into the plugin's `gate-refactor` seam automatically via the `refactor` entry in
+  `gates_for_release` declared in `.work/CONVENTIONS.md`. No additional configuration needed.
