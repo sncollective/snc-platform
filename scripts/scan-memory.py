@@ -20,11 +20,11 @@ project root. Six faces:
 
 Default face set: orphans + schema (cheap, no opt-in needed). references / durable-refs /
 stale-positions / substrate-test are opt-in via --face. The lighter faces compose with the existing
-check-doc-links.py + lint-research-claims.py surfaces:
+check-doc-links.py + plugin lint (agentic-research) surfaces:
 
   - check-doc-links.py — broken markdown links (auto-runs in pre-commit)
-  - lint-research-claims.py — anchor-and-drift fabrication patterns
-                              + citation-chain integrity at attestation tier
+  - plugin lint (agentic-research plugin's scripts/lint-citations.py) — anchor-and-drift
+                              fabrication patterns + citation-chain integrity at attestation tier
                               (.research/attestation/<handle>.md scope)
   - scan-memory.py (this) — orphans + schema + .research/-tier reference resolution
                             + stale-position revisit_if + substrate-test packet generation
@@ -87,10 +87,10 @@ VALID_PROVENANCE = {
     "generated-listing", "hybrid-curated",
 }
 
-# Canonical `source_class` soft enum — the ARD baseline (mirrors research-band-catalogs.md §2;
-# platform carries no `ard/` submodule, so the set is vendored here rather than read from a
-# kernel). Values outside it surface as informational consolidation candidates (soft-enum drift)
-# per ARD's closed-with-extension recipe.
+# Canonical `source_class` soft enum — the ARD baseline (mirrors the agentic-research plugin's
+# catalogs.json §source_class; platform carries no in-tree ARD kernel, consuming ARD v0.5.1
+# transitively via the plugin). Values outside it surface as informational consolidation
+# candidates (soft-enum drift) per ARD's closed-with-extension recipe.
 KNOWN_SOURCE_CLASSES = {
     "paper", "book-chapter", "essays", "tool-doc", "blog-post",
     "github-readme", "wiki-page", "light-form", "standard", "talk-podcast",
@@ -323,7 +323,7 @@ def check_orphans(memory_roots, work_roots, research_roots):
 
     # .research/ orphan walk: notes/, precis/, analysis/ only.
     # Skip reference/ (INDEX entries are upstream-only by design — see
-    # research-band-catalogs.md §Per-corpus INDEX shape) and reference/<corpus>/NOTES.md
+    # .research/CONVENTIONS.md §Per-corpus INDEX shape) and reference/<corpus>/NOTES.md
     # (corpus-level extraction housekeeping, not per-piece notes).
     for project_root in research_roots:
         research_dir = project_root / ".research"
@@ -419,7 +419,7 @@ def check_schema(memory_roots, work_roots, research_roots):
                 if "created" not in fm:
                     issues.append((scope, rel, "missing required field: created"))
 
-    # .research/ schema — per research-band-catalogs.md
+    # .research/ schema — per .research/CONVENTIONS.md
     for project_root in research_roots:
         scope = scope_label(project_root)
         research_dir = project_root / ".research"
@@ -556,7 +556,7 @@ def _check_source_class_consolidation(research_dir, scope):
 
 
 def _check_research_index(index_file, scope):
-    """Validate per-corpus INDEX.md per research-band-catalogs.md §Per-corpus INDEX shape.
+    """Validate per-corpus INDEX.md per .research/CONVENTIONS.md §Per-corpus INDEX shape.
 
     Required per-piece fields: Source class, Author, Source URL, Original date,
     Ingested, Raw fetch, Notes, Themes, Covers. (pending) values are tolerated —
@@ -599,7 +599,7 @@ def _check_research_index(index_file, scope):
 
 
 def _is_descriptive_layer_path(md_file, research_dir):
-    """Per research-band-catalogs.md §Per-source vocab capture shape — capture files at
+    """Per .research/CONVENTIONS.md §Per-source vocab capture shape — capture files at
     .research/precis/<source-slug>-{surfaced,vocab}.md are descriptive-layer captures
     even though they live under precis/."""
     rel = md_file.relative_to(research_dir)
@@ -607,7 +607,7 @@ def _is_descriptive_layer_path(md_file, research_dir):
 
 
 def _check_research_note(md_file, scope):
-    """Per-piece note schema per research-band-catalogs.md §Per-piece note shape.
+    """Per-piece note schema per .research/CONVENTIONS.md §Per-piece note shape.
 
     Validates citation_handle (required) and provenance (validate-when-present;
     opportunistic-sweep posture per the page-level provenance decision means
@@ -625,12 +625,12 @@ def _check_research_note(md_file, scope):
         if fm["provenance"] not in VALID_PROVENANCE:
             issues.append((scope, rel, f"note: invalid provenance: {fm['provenance']}"))
         elif fm["provenance"] != "source-direct":
-            issues.append((scope, rel, f"note: provenance '{fm['provenance']}' should be 'source-direct' per research-band-catalogs.md"))
+            issues.append((scope, rel, f"note: provenance '{fm['provenance']}' should be 'source-direct' per .research/CONVENTIONS.md"))
     return issues
 
 
 def _check_research_precis(md_file, scope):
-    """Precis + per-source-capture schema per research-band-catalogs.md.
+    """Precis + per-source-capture schema per .research/CONVENTIONS.md.
 
     Three artifact shapes share .research/precis/:
       <slug>.md                    — precis (source_handle, authored, provenance:agent-authored-from-raw)
@@ -671,7 +671,7 @@ def _check_research_precis(md_file, scope):
 
 
 def _check_research_analysis(md_file, scope):
-    """Analysis-tier schema per research-band-catalogs.md §Analytic-layer ledger shape.
+    """Analysis-tier schema per .research/CONVENTIONS.md §Analytic-layer ledger shape.
 
     Required (ledger): arc, authored, status, provenance (agent-synthesis).
     Other analysis-tier artifacts are flexible — only validate provenance.
@@ -722,8 +722,8 @@ def check_references(memory_roots, research_roots):
 
     Distinct from check-doc-links.py (markdown-link / backtick-path resolution); narrower
     in scope (citation-handle to INDEX-entry resolution + related: target resolution).
-    Coordinates with lint-research-claims.py at the citation-chain seam: that script
-    resolves handles to attestation files at .research/attestation/<handle>.md;
+    Coordinates with the agentic-research plugin's lint-citations.py at the citation-chain
+    seam: that script resolves handles to attestation files at .research/attestation/<handle>.md;
     this check resolves to .research/reference/<corpus>/INDEX.md entries. Two
     resolution paths for the same handle form, by design.
 
@@ -916,8 +916,8 @@ def _prioritize_condition(cond):
 def _emit_substrate_test_packet(md_file, out_dir):
     """Generate per-artifact substrate-test packet for sub-agent triage.
 
-    Sub-agent wrapping per research-band-spec.md §5 Discipline propagation
-    (text-bundle inlined; sub-agents don't auto-load rules).
+    Sub-agent wrapping per ARD §5 Discipline propagation (carried via the agentic-research
+    plugin; text-bundle inlined; sub-agents don't auto-load rules).
 
     No inline LLM call from the script — the packet is a self-contained prompt the
     user (or orchestrator) feeds to a sub-agent. Keeps script LLM-free and aligns with
@@ -935,9 +935,9 @@ def _emit_substrate_test_packet(md_file, out_dir):
     packet = (
         f"# Substrate-test packet — {rel}\n\n"
         "Spawn a sub-agent with this packet inlined. The sub-agent does NOT auto-load\n"
-        "project rules per `research-band-spec.md` §5 Discipline propagation;\n"
+        "project rules per ARD §5 Discipline propagation (agentic-research plugin);\n"
         "the substrate-test framing below is the inlined text-bundle.\n\n"
-        "## Substrate test (from `research-band-spec.md` §4.3 The substrate test)\n\n"
+        "## Substrate test (from ARD §4.3 The substrate test)\n\n"
         "Two questions answered yes/no with brief reasoning:\n\n"
         "1. **Could a non-SNC reader use this artifact without knowing SNC exists?**\n"
         "   Reads as the first descriptive-tier engagement with the source, not as\n"
@@ -968,8 +968,8 @@ def _emit_substrate_test_packet(md_file, out_dir):
 def emit_substrate_test_packets(research_roots, out_dir):
     """Walk descriptive-tier (.research/notes/, .research/precis/) and emit packets.
 
-    Skips analytical-tier — substrate-test doesn't apply per research-band-catalogs.md
-    §Claim-level provenance markers > Where markers apply.
+    Skips analytical-tier — substrate-test doesn't apply per ARD §Claim-level provenance
+    markers > Where markers apply (carried via the agentic-research plugin).
 
     Skips per-source-capture vocab files (provenance: source-direct, by definition
     a quote+gloss form; substrate-test heuristic doesn't add signal).
