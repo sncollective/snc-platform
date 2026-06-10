@@ -131,8 +131,7 @@ Pre-1.0 — all current releases. 1.0 reserved for cooperative launch.
 
 - **Major milestones** (`0.{minor}`) — big feature bundles. Increment minor for each major milestone (e.g., 0.1 Foundation, 0.2 Streaming Goes Live).
 - **Point releases** (`0.{minor}.{patch}`) — incremental work within a major. Increment patch for each point release (e.g., 0.2.1, 0.2.2).
-- **Board naming:** `boards/platform/release-{version}/` — each release gets its own board directory.
-- **Theme titles:** each release has a short theme used in the board heading (e.g., "Admin Polish + Playout Redesign").
+- **Theme titles:** each release has a short theme title (e.g., "Admin Polish + Playout Redesign").
 
 **Releases are scoping units, not deployment units.** Multiple releases can be active at different stages simultaneously. All development happens on main. Deployment ships everything that's been reviewed — which may span multiple releases. Quality gates run once against the combined deployment surface.
 
