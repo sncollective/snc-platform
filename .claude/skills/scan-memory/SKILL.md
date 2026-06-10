@@ -11,7 +11,7 @@ model: haiku
 Periodic arm of the memory-lint operation. Six mechanical faces; script-backed, no LLM reasoning at runtime except the opt-in substrate-test face which emits prompt packets for sub-agent triage (still no inline LLM from the script). Complements the commit-time arm wired into pre-commit hooks via [scripts/check-doc-links.py](../../../scripts/check-doc-links.py) and the attestation-tier arm via [scripts/lint-research-claims.py](../../../scripts/lint-research-claims.py).
 
 See:
-- [.claude/rules/item-convention.md](../../../.claude/rules/item-convention.md) — schema the schema face validates against.
+- [`.work/CONVENTIONS.md`](../../../.work/CONVENTIONS.md) — schema the schema face validates against.
 - [.claude/rules/document-evolution.md](../../../.claude/rules/document-evolution.md) §Reference direction — the durability gradient the durable-refs face enforces.
 - [.claude/rules/research-band-spec.md](../../../.claude/rules/research-band-spec.md) + [.claude/rules/research-band-catalogs.md](../../../.claude/rules/research-band-catalogs.md) — the research-band shapes the schema, references, and substrate-test faces check against.
 

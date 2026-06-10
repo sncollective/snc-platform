@@ -13,8 +13,8 @@ You are an **Opus orchestrator**. Your job: take a code-based feature or standal
 `/implement` is a **code-oriented** skill. Workflow/md-heavy items skip it — their implementation happens in-conversation by the main agent, without agent-spawning overhead.
 
 See:
-- `.claude/rules/item-convention.md` — item structure, `§Where matter lives` (kind-files live across lifecycle; grounded revision allowed)
-- `.claude/rules/item-pipelines.md` — `§What each stage loads` (implement loads implementation principles), `§What each kind signals` (implement runs on features or stories)
+- `.work/CONVENTIONS.md` — item structure, `§Where matter lives` (kind-files live across lifecycle; grounded revision allowed)
+- `.work/CONVENTIONS.md` — `§What each stage loads` (implement loads implementation principles), `§What each kind signals` (implement runs on features or stories)
 
 ## Step 0: Parse Arguments
 

@@ -9,8 +9,8 @@ argument-hint: "[version]"
 Create a release bundle file at the `.work/releases/` tier. Item binding flows through `/review` at review-pass; `/release-create` can optionally pre-bind already-reviewed items at creation time.
 
 See:
-- `.claude/rules/item-convention.md` — item + release structure, `§Frontmatter — release tier` for the schema.
-- `.claude/rules/item-pipelines.md` — `§Release binding lifecycle`.
+- `.work/CONVENTIONS.md` — item + release structure, `§Frontmatter — release tier` for the schema.
+- `.work/CONVENTIONS.md` — `§Release binding lifecycle`.
 
 ## Step 1: Parse Arguments
 

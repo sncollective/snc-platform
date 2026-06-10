@@ -8,7 +8,7 @@ argument-hint: "[tag-prefix:] [idea]"
 
 Write a new backlog item at `.work/backlog/<slug>.md`. Minimal frontmatter, minimal output, no follow-up questions.
 
-See `.claude/rules/item-convention.md` for item structure and `.claude/rules/tag-taxonomy.md` for tag rubric.
+See `.work/CONVENTIONS.md` for item structure and `.work/CONVENTIONS.md` for tag rubric.
 
 ## Step 1: Parse Arguments
 

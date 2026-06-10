@@ -11,9 +11,9 @@ model: opus
 You run an interactive acceptance review for an item at `stage: review`. Kind determines the flow. The outcome is a stage transition (`review → done`, or back to a prior stage if blocking), release binding, and any follow-on backlog/active items surfaced from triage.
 
 See:
-- `.claude/rules/item-convention.md` — item structure, `§Where matter lives` (kind-files live; grounded revision allowed)
-- `.claude/rules/item-pipelines.md` — `§Stage semantics` (review = qualified-reviewer sign-off; skip-with-note escape for items user can't meaningfully review), `§Release binding lifecycle` (binding set at review-pass for features/stories)
-- `.claude/rules/tag-taxonomy.md` — `§Scope resolution` (forwarding to testing/documentation backlogs)
+- `.work/CONVENTIONS.md` — item structure, `§Where matter lives` (kind-files live; grounded revision allowed)
+- `.work/CONVENTIONS.md` — `§Stage semantics` (review = qualified-reviewer sign-off; skip-with-note escape for items user can't meaningfully review), `§Release binding lifecycle` (binding set at review-pass for features/stories)
+- `.work/CONVENTIONS.md` — `§Scope resolution` (forwarding to testing/documentation backlogs)
 
 ## Step 0: Parse Arguments
 

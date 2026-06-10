@@ -8,7 +8,7 @@ argument-hint: "[--tag=<tag>] [--stage=<stage>] [--full] [--all]"
 
 Orientation snapshot across the `.work/` tiers. Default invocation is **compact** (counts + epic names + review queue) so it flows mid-conversation without flooding the transcript; `--full` or any filter flag expands into per-item listings.
 
-See `.claude/rules/item-convention.md` for item structure and `.claude/rules/tag-taxonomy.md` for tags. The `scripts/tag-view.py` script is a related tool focused on single-tag filtering; this skill presents the aggregate view.
+See `.work/CONVENTIONS.md` for item structure and `.work/CONVENTIONS.md` for tags. The `scripts/tag-view.py` script is a related tool focused on single-tag filtering; this skill presents the aggregate view.
 
 ## Step 1: Parse Arguments
 

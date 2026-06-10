@@ -11,9 +11,9 @@ model: opus
 Scan the code against all discovered scan rule libraries. Findings become tagged items (stories at `stage: implementing` for high confidence, features/stories at `drafting` for medium, backlog items for low) per `item-pipelines.md §Scan and triage pipelines`. Agents dispatched per logical group (directory/module), checking all rules in one pass per file.
 
 See:
-- `.claude/rules/item-pipelines.md` — `§Scan and triage pipelines` (confidence-to-item mapping), `§Batch-shape conventions` (A/B/C shapes), `§Release binding lifecycle` (gate-finding binding).
-- `.claude/rules/tag-taxonomy.md` — `§Scope resolution`.
-- `.claude/rules/item-convention.md` — item structure + frontmatter.
+- `.work/CONVENTIONS.md` — `§Scan and triage pipelines` (confidence-to-item mapping), `§Batch-shape conventions` (A/B/C shapes), `§Release binding lifecycle` (gate-finding binding).
+- `.work/CONVENTIONS.md` — `§Scope resolution`.
+- `.work/CONVENTIONS.md` — item structure + frontmatter.
 
 ## Step 0: Parse Arguments
 

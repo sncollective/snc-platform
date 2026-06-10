@@ -11,9 +11,9 @@ model: opus
 You guide the user through sizing new work and promoting it into the active tier. The kind-file (`epic.md` / `feature.md` / `story.md`) is the output of this session — not a prerequisite.
 
 See:
-- `.claude/rules/item-convention.md` — item structure + frontmatter schema + §Where matter lives
-- `.claude/rules/item-pipelines.md` — stage flow, §What each kind signals, §What each stage loads
-- `.claude/rules/tag-taxonomy.md` — tag rubric
+- `.work/CONVENTIONS.md` — item structure + frontmatter schema + §Where matter lives
+- `.work/CONVENTIONS.md` — stage flow, §What each kind signals, §What each stage loads
+- `.work/CONVENTIONS.md` — tag rubric
 
 ## Step 0: Parse Arguments
 

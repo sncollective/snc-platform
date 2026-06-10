@@ -14,9 +14,9 @@ Two modes:
 - **Ad-hoc mode** (secondary): process a single `testing`-tagged backlog item. For manually-parked items or when processing outside a release cycle.
 
 See:
-- `.claude/rules/item-pipelines.md` — `§Quality gates live on releases` (gate sequence), `§Release binding lifecycle` (gate-finding binding).
-- `.claude/rules/item-convention.md` — item structure.
-- `.claude/rules/tag-taxonomy.md` — `testing` tag charter.
+- `.work/CONVENTIONS.md` — `§Quality gates live on releases` (gate sequence), `§Release binding lifecycle` (gate-finding binding).
+- `.work/CONVENTIONS.md` — item structure.
+- `.work/CONVENTIONS.md` — `testing` tag charter.
 
 ## Step 0: Parse Arguments
 

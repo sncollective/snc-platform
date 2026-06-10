@@ -9,8 +9,8 @@ argument-hint: "[version]"
 You walk a release from `planned` → `quality-gate` → `released` via the gate sequence, release-plan writing, CI run, and item archival. Sequential phases; each phase's failures block progression. Idempotent — re-invoke after fixing gate findings or CI failures to pick up where you left off.
 
 See:
-- `.claude/rules/item-convention.md` — item + release structure, `§Where matter lives`, `§Frontmatter — release tier` for the schema.
-- `.claude/rules/item-pipelines.md` — `§Release binding lifecycle`, `§Quality gates live on releases`.
+- `.work/CONVENTIONS.md` — item + release structure, `§Where matter lives`, `§Frontmatter — release tier` for the schema.
+- `.work/CONVENTIONS.md` — `§Release binding lifecycle`, `§Quality gates live on releases`.
 
 ## Step 1: Parse Arguments + Load Release
 

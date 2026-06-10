@@ -16,9 +16,9 @@ Two modes:
 Audience for human-facing docs: **developers reviewing agent work or contributing manually.**
 
 See:
-- `.claude/rules/item-pipelines.md` — `§Quality gates live on releases`, `§Release binding lifecycle`.
-- `.claude/rules/item-convention.md` — item structure.
-- `.claude/rules/tag-taxonomy.md` — `documentation` tag charter.
+- `.work/CONVENTIONS.md` — `§Quality gates live on releases`, `§Release binding lifecycle`.
+- `.work/CONVENTIONS.md` — item structure.
+- `.work/CONVENTIONS.md` — `documentation` tag charter.
 
 ## Step 0: Parse Arguments
 

@@ -13,8 +13,8 @@ Produce the code-level design for a feature. Extend `feature.md` in place with a
 `/design` is a **code-oriented** skill. It's for features where the deliverable is code. Workflow/md-heavy features do not use `/design` — their `feature.md` matter from `/scope` is their design.
 
 See:
-- `.claude/rules/item-convention.md` — item structure, `§Where matter lives` (kind-files live across stages; grounded revision surfaces clashes to the user)
-- `.claude/rules/item-pipelines.md` — `§What each stage loads` (design loads codebase + project principles), `§What each kind signals` (design only runs on features)
+- `.work/CONVENTIONS.md` — item structure, `§Where matter lives` (kind-files live across stages; grounded revision surfaces clashes to the user)
+- `.work/CONVENTIONS.md` — `§What each stage loads` (design loads codebase + project principles), `§What each kind signals` (design only runs on features)
 
 ## Step 0: Parse Arguments
 
