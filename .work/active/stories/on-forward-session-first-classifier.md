@@ -46,3 +46,27 @@ Also restores the creator → Liquidsoap → S/NC TV playout mix path, which was
 
 - Auto-creation of the colliding row: `services/channels.ts :: ensureLiveChannelWithChat` (called from `routes/streaming.routes.ts` `on_publish`).
 - The schema ambiguity between playout channels and live-takeover channels in the `channels` table is the deeper design gap — this fix works around it at the classifier layer. A follow-up could add a `kind` column (`playout` vs `live-takeover`) and tighten `isPlayoutStream` to match `kind=playout` only. Not required for 0.3.1; captured for future.
+
+## Review (2026-06-10)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane review. Implementation verified against the story scope:
+- `streaming.routes.ts:395-440` — session-first branch order correct; `streamSessions` lookup
+  by `srsClientId` precedes `isPlayoutStream` channel lookup.
+- Structured log events (`on_forward_creator`, `on_forward_playout`, `on_forward_unknown`)
+  present with `urlCount`, `creatorId` (no key leakage).
+- Regression test at `streaming.routes.test.ts:669` — "session-first classifier ignores
+  colliding playout channel name for creator publish" covers the exact failure mode.
+- Unit suite 1497/1497 green per story scope checklist.
+
+**Hold — fix-verify loopback pending.** Platform CONVENTIONS require user-verifiable fixes
+to be re-confirmed in the running app before close (fix-verify loopback, stronger than the
+plugin's default bounce-and-re-review). The user acceptance item is unchecked: live-test with
+Twitch + YouTube destinations active in prod requires production credentials. Story stays at
+`stage: review` until the user confirms the live-test passes. Item is correct code; the hold
+is process, not substance.
