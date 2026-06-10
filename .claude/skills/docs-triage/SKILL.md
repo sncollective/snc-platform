@@ -113,7 +113,7 @@ Feature flags, env vars, config keys that control this domain.
 
 ## Key Decisions
 
-Why it works this way. Links to `.memory/decisions/` records where they exist.
+Why it works this way. Links to `.research/analysis/positions/` records where they exist.
 
 ## Gotchas
 

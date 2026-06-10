@@ -49,7 +49,7 @@ What B concretely brings in-tree:
 - Per-artifact `ARD-Version:` stamps so a stale copy is self-describing.
 - The three `research-band-*.md` rule files **slim** toward an SNC-operationalization layer over the data (they stay — they're auto-loaded rules — but stop carrying re-narrated catalog members).
 
-To capture this as a durable position: write `.memory/decisions/platform-00NN-adopt-ard-kernel-contract.md` (supersedes the prose-vendor stance in `platform-0013`'s adoption-level section).
+To capture this as a durable position: write `.research/analysis/positions/ard-plugin-consumption.md` (documents the plugin-consumption model; supersedes the prior prose-vendor stance in `platform-0013`'s adoption-level section — now captured in `.research/analysis/positions/work-research-bands-adoption.md`).
 
 ## Children (Path B decomposition — pulled via `/scope --parent=ard-upgrade-v0-4-1`)
 
@@ -100,4 +100,4 @@ SSRF patch can land independently and first (security, isolated). The decision g
 - Upstream ships a **MAJOR** (then it *is* a migration, not a free re-vendor — different shape).
 - Path B is chosen and the work exceeds one coherent pass — split into child stories.
 
-Decision records: platform-0014, platform-0013
+Positions: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`), work-research-bands-adoption (`.research/analysis/positions/work-research-bands-adoption.md`)

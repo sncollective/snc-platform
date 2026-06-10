@@ -46,4 +46,4 @@ Passed 2026-06-06 (read-through) on objective evidence: all three files declare 
 
 - A future ARD re-sync changes catalog members — if §1/§9 were deferred to `ard-kernel/catalogs.json`, the rule files need no edit (the win); if re-narrated, they do.
 
-Decision records: platform-0014
+Position: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`)

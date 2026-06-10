@@ -30,7 +30,7 @@ Live happy-path (a real public URL returning 200) and live redirect-following ar
 
 ## Reference
 
-The canonical hardened `url_alive` is the v0.4.1 reference implementation in ARD's `kernel/lint-citations.py`. Per the project boundary, copy the logic **in** — do not link to or import from root's `ard/`. (Decision: adopt the kernel contract in-tree — `platform-0014`.)
+The canonical hardened `url_alive` is the v0.4.1 reference implementation in ARD's `kernel/lint-citations.py`. Per the project boundary, copy the logic **in** — do not link to or import from root's `ard/`. (ARD consumed via plugin — see position: `ard-plugin-consumption`.)
 
 ## Risks
 
@@ -46,4 +46,4 @@ Passed 2026-06-06 on the automated test evidence (11/11 offline guard suite + cl
 - Upstream changes the `url_alive` fence again (re-sync from the pinned kernel).
 - Platform's lint moves to data-sourcing from a vendored `kernel/` copy (sibling story #4) — at which point this hand-vendored function may instead come straight from the in-tree `kernel/lint-citations.py`; reconcile so the logic isn't carried twice.
 
-Decision records: platform-0014
+Position: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`)

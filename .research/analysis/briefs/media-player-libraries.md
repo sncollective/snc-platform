@@ -5,7 +5,7 @@ updated: 2026-04-16
 # Media Player Libraries — Evaluation (March 2026)
 
 **Status:** Complete — Vidstack selected, Video.js v10 as migration watch target
-**Decision record:** [../.memory/decisions/platform-0004-vidstack-media-player.md](../../../.memory/decisions/platform-0004-vidstack-media-player.md)
+**Position:** [../positions/vidstack-media-player.md](../positions/vidstack-media-player.md)
 
 > Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3d of the Level 3 critical path. Content of this research is unchanged; Status + Decision record pointer added. Vidstack has been load-bearing for release-0.2 phase 2 work since March 2026.
 

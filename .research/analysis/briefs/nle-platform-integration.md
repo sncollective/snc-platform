@@ -156,4 +156,4 @@ The same model applies to audio production (see `audio-production-tools.md`): DA
 See also:
 - `video-editing-tools.md` — browser-side editing tools and timeline UI libraries
 - `video-codec-compatibility.md` — codec support driving transcoding decisions
-- `media-player-libraries.md` — Vidstack player evaluation (decision record at `../.memory/decisions/platform-0004-vidstack-media-player.md`, promoted 2026-04-16)
+- `media-player-libraries.md` — Vidstack player evaluation (position at `.research/analysis/positions/vidstack-media-player.md`)

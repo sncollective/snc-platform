@@ -147,6 +147,40 @@ Other source classes (paper, github-readme, etc.) are available from the plugin'
 and extend on demand following the closed-with-extension recipe: coin an ad-hoc option,
 document it inline at the point of use, surface for consolidation at ~3 independent uses.
 
+## Position frontmatter shape
+
+Positions live at `analysis/positions/<slug>.md`. They record research-grounded stances —
+technology selections, consumption-model decisions, architectural commitments — at the
+analysis tier. Rules and docs link to positions rather than restating their derivation.
+
+```yaml
+---
+status: settled | held-neutral | held-pending-downstream
+authored: <YYYY-MM-DD>
+provenance: <brief note on the grounding — research brief, spike, or platform experience>
+related:
+  - to: <slug or artifact name>
+    type: <grounds | contradicts | refines | extends | supersedes | ...>
+    note: <optional one-liner>
+revisit_if:
+  - <checkable condition>
+---
+```
+
+`status` values:
+- **`settled`** — position is grounded, alternatives weighed, guard survives inline in the
+  artifact. Change via in-place rewrite; name the rejected-path explicitly.
+- **`held-neutral`** — a structural constraint defers a choice. Position holds until the
+  blocking condition resolves; the position names the condition.
+- **`held-pending-downstream`** — position is blocked on upstream work; explicit revisit
+  condition is required.
+
+Body convention: a brief statement of the position, the load-bearing rejected alternatives
+with rejection reasons a future adversarial reader would need, and any go/no-go criteria
+that were satisfied. No narrative history — current state only. Prose length proportional
+to the complexity of the rejected alternatives (simple choices get one sentence; weighed
+trade-offs get a table or bullet list).
+
 ## Engagement entry and handoff
 
 Research engagements run through the **agentic-research plugin's `research-orchestrator`

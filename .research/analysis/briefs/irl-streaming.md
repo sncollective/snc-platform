@@ -7,7 +7,7 @@ updated: 2026-04-20
 **Status:** Reference
 **Date:** 2026-03-24
 
-Technical research on IRL (In Real Life) streaming architecture using Belabox with bonded cellular + WiFi connectivity via SRTLA. Covers the self-hosted SRTLA relay pipeline, integration with the Owncast + Restreamer stack, and the comparative evaluation of SRS and MediaMTX that informed the SRS unified streaming server decision ([platform-0001](../../../.memory/decisions/platform-0001-srs-unified-streaming-server.md)).
+Technical research on IRL (In Real Life) streaming architecture using Belabox with bonded cellular + WiFi connectivity via SRTLA. Covers the self-hosted SRTLA relay pipeline, integration with the Owncast + Restreamer stack, and the comparative evaluation of SRS and MediaMTX that informed the SRS unified streaming server selection (see [../positions/srs-streaming-server.md](../positions/srs-streaming-server.md)).
 
 **Key architecture:** Belabox bonds multiple network connections via SRTLA protocol, a self-hosted relay (OpenIRL srtla-receiver) reassembles the bonded stream into standard SRT, and a conversion step feeds RTMP into the existing pipeline. From the relay server onward, everything is identical to studio OBS streaming.
 
@@ -147,7 +147,7 @@ For comparison, studio OBS latency is ~10-30s (HLS segment length dominates). IR
 
 Both SRS and MediaMTX were candidates to replace Restreamer, whose development paused in December 2025 (issue [#960](https://github.com/datarhei/restreamer/issues/960)). Either would simplify the IRL pipeline by accepting SRT natively, eliminating the ffmpeg bridge.
 
-**Decision (2026-03-25):** SRS selected as the unified streaming server replacing both Owncast and Restreamer. See `streaming-server-evaluation.md` for the full evaluation; decision record at [platform-0001-srs-unified-streaming-server.md](../../../.memory/decisions/platform-0001-srs-unified-streaming-server.md). The comparison below remains as reference.
+**Decision (2026-03-25):** SRS selected as the unified streaming server replacing both Owncast and Restreamer. See `streaming-server-evaluation.md` for the full evaluation; settled position at [../positions/srs-streaming-server.md](../positions/srs-streaming-server.md). The comparison below remains as reference.
 
 ### Project Health
 

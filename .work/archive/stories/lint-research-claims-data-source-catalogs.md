@@ -50,4 +50,4 @@ Passed 2026-06-06 (read-through) on objective evidence: output vs `HEAD` differs
 - Child #5 (prose slim) changes how the rule files describe the lint's catalog-sourcing — keep this story's CLAUDE.md/rule edits consistent with #5.
 - The vendored `ard-kernel/` is relocated — update the catalog path the loader reads.
 
-Decision records: platform-0014
+Position: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`)

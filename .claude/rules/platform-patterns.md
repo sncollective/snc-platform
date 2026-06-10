@@ -64,3 +64,47 @@ One line per pattern. Read the linked file for full details and code examples.
 - **vi-import-original-partial-mock**: `vi.mock(m, async (importOriginal) => { const actual = await importOriginal<T>(); return { ...actual, mockFn } })` preserves pure utilities while replacing async functions; pair with `vi.hoisted()` → [vi-import-original-partial-mock.md]
 
 > Note: Landing section data (featured creators, recent content) is fetched server-side via the `loader` function in `routes/index.tsx` and passed as props to components. Do not use a client-side hook for new landing sections — use `loader` + `Route.useLoaderData()` instead (see `tanstack-file-route.md`).
+
+---
+
+## Navigation
+
+### Context shell pattern
+
+When a user enters an internal context (admin, creator manage, co-op governance), the public
+primary nav is **replaced by a context-specific left sidebar** with a "Back to site" link. Top
+bar (logo + user avatar) stays constant.
+
+- Shared **`ContextShell` component** across admin, creator manage, co-op governance.
+- Root layout (`__root.tsx`) detects shell mode via `SHELL_PREFIXES = ["/admin", "/governance"]`
+  + a creator-manage regex.
+- `NavBar` + `Footer` hide in shell mode (additive to theater mode).
+- **GlobalPlayer** anchors to the content column on desktop (not the sidebar).
+
+**Rejected navigation alternatives (load-bearing):**
+
+- **Keep horizontal tabs** — creator manage at 7 tabs was at the scaling threshold.
+  Miller's Law and Baymard tab-scrolling studies show tabs requiring horizontal scroll are
+  significantly worse than vertical alternatives. Horizontal tabs are for parallel views of the
+  same data (NNG "Tabs, Used Right"), not for unrelated sections. *Would reconsider if the
+  number of sections collapses to ≤5 across all internal contexts.*
+- **Overlay/modal for internal contexts** (Notion / Discord pattern) — overlay works for
+  settings-as-modal, but sidebars scale better for growing nav (progressive disclosure: tabs
+  <5 → sidebar 5–7 → collapsible groups 15+ → command palette), and mode switches need to be
+  visually obvious (NNG: nav changes must be unmistakable; overlay blurs the boundary).
+  *Would reconsider if a fourth internal context emerges that doesn't fit the sidebar shape
+  (full-bleed monitoring dashboard, spatial/map interface).*
+- **Router-context-propagated shell mode** — TanStack Router context could pass shell-mode
+  state through `beforeLoad`. Rejected in favor of URL-prefix detection: simpler, doesn't
+  touch every shell route, adding a context is one line.
+
+**Revisit if:**
+- A fourth internal context emerges that doesn't fit the sidebar shape.
+- Mobile drawer interaction with GlobalPlayer proves unworkable — forces reconsidering
+  shell-on-mobile.
+- Growth beyond 15+ nav items in a single context forces collapsible groups or command
+  palette.
+- NNG / Baymard research updates significantly contradict the mode-switch-via-nav-replacement
+  premise.
+- Public nav redesign wants visual continuity with internal nav that the shell pattern
+  explicitly breaks.

@@ -56,7 +56,7 @@ If the user confirms a match as parent, switch to nested-child mode with that pa
 
 Read authoritative upstream context:
 - **Parent chain** — if nested, read the parent's kind-file (and grandparent's if any).
-- **Related decisions** — glob `.memory/decisions/` for entries matching the target's tags.
+- **Related positions** — glob `.research/analysis/positions/` for entries matching the target's domain.
 - **Related research** — glob `.research/` for relevant prior exploration.
 
 Tell the user: *"Let's scope this out. I'll write as the shape firms up; interrupt whenever."*
@@ -129,7 +129,7 @@ After the move, elaborate the backlog file's minimal frontmatter into the active
 
 ## Step 8: Scoping Matter Persistence
 
-See `item-convention.md §Where matter lives` for the canonical three-tier pattern. `/scope`'s default: inline in the kind-file. When a decision surfaces that feels cross-cutting or likely to outlive the item (a convention other work will follow, a trade-off with explicit `revisit_if` conditions), promote to `.memory/decisions/` and link from `related_decisions:`. Don't over-promote.
+See `item-convention.md §Where matter lives` for the canonical three-tier pattern. `/scope`'s default: inline in the kind-file. When a position surfaces that feels cross-cutting or likely to outlive the item (a convention other work will follow, a trade-off with explicit `revisit_if` conditions), write it to `.research/analysis/positions/` and reference it from the kind-file. Don't over-promote.
 
 ## Step 9: Offer Next Step
 

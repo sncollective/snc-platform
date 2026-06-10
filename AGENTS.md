@@ -22,14 +22,15 @@ Scan rule libraries (`scan-structural`, `scan-quality`, `scan-accessibility`, `s
 
 ## Substrate, work, and research bands
 
-Platform's persistent state splits across three top-level bands by output-class: `.memory/` (internal substrate), `.work/` (work items — output-class), and `.research/` (research output, operationalizing ARD v0.1). The conventions for each are in `.claude/rules/` (auto-loaded on the relevant paths) and summarized here.
+Platform's persistent state splits across three top-level bands by output-class: `.memory/` (internal substrate), `.work/` (work items — output-class), and `.research/` (research output, operationalizing ARD v0.5.1 via the agentic-research plugin). The conventions for each are in `.claude/rules/` (auto-loaded on the relevant paths) and summarized here.
 
 ### `.memory/` — substrate (internal working state)
 
-- **`decisions/`** — structured position records with rationale, alternatives, and `revisit_if` conditions. Filename: `platform-NNNN-<slug>.md`.
 - **`sessions/`** — short episodic summaries of significant recent work.
 - **`scratchpad/`** (gitignored) — ephemeral in-flight artifacts. Promote anything worth keeping; the rest auto-deletes.
 - **`agents/`** (gitignored) — per-agent private state.
+
+Research-grounded stances live in `.research/analysis/positions/`; rules state their own constraints and load-bearing rejected alternatives inline. There is no separate decisions tier — positions live in the artifacts they govern.
 
 Design/scoping briefs are **not** a separate tier — item matter lives inline in the work-item file (the feature/story file *is* the design surface).
 
@@ -57,6 +58,18 @@ Platform adopts **ARD v0.5.1** (Agentic Research Discipline — MIT-licensed, ag
 The working contract (path map, frontmatter shapes, citation rule, lint invocation, engagement entry, MIT attribution) is in `.research/CONVENTIONS.md`. Platform carries no in-tree ARD kernel copy — the plugin provides the lint, catalogs, and discipline bundle as external tools.
 
 When in doubt about which tier, scratchpad is safe — anything worth keeping gets promoted explicitly.
+
+## Key Technology Selections
+
+Research-grounded; full rationale + rejected alternatives in `.research/analysis/positions/`.
+
+- **Streaming server: SRS** (not MediaMTX or Owncast) — native multi-channel and reliable native simulcast forwarding are the load-bearing requirements. See `srs-streaming-server.md` + `tv-model-playout-architecture.md`.
+- **Object storage: Garage** (alongside Seafile for studio sync) — nonprofit governance, single-binary simplicity, sufficient S3 compatibility. See `garage-object-storage.md`.
+- **Job queue: pg-boss** (not BullMQ / Temporal) — zero new infrastructure; uses existing PostgreSQL. See `pg-boss-job-queue.md`.
+- **Media player: Vidstack** with Video.js v10 as migration watch target (GA expected mid-2026). See `vidstack-media-player.md`.
+- **Playout engine: Liquidsoap** — 20+ years production-tested, `fallback()` live switching validated at Phase 5 spike. See `liquidsoap-playout-engine.md`.
+- **API source of truth: hand-written three-layer pattern** (status quo, neutral) — deferred until second consumer or bug-rate condition trips. See `api-source-of-truth.md`.
+- **Route handler ceremony: explicit 6-step pattern** (status quo, neutral) — deferred until human collaborators join. See `route-handler-ceremony.md`.
 
 ## Coding Conventions
 

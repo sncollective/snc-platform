@@ -44,4 +44,4 @@ Passed 2026-06-06 (read-through) on objective evidence: shim output is byte-iden
 
 - The vendored `ard-kernel/` is later relocated (e.g. `git mv` to `scripts/ard-kernel/`) — the resolution path here moves with it.
 
-Decision records: platform-0014
+Position: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`)

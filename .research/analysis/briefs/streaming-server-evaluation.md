@@ -6,7 +6,7 @@ updated: 2026-04-16
 
 **Status:** Complete — SRS selected
 **Date:** 2026-03-25
-**Decision record:** [../.memory/decisions/platform-0001-srs-unified-streaming-server.md](../../../.memory/decisions/platform-0001-srs-unified-streaming-server.md)
+**Position:** [../positions/srs-streaming-server.md](../positions/srs-streaming-server.md)
 
 > Revised 2026-04-16 — the backing decision was promoted from the parent monorepo's `boards/platform/streaming/DECISIONS.md` into the structured submodule decision record linked above, as Item 3a of the Level 3 critical path. Content of this evaluation is unchanged; the Decision record pointer and the References section now link the submodule record instead of carrying a parent-monorepo prose reference.
 
@@ -246,7 +246,7 @@ SRS is selected as the unified streaming server replacing Owncast + Restreamer f
 
 - [streaming-infrastructure.md](streaming-infrastructure.md) — original streaming tool evaluation
 - [irl-streaming.md](irl-streaming.md) — SRS vs MediaMTX comparison tables, IRL streaming architecture
-- [../.memory/decisions/platform-0001-srs-unified-streaming-server.md](../../../.memory/decisions/platform-0001-srs-unified-streaming-server.md) — formal decision record (promoted into the submodule 2026-04-16)
+- [../positions/srs-streaming-server.md](../positions/srs-streaming-server.md) — settled position (stance + rejected alternatives + revisit conditions)
 - TV model architecture design document (internal design, no longer linked here — git history preserves the prior reference)
 - Twitch, YouTube Live, Kick competitive analysis (org-domain research, not in this band)
 

@@ -5,7 +5,7 @@ updated: 2026-04-16
 # Node.js Job Queue Libraries (March 2026)
 
 **Status:** Complete — pg-boss selected
-**Decision record:** [../.memory/decisions/platform-0003-pg-boss-postgres-job-queue.md](../../../.memory/decisions/platform-0003-pg-boss-postgres-job-queue.md)
+**Position:** [../positions/pg-boss-job-queue.md](../positions/pg-boss-job-queue.md)
 
 > Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3c of the Level 3 critical path. Content of this research is unchanged; a Status + Decision record pointer was added. pg-boss has been load-bearing for platform work since March 2026.
 

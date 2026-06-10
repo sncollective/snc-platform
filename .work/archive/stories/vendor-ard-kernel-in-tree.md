@@ -61,4 +61,4 @@ Passed 2026-06-06 (read-through) on objective evidence: byte-identical `diff -r`
 - Child #4 chooses to consume `catalogs.json` from a different location than this story lands it — reconcile the path.
 - A future ARD re-sync replaces these artifacts — this is the surface to `git diff` against the new tag.
 
-Decision records: platform-0014
+Position: ard-plugin-consumption (`.research/analysis/positions/ard-plugin-consumption.md`)

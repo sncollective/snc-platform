@@ -27,7 +27,7 @@ Delete the `head()` export from [`routes/creators/$creatorId/index.tsx`](../../a
 
 - [ ] Remove the `head:` option from the route definition in `routes/creators/$creatorId/index.tsx`.
 - [ ] Verify no other child route in the creators tree has the same clobber pattern (`head: () =>` with a static title while the parent builds a dynamic one). Known-clean from the scan, but confirm.
-- [ ] Add a one-line decision breadcrumb: TanStack Router head merging with child-wins behavior is a gotcha worth noting. If documented repeatedly, lift to `.memory/decisions/`. Skip a full decision record for this single fix.
+- [ ] Add a one-line gotcha note: TanStack Router head merging with child-wins behavior is worth noting inline. If this pattern reproduces ~3×, lift to `.research/analysis/positions/` or inline into the relevant rule. Skip for this single fix.
 
 ## Verification
 

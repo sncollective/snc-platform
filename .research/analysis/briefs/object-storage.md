@@ -6,7 +6,7 @@ updated: 2026-04-16
 
 **Status:** Complete — Garage selected
 **Date:** 2026-03-13
-**Decision record:** [../.memory/decisions/platform-0002-garage-s3-object-storage.md](../../../.memory/decisions/platform-0002-garage-s3-object-storage.md)
+**Position:** [../positions/garage-object-storage.md](../positions/garage-object-storage.md)
 
 > Revised 2026-04-16 — the backing decision was promoted from this research doc into the structured submodule decision record linked above, as Item 3b of the Level 3 critical path. Content of this research is unchanged; Status flipped from Draft → Complete to reflect that the decision has been load-bearing for platform work since March 2026. A Decision record line was added pointing to the structured record.
 

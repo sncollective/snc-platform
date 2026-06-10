@@ -61,3 +61,33 @@ export async function complexThing(options: Options): Promise<Result<T>> { ... }
 ## Enforcement
 
 Enforced via `scan-documentation` rule library in the refactor pipeline. Findings land on the refactor board tagged `(documentation)` in the Fix lane.
+
+## Convention rationale
+
+**JSDoc syntax** is used rather than TSDoc + API Extractor or ESLint-enforced JSDoc.
+
+**TSDoc + API Extractor rejected:** overkill for an application (vs. a published library).
+The platform is not a library we publish; API surface is internal. TSDoc's stricter validation
+and API Extractor tooling add maintenance burden without matching payoff at our scale.
+*Would reconsider if we publish packages externally — at that point TSDoc + API Extractor
+earns its weight.*
+
+**ESLint enforcement of JSDoc rejected (for now):** rule tuning is finicky,
+false-positive-prone, and adds a dependency for something the refactor pipeline can address
+with existing scan infrastructure. Agent-driven enforcement via `scan-documentation` fits the
+stack we already use.
+*Would reconsider if agent scanning proves unreliable at catching drift-prone docs.*
+
+**Why agent scanning fits this stack:** TypeScript already carries type signatures; the
+scan-documentation rule library enforces intent-focused JSDoc without ESLint overhead. The
+three-tier convention (Always / Recommended / Skip) matches the intent-vs-types distinction
+the platform follows across all code surfaces.
+
+## Revisit if
+
+- Agent scanning proves unreliable at catching missing or drift-prone docs, and ESLint
+  enforcement becomes the lesser evil.
+- We publish packages externally (at which point TSDoc + API Extractor earns its weight over
+  JSDoc).
+- The three-tier Always / Recommended / Skip convention keeps producing false positives on
+  edge cases.

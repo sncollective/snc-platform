@@ -15,13 +15,13 @@ Settings page at `/settings/notifications` exists and works but has no nav link 
 
 ## Tasks
 
-- [x] Identify the correct nav surface per `platform-0010-nav-context-shell-pattern` (likely the settings sub-nav or user menu).
+- [x] Identify the correct nav surface per the context shell pattern (likely the settings sub-nav or user menu).
 - [x] Add the nav link entry pointing at `/settings/notifications`.
 - [x] Verify the link renders and routes correctly in both authenticated and unauthenticated states (auth-gated if the page itself is).
 
 ## What shipped
 
-Nav surface turned out to be the **user menu dropdown** (not a settings sub-nav — settings routes don't use `ContextShell`; that pattern is scoped to admin / governance / creator-manage per `platform-0010`). Menu entries live in `apps/web/src/config/auth-menu-items.ts` as a data-driven array consumed by both the desktop `UserMenu` and mobile `AuthenticatedNav`.
+Nav surface turned out to be the **user menu dropdown** (not a settings sub-nav — settings routes don't use `ContextShell`; that pattern is scoped to admin / governance / creator-manage per the context shell pattern in `.claude/rules/platform-patterns.md` §Navigation). Menu entries live in `apps/web/src/config/auth-menu-items.ts` as a data-driven array consumed by both the desktop `UserMenu` and mobile `AuthenticatedNav`.
 
 Change: single menu entry inserted between Settings and Subscriptions.
 
@@ -46,4 +46,4 @@ Unauthenticated-state coverage: when the user is logged out, the user menu rende
 
 None meaningful — additive nav entry, no behavior change to the existing page or to other menu items.
 
-Decision records: platform-0010
+Pattern: context-shell navigation (`.claude/rules/platform-patterns.md` §Navigation)

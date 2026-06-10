@@ -180,7 +180,7 @@ Not estimates of time — estimates of relative complexity:
 - `video-codec-compatibility.md` — codec support matrix
 - `streaming-server-evaluation.md` — SRS capabilities
 - `irl-streaming.md` — mobile/field streaming hardware
-- `media-player-libraries.md` — Vidstack selection, Video.js v10 watch (decision record at `../.memory/decisions/platform-0004-vidstack-media-player.md`, promoted 2026-04-16)
+- `media-player-libraries.md` — Vidstack selection, Video.js v10 watch (position at `.research/analysis/positions/vidstack-media-player.md`)
 - Twitch/YouTube/Kick competitive streaming comparison (org-domain research, not in this band)
 - ABR transcoding work item (separate platform work item)
 - `boards/platform/media-pipeline/BOARD.md` — VOD transcoding pipeline
