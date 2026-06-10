@@ -1,12 +1,13 @@
 ---
-id: feature-playout-queue-cleanup
+id: playout-queue-cleanup
 kind: feature
 stage: review
 tags: [streaming, media-pipeline]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-18
-updated: 2026-04-18
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

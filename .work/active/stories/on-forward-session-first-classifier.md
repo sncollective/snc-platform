@@ -1,12 +1,13 @@
 ---
-id: story-on-forward-session-first-classifier
+id: on-forward-session-first-classifier
 kind: story
 stage: review
 tags: [streaming]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-24
-updated: 2026-04-24
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

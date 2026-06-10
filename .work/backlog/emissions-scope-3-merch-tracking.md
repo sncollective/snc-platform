@@ -1,4 +1,5 @@
 ---
+id: emissions-scope-3-merch-tracking
 tags: [emissions, commerce]
 release_binding: null
 created: 2026-04-20

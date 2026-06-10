@@ -1,4 +1,5 @@
 ---
+id: refactor-creator-routes-p3-hono-factory
 tags: [refactor, stylistic]
 release_binding: null
 created: 2026-04-20

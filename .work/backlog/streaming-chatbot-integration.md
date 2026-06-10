@@ -1,8 +1,9 @@
 ---
+id: streaming-chatbot-integration
 tags: [streaming, community]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Chatbot Integration Support

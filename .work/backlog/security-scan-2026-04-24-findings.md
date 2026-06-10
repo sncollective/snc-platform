@@ -1,4 +1,5 @@
 ---
+id: security-scan-2026-04-24-findings
 tags: [security, batch-tracker]
 release_binding: null
 created: 2026-04-24

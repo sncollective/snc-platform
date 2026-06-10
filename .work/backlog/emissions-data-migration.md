@@ -1,4 +1,5 @@
 ---
+id: emissions-data-migration
 tags: [emissions]
 release_binding: null
 created: 2026-04-20

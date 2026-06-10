@@ -1,4 +1,5 @@
 ---
+id: swipe-between-tabs
 tags: [ux-polish]
 release_binding: null
 created: 2026-04-20

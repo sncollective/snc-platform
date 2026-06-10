@@ -1,12 +1,13 @@
 ---
-id: story-refactor-streaming-lifecycle-service-extraction
+id: refactor-streaming-lifecycle-service-extraction
 kind: story
 stage: implementing
 tags: [refactor, structural, streaming]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

@@ -1,4 +1,5 @@
 ---
+id: documentation-invite-flow-coverage
 tags: [documentation, identity]
 release_binding: null
 created: 2026-04-20

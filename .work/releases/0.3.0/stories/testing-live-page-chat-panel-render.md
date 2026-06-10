@@ -1,12 +1,13 @@
 ---
-id: story-testing-live-page-chat-panel-render
+id: testing-live-page-chat-panel-render
 kind: story
 stage: done
 tags: [testing, community]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

@@ -1,4 +1,5 @@
 ---
+id: calendar-event-loading-ssr-hydration-gap
 tags: [calendar, ux-polish]
 release_binding: null
 created: 2026-04-20

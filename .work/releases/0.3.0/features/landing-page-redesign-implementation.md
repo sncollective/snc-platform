@@ -1,12 +1,13 @@
 ---
-id: feature-landing-page-redesign-implementation
+id: landing-page-redesign-implementation
 kind: feature
 stage: done
 tags: [content, community, calendar]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-20
-related_decisions: []
 parent: landing-page-redesign
 ---
 

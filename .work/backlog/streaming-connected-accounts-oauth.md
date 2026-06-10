@@ -1,4 +1,5 @@
 ---
+id: streaming-connected-accounts-oauth
 tags: [streaming, identity]
 release_binding: null
 created: 2026-04-20

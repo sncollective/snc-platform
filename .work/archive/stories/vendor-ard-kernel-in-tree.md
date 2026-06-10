@@ -1,12 +1,13 @@
 ---
-id: story-vendor-ard-kernel-in-tree
+id: vendor-ard-kernel-in-tree
 kind: story
 stage: done
 tags: [workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014]
 parent: ard-upgrade-v0-4-1
 ---
 
@@ -59,3 +60,5 @@ Passed 2026-06-06 (read-through) on objective evidence: byte-identical `diff -r`
 
 - Child #4 chooses to consume `catalogs.json` from a different location than this story lands it — reconcile the path.
 - A future ARD re-sync replaces these artifacts — this is the surface to `git diff` against the new tag.
+
+Decision records: platform-0014

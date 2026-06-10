@@ -1,4 +1,5 @@
 ---
+id: emissions-date-handling-convention
 tags: [emissions]
 release_binding: null
 created: 2026-04-20

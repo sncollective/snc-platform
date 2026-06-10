@@ -1,12 +1,13 @@
 ---
-id: feature-notifications
+id: notifications
 kind: feature
 stage: done
 tags: [community, content, streaming]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

@@ -1,4 +1,5 @@
 ---
+id: content-media-stream-cache-control-stale
 tags: [content, ux-polish]
 release_binding: null
 created: 2026-04-24

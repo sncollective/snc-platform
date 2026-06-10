@@ -1,4 +1,5 @@
 ---
+id: content-processing-state-auto-refresh
 tags: [content]
 release_binding: null
 created: 2026-04-21

@@ -1,4 +1,5 @@
 ---
+id: emissions-admin-tooling
 tags: [emissions]
 release_binding: null
 created: 2026-04-20

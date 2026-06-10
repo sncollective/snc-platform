@@ -1,4 +1,5 @@
 ---
+id: community-unsubscribe-link-emails
 tags: [community]
 release_binding: null
 created: 2026-04-20

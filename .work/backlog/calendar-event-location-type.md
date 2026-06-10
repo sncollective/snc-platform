@@ -1,4 +1,5 @@
 ---
+id: calendar-event-location-type
 tags: [calendar]
 release_binding: null
 created: 2026-04-20

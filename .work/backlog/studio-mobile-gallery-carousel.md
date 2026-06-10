@@ -1,4 +1,5 @@
 ---
+id: studio-mobile-gallery-carousel
 tags: [studio, ux-polish]
 release_binding: null
 created: 2026-04-20

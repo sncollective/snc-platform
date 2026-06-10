@@ -1,4 +1,5 @@
 ---
+id: live-channel-chat-room-duplicates
 tags: [streaming, community]
 release_binding: null
 created: 2026-04-20

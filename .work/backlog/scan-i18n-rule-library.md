@@ -1,8 +1,9 @@
 ---
+id: scan-i18n-rule-library
 tags: [refactor]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Scan i18n Rule Library

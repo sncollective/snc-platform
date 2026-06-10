@@ -1,12 +1,13 @@
 ---
-id: story-chat-sent-message-double-render
+id: chat-sent-message-double-render
 kind: story
 stage: done
 tags: [community, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-20
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

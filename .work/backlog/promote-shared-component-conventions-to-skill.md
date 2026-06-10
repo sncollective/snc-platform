@@ -1,4 +1,5 @@
 ---
+id: promote-shared-component-conventions-to-skill
 tags: [design-system]
 release_binding: null
 created: 2026-04-18

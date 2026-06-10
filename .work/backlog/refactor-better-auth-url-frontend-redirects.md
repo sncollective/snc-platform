@@ -1,4 +1,5 @@
 ---
+id: refactor-better-auth-url-frontend-redirects
 tags: [refactor, access-model, streaming]
 release_binding: null
 created: 2026-04-24

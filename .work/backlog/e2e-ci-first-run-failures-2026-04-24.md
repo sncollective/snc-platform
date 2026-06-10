@@ -1,4 +1,5 @@
 ---
+id: e2e-ci-first-run-failures-2026-04-24
 tags: [testing, batch-tracker]
 release_binding: null
 created: 2026-04-24

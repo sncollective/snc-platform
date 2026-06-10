@@ -1,8 +1,9 @@
 ---
+id: live-page-player-hover-controls-escape-at-narrow-width
 tags: [streaming, ux-polish]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Live page player hover controls escape player at narrow width

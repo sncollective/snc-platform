@@ -1,4 +1,5 @@
 ---
+id: from-the-coop-landing-section
 tags: [content, community]
 release_binding: null
 created: 2026-04-20

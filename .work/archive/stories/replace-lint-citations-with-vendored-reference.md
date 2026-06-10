@@ -1,12 +1,13 @@
 ---
-id: story-replace-lint-citations-with-vendored-reference
+id: replace-lint-citations-with-vendored-reference
 kind: story
 stage: done
 tags: [workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014]
 parent: ard-upgrade-v0-4-1
 ---
 
@@ -42,3 +43,5 @@ Passed 2026-06-06 (read-through) on objective evidence: shim output is byte-iden
 ## Revisit if
 
 - The vendored `ard-kernel/` is later relocated (e.g. `git mv` to `scripts/ard-kernel/`) — the resolution path here moves with it.
+
+Decision records: platform-0014

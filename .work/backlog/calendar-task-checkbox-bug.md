@@ -1,4 +1,5 @@
 ---
+id: calendar-task-checkbox-bug
 tags: [calendar]
 release_binding: null
 created: 2026-04-20

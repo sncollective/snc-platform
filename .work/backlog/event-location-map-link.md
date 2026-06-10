@@ -1,4 +1,5 @@
 ---
+id: event-location-map-link
 tags: [content, community, ux-polish]
 release_binding: null
 created: 2026-04-20

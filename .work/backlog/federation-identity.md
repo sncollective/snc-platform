@@ -1,4 +1,5 @@
 ---
+id: federation-identity
 tags: [federation, identity]
 release_binding: null
 created: 2026-04-20

@@ -1,12 +1,13 @@
 ---
-id: story-s3-presign-expiry-per-purpose
+id: s3-presign-expiry-per-purpose
 kind: story
 stage: done
 tags: [security]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

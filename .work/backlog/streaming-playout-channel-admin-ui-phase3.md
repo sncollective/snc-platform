@@ -1,4 +1,5 @@
 ---
+id: streaming-playout-channel-admin-ui-phase3
 tags: [streaming, admin-console]
 release_binding: null
 created: 2026-04-20

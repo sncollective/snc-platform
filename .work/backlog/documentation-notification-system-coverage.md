@@ -1,4 +1,5 @@
 ---
+id: documentation-notification-system-coverage
 tags: [documentation, community]
 release_binding: null
 created: 2026-04-20

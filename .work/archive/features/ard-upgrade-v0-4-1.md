@@ -1,12 +1,13 @@
 ---
-id: feature-ard-upgrade-v0-4-1
+id: ard-upgrade-v0-4-1
 kind: feature
 stage: done
 tags: [workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014, platform-0013]
 parent: null
 ---
 
@@ -98,3 +99,5 @@ SSRF patch can land independently and first (security, isolated). The decision g
 
 - Upstream ships a **MAJOR** (then it *is* a migration, not a free re-vendor — different shape).
 - Path B is chosen and the work exceeds one coherent pass — split into child stories.
+
+Decision records: platform-0014, platform-0013

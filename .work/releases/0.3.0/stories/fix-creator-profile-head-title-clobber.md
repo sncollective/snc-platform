@@ -1,12 +1,13 @@
 ---
-id: story-fix-creator-profile-head-title-clobber
+id: fix-creator-profile-head-title-clobber
 kind: story
 stage: done
 tags: [content, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

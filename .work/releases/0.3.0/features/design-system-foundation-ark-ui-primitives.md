@@ -1,12 +1,13 @@
 ---
-id: feature-design-system-foundation-ark-ui-primitives
+id: design-system-foundation-ark-ui-primitives
 kind: feature
 stage: done
 tags: [design-system]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: design-system-foundation
 ---
 

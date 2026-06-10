@@ -1,12 +1,13 @@
 ---
-id: feature-live-page-controls-hover
+id: live-page-controls-hover
 kind: feature
 stage: done
 tags: [streaming, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-21
-related_decisions: []
 parent: null
 ---
 

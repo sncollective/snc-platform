@@ -1,12 +1,13 @@
 ---
-id: story-refactor-json-ld-typed-interfaces
+id: refactor-json-ld-typed-interfaces
 kind: story
 stage: implementing
 tags: [refactor, quality]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

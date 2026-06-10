@@ -1,4 +1,5 @@
 ---
+id: testing-empty-state-rendering-e2e
 tags: [testing, ux-polish]
 release_binding: null
 created: 2026-04-20

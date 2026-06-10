@@ -1,12 +1,13 @@
 ---
-id: story-refactor-draft-query-schema-pagination-factory
+id: refactor-draft-query-schema-pagination-factory
 kind: story
 stage: implementing
 tags: [refactor, quality, content]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

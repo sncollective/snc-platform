@@ -1,12 +1,13 @@
 ---
-id: story-theater-mode-tab-bar-hide
+id: theater-mode-tab-bar-hide
 kind: story
 stage: done
 tags: [ux-polish, streaming]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-20
 updated: 2026-04-24
-related_decisions: []
 related_designs: [.research/analysis/briefs/live-streaming-ux-patterns.md]
 parent: null
 ---

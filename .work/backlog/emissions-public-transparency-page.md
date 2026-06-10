@@ -1,4 +1,5 @@
 ---
+id: emissions-public-transparency-page
 tags: [emissions]
 release_binding: null
 created: 2026-04-20

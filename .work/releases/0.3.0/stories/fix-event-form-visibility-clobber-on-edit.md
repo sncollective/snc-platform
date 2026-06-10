@@ -1,12 +1,13 @@
 ---
-id: story-fix-event-form-visibility-clobber-on-edit
+id: fix-event-form-visibility-clobber-on-edit
 kind: story
 stage: done
 tags: [calendar, content]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

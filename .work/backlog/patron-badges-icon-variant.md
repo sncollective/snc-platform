@@ -1,4 +1,5 @@
 ---
+id: patron-badges-icon-variant
 tags: [community, ux-polish]
 release_binding: null
 created: 2026-04-22

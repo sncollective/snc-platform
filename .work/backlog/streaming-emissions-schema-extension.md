@@ -1,4 +1,5 @@
 ---
+id: streaming-emissions-schema-extension
 tags: [streaming, emissions]
 release_binding: null
 created: 2026-04-20

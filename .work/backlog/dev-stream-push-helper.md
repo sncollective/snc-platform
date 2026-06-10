@@ -1,4 +1,5 @@
 ---
+id: dev-stream-push-helper
 tags: [streaming, developer-experience]
 release_binding: null
 created: 2026-04-20

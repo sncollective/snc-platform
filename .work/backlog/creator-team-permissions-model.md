@@ -1,4 +1,5 @@
 ---
+id: creator-team-permissions-model
 tags: [creators]
 release_binding: null
 created: 2026-04-20

@@ -1,8 +1,9 @@
 ---
+id: streaming-patron-chat-badges
 tags: [streaming, commerce, community]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Patron Badges in Live Chat

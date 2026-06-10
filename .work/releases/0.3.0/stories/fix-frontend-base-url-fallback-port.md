@@ -1,12 +1,13 @@
 ---
-id: story-fix-frontend-base-url-fallback-port
+id: fix-frontend-base-url-fallback-port
 kind: story
 stage: done
 tags: [content, refactor]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

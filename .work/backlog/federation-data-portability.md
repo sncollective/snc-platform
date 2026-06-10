@@ -1,4 +1,5 @@
 ---
+id: federation-data-portability
 tags: [federation]
 release_binding: null
 created: 2026-04-20

@@ -1,12 +1,13 @@
 ---
-id: story-lint-research-claims-data-source-catalogs
+id: lint-research-claims-data-source-catalogs
 kind: story
 stage: done
 tags: [workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014]
 parent: ard-upgrade-v0-4-1
 ---
 
@@ -48,3 +49,5 @@ Passed 2026-06-06 (read-through) on objective evidence: output vs `HEAD` differs
 
 - Child #5 (prose slim) changes how the rule files describe the lint's catalog-sourcing — keep this story's CLAUDE.md/rule edits consistent with #5.
 - The vendored `ard-kernel/` is relocated — update the catalog path the loader reads.
+
+Decision records: platform-0014

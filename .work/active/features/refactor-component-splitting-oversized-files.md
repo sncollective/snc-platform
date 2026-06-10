@@ -1,12 +1,13 @@
 ---
-id: feature-refactor-component-splitting-oversized-files
+id: refactor-component-splitting-oversized-files
 kind: feature
 stage: implementing
 tags: [refactor, structural]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

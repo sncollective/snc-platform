@@ -1,4 +1,5 @@
 ---
+id: streaming-creator-recordings-page
 tags: [streaming, creators]
 release_binding: null
 created: 2026-04-20

@@ -1,4 +1,5 @@
 ---
+id: testing-e2e-ci-auth-proxy-404
 tags: [testing]
 release_binding: null
 created: 2026-04-20

@@ -1,12 +1,13 @@
 ---
-id: story-live-page-coming-soon-flash
+id: live-page-coming-soon-flash
 kind: story
 stage: done
 tags: [streaming, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-22
-related_decisions: []
 parent: null
 ---
 

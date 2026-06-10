@@ -1,4 +1,5 @@
 ---
+id: streaming-abr-transcoding-strategy
 tags: [streaming, media-pipeline]
 release_binding: null
 created: 2026-04-20

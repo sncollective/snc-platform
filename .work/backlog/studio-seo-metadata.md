@@ -1,4 +1,5 @@
 ---
+id: studio-seo-metadata
 tags: [studio]
 release_binding: null
 created: 2026-04-20

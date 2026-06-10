@@ -1,4 +1,5 @@
 ---
+id: grafana-dashboards-alerts
 tags: [observability]
 release_binding: null
 created: 2026-04-20

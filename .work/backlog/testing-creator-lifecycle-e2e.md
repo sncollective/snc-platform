@@ -1,4 +1,5 @@
 ---
+id: testing-creator-lifecycle-e2e
 tags: [testing, streaming, creators]
 release_binding: null
 created: 2026-04-20

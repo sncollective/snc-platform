@@ -1,4 +1,5 @@
 ---
+id: bearer-token-auth-native-apps
 tags: [identity]
 release_binding: null
 created: 2026-04-20

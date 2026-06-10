@@ -1,4 +1,5 @@
 ---
+id: security-srs-callback-secret-required-prod
 tags: [security, streaming]
 release_binding: null
 created: 2026-04-20

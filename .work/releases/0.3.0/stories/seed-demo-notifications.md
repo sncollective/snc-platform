@@ -1,12 +1,13 @@
 ---
-id: story-seed-demo-notifications
+id: seed-demo-notifications
 kind: story
 stage: done
 tags: [community]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

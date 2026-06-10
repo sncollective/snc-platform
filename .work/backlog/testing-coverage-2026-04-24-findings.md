@@ -1,4 +1,5 @@
 ---
+id: testing-coverage-2026-04-24-findings
 tags: [testing, batch-tracker]
 release_binding: null
 created: 2026-04-24

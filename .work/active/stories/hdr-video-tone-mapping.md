@@ -1,12 +1,13 @@
 ---
-id: story-hdr-video-tone-mapping
+id: hdr-video-tone-mapping
 kind: story
 stage: review
 tags: [content, media-pipeline]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-18
-updated: 2026-04-18
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

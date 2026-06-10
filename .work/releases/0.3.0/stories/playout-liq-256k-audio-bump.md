@@ -1,12 +1,13 @@
 ---
-id: story-playout-liq-256k-audio-bump
+id: playout-liq-256k-audio-bump
 kind: story
 stage: done
 tags: [streaming, media-pipeline]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-21
-related_decisions: []
 parent: null
 ---
 

@@ -1,4 +1,5 @@
 ---
+id: playout-admin-content-pool-display-mismatch
 tags: [admin-console, streaming]
 release_binding: null
 created: 2026-04-18

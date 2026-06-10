@@ -1,4 +1,5 @@
 ---
+id: refactor-readonly-zod-schemas-decision
 tags: [refactor, stylistic]
 created: 2026-04-20
 ---

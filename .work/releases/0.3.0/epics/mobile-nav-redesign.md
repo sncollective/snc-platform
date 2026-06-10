@@ -1,12 +1,13 @@
 ---
-id: epic-mobile-nav-redesign
+id: mobile-nav-redesign
 kind: epic
 stage: done
 tags: [design-system, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-20
-related_decisions: []
 parent: null
 ---
 

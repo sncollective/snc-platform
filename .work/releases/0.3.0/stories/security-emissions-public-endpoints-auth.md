@@ -1,12 +1,13 @@
 ---
-id: story-security-emissions-public-endpoints-auth
+id: security-emissions-public-endpoints-auth
 kind: story
 stage: done
 tags: [security, content]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

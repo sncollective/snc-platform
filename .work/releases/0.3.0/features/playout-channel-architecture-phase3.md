@@ -1,12 +1,13 @@
 ---
-id: feature-playout-channel-architecture-phase3
+id: playout-channel-architecture-phase3
 kind: feature
 stage: done
 tags: [streaming, admin-console]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: playout-channel-architecture
 ---
 

@@ -1,4 +1,5 @@
 ---
+id: playout-channel-chat-room-provisioning
 tags: [streaming, community, admin-console]
 release_binding: null
 created: 2026-04-20

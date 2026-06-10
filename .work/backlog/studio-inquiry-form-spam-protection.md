@@ -1,4 +1,5 @@
 ---
+id: studio-inquiry-form-spam-protection
 tags: [studio, security]
 release_binding: null
 created: 2026-04-20

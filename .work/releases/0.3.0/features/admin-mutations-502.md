@@ -1,12 +1,13 @@
 ---
-id: feature-admin-mutations-502
+id: admin-mutations-502
 kind: feature
 stage: done
 tags: [admin-console]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

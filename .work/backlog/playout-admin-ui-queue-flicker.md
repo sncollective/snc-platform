@@ -1,4 +1,5 @@
 ---
+id: playout-admin-ui-queue-flicker
 tags: [admin-console, streaming, ux-polish]
 release_binding: null
 created: 2026-04-18

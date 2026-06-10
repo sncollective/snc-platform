@@ -1,4 +1,5 @@
 ---
+id: refactor-media-detail-unification
 tags: [refactor, quality, content]
 created: 2026-04-20
 ---

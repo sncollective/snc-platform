@@ -1,4 +1,5 @@
 ---
+id: emissions-json-deprecation
 tags: [emissions, documentation]
 release_binding: null
 created: 2026-04-20

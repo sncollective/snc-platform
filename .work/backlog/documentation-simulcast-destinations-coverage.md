@@ -1,4 +1,5 @@
 ---
+id: documentation-simulcast-destinations-coverage
 tags: [documentation, streaming]
 release_binding: null
 created: 2026-04-20

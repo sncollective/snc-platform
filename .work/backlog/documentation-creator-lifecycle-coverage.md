@@ -1,4 +1,5 @@
 ---
+id: documentation-creator-lifecycle-coverage
 tags: [documentation, creators]
 release_binding: null
 created: 2026-04-20

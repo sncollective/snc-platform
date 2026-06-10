@@ -1,12 +1,13 @@
 ---
-id: story-calendar-event-patch-drops-visibility
+id: calendar-event-patch-drops-visibility
 kind: story
 stage: review
 tags: [calendar]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-24
-updated: 2026-04-24
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

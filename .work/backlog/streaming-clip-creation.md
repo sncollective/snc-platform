@@ -1,8 +1,9 @@
 ---
+id: streaming-clip-creation
 tags: [streaming, community, media-pipeline]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Clip Creation and Sharing

@@ -1,4 +1,5 @@
 ---
+id: emissions-ci-automated-monthly-logging
 tags: [emissions, observability]
 release_binding: null
 created: 2026-04-20

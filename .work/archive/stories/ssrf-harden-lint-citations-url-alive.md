@@ -1,12 +1,13 @@
 ---
-id: story-ssrf-harden-lint-citations-url-alive
+id: ssrf-harden-lint-citations-url-alive
 kind: story
 stage: done
 tags: [security, workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014]
 parent: ard-upgrade-v0-4-1
 ---
 
@@ -44,3 +45,5 @@ Passed 2026-06-06 on the automated test evidence (11/11 offline guard suite + cl
 
 - Upstream changes the `url_alive` fence again (re-sync from the pinned kernel).
 - Platform's lint moves to data-sourcing from a vendored `kernel/` copy (sibling story #4) — at which point this hand-vendored function may instead come straight from the in-tree `kernel/lint-citations.py`; reconcile so the logic isn't carried twice.
+
+Decision records: platform-0014

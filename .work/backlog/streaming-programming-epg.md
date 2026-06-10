@@ -1,4 +1,5 @@
 ---
+id: streaming-programming-epg
 tags: [streaming, calendar]
 release_binding: null
 created: 2026-04-20

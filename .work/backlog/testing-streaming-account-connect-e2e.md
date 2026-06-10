@@ -1,4 +1,5 @@
 ---
+id: testing-streaming-account-connect-e2e
 tags: [testing, streaming]
 release_binding: null
 created: 2026-04-20

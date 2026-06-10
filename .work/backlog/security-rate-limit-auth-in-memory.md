@@ -1,4 +1,5 @@
 ---
+id: security-rate-limit-auth-in-memory
 tags: [security, identity]
 release_binding: null
 created: 2026-04-20

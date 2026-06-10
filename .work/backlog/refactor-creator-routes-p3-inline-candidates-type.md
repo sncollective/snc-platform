@@ -1,4 +1,5 @@
 ---
+id: refactor-creator-routes-p3-inline-candidates-type
 tags: [refactor, quality, creators]
 release_binding: null
 created: 2026-04-20

@@ -1,4 +1,5 @@
 ---
+id: chat-presence-reliability
 tags: [streaming]
 release_binding: null
 created: 2026-04-21

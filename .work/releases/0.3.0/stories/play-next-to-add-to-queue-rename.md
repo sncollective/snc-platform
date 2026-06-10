@@ -1,12 +1,13 @@
 ---
-id: story-play-next-to-add-to-queue-rename
+id: play-next-to-add-to-queue-rename
 kind: story
 stage: done
 tags: [admin-console, streaming, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

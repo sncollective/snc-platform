@@ -1,12 +1,13 @@
 ---
-id: feature-refactor-jsdoc-exported-constants
+id: refactor-jsdoc-exported-constants
 kind: feature
 stage: implementing
 tags: [refactor, documentation]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

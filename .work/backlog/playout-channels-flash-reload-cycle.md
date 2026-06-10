@@ -1,4 +1,5 @@
 ---
+id: playout-channels-flash-reload-cycle
 tags: [streaming, playout]
 release_binding: null
 created: 2026-04-22

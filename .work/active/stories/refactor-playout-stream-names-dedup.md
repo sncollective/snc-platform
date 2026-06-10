@@ -1,12 +1,13 @@
 ---
-id: story-refactor-playout-stream-names-dedup
+id: refactor-playout-stream-names-dedup
 kind: story
 stage: implementing
 tags: [refactor, quality, streaming]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-20
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

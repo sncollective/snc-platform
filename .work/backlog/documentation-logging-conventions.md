@@ -1,4 +1,5 @@
 ---
+id: documentation-logging-conventions
 tags: [documentation]
 release_binding: null
 created: 2026-04-20

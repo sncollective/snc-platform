@@ -1,12 +1,13 @@
 ---
-id: feature-email-capture-at-shows
+id: email-capture-at-shows
 kind: feature
 stage: drafting
 tags: [community, commerce]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
-updated: 2026-06-06
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

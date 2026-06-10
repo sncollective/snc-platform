@@ -1,12 +1,13 @@
 ---
-id: feature-social-login-identity
+id: social-login-identity
 kind: feature
 stage: done
 tags: [identity]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-20
-related_decisions: []
 parent: null
 ---
 

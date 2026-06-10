@@ -1,12 +1,13 @@
 ---
-id: story-chat-moderation-user-card-popover
+id: chat-moderation-user-card-popover
 kind: story
 stage: done
 tags: [streaming, community, admin-console, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-20
 updated: 2026-04-21
-related_decisions: []
 parent: chat-moderation
 ---
 

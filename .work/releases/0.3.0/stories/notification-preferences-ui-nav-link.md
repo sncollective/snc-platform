@@ -1,12 +1,13 @@
 ---
-id: story-notification-preferences-ui-nav-link
+id: notification-preferences-ui-nav-link
 kind: story
 stage: done
 tags: [community, content]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-24
-related_decisions: [platform-0010]
 parent: null
 ---
 
@@ -44,3 +45,5 @@ Unauthenticated-state coverage: when the user is logged out, the user menu rende
 ## Risks
 
 None meaningful — additive nav entry, no behavior change to the existing page or to other menu items.
+
+Decision records: platform-0010

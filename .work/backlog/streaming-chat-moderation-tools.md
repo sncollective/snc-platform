@@ -1,8 +1,9 @@
 ---
+id: streaming-chat-moderation-tools
 tags: [streaming, community, admin-console]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Live Chat Moderation Tools

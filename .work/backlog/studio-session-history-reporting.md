@@ -1,4 +1,5 @@
 ---
+id: studio-session-history-reporting
 tags: [studio, emissions]
 release_binding: null
 created: 2026-04-20

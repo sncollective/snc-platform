@@ -1,4 +1,5 @@
 ---
+id: optional-image-unit-tests
 tags: [testing, design-system]
 release_binding: null
 created: 2026-04-20

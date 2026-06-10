@@ -1,4 +1,5 @@
 ---
+id: refactor-bookings-desktop-mobile-dedup
 tags: [refactor, quality, studio]
 created: 2026-04-20
 ---

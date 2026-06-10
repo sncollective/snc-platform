@@ -1,4 +1,5 @@
 ---
+id: streaming-snctv-fallback-dynamic-channel
 tags: [streaming]
 release_binding: null
 created: 2026-04-20

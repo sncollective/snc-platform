@@ -1,4 +1,5 @@
 ---
+id: events-integration-bandsintown-source-of-truth
 tags: [research, integration]
 release_binding: null
 created: 2026-05-07

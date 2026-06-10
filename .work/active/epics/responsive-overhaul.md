@@ -1,12 +1,13 @@
 ---
-id: epic-responsive-overhaul
+id: responsive-overhaul
 kind: epic
 stage: done
 tags: [design-system, ux-polish]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-18
-updated: 2026-04-20
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

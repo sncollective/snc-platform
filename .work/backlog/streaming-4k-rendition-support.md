@@ -1,4 +1,5 @@
 ---
+id: streaming-4k-rendition-support
 tags: [streaming, media-pipeline]
 release_binding: null
 created: 2026-04-20

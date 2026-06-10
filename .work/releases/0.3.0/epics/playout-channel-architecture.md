@@ -1,12 +1,13 @@
 ---
-id: epic-playout-channel-architecture
+id: playout-channel-architecture
 kind: epic
 stage: done
 tags: [streaming, media-pipeline]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 

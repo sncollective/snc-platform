@@ -1,12 +1,13 @@
 ---
-id: story-slim-bump-research-band-rules-v0-4-1
+id: slim-bump-research-band-rules-v0-4-1
 kind: story
 stage: done
 tags: [workflow]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-06-06
 updated: 2026-06-06
-related_decisions: [platform-0014]
 parent: ard-upgrade-v0-4-1
 ---
 
@@ -44,3 +45,5 @@ Passed 2026-06-06 (read-through) on objective evidence: all three files declare 
 ## Revisit if
 
 - A future ARD re-sync changes catalog members — if §1/§9 were deferred to `ard-kernel/catalogs.json`, the rule files need no edit (the win); if re-narrated, they do.
+
+Decision records: platform-0014

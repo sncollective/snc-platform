@@ -1,12 +1,13 @@
 ---
-id: story-systemd-graceful-exit
+id: systemd-graceful-exit
 kind: story
 stage: review
 tags: [deploy, user-station]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-18
-updated: 2026-04-18
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

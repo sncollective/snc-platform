@@ -1,4 +1,5 @@
 ---
+id: chat-user-list-toggle-focus-indicator-tuning
 tags: [ux-polish]
 release_binding: null
 created: 2026-04-21

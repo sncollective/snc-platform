@@ -1,4 +1,5 @@
 ---
+id: testing-manage-area-membership-gating-e2e
 tags: [testing, creators]
 release_binding: null
 created: 2026-04-20

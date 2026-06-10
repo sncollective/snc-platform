@@ -1,4 +1,5 @@
 ---
+id: env-example-imgproxy-dev-default
 tags: [developer-experience, design-system]
 release_binding: null
 created: 2026-04-20

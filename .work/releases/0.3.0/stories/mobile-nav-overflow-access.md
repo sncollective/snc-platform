@@ -1,12 +1,13 @@
 ---
-id: story-mobile-nav-overflow-access
+id: mobile-nav-overflow-access
 kind: story
 stage: done
 tags: [design-system, ux-polish]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-20
 updated: 2026-04-20
-related_decisions: []
 parent: mobile-nav-redesign
 ---
 

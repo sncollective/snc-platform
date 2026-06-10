@@ -1,12 +1,13 @@
 ---
-id: story-failed-upload-blocks-retry
+id: failed-upload-blocks-retry
 kind: story
 stage: review
 tags: [content, user-station]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-18
-updated: 2026-04-18
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

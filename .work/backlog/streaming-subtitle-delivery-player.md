@@ -1,8 +1,9 @@
 ---
+id: streaming-subtitle-delivery-player
 tags: [streaming, media-pipeline]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Subtitle Delivery to Player

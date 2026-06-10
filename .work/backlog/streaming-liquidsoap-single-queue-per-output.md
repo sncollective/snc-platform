@@ -1,4 +1,5 @@
 ---
+id: streaming-liquidsoap-single-queue-per-output
 tags: [streaming]
 release_binding: null
 created: 2026-04-20

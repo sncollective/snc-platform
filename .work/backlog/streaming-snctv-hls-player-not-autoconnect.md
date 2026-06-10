@@ -1,4 +1,5 @@
 ---
+id: streaming-snctv-hls-player-not-autoconnect
 tags: [streaming, ux-polish]
 release_binding: null
 created: 2026-04-20

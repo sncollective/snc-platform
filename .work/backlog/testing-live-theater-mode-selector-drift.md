@@ -1,4 +1,5 @@
 ---
+id: testing-live-theater-mode-selector-drift
 tags: [testing, streaming]
 release_binding: null
 created: 2026-04-20

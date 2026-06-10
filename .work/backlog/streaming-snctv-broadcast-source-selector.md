@@ -1,4 +1,5 @@
 ---
+id: streaming-snctv-broadcast-source-selector
 tags: [streaming, admin-console]
 release_binding: null
 created: 2026-04-20

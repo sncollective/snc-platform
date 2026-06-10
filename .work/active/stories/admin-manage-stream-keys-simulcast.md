@@ -1,12 +1,13 @@
 ---
-id: story-admin-manage-stream-keys-simulcast
+id: admin-manage-stream-keys-simulcast
 kind: story
 stage: review
 tags: [streaming, access]
 release_binding: null
+depends_on: []
+gate_origin: null
 created: 2026-04-24
-updated: 2026-04-24
-related_decisions: []
+updated: 2026-06-10
 parent: null
 ---
 

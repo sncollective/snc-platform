@@ -1,4 +1,5 @@
 ---
+id: streaming-custom-emotes
 tags: [streaming, community, creators]
 release_binding: null
 created: 2026-04-20

@@ -1,4 +1,5 @@
 ---
+id: snc-tv-broadcast-mirrors-live-creator
 tags: [streaming, playout]
 release_binding: null
 created: 2026-04-22

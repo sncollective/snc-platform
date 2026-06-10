@@ -1,8 +1,9 @@
 ---
+id: chat-reconnect-to-messages-slow
 tags: [streaming, community, ux-polish]
 release_binding: null
 created: 2026-04-21
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # "Reconnecting..." persists 30-40s on /live in dev (Vite module waterfall)

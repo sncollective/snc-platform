@@ -1,4 +1,5 @@
 ---
+id: transient-focus-outline-main-area
 tags: [ux-polish]
 release_binding: null
 created: 2026-04-20

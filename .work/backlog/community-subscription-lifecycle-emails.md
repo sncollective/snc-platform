@@ -1,4 +1,5 @@
 ---
+id: community-subscription-lifecycle-emails
 tags: [community, commerce]
 release_binding: null
 created: 2026-04-20

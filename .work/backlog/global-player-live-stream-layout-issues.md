@@ -1,8 +1,9 @@
 ---
+id: global-player-live-stream-layout-issues
 tags: [streaming, ux-polish, media-pipeline]
 release_binding: null
 created: 2026-04-20
-updated: 2026-04-21
+updated: 2026-06-10
 ---
 
 # Global player live-stream layout issues

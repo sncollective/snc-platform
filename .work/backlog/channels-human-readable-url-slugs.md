@@ -1,4 +1,5 @@
 ---
+id: channels-human-readable-url-slugs
 tags: [streaming, ux-polish, schema]
 created: 2026-04-23
 ---

@@ -1,4 +1,5 @@
 ---
+id: scan-design-system-rule-library
 tags: [design-system]
 release_binding: null
 created: 2026-04-18

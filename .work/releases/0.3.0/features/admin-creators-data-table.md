@@ -1,12 +1,13 @@
 ---
-id: feature-admin-creators-data-table
+id: admin-creators-data-table
 kind: feature
 stage: done
 tags: [admin-console, creators]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-21
-related_decisions: []
 parent: null
 ---
 

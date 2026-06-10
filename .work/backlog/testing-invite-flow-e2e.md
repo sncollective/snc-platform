@@ -1,4 +1,5 @@
 ---
+id: testing-invite-flow-e2e
 tags: [testing, identity]
 release_binding: null
 created: 2026-04-20

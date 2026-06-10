@@ -1,12 +1,13 @@
 ---
-id: story-security-chat-moderation-rest-role-check
+id: security-chat-moderation-rest-role-check
 kind: story
 stage: done
 tags: [security, community]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-24
 updated: 2026-04-24
-related_decisions: []
 parent: null
 ---
 

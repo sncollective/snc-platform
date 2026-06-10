@@ -1,4 +1,5 @@
 ---
+id: channel-delete-admin-ui
 tags: [streaming, admin-console]
 release_binding: null
 created: 2026-04-18

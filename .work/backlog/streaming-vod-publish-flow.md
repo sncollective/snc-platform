@@ -1,4 +1,5 @@
 ---
+id: streaming-vod-publish-flow
 tags: [streaming, content]
 release_binding: null
 created: 2026-04-20

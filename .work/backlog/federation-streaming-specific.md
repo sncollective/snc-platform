@@ -1,4 +1,5 @@
 ---
+id: federation-streaming-specific
 tags: [federation, streaming]
 release_binding: null
 created: 2026-04-20

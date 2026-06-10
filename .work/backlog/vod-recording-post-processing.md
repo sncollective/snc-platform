@@ -1,4 +1,5 @@
 ---
+id: vod-recording-post-processing
 tags: [media-pipeline, streaming]
 release_binding: null
 created: 2026-04-20

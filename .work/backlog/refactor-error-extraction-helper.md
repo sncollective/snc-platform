@@ -1,4 +1,5 @@
 ---
+id: refactor-error-extraction-helper
 tags: [refactor, quality]
 created: 2026-04-20
 ---

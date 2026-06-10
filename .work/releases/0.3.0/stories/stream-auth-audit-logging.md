@@ -1,12 +1,13 @@
 ---
-id: story-stream-auth-audit-logging
+id: stream-auth-audit-logging
 kind: story
 stage: done
 tags: [streaming, security]
 release_binding: 0.3.0
+depends_on: []
+gate_origin: null
 created: 2026-04-18
 updated: 2026-04-18
-related_decisions: []
 parent: null
 ---
 
