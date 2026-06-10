@@ -50,7 +50,7 @@ When you encounter decision content embedded in prose (research docs, design bri
 
 Don't make positional claims before the substrate to ground them is in hand. Positional claims include framework selections, source classifications, cluster assignments, categorical claims about how a source fits a pattern, and commitments to a cut or decomposition before the material has been substantively engaged.
 
-Failure mode: positions calcify. Downstream work treats them as settled. When the substrate lands and the position turns out wrong, the wrong position has already propagated — discharging the calcification costs many sessions of retroactive cleanup. This is fabrication-adjacent: it is the general-authoring form of the research band's premature-commitment shape (`FR.2` in [research-band-catalogs.md](research-band-catalogs.md) §1).
+Failure mode: positions calcify. Downstream work treats them as settled. When the substrate lands and the position turns out wrong, the wrong position has already propagated — discharging the calcification costs many sessions of retroactive cleanup. This is fabrication-adjacent: it is the general-authoring form of the research band's premature-commitment shape (`FR.2` — framing-before-substrate, per ARD SPEC §2).
 
 When the temptation to pre-position arises:
 
@@ -66,7 +66,7 @@ The first-order discipline addresses **positions-before-substrate**: don't asser
 
 The mechanism is different — the agent may have engaged the raw material, but the analytical frame it applies was already set by a synthesis artifact consulted pre-engagement. The resulting work looks substrate-grounded while actually being framing-derived.
 
-Synthesis artifacts — cross-source mappings, framework surveys, a vocabulary file's analytical sub-sections — are post-hoc reading material for analytical work, **not** pre-engagement framing for descriptive work. Read the source on its own terms first; consult synthesis artifacts to check how surfaced hypotheses relate to the accumulated synthesis afterward. The research band's strict layer-directionality discipline (analytical-tier artifacts not consulted during descriptive-layer authoring — the structural fence in [research-band-spec.md](research-band-spec.md) §4.6) is the structural enforcement; this rule addresses the cognitive risk that survives even structural separation when an agent reaches across layers in its reasoning.
+Synthesis artifacts — cross-source mappings, framework surveys, a vocabulary file's analytical sub-sections — are post-hoc reading material for analytical work, **not** pre-engagement framing for descriptive work. Read the source on its own terms first; consult synthesis artifacts to check how surfaced hypotheses relate to the accumulated synthesis afterward. The research band's strict layer-directionality discipline (analytical-tier artifacts not consulted during descriptive-layer authoring — ARD SPEC §4.6) is the structural enforcement; this rule addresses the cognitive risk that survives even structural separation when an agent reaches across layers in its reasoning.
 
 ## "Revisit if" applies broadly
 

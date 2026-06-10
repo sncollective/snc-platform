@@ -8,12 +8,12 @@ model: haiku
 
 # scan-memory — Mechanical Lint Dispatcher
 
-Periodic arm of the memory-lint operation. Six mechanical faces; script-backed, no LLM reasoning at runtime except the opt-in substrate-test face which emits prompt packets for sub-agent triage (still no inline LLM from the script). Complements the commit-time arm wired into pre-commit hooks via [scripts/check-doc-links.py](../../../scripts/check-doc-links.py) and the attestation-tier arm via [scripts/lint-research-claims.py](../../../scripts/lint-research-claims.py).
+Periodic arm of the memory-lint operation. Six mechanical faces; script-backed, no LLM reasoning at runtime except the opt-in substrate-test face which emits prompt packets for sub-agent triage (still no inline LLM from the script). Complements the commit-time arm wired into pre-commit hooks via [scripts/check-doc-links.py](../../../scripts/check-doc-links.py) and the citation-tier arm via the agentic-research plugin's `scripts/lint-citations.py`.
 
 See:
 - [`.work/CONVENTIONS.md`](../../../.work/CONVENTIONS.md) — schema the schema face validates against.
 - [.claude/rules/document-evolution.md](../../../.claude/rules/document-evolution.md) §Reference direction — the durability gradient the durable-refs face enforces.
-- [.claude/rules/research-band-spec.md](../../../.claude/rules/research-band-spec.md) + [.claude/rules/research-band-catalogs.md](../../../.claude/rules/research-band-catalogs.md) — the research-band shapes the schema, references, and substrate-test faces check against.
+- [`.research/CONVENTIONS.md`](../../../.research/CONVENTIONS.md) — the research-band shapes the schema, references, and substrate-test faces check against.
 
 This project is self-contained. Its `.memory/` is the marker of that commitment: no markdown link from inside its substrate (`.memory/`, `.work/`, `.research/`) may escape the project root, so the project survives a standalone clone. The boundary check is part of `check-doc-links.py`'s walk; in a self-contained project there are no nested sub-projects, so the boundary face simply finds none.
 
@@ -58,7 +58,7 @@ Run in sequence, capturing stdout+stderr. Skip faces the user excluded.
 
 **Substrate-test face** (opt-in; LLM-cost; sub-agent triage):
 - `python3 scripts/scan-memory.py --face=substrate-test --out .memory/scratchpad`
-- Walks descriptive-tier `.research/notes/` + `.research/precis/` (`.research/notes/` may be absent — that's fine; skips analytical tier per [research-band-catalogs.md](../../../.claude/rules/research-band-catalogs.md) §Where claim-level provenance markers apply; skips per-source `-vocab` files which are quote+gloss form by definition). Writes one self-contained prompt packet per artifact to `<out>/scan-memory-substrate-test-<date>/<rel-path>.prompt.md`. Each packet inlines the substrate-test framing per [research-band-spec.md](../../../.claude/rules/research-band-spec.md) §4.3 The substrate test plus the artifact text. Spawn a sub-agent per packet to verdict; aggregate verdicts manually. Per [research-band-spec.md](../../../.claude/rules/research-band-spec.md) §5 Discipline propagation, sub-agents do not auto-load rules — the packet is the inlined text-bundle.
+- Walks descriptive-tier `.research/notes/` + `.research/precis/` (`.research/notes/` may be absent — that's fine; skips analytical tier per ARD SPEC §4.6 layer-directionality; skips per-source `-vocab` files which are quote+gloss form by definition). Writes one self-contained prompt packet per artifact to `<out>/scan-memory-substrate-test-<date>/<rel-path>.prompt.md`. Each packet inlines the substrate-test framing (ARD SPEC §4.3) plus the artifact text. Spawn a sub-agent per packet to verdict; aggregate verdicts manually. Per ARD SPEC §5 (Discipline propagation), sub-agents do not auto-load rules — the packet is the inlined text-bundle.
 
 If a script exits non-zero, record that in the output — non-zero means findings, not error (check stderr for actual errors vs. formatted findings).
 

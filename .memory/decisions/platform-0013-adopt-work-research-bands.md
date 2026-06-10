@@ -35,7 +35,7 @@ Adopt the two output bands alongside the substrate band:
 
 Platform adopts at **Tier 1 (framework) + Tier 2 (catalogs) + Tier 4 (version-pin)** per ARD's adoption guide:
 
-- The architecture is **vendored** as `.claude/rules/research-band-spec.md` (← ARD SPEC) + `.claude/rules/research-band-catalogs.md` (← ARD CATALOGS), with `.claude/rules/research-band-platform.md` carrying platform's concrete deployment mapping (substrate layout, attestation tier path, citation lint, discipline-propagation mechanism). These are a **pinned snapshot of ARD v0.1**; upstream revisions arrive as a deliberate re-vendor, not automatically. MIT attribution is carried in-tree.
+- The architecture was **vendored** as `research-band-spec.md` (← ARD SPEC) + `research-band-catalogs.md` (← ARD CATALOGS), with `research-band-platform.md` carrying platform's concrete deployment mapping (substrate layout, attestation tier path, citation lint, discipline-propagation mechanism). These were a **pinned snapshot of ARD v0.1**; upstream revisions arrived as a deliberate re-vendor. MIT attribution was carried in-tree. **(Superseded by plugin adoption, 2026-06-10 — those files are retired; the working contract is now `.research/CONVENTIONS.md`.)**
 - The verification stack is wired: `lint` (the `lint-research-claims.py` / `lint-citations.py` scripts), `adversarial-read` + `evaluate` (the `adversarial-reader` / `evaluator` agents), `spot-check` (terminal human check). Discipline propagates into research sub-agents via the `research-discipline` skill injected through `skills:` frontmatter.
 
 ### Self-containment

@@ -44,16 +44,17 @@ Items are the unit of persistent work, carrying structured state in frontmatter 
 
 Convention: `.work/CONVENTIONS.md` (tag rubric, gate config, slug conventions, platform-local conventions) + `.agents/rules/agile-workflow.md` (plugin-managed rules block).
 
-### `.research/` — research band (ARD v0.1)
+### `.research/` — research band (ARD v0.5.1, plugin mode)
 
-Platform **adopts ARD v0.1** (Agentic Research Discipline — MIT-licensed, agent-agnostic; codified per `.memory/decisions/platform-0013-adopt-work-research-bands.md`). The band carries external substrate + agent engagement with sources, read down-gradient only:
+Platform adopts **ARD v0.5.1** (Agentic Research Discipline — MIT-licensed, agent-agnostic) transitively through the **agentic-research plugin's** drift-fenced vendored kernel. The band carries external substrate + agent engagement with sources, read down-gradient only:
 
 - **`reference/`** — source-direct raw fetches (gitignored) + per-corpus INDEX/README.
 - **`attestation/`** — flat per-source-handle files (`<handle>.md`) — the citation anchor for `[handle]{N}` references.
 - **`precis/`** — engagement-unit aggregations authored from raw.
 - **`analysis/`** — cross-source work: `briefs/`, `campaigns/`, `positions/`, `hypothesis/`, and `<topic>.md` catalogs.
+- **`bin/research-view`** — installed query tool (from the plugin's `install-research-view.sh`).
 
-The discipline (anti-fabrication core, per-source attestation, verification stack) is vendored in `.claude/rules/research-band-spec.md` (architecture) + `research-band-catalogs.md` (baseline inventory) + `research-band-platform.md` (platform's deployment mapping). MIT attribution for the research band is carried in those rule files.
+The working contract (path map, frontmatter shapes, citation rule, lint invocation, engagement entry, MIT attribution) is in `.research/CONVENTIONS.md`. Platform carries no in-tree ARD kernel copy — the plugin provides the lint, catalogs, and discipline bundle as external tools.
 
 When in doubt about which tier, scratchpad is safe — anything worth keeping gets promoted explicitly.
 
