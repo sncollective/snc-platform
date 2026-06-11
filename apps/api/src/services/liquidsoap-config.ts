@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { and, eq } from "drizzle-orm";
 import { AppError, ok, err } from "@snc/shared";
@@ -20,12 +21,21 @@ interface PlayoutChannelRow {
 
 // ── Config Path ──
 
-/** Path to the Liquidsoap config file (mounted volume). */
-const getLiquidsoapConfigPath = (): string =>
-  resolve(
-    config.LIQUIDSOAP_CONFIG_DIR ?? "/workspaces/SNC/platform/liquidsoap",
-    "playout.liq",
-  );
+/** Repo-root `liquidsoap/` dir, resolved from this module's location so the default
+ * holds at any clone/mount path. The dir is volume-mounted into the liquidsoap container. */
+const DEFAULT_LIQUIDSOAP_DIR = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../liquidsoap",
+);
+
+/**
+ * Path to the Liquidsoap config file (mounted volume).
+ *
+ * Defaults to the repo's `liquidsoap/` dir; override via `LIQUIDSOAP_CONFIG_DIR`.
+ * Exported for the portability regression test.
+ */
+export const getLiquidsoapConfigPath = (): string =>
+  resolve(config.LIQUIDSOAP_CONFIG_DIR ?? DEFAULT_LIQUIDSOAP_DIR, "playout.liq");
 
 // ── Logger ──
 

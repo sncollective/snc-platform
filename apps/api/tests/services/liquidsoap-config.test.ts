@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { makeTestConfig } from "../helpers/test-constants.js";
@@ -63,6 +67,38 @@ afterEach(() => {
 });
 
 // ── Tests ──
+
+describe("getLiquidsoapConfigPath", () => {
+  it("defaults to the repo liquidsoap/ dir with no absolute workspace path", async () => {
+    const { getLiquidsoapConfigPath } = await setupModule();
+
+    // Same repo-root resolution as the module under test, anchored at this test file
+    // (apps/api/tests/services/ and apps/api/src/services/ sit at equal depth).
+    const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+
+    expect(getLiquidsoapConfigPath()).toBe(resolve(repoRoot, "liquidsoap", "playout.liq"));
+  });
+
+  it("derives the default from the repo location, never a hardcoded mount path", async () => {
+    // In a checkout that happens to live at the old hardcoded location, the derived
+    // and hardcoded paths coincide — so behavior can't distinguish them. Pin the
+    // source instead: no absolute mount-path literal may appear in the module.
+    const moduleSource = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../src/services/liquidsoap-config.ts"),
+      "utf8",
+    );
+
+    expect(moduleSource).not.toContain("/workspaces/");
+  });
+
+  it("honors the LIQUIDSOAP_CONFIG_DIR override", async () => {
+    const { getLiquidsoapConfigPath } = await setupModule({
+      LIQUIDSOAP_CONFIG_DIR: "/custom/liq-dir",
+    });
+
+    expect(getLiquidsoapConfigPath()).toBe("/custom/liq-dir/playout.liq");
+  });
+});
 
 describe("generateLiquidsoapConfig", () => {
   it("generates valid config with channel blocks", async () => {
