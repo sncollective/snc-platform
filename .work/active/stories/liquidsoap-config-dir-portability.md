@@ -1,7 +1,7 @@
 ---
 id: liquidsoap-config-dir-portability
 kind: story
-stage: review
+stage: done
 tags: [playout, developer-experience]
 release_binding: null
 depends_on: []
@@ -39,3 +39,6 @@ the default contains no absolute workspace path.
 - Tests added: `getLiquidsoapConfigPath` describe block — default-path equality (anchored at the test file's own location, depth-symmetric with the module) and `LIQUIDSOAP_CONFIG_DIR` override. Plus a source-text regression test asserting no `/workspaces/` literal in the module — behavior alone can't catch a reintroduced hardcode in a checkout that happens to live at the old path (first attempt at a runtime literal-check failed for exactly that reason in this workspace).
 - Verification: 15/15 in the file, full `@snc/api` unit suite 1501/1501 green, API restarted under pm2 with health 200 and `playout.liq` present.
 - Discrepancies from design: none. Adjacent issues parked: none.
+
+## Review record
+- 2026-06-11 — Verdict: Approve — story verified by implement (full unit suite green, live API health check); fast-lane advance.
