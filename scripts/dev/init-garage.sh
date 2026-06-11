@@ -59,9 +59,28 @@ else
   echo "Layout already configured (version $LAYOUT_VERSION)"
 fi
 
+# Probe a key's ID by name; prints empty when the key is missing.
+# Non-fatal by design: every garage CLI call opens a fresh RPC handshake, which can
+# transiently fail right after a cold Garage start — under `set -euo pipefail` a
+# piped probe would kill the whole script silently (it aborted devcontainer boot
+# with no output). Capture-then-parse avoids the pipeline; the brief retry rides
+# out the blip so an existing key isn't misread as missing. A persistent Garage
+# failure still surfaces loudly in the unsilenced import/allow commands below.
+probe_key_id() {
+  local name="$1" out
+  for _ in 1 2 3; do
+    if out=$($GARAGE key info "$name" 2>/dev/null); then
+      awk '/^Key ID:/ {print $3; exit}' <<<"$out"
+      return 0
+    fi
+    sleep 1
+  done
+  return 0
+}
+
 # Import deterministic dev API key, re-importing if the existing key drifted from
 # the expected deterministic ID (e.g., volume predates the deterministic-keys pivot).
-existing_id=$($GARAGE key info "$KEY_NAME" 2>/dev/null | awk '/^Key ID:/ {print $3; exit}')
+existing_id=$(probe_key_id "$KEY_NAME")
 if [ "$existing_id" = "$DEV_KEY_ID" ]; then
   echo "API key '$KEY_NAME' already imported with deterministic ID"
 elif [ -n "$existing_id" ]; then
@@ -142,7 +161,7 @@ fi
 
 IMGPROXY_KEY_NAME="imgproxy-reader"
 
-existing_imgproxy_id=$($GARAGE key info "$IMGPROXY_KEY_NAME" 2>/dev/null | awk '/^Key ID:/ {print $3; exit}')
+existing_imgproxy_id=$(probe_key_id "$IMGPROXY_KEY_NAME")
 if [ "$existing_imgproxy_id" = "$IMGPROXY_KEY_ID" ]; then
   echo "API key '$IMGPROXY_KEY_NAME' already imported with deterministic ID"
 elif [ -n "$existing_imgproxy_id" ]; then
