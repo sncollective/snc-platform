@@ -1,7 +1,7 @@
 ---
 id: e2e-browsers-on-demand
 kind: story
-stage: review
+stage: done
 tags: [developer-experience, testing]
 release_binding: null
 depends_on: []
@@ -69,3 +69,6 @@ was never the problem); the script comment now names the >=1.60 constraint inste
   repo, same change-shape.
 - Verification: `bash -n` clean; both devcontainer JSONs valid; live run of the script
   from `/tmp` on a warm cache completes (recorded below at review).
+
+## Review record
+- 2026-06-11 — Verdict: Approve — story verified by implement (cold install exit 0 with 641 MB extracted, both guard branches exercised, e2e suite runnable with drift parked per test-integrity); fast-lane advance.
