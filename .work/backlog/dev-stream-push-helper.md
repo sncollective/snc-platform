@@ -16,7 +16,7 @@ Surfaced 2026-04-20 during `responsive-images` review: the `Unit 5h` live-page c
 
 ## Proposed shape
 
-`scripts/platform/dev-stream-push.sh <creator-slug>`:
+`scripts/dev/dev-stream-push.sh <creator-slug>`:
 
 1. Look up the creator by slug (`handle` field) in the DB
 2. Authenticate as an admin (seeded admin user / env-provided token)
@@ -43,7 +43,7 @@ ffmpeg -re -f lavfi -i "testsrc2=size=1280x720:rate=30,drawtext=text='LIVE TEST 
 
 ## Verification when picked up
 
-- [ ] `scripts/platform/dev-stream-push.sh maya-chen` starts a stream against Maya's live channel
+- [ ] `scripts/dev/dev-stream-push.sh maya-chen` starts a stream against Maya's live channel
 - [ ] The channel appears at `/api/streaming/status` with `type: "live"` within a few seconds
 - [ ] The live page renders the creator bar + the test pattern plays back
 - [ ] Ctrl-C stops ffmpeg cleanly; SRS on_unpublish fires

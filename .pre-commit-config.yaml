@@ -8,7 +8,7 @@
 
 # Drizzle migrations are generated artifacts; the migrator hash-tracks their bytes,
 # so whitespace "fixes" would desync applied-migration hashes. Fixers skip them
-# (per-hook excludes below); gitleaks still scans everything.
+# (per-hook excludes below); check-json and gitleaks still cover them.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -19,7 +19,6 @@ repos:
         exclude: *drizzle_migrations
       - id: check-yaml
       - id: check-json
-        exclude: *drizzle_migrations
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.18.4

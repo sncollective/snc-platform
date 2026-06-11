@@ -1,7 +1,7 @@
 ---
 id: standalone-devcontainer
 kind: feature
-stage: review
+stage: done
 tags: [developer-experience]
 release_binding: null
 depends_on: []
@@ -122,7 +122,7 @@ Per-script behavior (all existing behavior preserved):
 - **`squash-baseline.sql`** — copy verbatim; fix its usage comment to the new path.
 
 **Acceptance Criteria**:
-- [x] `bash -n` passes on all five scripts; no string `/workspaces/` anywhere in `scripts/dev/`
+- [x] `bash -n` passes on all six scripts; no string `/workspaces/` anywhere in `scripts/dev/`
 - [x] `grep -rn "workspaces/" scripts/dev/` is empty
 - [x] `ensure-env.sh` run twice against a temp `.env.example` copy: creates then no-ops
 - [x] `start-dev.sh` runs to completion in the current environment (services healthy, pm2 up) when invoked by absolute path from an arbitrary CWD outside the repo
@@ -211,7 +211,14 @@ rebuild and is a user-at-station acceptance step — tracked in Risks.
 - Files added: `scripts/dev/{start-dev.sh, ensure-env.sh, init-garage.sh, generate-playout-playlist.sh, seed-playout-content.sh, test-live-fallback.sh, squash-baseline.sql}`, `.devcontainer/devcontainer.json`, `.pre-commit-config.yaml`, `.claude/settings.json`
 - Files changed: `README.md` (devcontainer-first Getting Started lead), `AGENTS.md` (start-dev entry in Build & Test), `CLAUDE.md` (scripts/dev/ entry)
 - Tests added: none (config/scripts feature — mechanical verification per design §Testing)
-- Verification: `bash -n` clean on all five scripts; no `/workspaces/` or legacy-path strings under `scripts/dev/`; `ensure-env.sh` create-then-no-op cycle verified in an isolated temp layout (fresh `BETTER_AUTH_SECRET` minted on create, "already current" on re-run); devcontainer.json + settings.json valid JSON, pre-commit config valid YAML; live `start-dev.sh` run from `/tmp` (arbitrary CWD) — see acceptance walk below
+- Verification: `bash -n` clean on all six scripts; no `/workspaces/` or legacy-path strings under `scripts/dev/`; `ensure-env.sh` create-then-no-op cycle verified in an isolated temp layout (fresh `BETTER_AUTH_SECRET` minted on create, "already current" on re-run); devcontainer.json + settings.json valid JSON, pre-commit config valid YAML; live `start-dev.sh` runs from `/tmp` and `/var` (arbitrary CWDs), exit 0, claude-net overlay branch exercised, API/web/Caddy HTTP 200
 - Discrepancies from design: `.claude/settings.json` additionally carries `extraKnownMarketplaces` + `enabledPlugins` for the agile-workflow and agentic-research plugins — the `.work/` substrate is plugin-managed, so a standalone clone needs the plugin surface enabled at project scope; without it the work-item pipeline has no skills. The brief's "deny docker-compose file edits" idea was dropped per the design's Unit 4 spec (compose files are legitimate read/debug surfaces in dev; secret material lives in `.env*`, which is denied).
 - Pre-commit discovery: the first `--all-files` run auto-fixed EOF/whitespace across the tree, including `apps/api/drizzle/migrations/` — reverted those and added per-fixer excludes for the migrations dir (drizzle hash-tracks migration bytes; reformatting desyncs applied-migration hashes; gitleaks still scans them). The remaining ~20 files of one-time whitespace fixes (css/tsx/md, all EOF-newline-only, verified via `git diff --numstat`) land with this stride; `@snc/shared` tests + api build green after.
 - Adjacent issues parked: none filed — one pre-existing broken ref surfaced by `check-doc-links.py` in `.work/backlog/emissions-json-deprecation.md` (a backtick path to an emissions README that predates the substrate migration and doesn't resolve in this repo); reworded to prose in the same stride so the link gate runs clean
+
+## Review record
+- 2026-06-11 — deep lane, fresh-context sub-agent (same model class as host; peeragent unavailable — recorded as not cross-model). **Verdict: Approve with comments.**
+- Script-port fidelity, devcontainer lifecycle CWD resolution (both container contexts), hygiene-sweep safety (drizzle migrations byte-identical; exclude regex verified), self-containment, and deny-rule coverage all confirmed clean.
+- Important finding filed: `liquidsoap-config-dir-portability` (app-code absolute-path default the feature's any-mount-path promise newly exposes; pre-existing, not a port regression).
+- Important finding (root-side): platform pre-commit hooks not auto-installed when developing from the enclosing container — fixed in the same delivery's root-side story (its devcontainer now installs them in postCreate).
+- Nits fixed in-session: stale heredoc comment, check-json exclude narrowed away, item-body inaccuracies. Nits accepted as-is: `Read(.env*)` also catching `.env.example` (parity with the proven guardrail posture); `seed-playout-content.sh` node-import CWD assumption (parity with prior behavior; helper, not lifecycle).

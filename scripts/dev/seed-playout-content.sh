@@ -55,7 +55,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createReadStream, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// Load platform/.env (dotenv/config loads .env from cwd; also load explicit path)
+// Load the repo .env (dotenv/config loads .env from cwd; also load explicit path)
 config({ path: join(process.env.REPO_ROOT, ".env") });
 
 const client = new S3Client({
