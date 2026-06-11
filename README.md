@@ -86,7 +86,12 @@ CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-gene
 [devcontainer](.devcontainer/devcontainer.json) installs every prerequisite, scaffolds `.env`
 with a fresh auth secret, and boots the full service stack via
 [scripts/dev/start-dev.sh](scripts/dev/start-dev.sh) — when it finishes, `pm2 status` shows
-the API and web servers running. The manual steps below are for setups outside the container.
+the API and web servers running. (Playwright browsers for the e2e suite install on demand:
+`bash scripts/dev/install-e2e-browsers.sh`.) Use a standalone clone for full function —
+opening this directory out of an enclosing checkout that holds it as a git submodule yields
+a degraded container: the `.git` file points outside the mount, so git (and the pre-commit
+hooks) won't work inside; everything else runs. The manual steps below are for setups
+outside the container.
 
 ### 1. Install dependencies
 

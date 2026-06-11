@@ -10,7 +10,7 @@
     "report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.60.0",
     "@snc/shared": "workspace:*",
     "postgres": "^3.4.7",
     "drizzle-orm": "^0.45.1",
