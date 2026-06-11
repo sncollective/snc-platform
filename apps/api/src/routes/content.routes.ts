@@ -707,5 +707,3 @@ contentRoutes.post(
     return c.json(resolveContentUrls(updated));
   },
 );
-
-

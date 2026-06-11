@@ -1,7 +1,7 @@
 ---
 id: standalone-devcontainer
 kind: feature
-stage: implementing
+stage: review
 tags: [developer-experience]
 release_binding: null
 depends_on: []
@@ -122,10 +122,10 @@ Per-script behavior (all existing behavior preserved):
 - **`squash-baseline.sql`** — copy verbatim; fix its usage comment to the new path.
 
 **Acceptance Criteria**:
-- [ ] `bash -n` passes on all five scripts; no string `/workspaces/` anywhere in `scripts/dev/`
-- [ ] `grep -rn "workspaces/" scripts/dev/` is empty
-- [ ] `ensure-env.sh` run twice against a temp `.env.example` copy: creates then no-ops
-- [ ] `start-dev.sh` runs to completion in the current environment (services healthy, pm2 up) when invoked by absolute path from an arbitrary CWD outside the repo
+- [x] `bash -n` passes on all five scripts; no string `/workspaces/` anywhere in `scripts/dev/`
+- [x] `grep -rn "workspaces/" scripts/dev/` is empty
+- [x] `ensure-env.sh` run twice against a temp `.env.example` copy: creates then no-ops
+- [x] `start-dev.sh` runs to completion in the current environment (services healthy, pm2 up) when invoked by absolute path from an arbitrary CWD outside the repo
 
 ### Unit 2: `.devcontainer/devcontainer.json`
 
@@ -146,9 +146,9 @@ Ports + labels: 3000 API, 3001 Web, 3002 Web (Staging), 3080/3082 Caddy dev/stag
 gitlens, errorlens, claude-code. `remoteUser: vscode`.
 
 **Acceptance Criteria**:
-- [ ] Valid JSON (`python3 -m json.tool`)
-- [ ] No absolute workspace paths — lifecycle commands rely on workspace-root CWD
-- [ ] Port list contains exactly the platform service set above
+- [x] Valid JSON (`python3 -m json.tool`)
+- [x] No absolute workspace paths — lifecycle commands rely on workspace-root CWD
+- [x] Port list contains exactly the platform service set above
 
 ### Unit 3: `.pre-commit-config.yaml`
 
@@ -157,7 +157,7 @@ gitleaks; local hook `check-doc-links` running `python3 scripts/check-doc-links.
 check-yaml, check-json). Installed by Unit 2's postCreate.
 
 **Acceptance Criteria**:
-- [ ] `pre-commit run --all-files` passes on the current tree (or surfaced violations are fixed in this stride)
+- [x] `pre-commit run --all-files` passes on the current tree (or surfaced violations are fixed in this stride)
 
 ### Unit 4: `.claude/settings.json`
 
@@ -167,8 +167,8 @@ Permission guardrails: deny Read on `.env*`, `**/*.pem`, `**/*.key`, `secrets/**
 Attribution empty (commits attributed to the human author from git config).
 
 **Acceptance Criteria**:
-- [ ] Valid JSON; deny rules cover the secret-file and outbound-HTTP classes
-- [ ] No allow-rules that would loosen anything beyond current behavior
+- [x] Valid JSON; deny rules cover the secret-file and outbound-HTTP classes
+- [x] No allow-rules that would loosen anything beyond current behavior
 
 ### Unit 5: Docs touch
 
@@ -178,7 +178,7 @@ Attribution empty (commits attributed to the human author from git config).
   and `.devcontainer/` as the environment definition.
 
 **Acceptance Criteria**:
-- [ ] `python3 scripts/check-doc-links.py` clean
+- [x] `python3 scripts/check-doc-links.py` clean
 
 ## Implementation Order
 
@@ -206,3 +206,12 @@ rebuild and is a user-at-station acceptance step — tracked in Risks.
   follow-up to port the listing to the node SDK if playlist bootstrap should be turnkey.
 - **`bun@1.3.12` pin in postCreate** will drift; acceptable — same pin strategy as the
   engines field, bumped deliberately.
+
+## Implementation notes
+- Files added: `scripts/dev/{start-dev.sh, ensure-env.sh, init-garage.sh, generate-playout-playlist.sh, seed-playout-content.sh, test-live-fallback.sh, squash-baseline.sql}`, `.devcontainer/devcontainer.json`, `.pre-commit-config.yaml`, `.claude/settings.json`
+- Files changed: `README.md` (devcontainer-first Getting Started lead), `AGENTS.md` (start-dev entry in Build & Test), `CLAUDE.md` (scripts/dev/ entry)
+- Tests added: none (config/scripts feature — mechanical verification per design §Testing)
+- Verification: `bash -n` clean on all five scripts; no `/workspaces/` or legacy-path strings under `scripts/dev/`; `ensure-env.sh` create-then-no-op cycle verified in an isolated temp layout (fresh `BETTER_AUTH_SECRET` minted on create, "already current" on re-run); devcontainer.json + settings.json valid JSON, pre-commit config valid YAML; live `start-dev.sh` run from `/tmp` (arbitrary CWD) — see acceptance walk below
+- Discrepancies from design: `.claude/settings.json` additionally carries `extraKnownMarketplaces` + `enabledPlugins` for the agile-workflow and agentic-research plugins — the `.work/` substrate is plugin-managed, so a standalone clone needs the plugin surface enabled at project scope; without it the work-item pipeline has no skills. The brief's "deny docker-compose file edits" idea was dropped per the design's Unit 4 spec (compose files are legitimate read/debug surfaces in dev; secret material lives in `.env*`, which is denied).
+- Pre-commit discovery: the first `--all-files` run auto-fixed EOF/whitespace across the tree, including `apps/api/drizzle/migrations/` — reverted those and added per-fixer excludes for the migrations dir (drizzle hash-tracks migration bytes; reformatting desyncs applied-migration hashes; gitleaks still scans them). The remaining ~20 files of one-time whitespace fixes (css/tsx/md, all EOF-newline-only, verified via `git diff --numstat`) land with this stride; `@snc/shared` tests + api build green after.
+- Adjacent issues parked: none filed — one pre-existing broken ref surfaced by `check-doc-links.py` in `.work/backlog/emissions-json-deprecation.md` (a backtick path to an emissions README that predates the substrate migration and doesn't resolve in this repo); reworded to prose in the same stride so the link gate runs clean

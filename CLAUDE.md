@@ -31,6 +31,11 @@ dispatches.
 
 - `scan-memory.py [--face=…]` — mechanical lint sweep over `.memory/` + `.work/` + `.research/`. The `schema` face surfaces `source_class` soft-enum drift.
 - `check-doc-links.py` — markdown-link + boundary validation (also wired into pre-commit).
+- `dev/` — environment bootstrap, all paths repo-relative: `start-dev.sh` (full service
+  startup; devcontainer postStart), `ensure-env.sh` (`.env` scaffolding; devcontainer
+  postCreate), `init-garage.sh` (idempotent Garage layout/bucket/keys), plus playout
+  helpers (`seed-playout-content.sh`, `generate-playout-playlist.sh`,
+  `test-live-fallback.sh`) and the one-off `squash-baseline.sql`.
 
 ### Auto-loaded rules (`.claude/rules/`)
 

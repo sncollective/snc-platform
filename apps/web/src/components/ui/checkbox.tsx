@@ -26,4 +26,3 @@ export function Checkbox({ children, ...props }: CheckboxProps) {
     </ArkCheckbox.Root>
   );
 }
-

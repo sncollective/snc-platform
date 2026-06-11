@@ -13,6 +13,7 @@ Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with 
 - `bun run --filter @snc/e2e test` — Playwright golden-path e2e (staging env, localhost:3082)
 - `bun run --filter @snc/api dev` / `bun run --filter @snc/web dev` — dev servers
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL
+- `bash scripts/dev/start-dev.sh` — full service bootstrap (Caddy, docker stack with `--wait`, Garage init, PM2 dev servers); idempotent, the devcontainer runs it on every start. Environment definition lives in `.devcontainer/devcontainer.json`; `.env` scaffolding via `scripts/dev/ensure-env.sh`. The `docker-compose.claude.yml` overlay is applied automatically when the external `claude-net` network exists, skipped otherwise.
 
 ## Tech References
 

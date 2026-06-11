@@ -856,4 +856,3 @@ References:
 - Codify viewport-adaptive component pattern (CSS-only vs `useSyncExternalStore`) for the design system — §8
 - Add Playwright viewport smoke tests to CI — §9
 - Audit Ark UI components for touch target sizes out of the box — §7
-

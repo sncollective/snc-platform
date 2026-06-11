@@ -1,0 +1,36 @@
+# Pre-commit hooks for the SNC platform.
+#
+# Categories: secret scanning (gitleaks), markdown cross-reference + boundary
+# enforcement (check-doc-links --files), file hygiene baseline.
+#
+# Agents must not bypass with --no-verify — fix the underlying issue instead.
+# The escape hatch is human-emergency-only.
+
+# Drizzle migrations are generated artifacts; the migrator hash-tracks their bytes,
+# so whitespace "fixes" would desync applied-migration hashes. Fixers skip them
+# (per-hook excludes below); gitleaks still scans everything.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: &drizzle_migrations ^apps/api/drizzle/migrations/
+      - id: end-of-file-fixer
+        exclude: *drizzle_migrations
+      - id: check-yaml
+      - id: check-json
+        exclude: *drizzle_migrations
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: check-doc-links
+        name: Check doc links (staged)
+        entry: python3 scripts/check-doc-links.py --files
+        language: system
+        types: [markdown]
+        pass_filenames: true

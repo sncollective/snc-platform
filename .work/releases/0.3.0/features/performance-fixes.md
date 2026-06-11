@@ -91,8 +91,8 @@ In `getChannelList()`, restructure the data assembly:
 
 - Replace the `members.map()` loop's inline SelectRoot with a role badge `<button>`:
   ```tsx
-  <button 
-    className={styles.roleBadge} 
+  <button
+    className={styles.roleBadge}
     onClick={() => openRoleChange(member)}
     disabled={!canManageMembers || isSoleOwner(member)}
   >

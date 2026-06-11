@@ -187,4 +187,3 @@ function CreatorDetailPage(): React.ReactElement | null {
     </div>
   );
 }
-
