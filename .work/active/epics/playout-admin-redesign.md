@@ -13,6 +13,17 @@ parent: null
 
 # Playout admin redesign — fits in a pocket, tells the truth
 
+## Reframe (2026-06-12, unified-channel-model workshop)
+Under the `unified-channel-model` epic, the queue/pool/actions surface this epic
+redesigns is not admin-only — it is **the shared editorial surface**, role-scoped,
+that creator-owned channels will also mount. Children design against that: components
+built here assume a channel + a permission context, not "the admin screen"; and the
+editorial control model is **manual or auto** (the editor directly controls what's on
+air, or selects the automation) rather than a fixed always-auto chain — the queue UI,
+skip/take affordances, and status displays should be designed with mode in mind. No
+hard `depends_on` edges added (the unified epic is undesigned); each child's design
+pass reads `unified-channel-model` before committing interfaces.
+
 ## Brief
 Redesign of the admin playout-management surfaces (`apps/web/src/routes/admin/playout.tsx`,
 admin simulcast), mandated by the streaming-playout UX review go-decision (2026-06-12).

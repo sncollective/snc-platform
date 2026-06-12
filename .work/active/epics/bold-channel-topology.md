@@ -42,6 +42,13 @@ reconcile captures the safety value without the live-output risk. Over-engineeri
 if the topology grows into a config framework — the discipline is one typed document plus
 dumb renderers, nothing more.
 
+## Enabler role (2026-06-12)
+The `unified-channel-model` epic (channel = receiver; editorial decides what airs;
+identity/state split) depends on this epic's `model-render` child: the typed model +
+pure render seam is the surface the unification then re-shapes. This epic stays
+strictly behavior-identical — do NOT pull unification semantics into the render swap;
+that separation is what keeps this reviewable as a refactor.
+
 ## Child features (riskiest first)
 - **bold-channel-topology-model-render** *(riskiest — design this first)* — typed
   topology module + pure render of `playout.liq`, output-identical to today.

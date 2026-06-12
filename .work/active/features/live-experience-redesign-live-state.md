@@ -37,6 +37,14 @@ Audit grounding: viewer findings V1 (selector/status-bar semantics, sev-2s) and 
 (takeover invisibility, sev-3 both viewports) in the
 `streaming-playout-ux-review-viewer-audit` story (archived; body at git 85151fd).
 
+## Coordination note (2026-06-12, unified-channel-model workshop)
+The server-side live-state representation this feature establishes IS the
+`unified-channel-model` epic's airing state (identity/state split: channel identity
+separate from airing = live / playout / offline). Design it as that model's state
+field, not a viewer-page-local concept — read `unified-channel-model` before
+committing the shape. Under that model the LIVE-badge bug class becomes
+unrepresentable, which simplifies this feature's client half.
+
 ## Epic context
 - Parent epic: `live-experience-redesign`
 - Position in epic: the spine-consumer arc — blocked on `bold-event-spine-sse-endpoint`
