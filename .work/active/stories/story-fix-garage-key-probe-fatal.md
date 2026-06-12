@@ -1,14 +1,14 @@
 ---
 id: story-fix-garage-key-probe-fatal
 kind: story
-stage: review
+stage: done
 tags: [bug, developer-experience]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-11
-updated: 2026-06-11
+updated: 2026-06-12
 ---
 
 # Devcontainer cold boot dies silently when the Garage key-info probe blips
@@ -83,3 +83,19 @@ here and run in-session:
   True cold-boot re-verification (fresh devcontainer "Reopen in Container") remains
   the user-at-station confirmation step, per the fix-verify loopback convention.
 - Adjacent issues parked: none.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast lane (story with green implementation verification). Mechanical
+verification recorded by the fix stride (`bash -n`, post-fix failure harness,
+clean `init-garage.sh` + full `start-dev.sh` cycle, API health ok). The platform
+fix-verify loopback is satisfied: operator rebuilt the standalone devcontainer
+2026-06-12 and confirmed a clean cold boot — the reported silent postStart
+failure did not recur. Not release-bound (dev bootstrap tooling, no deploy
+surface); archiving as a bodyless stub per delete-refs retention.
