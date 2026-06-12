@@ -94,6 +94,7 @@ function StreamingPage(): React.ReactElement {
   const [newKeyName, setNewKeyName] = useState("");
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<StreamKeyCreatedResponse | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [keyCopied, setKeyCopied] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -119,6 +120,7 @@ function StreamingPage(): React.ReactElement {
     setError("");
     setSuccess("");
     setNewlyCreatedKey(null);
+    setKeyCopied(false);
 
     try {
       const created = await createStreamKey(creatorId, newKeyName.trim());
@@ -130,6 +132,17 @@ function StreamingPage(): React.ReactElement {
       setError(err instanceof Error ? err.message : "Failed to create key");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleCopyKey = async (): Promise<void> => {
+    if (!newlyCreatedKey) return;
+    try {
+      await navigator.clipboard.writeText(newlyCreatedKey.rawKey);
+      setKeyCopied(true);
+      setTimeout(() => setKeyCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — user can still select-all from the code element
     }
   };
 
@@ -195,7 +208,17 @@ function StreamingPage(): React.ReactElement {
       {newlyCreatedKey && (
         <div className={styles.newKeyBanner} role="alert">
           <p className={styles.newKeyLabel}>New stream key (copy now):</p>
-          <code className={styles.newKeyValue}>{newlyCreatedKey.rawKey}</code>
+          <div className={styles.newKeyRow}>
+            <code className={styles.newKeyValue}>{newlyCreatedKey.rawKey}</code>
+            <button
+              type="button"
+              className={styles.copyKeyButton}
+              onClick={() => { void handleCopyKey(); }}
+              aria-label="Copy stream key to clipboard"
+            >
+              {keyCopied ? "Copied!" : "Copy"}
+            </button>
+          </div>
           <p className={styles.newKeyHint}>
             RTMP URL: <code>rtmp://stream.s-nc.tv/live/livestream?key={newlyCreatedKey.rawKey}</code>
           </p>

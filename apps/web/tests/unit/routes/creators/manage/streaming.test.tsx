@@ -179,6 +179,42 @@ describe("StreamingPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("copies stream key to clipboard when copy button is clicked", async () => {
+    const mockWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText: mockWriteText } });
+
+    mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
+    mockCreateStreamKey.mockResolvedValue({
+      ...makeKey({ name: "OBS Home" }),
+      rawKey: "sk_rawkey_secret",
+    });
+    mockFetchStreamKeys.mockResolvedValue({ keys: [] });
+
+    render(<StreamingPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: "Stream key name" })).toBeInTheDocument();
+    });
+
+    const input = screen.getByRole("textbox", { name: "Stream key name" });
+    fireEvent.change(input, { target: { value: "OBS Home" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Key" }));
+
+    // Banner appears with copy button
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Copy stream key to clipboard" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy stream key to clipboard" }));
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledWith("sk_rawkey_secret");
+    });
+
+    // Copied feedback state
+    expect(screen.getByRole("button", { name: "Copy stream key to clipboard" })).toHaveTextContent("Copied!");
+  });
+
   it("revokes a key and shows success message", async () => {
     mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
     mockFetchStreamKeys.mockResolvedValue({
