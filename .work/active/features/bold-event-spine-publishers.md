@@ -23,3 +23,12 @@ Cross-epic dependency on `bold-lifecycle-transitions-playout-queue`: queue event
 to that module's named transitions rather than being sprinkled through the orchestrator;
 if transitions are centralized first, this feature is a few lines per transition instead
 of a second scattering.
+
+## Input from live-experience-redesign epic design (2026-06-12)
+The live-state truth decision (user call) adds a publisher source this brief didn't
+name: **Liquidsoap input-switch telemetry** — which source the playout engine is
+actually airing (live input vs playout fallback), so `channel.live-state-changed`
+covers takeovers that bypass SRS, not just keyed on_publish/on_unpublish sessions.
+The track-event handler path Liquidsoap→API already exists; input-switch events
+should ride the same mechanism. `live-experience-redesign-live-state` depends on
+this feature and consumes that event.

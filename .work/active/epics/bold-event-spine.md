@@ -48,6 +48,11 @@ went redesign-GO (`live-experience-redesign`, `playout-admin-redesign`), so the
 client-subscriptions child is absorbed into those epics — this epic's deliverable
 narrows to the endpoint + publishers, with the redesign epics as the consumers.
 
+Update (2026-06-12, live-experience-redesign epic design): the live-state truth
+decision adds Liquidsoap **input-switch telemetry** to the publishers feature's
+scope — `channel.live-state-changed` must reflect the actually-airing source, not
+only SRS sessions (see the note on `bold-event-spine-publishers`).
+
 ## Child features (riskiest first)
 - **bold-event-spine-sse-endpoint** *(riskiest — design this first)* — the SSE endpoint:
   auth, connection lifecycle, catch-up semantics.
