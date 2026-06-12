@@ -165,6 +165,20 @@ describe("StreamingPage", () => {
     expect(mockCreateStreamKey).toHaveBeenCalledWith("creator-123", "New Key");
   });
 
+  it("renders next-publish semantics copy in simulcast section", async () => {
+    mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
+
+    render(<StreamingPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Create Key" })).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText(/Changes apply the next time you start streaming/),
+    ).toBeInTheDocument();
+  });
+
   it("revokes a key and shows success message", async () => {
     mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
     mockFetchStreamKeys.mockResolvedValue({

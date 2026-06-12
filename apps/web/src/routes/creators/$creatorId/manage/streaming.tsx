@@ -302,6 +302,7 @@ function StreamingPage(): React.ReactElement {
         <p className={styles.description}>
           Simulcast your stream to external platforms like Twitch and YouTube.
           Destinations stay active across all your streams until you toggle them off.
+          Changes apply the next time you start streaming.
         </p>
 
         <SimulcastDestinationManager

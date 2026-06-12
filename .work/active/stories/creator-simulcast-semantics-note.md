@@ -1,7 +1,7 @@
 ---
 id: creator-simulcast-semantics-note
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, creators]
 release_binding: null
 depends_on: []
@@ -22,5 +22,14 @@ streaming." Scope: creator surface only — the admin side's semantics (immediat
 publisher kick) belong to the `playout-admin-redesign` epic.
 
 ## Acceptance
-- [ ] Creator simulcast section states next-publish semantics where destinations are edited
-- [ ] Copy reviewed against the actual `on_forward` behavior in code (cite file:line in notes)
+- [x] Creator simulcast section states next-publish semantics where destinations are edited
+- [x] Copy reviewed against the actual `on_forward` behavior in code (cite file:line in notes)
+
+## Implementation notes
+
+**Changed files:**
+
+- `apps/web/src/routes/creators/$creatorId/manage/streaming.tsx` — appended "Changes apply the next time you start streaming." to the Simulcast Destinations section `<p className={styles.description}>` (lines 302-306). Scope: creator surface only. The admin side (simulcast.tsx) was not touched.
+- `apps/web/tests/unit/routes/creators/manage/streaming.test.tsx` — added `"renders next-publish semantics copy in simulcast section"` test asserting the text is present after render.
+
+**Semantics ground-truth:** `apps/api/src/services/simulcast.ts:203-204` — "Creator forward changes apply on next stream — no SRS restart needed. SRS on_forward fires per-publish, and kicking a creator's OBS would be disruptive." Confirmed the `on_forward` hook fires per-publish (stream start), not immediately. The admin surface uses a different code path (publisher kick) and is out of scope for this item.
