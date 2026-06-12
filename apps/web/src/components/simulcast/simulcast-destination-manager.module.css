@@ -57,6 +57,11 @@
   border-color: var(--color-accent);
 }
 
+.fieldError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+}
+
 .formActions {
   display: flex;
   gap: var(--space-sm);

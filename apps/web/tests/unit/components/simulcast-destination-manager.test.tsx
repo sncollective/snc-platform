@@ -1,0 +1,158 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+
+// ── Component Under Test ──
+
+import { SimulcastDestinationManager } from "../../../src/components/simulcast/simulcast-destination-manager.js";
+
+// ── Helpers ──
+
+function makeDest(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "dest-1",
+    platform: "twitch" as const,
+    label: "My Twitch",
+    rtmpUrl: "rtmp://live.twitch.tv/app",
+    streamKeyPrefix: "sk_abc",
+    isActive: true,
+    creatorId: "creator-1",
+    createdAt: "2026-03-01T00:00:00.000Z",
+    updatedAt: "2026-03-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+// ── Test Lifecycle ──
+
+let mockFetchDestinations: ReturnType<typeof vi.fn>;
+let mockCreateDestination: ReturnType<typeof vi.fn>;
+let mockUpdateDestination: ReturnType<typeof vi.fn>;
+let mockDeleteDestination: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  mockFetchDestinations = vi.fn().mockResolvedValue({ destinations: [] });
+  mockCreateDestination = vi.fn().mockResolvedValue({});
+  mockUpdateDestination = vi.fn().mockResolvedValue({});
+  mockDeleteDestination = vi.fn().mockResolvedValue({});
+});
+
+// ── Tests ──
+
+describe("SimulcastDestinationManager – RTMP URL validation", () => {
+  it("shows inline error and does not call createDestination when an https:// URL is submitted", async () => {
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Destination" })).toBeInTheDocument();
+    });
+
+    // Open the add form
+    fireEvent.click(screen.getByRole("button", { name: "Add Destination" }));
+
+    // Fill in required fields — label and stream key
+    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "My Channel" } });
+    fireEvent.change(screen.getByLabelText("Stream Key"), { target: { value: "sk_valid" } });
+
+    // Clear the prefilled rtmpUrl and enter an https:// URL
+    const rtmpInput = screen.getByLabelText("RTMP URL");
+    fireEvent.change(rtmpInput, { target: { value: "https://example.com/stream" } });
+
+    // Submit the form
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    // Inline error should appear
+    await waitFor(() => {
+      expect(screen.getByText("Must be an rtmp:// or rtmps:// URL")).toBeInTheDocument();
+    });
+
+    // API should NOT have been called
+    expect(mockCreateDestination).not.toHaveBeenCalled();
+  });
+
+  it("clears inline error when the URL field changes", async () => {
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Destination" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Destination" }));
+    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "Test" } });
+    fireEvent.change(screen.getByLabelText("Stream Key"), { target: { value: "sk_valid" } });
+
+    const rtmpInput = screen.getByLabelText("RTMP URL");
+    fireEvent.change(rtmpInput, { target: { value: "https://bad.example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Must be an rtmp:// or rtmps:// URL")).toBeInTheDocument();
+    });
+
+    // Editing the field clears the error
+    fireEvent.change(rtmpInput, { target: { value: "rtmp://live.twitch.tv/app" } });
+    expect(screen.queryByText("Must be an rtmp:// or rtmps:// URL")).not.toBeInTheDocument();
+  });
+
+  it("calls createDestination when a valid rtmp:// URL is submitted", async () => {
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Destination" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Destination" }));
+    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "My Twitch" } });
+    fireEvent.change(screen.getByLabelText("Stream Key"), { target: { value: "sk_twitch_key" } });
+
+    // Platform "twitch" pre-fills rtmpUrl; that prefix is already rtmp://
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(mockCreateDestination).toHaveBeenCalledWith(
+        expect.objectContaining({ rtmpUrl: expect.stringMatching(/^rtmps?:\/\//) }),
+      );
+    });
+
+    expect(screen.queryByText("Must be an rtmp:// or rtmps:// URL")).not.toBeInTheDocument();
+  });
+
+  it("renders list of destinations", async () => {
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest()] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+        variant="list"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("My Twitch")).toBeInTheDocument();
+    });
+  });
+});

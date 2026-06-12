@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+// ── Validation Constants ──
+
+/** Matches rtmp:// or rtmps:// URLs with at least a host component after the scheme. */
+export const RTMP_URL_REGEX = /^rtmps?:\/\/.+/;
+
 // ── Platform Registry ──
 
 export const SIMULCAST_PLATFORMS = {
@@ -45,7 +50,7 @@ export type SimulcastDestinationListResponse = z.infer<
 export const CreateSimulcastDestinationSchema = z.object({
   platform: z.enum(SIMULCAST_PLATFORM_KEYS),
   label: z.string().min(1).max(100),
-  rtmpUrl: z.string().url().min(1),
+  rtmpUrl: z.string().url().regex(RTMP_URL_REGEX, "Must be an rtmp:// or rtmps:// URL"),
   streamKey: z.string().min(1).max(500),
 });
 
@@ -54,7 +59,7 @@ export type CreateSimulcastDestination = z.infer<typeof CreateSimulcastDestinati
 export const UpdateSimulcastDestinationSchema = z.object({
   platform: z.enum(SIMULCAST_PLATFORM_KEYS).optional(),
   label: z.string().min(1).max(100).optional(),
-  rtmpUrl: z.string().url().min(1).optional(),
+  rtmpUrl: z.string().url().regex(RTMP_URL_REGEX, "Must be an rtmp:// or rtmps:// URL").optional(),
   streamKey: z.string().min(1).max(500).optional(),
   isActive: z.boolean().optional(),
 });

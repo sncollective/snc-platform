@@ -8,7 +8,7 @@ import type {
   CreateSimulcastDestination,
   UpdateSimulcastDestination,
 } from "@snc/shared";
-import { SIMULCAST_PLATFORMS, SIMULCAST_PLATFORM_KEYS } from "@snc/shared";
+import { SIMULCAST_PLATFORMS, SIMULCAST_PLATFORM_KEYS, RTMP_URL_REGEX } from "@snc/shared";
 
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./simulcast-destination-manager.module.css";
@@ -57,6 +57,7 @@ export function SimulcastDestinationManager({
   const [streamKey, setStreamKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [rtmpUrlError, setRtmpUrlError] = useState<string | null>(null);
 
   // ── Load destinations ──
 
@@ -96,6 +97,7 @@ export function SimulcastDestinationManager({
     setRtmpUrl(SIMULCAST_PLATFORMS.twitch.rtmpPrefix ?? "");
     setStreamKey("");
     setFormError(null);
+    setRtmpUrlError(null);
   };
 
   const handleEdit = (dest: SimulcastDestination): void => {
@@ -105,13 +107,22 @@ export function SimulcastDestinationManager({
     setRtmpUrl(dest.rtmpUrl);
     setStreamKey(""); // stream key is write-only; user must re-enter to change
     setFormError(null);
+    setRtmpUrlError(null);
     setShowForm(true);
   };
 
   const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-    setIsSubmitting(true);
     setFormError(null);
+    setRtmpUrlError(null);
+
+    // Validate RTMP scheme before calling the API — browser type="url" accepts any scheme.
+    if (!RTMP_URL_REGEX.test(rtmpUrl)) {
+      setRtmpUrlError("Must be an rtmp:// or rtmps:// URL");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       if (editingId !== null) {
@@ -225,10 +236,16 @@ export function SimulcastDestinationManager({
               id="dest-rtmpUrl"
               type="url"
               value={rtmpUrl}
-              onChange={(e) => { setRtmpUrl(e.target.value); }}
+              onChange={(e) => { setRtmpUrl(e.target.value); setRtmpUrlError(null); }}
               placeholder="rtmp://..."
               required
+              aria-describedby={rtmpUrlError !== null ? "dest-rtmpUrl-error" : undefined}
             />
+            {rtmpUrlError !== null && (
+              <span id="dest-rtmpUrl-error" className={styles.fieldError} role="alert">
+                {rtmpUrlError}
+              </span>
+            )}
           </div>
 
           <div className={styles.formRow}>
