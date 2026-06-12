@@ -39,6 +39,15 @@ folding it into the spine is exactly the speculative generalization to avoid. Po
 survives as the degraded fallback path (the in-flight `usePolling` extraction is the
 fallback layer, not waste).
 
+## Inputs from the UX review (2026-06-12)
+The streaming-playout UX review produced a concrete event-needs list (see that
+feature's `## Synthesis`): `channel.live-state-changed`, `playout.queue-changed`,
+`playout.now-playing-changed`, `playout.engine-restarted` / `playout.config-drift`,
+`content.processing-status-changed`, `channel.viewer-count`. Both polling consumers
+went redesign-GO (`live-experience-redesign`, `playout-admin-redesign`), so the
+client-subscriptions child is absorbed into those epics — this epic's deliverable
+narrows to the endpoint + publishers, with the redesign epics as the consumers.
+
 ## Child features (riskiest first)
 - **bold-event-spine-sse-endpoint** *(riskiest — design this first)* — the SSE endpoint:
   auth, connection lifecycle, catch-up semantics.

@@ -26,3 +26,9 @@ Coordination note (2026-06-12): `streaming-playout-ux-review` may trigger redesi
 exactly these screens. If a redesign proceeds for a surface, that surface's conversion
 moves into the redesign work (screens born subscribed) and this feature shrinks to the
 surfaces the redesign doesn't touch. Check the review's outcome before designing this.
+
+**Review outcome (2026-06-12): fully absorbed.** Both consumer screens went
+redesign-GO — viewer → `live-experience-redesign`, admin → `playout-admin-redesign` —
+and each redesign epic carries the born-subscribed mandate. When those epics reach
+epic-design, this feature should be closed as absorbed (or retargeted if a
+non-redesigned polling consumer emerges).
