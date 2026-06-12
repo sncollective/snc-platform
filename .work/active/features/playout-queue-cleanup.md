@@ -1,23 +1,23 @@
 ---
 id: playout-queue-cleanup
 kind: feature
-stage: review
+stage: done
 tags: [streaming, media-pipeline]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-18
-updated: 2026-06-10
+updated: 2026-06-12
 parent: null
 ---
 
 # Playout Queue Cleanup
 
-Daily cron job that enforces a per-channel cap of 100 `played` rows in `playout_queue`. Handler at `jobs/handlers/playout-queue-cleanup.ts`, registered in `register-workers.ts`, integration test at `tests/integration/jobs/playout-queue-cleanup.test.ts` (6 scenarios, all passing).
+Hourly cron job that enforces a per-channel cap of 100 `played` rows in `playout_queue`. Handler at `jobs/handlers/playout-queue-cleanup.ts`, registered in `register-workers.ts`, integration test at `tests/integration/jobs/playout-queue-cleanup.test.ts` (6 scenarios, all passing).
 
 ## Tasks
 
-- [ ] Cleanup played items from playout_queue — daily setInterval cron enforces a per-channel cap of 100 `played` rows (scale-invariant).
+- [x] Cleanup played items from playout_queue — hourly setInterval cron enforces a per-channel cap of 100 `played` rows (scale-invariant).
 
 ---
 
@@ -29,7 +29,7 @@ The `playout_queue` table is append-only. Items start as `queued`, transition to
 
 Row counts are heavily dependent on track length: 15-second tracks yield ~5,760 plays/channel/day, 5-minute tracks yield ~288/day. A time-based retention window produces wildly different results depending on the content. A **per-channel row cap** is scale-invariant — keep the last N `played` rows per channel for debugging, drop the rest.
 
-This design adds a daily cleanup job that enforces a per-channel cap on `played` row history. Matches the existing setInterval pattern used by the event reminder cron (`jobs/handlers/event-reminder.ts` + `jobs/register-workers.ts`).
+This design adds an hourly cleanup job that enforces a per-channel cap on `played` row history. Matches the existing setInterval pattern used by the event reminder cron (`jobs/handlers/event-reminder.ts` + `jobs/register-workers.ts`).
 
 ---
 
@@ -40,7 +40,7 @@ This design adds a daily cleanup job that enforces a per-channel cap on `played`
 - **"Most recent" ordering:** By `position` DESC. Position is monotonic within a channel (orchestrator inserts at `max(position) + 1` for end-of-queue appends), so it's a reliable ordering that doesn't require a separate timestamp.
 - **SQL approach:** Per-channel `DELETE ... WHERE id NOT IN (SELECT id FROM ... ORDER BY position DESC LIMIT 100)`. One statement per channel inside a transaction. Simpler than a single window-function query and easier to test.
 - **Scheduling mechanism:** Node `setInterval`, matching `register-workers.ts` line 109. Not pg-boss cron — no precedent in this codebase, and the job is internal, idempotent, and non-critical.
-- **No startup run:** Matches event-reminder pattern. If the process restarts within 24 hours, the next run waits for the full interval. Acceptable because the cap is soft.
+- **No startup run:** Matches event-reminder pattern. If the process restarts, the next run waits for the full interval. Acceptable because the cap is soft.
 - **No configuration knobs:** `HISTORY_CAP_PER_CHANNEL` constant inline in the handler. Easy to change later.
 
 ### Out of scope
@@ -78,7 +78,7 @@ const HISTORY_CAP_PER_CHANNEL = 100;
  * rows (by position DESC) and deletes the rest. Idempotent — safe to call repeatedly.
  * Returns the total number of rows deleted across all channels.
  *
- * Intended to run as a periodic job (every 24 hours).
+ * Intended to run as a periodic job (every hour).
  */
 export const handlePlayoutQueueCleanup = async (): Promise<number> => {
   const channelRows = await db
@@ -141,15 +141,15 @@ export const handlePlayoutQueueCleanup = async (): Promise<number> => {
 
 **Acceptance criteria:**
 
-- [ ] Function deletes `played` rows beyond the 100 most recent per channel (by position DESC)
-- [ ] Returns total number of deleted rows across all channels
-- [ ] Does not touch rows with `status` of `queued` or `playing`
-- [ ] Does not touch the 100 most recent `played` rows on any channel
-- [ ] Does nothing on channels with ≤ 100 `played` rows
-- [ ] Does nothing when no `played` rows exist anywhere
-- [ ] Logs a single info entry when rows were deleted (count, channel count, cap)
-- [ ] Does NOT log on empty runs
-- [ ] Throws on DB error (caller handles)
+- [x] Function deletes `played` rows beyond the 100 most recent per channel (by position DESC)
+- [x] Returns total number of deleted rows across all channels
+- [x] Does not touch rows with `status` of `queued` or `playing`
+- [x] Does not touch the 100 most recent `played` rows on any channel
+- [x] Does nothing on channels with ≤ 100 `played` rows
+- [x] Does nothing when no `played` rows exist anywhere
+- [x] Logs a single info entry when rows were deleted (count, channel count, cap)
+- [x] Does NOT log on empty runs
+- [x] Throws on DB error (caller handles)
 
 ---
 
@@ -168,8 +168,8 @@ import { handlePlayoutQueueCleanup } from "./handlers/playout-queue-cleanup.js";
 **Add after the event reminder cron block:**
 
 ```typescript
-  // Playout queue cleanup cron — delete `played` rows older than retention every 24h
-  const PLAYOUT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  // Playout queue cleanup cron — enforce the per-channel `played` history cap every hour
+  const PLAYOUT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
   setInterval(() => {
     handlePlayoutQueueCleanup().catch((err) =>
       rootLogger.error(
@@ -178,23 +178,23 @@ import { handlePlayoutQueueCleanup } from "./handlers/playout-queue-cleanup.js";
       ),
     );
   }, PLAYOUT_CLEANUP_INTERVAL_MS);
-  rootLogger.info("Playout queue cleanup cron registered (every 24 hours)");
+  rootLogger.info("Playout queue cleanup cron registered (every hour)");
 ```
 
 **Implementation notes:**
 
 - Placement: immediately after the event reminder cron registration, before the Liquidsoap config write. Visually groups the two cron registrations.
-- `24 * 60 * 60 * 1000 = 86_400_000` ms — well within the 2^31-1 ms limit for Node setInterval.
+- `60 * 60 * 1000 = 3_600_000` ms — well within the 2^31-1 ms limit for Node setInterval.
 - Error handler mirrors event reminder: log + swallow, don't crash the process.
 - Error log shape matches pino conventions.
 
 **Acceptance criteria:**
 
-- [ ] `handlePlayoutQueueCleanup` imported from the new handler file
-- [ ] `setInterval` registered with 24-hour interval
-- [ ] Errors logged via `rootLogger.error`, not re-thrown
-- [ ] Info log on registration: "Playout queue cleanup cron registered (every 24 hours)"
-- [ ] API still starts successfully (`bun run --filter @snc/api test:integration` smoke test passes)
+- [x] `handlePlayoutQueueCleanup` imported from the new handler file
+- [x] `setInterval` registered with 1-hour interval
+- [x] Errors logged via `rootLogger.error`, not re-thrown
+- [x] Info log on registration: "Playout queue cleanup cron registered (every hour)"
+- [x] API still starts successfully (`bun run --filter @snc/api test:integration` smoke test passes)
 
 ---
 
@@ -214,3 +214,26 @@ bun run --filter @snc/api build
 bun run --filter @snc/api test:unit
 bun run --filter @snc/api test:integration
 ```
+
+## Review (2026-06-12)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: item body said "daily / 24h" in seven places while the implementation —
+and the body's own Decisions section — is hourly (`register-workers.ts:141`,
+`PLAYOUT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000`). Stale design-sketch text from before the
+frequency decision was finalized; corrected in-body this review, no code change.
+**Nits**: `orderBy(sql\`... DESC\`)` in the handler could use Drizzle's idiomatic `desc()`;
+the integration suite runs the real handler against the shared dev DB, so each run trims
+real over-cap rows on non-test channels (acknowledged in-test via `>=` assertions).
+
+**Notes**: Deep lane, fresh-context reviewer. Verification this cycle: API unit 1501/1501,
+integration 15/15 including all 6 cleanup scenarios (over-cap trim, most-recent
+preservation, at-cap no-op, empty no-op, multi-channel independence, queued/playing
+safety). Correctness lenses clean: exact cap boundary, NULL-safe `NOT IN` (text PK),
+keep-ids subquery inside the single DELETE (no read-then-delete race), status filter in
+both subquery and DELETE, `(channel_id, status)` index present. Conventions match the
+event-reminder cron precedent. No user-facing surface (background job) — fix-verify
+loopback does not apply; agent-verifiable verification is complete. All acceptance
+criteria pass against the shipped code.

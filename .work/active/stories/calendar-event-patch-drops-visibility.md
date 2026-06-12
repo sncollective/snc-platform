@@ -7,7 +7,7 @@ release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-24
-updated: 2026-06-10
+updated: 2026-06-12
 parent: null
 ---
 
@@ -34,3 +34,19 @@ Paired with the 0.3.0 client-side fix for the same form ("event-form no longer o
 ## Revisit if
 
 - Additional calendar fields surface the same pattern (field accepted by Zod, missing from PATCH's per-field assignment). If a third instance appears, consider refactoring the PATCH handler to iterate the schema rather than hand-listing each field.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast lane. Verification recorded green (16/16); spot-checked at review: the
+visibility assignment is present at `creator-events.routes.ts:290`; full API unit suite
+1501/1501 green in this review cycle.
+
+**Hold — fix-verify loopback pending.** User acceptance unchecked: re-save the Animal
+Future show event as public in prod and confirm visibility persists across reload. Story
+stays at `stage: review` until confirmed.

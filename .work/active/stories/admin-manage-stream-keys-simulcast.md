@@ -7,7 +7,7 @@ release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-24
-updated: 2026-06-10
+updated: 2026-06-12
 parent: null
 ---
 
@@ -46,3 +46,20 @@ Also adds `manageStreaming: false` for `editor` and `viewer`. Preserves the curr
 - Additional creator roles are introduced (e.g., `producer`, `engineer`) — revisit whether `manageStreaming` should apply.
 - Stream keys gain per-key scoping (e.g., a key tied to an event or a co-host) that needs finer authz than creator-level — revisit the permission grain.
 - An admin-audit or admin-actions log becomes a requirement; admin-elevation on creator-scoped resources should record who acted on whose behalf.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast lane. Verification recorded green (API 1498/1498, shared 657/657);
+spot-checked at review: `manageStreaming` in the role matrix
+(`packages/shared/src/creator.ts:102-104` — owner true, editor/viewer false) and both
+services delegating to `checkCreatorPermission` (`stream-keys.ts:38`, `simulcast.ts:61`).
+
+**Hold — fix-verify loopback pending.** User acceptance unchecked: as admin in prod, load
+a non-owned creator's streaming manage page; keys + simulcast destinations should list and
+mutate. Story stays at `stage: review` until confirmed.

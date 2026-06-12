@@ -17,7 +17,9 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       restart_delay: 1000,
-      kill_timeout: 30000,
+      // Must outlast the API's 30s shutdown force-exit bound (src/index.ts),
+      // or PM2's SIGKILL races the graceful exit at exactly 30s.
+      kill_timeout: 35000,
     },
     {
       name: "web",
