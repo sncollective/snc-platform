@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign
 kind: epic
-stage: drafting
+stage: implementing
 tags: [playout, admin-console]
 release_binding: null
 depends_on: []
@@ -39,3 +39,56 @@ on `bold-event-spine-sse-endpoint` + `bold-event-spine-publishers`; set edges at
 epic-design. Pure-layout children are spine-independent. Also coordinate with
 `bold-channel-topology-drift-detection` — the drift/restart banner lands on this
 screen.
+
+## Design decisions (user, 2026-06-12 epic design)
+- **Design-system primitives are standalone features**: `responsive-table-card-pattern`
+  and `shared-confirm-dialog-component` were promoted from backlog to parentless
+  features; this epic's children depend on them rather than building them inline.
+  (Rejected: build-inside-first-consumer — leaner, but the user chose clean
+  design-system ownership.)
+- **Channel deletion is in scope**: the missing delete affordance (sev-3,
+  `bug-admin-no-channel-delete`) joins channel creation in the `honest-actions`
+  feature as one coherent lifecycle piece, API work included.
+- **Data freshness model**: persistent subtle connection-state indicator (live /
+  reconnecting) PLUS a prominent stale banner with last-updated time on stream drop.
+  (Rejected: failure-banner-only — "no news is good news" is the silent-failure
+  pattern the audit flagged.)
+- **Mobile information architecture: deferred to the design pass** of
+  `responsive-structure` — prototype single-page-stacked vs sub-tabs-at-mobile
+  against real layouts and decide with evidence there.
+
+## Decomposition
+
+Split by the epic's two mandates plus the action-honesty family the audit surfaced:
+layout (`responsive-structure`), data truth (`live-data`), and consequence
+communication (`honest-actions`). The two design-system primitives the children
+depend on are standalone parentless features (user decision above), so this epic's
+critical path runs through them and the spine features — but all three children are
+independently designable now.
+
+### Child features
+
+- `playout-admin-redesign-responsive-structure` — table→card adoption, sev-4 form
+  fix, picker/tab scaling; mobile IA decided at design — depends on:
+  `[responsive-table-card-pattern]`
+- `playout-admin-redesign-live-data` — spine subscriptions, freshness
+  indicator+banner, optimistic updates, honest engine-restart state — depends on:
+  `[bold-event-spine-sse-endpoint, bold-event-spine-publishers]` (cross-epic)
+- `playout-admin-redesign-honest-actions` — channel create-warning + delete
+  (end-to-end), shared confirm dialog adoption, semantics note, queue copy fixes —
+  depends on: `[shared-confirm-dialog-component]`
+
+### Decomposition risks
+
+- **Every child is blocked on something external** — unlike the live-experience
+  epic, there is no zero-dependency child. The two design-system primitives are
+  small, so the practical critical path is short, but nothing here is ready until
+  they (or the spine features) design+land. If queue pressure demands, the
+  primitives are the items to pull first.
+- **Three siblings converge on the queue UI**: `live-data` (optimistic updates,
+  disabled-skip truth), `honest-actions` (skip affordance copy, "Up next"), and
+  `responsive-structure` (queue layout). Designs must cross-read; implementation
+  should bundle or serialize the playout.tsx writers.
+- **Drift-banner coordination**: `bold-channel-topology-drift-detection` lands a
+  banner on this screen; `live-data` owns the screen's status real estate.
+  Whichever designs second reads the other.
