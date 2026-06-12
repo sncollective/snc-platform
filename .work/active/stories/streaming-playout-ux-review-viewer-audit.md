@@ -1,7 +1,7 @@
 ---
 id: streaming-playout-ux-review-viewer-audit
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [streaming-playout-ux-review-protocol]
@@ -336,3 +336,10 @@ code: stream offline, HLS error, status-poll failure, empty chat, moderation sta
 **WCAG items filed:** 3 items (see backlog: `a11y-viewer-chat-input-focus-ring`, `a11y-viewer-mini-player-touch-target`, `a11y-viewer-chat-viewercount-label`).
 
 **Commit pending** (git unavailable in this container).
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — audit completeness verified during the feature-level deep
+review (journey×viewport coverage table complete with all gaps explicitly
+disclosed, finding-record format spot-checked, state-inspection table present
+with per-state verdicts). Fast-lane advance.

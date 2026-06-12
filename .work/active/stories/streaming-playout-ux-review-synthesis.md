@@ -1,7 +1,7 @@
 ---
 id: streaming-playout-ux-review-synthesis
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, design-system]
 release_binding: null
 depends_on: [streaming-playout-ux-review-viewer-audit, streaming-playout-ux-review-creator-audit, streaming-playout-ux-review-admin-audit]
@@ -44,3 +44,12 @@ list for `bold-event-spine` to `## Synthesis`.
 - `bold-event-spine-client-subscriptions` marked absorbed (both consumers
   redesign-bound).
 - Commit pending: git unavailable in this container.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — verified during the feature-level deep review: totals
+reconcile against the audit story bodies (1 sev-4 and 18 sev-3 exact; a
+counting-basis note was added to the feature's Totals), all five cross-surface
+findings trace to concrete audit findings (the five load-bearing code claims
+re-verified against source), all promised follow-up items exist on disk. The
+dropped comparable-product scan was honestly disclosed. Fast-lane advance.

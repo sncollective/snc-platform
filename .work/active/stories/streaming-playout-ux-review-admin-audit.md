@@ -1,7 +1,7 @@
 ---
 id: streaming-playout-ux-review-admin-audit
 kind: story
-stage: review
+stage: done
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [streaming-playout-ux-review-protocol]
@@ -48,7 +48,7 @@ concurrent-admin staleness within the 3s poll window.
 
 - [admin/desktop] pool-building — Content pool table (6 columns: Title, Duration, Source, Last Played, Plays, Actions) renders without horizontal scroll at desktop. Well-structured data. Duration column shows "—" for all current items because no ingest has run on the demo creator content — expected behavior, not an error, but could confuse admins who expect to see runtimes. Heuristic: Visibility of system status. Severity: 1. Evidence: .memory/scratchpad/streaming-playout-ux-review/admin-desktop-a2-after-pool-assign.png. Direction: Add a "Duration TBD" tooltip on "—" duration cells explaining it will populate after ingest.
 
-- [admin/mobile] pool-building — Content pool table causes severe horizontal overflow at mobile (375px). Table width measured at 525px; body scroll width 557px (body becomes horizontally scrollable). This makes all rows require horizontal scrolling — columns beyond "Duration" are effectively hidden or require lateral swipe. Heuristic: Flexibility and efficiency of use / Error prevention. Severity: 3. Evidence: .memory/scratchpad/streaming-playout-ux-review/admin-mobile-a2-pool-overflow-detail.png. Direction: Replace table with a card/list layout at mobile breakpoint, or add `overflow-x: auto` on a wrapper div with sticky first column. Filed: a11y-admin-pool-table-mobile-overflow (separate item, but also a UX major). See bug-admin-pool-table-mobile.md.
+- [admin/mobile] pool-building — Content pool table causes severe horizontal overflow at mobile (375px). Table width measured at 525px; body scroll width 557px (body becomes horizontally scrollable). This makes all rows require horizontal scrolling — columns beyond "Duration" are effectively hidden or require lateral swipe. Heuristic: Flexibility and efficiency of use / Error prevention. Severity: 3. Evidence: .memory/scratchpad/streaming-playout-ux-review/admin-mobile-a2-pool-overflow-detail.png. Direction: Replace table with a card/list layout at mobile breakpoint, or add `overflow-x: auto` on a wrapper div with sticky first column. Filed: a11y-admin-pool-table-mobile-overflow (separate item, but also a UX major). (Filed item covers both the a11y and UX angles.)
 
 - [admin/desktop] pool-building — ContentSearchPicker (Add Content) renders results as `role="button"` `div` elements, not `<button>` elements. Keyboard navigation shows that Enter/Space are handled via `onKeyDown` but the picker items are not in the natural focus order (tabIndex=0 only, no explicit `aria-activedescendant` pattern or listbox role). Heuristic: Accessibility. Severity: 2. Evidence: .memory/scratchpad/streaming-playout-ux-review/admin-desktop-a2-search-picker-with-results.png. Filed: a11y-admin-search-picker-listbox.
 
@@ -177,3 +177,10 @@ Screenshots saved to `.memory/scratchpad/streaming-playout-ux-review/` with `adm
 - The "Audit Test Channel" and "Audit Test Film" created during this audit remain in the database. They should be cleaned up after the audit session.
 - The `searchPicker` input uses `outline: none` with `border-color: var(--color-accent)` as the focus indicator. The border-color change from border to accent is a visible but non-standard focus indicator; evaluated as borderline for WCAG 2.2 Success Criterion 2.4.11 (Focus Appearance, AA new in 2.2) which requires the focus indicator to have minimum area/contrast.
 - Commit pending (git unavailable in container).
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — audit completeness verified during the feature-level deep
+review (journey×viewport coverage table complete with all gaps explicitly
+disclosed, finding-record format spot-checked, state-inspection table present
+with per-state verdicts). Fast-lane advance.

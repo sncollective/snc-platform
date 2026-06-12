@@ -1,7 +1,7 @@
 ---
 id: streaming-playout-ux-review
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout, design-system]
 release_binding: null
 depends_on: []
@@ -293,7 +293,11 @@ as `bug-admin-no-channel-delete`).
 
 ### Totals
 65 findings across three surfaces (28 viewer / 18 creator / 19 admin): 1 severity-4,
-18 severity-3, ~24 severity-2, ~13 severity-1, rest confirmations. Filed during audit:
+18 severity-3, ~24 severity-2, ~13 severity-1, rest confirmations. *(Counting-basis
+note, review 2026-06-12: viewer's 28 includes 6 sev-0 confirmations; admin's 19 counts
+sev≥1 records only — the admin story body holds 24 records incl. sev-0/unrated. The
+load-bearing numbers reconcile exactly against the story bodies: 1 sev-4 = admin A3
+mobile; 18 sev-3 = 8 viewer + 7 creator + 3 admin.)* Filed during audit:
 13 a11y backlog items (3 viewer, 5 creator, 5 admin), 3 bug items
 (`bug-connect-button-missing-style`, `bug-admin-no-channel-delete`,
 `bug-admin-simulcast-window-confirm`), plus the pre-existing
@@ -387,3 +391,43 @@ tells the truth"), born subscribed to the event spine.**
   the feature ends at filed items + decisions.
 - **Screenshot evidence is ephemeral** (scratchpad auto-deletes) — accepted: evidence
   serves the decision session; finding text must stand alone.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- docs/streaming.md §Simulcast omits the creator-scoped destination tier + the
+  immediate-vs-next-publish reload split the audit code-confirmed → filed
+  `docs-streaming-simulcast-drift` (backlog).
+- docs/ux-decisions.md Decision Lifecycle step 3 points at the retired
+  `boards/.../design/` tier; the go/no-go was correctly run item-IS-the-work →
+  filed `docs-ux-decisions-stale-boards-path` (backlog).
+- Synthesis totals used an inconsistent counting basis across surfaces (viewer
+  included sev-0 confirmations, admin counted sev≥1 only) → discharged inline:
+  counting-basis note added to §Totals. Load-bearing numbers (1 sev-4, 18 sev-3)
+  reconcile exactly; go/no-go decisions unaffected.
+
+**Nits**: dangling `bug-admin-pool-table-mobile.md` filename in the admin story
+fixed inline (item is `a11y-admin-pool-table-mobile-overflow`);
+`a11y-admin-tabs-no-tabpanel` filed without a corresponding admin-story finding
+mention; a few sev-0 records omit the Evidence line / cite "code-read"; viewer
+mobile viewport recorded as 375×844 vs protocol's 375×812; comparable-product
+scan dropped (disclosed in synthesis story); A3 mobile observed without
+performing the destructive create (disclosed).
+
+**Notes**: Substrate mode, deep lane. Fresh-context reviewer was a local
+sub-agent (no peeragent available — not cross-model). Mechanically verified all
+follow-up artifacts exist: 2 redesign epics, 5 creator fix stories, 3 bug items,
+srs-callback-rate-limit-deadlock, 2 design-system items, 13 a11y items, the
+absorbed-note on bold-event-spine-client-subscriptions, and the event-needs
+mirror in bold-event-spine. Reviewer re-verified the five load-bearing code
+claims against source (LIVE-badge type mismatch live.tsx:290 vs
+channels.ts:260; `.secondaryButton` absent from button.module.css; sev-4
+create-channel no-wrap flex row playout.tsx:386; creator-forward next-publish
+semantics simulcast.ts:203; orphaned playerSkeleton live.module.css:161) — all
+true. Audit-integrity confirmed: the audit commits touch only `.work/` +
+`.memory/`, zero app-code changes. Screenshot files not verified on disk
+(ephemeral scratchpad, accepted by design).
