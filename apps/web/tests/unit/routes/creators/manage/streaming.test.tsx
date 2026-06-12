@@ -70,6 +70,8 @@ beforeEach(() => {
   mockUseParams.mockReturnValue({ creatorId: "creator-123" });
   mockUseSearch.mockReturnValue({});
   mockFetchStreamKeys.mockResolvedValue({ keys: [] });
+  mockCreateStreamKey.mockReset();
+  mockRevokeStreamKey.mockReset();
 });
 
 afterEach(() => {
@@ -134,7 +136,7 @@ describe("StreamingPage", () => {
       expect(screen.getByText("OBS Home")).toBeInTheDocument();
     });
     expect(screen.getByText("Active Keys")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Revoke" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Revoke key OBS Home" })).toBeInTheDocument();
   });
 
   it("creates key and shows raw key banner", async () => {
@@ -215,7 +217,7 @@ describe("StreamingPage", () => {
     expect(screen.getByRole("button", { name: "Copy stream key to clipboard" })).toHaveTextContent("Copied!");
   });
 
-  it("revokes a key and shows success message", async () => {
+  it("confirm path: revoke confirmation dialog confirms revoke and shows success", async () => {
     mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
     mockFetchStreamKeys.mockResolvedValue({
       keys: [makeKey({ name: "OBS Home" })],
@@ -227,7 +229,7 @@ describe("StreamingPage", () => {
     render(<StreamingPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Revoke" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Revoke key OBS Home" })).toBeInTheDocument();
     });
 
     // After revoke, mock returns revoked key in the list
@@ -235,12 +237,51 @@ describe("StreamingPage", () => {
       keys: [makeKey({ name: "OBS Home", revokedAt: "2026-03-26T00:00:00.000Z" })],
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Revoke" }));
+    // Open the confirmation dialog
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key OBS Home" }));
+
+    // Dialog should appear with key name and consequence
+    await waitFor(() => {
+      expect(screen.getByText(/Revoking/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/This cannot be undone/)).toBeInTheDocument();
+
+    // Confirm the revoke
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key" }));
 
     await waitFor(() => {
       expect(screen.getByText(/Key "OBS Home" revoked/)).toBeInTheDocument();
     });
 
     expect(mockRevokeStreamKey).toHaveBeenCalledWith("creator-123", "key-1");
+  });
+
+  it("cancel path: revoke confirmation dialog cancel does not call revokeStreamKey", async () => {
+    mockUseLoaderData.mockReturnValue({ creator: { id: "creator-123" }, memberRole: "owner", isAdmin: false });
+    mockFetchStreamKeys.mockResolvedValue({
+      keys: [makeKey({ name: "OBS Home" })],
+    });
+
+    render(<StreamingPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Revoke key OBS Home" })).toBeInTheDocument();
+    });
+
+    // Open the confirmation dialog
+    fireEvent.click(screen.getByRole("button", { name: "Revoke key OBS Home" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    });
+
+    // Cancel — dialog should close, revokeStreamKey must NOT have been called
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    });
+
+    expect(mockRevokeStreamKey).not.toHaveBeenCalled();
   });
 });

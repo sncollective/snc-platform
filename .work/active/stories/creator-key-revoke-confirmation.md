@@ -1,7 +1,7 @@
 ---
 id: creator-key-revoke-confirmation
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, creators]
 release_binding: null
 depends_on: []
@@ -23,6 +23,28 @@ accessible dialog (Ark UI Dialog) — NOT `window.confirm`. Related a11y items a
 filed: `a11y-creator-revoke-button-no-label`, `a11y-creator-revoke-button-focus`.
 
 ## Acceptance
-- [ ] Revoke requires explicit confirmation naming the key and the consequence
-- [ ] Dialog is keyboard/screen-reader accessible
-- [ ] Test covers confirm and cancel paths
+- [x] Revoke requires explicit confirmation naming the key and the consequence
+- [x] Dialog is keyboard/screen-reader accessible
+- [x] Test covers confirm and cancel paths
+
+## Implementation notes
+
+**Changed files:**
+
+- `apps/web/src/routes/creators/$creatorId/manage/streaming.tsx`:
+  - Imported `DialogRoot`, `DialogBackdrop`, `DialogContent`, `DialogTitle`, `DialogDescription` from `../../../../components/ui/dialog.js`.
+  - Added `keyPendingRevoke: { id: string; name: string } | null` state (initialized `null`).
+  - Added `handleConfirmRevoke()` — reads `keyPendingRevoke`, clears it, then calls existing `handleRevoke(id, name)`.
+  - Revoke button in active-keys list now calls `setKeyPendingRevoke({ id: key.id, name: key.name })` instead of `handleRevoke`. Button gains `aria-label={"Revoke key " + key.name}` — natural a11y fallout (covers filed items `a11y-creator-revoke-button-no-label`).
+  - Added `DialogRoot` (controlled: `open={keyPendingRevoke !== null}`, `onOpenChange` clears on close) + `DialogBackdrop` + `DialogContent` with `DialogTitle` ("Revoke key?"), `DialogDescription` (names the key and consequence), and action buttons `<button type="button">Revoke key</button>` (destructive) + `<button type="button">Cancel</button>`.
+  - Dialog uses `lazyMount unmountOnExit` matching the existing pattern in `follow-fediverse-dialog.tsx`.
+- `apps/web/src/routes/creators/$creatorId/manage/streaming.module.css`:
+  - Added `.revokeDialogActions`, `.revokeConfirmButton` (destructive: `background: var(--color-error)`, `:focus-visible` ring), `.revokeCancelButton` (neutral). No existing destructive button class found in project button modules — local class is correct per implementation notes.
+- `apps/web/tests/unit/routes/creators/manage/streaming.test.tsx`:
+  - Updated "lists active keys" test: Revoke button query now uses `aria-label` form `"Revoke key OBS Home"`.
+  - Replaced "revokes a key and shows success message" test with two tests:
+    - `"confirm path: ..."` — opens dialog, asserts dialog description text, clicks "Revoke key", asserts `revokeStreamKey` called and success message shown.
+    - `"cancel path: ..."` — opens dialog, clicks "Cancel", asserts dialog closed and `revokeStreamKey` NOT called.
+  - Added `mockCreateStreamKey.mockReset()` and `mockRevokeStreamKey.mockReset()` to `beforeEach` to prevent cross-test call-count bleed.
+
+**Scoping note:** `shared-confirm-dialog-component` has not landed (backlog stub) — used the existing Ark UI Dialog wrappers directly per the story's fallback direction.

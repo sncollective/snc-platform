@@ -13,6 +13,13 @@ import type {
 import { MAX_CREATOR_SIMULCAST_DESTINATIONS } from "@snc/shared";
 
 import { SimulcastDestinationManager } from "../../../../components/simulcast/simulcast-destination-manager.js";
+import {
+  DialogRoot,
+  DialogBackdrop,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "../../../../components/ui/dialog.js";
 import { apiMutate } from "../../../../lib/fetch-utils.js";
 import { navigateExternal } from "../../../../lib/url.js";
 import {
@@ -95,6 +102,7 @@ function StreamingPage(): React.ReactElement {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<StreamKeyCreatedResponse | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
+  const [keyPendingRevoke, setKeyPendingRevoke] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -158,6 +166,13 @@ function StreamingPage(): React.ReactElement {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to revoke key");
     }
+  };
+
+  const handleConfirmRevoke = async (): Promise<void> => {
+    if (!keyPendingRevoke) return;
+    const { id, name } = keyPendingRevoke;
+    setKeyPendingRevoke(null);
+    await handleRevoke(id, name);
   };
 
   // ── Simulcast API callbacks (closed over creatorId) ──
@@ -263,7 +278,8 @@ function StreamingPage(): React.ReactElement {
                 <button
                   type="button"
                   className={styles.revokeButton}
-                  onClick={() => handleRevoke(key.id, key.name)}
+                  onClick={() => setKeyPendingRevoke({ id: key.id, name: key.name })}
+                  aria-label={`Revoke key ${key.name}`}
                 >
                   Revoke
                 </button>
@@ -337,6 +353,39 @@ function StreamingPage(): React.ReactElement {
           variant="list"
         />
       </section>
+
+      {/* ── Revoke Confirmation Dialog ── */}
+      <DialogRoot
+        open={keyPendingRevoke !== null}
+        onOpenChange={(details) => { if (!details.open) setKeyPendingRevoke(null); }}
+        lazyMount
+        unmountOnExit
+      >
+        <DialogBackdrop />
+        <DialogContent>
+          <DialogTitle>Revoke key?</DialogTitle>
+          <DialogDescription>
+            Revoking &ldquo;{keyPendingRevoke?.name ?? ""}&rdquo; will disconnect any streaming
+            software using it. This cannot be undone.
+          </DialogDescription>
+          <div className={styles.revokeDialogActions}>
+            <button
+              type="button"
+              className={styles.revokeConfirmButton}
+              onClick={() => { void handleConfirmRevoke(); }}
+            >
+              Revoke key
+            </button>
+            <button
+              type="button"
+              className={styles.revokeCancelButton}
+              onClick={() => setKeyPendingRevoke(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </DialogRoot>
     </div>
   );
 }
