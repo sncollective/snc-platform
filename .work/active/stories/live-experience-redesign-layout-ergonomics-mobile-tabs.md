@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-mobile-tabs
 kind: story
-stage: review
+stage: implementing
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -66,3 +66,22 @@ untouched.
 ## Review (2026-06-13)
 **Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
 running app). Fast lane: implementation record green (1678 web tests, build clean).
+
+## Review findings — BOUNCE (user fix-verify failed 2026-06-13)
+**Symptom (user)**: at 375px the chat tab renders BELOW the footer, and the player
+content is now partially unviewable.
+
+Two distinct layout faults to diagnose:
+1. **Chat tab below the footer** — the `liveGridMobileChat` viewport-fill grid (the
+   `100dvh - nav - tab-bar - demo-banner` calc in `__root.module.css`) is not accounting
+   for the footer in the mobile shell, OR the chat portal cell is escaping the grid. The
+   chat panel should fill the area between the tab bar and the bottom of the viewport,
+   not stack after the footer.
+2. **Player partially unviewable** — the stream-first restructure is clipping or
+   over-sizing the player region at 375px; the player must stay fully visible above the
+   `Info | Chat` tabs.
+
+Re-verify against the design's intent (player on top, tabs below, chat fills remaining
+viewport as an opt-in tab — NOT appended to document flow). Sibling
+`page-states`/`player-chrome` stories share `live.tsx`/`__root` — coordinate so the fix
+doesn't regress them.

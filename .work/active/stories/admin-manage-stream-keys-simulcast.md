@@ -1,7 +1,7 @@
 ---
 id: admin-manage-stream-keys-simulcast
 kind: story
-stage: review
+stage: done
 tags: [streaming, access]
 release_binding: null
 depends_on: []
@@ -63,3 +63,5 @@ services delegating to `checkCreatorPermission` (`stream-keys.ts:38`, `simulcast
 **Hold — fix-verify loopback pending.** User acceptance unchecked: as admin in prod, load
 a non-owned creator's streaming manage page; keys + simulcast destinations should list and
 mutate. Story stays at `stage: review` until confirmed.
+
+**User fix-verify: confirmed 2026-06-13.** Admin manages a non-owned creator's stream keys + simulcast without the owner-only error. Closed.

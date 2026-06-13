@@ -1,7 +1,7 @@
 ---
 id: calendar-event-patch-drops-visibility
 kind: story
-stage: review
+stage: implementing
 tags: [calendar]
 release_binding: null
 depends_on: []
@@ -50,3 +50,19 @@ visibility assignment is present at `creator-events.routes.ts:290`; full API uni
 **Hold — fix-verify loopback pending.** User acceptance unchecked: re-save the Animal
 Future show event as public in prod and confirm visibility persists across reload. Story
 stays at `stage: review` until confirmed.
+
+## Review findings — BOUNCE (user fix-verify failed 2026-06-13)
+**Repro (user)**: first save of a new show-type event with visibility=public reverts
+to internal on reload; opening it again and re-saving public then sticks.
+
+**Root cause (confirmed in code)**: the original fix patched only the PATCH handler
+(`creator-events.routes.ts:290` — `if (data.visibility !== undefined) updates.visibility = ...`).
+The **POST create path** at `creator-events.routes.ts:222-235` (`.insert().values({...})`)
+**omits `visibility` entirely**, so a newly-created event falls to the column default
+`internal` regardless of what the form sent. The second save works because it's a PATCH
+(the path that was fixed). The story scoped PATCH-only and missed create.
+
+**To fix**: add `visibility: data.visibility ?? "internal"` (or thread the submitted
+value) into the POST `.values()` block; add a create-path regression test asserting the
+insert receives `visibility: "public"` when submitted — mirror of the existing PATCH
+regression test. Keep the PATCH fix.

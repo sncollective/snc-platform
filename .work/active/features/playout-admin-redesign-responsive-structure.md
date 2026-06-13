@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-responsive-structure
 kind: feature
-stage: review
+stage: done
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [responsive-table-card-pattern]
@@ -278,3 +278,5 @@ listitem-role contract honored by both consumers. 1717 web tests pass. The 375px
 behavior (container-query toggle, card reachability, wrap, tab scroll) is what fix-verify
 confirms in a real browser. First real consumer of the ResponsiveTable primitive — closes
 when the user fix-verifies.
+
+**User fix-verify: all 3 children confirmed in-app at 375px 2026-06-13** (pool cards, empty prompt, create-form wrap, tab scroll, simulcast cards, in-page delete). Feature closed.

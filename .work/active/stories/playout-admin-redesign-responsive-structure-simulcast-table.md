@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-responsive-structure-simulcast-table
 kind: story
-stage: review
+stage: done
 tags: [playout, admin-console, streaming]
 release_binding: null
 depends_on: [shared-confirm-dialog-component-simulcast-adoption]
@@ -48,3 +48,5 @@ at 375px in the running app). Blocker found + fixed in-review: 3 missing non-nul
 assertions on getAllByRole("Delete")[0] in the simulcast test (noUncheckedIndexedAccess
 regression the lane's vitest+build verification couldn't catch — typecheck now exits 0,
 matching the sibling pool-table story's own pattern).
+
+**User fix-verify: confirmed 2026-06-13.** Simulcast cards at 375px + in-page delete dialog. Closed.

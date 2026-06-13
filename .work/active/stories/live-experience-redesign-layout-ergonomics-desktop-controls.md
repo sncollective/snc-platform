@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-desktop-controls
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [live-experience-redesign-layout-ergonomics-mobile-tabs]
@@ -48,3 +48,5 @@ opacity on `.controlVisible`, `:hover`, and `:focus-visible`. Tests:
 ## Review (2026-06-13)
 **Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
 running app). Fast lane: implementation record green (1678 web tests, build clean).
+
+**User fix-verify: confirmed 2026-06-13.** Controls visible at rest with proper icons. Closed.
