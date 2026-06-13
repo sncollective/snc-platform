@@ -2,8 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { createRouterMock } from "../../../helpers/router-mock.js";
+
 // jsdom does not implement scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+// Mock @tanstack/react-router (needed for the Sign-in Link in anon branch)
+vi.mock("@tanstack/react-router", () => createRouterMock());
 
 // Mock chat context
 const { mockUseChat } = vi.hoisted(() => ({
@@ -79,6 +84,17 @@ const makeMessage = (overrides?: Partial<{
   createdAt: "2026-03-01T10:05:00.000Z",
   ...overrides,
 });
+
+// Shared open-room fixture
+const OPEN_ROOM = {
+  id: "room-1",
+  type: "platform",
+  channelId: null,
+  name: "Community",
+  slowModeSeconds: 0,
+  createdAt: "2026-03-01T00:00:00.000Z",
+  closedAt: null,
+};
 
 describe("ChatPanel collapse button", () => {
   it("does not render collapse button when onCollapse is omitted", () => {
@@ -208,23 +224,15 @@ describe("ChatPanel moderation status banners", () => {
   });
 
   it("disables input when timed out", () => {
-    const activeRoom = {
-      id: "room-1",
-      type: "platform",
-      channelId: null,
-      name: "Community",
-      slowModeSeconds: 0,
-      createdAt: "2026-03-01T00:00:00.000Z",
-      closedAt: null,
-    };
-
     mockUseChat.mockReturnValue({
       state: {
         ...DEFAULT_CHAT_STATE,
-        rooms: [activeRoom],
+        rooms: [OPEN_ROOM],
         activeRoomId: "room-1",
         isTimedOut: true,
         timedOutUntil: "2026-04-01T12:00:00.000Z",
+        // Signed-in so we reach the auth branch where the real input lives
+        currentUserId: "user-1",
       },
       actions: DEFAULT_CHAT_ACTIONS,
     });
@@ -235,22 +243,14 @@ describe("ChatPanel moderation status banners", () => {
   });
 
   it("disables input when banned", () => {
-    const activeRoom = {
-      id: "room-1",
-      type: "platform",
-      channelId: null,
-      name: "Community",
-      slowModeSeconds: 0,
-      createdAt: "2026-03-01T00:00:00.000Z",
-      closedAt: null,
-    };
-
     mockUseChat.mockReturnValue({
       state: {
         ...DEFAULT_CHAT_STATE,
-        rooms: [activeRoom],
+        rooms: [OPEN_ROOM],
         activeRoomId: "room-1",
         isBanned: true,
+        // Signed-in so we reach the auth branch where the real input lives
+        currentUserId: "user-1",
       },
       actions: DEFAULT_CHAT_ACTIONS,
     });
@@ -355,5 +355,136 @@ describe("ChatPanel reaction pills", () => {
     await user.click(pill);
 
     expect(removeReaction).toHaveBeenCalledWith("msg-1", "👍");
+  });
+});
+
+describe("ChatPanel anonymous pre-gate", () => {
+  it("shows disabled input with 'Sign in to chat' placeholder when anonymous and room is open", () => {
+    mockUseChat.mockReturnValue({
+      state: {
+        ...DEFAULT_CHAT_STATE,
+        rooms: [OPEN_ROOM],
+        activeRoomId: "room-1",
+        currentUserId: null,
+      },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    const input = screen.getByRole("textbox", { name: /sign in to send/i });
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute("placeholder", "Sign in to chat");
+  });
+
+  it("shows a sign-in link with returnTo=/live when anonymous and room is open", () => {
+    mockUseChat.mockReturnValue({
+      state: {
+        ...DEFAULT_CHAT_STATE,
+        rooms: [OPEN_ROOM],
+        activeRoomId: "room-1",
+        currentUserId: null,
+      },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    const link = screen.getByRole("link", { name: /sign in/i });
+    expect(link).toBeInTheDocument();
+    // StubLink encodes the search params into the href
+    expect(link).toHaveAttribute("href", expect.stringContaining("/login"));
+    expect(link).toHaveAttribute("href", expect.stringMatching(/returnTo/i));
+  });
+
+  it("does not show an enabled Send button when anonymous and room is open", () => {
+    mockUseChat.mockReturnValue({
+      state: {
+        ...DEFAULT_CHAT_STATE,
+        rooms: [OPEN_ROOM],
+        activeRoomId: "room-1",
+        currentUserId: null,
+      },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    expect(screen.queryByRole("button", { name: /send/i })).toBeNull();
+  });
+
+  it("shows enabled input and Send button when signed in and room is open", () => {
+    mockUseChat.mockReturnValue({
+      state: {
+        ...DEFAULT_CHAT_STATE,
+        rooms: [OPEN_ROOM],
+        activeRoomId: "room-1",
+        currentUserId: "user-1",
+      },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    const input = screen.getByRole("textbox", { name: /^chat message$/i });
+    expect(input).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
+  });
+});
+
+describe("ChatPanel empty state", () => {
+  it("shows 'No messages yet' when messages array is empty", () => {
+    render(<ChatPanel />);
+    expect(screen.getByText("No messages yet")).toBeInTheDocument();
+  });
+
+  it("does not show 'No messages yet' when there are messages", () => {
+    mockUseChat.mockReturnValue({
+      state: {
+        ...DEFAULT_CHAT_STATE,
+        messages: [makeMessage()],
+      },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    expect(screen.queryByText("No messages yet")).toBeNull();
+  });
+});
+
+describe("ChatPanel unavailable state", () => {
+  it("does not show 'Chat unavailable' before rooms fetch resolves", () => {
+    // apiGet is mocked to resolve asynchronously; check synchronously right after render
+    render(<ChatPanel />);
+    expect(screen.queryByText("Chat unavailable")).toBeNull();
+  });
+
+  it("shows 'Chat unavailable' after rooms fetch resolves with no joinable room", async () => {
+    // State has no activeRoom and no rooms — loadRooms resolves { rooms: [] }
+    render(<ChatPanel />);
+    const banner = await screen.findByText("Chat unavailable");
+    expect(banner).toBeInTheDocument();
+  });
+});
+
+describe("ChatPanel viewer count accessible name", () => {
+  it("renders aria-label '1 viewer in this room' when viewerCount is 1", () => {
+    mockUseChat.mockReturnValue({
+      state: { ...DEFAULT_CHAT_STATE, viewerCount: 1 },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    expect(
+      screen.getByLabelText("1 viewer in this room"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders aria-label '3 viewers in this room' when viewerCount is 3", () => {
+    mockUseChat.mockReturnValue({
+      state: { ...DEFAULT_CHAT_STATE, viewerCount: 3 },
+      actions: DEFAULT_CHAT_ACTIONS,
+    });
+
+    render(<ChatPanel />);
+    expect(
+      screen.getByLabelText("3 viewers in this room"),
+    ).toBeInTheDocument();
   });
 });

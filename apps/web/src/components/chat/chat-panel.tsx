@@ -4,8 +4,10 @@ import type { FormEvent } from "react";
 
 import type { ActiveRoomsResponse, BadgeType } from "@snc/shared";
 
+import { Link } from "@tanstack/react-router";
 import { useChat } from "../../contexts/chat-context.js";
 import { apiGet } from "../../lib/fetch-utils.js";
+import { buildLoginRedirect } from "../../lib/return-to.js";
 import { ChatModerationPanel } from "./chat-moderation-panel.js";
 import { ChatUserCard } from "./chat-user-card.js";
 import { ReactionPicker } from "./reaction-picker.js";
@@ -18,6 +20,8 @@ const BADGE_LABELS: Record<BadgeType, string> = {
   platform: "Patron",
   creator: "Sub",
 };
+
+const SIGN_IN_REDIRECT = buildLoginRedirect("/live");
 
 // ── Component ──
 
@@ -32,24 +36,32 @@ export function ChatPanel({
   const { state, actions } = useChat();
   const [input, setInput] = useState("");
   const [usersExpanded, setUsersExpanded] = useState(false);
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isAnonymous = state.currentUserId === null;
 
   // Load rooms on mount
   useEffect(() => {
     async function loadRooms(): Promise<void> {
-      const res = await apiGet<ActiveRoomsResponse>("/api/chat/rooms");
-      actions.setRooms(res.rooms);
+      try {
+        const res = await apiGet<ActiveRoomsResponse>("/api/chat/rooms");
+        actions.setRooms(res.rooms);
 
-      // Auto-join: prefer channel room if available, otherwise platform room
-      const channelRoom = channelId
-        ? res.rooms.find((r) => r.channelId === channelId)
-        : null;
-      const platformRoom = res.rooms.find((r) => r.type === "platform");
-      const defaultRoom = channelRoom ?? platformRoom;
+        // Auto-join: prefer channel room if available, otherwise platform room
+        const channelRoom = channelId
+          ? res.rooms.find((r) => r.channelId === channelId)
+          : null;
+        const platformRoom = res.rooms.find((r) => r.type === "platform");
+        const defaultRoom = channelRoom ?? platformRoom;
 
-      if (defaultRoom && !state.activeRoomId) {
-        actions.setActiveRoom(defaultRoom.id);
+        if (defaultRoom && !state.activeRoomId) {
+          actions.setActiveRoom(defaultRoom.id);
+        }
+      } catch {
+        // Rooms unavailable — fall through to the "Chat unavailable" state
+      } finally {
+        setRoomsLoaded(true);
       }
     }
     void loadRooms();
@@ -85,7 +97,6 @@ export function ChatPanel({
   const visibleRooms = state.rooms.filter(
     (r) => !r.closedAt && (r.type === "platform" || r.channelId === channelId),
   );
-  const otherRooms = visibleRooms.filter((r) => r.id !== state.activeRoomId);
 
   return (
     <div className={styles.panel}>
@@ -99,7 +110,7 @@ export function ChatPanel({
             aria-label="Collapse chat"
             title="Collapse chat"
           >
-            {"\u2192"}
+            {"→"}
           </button>
         )}
         {visibleRooms.map((room) => (
@@ -116,7 +127,11 @@ export function ChatPanel({
             {room.name}
           </button>
         ))}
-        <span className={styles.viewerCount} title="Viewers in this room">
+        <span
+          className={styles.viewerCount}
+          title="Viewers in this room"
+          aria-label={`${state.viewerCount} ${state.viewerCount === 1 ? "viewer" : "viewers"} in this room`}
+        >
           {state.viewerCount}
         </span>
         {!state.isConnected && (
@@ -189,6 +204,9 @@ export function ChatPanel({
 
       {/* Messages */}
       <div className={styles.messages}>
+        {state.messages.length === 0 && (
+          <p className={styles.emptyState}>No messages yet</p>
+        )}
         {state.messages.map((msg) => {
           const msgReactions = state.reactions.get(msg.id) ?? [];
           return (
@@ -267,9 +285,26 @@ export function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input (auth-gated) */}
+      {/* Input — four-way branch: open+anon, open+auth, closed, unavailable */}
       {activeRoom && !activeRoom.closedAt ? (
-        <>
+        isAnonymous ? (
+          <div className={styles.inputForm}>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Sign in to chat"
+              disabled
+              aria-label="Chat message (sign in to send)"
+            />
+            <Link
+              to={SIGN_IN_REDIRECT.to}
+              {...(SIGN_IN_REDIRECT.search ? { search: SIGN_IN_REDIRECT.search } : {})}
+              className={styles.signInLink}
+            >
+              Sign in
+            </Link>
+          </div>
+        ) : (
           <form onSubmit={handleSubmit} className={styles.inputForm}>
             <input
               type="text"
@@ -289,12 +324,12 @@ export function ChatPanel({
               Send
             </button>
           </form>
-        </>
-      ) : (
-        activeRoom?.closedAt && (
-          <div className={styles.closedBanner}>Stream ended</div>
         )
-      )}
+      ) : activeRoom?.closedAt ? (
+        <div className={styles.closedBanner}>Stream ended</div>
+      ) : roomsLoaded ? (
+        <div className={styles.closedBanner}>Chat unavailable</div>
+      ) : null}
     </div>
   );
 }
