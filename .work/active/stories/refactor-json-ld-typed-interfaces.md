@@ -1,13 +1,13 @@
 ---
 id: refactor-json-ld-typed-interfaces
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, quality]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-20
-updated: 2026-06-10
+updated: 2026-06-13
 parent: null
 ---
 
@@ -19,10 +19,26 @@ Replace `Record<string, unknown>` return types on all exported functions in `jso
 
 ## Tasks
 
-- [ ] Define typed JSON-LD interfaces in `json-ld.ts` (or a co-located `json-ld.types.ts` if the file grows large) covering VideoObject, AudioObject, and the written-content (Article/CreativeWork) shapes.
-- [ ] Update each of the three export functions to return its specific typed interface rather than `Record<string, unknown>`.
-- [ ] Verify `bun --cwd=./platform run typecheck` passes with no new errors; call sites should continue to compile without casts.
+- [x] Define typed JSON-LD interfaces in `json-ld.ts` (or a co-located `json-ld.types.ts` if the file grows large) covering VideoObject, AudioObject, and the written-content (Article/CreativeWork) shapes.
+- [x] Update each of the three export functions to return its specific typed interface rather than `Record<string, unknown>`.
+- [x] Verify `bun --cwd=./platform run typecheck` passes with no new errors; call sites should continue to compile without casts.
 
 ## Notes
 
 The exhaustive switch fix on `buildContentJsonLd` (line 22) already landed per the Fix lane — this story's scope is the return-type strengthening, not the dispatch logic. The Schema.org types don't need to be exhaustive against the full spec; match exactly the fields each function currently builds so the types serve as a contract, not aspirational documentation. If a Schema.org type package (e.g. `schema-dts`) is already a dependency, use it; otherwise define local interfaces rather than adding a new dep for this scope.
+
+## Implementation notes
+
+- **Interfaces defined (all local — `schema-dts` not in `package.json`):**
+  - `MediaObjectJsonLd` — private base interface with shared fields for video and audio
+  - `VideoObjectJsonLd` — extends `MediaObjectJsonLd` with `uploadDate`; `@type: "VideoObject"`
+  - `AudioObjectJsonLd` — extends `MediaObjectJsonLd`; `@type: "AudioObject"`
+  - `ArticleJsonLd` — standalone interface for written content (headline, image, url, author)
+  - `PersonJsonLd` — for `buildCreatorJsonLd` (name, description, image, url, sameAs)
+  - `ProductJsonLd` — for `buildProductJsonLd` (name, description, image, url, brand, offers)
+  - All five exported interfaces plus the private `MediaObjectJsonLd` base live in `apps/web/src/lib/json-ld.ts` (file is 155 lines — no split needed)
+- **Return types replaced:** `buildContentJsonLd` → `VideoObjectJsonLd | AudioObjectJsonLd | ArticleJsonLd`; `buildCreatorJsonLd` → `PersonJsonLd`; `buildProductJsonLd` → `ProductJsonLd`
+- **`satisfies` used** on each return object literal — proves the compiler accepts the literal without `as` casts that could hide mismatches; zero runtime effect
+- **Output unchanged:** only type annotations and interface declarations added; no object literal contents altered
+- **Typecheck result:** only the 3 pre-existing `simulcast-destination-manager.test.tsx` errors (mock typings); zero new errors from this change
+- **Test file created:** `apps/web/tests/unit/lib/json-ld.test.ts` — 17 tests covering all three functions, null/undefined edge cases (missing thumbnail, bio, avatarUrl, socialLinks, duration), URL fallback logic (handle → id, slug → id), InStock/OutOfStock availability, price formatting; all 1717 web tests pass
