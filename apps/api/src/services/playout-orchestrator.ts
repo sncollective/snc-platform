@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { eq, and, asc, sql, inArray, gt, gte } from "drizzle-orm";
+import { eq, and, asc, sql, inArray, gte } from "drizzle-orm";
 import { AppError, NotFoundError, ok, err } from "@snc/shared";
 import type {
   Result,
@@ -16,6 +16,7 @@ import {
   channelContent,
   playoutQueue,
 } from "../db/schema/playout-queue.schema.js";
+import { markPlayed, promoteNext } from "./playout-queue-transitions.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -279,10 +280,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
     if (playing) {
       // 2. Mark as played and update channel_content stats
-      await db
-        .update(playoutQueue)
-        .set({ status: "played" })
-        .where(eq(playoutQueue.id, playing.id));
+      await markPlayed(playing.id);
 
       await db
         .update(channelContent)
@@ -299,24 +297,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     }
 
     // 3. Promote next queued to playing
-    const [next] = await db
-      .select()
-      .from(playoutQueue)
-      .where(
-        and(
-          eq(playoutQueue.channelId, channelId),
-          eq(playoutQueue.status, "queued"),
-        ),
-      )
-      .orderBy(asc(playoutQueue.position))
-      .limit(1);
-
-    if (next) {
-      await db
-        .update(playoutQueue)
-        .set({ status: "playing" })
-        .where(eq(playoutQueue.id, next.id));
-    }
+    await promoteNext(channelId);
 
     // 4. Check queue depth and auto-fill if needed
     const [depthResult] = await db
@@ -472,10 +453,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       );
 
     if (playing) {
-      await db
-        .update(playoutQueue)
-        .set({ status: "played" })
-        .where(eq(playoutQueue.id, playing.id));
+      await markPlayed(playing.id);
     }
 
     // 2. Tell Liquidsoap to skip
@@ -485,24 +463,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     }
 
     // 3. Promote next queued entry to playing
-    const [next] = await db
-      .select()
-      .from(playoutQueue)
-      .where(
-        and(
-          eq(playoutQueue.channelId, channelId),
-          eq(playoutQueue.status, "queued"),
-        ),
-      )
-      .orderBy(asc(playoutQueue.position))
-      .limit(1);
-
-    if (next) {
-      await db
-        .update(playoutQueue)
-        .set({ status: "playing" })
-        .where(eq(playoutQueue.id, next.id));
-    }
+    await promoteNext(channelId);
 
     // 4. Auto-fill and push prefetch if needed
     const [depthResult] = await db

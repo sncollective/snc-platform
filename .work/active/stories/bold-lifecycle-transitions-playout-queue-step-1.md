@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue-step-1
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, playout]
 release_binding: null
 depends_on: []
@@ -31,10 +31,26 @@ Behavior-preserving: same DB statements, same order, same conditions.
 
 ## Acceptance criteria
 
-- [ ] Build passes; full orchestrator test suite green **unchanged**.
-- [ ] Transition unit tests cover: markPlayed update shape; promoteNext with and
+- [x] Build passes; full orchestrator test suite green **unchanged**.
+- [x] Transition unit tests cover: markPlayed update shape; promoteNext with and
       without a queued entry (returns row / null).
-- [ ] `set({ status: "played" })` / `set({ status: "playing" })` no longer appear in
+- [x] `set({ status: "played" })` / `set({ status: "playing" })` no longer appear in
       `playout-orchestrator.ts`.
 
 **Risk**: Medium (hot path) — **Rollback**: revert commit.
+
+## Implementation notes
+
+- New module: `apps/api/src/services/playout-queue-transitions.ts`
+- New tests: `apps/api/tests/services/playout-queue-transitions.test.ts`
+- `playout-orchestrator.ts`: added import for `markPlayed`/`promoteNext`; replaced the
+  two inline `db.update(playoutQueue).set({ status: "played" })` calls with `await
+  markPlayed(playing.id)` and the two inline select+update promote blocks with `await
+  promoteNext(channelId)` in both `onTrackStarted` and `skip`. Removed unused `gt`
+  import from drizzle-orm.
+- No mock relocations: the orchestrator tests assert `mockDbUpdate` call counts and
+  `setFn.mock.calls[N]` shapes. Those calls now flow through the transitions module,
+  which shares the same `mockDbUpdate` mock (the doMock binding is on the db connection
+  module, re-imported by the transitions module at test time). Assertion counts and
+  shapes are unchanged.
+- Test counts: 34 orchestrator tests (unchanged) + 14 new transition tests = 48 total.
