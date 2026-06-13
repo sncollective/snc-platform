@@ -1,0 +1,9 @@
+/* ── ConfirmDialog ── */
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  justify-content: flex-end;
+}
