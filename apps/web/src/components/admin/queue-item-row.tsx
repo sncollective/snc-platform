@@ -34,9 +34,11 @@ export function QueueItemRow({
   onRemove,
 }: QueueItemRowProps): React.ReactElement {
   const estimateLabel =
-    estimatedStart !== null
-      ? `est. ${formatSeconds(estimatedStart)}`
-      : "—";
+    estimatedStart === 0
+      ? "Up next"
+      : estimatedStart !== null
+        ? `est. ${formatSeconds(estimatedStart)}`
+        : "—";
 
   return (
     <li className={styles.queueItem}>

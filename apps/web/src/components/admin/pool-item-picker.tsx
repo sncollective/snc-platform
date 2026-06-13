@@ -87,7 +87,7 @@ export function PoolItemPicker({
         {filtered.length === 0 && (
           <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
             {queueableItems.length === 0
-              ? "No playout items in pool"
+              ? <>No playout items in pool. Only playout-uploaded items can be queued. Creator content plays via the rotation pool.</>
               : "No matching items"}
           </p>
         )}
