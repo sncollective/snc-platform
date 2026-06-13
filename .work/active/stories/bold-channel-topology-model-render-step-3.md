@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-3
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render-step-2]
@@ -49,3 +49,7 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
 
 **Risk:** Medium — this is the production streaming path; mitigated entirely by the byte-identity goldens.
 **Rollback:** `git revert` the commit — restores the string-builder; consumers never changed, so revert is clean.
+
+## Implementation record (2026-06-13)
+
+`liquidsoap-render.ts` landed (pure `renderPlayoutLiq`; `escLiq` + `envGet` moved in; imports topology types only). `liquidsoap-config.ts` shrank to IO orchestration — `generateLiquidsoapConfig` = query → `buildPlayoutTopology` → `renderPlayoutLiq`; the other four exports untouched. All four goldens pass with zero snapshot diff (`git status` clean on `__snapshots__/`); typecheck green; full API suite 1512/1512. Portability source pin extended to all three modules.

@@ -83,12 +83,14 @@ describe("getLiquidsoapConfigPath", () => {
     // In a checkout that happens to live at the old hardcoded location, the derived
     // and hardcoded paths coincide — so behavior can't distinguish them. Pin the
     // source instead: no absolute mount-path literal may appear in the module.
-    const moduleSource = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), "../../src/services/liquidsoap-config.ts"),
-      "utf8",
-    );
+    for (const module of ["liquidsoap-config.ts", "liquidsoap-render.ts", "playout-topology.ts"]) {
+      const moduleSource = readFileSync(
+        resolve(dirname(fileURLToPath(import.meta.url)), `../../src/services/${module}`),
+        "utf8",
+      );
 
-    expect(moduleSource).not.toContain("/workspaces/");
+      expect(moduleSource, module).not.toContain("/workspaces/");
+    }
   });
 
   it("honors the LIQUIDSOAP_CONFIG_DIR override", async () => {
