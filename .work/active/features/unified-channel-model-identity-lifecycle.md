@@ -13,6 +13,48 @@ updated: 2026-06-13
 
 # Channel identity/lifecycle — the enum dies, creator channels persist
 
+## Resume note (2026-06-13, Lane 1 — safe to clear & resume)
+
+Working tree is clean; everything committed through HEAD `dd9a9f3`. Migrations applied to
+the dev DB through `0025` (`0023` add cols, `0024` backfill, `0025` drop `type`).
+
+**Child story status:**
+- `-expand` → **review** (schema cols + backfill; commit `6d1d468`)
+- `-migrate` → **review** (all consumers cut to role/ownership; commit `356e8b8`)
+- `-contract` → **review** (`type` enum dropped everywhere; commit `dd9a9f3`)
+- `-lifecycle` → **implementing, NOT STARTED** ← the one remaining piece
+
+**To resume — pick one:**
+1. **Review the landed chain first** (recommended): three stories sit at `review` with no
+   review pass yet, on the production streaming path. Run `/agile-workflow:review` on
+   `-expand`, `-migrate`, `-contract` (and per platform convention pick their release
+   binding at review-pass — they're currently `release_binding: null`).
+2. **Continue building**: `/agile-workflow:implement unified-channel-model-identity-lifecycle-lifecycle`
+   — depends only on `-expand` (satisfied via landed code). It's the behavior-bearing story:
+   `ensureCreatorChannel` on stream-key creation, retire `createLiveChannel`'s temp-row
+   fabrication for activate-not-delete, chat-room continuity across sessions, and dedupe of
+   backfill-left duplicate `live-ingest` rows. Coordinates with `stream-lifecycle.ts`
+   (extracted earlier; `ensureLiveChannelWithChat`/`teardownLiveChannel` get rewritten there).
+
+**Carry-forward facts for whoever resumes:**
+- Identity model landed: `channels.ownership` ('platform'|'creator') + `channels.role`
+  ('playout'|'broadcast'|'live-ingest'); `type` is gone. Airing-state is still NOT modeled
+  here — it stays with `live-experience-redesign-live-state`.
+- LIVE-badge sites carry `TODO(live-state)` breadcrumbs (channel-card.tsx, live.tsx,
+  admin/playout.tsx) using the interim proxy `ownership==='creator' && role==='live-ingest'`.
+- Verification baseline at HEAD: `@snc/api` unit + integration 15/15 + `@snc/web` 1717/1717
+  green; topology goldens byte-identical; shared+web typecheck clean. The **only** `@snc/api`
+  typecheck errors are 2 pre-existing Lane 2 ones (`playout-orchestrator.ts:346`,
+  `sse.routes.test.ts:104`) — NOT mine, do not chase them.
+- Shared-index hazard: other lanes commit concurrently in this working tree. Commit with a
+  tight pathspec or reset-then-add only your files (a concurrent broad `git add` once swept
+  my files into another lane's commit). Watch for it.
+- Lint note for the migrate→contract gap that bit once: grep guards for `type` decision-reads
+  miss *output serializations* (a `/status` response mapping `type: ch.type` slipped past the
+  migrate guard, caught by the contract typecheck). When auditing a field removal, grep
+  assignments/serializers too, not just `=== "..."`.
+
+
 ## Brief
 Split channel identity from airing state in the data model and retire the per-session
 temp-row lifecycle. Identity (platform-owned vs creator-owned, mount point/`srsStreamName`,
