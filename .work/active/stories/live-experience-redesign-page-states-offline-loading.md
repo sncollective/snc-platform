@@ -33,12 +33,6 @@ adds its capture affordance to this surface later.
 
 ## Acceptance
 
-- [ ] With no SSR data, the channel-selector zone shows a pulsing placeholder until the
-      first client fetch resolves (no blank main area)
-- [ ] With zero active channels, the page shows "Nothing live right now" with honest
-      copy and a working link to `/calendar`
-- [ ] "Coming Soon" copy no longer exists anywhere on the live page
-- [ ] Orphaned `.playerSkeleton` gone from live.module.css; `pulse` keyframes remain
 - [x] With no SSR data, the channel-selector zone shows a pulsing placeholder until the first client fetch resolves (no blank main area)
 - [x] With zero active channels, the page shows "Nothing live right now" with honest copy and a working link to `/calendar`
 - [x] "Coming Soon" copy no longer exists anywhere on the live page

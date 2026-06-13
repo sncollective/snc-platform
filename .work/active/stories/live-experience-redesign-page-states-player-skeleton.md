@@ -34,13 +34,6 @@ is a `useMediaState` bridge child — see parent `## Risks`.
 
 ## Acceptance
 
-- [ ] On live cold start the 16:9 player area shows a pulsing skeleton from mount until
-      Vidstack fires `canPlay` — no zero-height window, no blank frame
-- [ ] Player error replaces the skeleton with honest copy and a working "Try again"
-      button that remounts the player and returns to the skeleton state
-- [ ] Switching channels resets status to loading
-- [ ] Audio content renders no skeleton, no pending frame, no error overlay
-- [ ] Skeleton animation disabled under `prefers-reduced-motion: reduce`
 - [x] On live cold start the 16:9 player area shows a pulsing skeleton from mount until
       Vidstack fires `canPlay` — no zero-height window, no blank frame
 - [x] Player error replaces the skeleton with honest copy and a working "Try again"

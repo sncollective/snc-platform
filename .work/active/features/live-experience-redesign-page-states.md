@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-page-states
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -431,3 +431,20 @@ project pattern):
   live.tsx/live.module.css; the epic already mandates serialization and this feature
   lands first (lane order). The CSS this feature touches (skeleton + offline classes)
   is additive and survives the later restructure.
+
+## Implementation summary (orchestrated run, 2026-06-13)
+
+All three child stories implemented in one parallel wave (disjoint write-sets, no
+worktree isolation needed) and advanced to review:
+
+- `live-experience-redesign-page-states-player-skeleton` — the Vidstack event-prop
+  spike succeeded directly (`onCanPlay`/`onError` generated from the instance event
+  map; no `useMediaState` fallback needed). Skeleton + error overlay + pendingFrame
+  landed per design.
+- `live-experience-redesign-page-states-offline-loading` — landed per design; the
+  orphaned `.playerSkeleton` class removed from live.module.css.
+- `live-experience-redesign-page-states-chat-states` — landed per design; backlog
+  item `a11y-viewer-chat-viewercount-label` absorbed and deleted.
+
+No cross-cutting deviations. Wave-level verification by the orchestrator after all
+three commits: web unit suite 1642/1642 across 153 files, `@snc/web` build clean.
