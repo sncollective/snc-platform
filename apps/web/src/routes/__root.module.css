@@ -40,9 +40,24 @@
   overflow: hidden;
 }
 
+.liveGridMobileChat > :first-child {
+  /* Prevent the player from being flex-shrunk when the fixed-height container
+     is partitioned between player + outlet + chat. Without this, the flex
+     algorithm can shrink the 16:9 player to fit, making it partially unviewable. */
+  flex-shrink: 0;
+}
+
 .liveGridMobileChat .outletColumn {
   flex: 0 0 auto;
   overflow: visible;
+}
+
+.liveGridMobileChat .outletColumn footer {
+  /* Footer renders inside outletColumn on the live layout; in the mobile
+     chat-open state the grid is non-scrolling and overflow:hidden, so the
+     footer's space would push the chat portal below the visible area.
+     Hide it — it is below the fold anyway and not useful while chat is open. */
+  display: none;
 }
 
 .liveGridMobileChat .chatPortal {

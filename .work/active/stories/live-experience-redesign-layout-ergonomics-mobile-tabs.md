@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-mobile-tabs
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -85,3 +85,45 @@ Re-verify against the design's intent (player on top, tabs below, chat fills rem
 viewport as an opt-in tab — NOT appended to document flow). Sibling
 `page-states`/`player-chrome` stories share `live.tsx`/`__root` — coordinate so the fix
 doesn't regress them.
+
+## Fix (2026-06-13)
+
+Two targeted changes to `apps/web/src/routes/__root.module.css` inside the
+`.liveGridMobileChat` block:
+
+**Fault 1 — Chat below footer:** Added `.liveGridMobileChat .outletColumn footer { display:
+none; }`. The footer renders inside `.outletColumn` (see `__root.tsx` line 124:
+`{isLiveLayout && !isTheater && <Footer />}` inside the outletColumn div). With
+`overflow: hidden` on `<main>` and `flex: 0 0 auto` on `.outletColumn`, the footer's
+natural height was included in the outletColumn's flex-sizing, consuming space that should
+belong to the `.chatPortal` (`flex: 1 1 auto`). The footer was pushing the chatPortal
+beyond the container's visible area. Hiding it removes that space from the outletColumn's
+height, allowing the chatPortal to fill the remaining viewport correctly. This is exactly
+the mitigation the parent feature design prescribed (Unit 1 impl note: "if it visually
+intrudes, hide it with `.liveGridMobileChat .outletColumn footer { display: none; }`").
+
+**Fault 2 — Player partially unviewable:** Added `.liveGridMobileChat > :first-child {
+flex-shrink: 0; }`. `GlobalPlayer` is the first direct child of `<main>`. In a
+fixed-height flex container (`.liveGridMobileChat` sets `height: calc(100dvh - ...)` and
+`overflow: hidden`), flex children default to `flex-shrink: 1`. When the sum of player
+height (16:9 at 375px ≈ 211px) + outletColumn height + chatPortal exceeded the container,
+the flex algorithm shrank the player, making the player region smaller than its natural
+16:9 aspect ratio and cutting off the bottom of the video. Adding `flex-shrink: 0` prevents
+the player from being shrunk; the outletColumn (also `flex: 0 0 auto`) takes its natural
+size, and any excess is absorbed by the chatPortal (`flex: 1 1 auto`) or clipped at the
+footer (which is now hidden).
+
+**Desktop untouched:** both rules are inside the `.liveGridMobileChat` selector, which is
+only applied when `isMobileChatOpen && isLiveLayout` — a state only reachable from the
+mobile-only `MobileTabBar`. Desktop uses `display: grid` at `min-width: 768px`, where the
+`.liveGridMobileChat` height/flex rules do not interact with the grid layout. The signal
+only fires from the mobile tab bar, so `.liveGridMobileChat` is inert on desktop.
+
+**Files changed:** `apps/web/src/routes/__root.module.css`
+
+**Test result:** 1737/1737 web unit tests green (158 files). CSS geometry cannot be
+verified in jsdom; the fix addresses the layout logic via CSS reasoning and code inspection.
+
+**375px visual confirmation is deferred to the user's fix-verify loopback.** This agent
+cannot run the browser at 375px. The user must confirm that (a) the chat panel now fills
+the viewport below the tab bar and (b) the player is fully visible above the tabs.
