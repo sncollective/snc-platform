@@ -3,6 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { describeRoute, validator } from "hono-openapi";
 import { resolver } from "hono-openapi";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 
 import { SSE_TOPICS, TOPIC_ACCESS, ValidationError, AppError } from "@snc/shared";
 import type { SseTopic } from "@snc/shared";
@@ -12,6 +13,8 @@ import { optionalAuth } from "../middleware/optional-auth.js";
 import { rateLimiter } from "../middleware/rate-limit.js";
 import { createEventBus, eventBus } from "../services/event-bus.js";
 import type { EventBus } from "../services/event-bus.js";
+import { db } from "../db/connection.js";
+import { creatorMembers } from "../db/schema/creator.schema.js";
 import { rootLogger } from "../logging/logger.js";
 import { ERROR_400, ERROR_503 } from "../lib/openapi-errors.js";
 
@@ -147,9 +150,27 @@ export function createSseRoutes(deps?: SseRouteDeps): Hono<OptionalAuthEnv> {
         deadline = Math.min(deadline, sessionExpiry);
       }
 
+      // Resolve creator memberships for the `content` topic scope filter.
+      // Query once at connect — staleness is bounded by connection lifetime.
+      // Skipped when `content` is not granted (anon or no content topic requested).
+      let creatorIds: string[] = [];
+      if (granted.includes("content") && user !== null) {
+        try {
+          const rows = await db
+            .select({ creatorId: creatorMembers.creatorId })
+            .from(creatorMembers)
+            .where(eq(creatorMembers.userId, user.id));
+          creatorIds = rows.map((r) => r.creatorId);
+        } catch {
+          // Non-fatal: subscribe with empty creatorIds; admin role still passes scope filter
+          rootLogger.warn({ userId: user.id }, "SSE: failed to resolve creator memberships");
+        }
+      }
+
       const ctx = {
         userId: user?.id ?? null,
         roles,
+        creatorIds,
       };
 
       // Note: streamSSE sets Cache-Control: no-cache (the standard SSE value).

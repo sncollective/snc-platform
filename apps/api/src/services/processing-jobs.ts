@@ -15,6 +15,7 @@ import { db } from "../db/connection.js";
 import { processingJobs } from "../db/schema/processing.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { storage, s3Client, s3Bucket } from "../storage/index.js";
+import { eventBus } from "./event-bus.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 
@@ -67,6 +68,8 @@ export const updateJob = async (
 
 /**
  * Update processing-related columns on the content table.
+ * When `updates.processingStatus` is present, publishes `content.processing-status-changed`
+ * via the event bus (fire-and-forget — never throws into callers).
  */
 export const updateContentProcessing = async (
   contentId: string,
@@ -82,10 +85,32 @@ export const updateContentProcessing = async (
     thumbnailKey: string | null;
   }>,
 ): Promise<void> => {
-  await db
-    .update(content)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(eq(content.id, contentId));
+  if (updates.processingStatus !== undefined) {
+    // Use .returning() to surface creatorId + new status in one round-trip.
+    const [row] = await db
+      .update(content)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(content.id, contentId))
+      .returning({ creatorId: content.creatorId, processingStatus: content.processingStatus });
+
+    if (row?.creatorId && row.processingStatus) {
+      try {
+        eventBus.publish({
+          type: "content.processing-status-changed",
+          contentId,
+          creatorId: row.creatorId,
+          status: row.processingStatus,
+        });
+      } catch {
+        // fire-and-forget: publish must never fail updateContentProcessing
+      }
+    }
+  } else {
+    await db
+      .update(content)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(content.id, contentId));
+  }
 };
 
 /**

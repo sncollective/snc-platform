@@ -14,6 +14,12 @@ export type EventScopeFilter = (
 export interface SubscriberContext {
   userId: string | null;
   roles: string[];
+  /**
+   * Creator IDs the subscriber is a member of — populated at connect by the SSE
+   * route when the `content` topic is granted. Empty array for anon connections
+   * and connections that didn't request the `content` topic.
+   */
+  creatorIds: string[];
 }
 
 /** Registry entry describing routing and coalescing for one event type. */
@@ -86,6 +92,18 @@ export const EVENT_REGISTRY: Record<PlatformEvent["type"], EventTypeEntry> = {
     topic: "playout",
     // Static key — all engine-restart events coalesce (one notification per burst).
     coalesceKey: () => "engine",
+  },
+  "content.processing-status-changed": {
+    topic: "content",
+    // Coalesce by content item — rapid status updates collapse to the latest.
+    coalesceKey: (event) =>
+      event.type === "content.processing-status-changed" ? event.contentId : event.type,
+    // Admin sees all; creator members see only their own creator's content events.
+    scopeFilter: (event, ctx) => {
+      if (ctx.roles.includes("admin")) return true;
+      if (event.type !== "content.processing-status-changed") return false;
+      return ctx.creatorIds.includes(event.creatorId);
+    },
   },
 };
 

@@ -84,6 +84,22 @@ const buildTestApp = async (setup: TestSetup = {}) => {
     eventBus: mockBus,
   }));
 
+  // Mock DB for creator membership lookup (content topic scope filter).
+  // Default: user is a member of "creator-1".
+  vi.doMock("../../src/db/connection.js", () => ({
+    db: {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ creatorId: "creator-1" }]),
+        }),
+      }),
+    },
+  }));
+
+  vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+    creatorMembers: { userId: {}, creatorId: {} },
+  }));
+
   vi.doMock("../../src/middleware/optional-auth.js", () => ({
     optionalAuth: async (c: any, next: any) => {
       c.set("user", user);

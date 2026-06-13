@@ -387,4 +387,143 @@ describe("processing-jobs", () => {
       }
     });
   });
+
+  // ── updateContentProcessing ──
+
+  describe("updateContentProcessing", () => {
+    const mockPublish = vi.fn();
+
+    const setupWithEventBus = async (returningRows: unknown[]) => {
+      const mockUpdate = vi.fn();
+      const updateChain = {
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue(returningRows),
+          }),
+        }),
+      };
+      mockUpdate.mockReturnValue(updateChain);
+
+      // Also build a no-returning chain for codec-only path (no .returning())
+      const updateChainNoReturn = {
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      };
+
+      vi.doMock("../../src/db/connection.js", () => ({
+        db: { update: mockUpdate },
+      }));
+      vi.doMock("../../src/db/schema/content.schema.js", () => ({
+        content: { id: {}, creatorId: {}, processingStatus: {}, updatedAt: {} },
+      }));
+      vi.doMock("../../src/db/schema/processing.schema.js", () => ({
+        processingJobs: {},
+      }));
+      vi.doMock("../../src/storage/index.js", () => ({
+        storage: { download: vi.fn(), upload: vi.fn() },
+        s3Client: null,
+        s3Bucket: null,
+      }));
+      vi.doMock("node:fs/promises", () => ({
+        mkdir: vi.fn(),
+        unlink: vi.fn(),
+        stat: vi.fn(),
+      }));
+      vi.doMock("node:fs", () => ({
+        createWriteStream: vi.fn(),
+        createReadStream: vi.fn(),
+      }));
+      vi.doMock("node:stream/promises", () => ({ pipeline: vi.fn() }));
+      vi.doMock("../../src/config.js", () => ({
+        config: { MEDIA_TEMP_DIR: "/tmp/snc-media" },
+      }));
+      vi.doMock("../../src/logging/logger.js", () => ({
+        rootLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+      }));
+      vi.doMock("../../src/services/event-bus.js", () => ({
+        eventBus: { publish: mockPublish },
+      }));
+
+      const mod = await import("../../src/services/processing-jobs.js");
+      return { mod, mockUpdate, updateChain, updateChainNoReturn };
+    };
+
+    it("publishes content.processing-status-changed when processingStatus is present", async () => {
+      const { mod } = await setupWithEventBus([
+        { creatorId: "creator-abc", processingStatus: "ready" },
+      ]);
+
+      await mod.updateContentProcessing("content-1", { processingStatus: "ready" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.processing-status-changed",
+        contentId: "content-1",
+        creatorId: "creator-abc",
+        status: "ready",
+      });
+    });
+
+    it("does NOT publish when processingStatus is absent (codec-only update)", async () => {
+      const mockUpdate = vi.fn();
+      const updateChain = {
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      };
+      mockUpdate.mockReturnValue(updateChain);
+
+      vi.doMock("../../src/db/connection.js", () => ({ db: { update: mockUpdate } }));
+      vi.doMock("../../src/db/schema/content.schema.js", () => ({
+        content: { id: {}, creatorId: {}, processingStatus: {}, updatedAt: {} },
+      }));
+      vi.doMock("../../src/db/schema/processing.schema.js", () => ({
+        processingJobs: {},
+      }));
+      vi.doMock("../../src/storage/index.js", () => ({
+        storage: { download: vi.fn(), upload: vi.fn() },
+        s3Client: null,
+        s3Bucket: null,
+      }));
+      vi.doMock("node:fs/promises", () => ({
+        mkdir: vi.fn(), unlink: vi.fn(), stat: vi.fn(),
+      }));
+      vi.doMock("node:fs", () => ({
+        createWriteStream: vi.fn(), createReadStream: vi.fn(),
+      }));
+      vi.doMock("node:stream/promises", () => ({ pipeline: vi.fn() }));
+      vi.doMock("../../src/config.js", () => ({
+        config: { MEDIA_TEMP_DIR: "/tmp/snc-media" },
+      }));
+      vi.doMock("../../src/logging/logger.js", () => ({
+        rootLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+      }));
+      vi.doMock("../../src/services/event-bus.js", () => ({
+        eventBus: { publish: mockPublish },
+      }));
+
+      const mod = await import("../../src/services/processing-jobs.js");
+
+      // Codec/dimension update only — no processingStatus
+      await mod.updateContentProcessing("content-1", {
+        videoCodec: "h264",
+        width: 1920,
+        height: 1080,
+      });
+
+      expect(mockPublish).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when bus publish throws (fire-and-forget)", async () => {
+      mockPublish.mockImplementationOnce(() => { throw new Error("bus error"); });
+
+      const { mod } = await setupWithEventBus([
+        { creatorId: "creator-abc", processingStatus: "ready" },
+      ]);
+
+      await expect(
+        mod.updateContentProcessing("content-1", { processingStatus: "ready" }),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

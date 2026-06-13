@@ -26,6 +26,15 @@ export const PlayoutEngineRestartedSchema = z.object({
   type: z.literal("playout.engine-restarted"),
 });
 
+/** Schema for a content processing status change notification. */
+export const ContentProcessingStatusChangedSchema = z.object({
+  type: z.literal("content.processing-status-changed"),
+  contentId: z.string(),
+  creatorId: z.string(),
+  /** Current processing status — hint only; client should re-fetch for full state. */
+  status: z.string(),
+});
+
 /**
  * Discriminated union of all platform SSE events.
  * Every event type must be registered in the API-side EVENT_REGISTRY.
@@ -35,6 +44,7 @@ export const PlatformEventSchema = z.discriminatedUnion("type", [
   PlayoutQueueChangedSchema,
   PlayoutNowPlayingChangedSchema,
   PlayoutEngineRestartedSchema,
+  ContentProcessingStatusChangedSchema,
 ]);
 
 /** Union of all platform SSE event payloads. */

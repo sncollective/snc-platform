@@ -28,8 +28,8 @@ const liveEvent = (channelId = "ch-1") =>
     live: true,
   }) as const;
 
-const guestCtx = { userId: null, roles: [] };
-const adminCtx = { userId: "admin-1", roles: ["admin"] };
+const guestCtx = { userId: null, roles: [], creatorIds: [] };
+const adminCtx = { userId: "admin-1", roles: ["admin"], creatorIds: [] };
 
 // ── Grant filtering ──
 
@@ -268,7 +268,7 @@ describe("scopeFilter (structural)", () => {
 
     const bus = createEventBus();
     const guestSub = bus.subscribe(["live"], guestCtx);
-    const authedSub = bus.subscribe(["live"], { userId: "user-1", roles: [] });
+    const authedSub = bus.subscribe(["live"], { userId: "user-1", roles: [], creatorIds: [] });
 
     bus.publish(liveEvent());
 
@@ -285,5 +285,72 @@ describe("scopeFilter (structural)", () => {
 
     // Restore
     EVENT_REGISTRY["channel.live-state-changed"] = originalEntry;
+  });
+});
+
+// ── content.processing-status-changed scope filter ──
+
+describe("content.processing-status-changed scopeFilter", () => {
+  const contentEvent = (creatorId = "creator-1") => ({
+    type: "content.processing-status-changed" as const,
+    contentId: "content-abc",
+    creatorId,
+    status: "ready",
+  });
+
+  it("delivers to admin regardless of creatorIds", async () => {
+    const { createEventBus } = await setupService();
+    const bus = createEventBus();
+
+    const sub = bus.subscribe(["content"], { userId: "admin-1", roles: ["admin"], creatorIds: [] });
+    bus.publish(contentEvent("some-other-creator"));
+
+    const batch = await sub.next(100);
+    expect(batch).toHaveLength(1);
+    sub.close();
+  });
+
+  it("delivers to a creator member whose creatorId matches the event", async () => {
+    const { createEventBus } = await setupService();
+    const bus = createEventBus();
+
+    const sub = bus.subscribe(["content"], {
+      userId: "user-1",
+      roles: [],
+      creatorIds: ["creator-1", "creator-2"],
+    });
+    bus.publish(contentEvent("creator-1"));
+
+    const batch = await sub.next(100);
+    expect(batch).toHaveLength(1);
+    sub.close();
+  });
+
+  it("does NOT deliver to a member when the event is for a different creator", async () => {
+    const { createEventBus } = await setupService();
+    const bus = createEventBus();
+
+    const sub = bus.subscribe(["content"], {
+      userId: "user-1",
+      roles: [],
+      creatorIds: ["creator-1"],
+    });
+    bus.publish(contentEvent("creator-2"));
+
+    const batch = await sub.next(50);
+    expect(batch).toHaveLength(0);
+    sub.close();
+  });
+
+  it("does NOT deliver when creatorIds is empty and user is not admin", async () => {
+    const { createEventBus } = await setupService();
+    const bus = createEventBus();
+
+    const sub = bus.subscribe(["content"], { userId: "user-1", roles: [], creatorIds: [] });
+    bus.publish(contentEvent("creator-1"));
+
+    const batch = await sub.next(50);
+    expect(batch).toHaveLength(0);
+    sub.close();
   });
 });
