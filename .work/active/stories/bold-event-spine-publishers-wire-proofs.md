@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-wire-proofs
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-event-spine-publishers-content-events]
@@ -29,7 +29,47 @@ sse-endpoint review.
 
 ## Acceptance criteria
 
-- [ ] Real-bus composition route test green.
-- [ ] Webhook→bus→SSE frame observed through Caddy (script output in notes).
-- [ ] SRS-path e2e observed OR honestly documented as residual with proof-A coverage
-      noted.
+- [x] Real-bus composition route test green.
+- [ ] Webhook→bus→SSE frame observed through Caddy (script output in notes) — RESIDUAL.
+- [ ] SRS-path e2e observed OR honestly documented as residual — RESIDUAL.
+
+## Implementation notes (2026-06-13)
+
+**Real-bus composition test (green):**
+Added `describe("real-bus composition")` to `apps/api/tests/routes/sse.routes.test.ts`.
+The test builds a real `createEventBus()` (loaded via `vi.importActual` to bypass the
+doMock registrations from other tests in the file), composes it into
+`createSseRoutes({bus: realBus})` with short `lifetimeMs: 200` and `heartbeatMs: 30`,
+connects to `?topics=live`, then publishes `channel.live-state-changed` after a 10ms yield.
+The published frame arrives and is asserted in the HTTP response body.
+Key technique: `vi.importActual` + explicit `vi.doMock` re-registration of the real module.
+
+**`sse-smoke.ts` extended with `--expect-event` mode:**
+Added `--expect-event <type>`, `--trigger-webhook <path>`, `--webhook-body <json>`,
+`--secret <secret>` flags. After receiving `spine.connected`, the script POSTs to the
+trigger-webhook URL and waits up to 5s for the expected event frame. This implements
+dev-wire proof A (webhook→bus→SSE through Caddy `:3080`).
+
+Run it manually in the dev env:
+```sh
+bun run apps/api/scripts/sse-smoke.ts \
+  --expect-event channel.live-state-changed \
+  --trigger-webhook /api/playout/broadcast/input-switch \
+  --webhook-body '{"source":"live"}' \
+  --secret "$PLAYOUT_CALLBACK_SECRET"
+```
+
+**Dev-wire proof A (webhook→bus→SSE through Caddy): RESIDUAL**
+Cannot run in sandbox — dev streaming stack (Caddy on :3080, PM2 API server) not available.
+The real-bus composition test covers the full `createEventBus()` → `subscribe` → `publish`
+→ HTTP frame path in-process; the missing link is Caddy proxy + real HTTP server binding.
+
+**Dev-wire proof B (SRS on_publish path): RESIDUAL**
+Requires SRS RTMP server + ffmpeg or test-live-fallback.sh. Cannot drive RTMP in sandbox.
+Proof A's coverage (bus → SSE path confirmed) plus the Unit 1 input-switch webhook tests
+(on_publish route → publish → bus) form the logical composition; the gap is the SRS-to-API
+callback over the real network.
+
+**Files changed:**
+- `apps/api/tests/routes/sse.routes.test.ts` — real-bus composition test (+1 test)
+- `apps/api/scripts/sse-smoke.ts` — `--expect-event` mode for dev-wire proof A

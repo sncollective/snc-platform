@@ -309,3 +309,106 @@ describe("SSE routes", () => {
     expect(body).toContain('"granted":["live"]');
   });
 });
+
+// ── Real-bus composition test ──
+//
+// Exercises the only seam that mock-bus tests cannot cover: a real createEventBus()
+// composed into createSseRoutes({bus}), with an event published after connect,
+// asserting the typed frame arrives on the HTTP response stream.
+
+describe("real-bus composition", () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => vi.resetAllMocks());
+
+  it("delivers a published event as a typed SSE frame to a connected subscriber", async () => {
+    vi.doMock("../../src/config.js", () => ({
+      config: makeTestConfig(),
+      parseOrigins: (raw: string) =>
+        raw.split(",").map((o: string) => o.trim()).filter(Boolean),
+    }));
+
+    vi.doMock("../../src/middleware/optional-auth.js", () => ({
+      optionalAuth: async (c: any, next: any) => {
+        c.set("user", null);
+        c.set("session", null);
+        c.set("roles", []);
+        await next();
+      },
+    }));
+
+    vi.doMock("../../src/middleware/rate-limit.js", () => ({
+      rateLimiter: () => async (_c: any, next: any) => next(),
+    }));
+
+    vi.doMock("../../src/db/connection.js", () => ({
+      db: {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      },
+    }));
+
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorMembers: { userId: {}, creatorId: {} },
+    }));
+
+    // Force-load the real event-bus implementation (not the doMock'd version from
+    // the mock-bus tests in this file). vi.importActual bypasses vi.doMock registrations.
+    const realEventBusModule = await vi.importActual<typeof import("../../src/services/event-bus.js")>(
+      "../../src/services/event-bus.js",
+    );
+    const realBus = realEventBusModule.createEventBus();
+
+    // Wire the real bus into the sse.routes import. Because sse.routes.js imports
+    // event-bus.js at module load, and we're passing `bus` via DI, the singleton
+    // import inside sse.routes.ts doesn't matter — createSseRoutes({bus: realBus})
+    // overrides it. We still need sse.routes.ts loadable, so mock its deps.
+    vi.doMock("../../src/services/event-bus.js", () => ({
+      createEventBus: realEventBusModule.createEventBus,
+      eventBus: realBus,
+      EVENT_REGISTRY: realEventBusModule.EVENT_REGISTRY,
+    }));
+
+    const { errorHandler } = await import("../../src/middleware/error-handler.js");
+    const { corsMiddleware } = await import("../../src/middleware/cors.js");
+    const { createSseRoutes } = await import("../../src/routes/sse.routes.js");
+
+    const routes = createSseRoutes({
+      bus: realBus,
+      heartbeatMs: 30,
+      lifetimeMs: 200, // short lifetime so the test completes quickly
+    });
+
+    const app = new Hono();
+    app.use("*", corsMiddleware);
+    app.onError(errorHandler);
+    app.route("/api/sse", routes);
+
+    // Start the request; get the streaming response back.
+    // We must publish the event concurrently with reading the stream.
+    const res = await app.request("/api/sse?topics=live");
+
+    // Publish event after a short yield so the event loop progresses past the
+    // spine.connected handshake write, then drain the full body in parallel.
+    const publishAndDrain = async (): Promise<string> => {
+      // Yield to let the handshake write execute
+      await new Promise((r) => setTimeout(r, 10));
+      realBus.publish({
+        type: "channel.live-state-changed",
+        channelId: "ch-real-bus-test",
+        live: true,
+      });
+      return readSseFrames(res);
+    };
+
+    const body = await publishAndDrain();
+
+    expect(body).toContain("event: channel.live-state-changed");
+    expect(body).toContain('"channelId":"ch-real-bus-test"');
+    expect(body).toContain('"live":true');
+
+    realBus.closeAll();
+  });
+});
