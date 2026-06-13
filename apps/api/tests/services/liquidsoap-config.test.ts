@@ -195,6 +195,59 @@ describe("generateLiquidsoapConfig", () => {
   });
 });
 
+// ── Golden Output ──
+//
+// Byte-for-byte characterization of the generated .liq for canonical inputs.
+// These snapshots are the verification spine for the topology/render refactor:
+// any change to them is a behavior change and must be rejected in review.
+// Output is environment-independent — the generator interpolates no render-time
+// config, only DB rows and the SNC_TV_BROADCAST constant.
+
+describe("golden output", () => {
+  it("zero playout channels", async () => {
+    const { generateLiquidsoapConfig } = await setupModule();
+    makeDbChain([]);
+
+    await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
+      "./__snapshots__/playout-0ch.liq",
+    );
+  });
+
+  it("one playout channel", async () => {
+    const { generateLiquidsoapConfig } = await setupModule();
+    makeDbChain([
+      { id: "903e6a20-0dea-42b1-8dd5-86afbec496ac", name: "Classics", srsStreamName: "channel-classics" },
+    ]);
+
+    await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
+      "./__snapshots__/playout-1ch.liq",
+    );
+  });
+
+  it("two playout channels — first is the broadcast fallback", async () => {
+    const { generateLiquidsoapConfig } = await setupModule();
+    makeDbChain([
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a" },
+      { id: "bbbbbbbb-0000-0000-0000-000000000002", name: "Channel B", srsStreamName: "channel-b" },
+    ]);
+
+    await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
+      "./__snapshots__/playout-2ch.liq",
+    );
+  });
+
+  it("special characters in channel name", async () => {
+    const { generateLiquidsoapConfig } = await setupModule();
+    makeDbChain([
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: 'Channel "Special" \\ Test', srsStreamName: "channel-special" },
+    ]);
+
+    await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
+      "./__snapshots__/playout-special-chars.liq",
+    );
+  });
+});
+
 describe("regenerateAndRestart", () => {
   it("returns err when writeFile fails", async () => {
     // Mock fs/promises to throw

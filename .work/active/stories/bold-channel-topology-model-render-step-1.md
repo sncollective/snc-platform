@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-1
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: []
@@ -37,3 +37,7 @@ The generator interpolates no render-time env (the only non-row input is the `SN
 
 **Risk:** Low — test-only addition.
 **Rollback:** revert the commit; no production code touched.
+
+## Implementation record (2026-06-13)
+
+All four goldens captured from the unmodified generator (`playout-0ch/1ch/2ch/special-chars.liq`, 128 lines for 1ch). Second run snapshot-stable (0 written). Verified no trailing whitespace and final newline present in all snapshots, so the pre-commit whitespace hooks cannot rewrite them and break byte-identity. Suite: 19/19 green.
