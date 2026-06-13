@@ -9,12 +9,32 @@ export const ChannelLiveStateChangedSchema = z.object({
   live: z.boolean(),
 });
 
+/** Schema for a playout queue membership change notification. */
+export const PlayoutQueueChangedSchema = z.object({
+  type: z.literal("playout.queue-changed"),
+  channelId: z.string(),
+});
+
+/** Schema for a now-playing track change notification. */
+export const PlayoutNowPlayingChangedSchema = z.object({
+  type: z.literal("playout.now-playing-changed"),
+  channelId: z.string(),
+});
+
+/** Schema for a playout engine restart notification. */
+export const PlayoutEngineRestartedSchema = z.object({
+  type: z.literal("playout.engine-restarted"),
+});
+
 /**
  * Discriminated union of all platform SSE events.
  * Every event type must be registered in the API-side EVENT_REGISTRY.
  */
 export const PlatformEventSchema = z.discriminatedUnion("type", [
   ChannelLiveStateChangedSchema,
+  PlayoutQueueChangedSchema,
+  PlayoutNowPlayingChangedSchema,
+  PlayoutEngineRestartedSchema,
 ]);
 
 /** Union of all platform SSE event payloads. */

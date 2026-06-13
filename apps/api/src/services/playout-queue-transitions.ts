@@ -6,6 +6,7 @@ import type { Result } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { playoutQueue } from "../db/schema/playout-queue.schema.js";
+import { eventBus } from "./event-bus.js";
 
 /**
  * Playout queue entry lifecycle transitions.
@@ -24,12 +25,21 @@ export type QueueRow = typeof playoutQueue.$inferSelect;
 
 // ── Transitions ──
 
-/** Mark the playing entry as played (playing → played). */
-export const markPlayed = async (entryId: string): Promise<void> => {
+/**
+ * Mark the playing entry as played (playing → played).
+ * Publishes `playout.now-playing-changed` — caller supplies the channelId from
+ * the in-hand row to avoid a re-query (emission-asymmetry: markPlayed returns void).
+ */
+export const markPlayed = async (entryId: string, channelId: string): Promise<void> => {
   await db
     .update(playoutQueue)
     .set({ status: "played" })
     .where(eq(playoutQueue.id, entryId));
+  try {
+    eventBus.publish({ type: "playout.now-playing-changed", channelId });
+  } catch {
+    // fire-and-forget: publish must never fail a transition
+  }
 };
 
 /**
@@ -58,6 +68,12 @@ export const promoteNext = async (channelId: string): Promise<QueueRow | null> =
     .update(playoutQueue)
     .set({ status: "playing" })
     .where(eq(playoutQueue.id, next.id));
+
+  try {
+    eventBus.publish({ type: "playout.now-playing-changed", channelId });
+  } catch {
+    // fire-and-forget: publish must never fail a transition
+  }
 
   return next;
 };
@@ -116,6 +132,14 @@ export const enqueue = async (opts: {
     })
     .returning();
 
+  if (row) {
+    try {
+      eventBus.publish({ type: "playout.queue-changed", channelId });
+    } catch {
+      // fire-and-forget: publish must never fail a transition
+    }
+  }
+
   return row ?? null;
 };
 
@@ -153,16 +177,27 @@ export const enqueueBatch = async (
 
   await db.insert(playoutQueue).values(newEntries);
 
-  return newEntries.length;
+  const count = newEntries.length;
+  if (count > 0) {
+    try {
+      eventBus.publish({ type: "playout.queue-changed", channelId });
+    } catch {
+      // fire-and-forget: publish must never fail a transition
+    }
+  }
+
+  return count;
 };
 
 /**
  * Remove a live queue entry. Guard: refuses to delete the currently playing entry.
  * Caller passes the already-loaded row — no re-read here.
  * Returns err(CANNOT_REMOVE_PLAYING 409) if status is "playing", ok(undefined) otherwise.
+ * Publishes `playout.queue-changed` on success.
  */
 export const removeQueued = async (entry: {
   id: string;
+  channelId: string;
   status: string;
 }): Promise<Result<void, AppError>> => {
   if (entry.status === "playing") {
@@ -178,6 +213,12 @@ export const removeQueued = async (entry: {
   await db
     .delete(playoutQueue)
     .where(eq(playoutQueue.id, entry.id));
+
+  try {
+    eventBus.publish({ type: "playout.queue-changed", channelId: entry.channelId });
+  } catch {
+    // fire-and-forget: publish must never fail a transition
+  }
 
   return ok(undefined);
 };

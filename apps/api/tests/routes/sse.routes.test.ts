@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 
+import type { EventBus } from "../../src/services/event-bus.js";
 import { makeMockUser, makeMockSession } from "../helpers/auth-fixtures.js";
 import { makeTestConfig } from "../helpers/test-constants.js";
 
@@ -39,11 +40,11 @@ const makeMockSub = (
 };
 
 /** Build a mock EventBus with a controllable subscription. */
-const makeMockBus = (sub: ReturnType<typeof makeMockSub>, connectionCount = 0) => ({
+const makeMockBus = (sub: ReturnType<typeof makeMockSub>, connectionCount = 0): EventBus => ({
   publish: vi.fn(),
   // Use vi.fn(impl) rather than vi.fn().mockReturnValue() — mockReturnValue is reset by
   // vi.resetAllMocks() in afterEach, which can corrupt async stream callbacks still in flight.
-  subscribe: vi.fn((_topics: unknown, _ctx: unknown) => sub),
+  subscribe: vi.fn((_topics: unknown, _ctx: unknown) => sub as any),
   closeAll: vi.fn(),
   connectionCount: vi.fn(() => connectionCount),
 });

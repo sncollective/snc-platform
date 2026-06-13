@@ -70,6 +70,23 @@ export const EVENT_REGISTRY: Record<PlatformEvent["type"], EventTypeEntry> = {
     coalesceKey: (event) =>
       event.type === "channel.live-state-changed" ? event.channelId : event.type,
   },
+  "playout.queue-changed": {
+    topic: "playout",
+    // Coalesce by channel — bursts of queue edits collapse to one notification.
+    coalesceKey: (event) =>
+      event.type === "playout.queue-changed" ? event.channelId : event.type,
+  },
+  "playout.now-playing-changed": {
+    topic: "playout",
+    // Coalesce by channel — rapid track advances collapse to the latest.
+    coalesceKey: (event) =>
+      event.type === "playout.now-playing-changed" ? event.channelId : event.type,
+  },
+  "playout.engine-restarted": {
+    topic: "playout",
+    // Static key — all engine-restart events coalesce (one notification per burst).
+    coalesceKey: () => "engine",
+  },
 };
 
 // ── Internal Implementation ──

@@ -280,7 +280,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
     if (playing) {
       // 2. Mark as played and update channel_content stats
-      await markPlayed(playing.id);
+      await markPlayed(playing.id, playing.channelId);
 
       await db
         .update(channelContent)
@@ -343,7 +343,11 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     }
 
     // 2. Create queue entry (position-shift + insert delegated to transitions)
-    const row = await enqueue({ channelId, playoutItemId, position });
+    const row = await enqueue({
+      channelId,
+      playoutItemId,
+      ...(position !== undefined ? { position } : {}),
+    });
 
     if (!row) {
       return err(new AppError("INSERT_FAILED", "Failed to insert queue entry", 500));
@@ -399,7 +403,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       );
 
     if (playing) {
-      await markPlayed(playing.id);
+      await markPlayed(playing.id, playing.channelId);
     }
 
     // 2. Tell Liquidsoap to skip

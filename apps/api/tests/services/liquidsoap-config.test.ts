@@ -10,6 +10,7 @@ import { makeTestConfig } from "../helpers/test-constants.js";
 
 const mockDbSelect = vi.fn();
 const mockFetch = vi.fn();
+const mockPublish = vi.fn();
 
 // ── Setup Factory ──
 
@@ -24,6 +25,10 @@ const setupModule = async (overrides?: Parameters<typeof makeTestConfig>[0]) => 
     db: {
       select: mockDbSelect,
     },
+  }));
+
+  vi.doMock("../../src/services/event-bus.js", () => ({
+    eventBus: { publish: mockPublish },
   }));
 
   vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
@@ -318,6 +323,36 @@ describe("regenerateAndRestart", () => {
     const result = await regenerateAndRestart();
 
     expect(result.ok).toBe(true);
+  });
+
+  it("publishes playout.engine-restarted on successful restart", async () => {
+    vi.doMock("node:fs/promises", () => ({
+      writeFile: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    const { regenerateAndRestart } = await setupModule({
+      LIQUIDSOAP_API_URL: "http://localhost:8888",
+    });
+    makeDbChain([]);
+
+    await regenerateAndRestart();
+
+    expect(mockPublish).toHaveBeenCalledWith({ type: "playout.engine-restarted" });
+  });
+
+  it("does not publish when LIQUIDSOAP_API_URL is not set (no restart occurred)", async () => {
+    vi.doMock("node:fs/promises", () => ({
+      writeFile: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const { regenerateAndRestart } = await setupModule({ LIQUIDSOAP_API_URL: undefined });
+    makeDbChain([]);
+
+    await regenerateAndRestart();
+
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 });
 

@@ -7,6 +7,11 @@ const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockDbDelete = vi.fn();
 
+// ── Mock Event Bus ──
+
+const mockPublish = vi.fn();
+const mockEventBus = { publish: mockPublish };
+
 // ── Setup ──
 
 const setupModule = async () => {
@@ -29,6 +34,10 @@ const setupModule = async () => {
       pushedToLiquidsoap: {},
       createdAt: {},
     },
+  }));
+
+  vi.doMock("../../src/services/event-bus.js", () => ({
+    eventBus: mockEventBus,
   }));
 
   const mod = await import("../../src/services/playout-queue-transitions.js");
@@ -104,7 +113,7 @@ describe("playout-queue-transitions", () => {
       const updateChain = buildUpdateChain();
       mockDbUpdate.mockReturnValue(updateChain);
 
-      await markPlayed("entry-1");
+      await markPlayed("entry-1", "channel-1");
 
       expect(mockDbUpdate).toHaveBeenCalledTimes(1);
       expect(updateChain.set).toHaveBeenCalledTimes(1);
@@ -118,10 +127,32 @@ describe("playout-queue-transitions", () => {
 
       mockDbUpdate.mockReturnValue(buildUpdateChain());
 
-      await markPlayed("entry-1");
+      await markPlayed("entry-1", "channel-1");
 
       expect(mockDbSelect).not.toHaveBeenCalled();
       expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
+    it("publishes playout.now-playing-changed with the supplied channelId", async () => {
+      const { markPlayed } = await setupModule();
+
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await markPlayed("entry-1", "channel-abc");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "channel-abc",
+      });
+    });
+
+    it("does not throw when the bus publish throws (fire-and-forget)", async () => {
+      const { markPlayed } = await setupModule();
+
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+      mockPublish.mockImplementationOnce(() => { throw new Error("bus failure"); });
+
+      await expect(markPlayed("entry-1", "channel-1")).resolves.toBeUndefined();
     });
   });
 
@@ -208,6 +239,47 @@ describe("playout-queue-transitions", () => {
       await promoteNext("channel-1");
 
       expect(limitFn).toHaveBeenCalledWith(1);
+    });
+
+    it("publishes playout.now-playing-changed with channelId when a row is promoted", async () => {
+      const { promoteNext } = await setupModule();
+
+      const nextRow = makeQueueRow({ id: "entry-2", status: "queued" });
+      mockDbSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([nextRow]),
+            }),
+          }),
+        }),
+      });
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await promoteNext("channel-1");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "channel-1",
+      });
+    });
+
+    it("does not publish when queue is empty (no row promoted)", async () => {
+      const { promoteNext } = await setupModule();
+
+      mockDbSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      });
+
+      await promoteNext("channel-1");
+
+      expect(mockPublish).not.toHaveBeenCalled();
     });
   });
 
@@ -309,6 +381,32 @@ describe("playout-queue-transitions", () => {
       expect(insertValues.status).toBe("queued");
       expect(insertValues.pushedToLiquidsoap).toBe(false);
     });
+
+    it("publishes playout.queue-changed when insert succeeds", async () => {
+      const { enqueue } = await setupModule();
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      const insertedRow = makeQueueRow({ position: 1 });
+      mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
+
+      await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "channel-1",
+      });
+    });
+
+    it("does not publish when INSERT returns no rows", async () => {
+      const { enqueue } = await setupModule();
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: null }]));
+      mockDbInsert.mockReturnValue(buildInsertChain([]));
+
+      await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+
+      expect(mockPublish).not.toHaveBeenCalled();
+    });
   });
 
   // ── enqueueBatch ──
@@ -366,6 +464,28 @@ describe("playout-queue-transitions", () => {
       expect(inserted[0]?.position).toBe(1);
       expect(inserted[1]?.position).toBe(2);
     });
+
+    it("publishes playout.queue-changed when count > 0", async () => {
+      const { enqueueBatch } = await setupModule();
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
+
+      await enqueueBatch("channel-1", ["item-1"]);
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "channel-1",
+      });
+    });
+
+    it("does not publish when given empty array", async () => {
+      const { enqueueBatch } = await setupModule();
+
+      await enqueueBatch("channel-1", []);
+
+      expect(mockPublish).not.toHaveBeenCalled();
+    });
   });
 
   // ── removeQueued ──
@@ -374,7 +494,7 @@ describe("playout-queue-transitions", () => {
     it("returns err CANNOT_REMOVE_PLAYING when status is 'playing'", async () => {
       const { removeQueued } = await setupModule();
 
-      const result = await removeQueued({ id: "entry-1", status: "playing" });
+      const result = await removeQueued({ id: "entry-1", channelId: "channel-1", status: "playing" });
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
@@ -389,7 +509,7 @@ describe("playout-queue-transitions", () => {
       const deleteChain = buildDeleteChain();
       mockDbDelete.mockReturnValue(deleteChain);
 
-      const result = await removeQueued({ id: "entry-1", status: "queued" });
+      const result = await removeQueued({ id: "entry-1", channelId: "channel-1", status: "queued" });
 
       expect(result.ok).toBe(true);
       expect(mockDbDelete).toHaveBeenCalledTimes(1);
@@ -402,7 +522,7 @@ describe("playout-queue-transitions", () => {
       const deleteChain = buildDeleteChain();
       mockDbDelete.mockReturnValue(deleteChain);
 
-      const result = await removeQueued({ id: "entry-1", status: "played" });
+      const result = await removeQueued({ id: "entry-1", channelId: "channel-1", status: "played" });
 
       expect(result.ok).toBe(true);
       expect(mockDbDelete).toHaveBeenCalledTimes(1);
@@ -413,9 +533,30 @@ describe("playout-queue-transitions", () => {
 
       mockDbDelete.mockReturnValue(buildDeleteChain());
 
-      await removeQueued({ id: "entry-1", status: "queued" });
+      await removeQueued({ id: "entry-1", channelId: "channel-1", status: "queued" });
 
       expect(mockDbSelect).not.toHaveBeenCalled();
+    });
+
+    it("publishes playout.queue-changed on success", async () => {
+      const { removeQueued } = await setupModule();
+
+      mockDbDelete.mockReturnValue(buildDeleteChain());
+
+      await removeQueued({ id: "entry-1", channelId: "channel-1", status: "queued" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "channel-1",
+      });
+    });
+
+    it("does not publish when status is 'playing' (error path)", async () => {
+      const { removeQueued } = await setupModule();
+
+      await removeQueued({ id: "entry-1", channelId: "channel-1", status: "playing" });
+
+      expect(mockPublish).not.toHaveBeenCalled();
     });
   });
 });

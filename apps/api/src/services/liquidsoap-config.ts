@@ -10,6 +10,7 @@ import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
 import { buildPlayoutTopology } from "./playout-topology.js";
 import { renderPlayoutLiq } from "./liquidsoap-render.js";
+import { eventBus } from "./event-bus.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 
@@ -108,6 +109,12 @@ export const regenerateAndRestart = async (): Promise<Result<void, AppError>> =>
       logger.error({ error: msg }, "Failed to signal Liquidsoap restart");
       return err(new AppError("RESTART_SIGNAL_FAILED", "Failed to signal playout engine restart", 502));
     }
+  }
+
+  try {
+    eventBus.publish({ type: "playout.engine-restarted" });
+  } catch {
+    // fire-and-forget: publish must never fail regenerateAndRestart
   }
 
   return ok(undefined);
