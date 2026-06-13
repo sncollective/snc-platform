@@ -31,6 +31,19 @@ export type ChannelInfo = {
   isActive: boolean;
 };
 
+// ── Canonical Channel Identities ──
+
+/**
+ * S/NC TV broadcast channel identity — the single source for the seed script
+ * and the generated Liquidsoap config (`CHANNEL_SNCTV_STREAM` env default).
+ * Keeping one definition prevents silent drift between the DB-seeded channel
+ * and the stream name Liquidsoap publishes to.
+ */
+export const SNC_TV_BROADCAST = {
+  name: "S/NC TV",
+  srsStreamName: "snc-tv",
+} as const;
+
 // ── Channel Priority ──
 
 const CHANNEL_PRIORITY: Record<ChannelType, number> = {

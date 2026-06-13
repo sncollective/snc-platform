@@ -8,6 +8,7 @@ import type { Result } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
+import { SNC_TV_BROADCAST } from "./channels.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 
@@ -199,7 +200,7 @@ snc_tv.on_metadata(synchronous=false, fun(m) -> begin
   snc_tv_title := m["title"]
 end)
 
-snc_tv_stream = environment.get("CHANNEL_SNCTV_STREAM", default="snc-tv")
+snc_tv_stream = environment.get("CHANNEL_SNCTV_STREAM", default="${escLiq(SNC_TV_BROADCAST.srsStreamName)}")
 output.url(url="rtmp://#{srs_host}:1935/live/#{snc_tv_stream}?key=#{playout_key}", enc, snc_tv)
 
 harbor.http.register(port=8888, method="GET", "/now-playing", fun(_req, res) -> begin

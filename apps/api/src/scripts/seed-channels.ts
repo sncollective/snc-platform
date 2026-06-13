@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { ensurePlayout, ensureBroadcast } from "../services/channels.js";
+import { ensurePlayout, ensureBroadcast, SNC_TV_BROADCAST } from "../services/channels.js";
 import { ensureChannelRoom } from "../services/chat.js";
 import { rootLogger } from "../logging/logger.js";
 
@@ -10,10 +10,7 @@ const PLAYOUT_CHANNELS = [
   { name: "S/NC Classics", srsStreamName: "channel-classics" },
 ];
 
-const BROADCAST_CHANNEL = {
-  name: "S/NC TV",
-  srsStreamName: "snc-tv",
-};
+const BROADCAST_CHANNEL = SNC_TV_BROADCAST;
 
 // ── Main ──
 
