@@ -43,7 +43,8 @@ const makeItemRow = (overrides: Record<string, unknown> = {}) => ({
 
 const makeChannelRow = (overrides: Record<string, unknown> = {}) => ({
   id: "channel-1",
-  type: "playout",
+  ownership: "platform",
+  role: "playout",
   isActive: true,
   ...overrides,
 });

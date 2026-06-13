@@ -17,7 +17,8 @@ const seedTestChannel = async (id: string): Promise<void> => {
   await db.insert(channels).values({
     id,
     name: `Test Cleanup ${id}`,
-    type: "playout",
+    ownership: "platform",
+    role: "playout",
     srsStreamName: id,
     isActive: true,
   });

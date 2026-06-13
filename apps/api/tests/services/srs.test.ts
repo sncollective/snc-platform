@@ -115,19 +115,19 @@ const makeChannel = (overrides?: Partial<{
   creator: null;
   isActive: boolean;
 }>) => {
-  const type = overrides?.type ?? ("playout" as const);
+  const { type, ...rest } = overrides ?? {};
+  const effectiveType = type ?? ("playout" as const);
   return {
     id: "channel-1",
     name: "S/NC Radio",
-    type,
-    ...identityForType(type),
+    ...identityForType(effectiveType),
     srsStreamName: "channel-main",
     hlsUrl: "http://srs.test:8080/live/channel-main.m3u8",
     thumbnailUrl: null,
     creatorId: null,
     creator: null,
     isActive: true,
-    ...overrides,
+    ...rest,
   };
 };
 

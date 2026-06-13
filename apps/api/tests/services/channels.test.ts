@@ -87,7 +87,6 @@ const buildUpdateSetWhereChain = () => ({
 const makeChannelRow = (overrides?: Partial<{
   id: string;
   name: string;
-  type: string;
   ownership: string;
   role: string;
   thumbnailUrl: string | null;
@@ -100,7 +99,6 @@ const makeChannelRow = (overrides?: Partial<{
 }>) => ({
   id: "channel-1",
   name: "S/NC Radio",
-  type: "playout",
   ownership: "platform",
   role: "playout",
   thumbnailUrl: null,
@@ -133,8 +131,6 @@ describe("channel service", () => {
       id,
       ownership,
       role,
-      // legacy type kept on the fixture until the contract step removes it from ChannelInfo
-      type: role === "live-ingest" ? ("live" as const) : (role as "playout" | "broadcast"),
       name: id,
       srsStreamName: id,
       thumbnailUrl: null,
@@ -218,7 +214,7 @@ describe("channel service", () => {
     });
 
     it("includes creator info for live channels with creator", async () => {
-      const channelRow = makeChannelRow({ type: "live", ownership: "creator", role: "live-ingest", creatorId: "creator-1" });
+      const channelRow = makeChannelRow({ ownership: "creator", role: "live-ingest", creatorId: "creator-1" });
       mockDbSelect.mockReturnValueOnce(buildSelectWhereChain([channelRow]));
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([
         { id: "creator-1", displayName: "Maya", handle: "maya", avatarUrl: null, bannerUrl: null },
@@ -274,7 +270,8 @@ describe("channel service", () => {
       const vals = insertedValues as unknown as Record<string, unknown>;
       expect(vals.creatorId).toBe("creator-1");
       expect(vals.streamSessionId).toBe("session-1");
-      expect(vals.type).toBe("live");
+      expect(vals.ownership).toBe("creator");
+      expect(vals.role).toBe("live-ingest");
       expect(vals.isActive).toBe(true);
     });
 
@@ -324,7 +321,8 @@ describe("channel service", () => {
       expect(vals.creatorId).toBe("creator-2");
       expect(vals.streamSessionId).toBe("session-new");
       expect(vals.isActive).toBe(true);
-      expect(vals.type).toBe("live");
+      expect(vals.ownership).toBe("creator");
+      expect(vals.role).toBe("live-ingest");
     });
   });
 
@@ -383,7 +381,7 @@ describe("channel service", () => {
       expect(mockDbInsert).toHaveBeenCalledTimes(1);
     });
 
-    it("creates channel with type broadcast and isActive true", async () => {
+    it("creates channel with broadcast role and isActive true", async () => {
       let insertedValues: Record<string, unknown> | null = null;
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
       mockDbInsert.mockReturnValueOnce({
@@ -398,7 +396,8 @@ describe("channel service", () => {
 
       expect(insertedValues).not.toBeNull();
       const vals = insertedValues as unknown as Record<string, unknown>;
-      expect(vals.type).toBe("broadcast");
+      expect(vals.ownership).toBe("platform");
+      expect(vals.role).toBe("broadcast");
       expect(vals.isActive).toBe(true);
     });
 
@@ -448,9 +447,9 @@ describe("channel service", () => {
     it("returns broadcast channel over all other roles", async () => {
       const { selectDefaultChannel } = await setupService();
       const channels = [
-        { id: "ch-broadcast", ownership: "platform" as const, role: "broadcast" as const, type: "broadcast" as const, name: "b", srsStreamName: "snc-tv", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-live", ownership: "creator" as const, role: "live-ingest" as const, type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: "creator-1", creator: null, isActive: true },
-        { id: "ch-playout", ownership: "platform" as const, role: "playout" as const, type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-broadcast", ownership: "platform" as const, role: "broadcast" as const, name: "b", srsStreamName: "snc-tv", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-live", ownership: "creator" as const, role: "live-ingest" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: "creator-1", creator: null, isActive: true },
+        { id: "ch-playout", ownership: "platform" as const, role: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
       ];
       const result = selectDefaultChannel(channels);
       expect(result).toBe("ch-broadcast");

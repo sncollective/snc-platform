@@ -18,7 +18,6 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
   return {
     id: "channel-1",
     name: "Test Channel",
-    type: "playout",
     ownership: "platform",
     role: "playout",
     thumbnailUrl: null,
@@ -50,7 +49,7 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
 describe("ChannelCard", () => {
   it("playout channel shows 'NOW PLAYING' badge and track title", () => {
     const channel = makeMockChannel({
-      type: "playout",
+      role: "playout",
       nowPlaying: {
         itemId: "item-1",
         title: "Great Film",
@@ -70,7 +69,6 @@ describe("ChannelCard", () => {
 
   it("live channel shows LIVE badge and viewer count", () => {
     const channel = makeMockChannel({
-      type: "live",
       ownership: "creator",
       role: "live-ingest",
       viewerCount: 42,
@@ -84,7 +82,6 @@ describe("ChannelCard", () => {
 
   it("zero viewers hides viewer count", () => {
     const channel = makeMockChannel({
-      type: "live",
       ownership: "creator",
       role: "live-ingest",
       viewerCount: 0,

@@ -37,7 +37,8 @@ const mockDeleteCreatorSimulcastDestination = vi.fn();
 const makeChannel = (overrides?: Partial<{
   id: string;
   name: string;
-  type: "playout" | "live" | "scheduled";
+  ownership: "platform" | "creator";
+  role: "playout" | "broadcast" | "live-ingest";
   thumbnailUrl: string | null;
   hlsUrl: string | null;
   viewerCount: number;
@@ -47,7 +48,8 @@ const makeChannel = (overrides?: Partial<{
 }>) => ({
   id: "channel-1",
   name: "S/NC Radio",
-  type: "playout" as const,
+  ownership: "platform" as const,
+  role: "playout" as const,
   thumbnailUrl: null,
   hlsUrl: "http://srs.test:8080/live/channel-main.m3u8",
   viewerCount: 0,
@@ -229,7 +231,8 @@ describe("streaming routes", () => {
       const liveChannel = makeChannel({
         id: "channel-2",
         name: "Live: Maya",
-        type: "live",
+        ownership: "creator",
+        role: "live-ingest",
         creator: {
           id: "creator-1",
           displayName: "Maya",

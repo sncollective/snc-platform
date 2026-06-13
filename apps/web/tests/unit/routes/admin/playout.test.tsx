@@ -23,7 +23,6 @@ function makeMockPlayoutChannel(
   return {
     id: "ch_playout_1",
     name: "Classics",
-    type: "playout",
     ownership: "platform",
     role: "playout",
     thumbnailUrl: null,

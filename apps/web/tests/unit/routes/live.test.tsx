@@ -109,7 +109,6 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
   return {
     id: "channel-1",
     name: "S/NC Radio",
-    type: "playout" as const,
     ownership: "platform" as const,
     role: "playout" as const,
     thumbnailUrl: null,
@@ -123,12 +122,11 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
 
 /**
  * A live creator channel. The live page derives "is live" from the identity
- * proxy (ownership=creator + role=live-ingest) until live-state lands the real
- * derivation, so live fixtures must set both — `type: "live"` alone no longer
- * drives the LIVE indicator.
+ * (ownership=creator + role=live-ingest) until live-state lands the real on-air
+ * derivation, so live fixtures set both.
  */
 function liveOverrides(extra: Record<string, unknown> = {}) {
-  return { type: "live" as const, ownership: "creator" as const, role: "live-ingest" as const, ...extra };
+  return { ownership: "creator" as const, role: "live-ingest" as const, ...extra };
 }
 
 function makeChannelList(overrides: Record<string, unknown> = {}) {

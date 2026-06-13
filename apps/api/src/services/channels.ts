@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { ok, err, AppError } from "@snc/shared";
-import type { Result, ChannelType, ChannelOwnership, ChannelRole, DprImage } from "@snc/shared";
+import type { Result, ChannelOwnership, ChannelRole, DprImage } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
@@ -17,7 +17,6 @@ import { eventBus } from "./event-bus.js";
 export type ChannelInfo = {
   id: string;
   name: string;
-  type: ChannelType; // legacy; dropped in the contract migration step
   ownership: ChannelOwnership;
   role: ChannelRole;
   thumbnailUrl: string | null;
@@ -111,7 +110,6 @@ export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
   const result: ChannelInfo[] = rows.map((row) => ({
     id: row.id,
     name: row.name,
-    type: row.type as ChannelType,
     ownership: row.ownership as ChannelOwnership,
     role: row.role as ChannelRole,
     thumbnailUrl: row.thumbnailUrl ?? null,
@@ -172,7 +170,6 @@ export const createLiveChannel = async (opts: {
         .update(channels)
         .set({
           name: `Live: ${opts.creatorName}`,
-          type: "live",
           ownership: "creator",
           role: "live-ingest",
           creatorId: opts.creatorId,
@@ -191,7 +188,6 @@ export const createLiveChannel = async (opts: {
     await db.insert(channels).values({
       id: channelId,
       name: `Live: ${opts.creatorName}`,
-      type: "live",
       ownership: "creator",
       role: "live-ingest",
       srsStreamName: opts.srsStreamName,
@@ -288,7 +284,6 @@ export const ensureBroadcast = async (opts: {
     await db.insert(channels).values({
       id: channelId,
       name: opts.name,
-      type: "broadcast",
       ownership: "platform",
       role: "broadcast",
       srsStreamName: opts.srsStreamName,
@@ -336,7 +331,6 @@ export const ensurePlayout = async (opts: {
     await db.insert(channels).values({
       id: channelId,
       name: opts.name,
-      type: "playout",
       ownership: "platform",
       role: "playout",
       srsStreamName: opts.srsStreamName,

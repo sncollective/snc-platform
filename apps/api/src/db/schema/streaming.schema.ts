@@ -119,9 +119,9 @@ export const channels = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    type: text("type").notNull(), // "playout" | "live" | "scheduled" | "broadcast" — legacy; dropped in contract step
-    // Identity facets (unified-channel-model). Added additively alongside `type`;
-    // backfilled from it. `type` stays authoritative until the migrate step.
+    // Identity facets (unified-channel-model): routing keys on `role`, permissions
+    // on `ownership`. These replaced the former `type` enum (dropped 2026-06-13);
+    // airing-state (is-this-live-now) is derived, not stored.
     ownership: text("ownership").notNull().default("platform"), // "platform" | "creator"
     role: text("role").notNull().default("playout"), // "playout" | "broadcast" | "live-ingest"
     thumbnailUrl: text("thumbnail_url"),
@@ -144,7 +144,6 @@ export const channels = pgTable(
   },
   (table) => [
     uniqueIndex("channels_srs_stream_name_idx").on(table.srsStreamName),
-    index("channels_type_active_idx").on(table.type, table.isActive),
     index("channels_role_active_idx").on(table.role, table.isActive),
     index("channels_creator_idx").on(table.creatorId),
   ],

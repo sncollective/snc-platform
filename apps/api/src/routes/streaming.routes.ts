@@ -156,7 +156,8 @@ streamingRoutes.get(
       channels: channels.map((ch) => ({
         id: ch.id,
         name: ch.name,
-        type: ch.type,
+        ownership: ch.ownership,
+        role: ch.role,
         thumbnailUrl: ch.thumbnailUrl,
         hlsUrl: ch.hlsUrl,
         viewerCount: ch.viewerCount,

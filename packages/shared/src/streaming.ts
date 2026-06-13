@@ -3,19 +3,13 @@ import { z } from "zod";
 import { DprImageSchema } from "./content.js";
 import { NowPlayingSchema } from "./playout.js";
 
-// ── Channel Types ──
-
-export const CHANNEL_TYPES = ["playout", "live", "scheduled", "broadcast"] as const;
-export type ChannelType = (typeof CHANNEL_TYPES)[number];
-
 // ── Channel Identity (unified-channel-model) ──
 //
-// Added alongside the legacy `type` enum during the expand-migrate-contract
-// migration. `ownership` and `role` are the two orthogonal identity facets the
-// 4-value `type` enum used to conflate: routing keys on `role`, permissions key
-// on `ownership`. Airing-state (is-this-live-now) is NOT modeled here — it is
-// derived state owned by the live-experience-redesign-live-state feature.
-// `CHANNEL_TYPES` / `ChannelType` are removed in the contract migration step.
+// `ownership` and `role` are the two orthogonal identity facets that replaced the
+// former 4-value `type` enum (which conflated identity with airing-state): routing
+// keys on `role`, permissions key on `ownership`. Airing-state (is-this-live-now)
+// is NOT modeled here — it is derived state owned by the
+// live-experience-redesign-live-state feature.
 
 export const CHANNEL_OWNERSHIPS = ["platform", "creator"] as const;
 export type ChannelOwnership = (typeof CHANNEL_OWNERSHIPS)[number];
@@ -26,7 +20,6 @@ export type ChannelRole = (typeof CHANNEL_ROLES)[number];
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(CHANNEL_TYPES), // legacy; dropped in the contract migration step
   ownership: z.enum(CHANNEL_OWNERSHIPS),
   role: z.enum(CHANNEL_ROLES),
   thumbnailUrl: z.string().nullable(),

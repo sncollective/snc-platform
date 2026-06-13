@@ -27,7 +27,8 @@ const mockDbExecute = vi.fn();
 const makeChannelRow = (overrides: Record<string, unknown> = {}) => ({
   id: "channel-1",
   name: "S/NC Classics",
-  type: "playout",
+  ownership: "platform",
+  role: "playout",
   thumbnailUrl: null,
   srsStreamName: "classics",
   creatorId: null,
