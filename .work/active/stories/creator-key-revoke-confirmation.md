@@ -48,3 +48,10 @@ filed: `a11y-creator-revoke-button-no-label`, `a11y-creator-revoke-button-focus`
   - Added `mockCreateStreamKey.mockReset()` and `mockRevokeStreamKey.mockReset()` to `beforeEach` to prevent cross-test call-count bleed.
 
 **Scoping note:** `shared-confirm-dialog-component` has not landed (backlog stub) — used the existing Ark UI Dialog wrappers directly per the story's fallback direction.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — held at review on fix-verify loopback (platform convention:
+user re-confirms the fix in the running app before close). Fast lane: implementation
+record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
+spot-checked against the story brief at feature-level review.

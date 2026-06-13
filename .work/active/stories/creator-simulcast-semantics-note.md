@@ -33,3 +33,10 @@ publisher kick) belong to the `playout-admin-redesign` epic.
 - `apps/web/tests/unit/routes/creators/manage/streaming.test.tsx` — added `"renders next-publish semantics copy in simulcast section"` test asserting the text is present after render.
 
 **Semantics ground-truth:** `apps/api/src/services/simulcast.ts:203-204` — "Creator forward changes apply on next stream — no SRS restart needed. SRS on_forward fires per-publish, and kicking a creator's OBS would be disruptive." Confirmed the `on_forward` hook fires per-publish (stream start), not immediately. The admin surface uses a different code path (publisher kick) and is out of scope for this item.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — held at review on fix-verify loopback (platform convention:
+user re-confirms the fix in the running app before close). Fast lane: implementation
+record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
+spot-checked against the story brief at feature-level review.

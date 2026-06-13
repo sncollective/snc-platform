@@ -36,3 +36,10 @@ whole page horizontal scroll. Stack or wrap the form below the mobile breakpoint
 This is a CSS-only change. No test required (UX verified at code level — column layout at mobile means no overflow by construction; row layout at ≥768px is the existing desktop behavior). Browser-level verification at 375px was not performed in this run (no browser available); the CSS-only approach is structurally correct.
 
 **Breakpoint rationale:** `min-width: 768px` is the single breakpoint used consistently across all CSS modules examined. The mobile-first stacking direction (`flex-direction: column`) at the default ensures the form stacks on any viewport narrower than 768px, which covers the 375px overflow condition from the UX finding.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — held at review on fix-verify loopback (platform convention:
+user re-confirms the fix in the running app before close). Fast lane: implementation
+record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
+spot-checked against the story brief at feature-level review.

@@ -42,3 +42,10 @@ finding in the `streaming-playout-ux-review-creator-audit` story body.
   - Added `"copies stream key to clipboard when copy button is clicked"` test: mocks `navigator.clipboard.writeText` via `Object.assign`, creates a key via the form, clicks the copy button, asserts `writeText` called with the raw key, and asserts "Copied!" feedback appears.
 
 Scope: the copy button copies the raw key value only. The RTMP URL line is out of scope per the story.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — held at review on fix-verify loopback (platform convention:
+user re-confirms the fix in the running app before close). Fast lane: implementation
+record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
+spot-checked against the story brief at feature-level review.

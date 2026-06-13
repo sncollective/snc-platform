@@ -39,3 +39,10 @@ shared.
 **Note:** `simulcast.test.ts` was already in `packages/shared/tests/` (treated as a new file in this session). The `simulcast-destination-manager.module.css` `.fieldError` class was added as part of this item.
 
 Admin simulcast form uses the same `SimulcastDestinationManager` component with `variant="table"` — the fix covers both surfaces from the shared component.
+
+## Review (2026-06-12)
+
+**Verdict**: Approve — held at review on fix-verify loopback (platform convention:
+user re-confirms the fix in the running app before close). Fast lane: implementation
+record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
+spot-checked against the story brief at feature-level review.
