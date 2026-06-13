@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { and, eq, desc, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   ChannelListResponseSchema,
@@ -23,9 +23,11 @@ import {
   lookupCreatorByKeyHash,
 } from "../services/stream-keys.js";
 import { openSession, closeSession } from "../services/stream-sessions.js";
-import { createLiveChannel, deactivateLiveChannel } from "../services/channels.js";
-import { createChannelRoom, closeChannelRoom } from "../services/chat.js";
-import { broadcastToRoom } from "../services/chat-rooms.js";
+import {
+  ensureLiveChannelWithChat,
+  teardownLiveChannel,
+  extractStreamKey,
+} from "../services/stream-lifecycle.js";
 import {
   getActiveSimulcastUrls,
   listCreatorSimulcastDestinations,
@@ -120,79 +122,6 @@ const isPlayoutStream = async (streamName: string): Promise<boolean> => {
     );
   return channel !== undefined;
 };
-
-const extractStreamKey = (param: string): string | null => {
-  const match = param.match(/[?&]key=([^&]*)/);
-  return match?.[1] ?? null;
-};
-
-const toErrorDetail = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
-
-async function ensureLiveChannelWithChat(
-  creatorId: string,
-  sessionId: string,
-  srsStreamName: string,
-): Promise<void> {
-  try {
-    const [profile] = await db
-      .select({ displayName: creatorProfiles.displayName })
-      .from(creatorProfiles)
-      .where(eq(creatorProfiles.id, creatorId));
-
-    if (!profile) return;
-
-    const channelResult = await createLiveChannel({
-      creatorId,
-      creatorName: profile.displayName,
-      streamSessionId: sessionId,
-      srsStreamName,
-    });
-
-    if (!channelResult.ok) return;
-
-    try {
-      await createChannelRoom(
-        channelResult.value.channelId,
-        `${profile.displayName}'s Stream`,
-      );
-    } catch (chatErr) {
-      rootLogger.error(toErrorDetail(chatErr), "Failed to create channel chat room");
-    }
-  } catch (channelErr) {
-    rootLogger.error(toErrorDetail(channelErr), "Failed to create live channel");
-  }
-}
-
-async function teardownLiveChannel(srsClientId: string): Promise<void> {
-  try {
-    const closedSession = await db
-      .select({ id: streamSessions.id })
-      .from(streamSessions)
-      .where(eq(streamSessions.srsClientId, srsClientId))
-      .orderBy(desc(streamSessions.endedAt))
-      .limit(1);
-
-    if (closedSession.length === 0) return;
-
-    const sessionId = closedSession[0]!.id;
-    const channelResult = await deactivateLiveChannel(sessionId);
-
-    if (!channelResult.ok || !channelResult.value) return;
-
-    const { channelId } = channelResult.value;
-    try {
-      await closeChannelRoom(channelId);
-      broadcastToRoom(channelId, {
-        type: "room_closed",
-        roomId: channelId,
-      });
-    } catch (chatErr) {
-      rootLogger.error(toErrorDetail(chatErr), "Failed to close channel chat room");
-    }
-  } catch (channelErr) {
-    rootLogger.error(toErrorDetail(channelErr), "Failed to deactivate live channel");
-  }
-}
 
 // ── Public API ──
 
