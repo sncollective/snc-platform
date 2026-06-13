@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint-types-bus
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -32,11 +32,26 @@ rationale — notification-hint semantics, coalescing, the registry scope-filter
 
 ## Acceptance criteria
 
-- [ ] `PlatformEventSchema` parses the proof event; unknown `type` rejects.
-- [ ] Subscriber receives only events whose topic is in its grant set; `scopeFilter`
+- [x] `PlatformEventSchema` parses the proof event; unknown `type` rejects.
+- [x] Subscriber receives only events whose topic is in its grant set; `scopeFilter`
       excludes non-matching subscribers.
-- [ ] Burst of N same-key events delivers exactly 1 after drain.
-- [ ] `next(timeout)` resolves empty on timeout; promptly on publish.
-- [ ] `closeAll()` resolves pending `next()` calls; publish after close is a no-op.
-- [ ] Unit tests at `apps/api/tests/services/event-bus.test.ts`; `@snc/shared` build +
+- [x] Burst of N same-key events delivers exactly 1 after drain.
+- [x] `next(timeout)` resolves empty on timeout; promptly on publish.
+- [x] `closeAll()` resolves pending `next()` calls; publish after close is a no-op.
+- [x] Unit tests at `apps/api/tests/services/event-bus.test.ts`; `@snc/shared` build +
       both test suites green.
+
+## Implementation notes
+
+- `packages/shared/src/events.ts` — `PlatformEventSchema` discriminated union with proof event
+  `channel.live-state-changed`, `SSE_TOPICS`, `TOPIC_ACCESS`, `SpineConnectedSchema`. Exported
+  from package index via `export * from "./events.js"`.
+- `apps/api/src/services/event-bus.ts` — `createEventBus()` factory + `eventBus` singleton.
+  Per-connection coalescing via `Map<"<type>:<coalesceKey>", PlatformEvent>` (latest wins).
+  256-entry backstop closes the subscription and logs a warn. `next(timeoutMs)` uses a resolver
+  queue pattern — resolves immediately if events queued, otherwise waits. `closeAll()` wakes all
+  pending `next()` calls.
+- `EVENT_REGISTRY` exhaustive `Record<PlatformEvent["type"], EventTypeEntry>` — TypeScript ensures
+  compile-time completeness. `channel.live-state-changed` coalesces by `channelId`.
+- 13 tests green covering grant filtering, coalescing, timeout, closeAll, connectionCount,
+  multiple subscribers, and scopeFilter structural coverage.
