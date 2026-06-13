@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle-contract
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: [unified-channel-model-identity-lifecycle-migrate]
@@ -84,3 +84,29 @@ the production path never has a window where a consumer needs a column that's go
   - Suites green: `@snc/api` unit (all files), `@snc/api` integration 15/15 (real DB insert with
     `type` dropped works), `@snc/web` 1717/1717.
   - Topology goldens **byte-identical** — render reads role-filtered playout channels, output unchanged.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate-mode review of the landed contract commit (`dd9a9f3`), full diff read.
+The enum is gone cleanly: `type` column + `channels_type_active_idx` dropped (migration `0025`),
+`CHANNEL_TYPES`/`ChannelType`/`ChannelSchema.type` removed from shared, `ChannelInfo.type` +
+`row.type` mapping + the four writer `type:` lines removed from `channels.ts`. The LIVE-badge bug
+class is now structurally unrepresentable — there is no `type` column left to conflate identity
+with airing-state. The one beyond-scope edit (`streaming.routes.ts:159` `/status` serializer,
+emitting `ownership`/`role` instead of `type`) was a genuine migrate-step miss surfaced by the
+contract typecheck — an output serialization the migrate grep guard (predicate-only) didn't catch.
+The fix is correct and consistent with the migrated `ChannelSchema` SSOT (web consumers infer from
+it, already migrated), so the `/status` response shape change is internally coherent — no orphaned
+external consumer. Worth carrying the lesson forward: field-removal audits need an output-mapping
+grep, not just `=== "..."` predicate grep (already noted in the story body). Test fixtures + 3
+writer assertions updated honestly. Verified at HEAD: grep guard clean (`channels.type`/
+`ChannelType`/`CHANNEL_TYPES`/`channels_type_active_idx` absent everywhere), `@snc/shared` typecheck
++ tests green; channels/srs/playout/streaming API tests green (14 api failures are environmental
+`/tmp` mkdir errors in `local-storage.test.ts` — sandbox FS, unrelated). `release_binding` left
+`null` (mid-epic; binds with the epic at ship — see expand review).

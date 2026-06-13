@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle-migrate
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: [unified-channel-model-identity-lifecycle-expand]
@@ -95,3 +95,26 @@ the live-state feature lands the real derivation.
   - Full suites green: `@snc/api` unit 1572/1572, `@snc/web` 1717/1717, `@snc/shared` typecheck
     clean, `@snc/web` typecheck 0 errors.
   - LIVE-badge sites carry the `TODO(live-state)` breadcrumb (channel-card, live.tsx, admin/playout).
+
+## Review (2026-06-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate-mode review of the landed migrate commit (`356e8b8`), full diff read.
+Behavior-preserving cutover confirmed: `CHANNEL_PRIORITY` → `ROLE_PRIORITY` preserves the
+relative order (broadcast > live-ingest > playout) — the dead `scheduled` tier is correctly
+dropped, not silently reordering anything since no `scheduled` rows exist. All three writers
+(`createLiveChannel` ×2 paths, `ensureBroadcast`, `ensurePlayout`) set `ownership`/`role`
+alongside `type`; every decision-read in srs/playout/orchestrator/liquidsoap-config/route cut
+to `role`; `type` still written-but-unread, as the phase requires. The LIVE-badge change to an
+identity proxy (`ownership==='creator' && role==='live-ingest'`) is the intended interim signal,
+correctly breadcrumbed `TODO(live-state)` for the sibling live-state feature to find. Stale
+test fixtures repaired honestly (the dead `scheduled`-tier priority test rewritten to assert
+broadcast priority — honest, not gamed). Verified at HEAD: grep guard clean, `@snc/shared`
+green; channels/srs/playout/streaming API tests green (the only api failures are 14 environmental
+`/tmp` mkdir errors in `local-storage.test.ts` — sandbox FS restriction, unrelated to this diff).
+`release_binding` left `null` (mid-epic; binds with the epic at ship — see expand review).

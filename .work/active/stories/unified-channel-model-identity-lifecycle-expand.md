@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle-expand
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: []
@@ -74,3 +74,24 @@ unchanged here.
 - **Adjacent issues parked:** none. (Noted but NOT acted on: 2 pre-existing `@snc/api` typecheck
   errors in `playout-orchestrator.ts:346` and `sse.routes.test.ts:104` are Lane 2's in-flight
   event-spine work — confirmed unrelated to this story; not mine to fix or park.)
+
+## Review (2026-06-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate-mode review of the landed expand commit (`6d1d468`). Read the full
+diff rather than rubber-stamping the implementation record. Additive change is correct and
+matches the design exactly: `ownership`/`role` columns both `notNull().default(...)`, the
+`channels_role_active_idx` mirrors the legacy `type` index (which is retained until contract),
+`type` untouched and authoritative, new shared const tuples added alongside `CHANNEL_TYPES`.
+Backfill SQL (`0024`, custom-SQL path per drizzle-migrations rule) maps all four enum values
+correctly incl. the defensive `scheduled` mapping. Verified at HEAD: grep guard clean,
+`@snc/shared` typecheck + 675 tests green. (The known down-migration absence is noted in the
+story's own implementation notes — forward-apply is the production path here; acceptable.)
+`release_binding` left `null`: this is a mid-epic child of `unified-channel-model`
+(`epic_cohesion: total`); the whole epic binds to one release at completion, and the
+release-deploy binding guard catches unbound items at ship time. No premature version pick.

@@ -15,22 +15,24 @@ updated: 2026-06-13
 
 ## Resume note (2026-06-13, Lane 1 — safe to clear & resume)
 
-Working tree is clean; everything committed through HEAD `dd9a9f3`. Migrations applied to
-the dev DB through `0025` (`0023` add cols, `0024` backfill, `0025` drop `type`).
+Working tree clean through the type→role chain; migrations applied to the dev DB through
+`0025` (`0023` add cols, `0024` backfill, `0025` drop `type`). The expand→migrate→contract
+chain has now been **reviewed and approved** (orchestrator review pass 2026-06-13).
 
 **Child story status:**
-- `-expand` → **review** (schema cols + backfill; commit `6d1d468`)
-- `-migrate` → **review** (all consumers cut to role/ownership; commit `356e8b8`)
-- `-contract` → **review** (`type` enum dropped everywhere; commit `dd9a9f3`)
-- `-lifecycle` → **implementing, NOT STARTED** ← the one remaining piece
+- `-expand` → **done** (Approve; schema cols + backfill; commit `6d1d468`)
+- `-migrate` → **done** (Approve; all consumers cut to role/ownership; commit `356e8b8`)
+- `-contract` → **done** (Approve; `type` enum dropped everywhere; commit `dd9a9f3`)
+- `-lifecycle` → **implementing, NOT STARTED** ← the one remaining piece (3/4 children done;
+  feature stays `implementing` until this lands)
 
-**To resume — pick one:**
-1. **Review the landed chain first** (recommended): three stories sit at `review` with no
-   review pass yet, on the production streaming path. Run `/agile-workflow:review` on
-   `-expand`, `-migrate`, `-contract` (and per platform convention pick their release
-   binding at review-pass — they're currently `release_binding: null`).
-2. **Continue building**: `/agile-workflow:implement unified-channel-model-identity-lifecycle-lifecycle`
-   — depends only on `-expand` (satisfied via landed code). It's the behavior-bearing story:
+All three reviewed stories keep `release_binding: null` — mid-epic children of
+`unified-channel-model` (`epic_cohesion: total`): the whole epic binds to one release at
+completion, and the release-deploy binding guard catches unbound items at ship time.
+
+**To resume — build the last piece:**
+- `/agile-workflow:implement unified-channel-model-identity-lifecycle-lifecycle`
+  — depends only on `-expand` (satisfied via landed code). It's the behavior-bearing story:
    `ensureCreatorChannel` on stream-key creation, retire `createLiveChannel`'s temp-row
    fabrication for activate-not-delete, chat-room continuity across sessions, and dedupe of
    backfill-left duplicate `live-ingest` rows. Coordinates with `stream-lifecycle.ts`
