@@ -9,6 +9,7 @@ import { registerWorkers } from "./jobs/register-workers.js";
 import { config } from "./config.js";
 import { sql } from "./db/connection.js";
 import { rootLogger } from "./logging/logger.js";
+import { eventBus } from "./services/event-bus.js";
 
 // ── Server ──
 
@@ -72,6 +73,8 @@ const shutdown = async () => {
 
   // Stop accepting new connections
   server.close();
+  // Close SSE subscriptions for a clean FIN to clients
+  eventBus.closeAll();
 
   try {
     rootLogger.info("Stopping job queue...");

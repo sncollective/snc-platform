@@ -35,6 +35,7 @@ import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
 import { streamingConnectRoutes } from "./routes/streaming-connect.routes.js";
+import { sseRoutes } from "./routes/sse.routes.js";
 import { followRoutes } from "./routes/follow.routes.js";
 import { notificationPreferencesRoutes } from "./routes/notification-preferences.routes.js";
 import { inviteRoutes } from "./routes/invite.routes.js";
@@ -143,6 +144,7 @@ app.route("/api/projects", projectRoutes);
 app.use("/api/streaming/callbacks/*", srsCallbackLimiter);
 app.route("/api/streaming", streamingRoutes);
 app.route("/api/streaming/connect", streamingConnectRoutes);
+app.route("/api/sse", sseRoutes);
 import("./routes/chat.routes.js")
   .then(({ chatRoutes }) => app.route("/api/chat", chatRoutes))
   .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load chat routes"));

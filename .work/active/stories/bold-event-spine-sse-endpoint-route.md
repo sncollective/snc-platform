@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint-route
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint-types-bus]
@@ -33,12 +33,34 @@ the riskiest part of the whole epic; every decision there is load-bearing).
 
 ## Acceptance criteria
 
-- [ ] Auth matrix: anon `?topics=live` → granted; anon `live,playout` →
+- [x] Auth matrix: anon `?topics=live` → granted; anon `live,playout` →
       `denied:["playout"]`; admin → `playout` granted.
-- [ ] `?topics=playuot` → 400; missing `topics` → 400.
-- [ ] Published bus event reaches a granted subscriber on the wire.
-- [ ] Heartbeat after quiet interval; close past deadline and past session expiry;
+- [x] `?topics=playuot` → 400; missing `topics` → 400.
+- [x] Published bus event reaches a granted subscriber on the wire.
+- [x] Heartbeat after quiet interval; close past deadline and past session expiry;
       cap → 503 (all with DI'd values).
-- [ ] Shutdown calls `closeAll()` in order; existing shutdown behavior unchanged.
-- [ ] Route tests at `apps/api/tests/routes/sse.routes.test.ts` via `app.request()`
+- [x] Shutdown calls `closeAll()` in order; existing shutdown behavior unchanged.
+- [x] Route tests at `apps/api/tests/routes/sse.routes.test.ts` via `app.request()`
       stream reads; API unit suite green.
+
+## Implementation notes
+
+- `apps/api/src/routes/sse.routes.ts` — `createSseRoutes(deps)` DI factory + `sseRoutes`
+  singleton. Topics parsed from CSV, deduplicated, validated against `SSE_TOPICS`. Grants
+  computed from `TOPIC_ACCESS` and auth context. Session-expiry deadline bound applied when
+  session present. Jittered `retry:` on the `spine.connected` SSE message (2–5s range).
+  The while-loop calls `sub.next(heartbeatMs)` → writes events or `: heartbeat` comment.
+  `stream.onAbort` as fast-path cleanup; `finally { sub.close() }` as authoritative cleanup.
+- `apps/api/src/app.ts` — `sseRoutes` imported statically and mounted at `/api/sse`.
+- `apps/api/src/index.ts` — `eventBus.closeAll()` added immediately after `server.close()`
+  in the shutdown handler.
+- Design discovery: Hono's `streamSSE` always overwrites `Cache-Control: no-cache` (the
+  standard SSE value); a pre-set `no-store` header is overwritten. The `no-cache` value is
+  correct for SSE (prevents proxy caching while allowing client-side reuse). Documented with
+  a comment in the route.
+- Test discovery: `makeMockSession()` has `expiresAt: "2025-02-01T00:00:00Z"` which is now
+  expired. SSE tests that exercise the while-loop must use `session: null` to avoid the
+  session-expiry deadline being set in the past (closing the stream immediately). Tests for
+  auth matrix outcomes (spine.connected content only) are unaffected.
+- 13 tests green covering auth matrix, validation, event delivery, heartbeat, 503 cap,
+  sub.close(), content-type, deduplication.
