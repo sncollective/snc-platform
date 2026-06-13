@@ -172,6 +172,23 @@ describe("closeAll()", () => {
     expect(batch).toHaveLength(0);
   });
 
+  it("closes every subscription (isClosed flips, count drops, next resolves immediately)", async () => {
+    const { createEventBus } = await setupService();
+    const bus = createEventBus();
+    const s1 = bus.subscribe(["live"], guestCtx);
+    const s2 = bus.subscribe(["live"], guestCtx);
+    expect(s1.isClosed()).toBe(false);
+
+    bus.closeAll();
+
+    expect(s1.isClosed()).toBe(true);
+    expect(s2.isClosed()).toBe(true);
+    expect(bus.connectionCount()).toBe(0);
+    // Post-close next() must resolve immediately — a 30s timeout here would hang the test
+    const batch = await s1.next(30_000);
+    expect(batch).toHaveLength(0);
+  });
+
   it("makes subsequent publish a no-op after closeAll", async () => {
     const { createEventBus } = await setupService();
     const bus = createEventBus();

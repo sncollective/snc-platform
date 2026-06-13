@@ -51,6 +51,13 @@ try {
       process.exit(1);
     }
 
+    // Hold mode: stop before the AbortSignal.timeout fires mid-read at 6min —
+    // an abort would throw out of read() and turn a successful hold into a crash.
+    if (HOLD && elapsed >= 5.5 * 60 * 1_000) {
+      console.log("[smoke] Hold target reached (5.5min) — closing cleanly");
+      break;
+    }
+
     const { done, value } = await reader.read();
     if (done) {
       console.log("[smoke] Stream closed by server");

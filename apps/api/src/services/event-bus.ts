@@ -35,6 +35,13 @@ export interface Subscription {
   next(timeoutMs: number): Promise<PlatformEvent[]>;
   /** Release resources. Safe to call multiple times. */
   close(): void;
+  /**
+   * Whether the subscription has been closed (close(), closeAll(), or the
+   * coalesce backstop). Consumers MUST check this after every next() turn and
+   * stop their write loop when true — post-close, next() resolves [] immediately,
+   * so a loop that treats [] as a heartbeat turn would busy-spin.
+   */
+  isClosed(): boolean;
 }
 
 /** Singleton event bus interface exposed for testing and DI. */
@@ -159,6 +166,10 @@ class SubscriptionImpl implements Subscription {
     this.wake(); // unblock any pending next()
     this.onClose(this);
   }
+
+  isClosed(): boolean {
+    return this.closed;
+  }
 }
 
 // ── Factory ──
@@ -192,8 +203,11 @@ export function createEventBus(): EventBus {
 
   const closeAll = (): void => {
     closed = true;
-    for (const sub of subscriptions) {
-      sub.wake();
+    // close() (not just wake()) — consumers' write loops end only when
+    // isClosed() flips, which is what delivers the clean FIN at shutdown.
+    // Iterate a copy: close() removes each sub from the set via onClose.
+    for (const sub of [...subscriptions]) {
+      sub.close();
     }
   };
 

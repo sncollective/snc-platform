@@ -11,17 +11,30 @@ import { makeTestConfig } from "../helpers/test-constants.js";
  * batches: array of event arrays to return in sequence; after exhausted returns []
  * after heartbeatMs delay (simulating a quiet interval).
  */
-const makeMockSub = (batches: unknown[][] = []) => {
+const makeMockSub = (
+  batches: unknown[][] = [],
+  opts: { closeAfterNexts?: number } = {},
+) => {
   let callCount = 0;
+  let closed = false;
   return {
     next: vi.fn(async (_timeoutMs: number): Promise<unknown[]> => {
-      if (callCount < batches.length) {
-        return batches[callCount++]!;
+      callCount++;
+      if (opts.closeAfterNexts !== undefined && callCount >= opts.closeAfterNexts) {
+        closed = true;
       }
+      if (callCount <= batches.length) {
+        return batches[callCount - 1]!;
+      }
+      // Post-close, the real subscription resolves [] immediately
+      if (closed) return [];
       // No more batches — block until timeout to simulate quiet interval
       return new Promise((resolve) => setTimeout(() => resolve([]), _timeoutMs));
     }),
-    close: vi.fn(),
+    close: vi.fn(() => {
+      closed = true;
+    }),
+    isClosed: vi.fn(() => closed),
   };
 };
 
@@ -227,6 +240,21 @@ describe("SSE routes", () => {
     const res = await app.request("/api/sse?topics=live");
     await readSseFrames(res);
 
+    expect(sub.close).toHaveBeenCalled();
+  });
+
+  // 10b. Loop ends on subscription close — the busy-spin / shutdown regression.
+  // Post-close, next() resolves [] immediately; without the isClosed() break the
+  // loop would treat every turn as a heartbeat and spin until the deadline.
+  it("ends the stream when the subscription closes, without further heartbeats", async () => {
+    const sub = makeMockSub([], { closeAfterNexts: 1 });
+    const { app } = await buildTestApp({ user: null, session: null, roles: [], sub });
+
+    const res = await app.request("/api/sse?topics=live");
+    const body = await readSseFrames(res);
+
+    expect(body).toContain("event: spine.connected");
+    expect(body).not.toContain(": heartbeat");
     expect(sub.close).toHaveBeenCalled();
   });
 

@@ -64,3 +64,17 @@ the riskiest part of the whole epic; every decision there is load-bearing).
   auth matrix outcomes (spine.connected content only) are unaffected.
 - 13 tests green covering auth matrix, validation, event delivery, heartbeat, 503 cap,
   sub.close(), content-type, deduplication.
+
+### Orchestrator fix at wave verification (2026-06-13)
+
+Post-implementation review caught a connection-lifecycle bug spanning this story and
+types-bus: `closeAll()` only woke pending `next()` calls without closing subscriptions,
+and the route loop never checked for a closed subscription. Consequences: (a) shutdown's
+`closeAll()` never actually ended live streams (the clean-FIN purpose was defeated);
+(b) after any subscription close on a live connection (coalesce backstop being the
+realistic trigger), `next()` resolves `[]` immediately and the loop busy-spun writing
+heartbeats until the 4h deadline. Fix: `Subscription.isClosed()` added to the contract
+(consumers MUST break their write loop on it), `closeAll()` now calls `close()` per
+subscription, route loop breaks on `isClosed()`. Regression tests added in both test
+files (+2; 33 total across the three SSE test files). The literal ACs had passed —
+the gap was between AC wording and design intent ("marks subscriptions closed").

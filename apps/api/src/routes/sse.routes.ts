@@ -170,9 +170,14 @@ export function createSseRoutes(deps?: SseRouteDeps): Hono<OptionalAuthEnv> {
             retry: jitteredRetry,
           });
 
-          // Event loop — runs until deadline or client disconnect
+          // Event loop — runs until deadline, subscription close, or client
+          // disconnect. The isClosed() check is load-bearing: post-close,
+          // next() resolves [] immediately, so without it this loop would
+          // busy-spin writing heartbeats (and closeAll() at shutdown would
+          // never end the stream).
           while (Date.now() < deadline) {
             const events = await sub.next(heartbeatMs);
+            if (sub.isClosed()) break;
             if (events.length === 0) {
               // Heartbeat comment — keeps the connection alive and proves Caddy flushes
               await stream.write(": heartbeat\n\n");
