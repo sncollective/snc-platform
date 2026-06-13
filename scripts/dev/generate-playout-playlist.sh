@@ -27,13 +27,43 @@ if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
 fi
 
 # ── List S3 objects and generate s3:// URIs ──
+# AWS CLI isn't available in the dev container; list via node + @aws-sdk (same
+# approach as seed-playout-content.sh's upload). cwd is already apps/api (set
+# above), so dotenv + @aws-sdk resolve there.
 
 echo "Listing playout content in s3://$S3_BUCKET/$S3_PREFIX/..."
 
-KEYS=$(aws --endpoint-url http://localhost:3900 s3 ls "s3://$S3_BUCKET/$S3_PREFIX/" 2>/dev/null \
-  | awk '{print $NF}' \
-  | grep '\.mp4$' \
-  | sort)
+KEYS=$(
+  S3_BUCKET="$S3_BUCKET" S3_PREFIX="$S3_PREFIX" REPO_ROOT="$REPO_ROOT" \
+  node --input-type=module <<'LIST_SCRIPT'
+import { config } from "dotenv";
+import { join } from "node:path";
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+
+config({ path: join(process.env.REPO_ROOT, ".env") });
+
+const client = new S3Client({
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  },
+  forcePathStyle: true,
+});
+
+const prefix = process.env.S3_PREFIX;
+const out = await client.send(new ListObjectsV2Command({
+  Bucket: process.env.S3_BUCKET,
+  Prefix: `${prefix}/`,
+}));
+
+for (const obj of out.Contents ?? []) {
+  const key = obj.Key.slice(`${prefix}/`.length);
+  if (key.endsWith(".mp4")) console.log(key);
+}
+LIST_SCRIPT
+)
 
 if [ -z "$KEYS" ]; then
   echo "No MP4 files found in s3://$S3_BUCKET/$S3_PREFIX/"
