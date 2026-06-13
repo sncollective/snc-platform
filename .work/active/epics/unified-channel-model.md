@@ -1,13 +1,13 @@
 ---
 id: unified-channel-model
 kind: epic
-stage: drafting
+stage: implementing
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render]
 gate_origin: null
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-13
 parent: null
 ---
 
@@ -75,15 +75,67 @@ as a special case. This epic makes line 192 the rule instead of the exception.
 - **Creator editorial enablement** (mounting the editorial surface on creator manage,
   lazy provisioning UX) is this epic's own arc, after the model and surface exist.
 
-## Anticipated child features (provisional — epic-design refines)
-- Schema + lifecycle migration: identity/state split, persistent creator channels,
-  temp-row retirement, lazy provisioning.
-- Editorial model + control plane: per-channel source tiers (live/queue/pool +
-  channel-as-source), manual/auto mode, no-restart live switching in the render.
-- S/NC TV as first composition consumer: takeover re-expressed as channel-as-source
-  programming, output-equivalent to today's fallback semantics.
-- Creator editorial enablement: editorial surface mounted on creator manage,
-  provisioning flow, permissions.
+## Decomposition
+
+Decomposed 2026-06-13 (epic-design) against the landed `bold-channel-topology-model-render`
+seam (typed topology + pure render, approved at review the same day). The provisional
+four-arc sketch held — it maps cleanly to capability seams: model foundation → engine →
+first consumer → creator mounting. The chain is deliberate: each link is the next one's
+review gate on the production streaming path, which beats artificial parallelism here.
+
+### Child features
+
+- `unified-channel-model-identity-lifecycle` — identity/state split (enum dies via
+  expand-migrate-contract), persistent creator channels, lazy provisioning, temp-row
+  retirement, canonical-identity ownership — depends on: `[]`
+- `unified-channel-model-editorial-engine` — source tiers (live/queue/pool/channel-as-source
+  + cycle detection), manual/auto control plane, no-restart switching (design opens with
+  the switching spike) — depends on: `[unified-channel-model-identity-lifecycle]`
+- `unified-channel-model-snctv-composition` — S/NC TV re-expressed as channel-as-source
+  programming, output-equivalent to today's fallback semantics — depends on:
+  `[unified-channel-model-editorial-engine]`
+- `unified-channel-model-creator-enablement` — editorial surface mounted on creator
+  manage (consumes playout-admin-redesign's role-scoped components), provisioning UX,
+  permissions — depends on: `[unified-channel-model-identity-lifecycle,
+  unified-channel-model-editorial-engine]`
+
+## Design decisions
+
+Resolved at epic-design (2026-06-13, lane delegation — judgment per the locked workshop
+decisions; the workshop itself was the alignment pass):
+
+- **Enum migration shape: expand-migrate-contract.** Additive identity fields first,
+  consumers migrate off `type`, enum dropped in a final contraction step — each step
+  revertible on the production path. Rejected: big-bang column swap (one irreversible
+  review unit spanning every channels consumer).
+- **Switching mechanism: settled by spike, not by epic-design.** The workshop committed
+  the lifecycle (airs-when-programmed); whether that's interactive predicates/harbor
+  control inside persistent pipelines or supervised per-channel pipeline start/stop is
+  the editorial-engine design pass's opening spike. Fallback posture if the spike
+  disappoints: keep regenerate-and-restart for channel CRUD, scope live switching to
+  within-pipeline source changes — recorded as an explicit behavior decision then.
+- **Airing-state representation is NOT built in this epic.**
+  `live-experience-redesign-live-state` owns the derived live/playout/offline
+  representation and its spine events (per §Consumers); `identity-lifecycle` provides
+  the identity fields the derivation keys on. No `state` enum column replaces the
+  `type` enum — that would re-create the conflation with extra steps.
+- **Editorial surface ownership stays with playout-admin-redesign.** Its reframe makes
+  the components channel+permission-scoped; `creator-enablement` mounts them. Cross-epic
+  coordination is a prose contract, not a `depends_on` edge — the redesign epic is on its
+  own lane and hard edges across epics would couple lane scheduling.
+
+## Decomposition risks
+
+- **Critical path is a chain** (identity → engine → snctv); only creator-enablement's
+  UX groundwork can overlap. Accepted: each link gates the next on a production path.
+- **The engine spike can fail.** Mitigation named in the engine brief (degraded-but-
+  shippable fallback posture, explicit behavior decision if taken).
+- **Identity migration touches every channels consumer** (channels service, streaming/
+  playout routes, seed, admin UI, live.tsx, chat-room provisioning). The feature-design
+  pass must enumerate consumers; the topology goldens + integration suite are the guard.
+- **Two epics shape "state"** (this one and live-experience). Boundary pinned in Design
+  decisions; if live-state's design pass finds the boundary wrong, escalate to the user
+  rather than silently absorbing the representation here.
 
 ## Risks
 - Production streaming path — every step needs output-equivalence or explicit,
