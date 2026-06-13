@@ -13,6 +13,30 @@ parent: playout-admin-redesign
 
 # Honest actions — consequences stated before, feedback after
 
+## Resume note (2026-06-13, Lane 3)
+**Status: designed, not implemented. Held intentionally — safe to clear and resume.**
+Design is complete (units, stories, decisions all below); no code was written, no
+working-tree state belongs to this feature.
+
+- **Dependencies now SATISFIED.** Both responsive-structure deps
+  (`…-form-and-chrome`, `…-simulcast-table`) implemented, reviewed, fix-verified, and
+  archived. The hold reason ("wait for responsive-structure review") has cleared — the
+  3 child stories are unblocked and ready to implement.
+- **Re-ground before implementing — `playout.tsx` and `channels.ts` moved.** Lane 1's
+  `unified-channel-model-identity-lifecycle` is mid-flight migrating the channel schema
+  (the `type` enum → identity/state split; `expand` + `migrate` stories landed, more in
+  flight). This feature's Unit 1 (channel create/delete) reads `channels.ts`,
+  `streaming.routes.ts`, the `createChannel`/`deleteChannel` libs, and the channel-tab
+  loader — all in Lane 1's write path. **Before dispatching honest-actions, re-read
+  those files against current HEAD**; the design's line refs and the "delete
+  soft-deactivates / channel-tab loader filters isActive" assumptions may have shifted
+  under the migration. The restart-warning copy stays truthful either way (verified
+  against the unified epic's spike fallback), but the wiring points may have moved.
+- **Same-file serialization within this feature** still holds: `…-channel-lifecycle`
+  and `…-queue-honesty` both write `playout.tsx` → bundle or serialize them;
+  `…-toggle-feedback` (simulcast manager) is disjoint and can run parallel.
+- **Resume command:** `/agile-workflow:implement-orchestrator playout-admin-redesign-honest-actions`.
+
 ## Brief
 Destructive and disruptive admin actions communicate consequence before firing and
 confirm outcome after. Channel lifecycle becomes coherent and complete: channel

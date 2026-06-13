@@ -23,3 +23,10 @@ parent feature body.
 ## Coordination
 Writes `playout.tsx` — depends on responsive-structure's form-and-chrome story
 (declared); bundle or serialize with sibling `…-channel-lifecycle` (same file).
+
+## Resume note (2026-06-13)
+Designed, not implemented; dep satisfied (responsive-structure archived). Pure copy/
+affordance changes (`QueueItemRow`, `PoolItemPicker`, the Now Playing skip block) —
+lower migration exposure than the channel-lifecycle sibling, but still re-read
+`playout.tsx` against current HEAD before implementing. See the parent feature's
+`## Resume note`.

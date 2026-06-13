@@ -25,3 +25,10 @@ acceptance criteria in the parent feature body. Delete BOTH backlog stubs
 ## Coordination
 Writes `playout.tsx` — depends on responsive-structure's form-and-chrome story
 (declared); bundle or serialize with sibling `…-queue-honesty` (same file).
+
+## Resume note (2026-06-13)
+Designed, not implemented; dep satisfied (responsive-structure archived). Before
+implementing, re-read `playout.tsx`, `channels.ts`, `streaming.routes.ts`, and the
+`createChannel`/`deleteChannel` libs against current HEAD — Lane 1's
+`unified-channel-model-identity-lifecycle` migration is changing the channel schema
+under this surface. See the parent feature's `## Resume note`.
