@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -318,8 +318,8 @@ fix-verify). If suppressed → add the explicit slot
 (`slots={{ timeSlider: null, fullscreenButton: <modules.layouts… default button> }}`
 or adjust `smallLayoutWhen`) and re-verify.
 
-Absorbs backlog `a11y-viewer-mini-player-touch-target` — **delete
-`.work/backlog/a11y-viewer-mini-player-touch-target.md` in this story's commit**.
+Absorbs backlog item a11y-viewer-mini-player-touch-target — **deleted in this
+story's commit** (referenced by id only; the file is gone).
 
 **Acceptance Criteria**:
 - [ ] Mini-player expand/close buttons have ≥44×44px hit areas at both breakpoints;
@@ -424,3 +424,34 @@ import { Maximize2, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 - **`.chatPortal` base-rule change** (400px → hidden-by-default): any non-live page
   renders `chatPortalHidden` anyway (`display: none`), so the only consumer is the
   live layout — verified by reading `__root.tsx` (the class pair is exhaustive).
+
+## Implementation summary (orchestrated run, 2026-06-13)
+
+All three child stories implemented and advanced to review, in two waves
+(mobile-tabs ∥ player-chrome, then desktop-controls serialized behind mobile-tabs on
+the shared live.tsx write-set):
+
+- `live-experience-redesign-layout-ergonomics-mobile-tabs` — landed per design;
+  `.infoSections` uses flex-column (not `display: contents` — composes
+  incompatibility), `.liveGridMobileChat` zeroes the base grid padding.
+- `live-experience-redesign-layout-ergonomics-player-chrome` — touch targets landed
+  per design; fullscreen verification resolved at code level (Vidstack 1.12.13
+  `DefaultVideoSmallLayout` renders the fullscreen button; `slots={{ timeSlider:
+  null }}` does not suppress it — evidence in the story body). Runtime confirmation
+  deferred to fix-verify. Backlog item a11y-viewer-mini-player-touch-target absorbed
+  and deleted.
+- `live-experience-redesign-layout-ergonomics-desktop-controls` — landed per design.
+
+Commit anomaly (recorded, not repaired): the wave-1 parallel pre-commit stash cycle
+swept both wave-1 stories (plus an unrelated in-flight feature-body edit from another
+lane) into the single commit f93aa5a despite scoped staging — content is complete and
+correct, but the one-commit-per-item mapping broke for mobile-tabs. History not
+rewritten (shared main, concurrent lanes). Follow-on for future parallel waves:
+serialize commits or use worktree isolation when pre-commit hooks stash unstaged
+changes.
+
+Visual/geometry acceptance (mobile chat fill at 375px, touch-target feel, resting
+opacity, fullscreen button presence) rides the platform fix-verify loopback at review.
+
+Verification by the orchestrator after each wave: web unit suite 1678/1678 across 154
+files, `@snc/web` build clean.
