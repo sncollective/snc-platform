@@ -1,0 +1,136 @@
+/* ── Container ── */
+
+.container {
+  container-type: inline-size;
+}
+
+/* ── Table View (mobile-first: hidden until container is wide enough) ── */
+
+.table {
+  display: none;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.row td {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.td {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* ── Card View (mobile-first: visible by default) ── */
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cardTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cardField {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.cardLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cardValue {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  text-align: right;
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* ── Container Queries ──
+ *
+ * Two literal blocks — @container can't read CSS custom properties.
+ * Values match breakpoint reference tokens: sm=640px, md=768px.
+ *
+ * Default (tableAt="sm"): show table at 640px for containers that are
+ * neither .cardsOnly nor .tableAtMd.
+ *
+ * tableAt="md": show table at 768px for containers with .tableAtMd
+ * (wide tables such as simulcast with 6+ columns).
+ *
+ * .cardsOnly suppresses the table at every width (mode="cards").
+ *
+ * Selector form: .container:<modifiers> .target — .container is the
+ * container element and is valid as an ancestor in the selector even
+ * inside a @container rule; only the final matched element (.table /
+ * .cardList) receives the style change.
+ */
+
+@container (min-width: 640px) {
+  .container:not(.tableAtMd):not(.cardsOnly) .table {
+    display: table;
+  }
+
+  .container:not(.tableAtMd):not(.cardsOnly) .cardList {
+    display: none;
+  }
+}
+
+@container (min-width: 768px) {
+  .container.tableAtMd:not(.cardsOnly) .table {
+    display: table;
+  }
+
+  .container.tableAtMd:not(.cardsOnly) .cardList {
+    display: none;
+  }
+}

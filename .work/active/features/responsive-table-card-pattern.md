@@ -1,7 +1,7 @@
 ---
 id: responsive-table-card-pattern
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system]
 release_binding: null
 depends_on: []
@@ -225,3 +225,33 @@ carries the fix-verify loopback against real admin surfaces at 375px.
   buttons safely.
 - **TanStack creators table doesn't fit the primitive** — accepted non-goal; named in
   the architectural choice so nobody force-fits it later.
+
+## Implementation notes
+
+### Files created
+
+- `apps/web/src/components/ui/responsive-table.tsx` — `ResponsiveTable<T>` component with
+  exported `ResponsiveTableColumn<T>` and `ResponsiveTableProps<T>` interfaces.
+- `apps/web/src/components/ui/responsive-table.module.css` — CSS module: mobile-first dual
+  render, two `@container` literal blocks (640px / 768px), all values via design tokens.
+- `apps/web/tests/unit/components/responsive-table.test.tsx` — 18 unit tests covering all
+  Unit 1 acceptance criteria assertable in jsdom.
+
+### Deviations from spec
+
+- **`mode="cards"` omits `<table>` from DOM entirely** (not just CSS-hidden). The spec's
+  Unit 3 acceptance criterion states "table absent in `mode='cards'`" and the design decision
+  says "`mode='cards'` renders no table view." The dual-render rationale (SSR-safe, no
+  flicker) does not apply when the table is unconditionally suppressed — the container query
+  never needs to show it. Omitting it avoids markup bloat and removes the hidden-but-present
+  table from jsdom inspection in tests. This is consistent with the spec language; the
+  "dual render" pattern applies to `mode="auto"` only.
+
+- **`<ul>` inline `style` removed in favour of CSS module**: the spec didn't specify inline
+  styles; list-style/margin/padding resets are in `.cardList` in the CSS module, matching
+  the precedent pattern. The component does not pass inline `style` to the `<ul>`.
+
+### Verification
+
+- `bun run --filter @snc/web test` — 1626 passed, 0 failed (153 test files).
+- `bun run --filter @snc/web build` — clean build, no type errors.
