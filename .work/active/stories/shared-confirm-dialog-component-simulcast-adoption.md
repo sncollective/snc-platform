@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component-simulcast-adoption
 kind: story
-stage: implementing
+stage: review
 tags: [design-system, playout, admin-console]
 release_binding: null
 depends_on: [shared-confirm-dialog-component-component]
@@ -25,3 +25,21 @@ it tracks lands here.
 ## Acceptance criteria
 - All Unit 2 acceptance criteria in the parent feature body.
 - `bun run --filter @snc/web test` and `build` green.
+
+## Implementation notes
+
+- Added `destPendingDelete: SimulcastDestination | null` state to the component. Both Delete
+  buttons (table variant and list variant) now call `setDestPendingDelete(dest)` instead of
+  calling `handleDelete` directly.
+- Renamed `handleDelete` to `handleDeleteConfirm`; it snapshots and clears pending state first,
+  then runs the existing delete + reload + error-handling logic unchanged.
+- `<ConfirmDialog>` rendered once at component foot, outside the table/list variant branch.
+  Consequence message names the destination label. `onCancel` clears pending state
+  (idempotent — safe when `ConfirmDialog` fires it after `onConfirm` per the JSDoc contract).
+- Import uses `.js` extension per conventions.
+- Three delete-flow tests added to `simulcast-destination-manager.test.tsx`: open-dialog-no-call,
+  confirm-calls-and-reloads, cancel-closes-no-call. Used `userEvent` from `@testing-library/user-event`
+  matching the confirm-dialog test conventions.
+- `window.confirm` is fully removed from the component.
+- `.work/backlog/bug-admin-simulcast-window-confirm.md` removed in this commit.
+- Tests: 1663 passed. Build: clean exit code 0.

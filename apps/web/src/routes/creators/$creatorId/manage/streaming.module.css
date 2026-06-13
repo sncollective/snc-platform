@@ -158,58 +158,6 @@
   word-break: break-all;
 }
 
-/* ── Revoke Confirmation Dialog ── */
-
-.revokeDialogActions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-}
-
-.revokeConfirmButton {
-  padding: var(--space-xs) var(--space-md);
-  background: var(--color-error);
-  color: #fff;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.revokeConfirmButton:hover {
-  opacity: 0.85;
-}
-
-.revokeConfirmButton:focus-visible {
-  outline: 2px solid var(--color-error);
-  outline-offset: 2px;
-}
-
-.revokeCancelButton {
-  padding: var(--space-xs) var(--space-md);
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.revokeCancelButton:hover {
-  color: var(--color-text);
-  border-color: var(--color-text-muted);
-}
-
-.revokeCancelButton:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
 /* ── Connect Section ── */
 
 .connectSection {

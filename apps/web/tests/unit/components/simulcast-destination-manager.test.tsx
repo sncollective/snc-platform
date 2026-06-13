@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 // ── Component Under Test ──
 
@@ -154,5 +155,99 @@ describe("SimulcastDestinationManager – RTMP URL validation", () => {
     await waitFor(() => {
       expect(screen.getByText("My Twitch")).toBeInTheDocument();
     });
+  });
+});
+
+describe("SimulcastDestinationManager – delete flow", () => {
+  it("clicking Delete opens the confirm dialog without calling deleteDestination", async () => {
+    const user = userEvent.setup();
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest()] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    // Dialog should appear
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText(/Delete destination\?/i)).toBeInTheDocument();
+
+    // API not called yet
+    expect(mockDeleteDestination).not.toHaveBeenCalled();
+  });
+
+  it("confirming the dialog calls deleteDestination with the right id and reloads", async () => {
+    const user = userEvent.setup();
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest({ id: "dest-99" })] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete destination" }));
+
+    await waitFor(() => {
+      expect(mockDeleteDestination).toHaveBeenCalledWith("dest-99");
+    });
+
+    // Reloads the list after delete
+    expect(mockFetchDestinations).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancelling the dialog closes it without calling deleteDestination", async () => {
+    const user = userEvent.setup();
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest()] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+
+    expect(mockDeleteDestination).not.toHaveBeenCalled();
   });
 });

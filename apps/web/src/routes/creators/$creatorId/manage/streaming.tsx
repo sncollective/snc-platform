@@ -13,13 +13,7 @@ import type {
 import { MAX_CREATOR_SIMULCAST_DESTINATIONS } from "@snc/shared";
 
 import { SimulcastDestinationManager } from "../../../../components/simulcast/simulcast-destination-manager.js";
-import {
-  DialogRoot,
-  DialogBackdrop,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "../../../../components/ui/dialog.js";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog.js";
 import { apiMutate } from "../../../../lib/fetch-utils.js";
 import { navigateExternal } from "../../../../lib/url.js";
 import {
@@ -355,37 +349,16 @@ function StreamingPage(): React.ReactElement {
       </section>
 
       {/* ── Revoke Confirmation Dialog ── */}
-      <DialogRoot
+      <ConfirmDialog
         open={keyPendingRevoke !== null}
-        onOpenChange={(details) => { if (!details.open) setKeyPendingRevoke(null); }}
-        lazyMount
-        unmountOnExit
+        title="Revoke key?"
+        confirmLabel="Revoke key"
+        onConfirm={() => { void handleConfirmRevoke(); }}
+        onCancel={() => setKeyPendingRevoke(null)}
       >
-        <DialogBackdrop />
-        <DialogContent>
-          <DialogTitle>Revoke key?</DialogTitle>
-          <DialogDescription>
-            Revoking &ldquo;{keyPendingRevoke?.name ?? ""}&rdquo; will disconnect any streaming
-            software using it. This cannot be undone.
-          </DialogDescription>
-          <div className={styles.revokeDialogActions}>
-            <button
-              type="button"
-              className={styles.revokeConfirmButton}
-              onClick={() => { void handleConfirmRevoke(); }}
-            >
-              Revoke key
-            </button>
-            <button
-              type="button"
-              className={styles.revokeCancelButton}
-              onClick={() => setKeyPendingRevoke(null)}
-            >
-              Cancel
-            </button>
-          </div>
-        </DialogContent>
-      </DialogRoot>
+        Revoking &ldquo;{keyPendingRevoke?.name ?? ""}&rdquo; will disconnect any streaming
+        software using it. This cannot be undone.
+      </ConfirmDialog>
     </div>
   );
 }

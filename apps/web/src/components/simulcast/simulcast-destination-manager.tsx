@@ -10,6 +10,7 @@ import type {
 } from "@snc/shared";
 import { SIMULCAST_PLATFORMS, SIMULCAST_PLATFORM_KEYS, RTMP_URL_REGEX } from "@snc/shared";
 
+import { ConfirmDialog } from "../ui/confirm-dialog.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./simulcast-destination-manager.module.css";
 
@@ -49,6 +50,9 @@ export function SimulcastDestinationManager({
   // Form visibility
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Delete confirmation
+  const [destPendingDelete, setDestPendingDelete] = useState<SimulcastDestination | null>(null);
 
   // Form fields
   const [platform, setPlatform] = useState<SimulcastPlatform>("twitch");
@@ -154,10 +158,12 @@ export function SimulcastDestinationManager({
     }
   };
 
-  const handleDelete = async (id: string): Promise<void> => {
-    if (!window.confirm("Delete this simulcast destination?")) return;
+  const handleDeleteConfirm = async (): Promise<void> => {
+    const dest = destPendingDelete;
+    setDestPendingDelete(null);
+    if (dest === null) return;
     try {
-      await deleteDestination(id);
+      await deleteDestination(dest.id);
       await loadDestinations();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete destination");
@@ -334,7 +340,7 @@ export function SimulcastDestinationManager({
                     <button
                       type="button"
                       className={styles.deleteButton}
-                      onClick={() => { void handleDelete(dest.id); }}
+                      onClick={() => { setDestPendingDelete(dest); }}
                     >
                       Delete
                     </button>
@@ -378,7 +384,7 @@ export function SimulcastDestinationManager({
                 <button
                   type="button"
                   className={styles.deleteButton}
-                  onClick={() => { void handleDelete(dest.id); }}
+                  onClick={() => { setDestPendingDelete(dest); }}
                 >
                   Delete
                 </button>
@@ -387,6 +393,18 @@ export function SimulcastDestinationManager({
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={destPendingDelete !== null}
+        title="Delete destination?"
+        confirmLabel="Delete destination"
+        onConfirm={() => { void handleDeleteConfirm(); }}
+        onCancel={() => { setDestPendingDelete(null); }}
+      >
+        {destPendingDelete !== null && (
+          <>Deleting &ldquo;{destPendingDelete.label}&rdquo; stops simulcasting to it. This cannot be undone.</>
+        )}
+      </ConfirmDialog>
     </>
   );
 }
