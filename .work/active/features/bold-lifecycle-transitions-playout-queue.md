@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, playout]
 release_binding: null
 depends_on: []
@@ -226,3 +226,23 @@ statement-for-statement identical, returns the inserted row for the response map
 3. `bold-lifecycle-transitions-playout-queue-step-3`
 
 Sequential chain (shared module file; merge churn not worth parallelism at this size).
+
+## Implementation summary (2026-06-13)
+
+All three step stories implemented (one bundle agent, sequential, one commit each) and
+at review. Orchestrator wave verification: full `@snc/api` unit suite green (1567 tests
+/ 104 files), no build issues. The 34-test orchestrator suite passed **unchanged** — no
+assertion weakened, no mock relocation needed (mocks bind at the db-connection module,
+which the transitions module shares). Structural single-writer test tripwire-verified
+(fails on an introduced stray write; cleanup job correctly exempt — it never writes
+status). Remaining `update(playoutQueue)` in the orchestrator only sets
+`pushedToLiquidsoap` (push buffer, startup reset), as designed.
+
+Deviation (accepted): the full transitions module (all 5 functions) was written in
+step 1 since it is one file; steps 2–3 connected call sites. Step-1's commit therefore
+briefly carried not-yet-called exports — each commit still builds and tests green, and
+per-step rollback holds.
+
+The named transitions (`markPlayed`, `promoteNext`, `enqueue`, `enqueueBatch`,
+`removeQueued`) are now in place as the emission points `bold-event-spine-publishers`
+attaches to.
