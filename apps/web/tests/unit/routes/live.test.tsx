@@ -7,10 +7,11 @@ import { createRouterMock } from "../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
 
-const { mockIsFeatureEnabled, mockUseLoaderData, mockUseSearch } = vi.hoisted(() => ({
+const { mockIsFeatureEnabled, mockUseLoaderData, mockUseSearch, mockApiGet } = vi.hoisted(() => ({
   mockIsFeatureEnabled: vi.fn(),
   mockUseLoaderData: vi.fn(),
   mockUseSearch: vi.fn(),
+  mockApiGet: vi.fn<() => Promise<unknown>>().mockResolvedValue({ channels: [], defaultChannelId: null }),
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({
@@ -34,7 +35,7 @@ vi.mock("../../../src/lib/api-server.js", () => ({
 }));
 
 vi.mock("../../../src/lib/fetch-utils.js", () => ({
-  apiGet: vi.fn().mockResolvedValue({ rooms: [] }),
+  apiGet: mockApiGet,
   throwIfNotOk: vi.fn(),
 }));
 
@@ -124,24 +125,50 @@ function makeChannelList(overrides: Record<string, unknown> = {}) {
 // ── Tests ──
 
 describe("LivePage", () => {
-  it("renders Coming Soon when channels is empty", () => {
+  it("renders offline placeholder when channels is empty and not loading", () => {
     mockUseLoaderData.mockReturnValue({
       initial: { channels: [], defaultChannelId: null },
     });
 
     render(<LivePage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Coming Soon" })).toBeInTheDocument();
-    expect(screen.getByText("Live streaming is on its way. Stay tuned.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Nothing live right now" })).toBeInTheDocument();
+    expect(screen.getByText(/No channels are streaming at the moment/)).toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
   });
 
-  it("does not render Coming Soon while loading (initial is null)", () => {
+  it("renders calendar link in offline placeholder", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: { channels: [], defaultChannelId: null },
+    });
+
+    render(<LivePage />);
+
+    const link = screen.getByRole("link", { name: "View the calendar" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/calendar");
+  });
+
+  it("renders channel zone skeleton while loading (initial is null)", () => {
+    // Keep the fetch pending so isLoading stays true for the duration of the test
+    mockApiGet.mockReturnValue(new Promise(() => {}));
     mockUseLoaderData.mockReturnValue({ initial: null });
 
     render(<LivePage />);
 
-    // When initial is null, isLoading is true — Coming Soon deferred until fetch completes
-    expect(screen.queryByRole("heading", { level: 1, name: "Coming Soon" })).not.toBeInTheDocument();
+    // Skeleton renders synchronously before any fetch resolves
+    expect(screen.getByRole("status", { name: "Loading channels" })).toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Nothing live right now" })).toBeNull();
+  });
+
+  it("does not render offline placeholder while loading (initial is null)", () => {
+    mockUseLoaderData.mockReturnValue({ initial: null });
+
+    render(<LivePage />);
+
+    // When initial is null, isLoading is true — offline state deferred until fetch completes
+    expect(screen.queryByRole("heading", { name: "Nothing live right now" })).not.toBeInTheDocument();
   });
 
   it("renders channel selector when channels are active", () => {

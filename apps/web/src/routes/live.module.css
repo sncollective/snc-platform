@@ -158,13 +158,6 @@
   display: block;
 }
 
-.playerSkeleton {
-  width: 100%;
-  height: 100%;
-  background: var(--color-bg-elevated);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -226,7 +219,9 @@
   font-size: var(--font-size-sm);
 }
 
-.comingSoon {
+/* ── Offline State ── */
+
+.offline {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -237,18 +232,62 @@
   padding: var(--space-md);
 }
 
-.comingSoonHeading {
+.offlineHeading {
   font-family: var(--font-heading);
   font-size: var(--font-size-2xl);
   color: var(--color-text);
   margin-bottom: var(--space-md);
 }
 
-.comingSoonText {
+.offlineText {
   color: var(--color-text-muted);
   max-width: 480px;
   line-height: 1.6;
   font-size: var(--font-size-base);
+  margin-bottom: var(--space-md);
+}
+
+.offlineCalendarLink {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.offlineCalendarLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Channel Zone Skeleton ── */
+
+.channelZoneSkeleton {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.skeletonSelect {
+  display: block;
+  width: 240px;
+  height: 36px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonLine {
+  display: block;
+  width: 80px;
+  height: 16px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonSelect,
+  .skeletonLine {
+    animation: none;
+  }
 }
 
 .creatorBar {

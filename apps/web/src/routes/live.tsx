@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -275,7 +275,8 @@ function LivePage(): React.ReactElement {
     <>
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
       <div className={styles.routeContent}>
-        {!hasChannels && !isLoading && <ComingSoonPlaceholder />}
+        {isLoading && <ChannelZoneSkeleton />}
+        {!hasChannels && !isLoading && <OfflinePlaceholder />}
 
         {hasChannels && (
           <div className={styles.streamInfo}>
@@ -461,14 +462,28 @@ function StreamStatusBar({
   );
 }
 
-/** Placeholder shown when no channels are active. */
-function ComingSoonPlaceholder(): React.ReactElement {
+/** Pulsing placeholder for the channel selector zone during the initial fetch. */
+function ChannelZoneSkeleton(): React.ReactElement {
   return (
-    <div className={styles.comingSoon}>
-      <h1 className={styles.comingSoonHeading}>Coming Soon</h1>
-      <p className={styles.comingSoonText}>
-        Live streaming is on its way. Stay tuned.
+    <div className={styles.channelZoneSkeleton} role="status" aria-label="Loading channels">
+      <span className={styles.skeletonSelect} aria-hidden="true" />
+      <span className={styles.skeletonLine} aria-hidden="true" />
+    </div>
+  );
+}
+
+/** Placeholder shown when no channels are active. */
+function OfflinePlaceholder(): React.ReactElement {
+  return (
+    <div className={styles.offline}>
+      <h1 className={styles.offlineHeading}>Nothing live right now</h1>
+      <p className={styles.offlineText}>
+        No channels are streaming at the moment. Check the calendar for upcoming
+        shows and streams.
       </p>
+      <Link to="/calendar" className={styles.offlineCalendarLink}>
+        View the calendar
+      </Link>
     </div>
   );
 }
