@@ -382,18 +382,49 @@
   display: none;
 }
 
+/* ── New Channel Form ── */
+
+.newChannelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top: var(--space-sm);
+}
+
+.newChannelForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.newChannelInput {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
 /* ── Channel Tabs ── */
 
 .channelTabs {
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   gap: var(--space-sm);
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0;
 }
 
+.channelTabs::-webkit-scrollbar {
+  height: 4px;
+}
+
 .channelTab {
   padding: var(--space-sm) var(--space-md);
+  flex-shrink: 0;
   cursor: pointer;
   background: transparent;
   border: none;
@@ -533,8 +564,9 @@
 .searchPickerResults {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: auto;
   right: 0;
+  min-width: 260px;
   z-index: var(--z-dropdown);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);

@@ -238,6 +238,18 @@ describe("PlayoutPage", () => {
     });
   });
 
+  it("renders new channel row without inline style (uses CSS class)", async () => {
+    const userSetup = userEvent.setup();
+    render(<PlayoutPage />);
+
+    const newChannelBtn = screen.getByRole("button", { name: "+ New Channel" });
+    await userSetup.click(newChannelBtn);
+
+    const channelInput = screen.getByPlaceholderText("Channel name");
+    // The input should not have an inline style attribute (class handles sizing).
+    expect(channelInput.closest("div")?.getAttribute("style")).toBeNull();
+  });
+
   it("shows multiple channel tabs when multiple channels exist", () => {
     const chs = [
       makeMockPlayoutChannel({ id: "ch1", name: "Classics" }),

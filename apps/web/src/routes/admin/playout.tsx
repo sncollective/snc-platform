@@ -374,7 +374,7 @@ function PlayoutPage(): React.ReactElement {
         ) : (
           <p className={listingStyles.status}>No playout channels configured.</p>
         )}
-        <div style={{ marginTop: "var(--space-sm)", display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+        <div className={styles.newChannelRow}>
           <button
             type="button"
             className={styles.addButton}
@@ -383,10 +383,10 @@ function PlayoutPage(): React.ReactElement {
             + New Channel
           </button>
           {showCreateChannel && (
-            <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+            <div className={styles.newChannelForm}>
               <input
                 type="text"
-                className={formStyles.input}
+                className={[formStyles.input, styles.newChannelInput].join(" ")}
                 value={newChannelName}
                 onChange={(e) => setNewChannelName(e.target.value)}
                 placeholder="Channel name"
