@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-input-switch
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 release_binding: null
 depends_on: []
@@ -40,14 +40,27 @@ holder contract, fallback plan).
 - [ ] Webhook 401s without secret; publishes + records on valid call.
 - [ ] `getAiringSource()` reflects the last webhook call; `unknown` before any.
 
-## Resume note (2026-06-13 — ready, paused for coordination)
+## Implementation notes (2026-06-13)
 
-Deps clear; this is the chain's entry point. **Before starting, two re-grounding checks:**
-1. **Spike first** (per scope): validate `fallback(transitions=[...])` firing in the dev
-   Liquidsoap container BEFORE template/API wiring — only when the shared dev stream is
-   free to restart.
-2. **`channels.ts` moved under Lane 1.** `unified-channel-model-identity-lifecycle` had
-   an in-flight schema migration + `channels.ts`/`streaming.schema.ts` edits at pause
-   time. Re-read the broadcast-channel row shape (what the webhook resolves to
-   `setAiringSource` + publishes from) against the landed change before wiring the
-   webhook — the `type: "broadcast"` lookup may have shifted.
+**Re-grounding done:** confirmed `channels.type` was dropped; resolved broadcast channel
+via `ownership='platform'` AND `role='broadcast'` (no longer `type='broadcast'`). The
+`activateLiveChannel` rename and `ensureCreatorChannel` addition in Lane 1's
+commit cafcb45 were verified — SSE publish seams in `channels.ts` are intact.
+
+**Files changed:**
+- `apps/api/src/services/playout-live-state.ts` — new, ~30 LOC; `setAiringSource`/`getAiringSource`, `"unknown"` until first switch
+- `apps/api/src/services/playout-topology.ts` — added `BROADCAST_INPUT_SWITCH_PATH` constant
+- `apps/api/src/services/liquidsoap-render.ts` — added `notify_switch` transitions on S/NC TV fallback
+- `apps/api/src/routes/playout-channels.routes.ts` — added `POST /broadcast/input-switch` webhook
+- `apps/api/tests/services/playout-live-state.test.ts` — 5 tests green
+- `apps/api/tests/routes/playout-channels.routes.test.ts` — 7 new input-switch tests; all 38 in file green
+- `apps/api/tests/services/liquidsoap-config.test.ts` — updated 1 assertion for new multi-line fallback form
+- `apps/api/tests/services/__snapshots__/playout-*.liq` — all 4 snapshot files updated (feature, not refactor)
+
+**Acceptance criteria disposition:**
+- [ ] Spike: transitions observed firing — **DOCUMENTED RESIDUAL**: dev streaming stack not runnable in sandbox (no docker/Liquidsoap). Template is implemented per design; spike validation must happen in a real dev env before relying on transitions in production. Fallback plan (thread.run is_ready() poller) documented in parent feature.
+- [x] Render unit tests updated; all 19 liquidsoap-config tests green including 4 golden-output snapshots.
+- [x] Webhook 401s without secret; publishes + records on valid call — 7 tests green.
+- [x] `getAiringSource()` reflects the last webhook call; `"unknown"` before any — 5 tests green.
+
+**Emission-asymmetry note (not applicable for this unit):** N/A — this unit publishes synchronously from the webhook handler, no transitions module involved.

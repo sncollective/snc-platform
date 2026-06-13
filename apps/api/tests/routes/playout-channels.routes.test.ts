@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 import { setupRouteTest } from "../helpers/route-test-factory.js";
+import { makeTestConfig } from "../helpers/test-constants.js";
 
 // ── Mock Orchestrator Methods ──
 
@@ -590,5 +591,201 @@ describe("playout channel routes", () => {
       );
       expect(res.status).toBe(403);
     });
+  });
+});
+
+// ── Input-Switch Webhook Tests ──
+// Isolated from the main ctx (which doesn't need DB or eventBus mocks).
+
+describe("POST /api/playout/broadcast/input-switch", () => {
+  const VALID_SECRET = "test-playout-callback-secret-minimum-32-chars";
+
+  const mockPublish = vi.fn();
+  const mockSetAiringSource = vi.fn();
+  const mockDbSelect = vi.fn();
+
+  const buildInputSwitchApp = async (broadcastChannel: { id: string } | null) => {
+    vi.doMock("../../src/config.js", () => ({
+      config: makeTestConfig(),
+      parseOrigins: (raw: string) => raw.split(",").map((o: string) => o.trim()).filter(Boolean),
+    }));
+
+    vi.doMock("../../src/db/connection.js", () => ({
+      db: { select: mockDbSelect },
+    }));
+
+    vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
+      channels: {
+        id: "id",
+        ownership: "ownership",
+        role: "role",
+        isActive: "isActive",
+      },
+    }));
+
+    vi.doMock("../../src/services/event-bus.js", () => ({
+      eventBus: { publish: mockPublish },
+      createEventBus: vi.fn(),
+    }));
+
+    vi.doMock("../../src/services/playout-live-state.js", () => ({
+      setAiringSource: mockSetAiringSource,
+      getAiringSource: vi.fn().mockReturnValue("unknown"),
+    }));
+
+    // Mock orchestrator init to avoid importing real DB-dependent services
+    vi.doMock("../../src/routes/playout-channels.init.js", () => ({
+      orchestrator: {
+        onTrackStarted: vi.fn(),
+        getChannelQueueStatus: vi.fn(),
+        insertIntoQueue: vi.fn(),
+        removeFromQueue: vi.fn(),
+        skip: vi.fn(),
+        listContent: vi.fn(),
+        assignContent: vi.fn(),
+        removeContent: vi.fn(),
+        searchAvailableContent: vi.fn(),
+      },
+    }));
+
+    // Mock channels service for ensurePlayout (imported at module level)
+    vi.doMock("../../src/services/channels.js", () => ({
+      ensurePlayout: vi.fn(),
+      SNC_TV_BROADCAST: { name: "S/NC TV", srsStreamName: "snc-tv", ownership: "platform", role: "broadcast" },
+    }));
+
+    vi.doMock("../../src/services/liquidsoap-config.js", () => ({
+      regenerateAndRestart: vi.fn().mockResolvedValue({ ok: true }),
+      waitForHealth: vi.fn().mockResolvedValue(true),
+    }));
+
+    // Select chain: from().where() resolves to broadcastChannel rows
+    mockDbSelect.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(broadcastChannel ? [broadcastChannel] : []),
+      }),
+    });
+
+    const { Hono } = await import("hono");
+    const { errorHandler } = await import("../../src/middleware/error-handler.js");
+    const { corsMiddleware } = await import("../../src/middleware/cors.js");
+    const { playoutChannelRoutes } = await import("../../src/routes/playout-channels.routes.js");
+
+    const app = new Hono();
+    app.use("*", corsMiddleware);
+    app.onError(errorHandler);
+    app.route("/api/playout", playoutChannelRoutes);
+    return app;
+  };
+
+  beforeEach(() => {
+    vi.resetModules();
+    mockPublish.mockReset();
+    mockSetAiringSource.mockReset();
+    mockDbSelect.mockReset();
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.resetAllMocks();
+  });
+
+  it("returns 401 without secret", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-1" });
+    const res = await app.request("/api/playout/broadcast/input-switch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "live" }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("returns 401 with wrong secret", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-1" });
+    const res = await app.request(
+      "/api/playout/broadcast/input-switch?secret=wrong",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "live" }),
+      },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("publishes channel.live-state-changed with live:true on source='live'", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-ch-1" });
+    const res = await app.request(
+      `/api/playout/broadcast/input-switch?secret=${VALID_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "live" }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(mockPublish).toHaveBeenCalledTimes(1);
+    expect(mockPublish).toHaveBeenCalledWith({
+      type: "channel.live-state-changed",
+      channelId: "broadcast-ch-1",
+      live: true,
+    });
+  });
+
+  it("publishes live:false on source='queue'", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-ch-1" });
+    await app.request(
+      `/api/playout/broadcast/input-switch?secret=${VALID_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "queue" }),
+      },
+    );
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({ live: false }),
+    );
+  });
+
+  it("records the airing source via setAiringSource on valid call", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-ch-1" });
+    await app.request(
+      `/api/playout/broadcast/input-switch?secret=${VALID_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "live" }),
+      },
+    );
+    expect(mockSetAiringSource).toHaveBeenCalledWith("live");
+  });
+
+  it("maps 'blank' to 'fallback' in setAiringSource", async () => {
+    const app = await buildInputSwitchApp({ id: "broadcast-ch-1" });
+    await app.request(
+      `/api/playout/broadcast/input-switch?secret=${VALID_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "blank" }),
+      },
+    );
+    expect(mockSetAiringSource).toHaveBeenCalledWith("fallback");
+  });
+
+  it("returns 404 when no broadcast channel exists", async () => {
+    const app = await buildInputSwitchApp(null);
+    const res = await app.request(
+      `/api/playout/broadcast/input-switch?secret=${VALID_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "live" }),
+      },
+    );
+    expect(res.status).toBe(404);
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 });

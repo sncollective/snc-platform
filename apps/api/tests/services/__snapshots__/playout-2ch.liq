@@ -145,7 +145,25 @@ end)
 live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
 snc_tv_queue = request.queue(id="snc-tv-queue")
 
-snc_tv = fallback(track_sensitive=false, [live_source, snc_tv_queue, ch_aaaaaaaa_0000_0000_0000_000000000001_source, mksafe(blank())])
+# Input-switch telemetry: one transition per source, same order as the fallback list.
+# Each transition posts the source name to the API so the live-state holder stays current.
+# SPIKE NOTE: fallback(transitions=[...]) firing semantics in Liquidsoap 2.4 must be
+# validated in the dev container before relying on these in production. The fallback plan
+# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.md.
+def notify_switch(name) =
+  fun (_, b) -> begin
+    ignore(http.post(
+      headers=[("Content-Type", "application/json")],
+      data='{"source":"#{name}"}',
+      "http://#{api_host}:#{api_port}/api/playout/broadcast/input-switch?secret=#{callback_secret}"
+    ))
+    b
+  end
+end
+
+snc_tv = fallback(track_sensitive=false,
+  transitions=[notify_switch("live"), notify_switch("queue"), notify_switch("fallback"), notify_switch("blank")],
+  [live_source, snc_tv_queue, ch_aaaaaaaa_0000_0000_0000_000000000001_source, mksafe(blank())])
 
 snc_tv_uri = ref("")
 snc_tv_title = ref("")

@@ -13,6 +13,9 @@ import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
 import { ensurePlayout } from "../services/channels.js";
 import { regenerateAndRestart, waitForHealth } from "../services/liquidsoap-config.js";
+import { eventBus } from "../services/event-bus.js";
+import { setAiringSource } from "../services/playout-live-state.js";
+import type { AiringSource } from "../services/playout-live-state.js";
 import { orchestrator } from "./playout-channels.init.js";
 
 /** Playout channel queue management and Liquidsoap webhook endpoints. */
@@ -140,6 +143,76 @@ playoutChannelRoutes.post(
         result.error.statusCode as 400 | 404 | 500,
       );
     }
+
+    return c.json({ ok: true });
+  },
+);
+
+// ── Input-Switch Webhook (Liquidsoap → API) ──
+
+/** Body schema for the Liquidsoap fallback transition notification. */
+const InputSwitchBodySchema = z.object({
+  source: z.enum(["live", "queue", "fallback", "blank"]),
+});
+
+playoutChannelRoutes.post(
+  "/broadcast/input-switch",
+  describeRoute({
+    description:
+      "Receive a fallback-transition event from Liquidsoap. " +
+      "Updates the in-memory airing-state holder and publishes a channel.live-state-changed event. " +
+      "Authenticated via shared secret query param.",
+    tags: ["playout"],
+    responses: {
+      200: { description: "Transition recorded" },
+      401: { description: "Invalid or missing callback secret" },
+      404: { description: "Broadcast channel not found" },
+    },
+  }),
+  validator("json", InputSwitchBodySchema),
+  async (c) => {
+    const secret = c.req.query("secret");
+    if (
+      !config.PLAYOUT_CALLBACK_SECRET ||
+      secret !== config.PLAYOUT_CALLBACK_SECRET
+    ) {
+      return c.json(
+        { error: { code: "UNAUTHORIZED", message: "Invalid callback secret" } },
+        401,
+      );
+    }
+
+    const { source } = c.req.valid("json");
+
+    // Resolve the broadcast channel — ownership=platform, role=broadcast
+    const [broadcastChannel] = await db
+      .select({ id: channels.id })
+      .from(channels)
+      .where(
+        and(
+          eq(channels.ownership, "platform"),
+          eq(channels.role, "broadcast"),
+        ),
+      );
+
+    if (!broadcastChannel) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Broadcast channel not found" } },
+        404,
+      );
+    }
+
+    // Map "blank" to "fallback" for the holder — the distinction is not load-bearing
+    // for any named consumer; both mean "not live".
+    const airingSource: AiringSource = source === "blank" ? "fallback" : source;
+    setAiringSource(airingSource);
+
+    // Fire-and-forget — publish must never affect the webhook response
+    eventBus.publish({
+      type: "channel.live-state-changed",
+      channelId: broadcastChannel.id,
+      live: source === "live",
+    });
 
     return c.json({ ok: true });
   },

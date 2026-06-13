@@ -86,6 +86,13 @@ const liqId = (id: string): string => `ch_${id.replaceAll("-", "_")}`;
  */
 export const HARBOR_LEGACY_NOW_PLAYING = "/now-playing";
 
+/**
+ * API path for the Liquidsoap input-switch webhook.
+ * Liquidsoap posts here on every fallback transition; the same path is rendered
+ * into the .liq template and registered in the API route.
+ */
+export const BROADCAST_INPUT_SWITCH_PATH = "/api/playout/broadcast/input-switch";
+
 /** Build the harbor control paths for a playout channel (UUID verbatim). */
 export const harborChannelPaths = (
   channelId: string,

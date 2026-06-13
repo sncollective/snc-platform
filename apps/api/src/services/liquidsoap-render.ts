@@ -1,4 +1,4 @@
-import { HARBOR_LEGACY_NOW_PLAYING } from "./playout-topology.js";
+import { HARBOR_LEGACY_NOW_PLAYING, BROADCAST_INPUT_SWITCH_PATH } from "./playout-topology.js";
 import type {
   EnvRef,
   PlayoutChannelTopology,
@@ -135,7 +135,25 @@ ${channelBlocks}
 live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:${t.broadcastInputPort}/live/stream")
 snc_tv_queue = request.queue(id="${t.broadcast.queueId}")
 
-snc_tv = fallback(track_sensitive=false, [live_source, snc_tv_queue, ${t.broadcast.fallbackSourceVar}, mksafe(blank())])
+# Input-switch telemetry: one transition per source, same order as the fallback list.
+# Each transition posts the source name to the API so the live-state holder stays current.
+# SPIKE NOTE: fallback(transitions=[...]) firing semantics in Liquidsoap 2.4 must be
+# validated in the dev container before relying on these in production. The fallback plan
+# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.md.
+def notify_switch(name) =
+  fun (_, b) -> begin
+    ignore(http.post(
+      headers=[("Content-Type", "application/json")],
+      data='{"source":"#{name}"}',
+      "http://#{api_host}:#{api_port}${BROADCAST_INPUT_SWITCH_PATH}?secret=#{callback_secret}"
+    ))
+    b
+  end
+end
+
+snc_tv = fallback(track_sensitive=false,
+  transitions=[notify_switch("live"), notify_switch("queue"), notify_switch("fallback"), notify_switch("blank")],
+  [live_source, snc_tv_queue, ${t.broadcast.fallbackSourceVar}, mksafe(blank())])
 
 snc_tv_uri = ref("")
 snc_tv_title = ref("")
