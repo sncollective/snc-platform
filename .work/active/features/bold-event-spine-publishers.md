@@ -266,3 +266,10 @@ unchanged; wire proofs via the extended smoke script through Caddy.
 - **`unknown` airing state after API restart** — named gap, carried to
   `live-experience-redesign-live-state`.
 - **Snapshot-test churn** on Lane 1's render tests — intended; note in commit.
+
+## Note from lifecycle-playout-queue review (2026-06-13)
+Emission-point asymmetry in the landed transitions module: `promoteNext`/`enqueue`
+return the affected row (emit directly), but `markPlayed` returns void and
+`enqueueBatch` returns only a count. For the queue-events story, either pass the
+in-hand `playing` row at the orchestrator call site or extend `markPlayed`'s signature
+— decide intentionally rather than re-querying by reflex.

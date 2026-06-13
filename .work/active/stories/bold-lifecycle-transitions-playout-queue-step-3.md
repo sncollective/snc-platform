@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue-step-3
 kind: story
-stage: review
+stage: done
 tags: [refactor, playout]
 release_binding: null
 depends_on: [bold-lifecycle-transitions-playout-queue-step-2]
@@ -57,3 +57,7 @@ job's purge of terminal `played` rows is deliberately OUTSIDE the invariant).
   delivery-bookkeeping, not lifecycle writes.
 - Full suite: 104 test files, 1567 tests passing. Build: clean.
 - Test counts: 34 orchestrator (unchanged) + 14 transition + 4 structural = 52 new total.
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Verified at the feature-level deep review:
+verbatim extraction, orchestrator test assertions untouched, suite green.

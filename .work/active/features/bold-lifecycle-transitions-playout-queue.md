@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue
 kind: feature
-stage: review
+stage: done
 tags: [refactor, playout]
 release_binding: null
 depends_on: []
@@ -246,3 +246,27 @@ per-step rollback holds.
 The named transitions (`markPlayed`, `promoteNext`, `enqueue`, `enqueueBatch`,
 `removeQueued`) are now in place as the emission points `bold-event-spine-publishers`
 attaches to.
+
+## Review (2026-06-13)
+**Verdict**: Approve (deep lane, fresh-context sub-agent — not cross-model). No
+blockers, no important findings.
+**Behavior-preservation verified mechanically**: all three orchestrator diffs are
+statement-for-statement cuts (same WHERE/set/orderBy, same insert values, same
+guard/error, same log fields); the orchestrator test file is UNTOUCHED across all
+three commits (call-count/shape assertions not loosened — the load-bearing evidence);
+shared db-mock binding confirms "no mock relocation" is real. Grep: zero status-writes
+/ inserts / deletes of playoutQueue remain in the orchestrator (the two surviving
+update(playoutQueue) calls set only pushedToLiquidsoap — delivery bookkeeping). Suite
+1567/1567 at HEAD.
+**Nits** (advisory, accepted): (1) the single-writer structural test is a substring
+tripwire (`set({ status:` exact spacing) not an AST check — catches the common
+copy-paste regression, brittle to reformatting; (2) emission-point asymmetry for the
+publishers lane — `markPlayed` returns void and `enqueueBatch` returns a count, while
+`promoteNext`/`enqueue` return the affected row; publishers needing the played row's
+channelId will pass the in-hand `playing` row at the call site or adjust the signature
+→ noted on bold-event-spine-publishers below.
+**Notes**: [refactor] tag integrity holds — nothing behavior-changing. No user-facing
+surface, so no fix-verify loopback; advanced straight to done. Parent epic
+bold-lifecycle-transitions stays at implementing (content-processing + stream-session
+siblings still drafting). The 5 named transitions are the emission seams the publishers
+feature attaches to.

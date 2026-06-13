@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue-step-2
 kind: story
-stage: review
+stage: done
 tags: [refactor, playout]
 release_binding: null
 depends_on: [bold-lifecycle-transitions-playout-queue-step-1]
@@ -53,3 +53,7 @@ Behavior-preserving: statement-for-statement identical, same order.
   db connection level; enqueueBatch reads through the same shared mocks, preserving all
   existing assertions.
 - Test counts: 34 orchestrator (unchanged) + 14 transition (unchanged) = 48 total.
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Verified at the feature-level deep review:
+verbatim extraction, orchestrator test assertions untouched, suite green.
