@@ -60,9 +60,13 @@
 
 .collapsedActions {
   position: absolute;
-  top: var(--space-xs);
-  left: var(--space-xs);
+  /* Offset compensates for button padding (10px) so visible circles stay near the overlay
+     corner. max(0px, …) prevents negative offsets from pushing the hit area off-screen. */
+  top: max(0px, calc(var(--space-xs) - 10px));
+  left: max(0px, calc(var(--space-xs) - 10px));
   display: flex;
+  /* gap matches prior spacing between visible circles; hit areas overlap cleanly because
+     padding zones are internal to each button (no adjacent-element overlap) */
   gap: 4px;
   z-index: 50;
 }
@@ -71,14 +75,20 @@
 .collapsedBar .collapsedActions {
   top: 50%;
   left: auto;
-  right: var(--space-sm);
+  /* Compensate right offset for 10px padding so visible circle stays near the bar edge */
+  right: max(0px, calc(var(--space-sm) - 10px));
   transform: translateY(-50%);
 }
 
 .expandButton,
 .closeButton {
-  width: 24px;
-  height: 24px;
+  /* 44×44 hit area (WCAG 2.5.8/2.5.5); background-clip keeps the visible circle 24px.
+     Previously 24×24px with gap: 4px — failed 2.5.8 (24px targets need 24px spacing).
+     Absorbed from backlog item a11y-viewer-mini-player-touch-target. */
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  background-clip: content-box;
   border-radius: 50%;
   border: none;
   background: var(--overlay-lock);
@@ -95,6 +105,7 @@
 .expandButton:hover,
 .closeButton:hover {
   background: var(--color-overlay-dark);
+  background-clip: content-box;
 }
 
 /* No actions in expanded mode */

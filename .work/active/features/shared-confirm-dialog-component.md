@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system]
 release_binding: null
 depends_on: []
@@ -158,8 +158,8 @@ export function ConfirmDialog(props: ConfirmDialogProps): React.ReactElement;
   `apps/web/tests/unit/components/simulcast-destination-manager.test.tsx` (delete mock
   exists but no test exercises the flow today): click Delete → dialog appears →
   confirm calls `deleteDestination`; cancel does not.
-- Delete `.work/backlog/bug-admin-simulcast-window-confirm.md` in this story's commit
-  (the fix it tracks lands here).
+- Delete the `bug-admin-simulcast-window-confirm` backlog stub in this story's commit
+  (the fix it tracks lands here). *(Done — stub removed.)*
 
 **Acceptance Criteria**:
 - [ ] No `window.confirm` remains in the component.
@@ -211,3 +211,19 @@ Adoption-site tests live with their stories (Units 2–3).
 - **Lane overlap**: `playout-admin-redesign-honest-actions` (this lane, later) and the
   unified-channel-model epic touch admin playout surfaces; this feature's adoption
   sites (simulcast manager, creator streaming route) are outside those write sets.
+
+## Implementation summary (2026-06-13)
+All three child stories implemented and at `stage: review`:
+- `…-component` — ConfirmDialog + module CSS + 18 unit tests. React 19 ref-as-prop
+  meant no Button forwardRef change was needed. The jsdom focus assertion was dropped
+  (zag focus management doesn't run in jsdom), not faked.
+- `…-simulcast-adoption` — `window.confirm` fully removed; pending-state +
+  ConfirmDialog at component foot covers both admin table and creator list surfaces;
+  3 delete-flow tests added; `bug-admin-simulcast-window-confirm` backlog stub deleted.
+- `…-revoke-convergence` — creator streaming revoke confirm now uses ConfirmDialog;
+  five dialog imports and three bespoke CSS rule-blocks removed; existing tests passed
+  unchanged (they query by role/text).
+
+Verification: 1669 web tests pass, build clean. Cross-cutting note: concurrent-lane
+commit interleaving bundled the two adoption stories' code into one commit (cffa34b)
+plus a follow-up (e69e603) — content verified intact.

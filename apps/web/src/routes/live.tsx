@@ -158,6 +158,7 @@ function LivePage(): React.ReactElement {
   const channels = channelList?.channels ?? [];
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LayoutPrefs>(getInitialPrefs);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // ── Controls visibility (window-level hover/touch) ──
   // Handlers live on window because the player is rendered at root-grid level
@@ -211,6 +212,12 @@ function LivePage(): React.ReactElement {
     actions.setChatCollapsed(isStreaming && prefs.chatCollapsed);
     return () => actions.setChatCollapsed(false);
   }, [prefs.chatCollapsed, isStreaming, actions]);
+
+  // ── Mobile chat tab signal: tell root layout to swap cells on mobile ──
+  useEffect(() => {
+    actions.setLiveMobileChatOpen(isStreaming && mobileChatOpen);
+    return () => actions.setLiveMobileChatOpen(false);
+  }, [mobileChatOpen, isStreaming, actions]);
 
   // ── Keyboard shortcuts: 't' to toggle theater, 'Escape' to exit theater ──
   useEffect(() => {
@@ -294,26 +301,36 @@ function LivePage(): React.ReactElement {
           </div>
         )}
 
-        {selectedChannel?.type === "playout" &&
-          selectedChannel.nowPlaying != null && (
-            <div className={styles.nowPlaying}>
-              <span className={styles.nowPlayingLabel}>Now Playing</span>
-              <span className={styles.nowPlayingTitle}>
-                {selectedChannel.nowPlaying.title}
-                {selectedChannel.nowPlaying.year !== null &&
-                  ` (${selectedChannel.nowPlaying.year})`}
-              </span>
-              {selectedChannel.nowPlaying.director !== null && (
-                <span className={styles.nowPlayingDirector}>
-                  dir. {selectedChannel.nowPlaying.director}
-                </span>
-              )}
-            </div>
-          )}
-
-        {selectedChannel?.creator && (
-          <StreamCreatorBar creator={selectedChannel.creator} />
+        {isStreaming && (
+          <MobileTabBar chatOpen={mobileChatOpen} onSelect={setMobileChatOpen} />
         )}
+
+        <div
+          id="live-info-panel"
+          role="tabpanel"
+          className={clsx(styles.infoSections, mobileChatOpen && styles.infoSectionsChatOpen)}
+        >
+          {selectedChannel?.type === "playout" &&
+            selectedChannel.nowPlaying != null && (
+              <div className={styles.nowPlaying}>
+                <span className={styles.nowPlayingLabel}>Now Playing</span>
+                <span className={styles.nowPlayingTitle}>
+                  {selectedChannel.nowPlaying.title}
+                  {selectedChannel.nowPlaying.year !== null &&
+                    ` (${selectedChannel.nowPlaying.year})`}
+                </span>
+                {selectedChannel.nowPlaying.director !== null && (
+                  <span className={styles.nowPlayingDirector}>
+                    dir. {selectedChannel.nowPlaying.director}
+                  </span>
+                )}
+              </div>
+            )}
+
+          {selectedChannel?.creator && (
+            <StreamCreatorBar creator={selectedChannel.creator} />
+          )}
+        </div>
       </div>
 
       {/* Streaming-only UI: theater, chat, overlays */}
@@ -339,9 +356,11 @@ function LivePage(): React.ReactElement {
             <TheaterOverlay channel={selectedChannel} visible={controlsVisible} />
           )}
 
-          {portalTarget && !prefs.chatCollapsed &&
+          {portalTarget && (!prefs.chatCollapsed || mobileChatOpen) &&
             createPortal(
-              <ChatPanel channelId={selectedChannelId} />,
+              <div id="live-chat-panel" role="tabpanel" className={styles.chatTabPanel}>
+                <ChatPanel channelId={selectedChannelId} />
+              </div>,
               portalTarget,
             )}
 
@@ -468,6 +487,40 @@ function ChannelZoneSkeleton(): React.ReactElement {
     <div className={styles.channelZoneSkeleton} role="status" aria-label="Loading channels">
       <span className={styles.skeletonSelect} aria-hidden="true" />
       <span className={styles.skeletonLine} aria-hidden="true" />
+    </div>
+  );
+}
+
+/** Mobile-only tab switcher between stream info and chat. Hidden ≥768px via CSS. */
+function MobileTabBar({
+  chatOpen,
+  onSelect,
+}: {
+  readonly chatOpen: boolean;
+  readonly onSelect: (chatOpen: boolean) => void;
+}): React.ReactElement {
+  return (
+    <div className={styles.mobileTabBar} role="tablist" aria-label="Live page sections">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={!chatOpen}
+        aria-controls="live-info-panel"
+        className={clsx(styles.mobileTab, !chatOpen && styles.mobileTabActive)}
+        onClick={() => onSelect(false)}
+      >
+        Info
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={chatOpen}
+        aria-controls="live-chat-panel"
+        className={clsx(styles.mobileTab, chatOpen && styles.mobileTabActive)}
+        onClick={() => onSelect(true)}
+      >
+        Chat
+      </button>
     </div>
   );
 }

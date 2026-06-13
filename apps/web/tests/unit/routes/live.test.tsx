@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
@@ -39,10 +39,15 @@ vi.mock("../../../src/lib/fetch-utils.js", () => ({
   throwIfNotOk: vi.fn(),
 }));
 
+// ── Hoisted mock for setLiveMobileChatOpen ──
+const { mockSetLiveMobileChatOpen } = vi.hoisted(() => ({
+  mockSetLiveMobileChatOpen: vi.fn(),
+}));
+
 // Mock GlobalPlayerProvider/useGlobalPlayer — live route calls actions on channel selection
 vi.mock("../../../src/contexts/global-player-context.js", () => ({
   useGlobalPlayer: () => ({
-    state: { media: null, activeDetailId: null, liveLayout: null, chatCollapsed: false },
+    state: { media: null, activeDetailId: null, liveLayout: null, chatCollapsed: false, liveMobileChatOpen: false },
     presentation: "hidden",
     actions: {
       play: vi.fn(),
@@ -50,6 +55,7 @@ vi.mock("../../../src/contexts/global-player-context.js", () => ({
       setActiveDetail: vi.fn(),
       setLiveLayout: vi.fn(),
       setChatCollapsed: vi.fn(),
+      setLiveMobileChatOpen: mockSetLiveMobileChatOpen,
     },
     chatPortalRef: { current: null },
   }),
@@ -328,5 +334,83 @@ describe("LivePage", () => {
     render(<LivePage />);
 
     expect(screen.queryByText("Also Live")).toBeNull();
+  });
+});
+
+// ── Mobile Tab Bar Tests ──
+
+describe("LivePage — MobileTabBar", () => {
+  it("renders tablist with Info and Chat tabs when streaming", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    const tablist = screen.getByRole("tablist", { name: "Live page sections" });
+    expect(tablist).toBeInTheDocument();
+
+    const infoTab = screen.getByRole("tab", { name: "Info" });
+    const chatTab = screen.getByRole("tab", { name: "Chat" });
+    expect(infoTab).toBeInTheDocument();
+    expect(chatTab).toBeInTheDocument();
+  });
+
+  it("Info tab is selected by default when streaming", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    const infoTab = screen.getByRole("tab", { name: "Info" });
+    const chatTab = screen.getByRole("tab", { name: "Chat" });
+    expect(infoTab).toHaveAttribute("aria-selected", "true");
+    expect(chatTab).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("clicking Chat tab calls setLiveMobileChatOpen with true", () => {
+    mockSetLiveMobileChatOpen.mockClear();
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList(),
+    });
+
+    render(<LivePage />);
+
+    const chatTab = screen.getByRole("tab", { name: "Chat" });
+    fireEvent.click(chatTab);
+
+    expect(mockSetLiveMobileChatOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("does not render tablist when offline (no channels)", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: { channels: [], defaultChannelId: null },
+    });
+
+    render(<LivePage />);
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
+  it("does not render tablist while loading (initial is null)", () => {
+    mockApiGet.mockReturnValue(new Promise(() => {}));
+    mockUseLoaderData.mockReturnValue({ initial: null });
+
+    render(<LivePage />);
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
+  it("does not render tablist when channel has no hlsUrl (not streaming)", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [makeChannel({ hlsUrl: null })],
+      }),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

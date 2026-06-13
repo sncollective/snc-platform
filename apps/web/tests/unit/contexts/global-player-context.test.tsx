@@ -260,3 +260,58 @@ describe("GlobalPlayerProvider — live layout", () => {
     expect(result.current.chatPortalRef.current).toBeNull();
   });
 });
+
+// ── Mobile Chat Tab Reducer Tests ──
+
+describe("globalPlayerReducer — liveMobileChatOpen", () => {
+  it("INITIAL_STATE has liveMobileChatOpen: false", () => {
+    expect(INITIAL_STATE.liveMobileChatOpen).toBe(false);
+  });
+
+  it("SET_LIVE_MOBILE_CHAT sets liveMobileChatOpen to true", () => {
+    const next = globalPlayerReducer(INITIAL_STATE, {
+      type: "SET_LIVE_MOBILE_CHAT",
+      open: true,
+    });
+    expect(next.liveMobileChatOpen).toBe(true);
+  });
+
+  it("SET_LIVE_MOBILE_CHAT sets liveMobileChatOpen to false", () => {
+    const state = { ...INITIAL_STATE, liveMobileChatOpen: true };
+    const next = globalPlayerReducer(state, {
+      type: "SET_LIVE_MOBILE_CHAT",
+      open: false,
+    });
+    expect(next.liveMobileChatOpen).toBe(false);
+  });
+
+  it("CLEAR resets liveMobileChatOpen to false", () => {
+    const state = { ...INITIAL_STATE, liveMobileChatOpen: true };
+    const next = globalPlayerReducer(state, { type: "CLEAR" });
+    expect(next.liveMobileChatOpen).toBe(false);
+    expect(next).toEqual(INITIAL_STATE);
+  });
+});
+
+// ── Mobile Chat Tab Provider Tests ──
+
+describe("GlobalPlayerProvider — liveMobileChatOpen", () => {
+  it("setLiveMobileChatOpen updates state to true", () => {
+    const { result } = renderHook(() => useGlobalPlayer(), { wrapper });
+    act(() => {
+      result.current.actions.setLiveMobileChatOpen(true);
+    });
+    expect(result.current.state.liveMobileChatOpen).toBe(true);
+  });
+
+  it("setLiveMobileChatOpen updates state to false", () => {
+    const { result } = renderHook(() => useGlobalPlayer(), { wrapper });
+    act(() => {
+      result.current.actions.setLiveMobileChatOpen(true);
+    });
+    act(() => {
+      result.current.actions.setLiveMobileChatOpen(false);
+    });
+    expect(result.current.state.liveMobileChatOpen).toBe(false);
+  });
+});

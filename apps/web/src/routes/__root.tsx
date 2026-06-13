@@ -103,6 +103,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const isLiveLayout = playerState.liveLayout !== null;
   const isTheater = playerState.liveLayout === "theater";
   const isChatCollapsed = playerState.chatCollapsed;
+  const isMobileChatOpen = playerState.liveMobileChatOpen;
 
   return (
     <>
@@ -114,6 +115,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
           isLiveLayout && styles.liveGrid,
           isTheater && styles.liveGridTheater,
           isLiveLayout && isChatCollapsed && styles.liveGridChatCollapsed,
+          isLiveLayout && isMobileChatOpen && styles.liveGridMobileChat,
         )}
       >
         <GlobalPlayer />

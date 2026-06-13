@@ -361,6 +361,53 @@
   text-overflow: ellipsis;
 }
 
+/* ── Mobile Tab Bar (Info | Chat, hidden ≥768px) ── */
+
+.mobileTabBar {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobileTab {
+  flex: 1;
+  padding: var(--space-sm);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.mobileTabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+/* display: flex + flex-direction: column preserves the same gap behavior as
+   display: contents on desktop while also being hideable on mobile. */
+.infoSections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.chatTabPanel {
+  height: 100%;
+}
+
+@media (max-width: 767px) {
+  .infoSectionsChatOpen {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobileTabBar {
+    display: none;
+  }
+}
+
 /* ── Now-Playing (playout channels) ── */
 
 .nowPlaying {

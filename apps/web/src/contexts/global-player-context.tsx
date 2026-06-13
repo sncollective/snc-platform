@@ -40,6 +40,8 @@ export interface GlobalPlayerState {
   readonly liveLayout: LiveLayout | null;
   /** Whether the chat panel is collapsed. Set by the live page. */
   readonly chatCollapsed: boolean;
+  /** Whether the mobile live layout shows the chat tab. Set by the live page. */
+  readonly liveMobileChatOpen: boolean;
 }
 
 export interface GlobalPlayerActions {
@@ -53,6 +55,8 @@ export interface GlobalPlayerActions {
   readonly setLiveLayout: (layout: LiveLayout | null) => void;
   /** Signal whether the chat panel is collapsed. Pass false on unmount. */
   readonly setChatCollapsed: (collapsed: boolean) => void;
+  /** Signal whether the mobile chat tab is open. Pass false on unmount. */
+  readonly setLiveMobileChatOpen: (open: boolean) => void;
 }
 
 export interface GlobalPlayerContextValue {
@@ -71,6 +75,7 @@ export const INITIAL_STATE: GlobalPlayerState = {
   shouldAutoPlay: false,
   liveLayout: null,
   chatCollapsed: false,
+  liveMobileChatOpen: false,
 };
 
 // ── Reducer ──
@@ -80,7 +85,8 @@ type GlobalPlayerAction =
   | { readonly type: "CLEAR" }
   | { readonly type: "SET_ACTIVE_DETAIL"; readonly id: string | null }
   | { readonly type: "SET_LIVE_LAYOUT"; readonly layout: LiveLayout | null }
-  | { readonly type: "SET_CHAT_COLLAPSED"; readonly collapsed: boolean };
+  | { readonly type: "SET_CHAT_COLLAPSED"; readonly collapsed: boolean }
+  | { readonly type: "SET_LIVE_MOBILE_CHAT"; readonly open: boolean };
 
 /** Pure reducer for global player state. */
 export function globalPlayerReducer(
@@ -98,6 +104,8 @@ export function globalPlayerReducer(
       return { ...state, liveLayout: action.layout };
     case "SET_CHAT_COLLAPSED":
       return { ...state, chatCollapsed: action.collapsed };
+    case "SET_LIVE_MOBILE_CHAT":
+      return { ...state, liveMobileChatOpen: action.open };
   }
 }
 
@@ -137,6 +145,9 @@ export function GlobalPlayerProvider({
       },
       setChatCollapsed(collapsed: boolean) {
         dispatch({ type: "SET_CHAT_COLLAPSED", collapsed });
+      },
+      setLiveMobileChatOpen(open: boolean) {
+        dispatch({ type: "SET_LIVE_MOBILE_CHAT", open });
       },
     }),
     [state.media?.id],
