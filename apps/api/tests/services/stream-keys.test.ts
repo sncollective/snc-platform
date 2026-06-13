@@ -8,6 +8,7 @@ const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockCheckCreatorPermission = vi.fn();
+const mockEnsureCreatorChannel = vi.fn();
 
 // ── Setup Factory ──
 
@@ -28,8 +29,20 @@ const setupService = async () => {
       revokedAt: "revokedAt",
     },
   }));
+  vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+    creatorProfiles: {
+      id: "id",
+      displayName: "displayName",
+    },
+  }));
   vi.doMock("../../src/services/creator-team.js", () => ({
     checkCreatorPermission: mockCheckCreatorPermission,
+  }));
+  vi.doMock("../../src/services/channels.js", () => ({
+    ensureCreatorChannel: mockEnsureCreatorChannel,
+  }));
+  vi.doMock("../../src/logging/logger.js", () => ({
+    rootLogger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   }));
   return await import("../../src/services/stream-keys.js");
 };
@@ -93,11 +106,18 @@ const makeKeyRow = (overrides?: Partial<{
 
 // ── Tests ──
 
+// Helper: mock the profile lookup select (used by ensureCreatorChannel in createStreamKey)
+const mockProfileSelect = (displayName = "Maya") =>
+  buildSelectChain([{ id: "creator-1", displayName }]);
+
 describe("stream key service", () => {
   describe("createStreamKey", () => {
     it("returns raw key starting with sk_ and stores only hash", async () => {
       mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
+      // profile select for ensureCreatorChannel
+      mockDbSelect.mockReturnValueOnce(mockProfileSelect());
+      mockEnsureCreatorChannel.mockResolvedValueOnce({ ok: true, value: { channelId: "channel-1" } });
 
       const { createStreamKey } = await setupService();
       const result = await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
@@ -107,6 +127,31 @@ describe("stream key service", () => {
         expect(result.value.rawKey).toMatch(/^sk_/);
         expect(result.value.rawKey).not.toBe(result.value.id);
       }
+    });
+
+    it("provisions a persistent creator channel on key creation", async () => {
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
+      mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
+      mockDbSelect.mockReturnValueOnce(mockProfileSelect("Maya"));
+      mockEnsureCreatorChannel.mockResolvedValueOnce({ ok: true, value: { channelId: "channel-1" } });
+
+      const { createStreamKey } = await setupService();
+      await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
+
+      expect(mockEnsureCreatorChannel).toHaveBeenCalledWith("creator-1", "Maya");
+    });
+
+    it("still returns the key even if channel provisioning fails (best-effort)", async () => {
+      mockCheckCreatorPermission.mockResolvedValueOnce(true);
+      mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
+      mockDbSelect.mockReturnValueOnce(mockProfileSelect());
+      mockEnsureCreatorChannel.mockResolvedValueOnce({ ok: false, error: new Error("DB error") });
+
+      const { createStreamKey } = await setupService();
+      const result = await createStreamKey("user-1", "creator-1", "My Key", ["stakeholder"]);
+
+      // Key is returned even though channel provisioning failed
+      expect(result.ok).toBe(true);
     });
 
     it("rejects non-owner with 403", async () => {
@@ -136,6 +181,8 @@ describe("stream key service", () => {
     it("allows platform admin even without creator membership", async () => {
       mockCheckCreatorPermission.mockResolvedValueOnce(true);
       mockDbInsert.mockReturnValueOnce(buildInsertChain([makeKeyRow()]));
+      mockDbSelect.mockReturnValueOnce(mockProfileSelect());
+      mockEnsureCreatorChannel.mockResolvedValueOnce({ ok: true, value: { channelId: "channel-1" } });
 
       const { createStreamKey } = await setupService();
       const result = await createStreamKey("user-admin", "creator-1", "My Key", ["admin"]);

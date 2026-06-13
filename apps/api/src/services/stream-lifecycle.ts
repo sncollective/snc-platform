@@ -4,8 +4,8 @@ import { db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { streamSessions } from "../db/schema/streaming.schema.js";
 import { rootLogger } from "../logging/logger.js";
-import { createLiveChannel, deactivateLiveChannel } from "./channels.js";
-import { createChannelRoom, closeChannelRoom } from "./chat.js";
+import { activateLiveChannel, deactivateLiveChannel } from "./channels.js";
+import { ensureChannelRoom } from "./chat.js";
 import { broadcastToRoom } from "./chat-rooms.js";
 
 // ── Private Helpers ──
@@ -21,13 +21,18 @@ export const extractStreamKey = (param: string): string | null => {
 };
 
 /**
- * Provision a live channel and its chat room when a creator starts streaming.
+ * Activate a creator's persistent channel and ensure its chat room exists
+ * when a creator starts streaming.
+ *
+ * The channel row must already exist (provisioned at stream-key creation via
+ * `ensureCreatorChannel`).  This call activates the existing row — it never
+ * inserts a new channel.  The chat room is ensured idempotently so it
+ * survives across publish/unpublish cycles; the same room is reused for each
+ * session.
  *
  * Best-effort and fire-and-forget by contract: every failure is logged and
  * swallowed so the SRS `on_publish` callback is never blocked. Returns void —
- * callers must not branch on success. (This is why it does not return a
- * `Result`: a recoverable error path here would change the SRS callback's
- * behavior, which must stay non-blocking.)
+ * callers must not branch on success.
  */
 export async function ensureLiveChannelWithChat(
   creatorId: string,
@@ -42,7 +47,7 @@ export async function ensureLiveChannelWithChat(
 
     if (!profile) return;
 
-    const channelResult = await createLiveChannel({
+    const channelResult = await activateLiveChannel({
       creatorId,
       creatorName: profile.displayName,
       streamSessionId: sessionId,
@@ -52,20 +57,28 @@ export async function ensureLiveChannelWithChat(
     if (!channelResult.ok) return;
 
     try {
-      await createChannelRoom(
+      // ensureChannelRoom is idempotent — reuses the room across sessions
+      // rather than creating a new one each time.
+      await ensureChannelRoom(
         channelResult.value.channelId,
         `${profile.displayName}'s Stream`,
       );
     } catch (chatErr) {
-      rootLogger.error(toErrorDetail(chatErr), "Failed to create channel chat room");
+      rootLogger.error(toErrorDetail(chatErr), "Failed to ensure channel chat room");
     }
   } catch (channelErr) {
-    rootLogger.error(toErrorDetail(channelErr), "Failed to create live channel");
+    rootLogger.error(toErrorDetail(channelErr), "Failed to activate live channel");
   }
 }
 
 /**
- * Tear down a creator's live channel and close its chat room when streaming stops.
+ * Deactivate a creator's persistent channel when streaming stops.
+ *
+ * Deactivates the channel row (`isActive: false`) without deleting it —
+ * the persistent row and its chat room survive across sessions.  The chat
+ * room is NOT closed here; it remains open so viewers can continue chatting
+ * between sessions.  The room_closed event is only emitted to current
+ * viewers to cue them that the stream ended.
  *
  * Best-effort and fire-and-forget by contract: every failure is logged and
  * swallowed so the SRS `on_unpublish` callback is never blocked. Returns void —
@@ -88,15 +101,12 @@ export async function teardownLiveChannel(srsClientId: string): Promise<void> {
     if (!channelResult.ok || !channelResult.value) return;
 
     const { channelId } = channelResult.value;
-    try {
-      await closeChannelRoom(channelId);
-      broadcastToRoom(channelId, {
-        type: "room_closed",
-        roomId: channelId,
-      });
-    } catch (chatErr) {
-      rootLogger.error(toErrorDetail(chatErr), "Failed to close channel chat room");
-    }
+    // Notify current viewers the stream ended, but do NOT close the room —
+    // the persistent channel room survives across sessions.
+    broadcastToRoom(channelId, {
+      type: "room_closed",
+      roomId: channelId,
+    });
   } catch (channelErr) {
     rootLogger.error(toErrorDetail(channelErr), "Failed to deactivate live channel");
   }

@@ -21,9 +21,9 @@ const mockCloseSession = vi.fn();
 const mockListStreamKeys = vi.fn();
 const mockCreateStreamKey = vi.fn();
 const mockRevokeStreamKey = vi.fn();
-const mockCreateLiveChannel = vi.fn();
+const mockActivateLiveChannel = vi.fn();
 const mockDeactivateLiveChannel = vi.fn();
-const mockCreateChannelRoom = vi.fn();
+const mockEnsureChannelRoom = vi.fn();
 const mockCloseChannelRoom = vi.fn();
 const mockBroadcastToRoom = vi.fn();
 const mockGetActiveSimulcastUrls = vi.fn();
@@ -77,11 +77,11 @@ const ctx = setupRouteTest({
       closeSession: mockCloseSession,
     }));
     vi.doMock("../../src/services/channels.js", () => ({
-      createLiveChannel: mockCreateLiveChannel,
+      activateLiveChannel: mockActivateLiveChannel,
       deactivateLiveChannel: mockDeactivateLiveChannel,
     }));
     vi.doMock("../../src/services/chat.js", () => ({
-      createChannelRoom: mockCreateChannelRoom,
+      ensureChannelRoom: mockEnsureChannelRoom,
       closeChannelRoom: mockCloseChannelRoom,
     }));
     vi.doMock("../../src/services/chat-rooms.js", () => ({
@@ -141,9 +141,9 @@ const ctx = setupRouteTest({
     mockOpenSession.mockResolvedValue({ ok: true, value: { sessionId: "session-1" } });
     mockCloseSession.mockResolvedValue({ ok: true, value: undefined });
     mockLookupCreatorByKeyHash.mockResolvedValue(null);
-    mockCreateLiveChannel.mockResolvedValue({ ok: true, value: { channelId: "channel-1" } });
+    mockActivateLiveChannel.mockResolvedValue({ ok: true, value: { channelId: "channel-1" } });
     mockDeactivateLiveChannel.mockResolvedValue({ ok: true, value: null });
-    mockCreateChannelRoom.mockResolvedValue({ id: "room-1", type: "channel", channelId: "channel-1", name: "Test", createdAt: "2026-03-01T00:00:00.000Z", closedAt: null });
+    mockEnsureChannelRoom.mockResolvedValue({ id: "room-1", type: "channel", channelId: "channel-1", name: "Test", createdAt: "2026-03-01T00:00:00.000Z", closedAt: null });
     mockCloseChannelRoom.mockResolvedValue(undefined);
     mockBroadcastToRoom.mockReturnValue(undefined);
     mockGetActiveSimulcastUrls.mockResolvedValue([]);
@@ -354,11 +354,11 @@ describe("streaming routes", () => {
         closeSession: mockCloseSession,
       }));
       vi.doMock("../../src/services/channels.js", () => ({
-        createLiveChannel: mockCreateLiveChannel,
+        activateLiveChannel: mockActivateLiveChannel,
         deactivateLiveChannel: mockDeactivateLiveChannel,
       }));
       vi.doMock("../../src/services/chat.js", () => ({
-        createChannelRoom: mockCreateChannelRoom,
+        ensureChannelRoom: mockEnsureChannelRoom,
         closeChannelRoom: mockCloseChannelRoom,
       }));
       vi.doMock("../../src/services/chat-rooms.js", () => ({
@@ -420,7 +420,7 @@ describe("streaming routes", () => {
         keyId: "key-1",
       });
       mockOpenSession.mockResolvedValue({ ok: true, value: { sessionId: "session-1" } });
-      mockCreateLiveChannel.mockResolvedValue({ ok: true, value: { channelId: "channel-1" } });
+      mockActivateLiveChannel.mockResolvedValue({ ok: true, value: { channelId: "channel-1" } });
 
       const res = await perCreatorApp.request(
         "/api/streaming/callbacks/on-publish",
@@ -544,7 +544,7 @@ describe("streaming routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("deactivates channel and closes chat room when channel found", async () => {
+    it("deactivates channel (room survives) and notifies viewers when channel found", async () => {
       mockCloseSession.mockResolvedValue({ ok: true, value: undefined });
       mockDeactivateLiveChannel.mockResolvedValue({
         ok: true,
@@ -561,6 +561,8 @@ describe("streaming routes", () => {
       );
 
       expect(res.status).toBe(200);
+      // Chat room is NOT closed — the persistent channel room survives across sessions.
+      expect(mockCloseChannelRoom).not.toHaveBeenCalled();
     });
   });
 
@@ -863,11 +865,11 @@ describe("streaming routes", () => {
         closeSession: mockCloseSession,
       }));
       vi.doMock("../../src/services/channels.js", () => ({
-        createLiveChannel: mockCreateLiveChannel,
+        activateLiveChannel: mockActivateLiveChannel,
         deactivateLiveChannel: mockDeactivateLiveChannel,
       }));
       vi.doMock("../../src/services/chat.js", () => ({
-        createChannelRoom: mockCreateChannelRoom,
+        ensureChannelRoom: mockEnsureChannelRoom,
         closeChannelRoom: mockCloseChannelRoom,
       }));
       vi.doMock("../../src/services/chat-rooms.js", () => ({

@@ -6,7 +6,10 @@ import type { Result, StreamKeyResponse, StreamKeyCreatedResponse } from "@snc/s
 
 import { db } from "../db/connection.js";
 import { streamKeys } from "../db/schema/streaming.schema.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { checkCreatorPermission } from "./creator-team.js";
+import { ensureCreatorChannel } from "./channels.js";
+import { rootLogger } from "../logging/logger.js";
 
 // ── Private Helpers ──
 
@@ -45,8 +48,12 @@ const requireStreamKeyAccess = async (
 // ── Public API ──
 
 /**
- * Create a named stream key for a creator.
+ * Create a named stream key for a creator and lazily provision their
+ * persistent live-ingest channel.
+ *
  * Returns the raw key once — it is never stored or retrievable after this.
+ * Channel provisioning is best-effort: a failure is logged but does not block
+ * key creation (the channel self-heals at publish time if missing).
  */
 export const createStreamKey = async (
   userId: string,
@@ -70,6 +77,31 @@ export const createStreamKey = async (
       keyPrefix: rawKey.slice(0, 11),
     })
     .returning();
+
+  // Lazily provision the creator's persistent live-ingest channel.
+  // Idempotent — safe to call on every key creation.
+  try {
+    const [profile] = await db
+      .select({ displayName: creatorProfiles.displayName })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.id, creatorId));
+
+    const channelResult = await ensureCreatorChannel(
+      creatorId,
+      profile?.displayName ?? "Creator",
+    );
+    if (!channelResult.ok) {
+      rootLogger.warn(
+        { creatorId, error: channelResult.error },
+        "Failed to ensure creator channel at stream-key creation — will self-heal at publish time",
+      );
+    }
+  } catch (e) {
+    rootLogger.warn(
+      { creatorId, err: e },
+      "Exception ensuring creator channel at stream-key creation — will self-heal at publish time",
+    );
+  }
 
   return ok({
     ...toKeyResponse(inserted!),

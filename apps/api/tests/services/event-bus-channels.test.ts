@@ -21,6 +21,7 @@ const setupService = async () => {
       select: mockDbSelect,
       insert: mockDbInsert,
       update: mockDbUpdate,
+      delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
     },
     sql: vi.fn(),
   }));
@@ -29,7 +30,8 @@ const setupService = async () => {
     channels: {
       id: "id",
       name: "name",
-      type: "type",
+      ownership: "ownership",
+      role: "role",
       thumbnailUrl: "thumbnailUrl",
       srsStreamName: "srsStreamName",
       creatorId: "creatorId",
@@ -94,13 +96,36 @@ const buildUpdateSetWhereChain = () => ({
 // ── Tests ──
 
 describe("channels → eventBus.publish integration", () => {
-  describe("createLiveChannel", () => {
-    it("publishes live:true when creating a new channel", async () => {
+  describe("activateLiveChannel", () => {
+    it("publishes live:true when activating a persistent channel", async () => {
+      const existing = { id: "channel-persistent" };
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existing]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+
+      const { activateLiveChannel } = await setupService();
+      const result = await activateLiveChannel({
+        creatorId: "creator-1",
+        creatorName: "Maya",
+        streamSessionId: "session-1",
+        srsStreamName: "livestream",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "channel.live-state-changed",
+        channelId: "channel-persistent",
+        live: true,
+      });
+    });
+
+    it("publishes live:true and self-heals when persistent channel is missing", async () => {
+      // No existing row — fallback insert path
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
       mockDbInsert.mockReturnValueOnce(buildInsertValuesChain());
 
-      const { createLiveChannel } = await setupService();
-      const result = await createLiveChannel({
+      const { activateLiveChannel } = await setupService();
+      const result = await activateLiveChannel({
         creatorId: "creator-1",
         creatorName: "Maya",
         streamSessionId: "session-1",
@@ -116,34 +141,13 @@ describe("channels → eventBus.publish integration", () => {
       });
     });
 
-    it("publishes live:true when reactivating an existing channel", async () => {
-      const existing = { id: "channel-existing" };
+    it("publishes the channelId returned in the result value", async () => {
+      const existing = { id: "channel-persistent" };
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existing]));
       mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
 
-      const { createLiveChannel } = await setupService();
-      const result = await createLiveChannel({
-        creatorId: "creator-1",
-        creatorName: "Maya",
-        streamSessionId: "session-2",
-        srsStreamName: "livestream",
-      });
-
-      expect(result.ok).toBe(true);
-      expect(mockPublish).toHaveBeenCalledTimes(1);
-      expect(mockPublish).toHaveBeenCalledWith({
-        type: "channel.live-state-changed",
-        channelId: "channel-existing",
-        live: true,
-      });
-    });
-
-    it("publishes the channelId returned in the result value", async () => {
-      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
-      mockDbInsert.mockReturnValueOnce(buildInsertValuesChain());
-
-      const { createLiveChannel } = await setupService();
-      const result = await createLiveChannel({
+      const { activateLiveChannel } = await setupService();
+      const result = await activateLiveChannel({
         creatorId: "creator-1",
         creatorName: "Maya",
         streamSessionId: "session-1",

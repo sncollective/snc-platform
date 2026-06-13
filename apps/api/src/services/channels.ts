@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { ok, err, AppError } from "@snc/shared";
 import type { Result, ChannelOwnership, ChannelRole, DprImage } from "@snc/shared";
 
@@ -40,10 +40,15 @@ export type ChannelInfo = {
  * and the generated Liquidsoap config (`CHANNEL_SNCTV_STREAM` env default).
  * Keeping one definition prevents silent drift between the DB-seeded channel
  * and the stream name Liquidsoap publishes to.
+ *
+ * `ownership` and `role` are explicit here so callers cannot accidentally
+ * provision this with wrong identity facets.
  */
 export const SNC_TV_BROADCAST = {
   name: "S/NC TV",
   srsStreamName: "snc-tv",
+  ownership: "platform" as const,
+  role: "broadcast" as const,
 } as const;
 
 // ── Channel Priority ──
@@ -148,62 +153,155 @@ export const selectDefaultChannel = (
 };
 
 /**
- * Create or reactivate a live channel when a creator starts streaming.
- * If a deactivated channel with the same srsStreamName exists, reactivate it
- * with updated metadata. Otherwise create a new one.
- * Called from the on_publish callback after opening a session.
+ * Idempotently provision a persistent creator channel.
+ *
+ * Creates a single `ownership='creator'` / `role='live-ingest'` row for the
+ * creator if none exists, then returns the channel ID.  When multiple rows
+ * exist (backfill artefacts from the old temp-row system), they are deduped
+ * to the earliest-created row and the duplicates are deleted.
+ *
+ * Called from `createStreamKey` — this is the lazy-provisioning trigger.
+ * The channel starts inactive (`isActive: false`); it is activated on publish
+ * via `activateLiveChannel`.
  */
-export const createLiveChannel = async (opts: {
+export const ensureCreatorChannel = async (
+  creatorId: string,
+  creatorName: string,
+): Promise<Result<{ channelId: string }, AppError>> => {
+  try {
+    const existing = await db
+      .select({ id: channels.id, createdAt: channels.createdAt })
+      .from(channels)
+      .where(
+        and(
+          eq(channels.creatorId, creatorId),
+          eq(channels.ownership, "creator"),
+          eq(channels.role, "live-ingest"),
+        ),
+      );
+
+    if (existing.length === 0) {
+      // No channel yet — provision one.  The placeholder srsStreamName is a
+      // deterministic, creator-scoped value; it is overwritten on first publish
+      // with the actual SRS stream name.
+      const channelId = randomUUID();
+      await db.insert(channels).values({
+        id: channelId,
+        name: `${creatorName}'s Stream`,
+        ownership: "creator",
+        role: "live-ingest",
+        srsStreamName: `creator-${creatorId}`,
+        creatorId,
+        isActive: false,
+      });
+      return ok({ channelId });
+    }
+
+    // Sort ascending by createdAt so the oldest row survives dedup.
+    const sorted = [...existing].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+    const canonical = sorted[0]!;
+
+    if (sorted.length > 1) {
+      // Dedupe: delete all duplicate rows, keeping the oldest.
+      const dupeIds = sorted.slice(1).map((r) => r.id);
+      rootLogger.warn(
+        { creatorId, canonical: canonical.id, dupeIds },
+        "Deduping duplicate creator live-ingest channel rows",
+      );
+      for (const dupeId of dupeIds) {
+        await db.delete(channels).where(eq(channels.id, dupeId));
+      }
+    }
+
+    return ok({ channelId: canonical.id });
+  } catch (e) {
+    rootLogger.error({ err: e }, "Failed to ensure creator channel");
+    return err(
+      new AppError(
+        "CHANNEL_ENSURE_ERROR",
+        "Failed to ensure creator channel",
+        500,
+      ),
+    );
+  }
+};
+
+/**
+ * Activate a creator's persistent channel when they start streaming.
+ *
+ * Finds the existing `ownership='creator'` / `role='live-ingest'` row by
+ * `creatorId` and updates it in-place: sets `isActive`, `streamSessionId`,
+ * and `srsStreamName` (to the real SRS stream name from the on_publish
+ * callback, so HLS URL resolution stays correct).  Never inserts a new row —
+ * `ensureCreatorChannel` is the only provisioning path.
+ *
+ * If the persistent row is missing (race between stream-key creation and
+ * first publish), a new row is created as a self-healing fallback.
+ *
+ * Duplicate on_publish retries that fire `live: true` again are intentional
+ * (notification semantics).  Called from `ensureLiveChannelWithChat`.
+ */
+export const activateLiveChannel = async (opts: {
   creatorId: string;
   creatorName: string;
   streamSessionId: string;
   srsStreamName: string;
 }): Promise<Result<{ channelId: string }, AppError>> => {
   try {
-    const [existing] = await db
+    const [channel] = await db
       .select({ id: channels.id })
       .from(channels)
-      .where(eq(channels.srsStreamName, opts.srsStreamName));
+      .where(
+        and(
+          eq(channels.creatorId, opts.creatorId),
+          eq(channels.ownership, "creator"),
+          eq(channels.role, "live-ingest"),
+        ),
+      );
 
-    if (existing) {
-      await db
-        .update(channels)
-        .set({
-          name: `Live: ${opts.creatorName}`,
-          ownership: "creator",
-          role: "live-ingest",
-          creatorId: opts.creatorId,
-          streamSessionId: opts.streamSessionId,
-          isActive: true,
-          updatedAt: new Date(),
-        })
-        .where(eq(channels.id, existing.id));
-      // Duplicate live:true on SRS on_publish retries is intentional — notification semantics.
-      eventBus.publish({ type: "channel.live-state-changed", channelId: existing.id, live: true });
-      return ok({ channelId: existing.id });
+    if (!channel) {
+      // Persistent channel missing — provision one on-the-fly so the publish
+      // path is never blocked.  Self-heals if stream-key creation raced.
+      const channelId = randomUUID();
+      await db.insert(channels).values({
+        id: channelId,
+        name: `Live: ${opts.creatorName}`,
+        ownership: "creator",
+        role: "live-ingest",
+        srsStreamName: opts.srsStreamName,
+        creatorId: opts.creatorId,
+        streamSessionId: opts.streamSessionId,
+        isActive: true,
+      });
+      rootLogger.warn(
+        { creatorId: opts.creatorId, channelId },
+        "Creator channel missing at publish time — provisioned on-the-fly",
+      );
+      eventBus.publish({ type: "channel.live-state-changed", channelId, live: true });
+      return ok({ channelId });
     }
 
-    const channelId = randomUUID();
+    await db
+      .update(channels)
+      .set({
+        name: `Live: ${opts.creatorName}`,
+        srsStreamName: opts.srsStreamName,
+        streamSessionId: opts.streamSessionId,
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(channels.id, channel.id));
 
-    await db.insert(channels).values({
-      id: channelId,
-      name: `Live: ${opts.creatorName}`,
-      ownership: "creator",
-      role: "live-ingest",
-      srsStreamName: opts.srsStreamName,
-      creatorId: opts.creatorId,
-      streamSessionId: opts.streamSessionId,
-      isActive: true,
-    });
-
-    eventBus.publish({ type: "channel.live-state-changed", channelId, live: true });
-    return ok({ channelId });
+    eventBus.publish({ type: "channel.live-state-changed", channelId: channel.id, live: true });
+    return ok({ channelId: channel.id });
   } catch (e) {
-    rootLogger.error({ err: e }, "Failed to create live channel");
+    rootLogger.error({ err: e }, "Failed to activate live channel");
     return err(
       new AppError(
-        "CHANNEL_CREATE_ERROR",
-        "Failed to create live channel",
+        "CHANNEL_ACTIVATE_ERROR",
+        "Failed to activate live channel",
         500,
       ),
     );

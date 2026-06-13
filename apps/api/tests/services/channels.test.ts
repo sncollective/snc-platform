@@ -7,6 +7,7 @@ import { makeTestConfig } from "../helpers/test-constants.js";
 const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
+const mockDbDelete = vi.fn();
 
 // ── Setup Factory ──
 
@@ -19,6 +20,7 @@ const setupService = async () => {
       select: mockDbSelect,
       insert: mockDbInsert,
       update: mockDbUpdate,
+      delete: mockDbDelete,
     },
     sql: vi.fn(),
   }));
@@ -26,7 +28,8 @@ const setupService = async () => {
     channels: {
       id: "id",
       name: "name",
-      type: "type",
+      ownership: "ownership",
+      role: "role",
       thumbnailUrl: "thumbnailUrl",
       srsStreamName: "srsStreamName",
       creatorId: "creatorId",
@@ -80,6 +83,10 @@ const buildUpdateSetWhereChain = () => ({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockResolvedValue([]),
   }),
+});
+
+const buildDeleteWhereChain = () => ({
+  where: vi.fn().mockResolvedValue([]),
 });
 
 // ── Fixtures ──
@@ -227,28 +234,22 @@ describe("channel service", () => {
     });
   });
 
-  describe("createLiveChannel", () => {
-    it("creates new channel on first call (no existing row)", async () => {
+  describe("ensureCreatorChannel", () => {
+    it("creates a new persistent channel when none exists", async () => {
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
       mockDbInsert.mockReturnValueOnce(buildInsertValuesChain());
 
-      const { createLiveChannel } = await setupService();
-      const result = await createLiveChannel({
-        creatorId: "creator-1",
-        creatorName: "Maya",
-        streamSessionId: "session-1",
-        srsStreamName: "livestream",
-      });
+      const { ensureCreatorChannel } = await setupService();
+      const result = await ensureCreatorChannel("creator-1", "Maya");
 
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.channelId).toBeDefined();
       }
       expect(mockDbInsert).toHaveBeenCalledTimes(1);
-      expect(mockDbUpdate).not.toHaveBeenCalled();
     });
 
-    it("links to streamSessionId and creatorId on insert", async () => {
+    it("provisions with ownership='creator', role='live-ingest', isActive=false", async () => {
       let insertedValues: Record<string, unknown> | null = null;
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
       mockDbInsert.mockReturnValueOnce({
@@ -258,46 +259,107 @@ describe("channel service", () => {
         }),
       });
 
-      const { createLiveChannel } = await setupService();
-      await createLiveChannel({
+      const { ensureCreatorChannel } = await setupService();
+      await ensureCreatorChannel("creator-1", "Maya");
+
+      expect(insertedValues).not.toBeNull();
+      const vals = insertedValues as unknown as Record<string, unknown>;
+      expect(vals.creatorId).toBe("creator-1");
+      expect(vals.ownership).toBe("creator");
+      expect(vals.role).toBe("live-ingest");
+      expect(vals.isActive).toBe(false);
+      expect(typeof vals.srsStreamName).toBe("string");
+      expect((vals.srsStreamName as string).startsWith("creator-")).toBe(true);
+    });
+
+    it("is idempotent — returns existing channel when already provisioned", async () => {
+      const existingChannel = { id: "channel-existing", createdAt: new Date("2026-01-01") };
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
+
+      const { ensureCreatorChannel } = await setupService();
+      const result = await ensureCreatorChannel("creator-1", "Maya");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.channelId).toBe("channel-existing");
+      }
+      expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
+    it("dedupes duplicate rows — keeps oldest, deletes others", async () => {
+      const older = { id: "channel-older", createdAt: new Date("2026-01-01") };
+      const newer = { id: "channel-newer", createdAt: new Date("2026-06-01") };
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([older, newer]));
+      mockDbDelete.mockReturnValueOnce(buildDeleteWhereChain());
+
+      const { ensureCreatorChannel } = await setupService();
+      const result = await ensureCreatorChannel("creator-1", "Maya");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.channelId).toBe("channel-older");
+      }
+      // Newer duplicate should be deleted
+      expect(mockDbDelete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("activateLiveChannel", () => {
+    it("activates existing persistent channel on publish", async () => {
+      const existingChannel = { id: "channel-persistent" };
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+
+      const { activateLiveChannel } = await setupService();
+      const result = await activateLiveChannel({
         creatorId: "creator-1",
         creatorName: "Maya",
         streamSessionId: "session-1",
         srsStreamName: "livestream",
       });
 
-      expect(insertedValues).not.toBeNull();
-      const vals = insertedValues as unknown as Record<string, unknown>;
-      expect(vals.creatorId).toBe("creator-1");
-      expect(vals.streamSessionId).toBe("session-1");
-      expect(vals.ownership).toBe("creator");
-      expect(vals.role).toBe("live-ingest");
-      expect(vals.isActive).toBe(true);
-    });
-
-    it("reactivates existing deactivated channel on reconnect", async () => {
-      const existingChannel = { id: "channel-existing" };
-      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
-      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
-
-      const { createLiveChannel } = await setupService();
-      const result = await createLiveChannel({
-        creatorId: "creator-1",
-        creatorName: "Maya",
-        streamSessionId: "session-2",
-        srsStreamName: "livestream",
-      });
-
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.channelId).toBe("channel-existing");
+        expect(result.value.channelId).toBe("channel-persistent");
       }
       expect(mockDbUpdate).toHaveBeenCalledTimes(1);
       expect(mockDbInsert).not.toHaveBeenCalled();
     });
 
-    it("updates name, creatorId, streamSessionId, and isActive on reactivation", async () => {
-      const existingChannel = { id: "channel-existing" };
+    it("reuses same channel row on second publish (publish→unpublish→publish pattern)", async () => {
+      const existingChannel = { id: "channel-persistent" };
+      // First publish
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+
+      const { activateLiveChannel } = await setupService();
+      const result1 = await activateLiveChannel({
+        creatorId: "creator-1",
+        creatorName: "Maya",
+        streamSessionId: "session-1",
+        srsStreamName: "livestream",
+      });
+      expect(result1.ok).toBe(true);
+      if (result1.ok) expect(result1.value.channelId).toBe("channel-persistent");
+
+      // Second publish (same persistent channel, new session)
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+      const result2 = await activateLiveChannel({
+        creatorId: "creator-1",
+        creatorName: "Maya",
+        streamSessionId: "session-2",
+        srsStreamName: "livestream",
+      });
+      expect(result2.ok).toBe(true);
+      if (result2.ok) expect(result2.value.channelId).toBe("channel-persistent");
+
+      // Same channel ID in both results — no new insert
+      expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
+    it("sets name, srsStreamName, streamSessionId, and isActive=true on update", async () => {
+      const existingChannel = { id: "channel-persistent" };
       let updatedValues: Record<string, unknown> | null = null;
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([existingChannel]));
       mockDbUpdate.mockReturnValueOnce({
@@ -307,22 +369,40 @@ describe("channel service", () => {
         }),
       });
 
-      const { createLiveChannel } = await setupService();
-      await createLiveChannel({
-        creatorId: "creator-2",
-        creatorName: "Alex",
+      const { activateLiveChannel } = await setupService();
+      await activateLiveChannel({
+        creatorId: "creator-1",
+        creatorName: "Maya",
         streamSessionId: "session-new",
         srsStreamName: "livestream",
       });
 
       expect(updatedValues).not.toBeNull();
       const vals = updatedValues as unknown as Record<string, unknown>;
-      expect(vals.name).toBe("Live: Alex");
-      expect(vals.creatorId).toBe("creator-2");
+      expect(vals.name).toBe("Live: Maya");
+      expect(vals.srsStreamName).toBe("livestream");
       expect(vals.streamSessionId).toBe("session-new");
       expect(vals.isActive).toBe(true);
-      expect(vals.ownership).toBe("creator");
-      expect(vals.role).toBe("live-ingest");
+      // activate never sets ownership/role — those are fixed at provisioning
+      expect(vals.ownership).toBeUndefined();
+      expect(vals.role).toBeUndefined();
+    });
+
+    it("provisions a fallback row when persistent channel is missing at publish time", async () => {
+      // No existing channel (edge case — stream-key creation may have raced)
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
+      mockDbInsert.mockReturnValueOnce(buildInsertValuesChain());
+
+      const { activateLiveChannel } = await setupService();
+      const result = await activateLiveChannel({
+        creatorId: "creator-1",
+        creatorName: "Maya",
+        streamSessionId: "session-1",
+        srsStreamName: "livestream",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockDbInsert).toHaveBeenCalledTimes(1);
     });
   });
 
