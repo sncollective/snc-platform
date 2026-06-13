@@ -9,6 +9,20 @@ import type {
   UpdateSimulcastDestination,
 } from "@snc/shared";
 
+// ── Toast mock (hoisted so vi.mock factory can reference it) ──
+const { mockToasterSuccess } = vi.hoisted(() => ({
+  mockToasterSuccess: vi.fn(),
+}));
+
+vi.mock("../../../src/components/ui/toast.js", () => ({
+  toaster: {
+    success: mockToasterSuccess,
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 // ── Component Under Test ──
 
 import { SimulcastDestinationManager } from "../../../src/components/simulcast/simulcast-destination-manager.js";
@@ -47,6 +61,7 @@ beforeEach(() => {
   mockCreateDestination = vi.fn<CreateDestination>().mockResolvedValue({});
   mockUpdateDestination = vi.fn<UpdateDestination>().mockResolvedValue({});
   mockDeleteDestination = vi.fn<DeleteDestination>().mockResolvedValue({});
+  mockToasterSuccess.mockClear();
 });
 
 // ── Tests ──
@@ -265,5 +280,88 @@ describe("SimulcastDestinationManager – delete flow", () => {
     });
 
     expect(mockDeleteDestination).not.toHaveBeenCalled();
+  });
+});
+
+describe("SimulcastDestinationManager – toggle active feedback", () => {
+  // ResponsiveTable renders both table and card views in the DOM simultaneously
+  // in auto mode (CSS container query hides one). Each row's actions appear in
+  // both views, so queries use getAllByRole and target the first match.
+
+  it("shows 'Destination deactivated' toast when toggling an active destination off", async () => {
+    const user = userEvent.setup();
+    // dest is active; toggle → deactivate
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest({ isActive: true })] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Deactivate" })[0]).toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole("button", { name: "Deactivate" })[0]!);
+
+    await waitFor(() => {
+      expect(mockToasterSuccess).toHaveBeenCalledWith({ title: "Destination deactivated" });
+    });
+  });
+
+  it("shows 'Destination activated' toast when toggling an inactive destination on", async () => {
+    const user = userEvent.setup();
+    // dest is inactive; toggle → activate
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest({ isActive: false })] });
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Activate" })[0]).toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole("button", { name: "Activate" })[0]!);
+
+    await waitFor(() => {
+      expect(mockToasterSuccess).toHaveBeenCalledWith({ title: "Destination activated" });
+    });
+  });
+
+  it("does not show a toast when the toggle fails", async () => {
+    const user = userEvent.setup();
+    mockFetchDestinations.mockResolvedValue({ destinations: [makeDest({ isActive: true })] });
+    mockUpdateDestination.mockRejectedValue(new Error("Network error"));
+
+    render(
+      <SimulcastDestinationManager
+        fetchDestinations={mockFetchDestinations}
+        createDestination={mockCreateDestination}
+        updateDestination={mockUpdateDestination}
+        deleteDestination={mockDeleteDestination}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Deactivate" })[0]).toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole("button", { name: "Deactivate" })[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
+
+    expect(mockToasterSuccess).not.toHaveBeenCalled();
   });
 });

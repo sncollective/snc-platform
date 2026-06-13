@@ -12,6 +12,7 @@ import { SIMULCAST_PLATFORMS, SIMULCAST_PLATFORM_KEYS, RTMP_URL_REGEX } from "@s
 
 import { ConfirmDialog } from "../ui/confirm-dialog.js";
 import { ResponsiveTable } from "../ui/responsive-table.js";
+import { toaster } from "../ui/toast.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./simulcast-destination-manager.module.css";
 
@@ -154,6 +155,7 @@ export function SimulcastDestinationManager({
     try {
       await updateDestination(dest.id, { isActive: !dest.isActive });
       await loadDestinations();
+      toaster.success({ title: dest.isActive ? "Destination deactivated" : "Destination activated" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update destination");
     }
