@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-2
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render-step-1]
@@ -65,3 +65,7 @@ export const buildPlayoutTopology = (rows: readonly PlayoutChannelRow[]): Playou
 
 **Risk:** Low — additive only.
 **Rollback:** delete the two new files.
+
+## Implementation record (2026-06-13)
+
+`playout-topology.ts` landed with `EnvRef` / `PlayoutChannelRow` / `PlayoutChannelTopology` / `PlayoutTopology` types, `harborChannelPaths` (exported early — step 4 consumes it), and pure `buildPlayoutTopology`. Only import is `SNC_TV_BROADCAST` from `channels.ts` per the design decision. 7 direct unit tests, no mocks; typecheck green. Nothing imports the module yet.
