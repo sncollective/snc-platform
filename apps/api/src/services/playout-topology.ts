@@ -12,7 +12,9 @@ export interface EnvRef {
   readonly default: string;
 }
 
-/** Input row shape — deliberately local so the topology module imports no DB code. */
+/** Input row shape — deliberately local so callers pass plain data, not Drizzle rows.
+ * (The module does transitively reach db via the SNC_TV_BROADCAST import from channels.ts;
+ * buildPlayoutTopology itself never touches it.) */
 export interface PlayoutChannelRow {
   readonly id: string;
   readonly name: string;

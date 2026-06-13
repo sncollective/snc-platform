@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [refactor-playout-stream-names-dedup]
@@ -112,3 +112,9 @@ before starting; deliberately last and independently droppable.
 
 No atomic/irreversible steps: no public API, schema, or contract changes anywhere in the
 chain; every step is a clean `git revert`.
+
+## Review
+
+All four steps implemented and committed 2026-06-13 (goldens ce1528e, topology b33573f, swap 13dbbd5, path builders 6b70d41). Feature-level fresh-context adversarial review: **APPROVE.** Byte-identity verified three ways — slot-by-slot escape analysis old-vs-new for arbitrary inputs (both escape exactly name/srsStreamName/snc-tv default, both emit ids verbatim), the goldens re-validated against the OLD generator in a throwaway worktree (4/4 byte-exact), and zero snapshot diff since capture. No import cycles (DAG: client/render → topology → channels → db). Suite 511/511 in tests/services, typecheck green. One accepted nit fixed post-review: the "imports no DB code" comment in playout-topology.ts overstated purity (transitive db reach via channels.ts) — reworded.
+
+Awaiting user review-pass + release pick per `.work/CONVENTIONS.md` §Release-binding lifecycle (applies to the four child stories too).
