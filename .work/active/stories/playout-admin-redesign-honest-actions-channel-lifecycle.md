@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-honest-actions-channel-lifecycle
 kind: story
-stage: review
+stage: done
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [playout-admin-redesign-responsive-structure-form-and-chrome]
@@ -68,3 +68,6 @@ under this surface. See the parent feature's `## Resume note`.
 
 **Fix-verify loopback:** UI-only changes — create-warning dialog and channel delete
 end-to-end need user confirmation in the running app at review.
+
+## Fix-verify (2026-06-13 — user confirmed in-app)
+User walked the change in the running app (admin@snc.demo / /admin/playout) and confirmed it works. Story closed review -> done.

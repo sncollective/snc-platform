@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-honest-actions-toggle-feedback
 kind: story
-stage: review
+stage: done
 tags: [playout, admin-console, streaming]
 release_binding: null
 depends_on: [playout-admin-redesign-responsive-structure-simulcast-table]
@@ -44,3 +44,6 @@ feedback" with three tests: deactivate direction, activate direction, and failur
 
 **Fix-verify loopback:** UI change — user should confirm the "Destination activated" and
 "Destination deactivated" toasts fire correctly in the running app at review. Not blocking.
+
+## Fix-verify (2026-06-13 — user confirmed in-app)
+User walked the change in the running app (admin@snc.demo / /admin/playout) and confirmed it works. Story closed review -> done.
