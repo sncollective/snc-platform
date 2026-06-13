@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -298,6 +298,23 @@ export const sseRoutes: Hono<OptionalAuthEnv>;
   (prod is h2). The client-subscriptions work (absorbed into the redesign epics) should
   consider BroadcastChannel/SharedWorker leader election — one connection per browser.
 - **`services/channels.ts` churn** — see Unit 5 coordination note.
+
+## Implementation summary (2026-06-13)
+
+All three child stories implemented (one bundle agent, sequential, one commit each):
+`types-bus` (done — reviewed), `route` (done — reviewed), `proof` (review). Orchestrator
+wave verification caught and fixed a lifecycle bug beyond the literal ACs — closed
+subscriptions busy-spun heartbeats and shutdown `closeAll()` never ended live streams;
+`Subscription.isClosed()` added to the contract, loop breaks on it (commit `fix(sse)`).
+Verification: 33 SSE-scoped tests green; full `@snc/api` unit suite (1543) green;
+`@snc/shared` + `@snc/web` green; API build passes. Empirical: 5.5-minute held-open
+connection through Caddy with 25s heartbeats throughout (Caddy auto-flush + node-server
+streaming defaults confirmed). Honest residue: the live-state event has not been
+observed end-to-end on a real stream start/stop (needs a creator going live against dev
+SRS); publish seams are unit-tested and the wire path is route-tested.
+
+Deviations: `Cache-Control` is `no-cache` (Hono `streamSSE` overwrites any pre-set
+value; semantically fine for SSE) rather than the designed `no-store, no-transform`.
 
 ## Other agent review
 Fresh-context advisory pass (same-model fallback per project review policy) accepted:

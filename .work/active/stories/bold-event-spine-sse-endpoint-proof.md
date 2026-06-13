@@ -37,8 +37,8 @@ stream-names dedup. Re-check the seam first.
 - [x] Through-Caddy script receives `spine.connected` and heartbeats, unbuffered (proves
       Caddy auto-flush of `text/event-stream`). See implementation notes for live-state
       event and 5-minute hold status.
-- [ ] Held-open connection survives > 5 minutes through Caddy (not yet empirically
-      confirmed — see implementation notes).
+- [x] Held-open connection survives > 5 minutes through Caddy (350s observed,
+      heartbeats at exact 25s intervals throughout, clean exit — 2026-06-13).
 
 ## Implementation notes
 
@@ -76,7 +76,15 @@ during the smoke runs. The unit tests (5/5) cover the publish calls; end-to-end
 live-state delivery through the SSE stream is a future manual test (requires a creator
 going live against the dev SRS server).
 
-**5-minute hold:** Not yet run. `--hold` flag exists on the smoke script for this test
-(`bun run apps/api/scripts/sse-smoke.ts --hold` waits up to 6 minutes). The AC is
-unticked until someone runs this. Run 2's clean behavior at 35s is encouraging but not
-sufficient proof.
+**5-minute hold (orchestrator, 2026-06-13):** PASS — 350,034ms held through Caddy
+`:3080`, heartbeats at exact 25s intervals for the entire run, clean close at the
+script's 5.5min target. Empirically confirms @hono/node-server defaults don't kill
+streaming responses and Caddy doesn't buffer or idle-timeout the stream. (The earlier
+"Run 1 anomalous close" and a first FAIL-502 attempt are both explained by API restarts
+from concurrent lanes sharing the dev env, not by the SSE stack.) Note: the hold run
+predated the `fix(sse)` lifecycle commit only in code-loaded terms — the API was
+restarted onto the fixed code before this run.
+
+**Live-state event end-to-end:** remains unexercised (needs a creator going live against
+dev SRS). Unit tests cover the publish seams; the wire path for events is proven by the
+route tests + the smoke-observed protocol frames. Honest residue for review.
