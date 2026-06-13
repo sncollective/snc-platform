@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint-proof
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint-route]
@@ -88,3 +88,10 @@ restarted onto the fixed code before this run.
 **Live-state event end-to-end:** remains unexercised (needs a creator going live against
 dev SRS). Unit tests cover the publish seams; the wire path for events is proven by the
 route tests + the smoke-observed protocol frames. Honest residue for review.
+
+## Review (2026-06-13)
+**Verdict**: Approve — proves the connection lifecycle end-to-end through real Caddy
+(the stated silent-failure risk): 350s hold, exact 25s heartbeats, jittered retry;
+publish seams unit-proven (5 spy tests). The composed real-bus→HTTP-frame path and the
+live-state e2e are honestly-disclosed residue — carried forward onto the publishers
+feature at feature review (not left to archive).

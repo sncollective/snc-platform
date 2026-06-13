@@ -6,6 +6,10 @@
 #   docs/ops/srs-deploy.md           → stream.s-nc.tv (SRS)
 #
 # Replace APP_IP with the snc-app container IP.
+#
+# ⚠ Do NOT add an `encode` (compression) directive without exempting /api/sse —
+# Hono streamSSE can only send Cache-Control: no-cache (no no-transform), so a
+# compression layer would buffer the event stream and break it silently.
 # Replace SRS_IP with the SRS container/LXC IP (only used in s-nc.tv block).
 #
 # Internal services (Garage admin :3903, SRS API :1985, Grafana :3000)

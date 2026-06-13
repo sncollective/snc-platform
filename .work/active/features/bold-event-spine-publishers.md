@@ -32,3 +32,12 @@ covers takeovers that bypass SRS, not just keyed on_publish/on_unpublish session
 The track-event handler path Liquidsoap→API already exists; input-switch events
 should ride the same mechanism. `live-experience-redesign-live-state` depends on
 this feature and consumes that event.
+
+## Carry-over from sse-endpoint review (2026-06-13)
+Two verification residues from the endpoint feature land here as acceptance lines:
+- Add one route test wiring a REAL `createEventBus()` into `createSseRoutes({bus})`
+  and asserting a `bus.publish()` after connect arrives as an HTTP frame — the only
+  seam composition never exercised (endpoint route tests use a mock bus).
+- Prove one live-state event end-to-end on the real wire (SRS on_publish → channels
+  service → bus → SSE frame) — the endpoint's proof story covered lifecycle through
+  Caddy but no real event ever traversed the full path.

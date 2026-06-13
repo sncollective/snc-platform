@@ -49,12 +49,13 @@ Two optional layers on top of the core capture→follow flow, both **per-band co
 - **Conversion CTA exists — no commerce dependency.** Stripe subscription rails are live (`apps/api/src/routes/subscription.routes.ts`, `services/stripe.ts`, `services/revenue.ts`; web `use-checkout.ts` + pricing page). The funnel hook lands on existing rails.
 - **What's genuinely missing** (code survey): QR generation (no dep anywhere — needs a `qrcode` lib + a band-facing "print my QR" surface), a public mobile-first `/join/:creatorSlug`-style route, the signup→auto-follow linkage (carry the creator through signup, fire the follow once the session exists), and the consent surface. Rate-limiting middleware, email service (Nodemailer→Mailpit), and invite-token infra all exist to build on.
 
+- **Post-follow sequence ordering** (user direction 2026-06-13): the flow after the follow completes runs (1) *"here's what you get for following the band"* — the value recap, band-voiced; (2) *notification + contact preferences* — the follower opts in to channels **before any follow-up email is sent** (no email until preferences are chosen; ties to the consent surface and the existing notification-preferences infra); (3) *the S/NC explainer + subscribe CTA* at the end of the flow. Design firms the screens, not the order.
+
 ## Open questions (for `/design`)
 
 - **At-show offline tolerance** — venue wifi/cell is flaky. Does the native page need offline-queue/PWA behavior, or is a hosted form genuinely more robust at the venue? (The one real point *for* the hosted-form path — test it, don't dismiss it.)
 - **SMS as a second channel** — the purpose-built tools center SMS+email. In scope now or a later iteration?
 - **Incentive mechanic** — does the at-show CTA need an incentive/prize/exclusive-content hook to convert (the pattern the brief found effective), and does that need its own surface?
-- **Where the S/NC explainer/CTA lives in the flow** — post-follow confirmation screen? follow-up email? both? The light-touch constraint (see Stretch goals) bounds the options: never before the follow completes.
 
 ## Connections
 

@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint
 kind: feature
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -325,3 +325,20 @@ connect race), coalescing over close-on-overflow (reconnect storms), no `id:` fi
 topics, shutdown-ordering correction (closeAll for clean FIN, not to unblock
 `server.close()` — which is never awaited), write-failure-as-authoritative cleanup, Bun
 fetch over denied `curl`, >5min held-open verification. Rejected: none material.
+
+## Review (2026-06-13)
+**Verdict**: Approve (deep lane, fresh-context sub-agent — not cross-model)
+**Blockers**: none
+**Important** (all dispositioned at review): (1) real-bus→route composed test never
+exercised (route tests use a mock bus) → carry-over line added to
+bold-event-spine-publishers; (2) live-state e2e residue would archive into a bodyless
+stub → same carry-over; (3) streamSSE drops the designed no-transform header (only
+no-cache survives) — latent silent-buffering risk if anyone adds Caddy encode → guard
+comment added to deploy/Caddyfile.prod.example.
+**Nits** (accepted): deadline debug log fires on every loop exit; query double-cast;
+content-topic scopeFilter fence is prose-only; smoke script comment says 6min vs 5.5;
+single-consumer next() constraint implicit; rootLogger loses request correlation.
+**Notes**: auth enforcement is structural (granted-set subscription + per-event
+re-check); snapshot-on-connect with no id: field, rationale recorded; 8faac57
+regression tests are self-enforcing; suite 1563/1563 at HEAD. Unblocks publishers
+(pending its lifecycle-playout-queue dep).

@@ -1,7 +1,7 @@
 ---
 id: bold-lifecycle-transitions-playout-queue-step-1
 kind: story
-stage: review
+stage: done
 tags: [refactor, playout]
 release_binding: null
 depends_on: []
@@ -54,3 +54,9 @@ Behavior-preserving: same DB statements, same order, same conditions.
   module, re-imported by the transitions module at test time). Assertion counts and
   shapes are unchanged.
 - Test counts: 34 orchestrator tests (unchanged) + 14 new transition tests = 48 total.
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Record green: transitions module extracted
+(markPlayed/promoteNext), orchestrator call-sites swapped, 48 tests (34 unchanged
+orchestrator + 14 new transition) with assertion shapes preserved through the shared
+db mock.
