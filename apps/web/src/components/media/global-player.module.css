@@ -60,24 +60,34 @@
 
 .collapsedActions {
   position: absolute;
-  /* Offset compensates for button padding (10px) so visible circles stay near the overlay
-     corner. max(0px, …) prevents negative offsets from pushing the hit area off-screen. */
+  /* Extend across the full overlay width so expand sits at the left edge and
+     close sits at the right edge (justify-content: space-between below).
+     max(0px, …) prevents negative offsets when button padding (10px) exceeds
+     the token (--space-xs = 4px → resolves to 0px on all three sides). */
   top: max(0px, calc(var(--space-xs) - 10px));
   left: max(0px, calc(var(--space-xs) - 10px));
+  right: max(0px, calc(var(--space-xs) - 10px));
   display: flex;
-  /* gap matches prior spacing between visible circles; hit areas overlap cleanly because
-     padding zones are internal to each button (no adjacent-element overlap) */
-  gap: 4px;
+  /* Opposite-corner layout: expand button to top-left, close button to top-right.
+     The two 44px hit areas are ~112px apart on the 200px overlay, satisfying
+     WCAG 2.5.8 (≥24px spacing between targets). Prior layout (both top-left,
+     gap: 4px) left the hit areas only 4px apart — the "internal padding doesn't
+     separate targets" bug diagnosed in the fix-verify bounce. */
+  justify-content: space-between;
   z-index: 50;
 }
 
-/* Audio bar: actions in the reserved right padding area */
+/* Audio bar: restore grouped right-side layout (both buttons together in the
+   reserved 60px right padding zone). The audio bar is not the MediaPlayer tap
+   surface, so corner-crowding is not a concern here; keep the tight grouping. */
 .collapsedBar .collapsedActions {
   top: 50%;
   left: auto;
   /* Compensate right offset for 10px padding so visible circle stays near the bar edge */
   right: max(0px, calc(var(--space-sm) - 10px));
   transform: translateY(-50%);
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .expandButton,

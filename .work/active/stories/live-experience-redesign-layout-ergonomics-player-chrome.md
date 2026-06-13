@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-player-chrome
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -102,3 +102,51 @@ against the MediaPlayer surface). Keep the 24px visible circles.
 
 **Fullscreen half of this story was confirmed OK** at the earlier walk — the fix is
 scoped to the mini-player touch targets only; don't regress the fullscreen slot.
+
+## Fix (2026-06-13)
+
+CSS-only fix in `apps/web/src/components/media/global-player.module.css`. No JSX
+change to `global-player.tsx` — the button structure and z-index/pointer-events layering
+are unchanged.
+
+**Fault 1+2 addressed together — opposite-corner layout:**
+
+Changed `.collapsedActions` from a left-anchored flex row to a full-width absolutely-
+positioned container spanning the overlay:
+- Added `right: max(0px, calc(var(--space-xs) - 10px))` (resolves to `right: 0` since
+  `--space-xs = 4px < 10px`). Combined with `left: 0; top: 0`, the `.collapsedActions`
+  div now covers the full width of the 200px `.collapsedOverlay`.
+- Changed `justify-content` from default (flex-start) to `space-between`. The first child
+  (expand/↗ link) is pushed to the left edge; the last child (close/✕ button) is pushed
+  to the right edge.
+- Removed `gap: 4px` from the base rule (gap between opposite-end items is determined by
+  the container width, not gap; keeping it would have no effect on the space-between layout
+  but removing it is cleaner).
+
+Result: at 375px on the 200px overlay, expand occupies px 0–44 (left edge) and close
+occupies px 156–200 (right edge). Hit areas are 112px apart — exceeds WCAG 2.5.8 ≥24px
+spacing. Neither button's 44px hit area overlaps the other. Corner crowding is also
+resolved: the MediaPlayer tap region covers the center of the overlay; expand (top-left)
+and close (top-right) are at the edges where Vidstack's controls don't fire.
+
+**Audio bar override restored:** `.collapsedBar .collapsedActions` was updated to add
+`justify-content: flex-end; gap: 4px` to restore grouped right-side layout for the audio
+bar. In the audio bar the buttons are not near the MediaPlayer tap zone, so the separate-
+corner fix does not apply there.
+
+**24px visible circles preserved:** `.expandButton` and `.closeButton` retain their
+`width: 44px; height: 44px; padding: 10px; background-clip: content-box` — the 24px
+content-box visual circle is unchanged.
+
+**Fullscreen slot untouched:** `global-player.tsx` is unchanged; no slot config was
+modified. The fullscreen verification from the prior implementation pass stands.
+
+**Files changed:** `apps/web/src/components/media/global-player.module.css`
+
+**Test result:** 1737/1737 web unit tests green (158 files). Hit-area geometry and tap
+feel cannot be verified in jsdom.
+
+**375px visual confirmation (mini-player tap feel) is deferred to the user's fix-verify
+loopback.** This agent cannot run the browser at 375px. The user must confirm that tapping
+expand (top-left circle) and close (top-right circle) are now cleanly separated and
+unambiguous.
