@@ -5,7 +5,7 @@ import {
   vi,
   beforeEach,
 } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type {
   ChannelListResponse,
@@ -88,6 +88,8 @@ const {
   mockAssignChannelContent,
   mockRemoveChannelContent,
   mockSearchAvailableContent,
+  mockCreateChannel,
+  mockDeleteChannel,
   mockStartUpload,
   mockCreatePlayoutItem,
 } = vi.hoisted(() => ({
@@ -99,6 +101,8 @@ const {
   mockAssignChannelContent: vi.fn(),
   mockRemoveChannelContent: vi.fn(),
   mockSearchAvailableContent: vi.fn(),
+  mockCreateChannel: vi.fn(),
+  mockDeleteChannel: vi.fn(),
   mockStartUpload: vi.fn(),
   mockCreatePlayoutItem: vi.fn(),
 }));
@@ -129,6 +133,8 @@ vi.mock("../../../../src/lib/playout-channels.js", () => ({
   assignChannelContent: mockAssignChannelContent,
   removeChannelContent: mockRemoveChannelContent,
   searchAvailableContent: mockSearchAvailableContent,
+  createChannel: mockCreateChannel,
+  deleteChannel: mockDeleteChannel,
 }));
 
 vi.mock("../../../../src/lib/playout.js", () => ({
@@ -159,6 +165,7 @@ const PlayoutPage = extractRouteComponent(
 // ── Lifecycle ──
 
 beforeEach(() => {
+  vi.clearAllMocks();
   const playoutChannel = makeMockPlayoutChannel();
   mockUseLoaderData.mockReturnValue({ allChannels: [playoutChannel], playoutChannels: [playoutChannel] });
   mockFetchChannelQueue.mockResolvedValue(makeMockQueueStatus());
@@ -169,6 +176,8 @@ beforeEach(() => {
   mockAssignChannelContent.mockResolvedValue(undefined);
   mockRemoveChannelContent.mockResolvedValue(undefined);
   mockSearchAvailableContent.mockResolvedValue({ items: [] });
+  mockCreateChannel.mockResolvedValue({ channelId: "ch_new", engineRestarting: false, engineReady: true });
+  mockDeleteChannel.mockResolvedValue({ ok: true, engineRestarting: true, engineReady: false });
   mockCreatePlayoutItem.mockResolvedValue({
     id: "item_new",
     title: "Nosferatu",
@@ -270,6 +279,156 @@ describe("PlayoutPage", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Metropolis").length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("create channel — confirm dialog gate", () => {
+  it("clicking Create opens the confirm dialog without creating the channel", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    // Open the new channel form
+    await user.click(screen.getByRole("button", { name: "+ New Channel" }));
+    const nameInput = screen.getByPlaceholderText("Channel name");
+    await user.type(nameInput, "Test Channel");
+
+    // Click Create — should open the confirm dialog, NOT call createChannel
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText(/briefly restarts the playout engine/i)).toBeInTheDocument();
+    expect(mockCreateChannel).not.toHaveBeenCalled();
+  });
+
+  it("confirming the dialog calls createChannel", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    await user.click(screen.getByRole("button", { name: "+ New Channel" }));
+    await user.type(screen.getByPlaceholderText("Channel name"), "Test Channel");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Create channel" }));
+
+    await waitFor(() => {
+      expect(mockCreateChannel).toHaveBeenCalledWith("Test Channel");
+    });
+  });
+
+  it("cancelling the create dialog preserves the typed channel name", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    await user.click(screen.getByRole("button", { name: "+ New Channel" }));
+    const nameInput = screen.getByPlaceholderText("Channel name");
+    await user.type(nameInput, "My Channel");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    const createDialog = await screen.findByRole("alertdialog");
+
+    // Cancel via the dialog's Cancel button (not the form Cancel)
+    await user.click(within(createDialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+
+    // The typed name should still be in the input
+    expect(screen.getByPlaceholderText("Channel name")).toHaveValue("My Channel");
+    expect(mockCreateChannel).not.toHaveBeenCalled();
+  });
+});
+
+describe("delete channel — confirm dialog gate", () => {
+  it("renders a Delete channel button when a channel is selected", () => {
+    render(<PlayoutPage />);
+    expect(screen.getByRole("button", { name: "Delete channel" })).toBeInTheDocument();
+  });
+
+  it("clicking Delete channel opens the confirm dialog without calling deleteChannel", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    await user.click(screen.getByRole("button", { name: "Delete channel" }));
+
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText(/goes offline and is removed from playout/i)).toBeInTheDocument();
+    expect(mockDeleteChannel).not.toHaveBeenCalled();
+  });
+
+  it("confirming the delete dialog calls deleteChannel with the selected channel id", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    await user.click(screen.getByRole("button", { name: "Delete channel" }));
+
+    const deleteDialog = await screen.findByRole("alertdialog");
+
+    // Click the confirm button inside the dialog (not the "Delete channel" nav button)
+    await user.click(within(deleteDialog).getByRole("button", { name: "Delete channel" }));
+
+    await waitFor(() => {
+      expect(mockDeleteChannel).toHaveBeenCalledWith("ch_playout_1");
+    });
+  });
+
+  it("cancelling the delete dialog closes it without calling deleteChannel", async () => {
+    const user = userEvent.setup();
+    render(<PlayoutPage />);
+
+    await user.click(screen.getByRole("button", { name: "Delete channel" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+
+    expect(mockDeleteChannel).not.toHaveBeenCalled();
+  });
+});
+
+describe("Now Playing — disabled skip when nothing is playing", () => {
+  it("shows a disabled Skip button with 'No active track' when queueStatus is loaded but nowPlaying is null", async () => {
+    mockFetchChannelQueue.mockResolvedValue(
+      makeMockQueueStatus({ nowPlaying: null }),
+    );
+    render(<PlayoutPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    });
+
+    const skipBtn = screen.getByRole("button", { name: "Skip" });
+    expect(skipBtn).toBeDisabled();
+    expect(screen.getByText("No active track")).toBeInTheDocument();
+  });
+
+  it("shows enabled Skip when nowPlaying is not null", async () => {
+    render(<PlayoutPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "Skip" })).not.toBeDisabled();
+    expect(screen.queryByText("No active track")).not.toBeInTheDocument();
+  });
+
+  it("shows Loading when queueStatus is null (initial load)", () => {
+    mockFetchChannelQueue.mockReturnValue(new Promise(() => {})); // never resolves
+    render(<PlayoutPage />);
+    // Both queue and Now Playing sections show "Loading…" while queueStatus is null
+    expect(screen.getAllByText("Loading…").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
   });
 });
 

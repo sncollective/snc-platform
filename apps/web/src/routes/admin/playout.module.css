@@ -77,9 +77,29 @@
   flex-shrink: 0;
 }
 
-.skipButton:hover {
+.skipButton:hover:not(:disabled) {
   color: var(--color-text);
   border-color: var(--color-text-muted);
+}
+
+.skipButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Disabled Skip Group ── */
+
+.skipDisabledGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.skipDisabledReason {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 /* ── Playlist Items ── */
@@ -616,4 +636,30 @@
 .addButton:hover {
   background: var(--color-accent);
   color: var(--color-text-on-accent);
+}
+
+/* ── Delete Channel Button ── */
+
+.deleteChannelButton {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  margin-left: auto;
+}
+
+.deleteChannelButton:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-bg);
+}
+
+.deleteChannelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

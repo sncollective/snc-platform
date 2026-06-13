@@ -14,11 +14,13 @@ import { ContentPoolTable } from "../../components/admin/content-pool-table.js";
 import { ContentSearchPicker } from "../../components/admin/content-search-picker.js";
 import { PoolItemPicker } from "../../components/admin/pool-item-picker.js";
 import { QueueItemRow } from "../../components/admin/queue-item-row.js";
+import { ConfirmDialog } from "../../components/ui/confirm-dialog.js";
 import { toaster } from "../../components/ui/toast.js";
 import { fetchApiServer } from "../../lib/api-server.js";
 import {
   assignChannelContent,
   createChannel,
+  deleteChannel,
   fetchChannelContent,
   fetchChannelQueue,
   insertQueueItem,
@@ -164,6 +166,11 @@ function PlayoutPage(): React.ReactElement {
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+
+  // Channel deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingChannel, setIsDeletingChannel] = useState(false);
 
   // Engine restart status indicator
   const [engineStatus, setEngineStatus] = useState<"ready" | "restarting" | null>(null);
@@ -299,9 +306,10 @@ function PlayoutPage(): React.ReactElement {
     }, 2000);
   };
 
-  // Create a new playout channel
+  // Create a new playout channel (called after confirm dialog)
   const handleCreateChannel = async (): Promise<void> => {
     if (!newChannelName.trim()) return;
+    setShowCreateConfirm(false);
     setIsCreatingChannel(true);
     try {
       const result = await createChannel(newChannelName.trim());
@@ -329,6 +337,29 @@ function PlayoutPage(): React.ReactElement {
       setActionError(e instanceof Error ? e.message : "Failed to create channel");
     } finally {
       setIsCreatingChannel(false);
+    }
+  };
+
+  // Delete (deactivate) the selected playout channel
+  const handleDeleteChannel = async (): Promise<void> => {
+    if (!selectedChannelId) return;
+    setIsDeletingChannel(true);
+    try {
+      await deleteChannel(selectedChannelId);
+      setShowDeleteConfirm(false);
+      setEngineStatus("restarting");
+      toaster.info({
+        title: "Channel deleted",
+        description: "Playout engine restarting with updated configuration...",
+      });
+      pollEngineHealth();
+      // Reload to remove deleted channel from tabs
+      setTimeout(() => { window.location.reload(); }, 500);
+    } catch (e) {
+      setShowDeleteConfirm(false);
+      setActionError(e instanceof Error ? e.message : "Failed to delete channel");
+    } finally {
+      setIsDeletingChannel(false);
     }
   };
 
@@ -398,7 +429,7 @@ function PlayoutPage(): React.ReactElement {
               <button
                 type="button"
                 className={formStyles.submitButton}
-                onClick={() => void handleCreateChannel()}
+                onClick={() => setShowCreateConfirm(true)}
                 disabled={isCreatingChannel || !newChannelName.trim()}
               >
                 {isCreatingChannel ? "Creating…" : "Create"}
@@ -413,8 +444,48 @@ function PlayoutPage(): React.ReactElement {
               </button>
             </div>
           )}
+          {selectedChannelId !== null && (
+            <button
+              type="button"
+              className={styles.deleteChannelButton}
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isDeletingChannel}
+            >
+              Delete channel
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Create channel confirm dialog */}
+      <ConfirmDialog
+        open={showCreateConfirm}
+        tone="default"
+        title="Create channel?"
+        confirmLabel="Create channel"
+        onConfirm={() => void handleCreateChannel()}
+        onCancel={() => setShowCreateConfirm(false)}
+      >
+        Creating &ldquo;{newChannelName}&rdquo; briefly restarts the playout engine.
+        Viewers may see a short interruption.
+      </ConfirmDialog>
+
+      {/* Delete channel confirm dialog */}
+      {selectedChannelId !== null && (
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          tone="danger"
+          title="Delete channel?"
+          confirmLabel="Delete channel"
+          isPending={isDeletingChannel}
+          onConfirm={() => void handleDeleteChannel()}
+          onCancel={() => setShowDeleteConfirm(false)}
+        >
+          &ldquo;{playoutChannels.find((ch) => ch.id === selectedChannelId)?.name ?? "This channel"}&rdquo; goes
+          offline and is removed from playout. The playout engine briefly restarts &mdash; viewers
+          may see a short interruption.
+        </ConfirmDialog>
+      )}
 
       {selectedChannelId !== null && (
         <>
@@ -435,7 +506,9 @@ function PlayoutPage(): React.ReactElement {
               </div>
             )}
 
-            {queueStatus?.nowPlaying != null ? (
+            {queueStatus === null ? (
+              <p className={listingStyles.status}>Loading…</p>
+            ) : queueStatus.nowPlaying != null ? (
               <div className={styles.nowPlayingCard}>
                 <div className={styles.nowPlayingInfo}>
                   <span className={styles.nowPlayingTitle}>
@@ -456,9 +529,20 @@ function PlayoutPage(): React.ReactElement {
                 </button>
               </div>
             ) : (
-              <p className={listingStyles.status}>
-                {queueStatus === null ? "Loading…" : "Nothing playing"}
-              </p>
+              <div className={styles.nowPlayingCard}>
+                <p className={listingStyles.status} style={{ margin: 0 }}>Nothing playing</p>
+                <div className={styles.skipDisabledGroup}>
+                  <button
+                    type="button"
+                    className={styles.skipButton}
+                    disabled
+                    aria-disabled="true"
+                  >
+                    Skip
+                  </button>
+                  <span className={styles.skipDisabledReason}>No active track</span>
+                </div>
+              </div>
             )}
           </section>
 
