@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-responsive-structure
 kind: feature
-stage: implementing
+stage: review
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [responsive-table-card-pattern]
@@ -127,8 +127,8 @@ export interface ContentPoolTableProps {
 - Keep `formatDuration`/`relativeTime` helpers as-is. Keep `sourceBadge`/button styles
   (still used); delete the now-dead `.poolTable`/`.poolTableHeader`/`.poolTableCell`
   rules from `playout.module.css`.
-- Delete `.work/backlog/a11y-admin-pool-table-mobile-overflow.md` in this story's
-  commit.
+- Delete the `a11y-admin-pool-table-mobile-overflow` backlog stub in this story's
+  commit. *(Done — stub removed.)*
 
 **Acceptance Criteria**:
 - [ ] `playout.tsx` unchanged (props API identical).
@@ -164,7 +164,8 @@ module CSS + test file)
   header): "Changes to active destinations take effect immediately on the live
   stream." — structural copy, in scope here; `honest-actions`' semantics-note item
   cross-reads this so it isn't duplicated.
-- Delete `.work/backlog/a11y-admin-simulcast-table-mobile.md` in this story's commit.
+- Delete the `a11y-admin-simulcast-table-mobile` backlog stub in this story's commit.
+  *(Done — already absent.)*
 
 **Acceptance Criteria**:
 - [ ] Admin surface: table at wide container, cards at narrow. Creator surface
@@ -189,7 +190,8 @@ module CSS + test file)
 - Picker dropdown (the absolutely-positioned results panel in `playout.module.css`
   shared by ContentSearchPicker/PoolItemPicker): `min-width: 260px`; anchor `right: 0`
   so it stays in-viewport when opened from right-edge buttons.
-- Delete `.work/backlog/a11y-admin-new-channel-form-mobile.md` in this story's commit.
+- Delete the `a11y-admin-new-channel-form-mobile` backlog stub in this story's commit.
+  *(Done — stub removed.)*
 
 **Acceptance Criteria**:
 - [ ] At 375px the Create and Cancel buttons are fully on-screen (wrap under input).
@@ -223,3 +225,35 @@ module CSS + test file)
 - **Audit A3 tab-dot timing finding (page reload races the restart indicator) is NOT
   fixed here** — it's data-truth work owned by `live-data` (honest engine-restart
   state). Named so nobody assumes this feature closed it.
+
+## Implementation summary (2026-06-13)
+All three child stories implemented and at `stage: review`:
+- `…-pool-table` — `ContentPoolTable` renders `ResponsiveTable<ChannelContent>` behind
+  an unchanged public API; columns extracted to a module-level `COLUMNS` const (Title
+  `cardRole:"title"`); empty state gained the action prompt; dead `.poolTable*` CSS
+  removed; new component test added. `bug a11y-admin-pool-table-mobile-overflow` stub
+  deleted.
+- `…-form-and-chrome` — create-channel inline styles → `.newChannelRow`/`.newChannelForm`/
+  `.newChannelInput` with `flex-wrap: wrap` + input `flex: 1 1 200px` (sev-4 fix);
+  `.channelTabs` gained `overflow-x: auto` + `flex-shrink:0` tabs; `.searchPickerResults`
+  gained `min-width: 260px`, right-anchored. `a11y-admin-new-channel-form-mobile` stub
+  deleted.
+- `…-simulcast-table` — both `variant` branches collapsed onto one
+  `ResponsiveTable<SimulcastDestination>` (`mode={variant==="list"?"cards":"auto"}`,
+  `tableAt="md"`, RTMP URL `cardRole:"hidden"`); ConfirmDialog delete flow preserved;
+  A5 semantics note added; dead list/table CSS removed; delete-flow tests updated to
+  `getAllByRole` (dual render). Stub `a11y-admin-simulcast-table-mobile` already gone.
+
+Verification: 1717 web tests pass (156 files), build clean. This is `ResponsiveTable`'s
+first real consumer — no API gaps surfaced; the column-driven API covered both the
+conditional-Retry render-prop case and the variant collapse. Container-query toggle
+still awaits real-browser confirmation at fix-verify.
+
+Cross-cutting note: concurrent-lane pre-commit stash races scrambled commit-message
+attribution across the three implement commits (`fd5b378` holds the pool-table content,
+`61736f2` holds the form-and-chrome content despite its simulcast-labeled message,
+`69d0b3a` holds the simulcast content). All content verified present and correct.
+
+**Fix-verify pending** (platform convention): user confirms at 375px in the running app
+— pool cards, simulcast cards, create-form wrap, picker width, tab scroll — before the
+stories close.
