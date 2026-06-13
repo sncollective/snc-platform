@@ -70,3 +70,10 @@ plugin's default bounce-and-re-review). The user acceptance item is unchecked: l
 Twitch + YouTube destinations active in prod requires production credentials. Story stays at
 `stage: review` until the user confirms the live-test passes. Item is correct code; the hold
 is process, not substance.
+
+## Fix-verify: DEFERRED to staging/prod (2026-06-13)
+Held at review, NOT failed. The verifying condition is a forced-failure / real-infra
+path a dev station can't readily reproduce; it rides a staging or release
+prod-verification check rather than the dev fix-verify loopback.
+**Needs**: a real creator RTMP push with active Twitch/YouTube simulcast destinations —
+confirm both external platforms go live AND S/NC TV takes over. Prod-shaped check.

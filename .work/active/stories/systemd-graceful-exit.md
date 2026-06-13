@@ -60,3 +60,10 @@ All four designed mechanisms present.
 **Hold — fix-verify loopback pending (user-station).** The behavioral checklist requires
 systemctl access on the production host: restart completes without hang, staged shutdown
 logs, no active pg-boss locks post-restart. Story stays at `stage: review` until confirmed.
+
+## Fix-verify: DEFERRED to release prod-verification (2026-06-13)
+Held at review, NOT failed. Prod-ops only — the verifying condition (`systemctl restart
+snc-api` no longer hangs, no held pg-boss locks) is only observable on the prod/staging
+host. Tagged for the release `## Prod verification` walk alongside the other prod-only
+checks (OAuth/SMTP/SRS-RTMP). Implementation record is green; this is the one check that
+actually matters for the story and it lives at ship time.

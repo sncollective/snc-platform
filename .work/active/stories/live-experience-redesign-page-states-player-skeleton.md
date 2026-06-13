@@ -88,3 +88,9 @@ expanded presentation — the original composition stripped position:fixed from 
 collapsed mini-player during loading/error (rule-order override; design-inherited).
 Test-gap nits (accepted, not items): retry key-bump not asserted; audio pendingFrame
 absence not asserted; channel-switch reset untested.
+
+## Fix-verify: PARTIAL — skeleton confirmed, error path deferred (2026-06-13)
+Cold-load skeleton CONFIRMED in-app by the user. The remaining acceptance line (HLS
+error overlay + working "Try again") needs a stream that errors mid-play — deferred to
+a staging/forced-error check, not failed. Story stays at review until that path is
+exercised or the user accepts the partial.

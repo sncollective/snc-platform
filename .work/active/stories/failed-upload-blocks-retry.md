@@ -49,3 +49,10 @@ the fix. Web unit suite 1600/1600 green.
 mid-upload failure → clean retry, no orphaned multipart uploads in Garage) is
 user-verifiable in the running app and remains unchecked. Story stays at `stage: review`
 until confirmed.
+
+## Fix-verify: DEFERRED to staging/prod (2026-06-13)
+Held at review, NOT failed. The verifying condition is a forced-failure / real-infra
+path a dev station can't readily reproduce; it rides a staging or release
+prod-verification check rather than the dev fix-verify loopback.
+**Needs**: an upload killed mid-flight (CORS/network) then retried — confirm no
+"already exists" and no orphaned Garage multipart parts.

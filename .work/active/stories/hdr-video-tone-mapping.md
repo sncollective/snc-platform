@@ -1,7 +1,7 @@
 ---
 id: hdr-video-tone-mapping
 kind: story
-stage: review
+stage: done
 tags: [content, media-pipeline]
 release_binding: null
 depends_on: []
@@ -34,3 +34,9 @@ API unit suite 1501/1501 green in this review cycle.
 an HDR source (e.g. iPhone HLG clip), confirm transcoded output is tone-mapped (no washed-out
 colors), capped at 1080p, and the HDR detection is visible in upload logs. Story stays at
 `stage: review` until confirmed.
+
+## Disposition (2026-06-13)
+Advanced to done on the 2026-06-12 deep-review approval (code-level). No dev-station
+surface — runtime verification (an actual HDR source through the transcode job) rides
+the release `## Prod verification` walk if/when an HDR fixture is available. User call:
+do not hold the review queue on a dev visual check this story can't receive.
