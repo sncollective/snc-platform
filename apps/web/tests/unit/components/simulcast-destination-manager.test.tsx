@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+import type {
+  SimulcastDestination,
+  CreateSimulcastDestination,
+  UpdateSimulcastDestination,
+} from "@snc/shared";
 
 // ── Component Under Test ──
 
@@ -8,10 +15,10 @@ import { SimulcastDestinationManager } from "../../../src/components/simulcast/s
 
 // ── Helpers ──
 
-function makeDest(overrides: Record<string, unknown> = {}) {
+function makeDest(overrides: Partial<SimulcastDestination> = {}): SimulcastDestination {
   return {
     id: "dest-1",
-    platform: "twitch" as const,
+    platform: "twitch",
     label: "My Twitch",
     rtmpUrl: "rtmp://live.twitch.tv/app",
     streamKeyPrefix: "sk_abc",
@@ -25,16 +32,21 @@ function makeDest(overrides: Record<string, unknown> = {}) {
 
 // ── Test Lifecycle ──
 
-let mockFetchDestinations: ReturnType<typeof vi.fn>;
-let mockCreateDestination: ReturnType<typeof vi.fn>;
-let mockUpdateDestination: ReturnType<typeof vi.fn>;
-let mockDeleteDestination: ReturnType<typeof vi.fn>;
+type FetchDestinations = () => Promise<{ destinations: SimulcastDestination[] }>;
+type CreateDestination = (input: CreateSimulcastDestination) => Promise<unknown>;
+type UpdateDestination = (id: string, input: UpdateSimulcastDestination) => Promise<unknown>;
+type DeleteDestination = (id: string) => Promise<unknown>;
+
+let mockFetchDestinations: Mock<FetchDestinations>;
+let mockCreateDestination: Mock<CreateDestination>;
+let mockUpdateDestination: Mock<UpdateDestination>;
+let mockDeleteDestination: Mock<DeleteDestination>;
 
 beforeEach(() => {
-  mockFetchDestinations = vi.fn().mockResolvedValue({ destinations: [] });
-  mockCreateDestination = vi.fn().mockResolvedValue({});
-  mockUpdateDestination = vi.fn().mockResolvedValue({});
-  mockDeleteDestination = vi.fn().mockResolvedValue({});
+  mockFetchDestinations = vi.fn<FetchDestinations>().mockResolvedValue({ destinations: [] });
+  mockCreateDestination = vi.fn<CreateDestination>().mockResolvedValue({});
+  mockUpdateDestination = vi.fn<UpdateDestination>().mockResolvedValue({});
+  mockDeleteDestination = vi.fn<DeleteDestination>().mockResolvedValue({});
 });
 
 // ── Tests ──
