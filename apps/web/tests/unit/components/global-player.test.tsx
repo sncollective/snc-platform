@@ -11,8 +11,20 @@ vi.mock("../../../src/contexts/global-player-context.js", () => ({
 }));
 
 vi.mock("@vidstack/react", () => ({
-  MediaPlayer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="media-player">{children}</div>
+  MediaPlayer: ({
+    children,
+    onCanPlay,
+    onError,
+  }: {
+    children: React.ReactNode;
+    onCanPlay?: () => void;
+    onError?: () => void;
+  }) => (
+    <div data-testid="media-player">
+      <button data-testid="fire-can-play" onClick={() => onCanPlay?.()} />
+      <button data-testid="fire-error" onClick={() => onError?.()} />
+      {children}
+    </div>
   ),
   MediaProvider: () => <div data-testid="media-provider" />,
 }));
@@ -50,6 +62,17 @@ const VIDEO_MEDIA: MediaMetadata = {
   source: { src: "/video.mp4", type: "video/mp4" },
   streamType: "on-demand",
   contentUrl: "/content/video-1",
+};
+
+const LIVE_MEDIA: MediaMetadata = {
+  id: "live-channel-1",
+  contentType: "live",
+  title: "Live Stream",
+  artist: "Live Creator",
+  posterUrl: null,
+  source: { src: "https://example.com/live.m3u8", type: "application/x-mpegurl" },
+  streamType: "live",
+  contentUrl: "/live/live-channel-1",
 };
 
 // ── Helpers ──
@@ -127,5 +150,71 @@ describe("GlobalPlayer", () => {
     mockUseGlobalPlayer.mockReturnValue(makeContext(VIDEO_MEDIA, "expanded"));
     render(<GlobalPlayer />);
     expect(screen.queryByRole("button", { name: "Close player" })).toBeNull();
+  });
+
+  // ── Skeleton and error overlay tests ──
+
+  it("shows skeleton on mount for live/video media (expanded)", async () => {
+    mockUseGlobalPlayer.mockReturnValue(makeContext(LIVE_MEDIA, "expanded"));
+    render(<GlobalPlayer />);
+
+    // Skeleton present on mount (status starts as "loading")
+    const skeleton = await screen.findByRole("status", { name: "Loading stream" });
+    expect(skeleton).toBeTruthy();
+
+    // After canPlay fires, skeleton should disappear
+    const fireCanPlay = screen.getByTestId("fire-can-play");
+    fireEvent.click(fireCanPlay);
+    expect(screen.queryByRole("status", { name: "Loading stream" })).toBeNull();
+  });
+
+  it("shows error overlay after onError fires; skeleton absent", async () => {
+    mockUseGlobalPlayer.mockReturnValue(makeContext(LIVE_MEDIA, "expanded"));
+    render(<GlobalPlayer />);
+
+    // Skeleton is initially visible
+    await screen.findByRole("status", { name: "Loading stream" });
+
+    // Trigger error
+    const fireError = screen.getByTestId("fire-error");
+    fireEvent.click(fireError);
+
+    // Error overlay present
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toContain("Try again");
+
+    // Skeleton gone
+    expect(screen.queryByRole("status", { name: "Loading stream" })).toBeNull();
+  });
+
+  it("clicking Try again resets to loading state", async () => {
+    mockUseGlobalPlayer.mockReturnValue(makeContext(LIVE_MEDIA, "expanded"));
+    render(<GlobalPlayer />);
+
+    // Wait for media player to mount
+    await screen.findByTestId("media-player");
+
+    // Trigger error
+    fireEvent.click(screen.getByTestId("fire-error"));
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    // Click Try again
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    // Error overlay gone, skeleton back
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("status", { name: "Loading stream" })).toBeTruthy();
+  });
+
+  it("audio media shows no skeleton and no error overlay", () => {
+    mockUseGlobalPlayer.mockReturnValue(makeContext(AUDIO_MEDIA, "expanded"));
+    render(<GlobalPlayer />);
+
+    // No skeleton
+    expect(screen.queryByLabelText("Loading stream")).toBeNull();
+    expect(screen.queryByRole("status", { name: "Loading stream" })).toBeNull();
+    // No error overlay
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
@@ -7,6 +7,8 @@ import "@vidstack/react/player/styles/default/layouts/audio.css";
 
 import type { PlayerSrc } from "@vidstack/react";
 import type { ChannelListResponse } from "@snc/shared";
+
+import { clsx } from "clsx/lite";
 
 import { useGlobalPlayer } from "../../contexts/global-player-context.js";
 import { useVidstackModules } from "../../hooks/use-vidstack-modules.js";
@@ -17,12 +19,20 @@ import styles from "./global-player.module.css";
 const LIVE_STATUS_POLL_MS = 10_000;
 const LIVE_STATUS_MISS_THRESHOLD = 3;
 
+/** Local playback state for the skeleton / error overlay lifecycle. */
+type PlayerStatus = "loading" | "ready" | "error";
+
 // ── Public API ──
 
 /** Single persistent media player rendered in the root layout. CSS controls expanded/collapsed/hidden presentation. */
 export function GlobalPlayer() {
   const { state, presentation, actions } = useGlobalPlayer();
   const modules = useVidstackModules();
+
+  // PlayerStatus drives the skeleton and error overlays (non-audio only).
+  const [status, setStatus] = useState<PlayerStatus>("loading");
+  // Bumping retryKey remounts MediaPlayer without changing the media item.
+  const [retryKey, setRetryKey] = useState(0);
 
   // Set mini player height CSS variable for collapsed modes
   useEffect(() => {
@@ -74,6 +84,11 @@ export function GlobalPlayer() {
     };
   }, [mediaId, isLiveChannel, actions]);
 
+  // Reset to loading whenever the media item changes (channel switch, new content).
+  useEffect(() => {
+    setStatus("loading");
+  }, [mediaId]);
+
   if (!state.media) return null;
 
   const { media } = state;
@@ -88,13 +103,16 @@ export function GlobalPlayer() {
   })();
 
   return (
-    <div className={containerClass} data-presentation={presentation}>
+    <div
+      className={clsx(containerClass, !isAudio && status !== "ready" && styles.pendingFrame)}
+      data-presentation={presentation}
+    >
       {modules !== null && (() => {
         const { MediaPlayer, MediaProvider } = modules.core;
         const { DefaultVideoLayout, DefaultAudioLayout, defaultLayoutIcons } = modules.layouts;
         return (
           <MediaPlayer
-            key={media.id}
+            key={`${media.id}:${retryKey}`}
             src={media.source as PlayerSrc}
             autoPlay={state.shouldAutoPlay || isLive}
             title={media.title}
@@ -103,6 +121,8 @@ export function GlobalPlayer() {
             {...(media.posterUrl !== null && !isAudio ? { poster: media.posterUrl } : {})}
             {...(isLive ? { streamType: "live" as const, muted: true } : {})}
             {...(isAudio ? { viewType: "audio" as const } : { aspectRatio: "16/9" })}
+            onCanPlay={() => setStatus("ready")}
+            onError={() => setStatus("error")}
           >
             <MediaProvider />
             {isAudio ? (
@@ -116,6 +136,26 @@ export function GlobalPlayer() {
           </MediaPlayer>
         );
       })()}
+      {!isAudio && status === "loading" && (
+        <div className={styles.playerSkeleton} role="status" aria-label="Loading stream" />
+      )}
+      {!isAudio && status === "error" && (
+        <div className={styles.playerError} role="alert">
+          <p className={styles.playerErrorText}>
+            The stream couldn&apos;t be loaded. It may have just ended, or the connection hiccuped.
+          </p>
+          <button
+            type="button"
+            className={styles.playerErrorRetry}
+            onClick={() => {
+              setRetryKey((k) => k + 1);
+              setStatus("loading");
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
       {presentation === "collapsed" && (
         <div className={styles.collapsedActions}>
           <a
@@ -124,7 +164,7 @@ export function GlobalPlayer() {
             aria-label="Go to content"
             title="Go to content"
           >
-            {"\u2197"}
+            {"↗"}
           </a>
           <CloseButton onClose={actions.clear} />
         </div>
@@ -142,7 +182,7 @@ function CloseButton({ onClose }: { readonly onClose: () => void }) {
       onClick={onClose}
       aria-label="Close player"
     >
-      {"\u2715"}
+      {"✕"}
     </button>
   );
 }

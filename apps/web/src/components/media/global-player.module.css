@@ -101,3 +101,68 @@
 .expanded .collapsedActions {
   display: none;
 }
+
+/* ── Skeleton + error overlays (non-audio, pre-ready states) ── */
+
+/* Reserves 16:9 height on the expanded container before Vidstack mounts,
+   eliminating the zero-height dead-air window on cold start. */
+.pendingFrame {
+  aspect-ratio: 16 / 9;
+  position: relative;
+}
+
+/* Pulsing placeholder shown from mount until Vidstack fires canPlay. */
+.playerSkeleton {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg-elevated);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playerSkeleton {
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Error state overlay — sits above the still-mounted MediaPlayer. */
+.playerError {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  background: var(--color-media-bg);
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.playerErrorText {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  max-width: 360px;
+}
+
+/* "Try again" button — bordered pill matching the codebase's overlay button idiom. */
+.playerErrorRetry {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.playerErrorRetry:hover {
+  background: var(--color-overlay-dark);
+  color: var(--color-text-on-color);
+}
