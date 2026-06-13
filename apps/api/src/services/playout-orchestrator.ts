@@ -16,7 +16,7 @@ import {
   channelContent,
   playoutQueue,
 } from "../db/schema/playout-queue.schema.js";
-import { markPlayed, promoteNext, enqueue, enqueueBatch } from "./playout-queue-transitions.js";
+import { markPlayed, promoteNext, enqueue, enqueueBatch, removeQueued } from "./playout-queue-transitions.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -378,21 +378,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       return err(new NotFoundError("Queue entry not found"));
     }
 
-    if (entry.status === "playing") {
-      return err(
-        new AppError(
-          "CANNOT_REMOVE_PLAYING",
-          "Cannot remove the currently playing item",
-          409,
-        ),
-      );
-    }
-
-    await db
-      .delete(playoutQueue)
-      .where(eq(playoutQueue.id, queueEntryId));
-
-    return ok(undefined);
+    return removeQueued(entry);
   };
 
   /**
