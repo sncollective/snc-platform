@@ -273,3 +273,33 @@ return the affected row (emit directly), but `markPlayed` returns void and
 `enqueueBatch` returns only a count. For the queue-events story, either pass the
 in-hand `playing` row at the orchestrator call site or extend `markPlayed`'s signature
 — decide intentionally rather than re-querying by reflex.
+
+## Resume state (2026-06-13 — paused, ready to start)
+
+**Status: held for coordination, not blocked.** Both `depends_on` are now `done`
+(`bold-event-spine-sse-endpoint`, `bold-lifecycle-transitions-playout-queue`). Story 1
+`-input-switch` is `--ready`. The 4-story chain is unchanged and sequential:
+input-switch → queue-events → content-events → wire-proofs.
+
+**Why paused (two coordination gates, both operational — not dependency edges):**
+1. **Shared dev Liquidsoap stream.** Story 1 is spike-first: it edits the render
+   template and needs `playout.liq` regenerated + the engine restarted. Don't run it
+   while another lane is mid stream-test on the shared dev stream — confirm the stream
+   is free first.
+2. **`channels.ts` / streaming schema is in flight under Lane 1.** As of this pause,
+   `unified-channel-model-identity-lifecycle` (implementing) has an UNCOMMITTED schema
+   migration (`0025_worthless_maelstrom.sql`) + edits to `streaming.schema.ts` and
+   `channels.ts` in the working tree. The proof event's `eventBus.publish` calls in
+   `channels.ts` are NOT touched by that diff (verified at pause), so the SSE seam is
+   intact — but the broadcast-channel shape the input-switch webhook resolves against
+   may move. **Re-ground Unit 1's "resolve the broadcast channel row" step against the
+   landed identity-lifecycle change before implementing.**
+
+**To resume cleanly:** wait for the Lane 1 channel-model work to commit + the dev stream
+to be free, then `git status` should be clean → `/agile-workflow:implement-orchestrator
+bold-event-spine-publishers`. If the dev stream stays busy, stories 2–4 (queue/engine/
+content publishers + wire-proofs) are pure API/bus and need no Liquidsoap restart — but
+they currently declare `-input-switch` as upstream, so running them first means
+re-sequencing the chain (drop the `depends_on` on input-switch for 2, re-point 3→2).
+The emission-asymmetry note above (markPlayed/enqueueBatch return shapes) is the first
+decision Unit 2 hits.

@@ -39,3 +39,15 @@ holder contract, fallback plan).
       with the regenerated config).
 - [ ] Webhook 401s without secret; publishes + records on valid call.
 - [ ] `getAiringSource()` reflects the last webhook call; `unknown` before any.
+
+## Resume note (2026-06-13 — ready, paused for coordination)
+
+Deps clear; this is the chain's entry point. **Before starting, two re-grounding checks:**
+1. **Spike first** (per scope): validate `fallback(transitions=[...])` firing in the dev
+   Liquidsoap container BEFORE template/API wiring — only when the shared dev stream is
+   free to restart.
+2. **`channels.ts` moved under Lane 1.** `unified-channel-model-identity-lifecycle` had
+   an in-flight schema migration + `channels.ts`/`streaming.schema.ts` edits at pause
+   time. Re-read the broadcast-channel row shape (what the webhook resolves to
+   `setAiringSource` + publishes from) against the landed change before wiring the
+   webhook — the `type: "broadcast"` lookup may have shifted.
