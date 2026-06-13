@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { ok, err, AppError } from "@snc/shared";
-import type { Result, ChannelType, DprImage } from "@snc/shared";
+import type { Result, ChannelType, ChannelOwnership, ChannelRole, DprImage } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
@@ -17,7 +17,9 @@ import { eventBus } from "./event-bus.js";
 export type ChannelInfo = {
   id: string;
   name: string;
-  type: ChannelType;
+  type: ChannelType; // legacy; dropped in the contract migration step
+  ownership: ChannelOwnership;
+  role: ChannelRole;
   thumbnailUrl: string | null;
   srsStreamName: string;
   hlsUrl: string | null;
@@ -47,11 +49,16 @@ export const SNC_TV_BROADCAST = {
 
 // ── Channel Priority ──
 
-const CHANNEL_PRIORITY: Record<ChannelType, number> = {
+/**
+ * Default-channel selection priority, keyed on identity `role`.
+ * Broadcast (S/NC TV) wins; an actively-ingesting creator channel ranks next;
+ * playout pools last. Ordering preserves the legacy type-based priority
+ * (broadcast > live > playout) under the role names.
+ */
+const ROLE_PRIORITY: Record<ChannelRole, number> = {
   broadcast: 0,
-  scheduled: 1,
-  live: 2,
-  playout: 3,
+  "live-ingest": 1,
+  playout: 2,
 };
 
 // ── Private Helpers ──
@@ -64,7 +71,7 @@ const buildHlsUrl = (srsStreamName: string): string | null => {
 
 // ── Public API ──
 
-/** Get active channels, enriched with creator profiles, ordered by type priority. */
+/** Get active channels, enriched with creator profiles, ordered by role priority. */
 export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
   const rows = await db
     .select()
@@ -105,6 +112,8 @@ export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
     id: row.id,
     name: row.name,
     type: row.type as ChannelType,
+    ownership: row.ownership as ChannelOwnership,
+    role: row.role as ChannelRole,
     thumbnailUrl: row.thumbnailUrl ?? null,
     srsStreamName: row.srsStreamName,
     hlsUrl: buildHlsUrl(row.srsStreamName),
@@ -115,7 +124,7 @@ export const getActiveChannels = async (): Promise<ChannelInfo[]> => {
 
   // Sort by priority (lower number = higher priority)
   result.sort(
-    (a, b) => CHANNEL_PRIORITY[a.type] - CHANNEL_PRIORITY[b.type],
+    (a, b) => ROLE_PRIORITY[a.role] - ROLE_PRIORITY[b.role],
   );
 
   return result;
@@ -132,10 +141,10 @@ export const selectDefaultChannel = (
 ): string | null => {
   if (activeChannels.length === 0) return null;
   const bestPriority = Math.min(
-    ...activeChannels.map((c) => CHANNEL_PRIORITY[c.type]),
+    ...activeChannels.map((c) => ROLE_PRIORITY[c.role]),
   );
   const topTier = activeChannels.filter(
-    (c) => CHANNEL_PRIORITY[c.type] === bestPriority,
+    (c) => ROLE_PRIORITY[c.role] === bestPriority,
   );
   return topTier[Math.floor(Math.random() * topTier.length)]!.id;
 };
@@ -164,6 +173,8 @@ export const createLiveChannel = async (opts: {
         .set({
           name: `Live: ${opts.creatorName}`,
           type: "live",
+          ownership: "creator",
+          role: "live-ingest",
           creatorId: opts.creatorId,
           streamSessionId: opts.streamSessionId,
           isActive: true,
@@ -181,6 +192,8 @@ export const createLiveChannel = async (opts: {
       id: channelId,
       name: `Live: ${opts.creatorName}`,
       type: "live",
+      ownership: "creator",
+      role: "live-ingest",
       srsStreamName: opts.srsStreamName,
       creatorId: opts.creatorId,
       streamSessionId: opts.streamSessionId,
@@ -276,6 +289,8 @@ export const ensureBroadcast = async (opts: {
       id: channelId,
       name: opts.name,
       type: "broadcast",
+      ownership: "platform",
+      role: "broadcast",
       srsStreamName: opts.srsStreamName,
       isActive: true,
       defaultPlayoutChannelId: opts.defaultPlayoutChannelId ?? null,
@@ -322,6 +337,8 @@ export const ensurePlayout = async (opts: {
       id: channelId,
       name: opts.name,
       type: "playout",
+      ownership: "platform",
+      role: "playout",
       srsStreamName: opts.srsStreamName,
       isActive: true,
     });

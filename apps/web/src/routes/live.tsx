@@ -189,6 +189,11 @@ function LivePage(): React.ReactElement {
     channels.find((c) => c.id === selectedChannelId) ?? null;
   const hasChannels = channels.length > 0;
   const isStreaming = selectedChannel?.hlsUrl != null;
+  // TODO(live-state): replace identity proxy with derived airing-state.
+  // Interim: a creator-owned live-ingest channel stands in for "is live" until
+  // live-experience-redesign-live-state lands the real on-air derivation.
+  const selectedChannelIsLive =
+    selectedChannel?.ownership === "creator" && selectedChannel?.role === "live-ingest";
 
   // Derive layout signal from prefs
   const liveLayout: LiveLayout = prefs.theater ? "theater" : "default";
@@ -264,7 +269,7 @@ function LivePage(): React.ReactElement {
     if (selectedChannel?.hlsUrl) {
       const metadata: MediaMetadata = {
         id: selectedChannel.id,
-        contentType: selectedChannel.type === "live" ? "live" : "playout",
+        contentType: selectedChannelIsLive ? "live" : "playout",
         title: selectedChannel.name,
         artist: selectedChannel.creator?.displayName ?? "S/NC",
         posterUrl: selectedChannel.thumbnailUrl ?? null,
@@ -296,7 +301,7 @@ function LivePage(): React.ReactElement {
             {selectedChannel && (
               <StreamStatusBar
                 viewerCount={selectedChannel.viewerCount}
-                isLive={selectedChannel.type === "live"}
+                isLive={selectedChannelIsLive}
               />
             )}
           </div>
@@ -311,7 +316,7 @@ function LivePage(): React.ReactElement {
           role="tabpanel"
           className={clsx(styles.infoSections, mobileChatOpen && styles.infoSectionsChatOpen)}
         >
-          {selectedChannel?.type === "playout" &&
+          {selectedChannel?.role === "playout" &&
             selectedChannel.nowPlaying != null && (
               <div className={styles.nowPlaying}>
                 <span className={styles.nowPlayingLabel}>Now Playing</span>

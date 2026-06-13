@@ -87,7 +87,7 @@ playoutChannelRoutes.delete(
     const [channel] = await db
       .select()
       .from(channels)
-      .where(and(eq(channels.id, channelId), eq(channels.type, "playout")));
+      .where(and(eq(channels.id, channelId), eq(channels.role, "playout")));
 
     if (!channel) {
       return c.json({ error: { code: "NOT_FOUND", message: "Channel not found" } }, 404);

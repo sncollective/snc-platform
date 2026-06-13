@@ -26,7 +26,9 @@ export type ChannelRole = (typeof CHANNEL_ROLES)[number];
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(CHANNEL_TYPES),
+  type: z.enum(CHANNEL_TYPES), // legacy; dropped in the contract migration step
+  ownership: z.enum(CHANNEL_OWNERSHIPS),
+  role: z.enum(CHANNEL_ROLES),
   thumbnailUrl: z.string().nullable(),
   hlsUrl: z.string().nullable(),
   viewerCount: z.number().int().min(0),

@@ -88,6 +88,8 @@ const makeChannelRow = (overrides?: Partial<{
   id: string;
   name: string;
   type: string;
+  ownership: string;
+  role: string;
   thumbnailUrl: string | null;
   srsStreamName: string;
   creatorId: string | null;
@@ -99,6 +101,8 @@ const makeChannelRow = (overrides?: Partial<{
   id: "channel-1",
   name: "S/NC Radio",
   type: "playout",
+  ownership: "platform",
+  role: "playout",
   thumbnailUrl: null,
   srsStreamName: "channel-main",
   creatorId: null,
@@ -119,33 +123,51 @@ describe("channel service", () => {
       expect(result).toBeNull();
     });
 
-    it("picks from scheduled tier when available", async () => {
-      const { selectDefaultChannel } = await setupService();
-      const channels = [
-        { id: "ch-scheduled", type: "scheduled" as const, name: "s", srsStreamName: "s", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-live", type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-playout", type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-      ];
-      // scheduled has highest priority (lowest number = highest), so must be selected
-      const result = selectDefaultChannel(channels);
-      expect(result).toBe("ch-scheduled");
+    // Priority now keys on identity `role` (broadcast > live-ingest > playout),
+    // replacing the legacy `type` priority. The dead `scheduled` tier is gone.
+    const ch = (
+      id: string,
+      ownership: "platform" | "creator",
+      role: "playout" | "broadcast" | "live-ingest",
+    ) => ({
+      id,
+      ownership,
+      role,
+      // legacy type kept on the fixture until the contract step removes it from ChannelInfo
+      type: role === "live-ingest" ? ("live" as const) : (role as "playout" | "broadcast"),
+      name: id,
+      srsStreamName: id,
+      thumbnailUrl: null,
+      hlsUrl: null,
+      creatorId: ownership === "creator" ? "creator-1" : null,
+      creator: null,
+      isActive: true,
     });
 
-    it("picks from live tier when no scheduled channels", async () => {
+    it("picks the broadcast tier when available (highest priority)", async () => {
       const { selectDefaultChannel } = await setupService();
       const channels = [
-        { id: "ch-live", type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-playout", type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        ch("ch-broadcast", "platform", "broadcast"),
+        ch("ch-live", "creator", "live-ingest"),
+        ch("ch-playout", "platform", "playout"),
+      ];
+      const result = selectDefaultChannel(channels);
+      expect(result).toBe("ch-broadcast");
+    });
+
+    it("picks the live-ingest tier when no broadcast channel", async () => {
+      const { selectDefaultChannel } = await setupService();
+      const channels = [
+        ch("ch-live", "creator", "live-ingest"),
+        ch("ch-playout", "platform", "playout"),
       ];
       const result = selectDefaultChannel(channels);
       expect(result).toBe("ch-live");
     });
 
-    it("picks from playout tier when no live or scheduled", async () => {
+    it("picks the playout tier when no broadcast or live-ingest", async () => {
       const { selectDefaultChannel } = await setupService();
-      const channels = [
-        { id: "ch-playout", type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-      ];
+      const channels = [ch("ch-playout", "platform", "playout")];
       const result = selectDefaultChannel(channels);
       expect(result).toBe("ch-playout");
     });
@@ -153,8 +175,8 @@ describe("channel service", () => {
     it("returns a valid channel id from the highest-priority tier", async () => {
       const { selectDefaultChannel } = await setupService();
       const channels = [
-        { id: "ch-playout-1", type: "playout" as const, name: "p1", srsStreamName: "p1", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-playout-2", type: "playout" as const, name: "p2", srsStreamName: "p2", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        ch("ch-playout-1", "platform", "playout"),
+        ch("ch-playout-2", "platform", "playout"),
       ];
       const result = selectDefaultChannel(channels);
       expect(["ch-playout-1", "ch-playout-2"]).toContain(result);
@@ -196,7 +218,7 @@ describe("channel service", () => {
     });
 
     it("includes creator info for live channels with creator", async () => {
-      const channelRow = makeChannelRow({ type: "live", creatorId: "creator-1" });
+      const channelRow = makeChannelRow({ type: "live", ownership: "creator", role: "live-ingest", creatorId: "creator-1" });
       mockDbSelect.mockReturnValueOnce(buildSelectWhereChain([channelRow]));
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([
         { id: "creator-1", displayName: "Maya", handle: "maya", avatarUrl: null, bannerUrl: null },
@@ -423,13 +445,12 @@ describe("channel service", () => {
   });
 
   describe("selectDefaultChannel with broadcast", () => {
-    it("returns broadcast channel over all other types", async () => {
+    it("returns broadcast channel over all other roles", async () => {
       const { selectDefaultChannel } = await setupService();
       const channels = [
-        { id: "ch-broadcast", type: "broadcast" as const, name: "b", srsStreamName: "snc-tv", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-scheduled", type: "scheduled" as const, name: "s", srsStreamName: "s", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-live", type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
-        { id: "ch-playout", type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-broadcast", ownership: "platform" as const, role: "broadcast" as const, type: "broadcast" as const, name: "b", srsStreamName: "snc-tv", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
+        { id: "ch-live", ownership: "creator" as const, role: "live-ingest" as const, type: "live" as const, name: "l", srsStreamName: "l", thumbnailUrl: null, hlsUrl: null, creatorId: "creator-1", creator: null, isActive: true },
+        { id: "ch-playout", ownership: "platform" as const, role: "playout" as const, type: "playout" as const, name: "p", srsStreamName: "p", thumbnailUrl: null, hlsUrl: null, creatorId: null, creator: null, isActive: true },
       ];
       const result = selectDefaultChannel(channels);
       expect(result).toBe("ch-broadcast");

@@ -110,6 +110,8 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
     id: "channel-1",
     name: "S/NC Radio",
     type: "playout" as const,
+    ownership: "platform" as const,
+    role: "playout" as const,
     thumbnailUrl: null,
     hlsUrl: "https://stream.example.com/live.m3u8",
     viewerCount: 42,
@@ -117,6 +119,16 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
     startedAt: null,
     ...overrides,
   };
+}
+
+/**
+ * A live creator channel. The live page derives "is live" from the identity
+ * proxy (ownership=creator + role=live-ingest) until live-state lands the real
+ * derivation, so live fixtures must set both — `type: "live"` alone no longer
+ * drives the LIVE indicator.
+ */
+function liveOverrides(extra: Record<string, unknown> = {}) {
+  return { type: "live" as const, ownership: "creator" as const, role: "live-ingest" as const, ...extra };
 }
 
 function makeChannelList(overrides: Record<string, unknown> = {}) {
@@ -234,7 +246,7 @@ describe("LivePage", () => {
   it("shows LIVE indicator only for live channels", () => {
     mockUseLoaderData.mockReturnValue({
       initial: makeChannelList({
-        channels: [makeChannel({ type: "live" })],
+        channels: [makeChannel(liveOverrides())],
       }),
     });
 
@@ -257,15 +269,14 @@ describe("LivePage", () => {
     mockUseLoaderData.mockReturnValue({
       initial: makeChannelList({
         channels: [
-          makeChannel({
-            type: "live",
+          makeChannel(liveOverrides({
             creator: {
               id: "creator-1",
               displayName: "Test Creator",
               handle: "test",
               avatarUrl: null,
             },
-          }),
+          })),
         ],
       }),
     });
@@ -289,15 +300,14 @@ describe("LivePage", () => {
     mockUseLoaderData.mockReturnValue({
       initial: makeChannelList({
         channels: [
-          makeChannel({
-            type: "live",
+          makeChannel(liveOverrides({
             creator: {
               id: "creator-1",
               displayName: "Test Creator",
               handle: "test",
               avatarUrl: "/api/creators/creator-1/avatar",
             },
-          }),
+          })),
         ],
       }),
     });
@@ -314,7 +324,7 @@ describe("LivePage", () => {
       initial: {
         channels: [
           makeChannel({ id: "ch-1", name: "S/NC Radio", viewerCount: 10 }),
-          makeChannel({ id: "ch-2", name: "Live: Maya", type: "live", viewerCount: 5 }),
+          makeChannel(liveOverrides({ id: "ch-2", name: "Live: Maya", viewerCount: 5 })),
         ],
         defaultChannelId: "ch-1",
       },

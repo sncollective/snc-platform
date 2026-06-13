@@ -49,7 +49,7 @@ export const Route = createFileRoute("/admin/playout")({
       fetchApiServer({ data: "/api/streaming/status" }) as Promise<ChannelListResponse>
     ).catch(() => null);
     const allChannels = channels?.channels ?? [];
-    const playoutChannels = allChannels.filter((c) => c.type === "playout");
+    const playoutChannels = allChannels.filter((c) => c.role === "playout");
     return { allChannels, playoutChannels };
   },
   head: () => ({
@@ -105,11 +105,14 @@ function BroadcastStatus({
 }: {
   channels: ChannelListResponse["channels"];
 }): React.ReactElement | null {
-  const broadcast = channels.find((ch) => ch.type === "broadcast");
+  const broadcast = channels.find((ch) => ch.role === "broadcast");
   if (!broadcast) return null;
 
+  // TODO(live-state): replace identity proxy with derived airing-state.
+  // Interim: a creator-owned live-ingest channel stands in for "live creator on air"
+  // until live-experience-redesign-live-state lands the real on-air derivation.
   const liveCreator = channels.find(
-    (ch) => ch.type === "live" && ch.creator,
+    (ch) => ch.ownership === "creator" && ch.role === "live-ingest" && ch.creator,
   );
 
   return (

@@ -787,7 +787,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       .from(channels)
       .where(
         and(
-          eq(channels.type, "playout"),
+          eq(channels.role, "playout"),
           eq(channels.isActive, true),
         ),
       );

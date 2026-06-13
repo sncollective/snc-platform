@@ -34,7 +34,7 @@ const getDefaultPlayoutChannelId = async (): Promise<string | null> => {
   const [channel] = await db
     .select({ id: channels.id })
     .from(channels)
-    .where(and(eq(channels.type, "playout"), eq(channels.isActive, true)));
+    .where(and(eq(channels.role, "playout"), eq(channels.isActive, true)));
   return channel?.id ?? null;
 };
 

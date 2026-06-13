@@ -87,28 +87,49 @@ afterEach(() => {
 
 // ── Channel Fixture ──
 
+// Map the legacy `type` override to the identity (ownership, role) the service
+// now reads. Lets existing makeChannel({ type: ... }) call sites stay unchanged.
+const identityForType = (
+  type: "playout" | "broadcast" | "live" | "scheduled",
+): { ownership: "platform" | "creator"; role: "playout" | "broadcast" | "live-ingest" } => {
+  switch (type) {
+    case "broadcast":
+      return { ownership: "platform", role: "broadcast" };
+    case "live":
+      return { ownership: "creator", role: "live-ingest" };
+    default: // playout | scheduled (dead) -> platform playout
+      return { ownership: "platform", role: "playout" };
+  }
+};
+
 const makeChannel = (overrides?: Partial<{
   id: string;
   name: string;
   type: "playout" | "broadcast" | "live" | "scheduled";
+  ownership: "platform" | "creator";
+  role: "playout" | "broadcast" | "live-ingest";
   srsStreamName: string;
   hlsUrl: string | null;
   thumbnailUrl: string | null;
   creatorId: string | null;
   creator: null;
   isActive: boolean;
-}>) => ({
-  id: "channel-1",
-  name: "S/NC Radio",
-  type: "playout" as const,
-  srsStreamName: "channel-main",
-  hlsUrl: "http://srs.test:8080/live/channel-main.m3u8",
-  thumbnailUrl: null,
-  creatorId: null,
-  creator: null,
-  isActive: true,
-  ...overrides,
-});
+}>) => {
+  const type = overrides?.type ?? ("playout" as const);
+  return {
+    id: "channel-1",
+    name: "S/NC Radio",
+    type,
+    ...identityForType(type),
+    srsStreamName: "channel-main",
+    hlsUrl: "http://srs.test:8080/live/channel-main.m3u8",
+    thumbnailUrl: null,
+    creatorId: null,
+    creator: null,
+    isActive: true,
+    ...overrides,
+  };
+};
 
 // ── Tests ──
 

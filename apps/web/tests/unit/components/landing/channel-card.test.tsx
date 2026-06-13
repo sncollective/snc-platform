@@ -19,6 +19,8 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
     id: "channel-1",
     name: "Test Channel",
     type: "playout",
+    ownership: "platform",
+    role: "playout",
     thumbnailUrl: null,
     hlsUrl: null,
     viewerCount: 0,
@@ -69,6 +71,8 @@ describe("ChannelCard", () => {
   it("live channel shows LIVE badge and viewer count", () => {
     const channel = makeMockChannel({
       type: "live",
+      ownership: "creator",
+      role: "live-ingest",
       viewerCount: 42,
     });
 
@@ -81,6 +85,8 @@ describe("ChannelCard", () => {
   it("zero viewers hides viewer count", () => {
     const channel = makeMockChannel({
       type: "live",
+      ownership: "creator",
+      role: "live-ingest",
       viewerCount: 0,
     });
 

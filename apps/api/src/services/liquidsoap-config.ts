@@ -55,7 +55,7 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
     .from(channels)
     .where(
       and(
-        eq(channels.type, "playout"),
+        eq(channels.role, "playout"),
         eq(channels.isActive, true),
       ),
     );

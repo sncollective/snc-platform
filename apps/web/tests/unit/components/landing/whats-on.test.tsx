@@ -19,6 +19,8 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
     id: "channel-1",
     name: "Test Channel",
     type: "playout",
+    ownership: "platform",
+    role: "playout",
     thumbnailUrl: null,
     hlsUrl: null,
     viewerCount: 0,

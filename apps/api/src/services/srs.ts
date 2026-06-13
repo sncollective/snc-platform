@@ -69,9 +69,9 @@ export const getChannelList = async (): Promise<
 
     // Kick off SRS streams fetch, Liquidsoap now-playing, and batch queue status in parallel
     const playoutIds = activeChannels
-      .filter((ch) => ch.type === "playout")
+      .filter((ch) => ch.role === "playout")
       .map((ch) => ch.id);
-    const hasBroadcast = activeChannels.some((ch) => ch.type === "broadcast");
+    const hasBroadcast = activeChannels.some((ch) => ch.role === "broadcast");
 
     const [srsResult, liquidsoapResult, queueStatusMap] = await Promise.allSettled([
       fetch(`${SRS_API_URL!}/api/v1/streams/`, {
@@ -110,7 +110,7 @@ export const getChannelList = async (): Promise<
 
     // Enrich playout and broadcast channels with now-playing metadata
     const enriched = enrichedBase.map((ch) => {
-      if (ch.type === "playout") {
+      if (ch.role === "playout") {
         const status = queueMap.get(ch.id);
         if (status?.nowPlaying) {
           const np = status.nowPlaying;
@@ -130,7 +130,7 @@ export const getChannelList = async (): Promise<
         return { ...ch, nowPlaying: null };
       }
 
-      if (ch.type === "broadcast") {
+      if (ch.role === "broadcast") {
         if (!liquidsoapNowPlaying) return { ...ch, nowPlaying: null };
         return {
           ...ch,

@@ -10,7 +10,10 @@ export interface ChannelCardProps {
 
 /** Render a single streaming channel as a mini "TV screen" card. */
 export function ChannelCard({ channel }: ChannelCardProps): React.ReactElement {
-  const isLive = channel.type === "live";
+  // TODO(live-state): replace identity proxy with derived airing-state.
+  // Interim: a creator-owned live-ingest channel stands in for "is live" until
+  // live-experience-redesign-live-state lands the real on-air derivation.
+  const isLive = channel.ownership === "creator" && channel.role === "live-ingest";
   const nowPlayingText = channel.nowPlaying?.title ?? null;
   const creatorName = channel.creator?.displayName ?? null;
 
