@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-page-states-offline-loading
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -56,3 +56,11 @@ adds its capture affordance to this surface later.
 **Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
 running app). Feature-level deep review verified design conformance, acceptance
 criteria, and a11y of the new states; full web suite green.
+
+**Fix-verify: closed on tests + architecture 2026-06-13.** Cold-load channel-zone
+skeleton is the live-verifiable half (confirmed). The offline 'Nothing live right now'
+state is architecturally rare — S/NC TV's always-on auto-playout means a healthy system
+never presents zero live channels; the branch exists for fresh-deploy / total-outage and
+is fully unit-tested (heading, 'No channels are streaming' copy, /calendar link, no
+'coming soon', loading-vs-offline split). Not a verification gap — the architecture
+working as designed.

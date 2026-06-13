@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-page-states
 kind: feature
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -468,3 +468,11 @@ audit's handled-well states (moderation banners, reconnect indicator, 3-miss pol
 dismissal) confirmed intact; timed-out/banned tests correctly re-grounded to a
 signed-in user so they still exercise the real input. Closes when the user fix-verifies
 in the app.
+
+## Fix-verify rollup (2026-06-13)
+All three children resolved: chat-states (anon-gate + empty-chat walked live),
+offline-loading (skeleton live + offline branch tested/architecturally-rare),
+player-skeleton (cold-load live + error branch tested, forced-error deferred to staging).
+Feature closed. Honest residue: the HLS-error overlay and the offline placeholder were
+not live-walked in a browser — the first needs a forced mid-play error, the second is
+unreachable under healthy S/NC TV auto-playout; both are unit-tested.

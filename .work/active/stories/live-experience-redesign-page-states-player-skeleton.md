@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-page-states-player-skeleton
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -94,3 +94,8 @@ Cold-load skeleton CONFIRMED in-app by the user. The remaining acceptance line (
 error overlay + working "Try again") needs a stream that errors mid-play — deferred to
 a staging/forced-error check, not failed. Story stays at review until that path is
 exercised or the user accepts the partial.
+
+**Fix-verify: closed 2026-06-13.** Cold-load 16:9 skeleton (the audit's headline
+12–15s dead-air fix) confirmed live. The HLS-error-overlay + 'Try again' half is
+unit-tested; the forced-mid-play-error live walk is a staging spot-check (a dev station
+can't readily force it). Closed on skeleton-live + error-branch-tested.

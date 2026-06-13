@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-page-states-chat-states
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -71,3 +71,5 @@ Acceptance boxes ticked by the reviewer (verified satisfied; the implement roll-
 missed this story's boxes). Nit accepted: rooms-fetch failure branch untested.
 a11y-viewer-chat-viewercount-label confirmed genuinely absorbed (stub deleted in
 b3edae4, fix matches the item's direction, both pluralization cases tested).
+
+**User fix-verify: confirmed 2026-06-13.** Anon-gate confirmed earlier; empty-chat 'No messages yet' walked live on S/NC Classics (one residual seed message cleared from that room to expose the state). Closed.
