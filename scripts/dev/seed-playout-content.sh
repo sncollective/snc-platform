@@ -46,9 +46,10 @@ echo "Uploading to S3..."
 
 # Use node with @aws-sdk to upload (AWS CLI not available in dev container).
 # dotenv loads S3 credentials from the repo .env automatically.
-TEMP_DIR="$TEMP_DIR" S3_BUCKET="$S3_BUCKET" S3_PREFIX="$S3_PREFIX" \
+( cd "$REPO_ROOT/apps/api" && \
+  TEMP_DIR="$TEMP_DIR" S3_BUCKET="$S3_BUCKET" S3_PREFIX="$S3_PREFIX" \
   REPO_ROOT="$REPO_ROOT" \
-  node --input-type=module <<'UPLOAD_SCRIPT'
+  node --input-type=module ) <<'UPLOAD_SCRIPT'
 import "dotenv/config";
 import { config } from "dotenv";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
