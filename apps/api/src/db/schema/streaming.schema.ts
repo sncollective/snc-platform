@@ -119,7 +119,11 @@ export const channels = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    type: text("type").notNull(), // "playout" | "live" | "scheduled" | "broadcast"
+    type: text("type").notNull(), // "playout" | "live" | "scheduled" | "broadcast" — legacy; dropped in contract step
+    // Identity facets (unified-channel-model). Added additively alongside `type`;
+    // backfilled from it. `type` stays authoritative until the migrate step.
+    ownership: text("ownership").notNull().default("platform"), // "platform" | "creator"
+    role: text("role").notNull().default("playout"), // "playout" | "broadcast" | "live-ingest"
     thumbnailUrl: text("thumbnail_url"),
     srsStreamName: text("srs_stream_name").notNull(),
     creatorId: text("creator_id").references(() => creatorProfiles.id, {
@@ -141,6 +145,7 @@ export const channels = pgTable(
   (table) => [
     uniqueIndex("channels_srs_stream_name_idx").on(table.srsStreamName),
     index("channels_type_active_idx").on(table.type, table.isActive),
+    index("channels_role_active_idx").on(table.role, table.isActive),
     index("channels_creator_idx").on(table.creatorId),
   ],
 );

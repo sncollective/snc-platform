@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle-expand
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: []
@@ -48,3 +48,29 @@ migrate story cuts consumers over. Nothing reads the new columns yet.
 This story is purely additive — no consumer change, no behavior change. The topology
 goldens (model-render feature) must stay green; they read `type='playout'` still, which is
 unchanged here.
+
+## Implementation notes (2026-06-13)
+
+- **Files changed:**
+  - `packages/shared/src/streaming.ts` — added `CHANNEL_OWNERSHIPS`/`ChannelOwnership` and
+    `CHANNEL_ROLES`/`ChannelRole` const tuples alongside (not replacing) `CHANNEL_TYPES`.
+  - `apps/api/src/db/schema/streaming.schema.ts` — added `ownership` + `role` columns (both
+    `notNull().default(...)`) and `channels_role_active_idx`; legacy `type` column and
+    `channels_type_active_idx` retained.
+  - `apps/api/drizzle/migrations/0023_serious_thunderball.sql` — generated column-add + index
+    (drizzle-kit `db:generate`).
+  - `apps/api/drizzle/migrations/0024_square_psynapse.sql` — generated blank via `db:generate
+    --custom`, filled with the backfill UPDATEs (the sanctioned custom-SQL path).
+- **Tests added:** none new — this is a schema-only additive step; coverage that it's neutral
+  comes from the existing channels/topology/streaming suites staying green (92/92) and the
+  topology goldens being byte-identical.
+- **Backfill verified in dev DB:** `broadcast→platform/broadcast` (1), `live→creator/live-ingest`
+  (1), `playout→platform/playout` (5); 0 nulls / 7 total; no `scheduled` rows. New index present.
+- **Discrepancies from design:** none. Column types, defaults, index name, and backfill mapping
+  match the design exactly.
+- **Revert caveat:** drizzle migrations here are forward-apply; there's no down-migration file.
+  The column-add is trivially reversible by hand in dev if needed (drop columns + index), but
+  the migrate/contract stories are the forward path — no rollback expected on the production path.
+- **Adjacent issues parked:** none. (Noted but NOT acted on: 2 pre-existing `@snc/api` typecheck
+  errors in `playout-orchestrator.ts:346` and `sse.routes.test.ts:104` are Lane 2's in-flight
+  event-spine work — confirmed unrelated to this story; not mine to fix or park.)

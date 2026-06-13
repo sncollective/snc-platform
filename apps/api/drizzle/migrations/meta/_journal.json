@@ -162,6 +162,20 @@
       "when": 1775630532074,
       "tag": "0022_busy_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1781370897376,
+      "tag": "0023_serious_thunderball",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1781370910589,
+      "tag": "0024_square_psynapse",
+      "breakpoints": true
     }
   ]
 }
