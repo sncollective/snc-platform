@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-2
 kind: story
-stage: review
+stage: done
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render-step-1]
@@ -69,3 +69,11 @@ export const buildPlayoutTopology = (rows: readonly PlayoutChannelRow[]): Playou
 ## Implementation record (2026-06-13)
 
 `playout-topology.ts` landed with `EnvRef` / `PlayoutChannelRow` / `PlayoutChannelTopology` / `PlayoutTopology` types, `harborChannelPaths` (exported early — step 4 consumes it), and pure `buildPlayoutTopology`. Only import is `SNC_TV_BROADCAST` from `channels.ts` per the design decision. 7 direct unit tests, no mocks; typecheck green. Nothing imports the module yet.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — fast-lane advance. Feature-level deep review (fresh-context
+sub-agent) verified the load-bearing claim mechanically: golden snapshots byte-identical
+ce1528e..HEAD (zero commits touched them after capture), module purity confirmed by
+import inspection, public surface of liquidsoap-config.ts unchanged, topology/config
+tests 26/26.

@@ -1,7 +1,7 @@
 ---
 id: refactor-playout-stream-names-dedup
 kind: story
-stage: review
+stage: done
 tags: [refactor, quality, streaming]
 release_binding: null
 depends_on: []
@@ -42,3 +42,9 @@ Drift risk: changing the seed without setting the env var would have Liquidsoap 
 Agent review pass (fresh-context sub-agent, 2026-06-13): **APPROVE.** Verified `.liq` byte-identity (`escLiq("snc-tv")` is the identity transform inside the same template literal), one-way import direction (no cycle), `exactOptionalPropertyTypes` soundness of the readonly-literal spread into `ensureBroadcast`, JSDoc/named-export convention fit, and that the only remaining `"snc-tv"` in production code is the canonical definition (`"snc-tv-queue"` at liquidsoap-config.ts is a distinct queue id, not the stream name).
 
 Awaiting user review-pass + release pick (`release_binding` set at user approval per `.work/CONVENTIONS.md` §Release-binding lifecycle).
+
+## Review-pass (2026-06-13)
+
+**Verdict**: Approve — done. Covered by the model-render feature deep review (the
+constant is the topology module's import) on top of the story's own fresh-context
+agent review. Release binding: late-bind via archive stub.

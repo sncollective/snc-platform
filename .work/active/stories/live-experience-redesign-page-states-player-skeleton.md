@@ -77,3 +77,14 @@ suppresses all overlays.
 working tree from a concurrently running sibling story agent. These are not regressions from
 this implementation — confirmed by verifying that before this story's changes, the test suite
 passes 153 files cleanly.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
+running app). Feature-level deep review verified design conformance, acceptance
+criteria, and a11y of the new states; full web suite green.
+Fix-in-review applied by the reviewer: pendingFrame is now composed only for the
+expanded presentation — the original composition stripped position:fixed from the
+collapsed mini-player during loading/error (rule-order override; design-inherited).
+Test-gap nits (accepted, not items): retry key-bump not asserted; audio pendingFrame
+absence not asserted; channel-switch reset untested.

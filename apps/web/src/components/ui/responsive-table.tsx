@@ -43,9 +43,11 @@ export interface ResponsiveTableProps<T> {
   /** Accessible name for the table and the card list. */
   readonly label: string;
   /**
-   * Per-card accessible name (`role="group"`). Pass explicitly for
-   * meaningful card names — the component cannot infer text content from
-   * cell renderers.
+   * Per-card accessible name (applied to the list item; `listitem` supports
+   * author naming, and an explicit `role="group"` would strip the listitem
+   * role and break the list's required-owned-elements contract). Pass
+   * explicitly for meaningful card names — the component cannot infer text
+   * content from cell renderers.
    */
   readonly cardAriaLabel?: (row: T) => string;
   /**
@@ -143,7 +145,6 @@ export function ResponsiveTable<T>({
           <li
             key={rowKey(row)}
             className={styles.card}
-            role="group"
             {...(cardAriaLabel !== undefined
               ? { "aria-label": cardAriaLabel(row) }
               : {})}

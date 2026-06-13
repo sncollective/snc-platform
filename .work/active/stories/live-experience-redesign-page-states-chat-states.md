@@ -39,14 +39,14 @@ Test file needs the shared router mock (`createRouterMock()`) for the new Link i
 
 ## Acceptance
 
-- [ ] Anonymous viewer sees a disabled "Sign in to chat" input + sign-in link with
+- [x] Anonymous viewer sees a disabled "Sign in to chat" input + sign-in link with
       `returnTo=/live`; typing/sending impossible at both viewports
-- [ ] Signed-in experience unchanged
-- [ ] Empty room shows "No messages yet"
-- [ ] No-room / failed-fetch shows "Chat unavailable" only after rooms resolve
-- [ ] Viewer-count span exposes `aria-label="N viewer(s) in this room"`; backlog item
+- [x] Signed-in experience unchanged
+- [x] Empty room shows "No messages yet"
+- [x] No-room / failed-fetch shows "Chat unavailable" only after rooms resolve
+- [x] Viewer-count span exposes `aria-label="N viewer(s) in this room"`; backlog item
       file deleted
-- [ ] `tests/unit/components/chat/chat-panel.test.tsx` extended per parent `## Testing`
+- [x] `tests/unit/components/chat/chat-panel.test.tsx` extended per parent `## Testing`
 
 ## Implementation notes
 
@@ -61,3 +61,13 @@ Four changes applied to `chat-panel.tsx` and `chat-panel.module.css` exactly per
 Test file changes: added `vi.mock("@tanstack/react-router", () => createRouterMock())`, added `OPEN_ROOM` fixture, updated `disables input when timed out` and `disables input when banned` tests to pass `currentUserId: "user-1"` (they previously had `null` via `DEFAULT_CHAT_STATE` which would now hit the anon gate), added 11 new test cases across 4 new describe blocks.
 
 Test results: 1642 tests passed across 153 files. Build: clean.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
+running app). Feature-level deep review verified design conformance, acceptance
+criteria, and a11y of the new states; full web suite green.
+Acceptance boxes ticked by the reviewer (verified satisfied; the implement roll-up
+missed this story's boxes). Nit accepted: rooms-fetch failure branch untested.
+a11y-viewer-chat-viewercount-label confirmed genuinely absorbed (stub deleted in
+b3edae4, fix matches the item's direction, both pluralization cases tested).

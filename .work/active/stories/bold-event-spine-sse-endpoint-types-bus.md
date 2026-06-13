@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint-types-bus
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -55,3 +55,11 @@ rationale — notification-hint semantics, coalescing, the registry scope-filter
   compile-time completeness. `channel.live-state-changed` coalesces by `channelId`.
 - 13 tests green covering grant filtering, coalescing, timeout, closeAll, connectionCount,
   multiple subscribers, and scopeFilter structural coverage.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — fast-lane advance on the implementation record (13 tests green:
+grant filtering, coalescing, timeout, closeAll, connection count, multi-subscriber).
+Note for the lane: at review time the working tree carried untracked sse.routes.ts +
+sse.routes.test.ts with 2 failing heartbeat assertions — in-flight sibling-story state,
+not this story's committed work.

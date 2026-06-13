@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render
 kind: feature
-stage: review
+stage: done
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [refactor-playout-stream-names-dedup]
@@ -118,3 +118,25 @@ chain; every step is a clean `git revert`.
 All four steps implemented and committed 2026-06-13 (goldens ce1528e, topology b33573f, swap 13dbbd5, path builders 6b70d41). Feature-level fresh-context adversarial review: **APPROVE.** Byte-identity verified three ways — slot-by-slot escape analysis old-vs-new for arbitrary inputs (both escape exactly name/srsStreamName/snc-tv default, both emit ids verbatim), the goldens re-validated against the OLD generator in a throwaway worktree (4/4 byte-exact), and zero snapshot diff since capture. No import cycles (DAG: client/render → topology → channels → db). Suite 511/511 in tests/services, typecheck green. One accepted nit fixed post-review: the "imports no DB code" comment in playout-topology.ts overstated purity (transitive db reach via channels.ts) — reworded.
 
 Awaiting user review-pass + release pick per `.work/CONVENTIONS.md` §Release-binding lifecycle (applies to the four child stories too).
+
+## Review (2026-06-13)
+
+**Verdict**: Approve (deep lane, fresh-context sub-agent — not cross-model)
+
+**Blockers**: none
+**Important** (both advisory, no items filed): (1) 2 failing API tests at review time
+were apps/api/tests/routes/sse.routes.test.ts from the event-spine lane's UNCOMMITTED
+working-tree state — not this feature; targeted topology/config suite 26/26.
+(2) New transitive module-load edge liquidsoap-client/liquidsoap → playout-topology →
+channels → db/connection — deliberate, documented inline, ownership move deferred to
+unified-channel-model.
+**Nits**: ports typed number not literals; broadcast.fallbackSourceVar carries a
+pre-rendered .liq expression in the model layer (the exact shape the unified epic's
+carry model will dissolve into structured data — forward note, not blocking); UUID
+interpolation unescaped (inherited asymmetry, byte-identical).
+
+**Notes**: goldens verified byte-identical via git diff ce1528e..HEAD (empty) — old
+generator output == new pipeline output for 0ch/1ch/2ch/special-chars. Slot-by-slot
+template comparison: no new env vars, no changed defaults/log-levels. Refactor-tag
+integrity holds. Topology model takes rows with no coupling to the dying type enum —
+well-positioned for unified-channel-model. Per-step verdicts: all four Approve.

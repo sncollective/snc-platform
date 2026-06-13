@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-3
 kind: story
-stage: review
+stage: done
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render-step-2]
@@ -53,3 +53,11 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
 ## Implementation record (2026-06-13)
 
 `liquidsoap-render.ts` landed (pure `renderPlayoutLiq`; `escLiq` + `envGet` moved in; imports topology types only). `liquidsoap-config.ts` shrank to IO orchestration — `generateLiquidsoapConfig` = query → `buildPlayoutTopology` → `renderPlayoutLiq`; the other four exports untouched. All four goldens pass with zero snapshot diff (`git status` clean on `__snapshots__/`); typecheck green; full API suite 1512/1512. Portability source pin extended to all three modules.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — fast-lane advance. Feature-level deep review (fresh-context
+sub-agent) verified the load-bearing claim mechanically: golden snapshots byte-identical
+ce1528e..HEAD (zero commits touched them after capture), module purity confirmed by
+import inspection, public surface of liquidsoap-config.ts unchanged, topology/config
+tests 26/26.

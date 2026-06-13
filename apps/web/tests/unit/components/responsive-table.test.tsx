@@ -174,7 +174,7 @@ describe("ResponsiveTable", () => {
     );
 
     const list = screen.getByRole("list", { name: "Items" });
-    const items = within(list).getAllByRole("group");
+    const items = within(list).getAllByRole("listitem");
     const firstCard = items[0] as HTMLElement;
 
     // The "Name" column has cardRole: "title" — should render as cardTitle div
@@ -195,7 +195,7 @@ describe("ResponsiveTable", () => {
     );
 
     const list = screen.getByRole("list", { name: "Items" });
-    const items = within(list).getAllByRole("group");
+    const items = within(list).getAllByRole("listitem");
     const firstCard = items[0] as HTMLElement;
 
     // "Status" column has default cardRole (field) — should show "Status" label
@@ -220,7 +220,7 @@ describe("ResponsiveTable", () => {
 
     // "Secret" column should NOT appear in the card list
     const list = screen.getByRole("list", { name: "Items" });
-    const items = within(list).getAllByRole("group");
+    const items = within(list).getAllByRole("listitem");
     const firstCard = items[0] as HTMLElement;
     expect(within(firstCard).queryByText("Secret")).toBeNull();
     expect(within(firstCard).queryByText("s1")).toBeNull();
@@ -247,7 +247,7 @@ describe("ResponsiveTable", () => {
     );
 
     const list = screen.getByRole("list", { name: "Items" });
-    const items = within(list).getAllByRole("group");
+    const items = within(list).getAllByRole("listitem");
     const firstCard = items[0] as HTMLElement;
 
     // Should use cardLabel, not header
@@ -290,7 +290,7 @@ describe("ResponsiveTable", () => {
     );
 
     const list = screen.getByRole("list", { name: "Items" });
-    const items = within(list).getAllByRole("group");
+    const items = within(list).getAllByRole("listitem");
     const firstCard = items[0] as HTMLElement;
     const secondCard = items[1] as HTMLElement;
 
@@ -328,7 +328,7 @@ describe("ResponsiveTable", () => {
     expect(screen.getByRole("list", { name: "My Label" })).toBeInTheDocument();
   });
 
-  it("applies role=group to each card list item", () => {
+  it("renders cards as list items (no role override) with accessible names", () => {
     render(
       <ResponsiveTable
         columns={COLUMNS}
@@ -338,7 +338,7 @@ describe("ResponsiveTable", () => {
       />,
     );
 
-    const groups = screen.getAllByRole("group");
+    const groups = screen.getAllByRole("listitem");
     expect(groups.length).toBe(ROWS.length);
   });
 
@@ -353,8 +353,8 @@ describe("ResponsiveTable", () => {
       />,
     );
 
-    expect(screen.getByRole("group", { name: "Row for Alpha" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Row for Beta" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Row for Alpha" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Row for Beta" })).toBeInTheDocument();
   });
 
   it("does not set aria-label on cards when cardAriaLabel is omitted", () => {
@@ -367,7 +367,7 @@ describe("ResponsiveTable", () => {
       />,
     );
 
-    const groups = screen.getAllByRole("group");
+    const groups = screen.getAllByRole("listitem");
     for (const group of groups) {
       expect(group.getAttribute("aria-label")).toBeNull();
     }

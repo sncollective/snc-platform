@@ -448,3 +448,23 @@ worktree isolation needed) and advanced to review:
 
 No cross-cutting deviations. Wave-level verification by the orchestrator after all
 three commits: web unit suite 1642/1642 across 153 files, `@snc/web` build clean.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve with comments (deep lane, fresh-context sub-agent — not
+cross-model) — feature and stories HELD at review on the fix-verify loopback.
+
+**Blockers**: none
+**Important**: (1) .pendingFrame/.collapsedOverlay positioning conflict — fixed
+in-review (one-line composition guard in global-player.tsx; scoped tests green).
+(2) chat-states acceptance boxes were unticked at review — ticked after verification.
+**Nits**: four test-coverage gaps (retry key-bump, audio class absence, channel-switch
+reset, rooms-fetch failure branch) accepted as-is; drive-by unicode-escape→literal
+swaps and dead-var cleanup harmless; viewer-count aria-label on a bare span matches the
+filed fix direction but may need visually-hidden text if AT testing shows it silent.
+
+**Notes**: design conformance verified item-by-item with no silent omissions; the
+audit's handled-well states (moderation banners, reconnect indicator, 3-miss poll
+dismissal) confirmed intact; timed-out/banned tests correctly re-grounded to a
+signed-in user so they still exercise the real input. Closes when the user fix-verifies
+in the app.

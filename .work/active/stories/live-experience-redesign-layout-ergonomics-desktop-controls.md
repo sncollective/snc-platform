@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-desktop-controls
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: [live-experience-redesign-layout-ergonomics-mobile-tabs]
@@ -34,3 +34,13 @@ opacity on `.controlVisible`, `:hover`, and `:focus-visible`. Tests:
 - [ ] Glyphs replaced with the named lucide icons at 16px
 - [ ] `:focus-visible` raises opacity (keyboard parity)
 - [ ] Existing aria-label-based tests pass; icon assertion added
+
+## Implementation notes
+
+**Files changed:**
+
+- `apps/web/src/routes/live.tsx` — added `import { Maximize2, PanelRightClose, PanelRightOpen, X } from "lucide-react"` (project idiom, named imports). Replaced Unicode glyph children on the theater toggle (`⤢`/`✕` → `<Maximize2 size={16} />`/`<X size={16} />`) and chat toggle (`→`/`←` → `<PanelRightClose size={16} />`/`<PanelRightOpen size={16} />`). All aria-labels, titles, aria-pressed, and class wiring are unchanged.
+- `apps/web/src/routes/live.module.css` — "Control visibility" section: resting state changed from `opacity: 0; pointer-events: none` to `opacity: 0.4; pointer-events: auto`. The `.controlVisible` combined rule extended to also cover `:hover` and `:focus-visible` on both buttons (full opacity at 1.0). This makes the controls discoverable at rest and always clickable, while preserving the window-level mousemove/touch logic that drives full-opacity state.
+- `apps/web/tests/unit/routes/live.test.tsx` — added `describe("LivePage — desktop control icons")` with three tests: theater toggle contains `<svg>` and has no glyph text; chat toggle (Hide chat state) contains `<svg>` and has no glyph text; chat toggle (Show chat state after collapse) contains `<svg>` and has no glyph text.
+
+**Test counts:** 154 test files, 1678 tests passing (3 new tests added). Build clean.

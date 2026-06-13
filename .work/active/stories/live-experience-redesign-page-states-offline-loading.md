@@ -50,3 +50,9 @@ adds its capture affordance to this surface later.
 - `apps/web/tests/unit/routes/live.test.tsx`: Hoisted `mockApiGet` into the `vi.hoisted()` block and wired it into the `fetch-utils.js` mock. Updated the stale "renders Coming Soon" test → "renders offline placeholder". Replaced the stale "does not render Coming Soon" loading test with: (a) "renders channel zone skeleton while loading" (keeps fetch pending via never-resolving promise, asserts `role="status"` skeleton), (b) "renders calendar link in offline placeholder" (asserts `href="/calendar"`), (c) "does not render offline placeholder while loading" (updated copy).
 
 **Test counts:** 15 tests pass in `live.test.tsx` (was 13; +4 new, removed 2 stale). Full web unit suite: 1630 passing, 2 failures pre-existing in sibling `chat-panel.test.tsx` (owned by a concurrent sibling agent — not caused by this story).
+
+## Review (2026-06-13)
+
+**Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
+running app). Feature-level deep review verified design conformance, acceptance
+criteria, and a11y of the new states; full web suite green.

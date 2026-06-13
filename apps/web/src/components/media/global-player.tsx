@@ -104,7 +104,13 @@ export function GlobalPlayer() {
 
   return (
     <div
-      className={clsx(containerClass, !isAudio && status !== "ready" && styles.pendingFrame)}
+      className={clsx(
+        containerClass,
+        // pendingFrame only on the expanded container: collapsedOverlay already has
+        // aspect-ratio + position:fixed, and pendingFrame's position:relative would
+        // override the fixed positioning (rule order) and drop it into document flow.
+        presentation === "expanded" && !isAudio && status !== "ready" && styles.pendingFrame,
+      )}
       data-presentation={presentation}
     >
       {modules !== null && (() => {

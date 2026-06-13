@@ -1,7 +1,7 @@
 ---
 id: responsive-table-card-pattern
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
 release_binding: null
 depends_on: []
@@ -255,3 +255,24 @@ carries the fix-verify loopback against real admin surfaces at 375px.
 
 - `bun run --filter @snc/web test` — 1626 passed, 0 failed (153 test files).
 - `bun run --filter @snc/web build` — clean build, no type errors.
+
+## Review (2026-06-13)
+
+**Verdict**: Approve (deep lane, fresh-context sub-agent — not cross-model)
+
+**Blockers**: none
+**Important**: (1) ARIA required-owned-elements violation — <li role="group"> inside
+the role=list ul stripped the listitem role (axe-flaggable; design-carried, not an
+implementation deviation). Fixed in-review: role override removed, aria-label stays on
+the plain listitem, JSDoc updated, tests re-pointed to listitem (19/19 green).
+(2) Implementation landed inside commit 9bc5e34 (an unrelated feature's design commit)
+— mislabeled in the git index; not retroactively fixable, recorded here as the durable
+pointer: the responsive-table implementation lives in 9bc5e34.
+**Nits**: duplicate .row td / .td CSS rule (one is dead); item body says 18 tests,
+suite has 19; UMD React.ReactElement type reference; table block indentation.
+
+**Notes**: container-query decision verified mechanically (own unnamed inline-size
+container, no viewport @media, no named-ancestor dependency); scope discipline held
+(zero consumers migrated, zero imports of ResponsiveTable outside its own file);
+strict-mode clean; JSDoc shared-package-grade. No mounted consumer yet, so no
+fix-verify surface — closes to done; the first adopter carries the visual loopback.
