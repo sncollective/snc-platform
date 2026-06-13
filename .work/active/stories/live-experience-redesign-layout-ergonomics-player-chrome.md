@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-player-chrome
 kind: story
-stage: review
+stage: implementing
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -33,7 +33,7 @@ Absorbs backlog item a11y-viewer-mini-player-touch-target — deleted in this st
 
 ## Acceptance
 
-- [x] Mini-player expand/close buttons: ≥44×44px hit areas, ~24px visible circles,
+- [ ] Mini-player expand/close buttons: ≥44×44px hit areas, ~24px visible circles,
       positioned inside the overlay corner at both breakpoints
 - [x] Mobile fullscreen affordance confirmed (or slot fix applied) — user-confirmed
       via fix-verify loopback before close
@@ -76,3 +76,29 @@ The backlog item a11y-viewer-mini-player-touch-target was deleted in this commit
 running app). Fast lane: implementation record green (1678 web tests, build clean).
 Note: fullscreen-button presence on live streams is explicitly runtime-deferred to
 this fix-verify (no tsx change was needed per the record).
+
+## Review findings — BOUNCE (user fix-verify failed 2026-06-13)
+**Symptom (user)**: mini-player on mobile is still not cleanly clickable.
+
+**Diagnosis (code)**: `global-player.module.css` — the expand + close buttons are 44×44
+hit areas (10px transparent padding around a 24px visible circle, `background-clip:
+content-box`) laid out in `.collapsedActions` as a `display:flex` row with `gap: 4px`,
+both anchored to the overlay's top-left corner inside the 200px-wide mobile
+`.collapsedOverlay`. Two problems make taps feel ambiguous:
+1. **Adjacent hit areas, 4px apart** — two 44px targets separated by only 4px gap means
+   the *touch targets* are 4px apart (WCAG 2.5.8 wants ≥24px spacing between targets, or
+   non-overlapping). A tap in the visual gap between the two 24px circles lands in one
+   button's padding zone unpredictably; the "overlap cleanly because padding is internal"
+   comment is the bug — internal padding doesn't separate the two targets from each other.
+2. **Corner crowding / overlap with the player tap-zone** — both buttons pinned to the
+   same top-left corner of a 200px overlay; the expand button's hit area likely overlaps
+   the player's own tap-to-expand/click region, so a corner tap is contested.
+
+**To fix** (re-verify on mobile via fix-verify): separate the two targets — e.g. push
+the close button to the opposite corner (expand top-left, close top-right) so their 44px
+hit areas can't touch, OR increase the gap so the hit areas are ≥24px apart, AND ensure
+neither hit area overlaps the player's tap region (check z-index/pointer-events layering
+against the MediaPlayer surface). Keep the 24px visible circles.
+
+**Fullscreen half of this story was confirmed OK** at the earlier walk — the fix is
+scoped to the mini-player touch targets only; don't regress the fullscreen slot.
