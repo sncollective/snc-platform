@@ -1,7 +1,7 @@
 ---
 id: refactor-streaming-lifecycle-service-extraction
 kind: story
-stage: review
+stage: done
 tags: [refactor, structural, streaming]
 release_binding: null
 depends_on: []
@@ -72,3 +72,15 @@ extraction introduces no new type error. Streaming route suite 42/42, new lifecy
 - [x] Replace inline implementations in `streaming.routes.ts` with imports; remove the six dead imports.
 - [~] Confirm `streaming.routes.ts` drops under 400 LOC — **not achievable by this extraction** (645→574); reassigned to route-file-size-splits (LOC target was stale).
 - [x] Run the streaming route unit tests — 42/42 pass; added 5-test lifecycle suite.
+
+## Review (2026-06-13)
+**Verdict**: Approve (deep lane, fresh-context sub-agent — not cross-model). Byte-identical
+extraction verified by diff (all three functions empty-diff vs the inline originals); six
+removed imports confirmed dead by grep; void-not-Result divergence is faithful (converting
+would add an error branch to the SRS callback = behavior change, correctly deferred);
+LOC 645→574 exact; <400 target reassigned to refactor-route-file-size-splits (real, names
+this extraction). API suite 1572/1572. Important: commit-message mismatch — work landed in
+d8f1bee labeled for an unrelated playout-admin story (parallel-wave stash/restore
+collision); code correct, audit trail muddied — git_ref archaeology should target d8f1bee.
+Nit: void contract diverges from the service-layer Result<T,E> preference — future-cleanup
+candidate, JSDoc already pre-empts the question.

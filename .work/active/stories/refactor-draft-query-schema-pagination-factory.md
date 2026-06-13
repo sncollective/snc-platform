@@ -1,7 +1,7 @@
 ---
 id: refactor-draft-query-schema-pagination-factory
 kind: story
-stage: review
+stage: done
 tags: [refactor, quality, content]
 release_binding: null
 depends_on: []
@@ -34,3 +34,13 @@ This is a pure structural refactor — no behavior change, no API contract chang
 **TypeScript type unchanged.** `tsc --noEmit` passed with zero errors. The inferred `DraftQuery` type (`{ creatorId: string; type?: "video" | "audio" | "written"; cursor?: string; limit: number }`) is structurally identical from the consumer's perspective — `limit` was always a `number` after parsing in both forms.
 
 **Tests:** 675 shared tests pass (all pre-existing + 4 new assertions in `DraftQuerySchema` describe block covering: type filter acceptance, invalid type rejection, all-fields-together parse, empty-query default output). 1567 API unit tests pass — no consumer breakage.
+
+**Commit attribution (archaeology note).** This story's code (`content.ts`, `content.test.ts`, this file) landed in commit `93ba0f2`, whose message is `research-handoff: file 2 items from privacy-consent-compliance` — an *unrelated* concurrent lane's commit. Cause: pre-commit's stash/restore is shared mutable state, and during parallel-agent fan-out this refactor's unstaged work was folded into another agent's commit during the restore. The code is correct and complete; only the commit message is misleading. History was deliberately NOT rewritten to split it — `main` had multiple lanes committing on top of `93ba0f2` at the time, so the archaeological cost of the mislabel is far cheaper than the risk of history surgery on a shared branch. `git log -- packages/shared/src/content.ts` lands on `93ba0f2`; this note is the bridge. (Process lesson for parallel implement waves: serialize the commit step, or give each parallel writer worktree isolation, so the stash/restore cycle isn't shared.)
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Pure structural refactor, type structurally
+identical, 675 shared + 1567 API tests pass. The lane's own commit-attribution note
+(landed in 93ba0f2, a research-handoff commit, via the parallel-wave stash/restore
+collision) is the correct disposition — code correct, no history surgery on the shared
+branch, archaeology bridge recorded. Same root cause as the streaming-lifecycle mislabel:
+parallel implement waves share pre-commit's stash/restore.

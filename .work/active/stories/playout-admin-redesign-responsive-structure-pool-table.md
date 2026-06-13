@@ -47,3 +47,10 @@ Writes `playout.module.css` — bundle or serialize with sibling
   two buttons per item.
 - Backlog stub a11y-admin-pool-table-mobile-overflow deleted (scope resolved by this
   story's implementation).
+
+## Review (2026-06-13)
+**Verdict**: Approve — held at review on fix-verify loopback (mobile layout, user confirms
+at 375px in the running app). Blocker found + fixed in-review: 3 missing non-null
+assertions on getAllByRole("Delete")[0] in the simulcast test (noUncheckedIndexedAccess
+regression the lane's vitest+build verification couldn't catch — typecheck now exits 0,
+matching the sibling pool-table story's own pattern).

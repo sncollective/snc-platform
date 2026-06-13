@@ -1,7 +1,7 @@
 ---
 id: refactor-json-ld-typed-interfaces
 kind: story
-stage: review
+stage: done
 tags: [refactor, quality]
 release_binding: null
 depends_on: []
@@ -42,3 +42,10 @@ The exhaustive switch fix on `buildContentJsonLd` (line 22) already landed per t
 - **Output unchanged:** only type annotations and interface declarations added; no object literal contents altered
 - **Typecheck result:** only the 3 pre-existing `simulcast-destination-manager.test.tsx` errors (mock typings); zero new errors from this change
 - **Test file created:** `apps/web/tests/unit/lib/json-ld.test.ts` — 17 tests covering all three functions, null/undefined edge cases (missing thumbnail, bio, avatarUrl, socialLinks, duration), URL fallback logic (handle → id, slug → id), InStock/OutOfStock availability, price formatting; all 1717 web tests pass
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Type-only change (interfaces + satisfies, zero
+runtime effect, output unchanged); 17 new lib tests; full web typecheck confirmed clean at
+HEAD (the record's "3 pre-existing simulcast mock errors" note is stale — those were fixed
+at a33a6d9 and the 3 later index-access errors were fixed in this review pass; typecheck
+exits 0).

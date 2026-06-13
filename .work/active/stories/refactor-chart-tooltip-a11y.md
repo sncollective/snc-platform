@@ -1,7 +1,7 @@
 ---
 id: refactor-chart-tooltip-a11y
 kind: story
-stage: review
+stage: done
 tags: [refactor, accessibility, emissions]
 release_binding: null
 depends_on: []
@@ -38,3 +38,9 @@ The chart is hand-rolled SVG (noted in the board as a candidate for recharts, bu
 - Actual file changed: `apps/web/src/components/emissions/emissions-chart.tsx` (actual path — story scope had a minor path discrepancy: component lives under `emissions/` subdirectory, not directly under `components/`).
 - CSS change: `apps/web/src/components/emissions/emissions-chart.module.css` — added `.srOnly` block only.
 - Tests: 7 new tests added to `apps/web/tests/unit/components/emissions/emissions-chart.test.tsx` (pre-existing: 10; total: 17). All 1716 web tests pass.
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. a11y enrichment (tabIndex/role/aria-label per
+data point + aria-live mirror outside the SVG); component-owned .srOnly; 7 new tests; 1716
+web tests pass. Minor story-path discrepancy (component under emissions/ subdir) noted in
+record, not a defect.

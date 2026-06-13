@@ -20,7 +20,7 @@ module classes with `flex-wrap: wrap` + input `flex: 1 1 200px; min-width: 0`;
 (2) `.channelTabs` gets `overflow-x: auto` / `flex-wrap: nowrap` / `flex-shrink: 0`
 tabs (mirror the ContextShell chip bar); (3) picker dropdown `min-width: 260px`,
 right-anchored in-viewport. Delete
-`.work/backlog/a11y-admin-new-channel-form-mobile.md` in this story's commit. Exact
+the `a11y-admin-new-channel-form-mobile` backlog stub in this story's commit. Exact
 spec + acceptance criteria in the parent feature body.
 
 ## Coordination
@@ -45,3 +45,10 @@ Writes `playout.module.css` and `playout.tsx` — bundle or serialize with sibli
 - Test added to `playout.test.tsx`: asserts the new channel form div has no inline `style`
   attribute after clicking "+ New Channel" (class wiring confirmed).
 - Backlog stub a11y-admin-new-channel-form-mobile deleted.
+
+## Review (2026-06-13)
+**Verdict**: Approve — held at review on fix-verify loopback (mobile layout, user confirms
+at 375px in the running app). Blocker found + fixed in-review: 3 missing non-null
+assertions on getAllByRole("Delete")[0] in the simulcast test (noUncheckedIndexedAccess
+regression the lane's vitest+build verification couldn't catch — typecheck now exits 0,
+matching the sibling pool-table story's own pattern).

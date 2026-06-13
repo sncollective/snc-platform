@@ -192,7 +192,7 @@ describe("SimulcastDestinationManager – delete flow", () => {
       expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
 
     // Dialog should appear
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
@@ -219,7 +219,7 @@ describe("SimulcastDestinationManager – delete flow", () => {
       expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
 
     await waitFor(() => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe("SimulcastDestinationManager – delete flow", () => {
       expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
 
     await waitFor(() => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();

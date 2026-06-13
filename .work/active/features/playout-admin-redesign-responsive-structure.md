@@ -257,3 +257,24 @@ attribution across the three implement commits (`fd5b378` holds the pool-table c
 **Fix-verify pending** (platform convention): user confirms at 375px in the running app
 — pool cards, simulcast cards, create-form wrap, picker width, tab scroll — before the
 stories close.
+
+## Review (2026-06-13)
+**Verdict**: Approve with comments (deep lane, fresh-context sub-agent — not cross-model)
+— feature + 3 stories HELD at review on the fix-verify loopback (mobile layout).
+**Blockers**: 1 found + fixed in-review — web typecheck regression (3 net-new
+noUncheckedIndexedAccess errors in the simulcast delete-flow test); fixed by adding `!`
+per the sibling pool-table story's pattern; typecheck exits 0.
+**Important**: commit attribution scrambled across the parallel wave — form-and-chrome
+code is in 61736f2 (not d8f1bee, which carries the unrelated streaming-lifecycle refactor);
+a11y-admin-simulcast-table-mobile stub was deleted in 93ba0f2 (a research-handoff commit)
+rather than a simulcast commit. Net result correct: all three a11y stubs gone, all story
+content present.
+**Notes**: all 8 design decisions verified met (variant-collapse onto one ResponsiveTable
+with mode mapping + rtmpUrl cardRole:hidden + variant prop survives; ContentPoolTable
+public API unchanged so playout.tsx untouched; tableAt md/sm split; CSS-only form fix with
+no honest-actions overreach; tabs overflow-x; picker min-width; empty-state prompt).
+ConfirmDialog delete flow NOT regressed (dialog/confirm/cancel tests meaningful). a11y
+listitem-role contract honored by both consumers. 1717 web tests pass. The 375px visual
+behavior (container-query toggle, card reachability, wrap, tab scroll) is what fix-verify
+confirms in a real browser. First real consumer of the ResponsiveTable primitive — closes
+when the user fix-verifies.

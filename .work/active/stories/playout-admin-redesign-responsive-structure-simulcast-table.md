@@ -41,3 +41,10 @@ body.
 - Backlog stub a11y-admin-simulcast-table-mobile removed via `git rm` (file was
   already absent from HEAD — deleted in a prior commit before this session).
 - Tests: 1698 passed (155 files). Build: clean exit 0.
+
+## Review (2026-06-13)
+**Verdict**: Approve — held at review on fix-verify loopback (mobile layout, user confirms
+at 375px in the running app). Blocker found + fixed in-review: 3 missing non-null
+assertions on getAllByRole("Delete")[0] in the simulcast test (noUncheckedIndexedAccess
+regression the lane's vitest+build verification couldn't catch — typecheck now exits 0,
+matching the sibling pool-table story's own pattern).
