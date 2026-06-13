@@ -107,15 +107,10 @@ export const getContentStatus = (item: {
   return "draft";
 };
 
-export const DraftQuerySchema = z.object({
+/** Query parameters for listing a creator's draft content. */
+export const DraftQuerySchema = createPaginationQuery({ max: 50, default: 12 }).extend({
   creatorId: z.string().min(1),
   type: ContentTypeSchema.optional(),
-  limit: z
-    .string()
-    .optional()
-    .transform((v) => (v ? Number.parseInt(v, 10) : 12))
-    .pipe(z.number().int().min(1).max(50)),
-  cursor: z.string().optional(),
 });
 export type DraftQuery = z.infer<typeof DraftQuerySchema>;
 

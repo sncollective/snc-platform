@@ -596,7 +596,7 @@ describe("DraftQuerySchema", () => {
     expect(result.cursor).toBeUndefined();
   });
 
-  it("parses limit from string", () => {
+  it("parses limit from string (coercion)", () => {
     const result = DraftQuerySchema.parse({ creatorId: "c1", limit: "25" });
     expect(result.limit).toBe(25);
   });
@@ -635,6 +635,30 @@ describe("DraftQuerySchema", () => {
   it("accepts limit at maximum (50)", () => {
     const result = DraftQuerySchema.parse({ creatorId: "c1", limit: "50" });
     expect(result.limit).toBe(50);
+  });
+
+  it("accepts optional type filter", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1", type: "video" });
+    expect(result.type).toBe("video");
+  });
+
+  it('rejects invalid type "podcast"', () => {
+    expect(() => DraftQuerySchema.parse({ creatorId: "c1", type: "podcast" })).toThrow();
+  });
+
+  it("parses all fields together to correct output", () => {
+    const result = DraftQuerySchema.parse({
+      creatorId: "c1",
+      limit: "20",
+      cursor: "tok123",
+      type: "audio",
+    });
+    expect(result).toStrictEqual({ creatorId: "c1", limit: 20, cursor: "tok123", type: "audio" });
+  });
+
+  it("empty query with creatorId yields default limit 12 and no cursor/type", () => {
+    const result = DraftQuerySchema.parse({ creatorId: "c1" });
+    expect(result).toStrictEqual({ creatorId: "c1", limit: 12 });
   });
 });
 
