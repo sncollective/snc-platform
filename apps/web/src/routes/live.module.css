@@ -121,15 +121,18 @@
 
 .theaterToggle,
 .chatToggleTab {
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity 0.2s ease;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .theaterToggle.controlVisible,
-.chatToggleTab.controlVisible {
+.chatToggleTab.controlVisible,
+.theaterToggle:hover,
+.theaterToggle:focus-visible,
+.chatToggleTab:hover,
+.chatToggleTab:focus-visible {
   opacity: 1;
-  pointer-events: auto;
 }
 
 /* ── Desktop: show layout controls ── */

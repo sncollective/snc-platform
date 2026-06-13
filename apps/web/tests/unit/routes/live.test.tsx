@@ -414,3 +414,43 @@ describe("LivePage — MobileTabBar", () => {
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 });
+
+// ── Desktop Control Icon Tests ──
+
+describe("LivePage — desktop control icons", () => {
+  it("theater toggle renders an svg icon (not a Unicode glyph) when not in theater mode", () => {
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+
+    render(<LivePage />);
+
+    const button = screen.getByRole("button", { name: "Theater mode" });
+    expect(button.querySelector("svg")).toBeTruthy();
+    expect(button.textContent).not.toContain("⤢"); // ⤢
+    expect(button.textContent).not.toContain("✕"); // ✕
+  });
+
+  it("chat toggle renders an svg icon (not a Unicode glyph) when chat is visible", () => {
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+
+    render(<LivePage />);
+
+    const button = screen.getByRole("button", { name: "Hide chat" });
+    expect(button.querySelector("svg")).toBeTruthy();
+    expect(button.textContent).not.toContain("→"); // →
+    expect(button.textContent).not.toContain("←"); // ←
+  });
+
+  it("chat toggle renders an svg icon after collapse (Show chat label)", () => {
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+
+    render(<LivePage />);
+
+    // Collapse chat
+    const hideButton = screen.getByRole("button", { name: "Hide chat" });
+    fireEvent.click(hideButton);
+
+    const showButton = screen.getByRole("button", { name: "Show chat" });
+    expect(showButton.querySelector("svg")).toBeTruthy();
+    expect(showButton.textContent).not.toContain("←"); // ←
+  });
+});

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
+import { Maximize2, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -349,7 +350,7 @@ function LivePage(): React.ReactElement {
             aria-pressed={prefs.theater}
             title="Theater mode (t)"
           >
-            {prefs.theater ? "\u2715" : "\u2922"}
+            {prefs.theater ? <X size={16} /> : <Maximize2 size={16} />}
           </button>
 
           {prefs.theater && (
@@ -376,7 +377,7 @@ function LivePage(): React.ReactElement {
             aria-label={prefs.chatCollapsed ? "Show chat" : "Hide chat"}
             title={prefs.chatCollapsed ? "Show chat" : "Hide chat"}
           >
-            {prefs.chatCollapsed ? "\u2190" : "\u2192"}
+            {prefs.chatCollapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
           </button>
         </ChatProvider>
       )}
