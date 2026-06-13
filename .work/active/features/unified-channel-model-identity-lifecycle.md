@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: []
@@ -265,3 +265,9 @@ test covers publish→unpublish→publish reuse.
 - **`scheduled` dead value.** Confirmed unused; mapped defensively in backfill. If a
   `scheduled` row somehow exists in prod, it lands as `platform`/`playout` + a logged warning
   rather than failing the migration.
+
+## Children complete (2026-06-13 — advanced implementing→review)
+All 4 child stories at review/done; feature advanced to `review`.
+- `-expand` done (Approve), `-migrate` done (Approve), `-contract` done (Approve) — the type→ownership/role migration chain, reviewed this session.
+- `-lifecycle` review (commit `cafcb45`) — persistent creator channels + lazy provisioning: `ensureCreatorChannel` (idempotent + backfill dedup), `createLiveChannel`→`activateLiveChannel` (activate-in-place, never fabricate), teardown deactivates (never deletes), chat room preserved across sessions, seed rows + `SNC_TV_BROADCAST` carry explicit ownership/role. Integration test (publish→unpublish→publish reuse) written; requires live DB to run (not runnable in sandbox).
+Verification: @snc/shared green; @snc/api typecheck clean; channels/srs/playout/streaming suites green (14 api failures are environmental local-storage /tmp, unrelated). `release_binding` null — binds with the unified-channel-model epic at ship (epic_cohesion:total).

@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-lifecycle-transitions-playout-queue]
@@ -303,3 +303,11 @@ they currently declare `-input-switch` as upstream, so running them first means
 re-sequencing the chain (drop the `depends_on` on input-switch for 2, re-point 3→2).
 The emission-asymmetry note above (markPlayed/enqueueBatch return shapes) is the first
 decision Unit 2 hits.
+
+## Children complete (2026-06-13 — advanced implementing→review)
+All 4 child stories at review; feature advanced to `review`. Implemented as a serial chain (one bundle agent, dependency order):
+- `-input-switch` (commit `0258ea8`) — Liquidsoap input-switch telemetry: `playout-live-state.ts` holder, `notify_switch` transitions, `/broadcast/input-switch` webhook (resolves broadcast channel by ownership/role, publishes `channel.live-state-changed`). Spike (observing transitions fire) is a documented residual — dev Liquidsoap stack not runnable in sandbox.
+- `-queue-events` (commit `e621f59`) — 3 new events + registry; publishes at 5 transition points + `playout.engine-restarted`; emission-asymmetry resolved by passing channelId at call site (`markPlayed`/`removeQueued` signatures extended). Resolved the 2 pre-existing @snc/api typecheck errors (this lane's own).
+- `-content-events` (commit `654d4db`) — `content.processing-status-changed` from the `updateContentProcessing` chokepoint (status-only); `SubscriberContext.creatorIds` + connect-time scopeFilter (admin-or-member).
+- `-wire-proofs` (commit `e85d69f`) — real-bus route composition test (green); dev-wire proofs through Caddy/SRS are documented residuals (stack not runnable in sandbox), smoke script extended.
+Verification: @snc/shared green; @snc/api typecheck CLEAN; event-bus/sse/playout suites green.

@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-honest-actions
 kind: feature
-stage: implementing
+stage: review
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [shared-confirm-dialog-component]
@@ -238,3 +238,10 @@ user confirms in the running app — create-warning dialog, channel delete end-t
   dialog copy is the only coupling.
 - **Reload-based tab refresh after delete** inherits the existing A3 timing wart
   (reload may race the restart indicator) — explicitly left to `live-data`.
+
+## Children complete (2026-06-13 — advanced implementing→review)
+All 3 child stories at review; feature advanced to `review`.
+- `-channel-lifecycle` (commit `bd98078`) — create-warning ConfirmDialog + channel delete end-to-end (confirm-in-place isPending, wired to existing `deleteChannel` soft-deactivation). Re-grounded against Lane 1's landed channel model (delete=soft-deactivation confirmed intact at HEAD; ownership/role already in use; no type-enum references). Both backlog stubs (`bug-admin-no-channel-delete`, `channel-delete-admin-ui`) removed.
+- `-queue-honesty` (commit `327406b`) — "Up next" label, picker empty-state explanation, disabled-skip-with-reason.
+- `-toggle-feedback` (commit `c12d81b`) — simulcast activate/deactivate success toasts (both directions).
+Verification: @snc/web 1737 green; web typecheck clean. USER FIX-VERIFY pending in-app for the user-visible changes (create-warning dialog, channel delete end-to-end, Up next label, picker note, disabled skip, toggle toasts) before story close.
