@@ -134,7 +134,7 @@ describe("EmissionsChart", () => {
   it("shows tooltip on dot hover", () => {
     render(<EmissionsChart data={makeData()} />);
     const svg = screen.getByRole("img");
-    const dots = svg.querySelectorAll("circle");
+    const dots = screen.getAllByRole("button");
 
     // No tooltip initially
     expect(svg.querySelectorAll("rect")).toHaveLength(0);
@@ -146,5 +146,78 @@ describe("EmissionsChart", () => {
     // Leave
     fireEvent.mouseLeave(dots[0]!);
     expect(svg.querySelectorAll("rect")).toHaveLength(0);
+  });
+
+  it("data point dots are keyboard-focusable with tabIndex and role", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const dots = screen.getAllByRole("button");
+
+    expect(dots.length).toBeGreaterThan(0);
+    for (const dot of dots) {
+      expect(dot).toHaveAttribute("tabindex", "0");
+      expect(dot).toHaveAttribute("aria-label");
+    }
+  });
+
+  it("each dot aria-label contains month name and data values", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const dots = screen.getAllByRole("button");
+
+    // First data point: "2026-01" → "Jan 2026"
+    const firstLabel = dots[0]!.getAttribute("aria-label") ?? "";
+    expect(firstLabel).toContain("Jan 2026");
+    expect(firstLabel).toContain("Actual");
+    expect(firstLabel).toContain("Projected");
+    expect(firstLabel).toContain("Net");
+  });
+
+  it("shows tooltip on dot focus", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const svg = screen.getByRole("img");
+    const dots = screen.getAllByRole("button");
+
+    // No tooltip initially
+    expect(svg.querySelectorAll("rect")).toHaveLength(0);
+
+    // Focus first dot
+    fireEvent.focus(dots[0]!);
+    expect(svg.querySelectorAll("rect")).toHaveLength(1);
+
+    // Blur clears tooltip
+    fireEvent.blur(dots[0]!);
+    expect(svg.querySelectorAll("rect")).toHaveLength(0);
+  });
+
+  it("aria-live region is present and empty when no dot is active", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const liveRegion = document.querySelector("[aria-live='polite']")!;
+    expect(liveRegion).toBeInTheDocument();
+    expect(liveRegion).toHaveAttribute("aria-atomic", "true");
+    expect(liveRegion.textContent?.trim()).toBe("");
+  });
+
+  it("aria-live region is populated on focus and cleared on blur", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const liveRegion = document.querySelector("[aria-live='polite']")!;
+    const dots = screen.getAllByRole("button");
+
+    fireEvent.focus(dots[0]!);
+    expect(liveRegion.textContent?.trim()).not.toBe("");
+    expect(liveRegion.textContent).toContain("Jan 2026");
+
+    fireEvent.blur(dots[0]!);
+    expect(liveRegion.textContent?.trim()).toBe("");
+  });
+
+  it("aria-live region is populated on mouse enter and cleared on leave", () => {
+    render(<EmissionsChart data={makeData()} />);
+    const liveRegion = document.querySelector("[aria-live='polite']")!;
+    const dots = screen.getAllByRole("button");
+
+    fireEvent.mouseEnter(dots[0]!);
+    expect(liveRegion.textContent).toContain("Jan 2026");
+
+    fireEvent.mouseLeave(dots[0]!);
+    expect(liveRegion.textContent?.trim()).toBe("");
   });
 });

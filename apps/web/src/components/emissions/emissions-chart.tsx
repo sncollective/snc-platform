@@ -45,12 +45,12 @@ const LEGEND_ITEMS = [
 
 // ── Public API ──
 
-/** SVG line chart showing cumulative CO2 emissions over time with actual use, projected use, offset, and net lines. Includes hover tooltips, a legend, and loading/empty states. */
+/** SVG line chart showing cumulative CO2 emissions over time with actual use, projected use, offset, and net lines. Includes hover/focus tooltips, an ARIA live region for screen readers, a legend, and loading/empty states. */
 export function EmissionsChart({
   data,
   isLoading,
 }: EmissionsChartProps): React.ReactElement {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   if (isLoading === true) {
     return (
@@ -242,18 +242,27 @@ export function EmissionsChart({
         {/* Net line (segments colored by sign) */}
         {netSegments}
 
-        {/* Hover targets (invisible circles along net line) */}
-        {lines.net.map((v, i) => (
-          <circle
-            key={lines.months[i]!}
-            className={styles.dot}
-            cx={xForIndex(i)}
-            cy={yForValue(v)}
-            r={DOT_RADIUS}
-            onMouseEnter={() => setHoveredIndex(i)}
-            onMouseLeave={() => setHoveredIndex(null)}
-          />
-        ))}
+        {/* Hover/focus targets (invisible circles along net line) */}
+        {lines.net.map((v, i) => {
+          const monthLabel = formatMonthLabel(lines.months[i]!);
+          const dotAriaLabel = `${monthLabel}: Actual ${formatCo2AxisLabel(lines.actualUse[i]!)}, Projected ${formatCo2AxisLabel(lines.projectedUse[i]!)}, Offsets ${formatCo2AxisLabel(lines.offsets[i]!)}, Net ${formatCo2AxisLabel(v)}`;
+          return (
+            <circle
+              key={lines.months[i]!}
+              className={styles.dot}
+              cx={xForIndex(i)}
+              cy={yForValue(v)}
+              r={DOT_RADIUS}
+              tabIndex={0}
+              role="button"
+              aria-label={dotAriaLabel}
+              onMouseEnter={() => setActiveIndex(i)}
+              onMouseLeave={() => setActiveIndex(null)}
+              onFocus={() => setActiveIndex(i)}
+              onBlur={() => setActiveIndex(null)}
+            />
+          );
+        })}
 
         {/* X-axis labels — short format, slanted */}
         {lines.months.map((month, i) => {
@@ -273,51 +282,62 @@ export function EmissionsChart({
         })}
 
         {/* Tooltip */}
-        {hoveredIndex !== null && (
+        {activeIndex !== null && (
           <g>
             <rect
               className={styles.tooltipBg}
-              x={xForIndex(hoveredIndex) - 70}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70)}
+              x={xForIndex(activeIndex) - 70}
+              y={Math.max(5, yForValue(lines.net[activeIndex]!) - 70)}
               width={140}
               height={60}
               rx={4}
             />
             <text
               className={styles.tooltipText}
-              x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 14}
+              x={xForIndex(activeIndex)}
+              y={Math.max(5, yForValue(lines.net[activeIndex]!) - 70) + 14}
               textAnchor="middle"
             >
-              {formatMonthLabel(lines.months[hoveredIndex]!)}
+              {formatMonthLabel(lines.months[activeIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
-              x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 26}
+              x={xForIndex(activeIndex)}
+              y={Math.max(5, yForValue(lines.net[activeIndex]!) - 70) + 26}
               textAnchor="middle"
             >
-              Actual: {formatCo2AxisLabel(lines.actualUse[hoveredIndex]!)}
+              Actual: {formatCo2AxisLabel(lines.actualUse[activeIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
-              x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 38}
+              x={xForIndex(activeIndex)}
+              y={Math.max(5, yForValue(lines.net[activeIndex]!) - 70) + 38}
               textAnchor="middle"
             >
-              Projected: {formatCo2AxisLabel(lines.projectedUse[hoveredIndex]!)}
+              Projected: {formatCo2AxisLabel(lines.projectedUse[activeIndex]!)}
             </text>
             <text
               className={styles.tooltipText}
-              x={xForIndex(hoveredIndex)}
-              y={Math.max(5, yForValue(lines.net[hoveredIndex]!) - 70) + 50}
+              x={xForIndex(activeIndex)}
+              y={Math.max(5, yForValue(lines.net[activeIndex]!) - 70) + 50}
               textAnchor="middle"
             >
-              Offsets: {formatCo2AxisLabel(lines.offsets[hoveredIndex]!)} | Net: {formatCo2AxisLabel(lines.net[hoveredIndex]!)}
+              Offsets: {formatCo2AxisLabel(lines.offsets[activeIndex]!)} | Net: {formatCo2AxisLabel(lines.net[activeIndex]!)}
             </text>
           </g>
         )}
       </svg>
+
+      {/* ARIA live region — outside SVG for reliable screen-reader support */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className={styles.srOnly}
+      >
+        {activeIndex !== null
+          ? `${formatMonthLabel(lines.months[activeIndex]!)}: Actual ${formatCo2AxisLabel(lines.actualUse[activeIndex]!)}, Projected ${formatCo2AxisLabel(lines.projectedUse[activeIndex]!)}, Offsets ${formatCo2AxisLabel(lines.offsets[activeIndex]!)}, Net ${formatCo2AxisLabel(lines.net[activeIndex]!)}`
+          : ""}
+      </div>
 
       {/* Legend */}
       <div className={styles.legend}>
