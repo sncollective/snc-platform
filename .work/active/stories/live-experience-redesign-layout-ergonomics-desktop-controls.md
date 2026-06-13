@@ -44,3 +44,7 @@ opacity on `.controlVisible`, `:hover`, and `:focus-visible`. Tests:
 - `apps/web/tests/unit/routes/live.test.tsx` — added `describe("LivePage — desktop control icons")` with three tests: theater toggle contains `<svg>` and has no glyph text; chat toggle (Hide chat state) contains `<svg>` and has no glyph text; chat toggle (Show chat state after collapse) contains `<svg>` and has no glyph text.
 
 **Test counts:** 154 test files, 1678 tests passing (3 new tests added). Build clean.
+
+## Review (2026-06-13)
+**Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
+running app). Fast lane: implementation record green (1678 web tests, build clean).

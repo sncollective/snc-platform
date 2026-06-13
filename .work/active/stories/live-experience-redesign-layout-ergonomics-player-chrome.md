@@ -70,3 +70,9 @@ Absorbs backlog item a11y-viewer-mini-player-touch-target — deleted in this st
 ### C. Backlog item
 
 The backlog item a11y-viewer-mini-player-touch-target was deleted in this commit. It is referenced here by id only — the file no longer exists.
+
+## Review (2026-06-13)
+**Verdict**: Approve — held at review on fix-verify loopback (user confirms in the
+running app). Fast lane: implementation record green (1678 web tests, build clean).
+Note: fullscreen-button presence on live streams is explicitly runtime-deferred to
+this fix-verify (no tsx change was needed per the record).

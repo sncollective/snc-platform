@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-sse-endpoint-route
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint-types-bus]
@@ -78,3 +78,8 @@ heartbeats until the 4h deadline. Fix: `Subscription.isClosed()` added to the co
 subscription, route loop breaks on `isClosed()`. Regression tests added in both test
 files (+2; 33 total across the three SSE test files). The literal ACs had passed —
 the gap was between AC wording and design intent ("marks subscriptions closed").
+
+## Review (2026-06-13)
+**Verdict**: Approve — fast-lane advance. Record shows the lane found + fixed two real
+subscription-lifecycle bugs beyond the literal ACs (closeAll FIN, busy-spin on closed
+subscription) with regression tests; sse-scoped API suite re-run green at review.

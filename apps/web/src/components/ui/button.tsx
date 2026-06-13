@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type ReactElement, cloneElement, Children } from "react";
+import { type ComponentProps, type ReactElement, cloneElement, Children } from "react";
 import { Spinner } from "./spinner.js";
 import styles from "./button.module.css";
 
@@ -12,7 +12,9 @@ export type ButtonSize = (typeof BUTTON_SIZES)[number];
 
 // ── Props ──
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+// ComponentProps<"button"> (not ButtonHTMLAttributes) so `ref` is typed — consumers
+// like ConfirmDialog pass refs for initial-focus targets (React 19 ref-as-prop).
+export interface ButtonProps extends ComponentProps<"button"> {
   /** Visual style variant. Defaults to "primary". */
   variant?: ButtonVariant;
   /** Size of the button. Defaults to "md". */

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 import {
   DialogRoot,
   DialogBackdrop,
@@ -89,7 +89,7 @@ export function ConfirmDialog({
             {confirmLabel}
           </Button>
           <Button
-            ref={cancelRef as RefObject<HTMLButtonElement>}
+            ref={cancelRef}
             variant="secondary"
             disabled={isPending}
             onClick={onCancel}

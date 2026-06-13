@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component-revoke-convergence
 kind: story
-stage: review
+stage: done
 tags: [design-system, streaming]
 release_binding: null
 depends_on: [shared-confirm-dialog-component-component]
@@ -49,3 +49,8 @@ may fire after `onConfirm` when the consumer's state clear triggers
 `onOpenChange(false)`. The existing `setKeyPendingRevoke(null)` in `onCancel` is
 already idempotent (called when already null is a no-op), so no handler changes
 were needed.
+
+## Review (2026-06-13)
+**Verdict**: Approve — same title/label/consequence copy verified against pre-commit
+source; bespoke dialog CSS deleted; confirm+cancel tests pass unchanged and are
+meaningful. Visual confirmation folded into the consolidated fix-verify checklist.

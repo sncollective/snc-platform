@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
 release_binding: null
 depends_on: []
@@ -227,3 +227,12 @@ All three child stories implemented and at `stage: review`:
 Verification: 1669 web tests pass, build clean. Cross-cutting note: concurrent-lane
 commit interleaving bundled the two adoption stories' code into one commit (cffa34b)
 plus a follow-up (e69e603) — content verified intact.
+
+## Review (2026-06-13)
+**Verdict**: Approve after in-review fix (deep lane, fresh-context sub-agent — not
+cross-model). Blocker (committed typecheck error, Button ref typing) fixed in-review;
+both adoptions verified mechanically (window.confirm zero at the adopted sites,
+alertdialog role lands in real Ark renders, focus wiring type-verified). Important:
+6 pre-existing window.confirm sites remain elsewhere — the design's own revisit
+condition for the rejected useConfirm() promise API ("past ~5 sites") is arguably
+tripped → filed `confirm-dialog-followup-adoptions` (backlog).

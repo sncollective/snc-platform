@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component-component
 kind: story
-stage: review
+stage: done
 tags: [design-system]
 release_binding: null
 depends_on: []
@@ -69,3 +69,13 @@ All Unit 1 acceptance criteria covered:
 ### Verification
 - `bun run --filter @snc/web test`: 154 files, 1660 tests — all pass
 - `bun run --filter @snc/web build`: clean, exited 0
+
+## Review (2026-06-13)
+**Verdict**: Approve after in-review fix. Deep review bounced on a committed typecheck
+error (Button doesn't type `ref` — the risk the design pre-named). Fixed by the
+reviewer: ButtonProps now extends ComponentProps<"button"> (ref typed, React 19
+ref-as-prop), cast dropped in confirm-dialog.tsx; typecheck + 34 scoped tests green.
+Correction to the implementation note: "no modification to button.tsx needed" was
+runtime-true but type-false — button.tsx WAS modified at review. Nits accepted:
+escape/backdrop→onCancel untested directly; isPending doesn't block escape dismiss
+(flag for honest-actions' confirm-in-place adoption).

@@ -1,7 +1,7 @@
 ---
 id: shared-confirm-dialog-component-simulcast-adoption
 kind: story
-stage: review
+stage: done
 tags: [design-system, playout, admin-console]
 release_binding: null
 depends_on: [shared-confirm-dialog-component-component]
@@ -19,7 +19,7 @@ Unit 2 of the parent feature: replace `window.confirm` in
 with pending-state + `<ConfirmDialog>` (rendered once, outside the table/list variant
 branch — fix hits both admin and creator surfaces). Add delete-flow tests (confirm
 deletes + reloads; cancel doesn't) to the component's existing test file. Delete
-`.work/backlog/bug-admin-simulcast-window-confirm.md` in this story's commit — the fix
+the `bug-admin-simulcast-window-confirm` backlog stub in this story's commit — the fix
 it tracks lands here.
 
 ## Acceptance criteria
@@ -41,5 +41,12 @@ it tracks lands here.
   confirm-calls-and-reloads, cancel-closes-no-call. Used `userEvent` from `@testing-library/user-event`
   matching the confirm-dialog test conventions.
 - `window.confirm` is fully removed from the component.
-- `.work/backlog/bug-admin-simulcast-window-confirm.md` removed in this commit.
+- the `bug-admin-simulcast-window-confirm` backlog stub removed in this commit.
 - Tests: 1663 passed. Build: clean exit code 0.
+
+## Review (2026-06-13)
+**Verdict**: Approve — window.confirm gone from the component, dialog rendered once
+outside the variant branch (hits admin + creator), 3 meaningful delete-flow tests,
+backlog stub deleted in-commit. Advanced to done without per-story user loopback to
+unblock the dependent responsive-structure story; visual confirmation folded into the
+consolidated fix-verify checklist.
