@@ -1,7 +1,7 @@
 ---
 id: bold-channel-topology-model-render-step-4
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, streaming, playout]
 release_binding: null
 depends_on: [bold-channel-topology-model-render-step-3]
@@ -47,3 +47,7 @@ export const HARBOR_LEGACY_NOW_PLAYING = "/now-playing" as const;
 
 **Risk:** Low.
 **Rollback:** revert the commit; builders remain as unused exports or are deleted with it.
+
+## Implementation record (2026-06-13)
+
+Lane coordination checked first: `bold-lifecycle-transitions-playout-queue` still at `drafting`, shared files clean in the working tree — window open. `harborChannelPaths` (already exported in step 2) now consumed by `liquidsoap-client.ts`; new `HARBOR_LEGACY_NOW_PLAYING` consumed by both the render (broadcast register line) and `liquidsoap.ts`. Identical strings — goldens unchanged (`git status` clean on `__snapshots__/`), typecheck green, full API suite green. `grep '/channels/\${' apps/api/src` confirms path construction only in `playout-topology.ts`.

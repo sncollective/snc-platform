@@ -3,6 +3,7 @@ import type { Result } from "@snc/shared";
 
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
+import { harborChannelPaths } from "./playout-topology.js";
 
 // ── Types ──
 
@@ -68,7 +69,7 @@ export const createLiquidsoapClient = (): LiquidsoapClient => {
   return {
     async pushTrack(channelId, uri) {
       const annotatedUri = `annotate:s3_uri="${uri}":${uri}`;
-      return request(`/channels/${channelId}/queue`, {
+      return request(harborChannelPaths(channelId).queue, {
         method: "POST",
         body: annotatedUri,
         headers: { "Content-Type": "text/plain" },
@@ -76,13 +77,13 @@ export const createLiquidsoapClient = (): LiquidsoapClient => {
     },
 
     async skipTrack(channelId) {
-      return request(`/channels/${channelId}/skip`, { method: "POST" });
+      return request(harborChannelPaths(channelId).skip, { method: "POST" });
     },
 
     async getNowPlaying(channelId) {
       if (!baseUrl) return null;
       try {
-        const res = await fetch(`${baseUrl}/channels/${channelId}/now-playing`, {
+        const res = await fetch(`${baseUrl}${harborChannelPaths(channelId).nowPlaying}`, {
           signal: AbortSignal.timeout(3000),
         });
         if (!res.ok) return null;

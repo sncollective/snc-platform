@@ -1,3 +1,4 @@
+import { HARBOR_LEGACY_NOW_PLAYING } from "./playout-topology.js";
 import type {
   EnvRef,
   PlayoutChannelTopology,
@@ -147,7 +148,7 @@ end)
 snc_tv_stream = ${envGet(t.env.sncTvStream)}
 output.url(url="rtmp://#{srs_host}:${t.srsRtmpPort}/live/#{snc_tv_stream}?key=#{playout_key}", enc, snc_tv)
 
-harbor.http.register(port=${t.harborPort}, method="GET", "/now-playing", fun(_req, res) -> begin
+harbor.http.register(port=${t.harborPort}, method="GET", "${HARBOR_LEGACY_NOW_PLAYING}", fun(_req, res) -> begin
   e = snc_tv.elapsed()
   r = snc_tv.remaining()
   safe_elapsed = if e == infinity or e != e then -1. else e end

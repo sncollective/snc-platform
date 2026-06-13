@@ -1,5 +1,6 @@
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
+import { HARBOR_LEGACY_NOW_PLAYING } from "./playout-topology.js";
 
 import type { LiquidsoapNowPlaying } from "./liquidsoap-client.js";
 
@@ -16,7 +17,7 @@ export const getNowPlaying = async (): Promise<LiquidsoapNowPlaying | null> => {
   if (!config.LIQUIDSOAP_API_URL) return null;
 
   try {
-    const res = await fetch(`${config.LIQUIDSOAP_API_URL}/now-playing`, {
+    const res = await fetch(`${config.LIQUIDSOAP_API_URL}${HARBOR_LEGACY_NOW_PLAYING}`, {
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return null;

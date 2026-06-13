@@ -77,6 +77,13 @@ const liqId = (id: string): string => `ch_${id.replaceAll("-", "_")}`;
 
 // ── Public API ──
 
+/**
+ * Legacy broadcast now-playing path (S/NC TV) — registered in the rendered
+ * .liq and called by the API-side wrapper. One constant on both sides of the
+ * harbor contract.
+ */
+export const HARBOR_LEGACY_NOW_PLAYING = "/now-playing";
+
 /** Build the harbor control paths for a playout channel (UUID verbatim). */
 export const harborChannelPaths = (
   channelId: string,
