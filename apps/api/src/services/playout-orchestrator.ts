@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { eq, and, asc, sql, inArray, gte } from "drizzle-orm";
+import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { AppError, NotFoundError, ok, err } from "@snc/shared";
 import type {
   Result,
@@ -16,7 +16,7 @@ import {
   channelContent,
   playoutQueue,
 } from "../db/schema/playout-queue.schema.js";
-import { markPlayed, promoteNext } from "./playout-queue-transitions.js";
+import { markPlayed, promoteNext, enqueue, enqueueBatch } from "./playout-queue-transitions.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -342,48 +342,8 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       return err(new NotFoundError("Playout item not found"));
     }
 
-    // 2. Determine the insert position
-    let insertPosition: number;
-    if (position !== undefined) {
-      // Shift existing queued entries at >= position up by 1
-      await db
-        .update(playoutQueue)
-        .set({ position: sql`${playoutQueue.position} + 1` })
-        .where(
-          and(
-            eq(playoutQueue.channelId, channelId),
-            inArray(playoutQueue.status, ["queued"]),
-            gte(playoutQueue.position, position),
-          ),
-        );
-      insertPosition = position;
-    } else {
-      // Insert at end of queue
-      const [maxRow] = await db
-        .select({ max: sql<number | null>`MAX(${playoutQueue.position})` })
-        .from(playoutQueue)
-        .where(
-          and(
-            eq(playoutQueue.channelId, channelId),
-            inArray(playoutQueue.status, ["queued", "playing"]),
-          ),
-        );
-      insertPosition = (maxRow?.max ?? 0) + 1;
-    }
-
-    // 3. Create queue entry
-    const id = randomUUID();
-    const [row] = await db
-      .insert(playoutQueue)
-      .values({
-        id,
-        channelId,
-        playoutItemId,
-        position: insertPosition,
-        status: "queued",
-        pushedToLiquidsoap: false,
-      })
-      .returning();
+    // 2. Create queue entry (position-shift + insert delegated to transitions)
+    const row = await enqueue({ channelId, playoutItemId, position });
 
     if (!row) {
       return err(new AppError("INSERT_FAILED", "Failed to insert queue entry", 500));
@@ -700,34 +660,14 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       return;
     }
 
-    // Get the current max position in the queue
-    const [maxRow] = await db
-      .select({ max: sql<number | null>`MAX(${playoutQueue.position})` })
-      .from(playoutQueue)
-      .where(
-        and(
-          eq(playoutQueue.channelId, channelId),
-          inArray(playoutQueue.status, ["queued", "playing"]),
-        ),
-      );
-
-    let nextPosition = (maxRow?.max ?? 0) + 1;
-
-    const newEntries = candidateRows.map(
-      (row) => ({
-        id: randomUUID(),
-        channelId,
-        playoutItemId: row.playout_item_id,
-        position: nextPosition++,
-        status: "queued" as const,
-        pushedToLiquidsoap: false,
-      }),
+    // Batch-insert candidates (MAX(position) read + INSERT delegated to transitions)
+    const added = await enqueueBatch(
+      channelId,
+      candidateRows.map((r) => r.playout_item_id),
     );
 
-    await db.insert(playoutQueue).values(newEntries);
-
     logger.info(
-      { channelId, added: newEntries.length },
+      { channelId, added },
       "Auto-fill: added items to queue",
     );
   };
