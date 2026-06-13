@@ -353,14 +353,16 @@ describe("content pool", () => {
     const userSetup = userEvent.setup();
     render(<PlayoutPage />);
 
+    // ResponsiveTable renders both a table and card view (dual render), so
+    // there are two Remove buttons per item — use getAllByRole and click the first.
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /Remove Metropolis from pool/ }),
+        screen.getAllByRole("button", { name: /Remove Metropolis from pool/ })[0],
       ).toBeInTheDocument();
     });
 
     await userSetup.click(
-      screen.getByRole("button", { name: /Remove Metropolis from pool/ }),
+      screen.getAllByRole("button", { name: /Remove Metropolis from pool/ })[0]!,
     );
 
     await waitFor(() => {

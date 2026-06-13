@@ -1,6 +1,9 @@
 import type React from "react";
+import type { ReactNode } from "react";
 import type { ChannelContent } from "@snc/shared";
 
+import { ResponsiveTable } from "../ui/responsive-table.js";
+import type { ResponsiveTableColumn } from "../ui/responsive-table.js";
 import styles from "../../routes/admin/playout.module.css";
 
 // ── Types ──
@@ -37,6 +40,42 @@ function relativeTime(isoString: string | null): string {
   return `${diffDays}d ago`;
 }
 
+// ── Column definitions ──
+
+const COLUMNS: readonly ResponsiveTableColumn<ChannelContent>[] = [
+  {
+    key: "title",
+    header: "Title",
+    cardRole: "title",
+    cell: (item) => item.title ?? "—",
+  },
+  {
+    key: "duration",
+    header: "Duration",
+    cell: (item): ReactNode =>
+      item.duration !== null ? formatDuration(item.duration) : "—",
+  },
+  {
+    key: "source",
+    header: "Source",
+    cell: (item): ReactNode => (
+      <span className={styles.sourceBadge}>
+        {item.sourceType === "playout" ? "Playout" : "Creator"}
+      </span>
+    ),
+  },
+  {
+    key: "lastPlayed",
+    header: "Last Played",
+    cell: (item): ReactNode => relativeTime(item.lastPlayedAt),
+  },
+  {
+    key: "plays",
+    header: "Plays",
+    cell: (item): ReactNode => item.playCount,
+  },
+];
+
 // ── Component ──
 
 /** Table of content pool items for a playout channel. */
@@ -46,62 +85,44 @@ export function ContentPoolTable({
   onRetry,
 }: ContentPoolTableProps): React.ReactElement {
   if (items.length === 0) {
-    return <p className={styles.emptyMessage}>No content in pool.</p>;
+    return (
+      <p className={styles.emptyMessage}>
+        No content in pool. Add content using the buttons above.
+      </p>
+    );
   }
 
   return (
-    <table className={styles.poolTable}>
-      <thead>
-        <tr>
-          <th className={styles.poolTableHeader}>Title</th>
-          <th className={styles.poolTableHeader}>Duration</th>
-          <th className={styles.poolTableHeader}>Source</th>
-          <th className={styles.poolTableHeader}>Last Played</th>
-          <th className={styles.poolTableHeader}>Plays</th>
-          <th className={styles.poolTableHeader} />
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <td className={styles.poolTableCell}>{item.title ?? "—"}</td>
-            <td className={styles.poolTableCell}>
-              {item.duration !== null ? formatDuration(item.duration) : "—"}
-            </td>
-            <td className={styles.poolTableCell}>
-              <span className={styles.sourceBadge}>
-                {item.sourceType === "playout" ? "Playout" : "Creator"}
-              </span>
-            </td>
-            <td className={styles.poolTableCell}>
-              {relativeTime(item.lastPlayedAt)}
-            </td>
-            <td className={styles.poolTableCell}>{item.playCount}</td>
-            <td className={styles.poolTableCell}>
-              {item.sourceType === "playout" &&
-                item.processingStatus === "failed" &&
-                onRetry !== undefined && (
-                  <button
-                    type="button"
-                    className={styles.retryButton}
-                    onClick={() => onRetry(item)}
-                    aria-label={`Retry ingest for ${item.title ?? "item"}`}
-                  >
-                    Retry
-                  </button>
-                )}
+    <ResponsiveTable<ChannelContent>
+      columns={COLUMNS}
+      rows={items}
+      rowKey={(item) => item.id}
+      label="Content pool"
+      cardAriaLabel={(item) => item.title ?? "Untitled item"}
+      actions={(item): ReactNode => (
+        <>
+          {item.sourceType === "playout" &&
+            item.processingStatus === "failed" &&
+            onRetry !== undefined && (
               <button
                 type="button"
-                className={styles.deleteButton}
-                onClick={() => onRemove(item)}
-                aria-label={`Remove ${item.title ?? "item"} from pool`}
+                className={styles.retryButton}
+                onClick={() => onRetry(item)}
+                aria-label={`Retry ingest for ${item.title ?? "item"}`}
               >
-                Remove
+                Retry
               </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            )}
+          <button
+            type="button"
+            className={styles.deleteButton}
+            onClick={() => onRemove(item)}
+            aria-label={`Remove ${item.title ?? "item"} from pool`}
+          >
+            Remove
+          </button>
+        </>
+      )}
+    />
   );
 }
