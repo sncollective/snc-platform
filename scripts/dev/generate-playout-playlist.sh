@@ -40,7 +40,7 @@ import { config } from "dotenv";
 import { join } from "node:path";
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
-config({ path: join(process.env.REPO_ROOT, ".env") });
+config({ path: join(process.env.REPO_ROOT, ".env"), quiet: true });
 
 const client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
