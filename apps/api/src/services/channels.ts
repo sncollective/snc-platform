@@ -10,6 +10,7 @@ import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { resolveCreatorUrls } from "../lib/creator-url.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
+import { eventBus } from "./event-bus.js";
 
 // ── Public Types ──
 
@@ -169,6 +170,8 @@ export const createLiveChannel = async (opts: {
           updatedAt: new Date(),
         })
         .where(eq(channels.id, existing.id));
+      // Duplicate live:true on SRS on_publish retries is intentional — notification semantics.
+      eventBus.publish({ type: "channel.live-state-changed", channelId: existing.id, live: true });
       return ok({ channelId: existing.id });
     }
 
@@ -184,6 +187,7 @@ export const createLiveChannel = async (opts: {
       isActive: true,
     });
 
+    eventBus.publish({ type: "channel.live-state-changed", channelId, live: true });
     return ok({ channelId });
   } catch (e) {
     rootLogger.error({ err: e }, "Failed to create live channel");
@@ -224,6 +228,7 @@ export const deactivateLiveChannel = async (
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(channels.id, channel.id));
 
+    eventBus.publish({ type: "channel.live-state-changed", channelId: channel.id, live: false });
     return ok({ channelId: channel.id });
   } catch (e) {
     rootLogger.error({ err: e }, "Failed to deactivate live channel");
