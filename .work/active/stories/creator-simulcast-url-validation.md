@@ -1,7 +1,7 @@
 ---
 id: creator-simulcast-url-validation
 kind: story
-stage: review
+stage: done
 tags: [streaming, creators]
 release_binding: null
 depends_on: []
@@ -46,3 +46,5 @@ Admin simulcast form uses the same `SimulcastDestinationManager` component with 
 user re-confirms the fix in the running app before close). Fast lane: implementation
 record green (full suite: 671 shared + 1501 api + 1607 web, typecheck clean); diff
 spot-checked against the story brief at feature-level review.
+
+**User fix-verify: confirmed in the running app 2026-06-13.** Story closed.
