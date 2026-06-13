@@ -171,6 +171,10 @@ describe("SimulcastDestinationManager – RTMP URL validation", () => {
 });
 
 describe("SimulcastDestinationManager – delete flow", () => {
+  // ResponsiveTable renders both table and card views in the DOM simultaneously
+  // in auto mode (CSS container query hides one). Each row's actions appear in
+  // both views, so queries use getAllByRole and target the first match.
+
   it("clicking Delete opens the confirm dialog without calling deleteDestination", async () => {
     const user = userEvent.setup();
     mockFetchDestinations.mockResolvedValue({ destinations: [makeDest()] });
@@ -185,10 +189,10 @@ describe("SimulcastDestinationManager – delete flow", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
 
     // Dialog should appear
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
@@ -212,10 +216,10 @@ describe("SimulcastDestinationManager – delete flow", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
 
     await waitFor(() => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();
@@ -245,10 +249,10 @@ describe("SimulcastDestinationManager – delete flow", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Delete" })[0]).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
 
     await waitFor(() => {
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();

@@ -11,6 +11,7 @@ import type {
 import { SIMULCAST_PLATFORMS, SIMULCAST_PLATFORM_KEYS, RTMP_URL_REGEX } from "@snc/shared";
 
 import { ConfirmDialog } from "../ui/confirm-dialog.js";
+import { ResponsiveTable } from "../ui/responsive-table.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import styles from "./simulcast-destination-manager.module.css";
 
@@ -198,6 +199,7 @@ export function SimulcastDestinationManager({
           Add Destination
         </button>
       </div>
+      <p className={styles.semanticsNote}>Changes to active destinations take effect immediately on the live stream.</p>
 
       {showForm && (
         <form className={styles.form} onSubmit={(e) => { void handleSubmit(e); }}>
@@ -293,105 +295,47 @@ export function SimulcastDestinationManager({
         <p className={styles.emptyState}>Loading\u2026</p>
       ) : destinations.length === 0 ? (
         <p className={styles.emptyState}>No simulcast destinations configured.</p>
-      ) : variant === "table" ? (
-        <table className={styles.destinationList}>
-          <thead>
-            <tr>
-              <th>Platform</th>
-              <th>Label</th>
-              <th>RTMP URL</th>
-              <th>Stream Key</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {destinations.map((dest) => (
-              <tr key={dest.id} className={styles.destinationRow}>
-                <td>{SIMULCAST_PLATFORMS[dest.platform].label}</td>
-                <td>{dest.label}</td>
-                <td>{dest.rtmpUrl}</td>
-                <td>
-                  <span className={styles.masked}>
-                    {"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}{dest.streamKeyPrefix}
-                  </span>
-                </td>
-                <td>
-                  <span className={dest.isActive ? styles.active : styles.inactive}>
-                    {dest.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td>
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.toggleButton}
-                      onClick={() => { void handleToggleActive(dest); }}
-                    >
-                      {dest.isActive ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.editButton}
-                      onClick={() => { handleEdit(dest); }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.deleteButton}
-                      onClick={() => { setDestPendingDelete(dest); }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       ) : (
-        <ul className={styles.destList}>
-          {destinations.map((dest) => (
-            <li key={dest.id} className={styles.destItem}>
-              <div className={styles.destInfo}>
-                <span className={styles.destPlatform}>
-                  {SIMULCAST_PLATFORMS[dest.platform].label}
-                </span>
-                <span className={styles.destLabel}>{dest.label}</span>
-                <code className={styles.masked}>
-                  {"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}{dest.streamKeyPrefix}
-                </code>
-                <span className={dest.isActive ? styles.active : styles.inactive}>
-                  {dest.isActive ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.toggleButton}
-                  onClick={() => { void handleToggleActive(dest); }}
-                >
-                  {dest.isActive ? "Deactivate" : "Activate"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.editButton}
-                  onClick={() => { handleEdit(dest); }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className={styles.deleteButton}
-                  onClick={() => { setDestPendingDelete(dest); }}
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ResponsiveTable<SimulcastDestination>
+          columns={[
+            { key: "platform", header: "Platform", cardRole: "title", cell: (d) => SIMULCAST_PLATFORMS[d.platform].label },
+            { key: "label", header: "Label", cell: (d) => d.label },
+            { key: "rtmpUrl", header: "RTMP URL", cardRole: "hidden", cell: (d) => d.rtmpUrl },
+            { key: "streamKey", header: "Stream Key", cell: (d) => <span className={styles.masked}>{"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}{d.streamKeyPrefix}</span> },
+            { key: "status", header: "Status", cell: (d) => <span className={d.isActive ? styles.active : styles.inactive}>{d.isActive ? "Active" : "Inactive"}</span> },
+          ]}
+          rows={destinations}
+          rowKey={(d) => d.id}
+          label="Simulcast destinations"
+          cardAriaLabel={(d) => d.label}
+          tableAt="md"
+          mode={variant === "list" ? "cards" : "auto"}
+          actions={(d) => (
+            <>
+              <button
+                type="button"
+                className={styles.toggleButton}
+                onClick={() => { void handleToggleActive(d); }}
+              >
+                {d.isActive ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                type="button"
+                className={styles.editButton}
+                onClick={() => { handleEdit(d); }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className={styles.deleteButton}
+                onClick={() => { setDestPendingDelete(d); }}
+              >
+                Delete
+              </button>
+            </>
+          )}
+        />
       )}
 
       <ConfirmDialog

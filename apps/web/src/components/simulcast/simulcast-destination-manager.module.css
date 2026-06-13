@@ -67,62 +67,12 @@
   gap: var(--space-sm);
 }
 
-/* ── Destination List (table layout for admin) ── */
+/* ── Semantics Note ── */
 
-.destinationList {
-  width: 100%;
-  border-collapse: collapse;
+.semanticsNote {
   font-size: var(--font-size-sm);
-}
-
-.destinationList th {
-  text-align: left;
-  padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
   color: var(--color-text-muted);
-  font-weight: 500;
-  font-family: var(--font-ui);
-}
-
-.destinationRow td {
-  padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
-}
-
-/* ── Destination List (card layout for compact/creator) ── */
-
-.destList {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.destItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-sm);
-}
-
-.destInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.destPlatform {
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-}
-
-.destLabel {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-sm);
 }
 
 /* ── Masked Stream Key ── */
@@ -145,14 +95,6 @@
 .inactive {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-}
-
-/* ── Actions ── */
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
 }
 
 /* ── Buttons ── */
