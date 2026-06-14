@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-honest-actions-queue-honesty
 kind: story
-stage: review
+stage: done
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [playout-admin-redesign-responsive-structure-form-and-chrome]
@@ -61,3 +61,14 @@ only fires when `queueStatus !== null && nowPlaying === null`.
 **Fix-verify loopback:** User to confirm in the running app: "Up next" label on first
 queue item, picker empty-state note, disabled Skip with "No active track" when nothing
 plays.
+
+## Fix-verify (2026-06-13 — user confirmed in-app)
+User confirmed in the running app (/admin/playout):
+- Empty "add to queue" picker shows the explanation: "No playout items in pool. Only
+  playout-uploaded items can be queued. Creator content plays via the rotation pool." ✓
+- Now Playing with nothing playing: Skip is disabled with a "No active track" reason. ✓
+- Queue empty state shows "Queue empty — content pool will auto-play." ✓
+The "Up next" first-item label could NOT be eyeballed (no queueable item — the dev playout
+chain isn't airing pooled content; separate dev-env gap, see backlog). It is unit-verified
+in queue-item-row.test.tsx (estimatedStart === 0 → "Up next"). Closed review -> done on
+2/3 visual confirmations + 1 unit-verified-visual-deferred.
