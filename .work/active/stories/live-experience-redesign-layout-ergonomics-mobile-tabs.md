@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-mobile-tabs
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -127,3 +127,11 @@ verified in jsdom; the fix addresses the layout logic via CSS reasoning and code
 **375px visual confirmation is deferred to the user's fix-verify loopback.** This agent
 cannot run the browser at 375px. The user must confirm that (a) the chat panel now fills
 the viewport below the tab bar and (b) the player is fully visible above the tabs.
+
+## Fix-verify (2026-06-14 — user confirmed in-app, screenshot)
+User captured /live at 767px with S/NC TV airing (live-source via test-live-fallback.sh).
+Both bounced faults resolved: (1) player fully visible at the top (was partially
+unviewable); (2) chat renders inside the Chat tab region and fills down to the bottom nav
+bar — NOT stacked below the footer, no scroll trap. The chat-open layout
+(`.liveGridMobileChat` footer-hide + player flex-shrink:0) holds at 375–767px. Closed
+review -> done.
