@@ -7,6 +7,7 @@ parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
+research_refs: [vidstack-layout-behavior]
 created: 2026-06-14
 updated: 2026-06-14
 ---
@@ -112,3 +113,31 @@ screenshot iteration — controls only render with a live source):
 
 Lean (1): smallest, fixes all three, keeps controls. Inspect the live DOM for the exact
 control-group selector before editing; iterate via the screenshot loop.
+
+## Grounded fix approach (from research vidstack-layout-behavior, 2026-06-14)
+The ARD campaign `vidstack-layout-behavior` (full rigor; verified) replaced the attempt-1
+guesswork with a source-grounded mechanism + recipe. See
+`.research/analysis/campaigns/vidstack-layout-behavior/parent.md` §5.
+
+Mechanism: the player box is hard-pinned 16:9 by the inline `aspectRatio="16/9"` prop (NOT the
+non-existent `aspect-ratio:inherit` flip attempt 1 chased). Controls overlay `position:absolute;
+inset:0`, but the bottom controls group is pushed below the box by a negative margin
+(`-16px` large layout `:nth-last-child(2)`; `-6px`/`-2.5px` small layout `:last-child`). The
+player wrappers' `overflow:hidden` (for rounded corners) clip that protrusion.
+
+Fix: neutralize the bottom-group negative margin within the app's player wrappers (Vidstack does
+exactly this in fullscreen small layout). The small-layout rule is `:where()`-wrapped (zero
+specificity), so a scoped override wins without `\!important`:
+
+```css
+.expanded :global(.vds-video-layout[data-sm] .vds-controls-group:last-child),
+.collapsedOverlay :global(.vds-video-layout[data-sm] .vds-controls-group:last-child) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.expanded :global(.vds-video-layout:not([data-sm]) .vds-controls-group:nth-last-child(2)) {
+  margin-bottom: 0;
+}
+```
+(Targets `.vds-*` internal classes — carries a version-revisit. Verify via screenshot loop at
+375px /live (small), desktop /live (large), and the docked mini-player.)

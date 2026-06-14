@@ -366,6 +366,60 @@ broken rendering. Missing `theme.css` causes unstyled controls.
 Set `streamType="live"` on `<MediaPlayer>` for live content. This adjusts UI behavior
 (hides duration, shows live edge button, disables seek on DVR-less streams).
 
+## Layout, sizing & control positioning (v1.12.13)
+
+Behavioral/CSS-contract reference for how the player establishes its box and where
+`DefaultVideoLayout` puts its controls — the knowledge the API tables above don't carry.
+Grounded in the installed `@vidstack/react@1.12.13` source; full cited substrate +
+verification in `.research/analysis/campaigns/vidstack-layout-behavior/`.
+
+**Player box sizing:**
+- Default video aspect is `:where([data-media-player][data-view-type='video']){aspect-ratio:16/9}`
+  — `:where()` makes it **zero specificity**, so any consumer rule overrides it without `!important`.
+  The player root is `width:100%` with no default height; aspect-ratio is the sole vertical constraint.
+- The **`aspectRatio` prop becomes an inline `style`** (`style={{aspectRatio}}`) → it outranks every
+  stylesheet rule. Both platform players pass `aspectRatio="16/9"`, so the box is hard-pinned 16:9.
+  To change the ratio, change the prop (or drop it and use a CSS rule of any specificity).
+- There is **no `[data-started]:not([data-controls]) → aspect-ratio:inherit` flip** in 1.12.13
+  (that selector only sets `pointer-events`/`cursor`). Don't design around one.
+
+**Small vs large layout:** `DefaultVideoLayout` is **small** when the *player* measures
+`width < 576 || height < 380` (the `smallLayoutWhen` default; player dimensions, not viewport).
+The result sets `data-sm`/`data-lg`/`data-size` on the `.vds-video-layout` **div** (not the player).
+Mobile `/live` and the docked mini-player are always small layout; desktop `/live` is large.
+
+**Control positioning + the constrained-container clip (the gotcha):**
+- `.vds-controls` overlays `position:absolute; inset:0` on `[data-media-player]` — a **sibling** of
+  `[data-media-provider]`, so the provider's `overflow:hidden` does **not** clip controls.
+- The bottom controls group is pushed *below* the player box by a **negative margin**:
+  large layout `:nth-last-child(2){margin-bottom:-16px}`; small layout `:last-child{margin-top:-2.5px;
+  margin-bottom:-6px}`. This is intentional bleed — harmless in default use.
+- **A wrapper with a fixed aspect/height + `overflow:hidden` (e.g. for rounded corners) clips that
+  protruding control bar** (the LIVE badge + fullscreen). This is the failure mode to watch when
+  embedding the player in a tight, rounded, clipped box (mini-player, fixed cards).
+- **Fix recipe** — neutralize the bottom group's negative margin *within your wrapper* (exactly what
+  Vidstack itself does in fullscreen small layout). The small-layout rule is `:where()`-wrapped
+  (zero specificity), so a scoped override wins without `!important`:
+
+```css
+.yourWrapper :global(.vds-video-layout[data-sm] .vds-controls-group:last-child) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.yourWrapper :global(.vds-video-layout:not([data-sm]) .vds-controls-group:nth-last-child(2)) {
+  margin-bottom: 0;
+}
+```
+
+**Styling API surface:** **no `::part()`** (regular DOM, not Shadow DOM). The documented
+customization layer is CSS custom properties — `--media-*` (theme primitives, e.g.
+`--media-controls-padding`, `--media-live-button-bg`/`-edge-bg`) and `--video-*` (video-layout hooks
+that feed `--media-*`, e.g. `--video-border-radius` default `6px` driving player + controls radius).
+`.vds-*` classes are real DOM hooks and the only way to target a specific control group, but are
+**not a documented stability contract** — pin any `.vds-*` override behind a version-revisit. Re-read
+`player/styles/default/layouts/video.css` + the layout JS on each Vidstack upgrade (these are
+internal implementation details).
+
 ## Anti-Patterns
 
 ### Building custom HTML5 video/audio when vidstack handles it
