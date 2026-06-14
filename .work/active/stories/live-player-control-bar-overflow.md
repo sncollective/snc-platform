@@ -1,7 +1,7 @@
 ---
 id: live-player-control-bar-overflow
 kind: story
-stage: review
+stage: implementing
 tags: [streaming]
 parent: null
 depends_on: []
@@ -82,3 +82,33 @@ the player:
 
 Verification: @snc/web typecheck clean; global-player tests 42/42. Visual fit (controls
 inside the frame on mobile /live + desktop /live + docked mini) is the user fix-verify.
+
+## Attempt 1 REVERTED (2026-06-14 — regressed; reverted in same session)
+Tried: move the 16:9 box onto the `.expanded`/`.collapsedOverlay` wrappers + fill the inner
+`media-player` 100%. Result (user shots 4–6): made it WORSE — all three modes "converged"
+to the clipped behavior. Pinning the player to exactly 16:9 + the wrappers' `overflow:hidden`
+CLIPS Vidstack's control bar, which genuinely sits at/below the video's bottom edge. So
+/live went from visible-overflow (acceptable) to clipped (regression); mini still clipped;
+desktop also clipped. Reverted `global-player.module.css` to pre-attempt state.
+
+Refined root cause: Vidstack's DefaultVideoLayout positions the bottom controls group with a
+NEGATIVE bottom offset (`.vds-controls-group:nth-last-child(2) { margin-bottom: -16px }` plus
+a `bottom: calc(-1 * var(--gap))` element in video.css), so the LIVE/fullscreen bar extends
+~16px+ below the 16:9 video box BY DESIGN (Vidstack players have no overflow clip). Our
+rounded `overflow:hidden` wrappers clip it; a player that grows (pre-fix `.expanded`, no
+wrapper aspect) shows it hanging below the video.
+
+Candidate fixes for the next attempt (Vidstack-aware; needs the live-stream small layout +
+screenshot iteration — controls only render with a live source):
+1. **Neutralize the overhang inside our wrappers** — `.expanded :global(.vds-controls-group)`
+   / `.collapsedOverlay :global(.vds-controls-group) { margin-bottom: 0 }` (+ any `bottom`
+   negative-offset element) so the control bar overlays WITHIN the 16:9 frame. Then it's
+   visible on /live AND fits the mini, no clip. (Verify the exact class names against the
+   running DOM — video.css is minified; inspect `.vds-controls` descendants.)
+2. Give the player box control-bar headroom (box = 16:9 video + control height) — changes the
+   16:9 layout assumption; messier.
+3. Mini-only: hide the Vidstack control chrome in `.collapsedOverlay` (the mini is a
+   tap-to-expand preview with app-provided ↗/✕) — accepts no pause/mute on the mini.
+
+Lean (1): smallest, fixes all three, keeps controls. Inspect the live DOM for the exact
+control-group selector before editing; iterate via the screenshot loop.

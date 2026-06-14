@@ -2,20 +2,13 @@
 
 .expanded {
   width: 100%;
-  /* The WRAPPER owns the 16:9 box (not the inner media-player). Vidstack base.css
-     flips the player to `aspect-ratio: inherit` once a video is started with
-     controls hidden — at higher specificity than an app `.class media-player`
-     selector — which lets the control bar fall outside a player-owned aspect box
-     (visible-overflow on /live, clipped in the mini). Pinning the box on the
-     wrapper + filling the player keeps the control bar overlaid within the frame. */
-  aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .expanded :global(media-player) {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
 }
 
 /* ── Collapsed: audio bottom bar ── */
@@ -47,14 +40,6 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
   background: var(--color-media-bg);
-}
-
-/* Fill the overlay box so the player can't impose its own (conditional) aspect
-   and push the control bar past the frame — same fix as .expanded, applied to the
-   docked mini-player where overflow:hidden was clipping the LIVE/fullscreen bar. */
-.collapsedOverlay :global(media-player) {
-  width: 100%;
-  height: 100%;
 }
 
 @media (min-width: 768px) {
