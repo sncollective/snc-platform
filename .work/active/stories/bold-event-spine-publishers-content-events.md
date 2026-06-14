@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-content-events
 kind: story
-stage: review
+stage: done
 tags: [streaming, media]
 release_binding: null
 depends_on: [bold-event-spine-publishers-queue-events]
@@ -51,3 +51,6 @@ rationale).
 - processing-jobs.test.ts: 14 tests ✓ (was 11, +3 new)
 - sse.routes.test.ts: 15 tests ✓ unchanged (mock extension only)
 - Full API suite: 1595 passed; 14 fails in local-storage.test.ts (pre-existing sandbox `/tmp` restriction)
+
+## Review (2026-06-14)
+**Verdict**: Approve — fast-lane: green unit verification (scopeFilter matrix; status-only publish, codec-only no-publish).

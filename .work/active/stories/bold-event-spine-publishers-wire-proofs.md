@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-wire-proofs
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-event-spine-publishers-content-events]
@@ -73,3 +73,6 @@ callback over the real network.
 **Files changed:**
 - `apps/api/tests/routes/sse.routes.test.ts` — real-bus composition test (+1 test)
 - `apps/api/scripts/sse-smoke.ts` — `--expect-event` mode for dev-wire proof A
+
+## Review (2026-06-14)
+**Verdict**: Approve — fast-lane: real-bus SSE route test green in-process. Residual: dev-wire proofs (Caddy/SRS) need running stack (AC allowed documenting as residual).

@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: []
@@ -271,3 +271,6 @@ All 4 child stories at review/done; feature advanced to `review`.
 - `-expand` done (Approve), `-migrate` done (Approve), `-contract` done (Approve) — the type→ownership/role migration chain, reviewed this session.
 - `-lifecycle` review (commit `cafcb45`) — persistent creator channels + lazy provisioning: `ensureCreatorChannel` (idempotent + backfill dedup), `createLiveChannel`→`activateLiveChannel` (activate-in-place, never fabricate), teardown deactivates (never deletes), chat room preserved across sessions, seed rows + `SNC_TV_BROADCAST` carry explicit ownership/role. Integration test (publish→unpublish→publish reuse) written; requires live DB to run (not runnable in sandbox).
 Verification: @snc/shared green; @snc/api typecheck clean; channels/srs/playout/streaming suites green (14 api failures are environmental local-storage /tmp, unrelated). `release_binding` null — binds with the unified-channel-model epic at ship (epic_cohesion:total).
+
+## Deep review (2026-06-14)
+**Verdict: Approve with comments** (fresh-context deep review). The expand→migrate→contract→lifecycle chain is clean and conventions-compliant; SSOT consistency end-to-end, drizzle-generated migrations, ROLE_PRIORITY preserves ordering, topology goldens byte-identical, deactivate-not-delete + idempotent chat-room continuity confirmed by reading. One **Important** (filed): `activateLiveChannel` writes encoder-chosen `srsStreamName` against a unique index — a collision throws and is silently swallowed → backlog `srs-stream-name-unique-index-collision` (carry to epic prod-verification). Nits (not filed): stale `streamSessionId` on deactivate; dedup not concurrency-safe (eventual-consistency). All 4 children done. release_binding null (epic_cohesion:total). Parent epic stays implementing (drafting siblings).

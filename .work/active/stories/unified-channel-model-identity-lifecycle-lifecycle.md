@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-identity-lifecycle-lifecycle
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: [unified-channel-model-identity-lifecycle-expand]
@@ -116,3 +116,6 @@ and dedupe of duplicate rows. Integration env (PostgreSQL) was not available in 
   `createChannelRoom` → `ensureChannelRoom` throughout; updated unpublish test description
 - `apps/api/tests/integration/streaming/channel-lifecycle.test.ts` — new; integration tests
   for publish→unpublish→publish reuse, idempotency, and dedup
+
+## Review (2026-06-14)
+**Verdict**: Approve — fast-lane: green unit verification (channels/srs/playout/streaming suites + api typecheck). Residual: publish→unpublish→publish integration test written, needs live DB (sandbox can't run). srsStreamName unique-index collision concern filed as backlog srs-stream-name-unique-index-collision (from feature deep-review).

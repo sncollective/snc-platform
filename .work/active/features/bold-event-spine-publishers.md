@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-lifecycle-transitions-playout-queue]
@@ -311,3 +311,6 @@ All 4 child stories at review; feature advanced to `review`. Implemented as a se
 - `-content-events` (commit `654d4db`) — `content.processing-status-changed` from the `updateContentProcessing` chokepoint (status-only); `SubscriberContext.creatorIds` + connect-time scopeFilter (admin-or-member).
 - `-wire-proofs` (commit `e85d69f`) — real-bus route composition test (green); dev-wire proofs through Caddy/SRS are documented residuals (stack not runnable in sandbox), smoke script extended.
 Verification: @snc/shared green; @snc/api typecheck CLEAN; event-bus/sse/playout suites green.
+
+## Deep review (2026-06-14)
+**Verdict: Approve** (fresh-context deep review). No blockers, no important. Registry exhaustiveness empirically confirmed compile-checked; fire-and-forget `eventBus.publish` structurally cannot throw into callers (doubly guarded); emission-asymmetry resolved by passing in-hand channelId (no reflexive re-query); content scopeFilter matrix correct + creatorIds resolved once at connect (anon skips, DB-fail non-fatal); status-only publish; engine-restarted suppressed when no restart occurred; webhook resolves broadcast by ownership/role post-enum-drop. Residuals (Liquidsoap spike + Caddy/SRS dev-wire proofs) correctly built + honestly documented; in-process real-bus route test green. Nits (not filed): dead `if(count>0)` guard in enqueueBatch; notify_switch index-coupling fragility (comment when spike validates). All 4 children done. release_binding null. Parent epic stays implementing (drafting siblings).

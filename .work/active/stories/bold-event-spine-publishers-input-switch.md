@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-input-switch
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 release_binding: null
 depends_on: []
@@ -64,3 +64,6 @@ commit cafcb45 were verified — SSE publish seams in `channels.ts` are intact.
 - [x] `getAiringSource()` reflects the last webhook call; `"unknown"` before any — 5 tests green.
 
 **Emission-asymmetry note (not applicable for this unit):** N/A — this unit publishes synchronously from the webhook handler, no transitions module involved.
+
+## Review (2026-06-14)
+**Verdict**: Approve — fast-lane: green unit verification. Residual: Liquidsoap transitions spike needs the dev streaming stack (documented; backlog dev-bootstrap-playout-content-and-s3-gap).

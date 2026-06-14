@@ -1,7 +1,7 @@
 ---
 id: bold-event-spine-publishers-queue-events
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 release_binding: null
 depends_on: [bold-event-spine-publishers-input-switch]
@@ -63,3 +63,6 @@ returns count (publish only when count > 0). `enqueue` publishes only when INSER
 - sse.routes.test.ts: all existing tests ✓ (typecheck fix only, no test changes)
 - Full API suite: 1588 passed; 14 fails all in `local-storage.test.ts` (pre-existing sandbox
   restriction on `/tmp` — unrelated to this unit)
+
+## Review (2026-06-14)
+**Verdict**: Approve — fast-lane: green unit verification (spy-bus publishes; exhaustive registry compile-check holds; emission-asymmetry resolved at call sites).

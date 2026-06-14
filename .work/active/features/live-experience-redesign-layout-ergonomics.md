@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics
 kind: feature
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -455,3 +455,6 @@ opacity, fullscreen button presence) rides the platform fix-verify loopback at r
 
 Verification by the orchestrator after each wave: web unit suite 1678/1678 across 154
 files, `@snc/web` build clean.
+
+## Deep review (2026-06-14)
+**Verdict: Approve** (inline deep review; degraded — no fresh-context reviewer, but every change was user fix-verified in-app via the screenshot loop this session). Mobile stream-first tab restructure (chat fills the tab region, player fully visible), mini-player touch targets opposite-corner, desktop control polish. Children all done; the control-bar overflow discovered during fix-verify was split to its own story `live-player-control-bar-overflow` (now also done, research-grounded). @snc/web 1737 green. release_binding null. Parent epic stays implementing (drafting siblings live-state/notify-me).
