@@ -1,7 +1,7 @@
 ---
 id: live-player-control-bar-overflow
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 parent: null
 depends_on: []
@@ -169,3 +169,9 @@ Resolution (settles a small architecture stance — see `.research/analysis/posi
 
 Verified: @snc/web typecheck clean, global-player 42/42. Visual fit pending user fix-verify on
 the mini (the /live cases already passed).
+
+## Fix-verify (2026-06-14 — user confirmed in-app)
+User confirmed the docked mini is now a clean video preview — no clipped LIVE/fullscreen bar,
+no Vidstack/app-button collision, expand/close sensibly sized. /live (mobile small + desktop
+large) confirmed at attempt 2. All acceptance met (the mini AC is satisfied by the bare-preview
+approach rather than fitting the bar). Closed review -> done.
