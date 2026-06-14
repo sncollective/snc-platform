@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-player-chrome
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -150,3 +150,11 @@ feel cannot be verified in jsdom.
 loopback.** This agent cannot run the browser at 375px. The user must confirm that tapping
 expand (top-left circle) and close (top-right circle) are now cleanly separated and
 unambiguous.
+
+## Fix-verify (2026-06-14 — user confirmed in-app, shot2)
+Mini-player expand (↗) and close (✕) confirmed in OPPOSITE corners (top-left / top-right),
+hit areas well clear of each other and the player tap-zone — the bounce fault is resolved.
+The mini-player's BOTTOM control bar (LIVE + fullscreen) clipping is a SEPARATE issue: the
+shared `<MediaPlayer>` control bar overflows the 16:9 frame (cut by overflow:hidden in the
+200px overlay; merely overflows-but-visible on /live). Not caused by this touch-target
+change. Split to standalone story `live-player-control-bar-overflow`. Closed review -> done.

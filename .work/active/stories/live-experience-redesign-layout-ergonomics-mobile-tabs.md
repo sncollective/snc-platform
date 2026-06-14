@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-mobile-tabs
 kind: story
-stage: implementing
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -152,3 +152,12 @@ restructure — but it's what the user sees as "player not fully viewable," so i
 until split out. NEED a 375px /live screenshot to confirm whether the player region is also
 being squeezed by the grid (mobile-tabs' own concern) vs purely the control-bar fit.
 Back to implementing.
+
+## Resolution (2026-06-14 — re-closed; residual split to a new story)
+The earlier re-bounce conflated two things. Clarified with the user: on /live the player
+controls are NOT cut — they OVERFLOW the 16:9 box but stay visible. The cut only happens in
+the 200px mini-player (overflow:hidden). That overflow is the shared `<MediaPlayer>` control
+bar not fitting its 16:9 frame — a player-component bug, NOT this story's grid work
+(chat-fill + player placement, both verified in shot.png/shot3). Split to a new standalone
+story `live-player-control-bar-overflow`. This story's deliverable stands verified; re-closed
+implementing -> done.
