@@ -12,12 +12,16 @@ related:
   - to: garage-object-storage.md
     type: cites
     note: Garage serves VOD content Vidstack loads
+  - to: ../campaigns/vidstack-layout-behavior/parent.md
+    type: grounds
+    note: full-rigor campaign on Vidstack v1.12.13 layout/control-positioning behavior; grounds the §Chrome strategy stance (DefaultVideoLayout for full players, bare for constrained surfaces)
 revisit_if:
   - Video.js v10 reaches GA (expected mid-2026). Its Technical Steering Committee governance and Apache 2.0 license are a stronger fit for cooperative values than Vidstack's single-maintainer-at-Mux model. At that point, evaluate migration cost against governance gain.
   - Vidstack development stalls or Rahim Alwer leaves Mux / the project without succession. Medium long-term abandonment risk was accepted at selection; if it materializes, migration to Video.js v10 or a fork accelerates.
   - Mux pivots the library in a user-hostile direction (paywalled features, deprecation announcements, aggressive upsell). MIT license protects fork rights but the community would need to pick up maintenance.
   - A fully community-governed media player library emerges under a nonprofit foundation. None exists today — the entire landscape is Mux-connected — but if one appears with comparable React 19 + HLS + accessibility support, it earns an evaluation.
   - React integration patterns shift significantly (React server-first, streaming SSR defaults, or a post-React rendering model) and Vidstack's native-hook approach stops being the cleanest fit.
+  - Control-chrome friction recurs on the FULL-size players (not just constrained surfaces) — repeated fights with DefaultVideoLayout's layout/positioning at full size are the trigger to seriously evaluate going fully headless (custom controls from Vidstack's headless primitives) across media surfaces. Two incidents (the control-bar bleed + the mini double-chrome, the latter solved by bare-not-custom) did NOT meet that bar; see §Chrome strategy.
 ---
 
 # Position: Vidstack as the media player library, with Video.js v10 as the migration watch target
@@ -114,3 +118,28 @@ staying on the old, heavy, wrapper-based path until v10 GA anyway.
 - Accessible playback controls (WCAG 2.2 Level AA baseline).
 - GlobalPlayer anchors to the content column on desktop (not the sidebar) — a corollary of the
   context shell navigation pattern (`positions/tv-model-playout-architecture.md`).
+
+## Chrome strategy: `DefaultVideoLayout` for full players, bare for constrained surfaces
+
+A refinement of *how* we use Vidstack (not whether), settled 2026-06-14 after two
+control-chrome friction incidents on the streaming surfaces. Grounded in the
+`vidstack-layout-behavior` research campaign (installed-source + docs, full-rigor verified).
+
+- **Full-size players** (`/live`, future video-detail) use Vidstack's pre-built
+  `DefaultVideoLayout`. It earns its keep — polished controls, a11y, menus, keyboard, i18n for
+  free — and the layout behaves well at full size; the only friction (its bottom controls group
+  bleeds below the box via a negative margin, clipped by a rounded `overflow:hidden` wrapper) is
+  a one-line CSS neutralization, now documented in the `vidstack-v1` skill.
+- **Constrained / custom surfaces** (the ~200px docked mini-player; any tight chip) render the
+  player **bare** — `MediaProvider` only, Vidstack's control overlay hidden — with the app's own
+  minimal controls (expand / close). Rationale: the full control stack does not fit a 112px-tall
+  preview and *collides* with the app's overlay buttons; a tap-to-expand preview is the right
+  shape and is cleaner than cramming or re-styling Vidstack chrome into it.
+
+**Rejected (for now): go fully headless everywhere** (build custom controls from Vidstack's
+headless primitives across all surfaces). It would end layout-fighting entirely, but it trades
+occasional one-line layout fixes for a standing obligation to reimplement and maintain the full
+control suite (volume, scrubber, captions/quality menus, live-edge, fullscreen, PiP) with its
+a11y across every media surface. Two friction points — one of which (the mini) is better solved
+by *no* chrome than by *custom* chrome — do not justify that. Held as a watch-item, not a
+decision (see revisit_if).

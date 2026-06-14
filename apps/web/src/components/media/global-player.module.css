@@ -50,27 +50,35 @@
   }
 }
 
-/* ── Control-bar fit in clipped wrappers ──
-   Vidstack's DefaultVideoLayout bleeds its bottom controls group below the player's box via a
-   negative margin (small layout: last-child margin-bottom:-6px/margin-top:-2.5px; large layout:
-   nth-last-child(2) margin-bottom:-16px). Because .expanded / .collapsedOverlay clip to rounded
-   corners with overflow:hidden, that protruding LIVE/fullscreen bar gets cut off. Neutralize the
-   bleed within these wrappers so the bar overlays WITHIN the frame — exactly what Vidstack itself
-   does in fullscreen small layout. The small-layout rules are :where()-wrapped (zero specificity),
-   so these scoped overrides win without !important. We zero BOTH small-layout bottom groups
-   because the live config passes slots={{timeSlider:null}}, which can shift which group is
-   bottom-most. Grounded in research vidstack-layout-behavior (parent.md §5); .vds-* are internal
-   classes — revisit on Vidstack upgrade. */
+/* ── Full player (.expanded): keep Vidstack's DefaultVideoLayout, fix its control-bar bleed ──
+   Vidstack bleeds its bottom controls group below the player box via a negative margin (small
+   layout: last-child margin-bottom:-6px/margin-top:-2.5px; large layout: nth-last-child(2)
+   margin-bottom:-16px). The .expanded wrapper clips to rounded corners (overflow:hidden), so that
+   protruding LIVE/fullscreen bar gets cut off. Neutralize the bleed so the bar overlays WITHIN the
+   frame — exactly what Vidstack itself does in fullscreen small layout. The small-layout rules are
+   :where()-wrapped (zero specificity), so these scoped overrides win without !important. Both
+   small-layout bottom groups are zeroed because the live config passes slots={{timeSlider:null}},
+   which can shift which group is bottom-most. Grounded in research vidstack-layout-behavior
+   (parent.md §5); .vds-* are internal classes — revisit on Vidstack upgrade. */
 .expanded :global(.vds-video-layout[data-sm] .vds-controls-group:last-child),
-.expanded :global(.vds-video-layout[data-sm] .vds-controls-group:nth-last-child(2)),
-.collapsedOverlay :global(.vds-video-layout[data-sm] .vds-controls-group:last-child),
-.collapsedOverlay :global(.vds-video-layout[data-sm] .vds-controls-group:nth-last-child(2)) {
+.expanded :global(.vds-video-layout[data-sm] .vds-controls-group:nth-last-child(2)) {
   margin-top: 0;
   margin-bottom: 0;
 }
 
 .expanded :global(.vds-video-layout:not([data-sm]) .vds-controls-group:nth-last-child(2)) {
   margin-bottom: 0;
+}
+
+/* ── Mini overlay (.collapsedOverlay): bare video preview, no Vidstack chrome ──
+   The 200×112 docked mini is too small to hold DefaultVideoLayout's control stack, and its
+   controls collided with the app's own expand/close overlay buttons. The mini is a tap-to-expand
+   preview — its controls are the app buttons below, not Vidstack's. Hide Vidstack's control overlay
+   entirely here; tap-to-expand restores the full DefaultVideoLayout in .expanded. (Stance:
+   DefaultVideoLayout for full players, bare for constrained surfaces — .research/analysis/positions/
+   vidstack-media-player.md §Chrome strategy.) */
+.collapsedOverlay :global(.vds-controls) {
+  display: none;
 }
 
 /* ── Hidden ── */
@@ -139,6 +147,17 @@
 .closeButton:hover {
   background: var(--color-overlay-dark);
   background-clip: content-box;
+}
+
+/* Mini overlay: the app buttons are now the mini's only controls (Vidstack chrome hidden above).
+   Size them down for a 200px preview — a clean 32px circle (padding 0 so the dark circle fills the
+   button predictably, not the base rule's 44px hit / background-clip:content-box treatment that
+   read oversized on the mini). 32px still clears the WCAG 2.5.8 (AA) 24px target minimum. */
+.collapsedOverlay .expandButton,
+.collapsedOverlay .closeButton {
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 /* No actions in expanded mode */

@@ -150,3 +150,22 @@ because the live config (`slots={{timeSlider:null}}`) can shift which group is b
 plus the large-layout `:nth-last-child(2)` for desktop. No wrapper-aspect / player-fill changes
 (that was the attempt-1 regression). Verified: @snc/web typecheck clean, global-player 42/42.
 Visual fit is the user fix-verify: 375px /live (small), desktop /live (large), docked mini.
+
+## Attempt 3 — mini resolved differently (2026-06-14, awaiting fix-verify)
+Attempt 2 fixed BOTH /live cases (user-confirmed) but the mini still clipped — because the
+200×112 mini is too short for the small-layout control stack (overflows the box regardless of
+the now-zeroed bleed margin), AND the user surfaced that Vidstack's chrome COLLIDES with the
+app's own expand/close overlay buttons (doubled controls). So the mini isn't a "fit the bar"
+problem — it shouldn't carry Vidstack chrome at all.
+
+Resolution (settles a small architecture stance — see `.research/analysis/positions/vidstack-media-player.md`
+§Chrome strategy): DefaultVideoLayout for full players, **bare** for constrained surfaces.
+- `.expanded` keeps DefaultVideoLayout + the attempt-2 bleed-neutralization (the /live fix).
+- `.collapsedOverlay` (mini) hides Vidstack's control overlay entirely (`.vds-controls
+  {display:none}`) → clean video preview; controls are the app's expand/close (tap-to-expand
+  restores full chrome). Resolves the clip AND the chrome collision.
+- App mini buttons resized 44px→32px (still ≥ WCAG 2.5.8 AA 24px) — the base 44px-hit /
+  background-clip treatment read oversized on a 200px preview.
+
+Verified: @snc/web typecheck clean, global-player 42/42. Visual fit pending user fix-verify on
+the mini (the /live cases already passed).
