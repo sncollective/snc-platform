@@ -1,7 +1,7 @@
 ---
 id: live-player-control-bar-overflow
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 parent: null
 depends_on: []
@@ -141,3 +141,12 @@ specificity), so a scoped override wins without `\!important`:
 ```
 (Targets `.vds-*` internal classes — carries a version-revisit. Verify via screenshot loop at
 375px /live (small), desktop /live (large), and the docked mini-player.)
+
+## Attempt 2 (2026-06-14 — grounded; awaiting fix-verify)
+Applied the research-grounded recipe to `global-player.module.css`: neutralize the bottom
+controls-group negative margin within `.expanded` + `.collapsedOverlay`. Hardened vs the
+attempt-1 guess — zeroes BOTH small-layout bottom groups (`:last-child` + `:nth-last-child(2)`)
+because the live config (`slots={{timeSlider:null}}`) can shift which group is bottom-most,
+plus the large-layout `:nth-last-child(2)` for desktop. No wrapper-aspect / player-fill changes
+(that was the attempt-1 regression). Verified: @snc/web typecheck clean, global-player 42/42.
+Visual fit is the user fix-verify: 375px /live (small), desktop /live (large), docked mini.

@@ -50,6 +50,29 @@
   }
 }
 
+/* ── Control-bar fit in clipped wrappers ──
+   Vidstack's DefaultVideoLayout bleeds its bottom controls group below the player's box via a
+   negative margin (small layout: last-child margin-bottom:-6px/margin-top:-2.5px; large layout:
+   nth-last-child(2) margin-bottom:-16px). Because .expanded / .collapsedOverlay clip to rounded
+   corners with overflow:hidden, that protruding LIVE/fullscreen bar gets cut off. Neutralize the
+   bleed within these wrappers so the bar overlays WITHIN the frame — exactly what Vidstack itself
+   does in fullscreen small layout. The small-layout rules are :where()-wrapped (zero specificity),
+   so these scoped overrides win without !important. We zero BOTH small-layout bottom groups
+   because the live config passes slots={{timeSlider:null}}, which can shift which group is
+   bottom-most. Grounded in research vidstack-layout-behavior (parent.md §5); .vds-* are internal
+   classes — revisit on Vidstack upgrade. */
+.expanded :global(.vds-video-layout[data-sm] .vds-controls-group:last-child),
+.expanded :global(.vds-video-layout[data-sm] .vds-controls-group:nth-last-child(2)),
+.collapsedOverlay :global(.vds-video-layout[data-sm] .vds-controls-group:last-child),
+.collapsedOverlay :global(.vds-video-layout[data-sm] .vds-controls-group:nth-last-child(2)) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.expanded :global(.vds-video-layout:not([data-sm]) .vds-controls-group:nth-last-child(2)) {
+  margin-bottom: 0;
+}
+
 /* ── Hidden ── */
 
 .hidden {
