@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-layout-ergonomics-mobile-tabs
 kind: story
-stage: done
+stage: implementing
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -135,3 +135,20 @@ unviewable); (2) chat renders inside the Chat tab region and fills down to the b
 bar — NOT stacked below the footer, no scroll trap. The chat-open layout
 (`.liveGridMobileChat` footer-hide + player flex-shrink:0) holds at 375–767px. Closed
 review -> done.
+
+## Re-bounce (2026-06-14 — premature close corrected)
+Closed review->done off a 767px screenshot where the player looked fully visible. At true
+mobile width the user reports the player's BOTTOM CONTROL BAR (red LIVE badge + fullscreen
+button) hangs off the bottom — i.e. "player partially unviewable" is NOT fully resolved.
+Confirmed visually on the docked mini-player too (shot2): same LIVE+fullscreen row clipped.
+
+Root-cause note for the next pass: `/live` (expanded) and the mini-player (collapsed) are
+the SAME single persistent `<MediaPlayer>` (components/media/global-player.tsx), always
+`aspectRatio:"16/9"`. The bottom-control clip appears in BOTH presentations → it's the
+Vidstack DefaultVideoLayout control bar overflowing the 16:9 frame at narrow/mini sizes,
+clipped by `overflow:hidden` on `.playerContainer` (live) / `.collapsedOverlay`
+(global-player). This is a player-component fitting bug, largely independent of the tab
+restructure — but it's what the user sees as "player not fully viewable," so it lands here
+until split out. NEED a 375px /live screenshot to confirm whether the player region is also
+being squeezed by the grid (mobile-tabs' own concern) vs purely the control-bar fit.
+Back to implementing.
