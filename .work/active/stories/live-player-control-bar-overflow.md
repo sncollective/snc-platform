@@ -1,7 +1,7 @@
 ---
 id: live-player-control-bar-overflow
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 parent: null
 depends_on: []
@@ -65,3 +65,20 @@ stream is viewable in dev.
 Fix-verify loopback applies (visual). Verify via the screenshot loop established this session
 (scp PNG to a readable path → orchestrator Reads it). Dev streaming bootstrap to get S/NC TV
 airing is tracked separately in `dev-bootstrap-playout-content-and-s3-gap`.
+
+## Implementation (2026-06-14)
+Root cause: Vidstack base.css `[data-view-type=video][data-started]:not([data-controls]) {
+aspect-ratio: inherit }` overrides an app `.class media-player` aspect rule (higher
+specificity), so once a live video plays with controls hidden the player drops its 16:9 box
+and the control bar (LIVE + fullscreen) falls below the video — visible-overflow on /live,
+clipped by overflow:hidden in the 200px mini.
+
+Fix (`apps/web/src/components/media/global-player.module.css`): move the 16:9 box onto the
+WRAPPERS and fill the inner player 100%, so Vidstack's conditional aspect rule can't resize
+the player:
+- `.expanded` gains `aspect-ratio: 16/9`; `.expanded media-player` → `width/height: 100%`
+  (was `aspect-ratio: 16/9`).
+- new `.collapsedOverlay :global(media-player) { width:100%; height:100% }`.
+
+Verification: @snc/web typecheck clean; global-player tests 42/42. Visual fit (controls
+inside the frame on mobile /live + desktop /live + docked mini) is the user fix-verify.
