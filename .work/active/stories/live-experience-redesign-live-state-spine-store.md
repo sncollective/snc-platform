@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state-spine-store
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -48,3 +48,18 @@ assert snapshots + `onTopic` firing. No new dependency; rides the `tests/setup.t
       closed, stops.
 - [ ] No SSR open attempt (EventSource is client-only; provider effect is client-side).
 - [ ] web unit suite green at baseline; tsc clean.
+
+## Implementation (2026-06-15)
+- `spine-store.ts`: `createSpineStore(topics, eventSourceCtor=EventSource)` — one
+  EventSource, `subscribe`/`getSnapshot` (useSyncExternalStore contract), `onTopic`
+  dispatch via an EVENT_TOPIC map, `spine.connected` handshake parse, `error`
+  readyState triage (CLOSED→closed, else→connecting), `close()`. No backoff timer.
+- `spine-context.tsx`: `SpineProvider` (one store in a ref, client-only create, close
+  on unmount → StrictMode-correct), `useSpineStatus` (useSyncExternalStore bridge),
+  `useSpineTopic` (onTopic via latest-handler ref; returns `{denied}`).
+- Tests: `FakeEventSource extends EventTarget` (tests/helpers) + 7 spine-context tests
+  (injected ctor): one-connection, handshake grants, denied, topic firing, topic
+  isolation, error triage, unmount-close. Also a no-op `EventSource` stub in
+  tests/setup.ts so un-injected consumers mount in jsdom.
+- Verified: web tsc clean; 7/7 spine tests; live stack `/api/sse?topics=live` → 200
+  text/event-stream with `spine.connected {granted:[live]}`.

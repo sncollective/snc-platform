@@ -1,9 +1,10 @@
 import { createElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
+import { FakeEventSource } from "../../helpers/fake-event-source.js";
 
 // ── Hoisted Mocks ──
 
@@ -467,5 +468,33 @@ describe("LivePage — desktop control icons", () => {
     const showButton = screen.getByRole("button", { name: "Show chat" });
     expect(showButton.querySelector("svg")).toBeTruthy();
     expect(showButton.textContent).not.toContain("←"); // ←
+  });
+
+  it("re-fetches the channel list when a live spine event arrives", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    FakeEventSource.reset();
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    // Seeded from SSR, so no immediate poll — refetch count starts clean.
+    mockApiGet.mockClear();
+
+    render(<LivePage />);
+
+    const source = FakeEventSource.instances.at(-1);
+    expect(source).toBeDefined();
+
+    // Connect (re-sync on open) + a live-state change both trigger a re-fetch.
+    act(() => source!.emitConnected(["live"]));
+    act(() =>
+      source!.emitEvent("channel.live-state-changed", {
+        channelId: "channel-1",
+        live: true,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockApiGet).toHaveBeenCalledWith("/api/streaming/status");
+    });
+
+    vi.unstubAllGlobals();
   });
 });

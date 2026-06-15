@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state-live-wiring
 kind: story
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: [live-experience-redesign-live-state-spine-store]
@@ -43,3 +43,16 @@ channel-list re-fetch happened and the badge/state updated.
 - [ ] Takeover transition flips the indicator without a page reload (verifiable on the live
       stack: drive a Liquidsoap input-switch / SRS publish and watch /live).
 - [ ] web unit suite green at baseline; tsc clean.
+
+## Implementation (2026-06-15)
+- `usePolling` extended with a stable `refetch()` (out-of-cycle fetch via a triggerRef;
+  existing callers unaffected — additive return field).
+- `live.tsx`: `LivePage` now wraps `<SpineProvider topics={["live"]}>` (route-scoped, not
+  __root — only the live page opens a connection); `LivePageInner` calls
+  `useSpineTopic("live", refetch)` (re-fetch on live-state change) + re-fetches on the
+  `status === "open"` (re)connect transition. 15s poll kept as degraded fallback.
+- Test: live.test.tsx re-sync test (stub global with FakeEventSource, fire a live event,
+  assert `/api/streaming/status` refetch). The pre-existing 24 live tests pass via the
+  setup.ts EventSource stub.
+- Verified: web 1745/1745 (= baseline +8), tsc clean; live stack `/live` 200 with
+  SpineProvider mounted, spine handshake confirmed.

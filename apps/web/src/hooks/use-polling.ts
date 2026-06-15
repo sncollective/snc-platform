@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // ── Public Types ──
 
@@ -6,6 +6,12 @@ import { useEffect, useRef, useState } from "react";
 export interface PollingState<T> {
   readonly data: T | null;
   readonly isLoading: boolean;
+  /**
+   * Trigger an immediate out-of-cycle fetch (e.g. a push/cache-invalidation signal).
+   * Updates `data` like an interval tick; does not disturb the interval. No-op before
+   * the first effect run.
+   */
+  readonly refetch: () => void;
 }
 
 /** Options controlling {@link usePolling} lifecycle. */
@@ -51,7 +57,7 @@ export function usePolling<T>(
 ): PollingState<T> {
   const { initial = null, key, immediate = initial === null } = options;
 
-  const [state, setState] = useState<PollingState<T>>({
+  const [state, setState] = useState<Omit<PollingState<T>, "refetch">>({
     data: initial,
     isLoading: initial === null,
   });
@@ -61,13 +67,17 @@ export function usePolling<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  // Points at the live effect's out-of-cycle fetch; populated per effect run.
+  const triggerRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     let mounted = true;
     let timeoutId: ReturnType<typeof setTimeout>;
 
     setState({ data: initial, isLoading: initial === null });
 
-    const poll = async (): Promise<void> => {
+    // A bare fetch (no rescheduling) — used by the interval loop AND refetch.
+    const fetchOnce = async (): Promise<void> => {
       try {
         const next = await fetcherRef.current();
         if (mounted) setState({ data: next, isLoading: false });
@@ -75,10 +85,16 @@ export function usePolling<T>(
         // Transient failure — keep the last known value, just clear loading.
         if (mounted) setState((prev) => ({ ...prev, isLoading: false }));
       }
+    };
+
+    const poll = async (): Promise<void> => {
+      await fetchOnce();
       if (mounted) {
         timeoutId = setTimeout(() => void poll(), intervalMs);
       }
     };
+
+    triggerRef.current = () => void fetchOnce();
 
     if (immediate) {
       void poll();
@@ -88,11 +104,17 @@ export function usePolling<T>(
 
     return () => {
       mounted = false;
+      triggerRef.current = null;
       clearTimeout(timeoutId);
     };
     // `initial` is a stable seed; re-subscription is driven by `key` + interval.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, intervalMs, immediate]);
 
-  return state;
+  // Stable identity; forwards to the current effect's fetch (no-op pre-mount).
+  const refetch = useCallback(() => {
+    triggerRef.current?.();
+  }, []);
+
+  return { ...state, refetch };
 }

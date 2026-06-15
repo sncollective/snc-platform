@@ -15,6 +15,11 @@ import { fetchApiServer } from "../lib/api-server.js";
 import { apiGet } from "../lib/fetch-utils.js";
 import { usePolling } from "../hooks/use-polling.js";
 import type { PollingState } from "../hooks/use-polling.js";
+import {
+  SpineProvider,
+  useSpineStatus,
+  useSpineTopic,
+} from "../contexts/spine-context.js";
 import { ChatProvider } from "../contexts/chat-context.js";
 import { useSession } from "../lib/auth.js";
 
@@ -112,14 +117,39 @@ function useChannelList(
 
 // ── Components ──
 
-/** Main live stream page. */
+/**
+ * Live page wrapped in a spine connection on the public `live` topic. The
+ * SpineProvider is scoped to this route (not __root) so only the live page opens
+ * an EventSource — respecting the server maxConnections cap for users elsewhere.
+ */
 function LivePage(): React.ReactElement {
+  return (
+    <SpineProvider topics={LIVE_TOPICS}>
+      <LivePageInner />
+    </SpineProvider>
+  );
+}
+
+const LIVE_TOPICS = ["live"] as const;
+
+/** Main live stream page. */
+function LivePageInner(): React.ReactElement {
   const { initial } = Route.useLoaderData();
   const { channel: channelFromUrl } = Route.useSearch();
-  const { data: channelList, isLoading } = useChannelList(initial);
+  const { data: channelList, isLoading, refetch } = useChannelList(initial);
   const { actions, chatPortalRef } = useGlobalPlayer();
   const session = useSession();
   const currentUserId = session.data?.user?.id ?? null;
+
+  // Push/cache-invalidation: on any live-state change, re-fetch the authoritative
+  // channel list (the derived liveState + fresh viewerCount ride that response). The
+  // 15s usePolling interval stays as the degraded fallback when SSE is down.
+  useSpineTopic("live", refetch);
+  // Re-sync on (re)connect — a reconnect may have missed events (no Last-Event-ID).
+  const spineStatus = useSpineStatus().status;
+  useEffect(() => {
+    if (spineStatus === "open") refetch();
+  }, [spineStatus, refetch]);
 
   const channels = channelList?.channels ?? [];
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
