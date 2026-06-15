@@ -17,6 +17,7 @@ import type {
 
 import { users } from "./user.schema.js";
 import { creatorProfiles } from "./creator.schema.js";
+import { channels } from "./streaming.schema.js";
 
 // ── Creator Follows ──
 
@@ -35,6 +36,30 @@ export const creatorFollows = pgTable(
   (table) => [
     primaryKey({ columns: [table.userId, table.creatorId] }),
     index("creator_follows_creator_idx").on(table.creatorId),
+  ],
+);
+
+// ── Channel Notify Subscriptions ──
+
+/**
+ * Users subscribed to a channel's go-live (the notify-me-when-live loop). Per-channel
+ * (works for the ownerless broadcast channel AND creator channels), distinct from the
+ * per-creator `creatorFollows`. Dispatched off the channel.live-state-changed transition.
+ */
+export const channelNotifySubscriptions = pgTable(
+  "channel_notify_subscriptions",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => channels.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.channelId] }),
+    index("channel_notify_subs_channel_idx").on(table.channelId),
   ],
 );
 

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { NOTIFICATION_EVENT_TYPES, NOTIFICATION_CHANNELS } from "@snc/shared";
+
 import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser } from "../helpers/auth-fixtures.js";
 
@@ -59,8 +61,11 @@ describe("GET /api/me/notifications", () => {
     const body = await res.json();
     expect(body.preferences).toBeDefined();
     expect(Array.isArray(body.preferences)).toBe(true);
-    // 2 event types × 1 channel = 2 preferences
-    expect(body.preferences).toHaveLength(2);
+    // Full matrix: every event type × every channel (derive so this survives
+    // adding a new event type, e.g. channel_go_live).
+    expect(body.preferences).toHaveLength(
+      NOTIFICATION_EVENT_TYPES.length * NOTIFICATION_CHANNELS.length,
+    );
     // All should default to enabled: true
     for (const pref of body.preferences) {
       expect(pref.enabled).toBe(true);

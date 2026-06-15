@@ -3,7 +3,11 @@ import { z } from "zod";
 // ── Public Constants ──
 
 /** Events that can trigger notifications. */
-export const NOTIFICATION_EVENT_TYPES = ["go_live", "new_content"] as const;
+export const NOTIFICATION_EVENT_TYPES = [
+  "go_live",
+  "new_content",
+  "channel_go_live",
+] as const;
 
 /** Delivery channels for notifications. */
 export const NOTIFICATION_CHANNELS = ["email"] as const;

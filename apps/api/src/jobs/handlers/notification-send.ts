@@ -7,6 +7,7 @@ import { db } from "../../db/connection.js";
 import { notificationJobs } from "../../db/schema/notification.schema.js";
 import { sendEmail, isEmailConfigured } from "../../email/send.js";
 import { formatGoLiveEmail } from "../../email/templates/go-live.js";
+import { formatChannelGoLiveEmail } from "../../email/templates/channel-go-live.js";
 import { formatNewContentEmail } from "../../email/templates/new-content.js";
 import { rootLogger } from "../../logging/logger.js";
 
@@ -38,6 +39,11 @@ const formatEmail = (
         creatorName: payload.creatorName as string,
         contentTitle: payload.contentTitle as string,
         contentUrl: payload.contentUrl as string,
+      });
+    case "channel_go_live":
+      return formatChannelGoLiveEmail({
+        channelName: payload.channelName as string,
+        liveUrl: payload.liveUrl as string,
       });
   }
 };
