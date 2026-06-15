@@ -34,7 +34,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: IS_CI,
   retries: IS_CI ? 2 : 0,
-  workers: IS_CI ? 2 : undefined,
+  // Pin workers in CI; omit the key locally so Playwright applies its own
+  // default (set explicitly to `undefined` it trips exactOptionalPropertyTypes).
+  ...(IS_CI ? { workers: 2 } : {}),
   reporter: IS_CI
     ? [["html", { open: "never" }], ["github"]]
     : [["html", { open: "on-failure" }]],
