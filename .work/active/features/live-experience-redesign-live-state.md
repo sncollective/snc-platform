@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-event-spine-publishers, live-state-sse-client-pattern]

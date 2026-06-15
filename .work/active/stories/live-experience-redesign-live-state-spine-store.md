@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state-spine-store
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: []
@@ -63,3 +63,7 @@ assert snapshots + `onTopic` firing. No new dependency; rides the `tests/setup.t
   tests/setup.ts so un-injected consumers mount in jsdom.
 - Verified: web tsc clean; 7/7 spine tests; live stack `/api/sse?topics=live` → 200
   text/event-stream with `spine.connected {granted:[live]}`.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve — story verified by implement (tsc clean, tests green, live-stack confirmed); fast-lane advance.

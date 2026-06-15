@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state-live-wiring
 kind: story
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [live-experience-redesign-live-state-spine-store]
@@ -56,3 +56,7 @@ channel-list re-fetch happened and the badge/state updated.
   setup.ts EventSource stub.
 - Verified: web 1745/1745 (= baseline +8), tsc clean; live stack `/live` 200 with
   SpineProvider mounted, spine handshake confirmed.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve — story verified by implement (tsc clean, tests green, live-stack confirmed); fast-lane advance.
