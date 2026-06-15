@@ -19,6 +19,23 @@ export type ChannelOwnership = (typeof CHANNEL_OWNERSHIPS)[number];
 export const CHANNEL_ROLES = ["playout", "broadcast", "live-ingest"] as const;
 export type ChannelRole = (typeof CHANNEL_ROLES)[number];
 
+/**
+ * Derived airing-state for a channel (not stored — computed per channel-list fetch
+ * from SRS session state + Liquidsoap airing telemetry + role; see
+ * live-experience-redesign-live-state).
+ *
+ * - `live-creator` — a creator is on air (keyed-in live-ingest stream, or a creator
+ *   takeover of the S/NC TV broadcast via Liquidsoap that bypasses per-channel SRS).
+ * - `scheduled-playout` — scheduled/queue content is airing (no live creator).
+ * - `offline` — nothing is airing on this channel.
+ */
+export const CHANNEL_LIVE_STATES = [
+  "live-creator",
+  "scheduled-playout",
+  "offline",
+] as const;
+export type ChannelLiveState = (typeof CHANNEL_LIVE_STATES)[number];
+
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -38,6 +55,8 @@ export const ChannelSchema = z.object({
     .nullable(),
   startedAt: z.string().datetime().nullable(),
   nowPlaying: NowPlayingSchema.nullable(),
+  /** Derived airing-state — see CHANNEL_LIVE_STATES. Computed in srs.ts, never stored. */
+  liveState: z.enum(CHANNEL_LIVE_STATES),
 });
 
 export type Channel = z.infer<typeof ChannelSchema>;

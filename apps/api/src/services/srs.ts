@@ -1,5 +1,5 @@
 import { AppError, ok, err } from "@snc/shared";
-import type { Result, NowPlaying } from "@snc/shared";
+import type { Result, NowPlaying, ChannelLiveState, ChannelRole } from "@snc/shared";
 
 import { config } from "../config.js";
 import { wrapExternalError } from "./external-error.js";
@@ -7,12 +7,19 @@ import { getActiveChannels, selectDefaultChannel } from "./channels.js";
 import type { ChannelInfo } from "./channels.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
 import { getNowPlaying as getLiquidsoapNowPlaying } from "./liquidsoap.js";
+import { getAiringSource } from "./playout-live-state.js";
 
 // ── Public Types ──
 
 /** Aggregated channel list with viewer counts and now-playing state for each channel. */
 export type ChannelListResult = {
-  channels: Array<ChannelInfo & { viewerCount: number; nowPlaying: NowPlaying | null }>;
+  channels: Array<
+    ChannelInfo & {
+      viewerCount: number;
+      nowPlaying: NowPlaying | null;
+      liveState: ChannelLiveState;
+    }
+  >;
   defaultChannelId: string | null;
 };
 
@@ -46,6 +53,43 @@ type SrsStreamsResponse = {
     publish: { active: boolean };
     clients: number;
   }>;
+};
+
+// ── Private Helpers ──
+
+/**
+ * Derive a channel's airing-state from the live signals.
+ *
+ * Covers the takeover-bypass case the live-experience-redesign epic flagged: a creator
+ * taking over the S/NC TV broadcast goes through Liquidsoap (`getAiringSource()` → "live"),
+ * not a per-channel SRS publish — so SRS-session alone would miss it.
+ *
+ * @param role - channel role facet
+ * @param hasActiveSrsSession - true when SRS reports an active publish on this channel's stream
+ * @param isAiring - true when scheduled/queue content is currently airing (nowPlaying present)
+ * @returns the derived ChannelLiveState (never "unknown" — that engine state is mapped away)
+ */
+const deriveLiveState = (
+  role: ChannelRole,
+  hasActiveSrsSession: boolean,
+  isAiring: boolean,
+): ChannelLiveState => {
+  if (role === "live-ingest") {
+    return hasActiveSrsSession ? "live-creator" : "offline";
+  }
+
+  if (role === "broadcast") {
+    // The broadcast (S/NC TV) fallback can be airing a live-creator takeover via
+    // Liquidsoap, which bypasses per-channel SRS. getAiringSource() is the only
+    // signal for that. It returns "unknown" until the first switch event after API
+    // boot — treat unknown as the airing-derived state, never surface "unknown".
+    const airing = getAiringSource();
+    if (airing === "live") return "live-creator";
+    return isAiring ? "scheduled-playout" : "offline";
+  }
+
+  // playout role: airing scheduled content → scheduled-playout, else offline.
+  return isAiring ? "scheduled-playout" : "offline";
 };
 
 // ── Public API ──
@@ -108,45 +152,48 @@ export const getChannelList = async (): Promise<
       viewerCount: srsViewerCounts.get(ch.srsStreamName) ?? 0,
     }));
 
-    // Enrich playout and broadcast channels with now-playing metadata
+    // Enrich playout and broadcast channels with now-playing metadata + derived
+    // airing-state. liveState is computed from the same signals: role, an active SRS
+    // session (presence in srsViewerCounts — populated only for publish.active streams),
+    // and whether scheduled content is airing (nowPlaying non-null).
     const enriched = enrichedBase.map((ch) => {
+      const hasActiveSrsSession = srsViewerCounts.has(ch.srsStreamName);
+
+      let nowPlaying: NowPlaying | null = null;
+
       if (ch.role === "playout") {
         const status = queueMap.get(ch.id);
         if (status?.nowPlaying) {
           const np = status.nowPlaying;
-          return {
-            ...ch,
-            nowPlaying: {
-              itemId: np.playoutItemId,
-              title: np.title,
-              year: null,
-              director: null,
-              duration: np.duration,
-              elapsed: -1, // DB doesn't track elapsed; Phase 3 can add Liquidsoap poll
-              remaining: -1,
-            },
-          };
-        }
-        return { ...ch, nowPlaying: null };
-      }
-
-      if (ch.role === "broadcast") {
-        if (!liquidsoapNowPlaying) return { ...ch, nowPlaying: null };
-        return {
-          ...ch,
-          nowPlaying: {
-            itemId: null,
-            title: liquidsoapNowPlaying.title ?? null,
+          nowPlaying = {
+            itemId: np.playoutItemId,
+            title: np.title,
             year: null,
             director: null,
-            duration: null,
-            elapsed: liquidsoapNowPlaying.elapsed,
-            remaining: liquidsoapNowPlaying.remaining,
-          },
+            duration: np.duration,
+            elapsed: -1, // DB doesn't track elapsed; Phase 3 can add Liquidsoap poll
+            remaining: -1,
+          };
+        }
+      } else if (ch.role === "broadcast" && liquidsoapNowPlaying) {
+        nowPlaying = {
+          itemId: null,
+          title: liquidsoapNowPlaying.title ?? null,
+          year: null,
+          director: null,
+          duration: null,
+          elapsed: liquidsoapNowPlaying.elapsed,
+          remaining: liquidsoapNowPlaying.remaining,
         };
       }
 
-      return { ...ch, nowPlaying: null };
+      const liveState = deriveLiveState(
+        ch.role,
+        hasActiveSrsSession,
+        nowPlaying !== null,
+      );
+
+      return { ...ch, nowPlaying, liveState };
     });
 
     return ok({

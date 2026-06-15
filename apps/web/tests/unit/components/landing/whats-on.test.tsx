@@ -26,6 +26,7 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
     creator: null,
     startedAt: null,
     nowPlaying: null,
+    liveState: "offline",
     ...overrides,
   };
 }

@@ -5,7 +5,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/mini";
-import type { Channel, ChannelListResponse } from "@snc/shared";
+import type { Channel, ChannelListResponse, ChannelLiveState } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { useGlobalPlayer } from "../contexts/global-player-context.js";
@@ -154,11 +154,11 @@ function LivePage(): React.ReactElement {
     channels.find((c) => c.id === selectedChannelId) ?? null;
   const hasChannels = channels.length > 0;
   const isStreaming = selectedChannel?.hlsUrl != null;
-  // TODO(live-state): replace identity proxy with derived airing-state.
-  // Interim: a creator-owned live-ingest channel stands in for "is live" until
-  // live-experience-redesign-live-state lands the real on-air derivation.
-  const selectedChannelIsLive =
-    selectedChannel?.ownership === "creator" && selectedChannel?.role === "live-ingest";
+  // Derived airing-state from the channel-list response (live-experience-redesign-
+  // live-state). "live-creator" is a creator on air — a keyed-in live-ingest stream
+  // OR a creator takeover of the S/NC TV broadcast via Liquidsoap, which the old
+  // identity proxy (ownership === "creator" && role === "live-ingest") missed.
+  const selectedChannelIsLive = selectedChannel?.liveState === "live-creator";
 
   // Derive layout signal from prefs
   const liveLayout: LiveLayout = prefs.theater ? "theater" : "default";
@@ -266,7 +266,7 @@ function LivePage(): React.ReactElement {
             {selectedChannel && (
               <StreamStatusBar
                 viewerCount={selectedChannel.viewerCount}
-                isLive={selectedChannelIsLive}
+                liveState={selectedChannel.liveState}
               />
             )}
           </div>
@@ -395,13 +395,20 @@ function ChannelSelector({
     >
       {channels.map((ch) => (
         <option key={ch.id} value={ch.id}>
-          {ch.name} ({ch.viewerCount}{" "}
+          {ch.name} — {LIVE_STATE_LABELS[ch.liveState]} ({ch.viewerCount}{" "}
           {ch.viewerCount === 1 ? "viewer" : "viewers"})
         </option>
       ))}
     </select>
   );
 }
+
+/** Short airing-state labels for the channel selector + status surfaces. */
+const LIVE_STATE_LABELS: Record<ChannelLiveState, string> = {
+  "live-creator": "Live",
+  "scheduled-playout": "Scheduled",
+  offline: "Offline",
+};
 
 /** Creator identity bar: avatar + display name. */
 function StreamCreatorBar({
@@ -427,23 +434,29 @@ function StreamCreatorBar({
   );
 }
 
-/** Live status bar showing viewer count and optional live indicator. */
+/**
+ * Live status bar showing viewer count and an honest airing-state indicator:
+ * a LIVE badge for a creator on air, a "Scheduled" label for scheduled playout.
+ */
 function StreamStatusBar({
   viewerCount,
-  isLive,
+  liveState,
 }: {
   readonly viewerCount: number;
-  readonly isLive: boolean;
+  readonly liveState: ChannelLiveState;
 }): React.ReactElement {
   const viewerLabel = viewerCount === 1 ? "viewer" : "viewers";
 
   return (
     <div className={styles.statusBar}>
-      {isLive && (
+      {liveState === "live-creator" && (
         <div className={styles.liveIndicator}>
           <span className={styles.liveDot} aria-hidden="true" />
           LIVE
         </div>
+      )}
+      {liveState === "scheduled-playout" && (
+        <div className={styles.scheduledIndicator}>Scheduled</div>
       )}
       <span className={styles.viewerCount}>
         {viewerCount} {viewerLabel}

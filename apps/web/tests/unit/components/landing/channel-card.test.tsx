@@ -40,6 +40,7 @@ function makeMockChannel(overrides?: Partial<Channel>): Channel {
       elapsed: 300,
       remaining: 3300,
     },
+    liveState: "scheduled-playout",
     ...overrides,
   };
 }

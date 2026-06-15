@@ -164,6 +164,7 @@ streamingRoutes.get(
         creator: ch.creator,
         startedAt: null, // TODO: populate from session for live channels
         nowPlaying: ch.nowPlaying,
+        liveState: ch.liveState,
       })),
       defaultChannelId,
     });

@@ -105,6 +105,38 @@ Design for the server half is written below; the client half is deferred to a fo
 design pass once the research lands. Feature stays at `stage: drafting` until then —
 NOT advanced to implementing, because its full design isn't settled.
 
+## Server half — IMPLEMENTED (2026-06-15)
+
+Built + verified end-to-end against the live SRS/Liquidsoap stack.
+
+- **Unit 1** — `CHANNEL_LIVE_STATES` enum + `ChannelLiveState` type + `liveState` field on
+  `ChannelSchema` (`packages/shared/src/streaming.ts`).
+- **Unit 2** — `deriveLiveState(role, hasActiveSrsSession, isAiring)` in `srs.ts`, wired into
+  the channel enrichment map. `live-creator` for a keyed-in `live-ingest` stream (presence in
+  `srsViewerCounts`, populated only for `publish.active`) OR a broadcast takeover
+  (`getAiringSource() === "live"`); `scheduled-playout` when airing; `offline` otherwise.
+  The result type (`ChannelListResult`) carries `liveState`.
+- **Boundary fix discovered in verification** — `streaming.routes.ts:/status` re-maps the
+  channel response field-by-field (a hand-maintained boundary), so the new field was silently
+  dropped despite passing the service-layer tsc. Added `liveState: ch.liveState` there. (Note
+  for the codebase: this explicit re-map is a single-source-of-truth seam worth watching — it
+  drops any new channel field by default; see `api-source-of-truth` position.)
+- **Unit 3** — `live.tsx` now derives `selectedChannelIsLive` from `liveState === "live-creator"`
+  (deleted the interim identity proxy + its `TODO(live-state)`). `StreamStatusBar` renders an
+  honest tri-state: LIVE badge for `live-creator`, a muted "Scheduled" for `scheduled-playout`.
+  Channel `<select>` options show the state label via `LIVE_STATE_LABELS`.
+
+**Verification**: shared 675 / api 1610 / web 1737 unit (= baseline); tsc clean (shared/api/web).
+Live stack: `/api/streaming/status` derives correctly (S/NC TV airing → `scheduled-playout`,
+idle playout → `offline`, S/NC Music airing → `scheduled-playout`); `/live` SSR renders the
+state labels + Scheduled indicator. Stale `live.test.tsx` `liveOverrides` fixture updated to
+set `liveState` (was relying on the now-deleted identity proxy).
+
+## Client half — STILL PENDING (design pass on the SSE position)
+Live SSE updates + visible takeover transitions + re-fetch-refreshed viewer count, built on
+`<SpineProvider>` per `.research/analysis/positions/sse-client-pattern.md`. Not yet designed —
+this feature stays at `drafting` until the client half is designed + built.
+
 ## Server-half design (proceeds now; needs no research)
 
 ### Architectural choice

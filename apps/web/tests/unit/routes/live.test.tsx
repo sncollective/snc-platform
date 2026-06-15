@@ -116,17 +116,24 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
     viewerCount: 42,
     creator: null,
     startedAt: null,
+    nowPlaying: null,
+    liveState: "offline" as const,
     ...overrides,
   };
 }
 
 /**
- * A live creator channel. The live page derives "is live" from the identity
- * (ownership=creator + role=live-ingest) until live-state lands the real on-air
- * derivation, so live fixtures set both.
+ * A live creator channel. The live page derives "is live" from the server's
+ * `liveState` field (live-experience-redesign-live-state); a live fixture sets
+ * `liveState: "live-creator"` (plus the matching identity for realism).
  */
 function liveOverrides(extra: Record<string, unknown> = {}) {
-  return { ownership: "creator" as const, role: "live-ingest" as const, ...extra };
+  return {
+    ownership: "creator" as const,
+    role: "live-ingest" as const,
+    liveState: "live-creator" as const,
+    ...extra,
+  };
 }
 
 function makeChannelList(overrides: Record<string, unknown> = {}) {

@@ -31,6 +31,7 @@ function makeMockPlayoutChannel(
     creator: null,
     startedAt: null,
     nowPlaying: null,
+    liveState: "offline",
     ...overrides,
   };
 }

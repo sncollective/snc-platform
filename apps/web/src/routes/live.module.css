@@ -204,6 +204,16 @@
   animation: livePulse 1.5s ease-in-out infinite;
 }
 
+.scheduledIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 @keyframes livePulse {
   0%,
   100% {
