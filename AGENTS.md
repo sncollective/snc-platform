@@ -15,6 +15,26 @@ Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with 
 - `docker compose -f docker-compose.yml -f docker-compose.claude.yml up -d` — start PostgreSQL
 - `bash scripts/dev/start-dev.sh` — full service bootstrap (Caddy, docker stack with `--wait`, Garage init, PM2 dev servers); idempotent, the devcontainer runs it on every start. Environment definition lives in `.devcontainer/devcontainer.json`; `.env` scaffolding via `scripts/dev/ensure-env.sh`. The `docker-compose.claude.yml` overlay is applied automatically when the external `claude-net` network exists, skipped otherwise.
 
+### Running tests from the agent sandbox
+
+A human developer ignores this section — their shell runs in the base namespace where the dev services and `.env` are directly reachable, so plain `bun run --filter @snc/api test:unit` / `test:integration` just works. The Claude Code **agent** sandbox differs on two axes, and integration tests need both bridged (unit tests need neither — fake env, all externals mocked — so the agent runs them directly):
+
+- **Network.** Each agent Bash command runs in its own network namespace whose only listeners are the egress proxies (SOCKS5 `127.0.0.1:1080`, HTTP `:3128`). The dockerized services publish on the base-namespace localhost — a different netns — so `127.0.0.1:5432` is unreachable directly. `scripts/dev/sandbox-forward.py` relays the backing services onto the sandbox's localhost through the SOCKS proxy. Pure userspace TCP: no docker-socket access, no privilege, the socket stays at its default `660`.
+- **Secrets.** The agent's file reads deny `.env*`. The integration suite loads `platform/.env` (`DATABASE_URL` + `BETTER_AUTH_SECRET`) via dotenv, so the sandbox must re-allow *subprocess* reads of that file.
+
+`scripts/dev/sandbox-test-integration.sh` wires both — forwarder up → `bun run --filter @snc/api test:integration` → teardown.
+
+The secrets carve-out lives in `.claude/settings.local.json` (machine-local, gitignored):
+
+```json
+"sandbox": {
+  "filesystem": { "allowRead": ["/home/agent/SNC/platform/.env"] },
+  "network": { "allowLocalBinding": true }
+}
+```
+
+Load-bearing: the read-allow key is the **flat `allowRead`** — a nested `read: { allowWithinDeny: [...] }` is silently ignored (that wrong shape cost a session to diagnose). `allowRead` re-allows subprocess reads only; the agent's own Read tool stays blocked and `.env.production*` / `.env.local` stay denied — so this exposes only the local-dev DB URL + auth secret. `allowLocalBinding: true` is required for the forwarder to bind localhost ports. Rejected alternative: a separate gitignored secret-bridge file the agent reads — the carve-out is cleaner (real `.env` stays the single source, no second copy of the creds to drift).
+
 ## Tech References
 
 Library-specific quick references live under `.claude/skills/<lib>/SKILL.md` — read the body of the relevant one when working with that library. Each carries imports, API quick reference, gotchas, and anti-patterns. Available libraries: `hono-v4`, `drizzle-v0`, `tanstack-router-v1`, `tanstack-table-v8`, `zod-v4`, `ark-ui-v5`, `garage-v2`, `pg-boss-v12`, `imgproxy-v3`, `vidstack-v1`, `uppy-tus-v5`, `tusd-v2`, `liquidsoap-v2`, `srs-v6`, `pino-logging`. The YAML frontmatter is a Claude Code loading hint; non-Claude agents should read the markdown body directly. Treat as the in-repo source of truth for that library before reaching for upstream docs or `reference/`.
