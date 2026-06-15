@@ -11,6 +11,7 @@ import { resolveCreatorUrls } from "../lib/creator-url.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 import { eventBus } from "./event-bus.js";
+import { dispatchChannelGoLive } from "./notify-dispatch.js";
 
 // ── Public Types ──
 
@@ -280,6 +281,7 @@ export const activateLiveChannel = async (opts: {
         "Creator channel missing at publish time — provisioned on-the-fly",
       );
       eventBus.publish({ type: "channel.live-state-changed", channelId, live: true });
+      void dispatchChannelGoLive(channelId);
       return ok({ channelId });
     }
 
@@ -295,6 +297,7 @@ export const activateLiveChannel = async (opts: {
       .where(eq(channels.id, channel.id));
 
     eventBus.publish({ type: "channel.live-state-changed", channelId: channel.id, live: true });
+    void dispatchChannelGoLive(channel.id);
     return ok({ channelId: channel.id });
   } catch (e) {
     rootLogger.error({ err: e }, "Failed to activate live channel");

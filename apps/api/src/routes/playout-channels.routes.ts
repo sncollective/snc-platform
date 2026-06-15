@@ -16,6 +16,7 @@ import { regenerateAndRestart, waitForHealth } from "../services/liquidsoap-conf
 import { eventBus } from "../services/event-bus.js";
 import { setAiringSource } from "../services/playout-live-state.js";
 import type { AiringSource } from "../services/playout-live-state.js";
+import { dispatchChannelGoLive } from "../services/notify-dispatch.js";
 import { orchestrator } from "./playout-channels.init.js";
 
 /** Playout channel queue management and Liquidsoap webhook endpoints. */
@@ -213,6 +214,12 @@ playoutChannelRoutes.post(
       channelId: broadcastChannel.id,
       live: source === "live",
     });
+
+    // Notify-me subscribers when the broadcast takes a creator (a real go-live
+    // edge); the per-channel cooldown handles flapping.
+    if (source === "live") {
+      void dispatchChannelGoLive(broadcastChannel.id);
+    }
 
     return c.json({ ok: true });
   },
