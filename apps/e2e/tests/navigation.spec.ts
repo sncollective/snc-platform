@@ -1,14 +1,16 @@
 import { test, expect } from "@playwright/test";
 
+import { mainNav } from "./helpers/nav.js";
+
 test.describe("Navigation flow", () => {
   test.use({ storageState: "auth/stakeholder.json" });
 
-  test("navigates between pages via nav links", async ({ page }) => {
+  test("navigates between pages via nav links", async ({ page }, testInfo) => {
     // Start at landing page
     await page.goto("/");
 
-    // Navigate to Creators via nav bar
-    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    // Navigate to Creators via the primary nav surface (viewport-aware)
+    const nav = mainNav(page, testInfo);
     await nav.getByRole("link", { name: "Creators" }).click();
     await expect(page).toHaveURL(/\/creators/);
     await expect(
@@ -18,7 +20,11 @@ test.describe("Navigation flow", () => {
     // Click on Maya's profile
     await page.getByText("Maya Chen").first().click();
     await expect(page).toHaveURL(/\/creators\/maya-chen/);
-    await expect(page.getByText("Maya Chen")).toBeVisible();
+    // "Maya Chen" appears in both the profile heading and the user menu, so
+    // scope to the profile heading to stay strict-mode-safe.
+    await expect(
+      page.getByRole("heading", { name: "Maya Chen" }),
+    ).toBeVisible();
   });
 
   test("authenticated user sees user menu button", async ({ page }) => {
@@ -47,9 +53,9 @@ test.describe("Navigation flow", () => {
     ).toBeVisible();
   });
 
-  test("navigates to live page via nav link", async ({ page }) => {
+  test("navigates to live page via nav link", async ({ page }, testInfo) => {
     await page.goto("/");
-    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    const nav = mainNav(page, testInfo);
     await nav.getByRole("link", { name: "Live" }).click();
     await expect(page).toHaveURL(/\/live/);
     // Channel selector is always present (playout channels are pre-seeded)

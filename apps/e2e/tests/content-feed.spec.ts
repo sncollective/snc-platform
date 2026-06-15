@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { mainNav } from "./helpers/nav.js";
+
 test.describe("Content feed", () => {
   test("feed page loads with published content", async ({ page }) => {
     await page.goto("/feed");
@@ -42,10 +44,10 @@ test.describe("Content feed", () => {
     await expect(page.getByText("Sam Okafor").first()).toBeVisible();
   });
 
-  test("nav bar has Feed link when content feature is enabled", async ({ page }) => {
+  test("nav bar has Feed link when content feature is enabled", async ({ page }, testInfo) => {
     await page.goto("/");
 
-    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    const nav = mainNav(page, testInfo);
     await expect(nav.getByRole("link", { name: "Feed" })).toBeVisible();
   });
 });

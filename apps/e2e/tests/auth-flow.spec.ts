@@ -21,7 +21,8 @@ test.describe("Auth flow", () => {
     await expect(userMenuButton).toBeVisible({ timeout: 10000 });
     await userMenuButton.click();
 
-    const logoutButton = page.getByRole("button", { name: "Log out" });
+    // Log out is an Ark UI MenuItem (role=menuitem), not a button.
+    const logoutButton = page.getByRole("menuitem", { name: "Log out" });
     await expect(logoutButton).toBeVisible();
     await logoutButton.click();
 

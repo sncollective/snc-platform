@@ -4,6 +4,22 @@ tags: [testing]
 created: 2026-06-11
 ---
 
+> **Resolved 2026-06-15.** Triaged against the live dev stack (full Docker +
+> PM2 environment available this session). Baseline was **95 pass / 18 fail**;
+> after fixes the suite is **green: 109 pass, 4 documented skips, 0 fail**.
+> 16 of 18 failures were test-side drift; 2 were a real product bug now parked
+> as `content-manage-list-not-responsive-mobile` (mobile content-row grid
+> collapses the title to width:0 — confirmed via Playwright boundingBox).
+> Test-side fixes: viewport-aware nav helper (`apps/e2e/tests/helpers/nav.ts`)
+> replacing hardcoded desktop nav labels (BottomTabBar "Primary navigation" /
+> chipBar "X mobile navigation" at <768px); landing heading/region "Featured
+> Creators"→"Creators"; admin-playout "Playlist"→"Queue"; Maya strict-mode
+> scoping; logout `button`→`menuitem` (Ark UI); theater-mode skip on mobile
+> (desktop-only by design); mobile chat-input skip when no publisher is
+> streaming. The 4 skips: 2× the parked mobile bug, theater-mode-desktop-only,
+> mobile-chat-needs-stream. Promote to scope only if the parked bug or a new
+> drift wave needs a tracked pass; otherwise this is done.
+
 # E2e suite drift triage — ~17/113 failing after the suite became runnable again
 
 The e2e suite was un-runnable from late April to 2026-06-11: the lockfile's

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { contextNav } from "./helpers/nav.js";
+
 test.describe("Admin panel", () => {
   test.use({ storageState: "auth/admin.json" });
 
@@ -16,12 +18,11 @@ test.describe("Admin panel", () => {
     await expect(page.getByText("Maya Chen")).toBeVisible();
   });
 
-  test("admin sidebar shows streaming management tabs", async ({ page }) => {
+  test("admin sidebar shows streaming management tabs", async ({ page }, testInfo) => {
     await page.goto("/admin");
-    // Context sidebar nav should show Playout and Simulcast tabs (streaming is enabled)
-    const sidebar = page.getByRole("navigation", {
-      name: "Admin navigation",
-    });
+    // Context nav (sidebar on desktop, chipBar on mobile) should show Playout
+    // and Simulcast tabs (streaming is enabled).
+    const sidebar = contextNav(page, testInfo, "Admin");
     await expect(sidebar.getByRole("link", { name: "Playout" })).toBeVisible();
     await expect(
       sidebar.getByRole("link", { name: "Simulcast" }),
@@ -30,7 +31,10 @@ test.describe("Admin panel", () => {
 
   test("playout admin page loads", async ({ page }) => {
     await page.goto("/admin/playout");
-    // Should show the playout management heading and "Now Playing" section
+    // Should show the playout management heading and "Now Playing" section.
+    // "Now Playing" renders once a channel is selected (channels are seeded).
+    // The 0.2.1 restructure replaced the single "Playlist" heading with the
+    // "Queue" + "Content Pool" sections.
     await expect(
       page.getByRole("heading", { level: 1, name: "Playout" }),
     ).toBeVisible();
@@ -38,7 +42,7 @@ test.describe("Admin panel", () => {
       page.getByRole("heading", { name: "Now Playing" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Playlist" }),
+      page.getByRole("heading", { name: "Queue" }),
     ).toBeVisible();
   });
 
