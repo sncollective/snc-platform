@@ -14,6 +14,7 @@ import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
 import { meCreatorsRoutes } from "./routes/me-creators.routes.js";
 import { contentRoutes } from "./routes/content.routes.js";
+import { contentFeedRoutes } from "./routes/content-feed.routes.js";
 import { contentMediaRoutes } from "./routes/content-media.routes.js";
 import { creatorRoutes } from "./routes/creator.routes.js";
 import { creatorMediaRoutes } from "./routes/creator-media.routes.js";
@@ -125,6 +126,11 @@ app.route("/api/uploads", uploadRoutes);
 app.route("/api/tusd", tusdHookRoutes);
 
 // Shipped features — unconditionally mounted
+// contentFeedRoutes mounts first: its static `/drafts` must resolve ahead of
+// contentRoutes' param `/:id`. Hono merges co-mounted sub-apps in registration
+// order, and the static-over-param tiebreak does not cross the sub-app boundary,
+// so the feed sub-app (carrying `/drafts`) must register before the `/:id` sub-app.
+app.route("/api/content", contentFeedRoutes);
 app.route("/api/content", contentRoutes);
 app.route("/api/content", contentMediaRoutes);
 app.route("/api/creators", creatorRoutes);

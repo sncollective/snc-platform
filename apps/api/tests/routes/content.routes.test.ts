@@ -138,9 +138,15 @@ const ctx = setupRouteTest({
     const { contentRoutes } = await import(
       "../../src/routes/content.routes.js"
     );
+    const { contentFeedRoutes } = await import(
+      "../../src/routes/content-feed.routes.js"
+    );
     const { contentMediaRoutes } = await import(
       "../../src/routes/content-media.routes.js"
     );
+    // Mount order mirrors production (app.ts): contentFeedRoutes first so its
+    // static `/drafts` resolves ahead of contentRoutes' param `/:id`.
+    app.route("/api/content", contentFeedRoutes);
     app.route("/api/content", contentRoutes);
     app.route("/api/content", contentMediaRoutes);
   },
