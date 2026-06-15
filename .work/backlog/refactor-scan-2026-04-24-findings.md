@@ -15,7 +15,7 @@ The bound-and-fixed set (for reference): [fix-invite-email-frontend-url](../../.
 
 The following findings belong to existing tracked features — fold into their scope rather than spawning duplicates:
 
-### [refactor-pattern-compliance-sweep](../active/features/refactor-pattern-compliance-sweep.md)
+### refactor-pattern-compliance-sweep (done 2026-06-15, archived)
 
 - **Manual `c.json({error:{code,message}})` → `throw result.error`** — 14 sites: [playout-channels.routes.ts](../../apps/api/src/routes/playout-channels.routes.ts) at lines 54–65, 100–104, 137–144, 168–174, 210–214, 238–243, 266–270, 293–298, 319–323, 348–356, 380–388; [invite.routes.ts](../../apps/api/src/routes/invite.routes.ts) at lines 59–66, 85–92, 127–131. Mechanical replacement.
 - **Missing `AppError` second type arg on `Result<T>`** — [mastodon-auth.ts](../../apps/api/src/services/mastodon-auth.ts), [simulcast.ts](../../apps/api/src/services/simulcast.ts), [streaming-connect.ts](../../apps/api/src/services/streaming-connect.ts). Shape-C sweep. Service-layer-wide.
@@ -24,13 +24,13 @@ The following findings belong to existing tracked features — fold into their s
 - **Non-null assertions on optional config** — [auth/auth.ts:122](../../apps/api/src/auth/auth.ts#L122) (`SEAFILE_OIDC_CLIENT_SECRET!`), [storage/index.ts:20](../../apps/api/src/storage/index.ts#L20) (`S3_BUCKET!`). Replace with startup validation.
 - **Non-exhaustive union switches** — [file-utils.ts:99](../../apps/api/src/lib/file-utils.ts#L99) (`ParsedRange` switch), [tusd-hooks.routes.ts:213-225](../../apps/api/src/routes/tusd-hooks.routes.ts#L213-L225) (hook type switch), [upload.routes.ts:86-113](../../apps/api/src/routes/upload.routes.ts#L86-L113) (`validateUpload` purpose chain), [processing-indicator.tsx:9](../../apps/web/src/components/content/processing-indicator.tsx#L9) (`STATUS_LABELS: Record<string, string>` should be `Record<ProcessingStatus, string>`).
 
-### [refactor-route-file-size-splits](../active/features/refactor-route-file-size-splits.md)
+### refactor-route-file-size-splits (done 2026-06-15, archived)
 
 - [content.routes.ts](../../apps/api/src/routes/content.routes.ts) — 711 lines, over the 600-line threshold. Extract `PATCH /:id` delete-and-cleanup + `POST /:id/publish` validation into `services/content.ts`.
 - [chat.routes.ts](../../apps/api/src/routes/chat.routes.ts) — 656 lines; the WebSocket `onMessage` handler is a 300-line switch containing full business dispatch. Extract to `services/chat-ws-dispatch.ts`.
 - [streaming.routes.ts](../../apps/api/src/routes/streaming.routes.ts) — 624 lines; `ensureLiveChannelWithChat` and `teardownLiveChannel` belong in `services/stream-lifecycle.ts`.
 
-### [refactor-component-splitting-oversized-files](../active/features/refactor-component-splitting-oversized-files.md)
+### refactor-component-splitting-oversized-files (done 2026-06-15, archived)
 
 - [upload-context.tsx](../../apps/web/src/contexts/upload-context.tsx) — 527 lines. Extract Uppy init + event wiring to `useUppyInstances` hook.
 - [event-form.tsx](../../apps/web/src/components/calendar/event-form.tsx) — 682 lines, 13 `useState`. Extract `EVENT_FORM_SCHEMA` to schema file; extract datetime state + handlers to `useEventFormState` hook.
@@ -40,7 +40,7 @@ The following findings belong to existing tracked features — fold into their s
 - [creator-header.tsx](../../apps/web/src/components/creator/creator-header.tsx) — 240 lines, 3 subscription CTA branches. Extract `SubscriptionCta`.
 - [live.tsx](../../apps/web/src/routes/live.tsx) — `useChannelList` polling hook, `TheaterOverlay`, `ChannelSelector`, `StreamCreatorBar`, `StreamStatusBar`, `ComingSoonPlaceholder` all belong outside the route file.
 
-### [refactor-jsdoc-exported-constants](../active/features/refactor-jsdoc-exported-constants.md)
+### refactor-jsdoc-exported-constants (done 2026-06-15, archived)
 
 - `packages/shared/src/` — nearly all `as const` enum arrays lack `/** */`. Highest-stakes files: [auth.ts](../../packages/shared/src/auth.ts), [playout.ts](../../packages/shared/src/playout.ts) (`RENDITION_PROFILES`), [features.ts](../../packages/shared/src/features.ts), [chat.ts](../../packages/shared/src/chat.ts), [notification.ts](../../packages/shared/src/notification.ts), [subscription.ts](../../packages/shared/src/subscription.ts), [uploads.ts](../../packages/shared/src/uploads.ts), [streaming.ts](../../packages/shared/src/streaming.ts). ~18 files affected.
 - `apps/api/src/lib/` helpers — [content-helpers.ts](../../apps/api/src/lib/content-helpers.ts), [creator-helpers.ts](../../apps/api/src/lib/creator-helpers.ts), [calendar-helpers.ts](../../apps/api/src/lib/calendar-helpers.ts), [openapi-errors.ts](../../apps/api/src/lib/openapi-errors.ts), [route-utils.ts](../../apps/api/src/lib/route-utils.ts), [chart-math.ts](../../apps/web/src/lib/chart-math.ts). Recommended-tier docs.
