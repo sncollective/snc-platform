@@ -1,15 +1,40 @@
 ---
 id: refactor-use-polling-hook-extraction
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, quality]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-20
-updated: 2026-06-10
+updated: 2026-06-15
 parent: null
 ---
+
+## Implementation (2026-06-15)
+
+Extracted to `apps/web/src/hooks/use-polling.ts` — `usePolling<T>(fetcher,
+intervalMs, options?)` returning `{ data, isLoading }`. The two sites had a real
+divergence (the story anticipated this): playout's `useChannelQueue` returns
+`T | null` and re-subscribes on `channelId`; live's `useChannelList` carries an
+`isLoading`/SSR-`initial` state and re-subscribes on `initial`. Rather than close
+as "pattern diverged," the hook absorbs both via three options — `initial` (SSR
+seed; skips the immediate fetch and starts `isLoading: false`), `key`
+(re-subscription trigger), `immediate` (defaults to `initial === null`). The
+shared core (mount-safe teardown, recursive `setTimeout`, swallow-on-error keeping
+last value) lives once in the hook.
+
+Conversions:
+- `admin/playout.tsx` `useChannelQueue` → `usePolling` with `key: channelId`; the
+  fetcher resolves `null` when no channel is selected (no request fires, status
+  resets to null between channels) — preserves the original no-channel behavior.
+- `live.tsx` `useChannelList` → `usePolling` with `{ initial }`; the
+  immediate-only-if-no-SSR behavior is the hook's default.
+
+Behavior-preserving: web `tsc --noEmit` clean, web unit suite 1737/1737 green (=
+baseline). Verified live: `/live` renders the channel selector from SSR, `/admin/
+playout` redirects to login (307, no 500), `/api/streaming/status` returns 6
+channels.
 
 Extract the duplicated `mountedRef` + recursive `setTimeout` polling pattern from two route components into a shared `usePolling<T>` hook.
 

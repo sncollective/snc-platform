@@ -109,24 +109,27 @@ creatorRoutes.get(
     const isManageEligible = roles.includes("stakeholder") || isAdmin;
     const creatorIds = rawRows.map((r) => r.id);
 
-    // Authenticated: fetch subscription status for current user
-    // Also fetch memberships to determine per-creator canManage
-    const [subscribedIds, memberships] = userId
-      ? await Promise.all([
-          batchGetSubscribedCreatorIds(userId, creatorIds),
-          getCreatorMemberships(userId),
-        ])
-      : [new Set<string>(), [] as Array<{ creatorId: string; role: string }>];
+    // Fetch all per-user / per-creator enrichment in one round-trip. The two
+    // groups are independent (subscription+membership gated on userId; KPIs on
+    // isManageEligible, no shared data), so they run concurrently rather than
+    // in two sequential Promise.all blocks.
+    const [subscribedIds, memberships, subscriberCounts, lastPublished] =
+      await Promise.all([
+        userId
+          ? batchGetSubscribedCreatorIds(userId, creatorIds)
+          : Promise.resolve(new Set<string>()),
+        userId
+          ? getCreatorMemberships(userId)
+          : Promise.resolve([] as Array<{ creatorId: string; role: string }>),
+        isManageEligible
+          ? batchGetSubscriberCounts(creatorIds)
+          : Promise.resolve(new Map<string, number>()),
+        isManageEligible
+          ? batchGetLastPublished(creatorIds)
+          : Promise.resolve(new Map<string, string>()),
+      ]);
 
     const memberCreatorIds = new Set(memberships.map((m) => m.creatorId));
-
-    // Stakeholder/admin: fetch KPIs
-    const [subscriberCounts, lastPublished] = isManageEligible
-      ? await Promise.all([
-          batchGetSubscriberCounts(creatorIds),
-          batchGetLastPublished(creatorIds),
-        ])
-      : [new Map<string, number>(), new Map<string, string>()];
 
     const enrichedItems = items.map((item) => {
       const canManage = isAdmin || memberCreatorIds.has(item.id);

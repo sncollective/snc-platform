@@ -1,15 +1,39 @@
 ---
 id: refactor-concurrent-awaits
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, stylistic]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-20
-updated: 2026-06-10
+updated: 2026-06-15
 parent: null
 ---
+
+## Implementation (2026-06-15)
+
+Re-grounded against current code — the 2026-04-20 site list had drifted:
+
+- **`creator.routes.ts` — DONE.** Both original sequential awaits had already
+  become two adjacent `await Promise.all([...])` blocks (gated on `userId` and
+  `isManageEligible` respectively). These two blocks were themselves sequential
+  with no shared data, so they are now flattened into a **single** `Promise.all`
+  of up to four queries (each guarded with `Promise.resolve(<empty>)` when its
+  condition is false). Common stakeholder path drops from two DB round-trips to
+  one. Behavior-preserving: `tsc --noEmit` clean, api unit suite 1610/1610 green
+  (= baseline).
+- **`projects.tsx` — DROPPED, not a valid refactor.** The proposed "merge the two
+  `useEffect`s into one `Promise.all`" is **not behavior-preserving**: the effects
+  have different dependency arrays (`fetchAllCreators` runs once on `[]`;
+  `loadProjects` re-runs on `[showCompleted]`). Merging would either re-fetch
+  creators on every `showCompleted` toggle (behavior change) or require keeping
+  them separate anyway. This is the "feels structural but changes behavior" case
+  the `[refactor]` tag rule warns against — left as-is.
+
+Net: the genuine concurrent-await win was the creator.routes flatten. No broader
+detector sweep run — current code is clean of the sequential-independent-await
+pattern at the known sites; a future sweep can re-open if new sites appear.
 
 Sequential `await` pairs for operations with no data dependency introduce unnecessary latency and obscure the independence relationship between operations. The fix — wrapping independent awaits in `Promise.all` — is mechanical once independence is confirmed, and makes the parallelism explicit to readers. Two confirmed sites exist; the sweep detector looks for the structural pattern more broadly.
 

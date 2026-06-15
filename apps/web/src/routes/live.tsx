@@ -13,6 +13,8 @@ import type { LiveLayout, MediaMetadata } from "../contexts/global-player-contex
 import { ChatPanel } from "../components/chat/chat-panel.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { apiGet } from "../lib/fetch-utils.js";
+import { usePolling } from "../hooks/use-polling.js";
+import type { PollingState } from "../hooks/use-polling.js";
 import { ChatProvider } from "../contexts/chat-context.js";
 import { useSession } from "../lib/auth.js";
 
@@ -94,55 +96,18 @@ export const Route = createFileRoute("/live")({
 
 // ── Polling Hook ──
 
-interface ChannelListState {
-  readonly data: ChannelListResponse | null;
-  /** True until the first fetch completes when no SSR data was available. */
-  readonly isLoading: boolean;
-}
-
-/** Poll the channel list endpoint on a fixed interval. */
-function useChannelList(initial: ChannelListResponse | null): ChannelListState {
-  const [state, setState] = useState<ChannelListState>({
-    data: initial,
-    isLoading: initial === null,
-  });
-  const mountedRef = useRef(true);
-
-  const poll = useCallback(async () => {
-    try {
-      const next = await apiGet<ChannelListResponse>("/api/streaming/status");
-      if (mountedRef.current) setState({ data: next, isLoading: false });
-    } catch {
-      // Transient failure — keep showing the last known channel list
-      if (mountedRef.current) setState((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    // If no SSR data, fetch immediately to populate the page
-    if (initial === null) {
-      void poll();
-    }
-
-    const schedule = () => {
-      timeoutId = setTimeout(async () => {
-        await poll();
-        if (mountedRef.current) schedule();
-      }, POLL_INTERVAL_MS);
-    };
-
-    schedule();
-
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(timeoutId);
-    };
-  }, [poll, initial]);
-
-  return state;
+/**
+ * Poll the channel list endpoint on a fixed interval. Seeds from SSR data when
+ * present (no immediate refetch), otherwise fetches immediately to populate.
+ */
+function useChannelList(
+  initial: ChannelListResponse | null,
+): PollingState<ChannelListResponse> {
+  return usePolling<ChannelListResponse>(
+    () => apiGet<ChannelListResponse>("/api/streaming/status"),
+    POLL_INTERVAL_MS,
+    { initial },
+  );
 }
 
 // ── Components ──

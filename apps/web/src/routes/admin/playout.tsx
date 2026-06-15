@@ -29,6 +29,7 @@ import {
   skipChannelTrack,
 } from "../../lib/playout-channels.js";
 import { retryPlayoutIngest } from "../../lib/playout.js";
+import { usePolling } from "../../hooks/use-polling.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import formStyles from "../../styles/form.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
@@ -65,38 +66,14 @@ export const Route = createFileRoute("/admin/playout")({
 
 /** Poll channel queue status every 3 seconds. Returns null while loading or when no channel is selected. */
 function useChannelQueue(channelId: string | null): ChannelQueueStatus | null {
-  const [status, setStatus] = useState<ChannelQueueStatus | null>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    setStatus(null);
-
-    if (!channelId) return;
-
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const poll = async (): Promise<void> => {
-      try {
-        const data = await fetchChannelQueue(channelId);
-        if (mountedRef.current) setStatus(data);
-      } catch {
-        // Keep last known state on transient failure
-      }
-      if (mountedRef.current) {
-        timeoutId = setTimeout(() => void poll(), QUEUE_POLL_INTERVAL_MS);
-      }
-    };
-
-    void poll();
-
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(timeoutId);
-    };
-  }, [channelId]);
-
-  return status;
+  // The fetcher resolves null when no channel is selected, so no request fires;
+  // re-subscribing on `channelId` resets status to null between channels.
+  const { data } = usePolling<ChannelQueueStatus | null>(
+    () => (channelId ? fetchChannelQueue(channelId) : Promise.resolve(null)),
+    QUEUE_POLL_INTERVAL_MS,
+    { key: channelId },
+  );
+  return data;
 }
 
 // ── Broadcast Status Component ──
