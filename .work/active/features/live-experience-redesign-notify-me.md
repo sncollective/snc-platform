@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-notify-me
 kind: feature
-stage: review
+stage: done
 tags: [streaming, community]
 release_binding: null
 depends_on: [live-experience-redesign-live-state]
@@ -162,3 +162,7 @@ the existing calendar link stays.
   restart could re-fire — pair with the cooldown).
 - **Channel target on the offline page**: defaulting to S/NC TV broadcast is the simplest;
   a picker is the fuller answer. Deferred to implement (Unit 4).
+
+## Review (2026-06-15)
+
+**Verdict**: Approve. Deep adversarial review found 1 important bug (cooldown consumed before dispatch → genuine go-live suppressed) — FIXED inline + test added — plus 2 nits (OTP error handling, dead policyVersion field), both fixed. No remaining blockers. api 1626 / web 1749, tsc clean; live-stack: subscribe persists, route guarded, dispatch wired to a registered worker.

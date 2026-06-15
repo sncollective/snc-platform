@@ -1,13 +1,13 @@
 ---
 id: live-experience-redesign
 kind: epic
-stage: implementing
+stage: review
 tags: [streaming]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-15
 parent: null
 ---
 
@@ -93,3 +93,6 @@ live-state representation rather than blocking the offline-state fix shipping fi
 - **Indicator placement coordination**: `live-state` owns what indicators say;
   `layout-ergonomics` owns where status lives in the restructured mobile layout.
   Whichever designs second must read the other's design section.
+
+## Children complete (2026-06-15)
+All 4 child features done: layout-ergonomics, page-states, live-state (server+client, SSE SpineProvider, verified live), notify-me (per-channel OTP-subscribe + go-live dispatch + offline capture form, adversarial-reviewed). Epic ready for review/close.

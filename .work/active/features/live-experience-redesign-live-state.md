@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-live-state
 kind: feature
-stage: review
+stage: done
 tags: [streaming]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-event-spine-publishers, live-state-sse-client-pattern]
@@ -327,3 +327,7 @@ advanced.
   next Liquidsoap switch event. The feature body's own brief flags heartbeat-polling from
   Liquidsoap as a possible mitigation — out of scope for the server half; note it for the
   client half / a follow-up if it bites.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve. Both halves verified (shared/api/web suites at baseline, tsc clean, live-stack confirmed); the SSE client + live-state derivation were adversarially reviewed at story level. No blockers.
