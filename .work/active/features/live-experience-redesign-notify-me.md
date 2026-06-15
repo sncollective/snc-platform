@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-notify-me
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, community]
 release_binding: null
 depends_on: [live-experience-redesign-live-state]

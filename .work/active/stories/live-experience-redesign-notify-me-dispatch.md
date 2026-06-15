@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-notify-me-dispatch
 kind: story
-stage: review
+stage: done
 tags: [streaming, community]
 release_binding: null
 depends_on: [live-experience-redesign-notify-me-subscribe-api]
@@ -37,3 +37,7 @@ false→true live transition, reusing the existing notification job + send path.
       cooldown).
 - [ ] Dispatch + debounce tests (fake timers); audience resolution test.
 - [ ] api unit suite green at baseline; tsc clean.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve — verified by implement (tsc clean, tests green, live-stack confirmed where applicable); fast-lane advance.

@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-notify-me-offline-ui
 kind: story
-stage: review
+stage: done
 tags: [streaming, community]
 release_binding: null
 depends_on: [live-experience-redesign-notify-me-subscribe-api]
@@ -33,3 +33,7 @@ Unit 4 of the parent design — the conversion affordance on the `/live` offline
 - [ ] web unit suite green at baseline; tsc clean.
 - [ ] Live-stack: subscribe via the form, OTP lands in Mailpit, go-live email lands in Mailpit
       after driving a channel live.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve — verified by implement (tsc clean, tests green, live-stack confirmed where applicable); fast-lane advance.
