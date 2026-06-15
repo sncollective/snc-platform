@@ -29,6 +29,7 @@ export * from "./playout.js";
 export * from "./playout-queue.js";
 export * from "./notification.js";
 export * from "./notification-inbox.js";
+export * from "./consent.js";
 export * from "./invite.js";
 export * from "./events.js";
 export { textToStream, streamToText } from "./storage-contract.js";
