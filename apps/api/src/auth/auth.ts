@@ -48,6 +48,46 @@ function buildSocialProviders() {
   return providers;
 }
 
+/** OTP email copy per better-auth OTP `type`. `email-verification` is unused (no copy). */
+const OTP_EMAILS: Partial<
+  Record<
+    "forget-password" | "sign-in" | "email-verification" | "change-email",
+    (otp: string) => { subject: string; html: string; text: string }
+  >
+> = {
+  "forget-password": (otp) => ({
+    subject: "Your S/NC password reset code",
+    html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+    text: `Your password reset code is: ${otp}\n\nThis code expires in 10 minutes.`,
+  }),
+  "sign-in": (otp) => ({
+    subject: "Your S/NC sign-in code",
+    html: `<p>Your sign-in code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+    text: `Your sign-in code is: ${otp}\n\nThis code expires in 10 minutes.`,
+  }),
+};
+
+/**
+ * Send an email-OTP for the given better-auth flow type. No-op for types without
+ * configured copy. Failures are logged, never thrown (auth must not break on a mail
+ * outage).
+ */
+export async function sendOtpEmail(
+  email: string,
+  otp: string,
+  type: "forget-password" | "sign-in" | "email-verification" | "change-email",
+): Promise<void> {
+  const build = OTP_EMAILS[type];
+  if (!build) return;
+  const { subject, html, text } = build(otp);
+  await sendEmail({ to: email, subject, html, text }).catch((e: unknown) =>
+    rootLogger.error(
+      { error: e instanceof Error ? e.message : String(e), type },
+      "Failed to send OTP email",
+    ),
+  );
+}
+
 // ── Public API ──
 
 /** Better Auth instance with Drizzle adapter, email/password, JWT, OIDC, email OTP. */
@@ -135,15 +175,11 @@ export const auth = betterAuth({
       },
     }),
     emailOTP({
+      // OTP sign-in auto-creates the account (the load-bearing behavior for the
+      // email-capture / notify-me capture flows). Explicit for clarity.
+      disableSignUp: false,
       async sendVerificationOTP({ email, otp, type }) {
-        if (type === "forget-password") {
-          await sendEmail({
-            to: email,
-            subject: "Your S/NC password reset code",
-            html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
-            text: `Your password reset code is: ${otp}\n\nThis code expires in 10 minutes.`,
-          }).catch((e: unknown) => rootLogger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send password reset OTP"));
-        }
+        await sendOtpEmail(email, otp, type);
       },
     }),
   ],
