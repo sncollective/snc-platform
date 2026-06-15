@@ -66,12 +66,14 @@ const toPlayoutItem = (row: typeof playoutItems.$inferSelect): PlayoutItem => ({
 // ── CRUD ──
 
 /** List all playout items ordered by position. */
-export const listPlayoutItems = async (): Promise<PlayoutItem[]> => {
+export const listPlayoutItems = async (): Promise<
+  Result<PlayoutItem[], AppError>
+> => {
   const rows = await db
     .select()
     .from(playoutItems)
     .orderBy(asc(playoutItems.position));
-  return rows.map(toPlayoutItem);
+  return ok(rows.map(toPlayoutItem));
 };
 
 /** Get a single playout item by ID. */

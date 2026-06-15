@@ -11,9 +11,11 @@ import { NowPlayingSchema } from "./playout.js";
 // is NOT modeled here — it is derived state owned by the
 // live-experience-redesign-live-state feature.
 
+/** Channel ownership facet — permissions key on this. */
 export const CHANNEL_OWNERSHIPS = ["platform", "creator"] as const;
 export type ChannelOwnership = (typeof CHANNEL_OWNERSHIPS)[number];
 
+/** Channel role facet — routing keys on this. */
 export const CHANNEL_ROLES = ["playout", "broadcast", "live-ingest"] as const;
 export type ChannelRole = (typeof CHANNEL_ROLES)[number];
 

@@ -8,6 +8,7 @@ import { SOURCE_TYPES, SourceTypeSchema } from "./uploads.js";
 export const CONTENT_TYPES = ["video", "audio", "written"] as const;
 export const VISIBILITY = ["public", "subscribers"] as const;
 export const CONTENT_STATUSES = ["draft", "published"] as const;
+/** Media-processing lifecycle: uploaded → processing → ready (or failed). */
 export const PROCESSING_STATUSES = ["uploaded", "processing", "ready", "failed"] as const;
 
 /** Maximum content title length. */

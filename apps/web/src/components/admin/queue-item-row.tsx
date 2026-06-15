@@ -1,6 +1,7 @@
 import type React from "react";
 import type { PlayoutQueueEntry } from "@snc/shared";
 
+import { formatSeconds } from "../../lib/format-duration.js";
 import styles from "../../routes/admin/playout.module.css";
 
 // ── Types ──
@@ -11,18 +12,6 @@ export interface QueueItemRowProps {
   readonly estimatedStart: number | null;
   readonly onRemove: () => void;
   readonly onPlayNext?: undefined; // reserved for future
-}
-
-// ── Helpers ──
-
-/** Format a duration in seconds as HH:MM:SS. */
-function formatSeconds(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 // ── Component ──

@@ -315,7 +315,7 @@ calendarRoutes.patch(
     }
 
     // Build update fields
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Partial<typeof calendarEvents.$inferInsert> = { updatedAt: new Date() };
     if (data.title !== undefined) updates.title = data.title;
     if (data.description !== undefined) updates.description = data.description;
     if (data.startAt !== undefined) updates.startAt = new Date(data.startAt);

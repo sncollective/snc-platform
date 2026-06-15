@@ -1,5 +1,5 @@
 import { CREATOR_ROLE_PERMISSIONS } from "@snc/shared";
-import type { FeedItem, SubscriptionPlan } from "@snc/shared";
+import type { CreatorMemberRole, FeedItem, SubscriptionPlan } from "@snc/shared";
 
 import { fetchApiServer, fetchAuthStateServer } from "./api-server.js";
 import type { AuthState } from "./auth.js";
@@ -15,9 +15,9 @@ export async function fetchLockedContentPlans(
 ): Promise<readonly SubscriptionPlan[]> {
   if (!isContentLocked(item)) return [];
   try {
-    const data = (await fetchApiServer({
+    const data: { plans: SubscriptionPlan[] } = await fetchApiServer({
       data: `/api/subscriptions/plans?creatorId=${encodeURIComponent(item.creatorId)}`,
-    })) as { plans: SubscriptionPlan[] };
+    });
     return data.plans;
   } catch {
     // Plans fetch failure is non-fatal — SubscribeCta will show
@@ -39,16 +39,16 @@ export async function resolveCanManage(creatorId: string, authState?: AuthState 
 
   let membersRes: { members: Array<{ userId: string; role: string }> };
   try {
-    membersRes = (await fetchApiServer({
+    membersRes = await fetchApiServer({
       data: `/api/creators/${encodeURIComponent(creatorId)}/members`,
-    })) as { members: Array<{ userId: string; role: string }> };
+    });
   } catch {
     // Not a member — can't manage
     return false;
   }
   const membership = membersRes.members.find((m) => m.userId === me.user.id);
   if (membership) {
-    const role = membership.role as "owner" | "editor" | "viewer";
+    const role = membership.role as CreatorMemberRole;
     return CREATOR_ROLE_PERMISSIONS[role].manageContent === true;
   }
   return false;

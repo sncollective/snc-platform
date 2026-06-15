@@ -52,8 +52,9 @@ playoutRoutes.get(
     },
   }),
   async (c) => {
-    const items = await listPlayoutItems();
-    return c.json({ items });
+    const result = await listPlayoutItems();
+    if (!result.ok) throw result.error;
+    return c.json({ items: result.value });
   },
 );
 

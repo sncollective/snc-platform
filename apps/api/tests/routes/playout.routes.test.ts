@@ -63,7 +63,7 @@ const ctx = setupRouteTest({
     app.route("/api/playout", playoutRoutes);
   },
   beforeEach: () => {
-    mockListPlayoutItems.mockResolvedValue([makePlayoutItem()]);
+    mockListPlayoutItems.mockResolvedValue({ ok: true, value: [makePlayoutItem()] });
     mockGetPlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });
     mockCreatePlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });
     mockUpdatePlayoutItem.mockResolvedValue({ ok: true, value: makePlayoutItem() });

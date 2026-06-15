@@ -177,8 +177,10 @@ describe("listPlayoutItems", () => {
     const { listPlayoutItems } = await setupService();
     mockDbSelect.mockReturnValue(buildSelectOrderByChain([makeItemRow()]));
 
-    const items = await listPlayoutItems();
+    const result = await listPlayoutItems();
 
+    expect(result.ok).toBe(true);
+    const items = result.ok ? result.value : [];
     expect(items).toHaveLength(1);
     expect(items[0]?.id).toBe("item-1");
     expect(items[0]?.title).toBe("Test Film");
@@ -192,8 +194,10 @@ describe("listPlayoutItems", () => {
       ]),
     );
 
-    const items = await listPlayoutItems();
+    const result = await listPlayoutItems();
 
+    expect(result.ok).toBe(true);
+    const items = result.ok ? result.value : [];
     expect(items[0]?.renditions["1080p"]).toBe(true);
     expect(items[0]?.renditions["720p"]).toBe(false);
     expect(items[0]?.renditions.source).toBe(true);
@@ -205,7 +209,9 @@ describe("listPlayoutItems", () => {
       buildSelectOrderByChain([makeItemRow({ subtitleKey: "playout/item-1/subtitles.vtt" })]),
     );
 
-    const items = await listPlayoutItems();
+    const result = await listPlayoutItems();
+    expect(result.ok).toBe(true);
+    const items = result.ok ? result.value : [];
     expect(items[0]?.hasSubtitles).toBe(true);
   });
 });

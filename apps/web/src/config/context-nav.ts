@@ -20,6 +20,7 @@ export interface ContextNavConfig {
 
 // ── Admin Context ──
 
+/** Admin context sidebar nav config. */
 export const ADMIN_NAV: ContextNavConfig = {
   label: "Admin",
   basePath: "/admin",
@@ -35,6 +36,7 @@ export const ADMIN_NAV: ContextNavConfig = {
 
 // ── Co-op Governance Context ──
 
+/** Co-op governance context sidebar nav config. */
 export const GOVERNANCE_NAV: ContextNavConfig = {
   label: "Co-op",
   basePath: "/governance",

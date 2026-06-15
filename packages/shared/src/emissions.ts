@@ -55,6 +55,14 @@ export const CreateOffsetEntrySchema = z.object({
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
+/**
+ * Aggregate emissions totals plus the double-offset target.
+ *
+ * `doubleOffsetTargetCo2Kg` encodes the 2x-gross offset goal (offset twice the
+ * gross footprint); `additionalOffsetCo2Kg` is the remaining top-up beyond
+ * offsets already recorded. `projectedGrossCo2Kg` includes projected entries
+ * where `grossCo2Kg` counts only actuals.
+ */
 export const EmissionsSummarySchema = z.object({
   grossCo2Kg: z.number(),
   offsetCo2Kg: z.number(),
@@ -93,6 +101,11 @@ export const EmissionsBreakdownSchema = z.object({
   entries: z.array(EmissionEntrySchema),
 });
 
+/**
+ * On-disk emissions file entry — `co2_kg` is snake_case to match the file
+ * format, deliberately diverging from the camelCase `co2Kg` of the API-facing
+ * EmissionEntrySchema.
+ */
 export const EmissionsFileEntrySchema = EmissionCoreSchema.extend({
   co2_kg: z.number(),
   method: z.string(),

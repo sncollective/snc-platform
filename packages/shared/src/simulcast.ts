@@ -7,6 +7,12 @@ export const RTMP_URL_REGEX = /^rtmps?:\/\/.+/;
 
 // ── Platform Registry ──
 
+/**
+ * Supported simulcast targets and their RTMP ingest prefixes.
+ *
+ * A `null` `rtmpPrefix` (e.g. `custom`) means no built-in endpoint — the user
+ * supplies the full RTMP URL.
+ */
 export const SIMULCAST_PLATFORMS = {
   twitch: { label: "Twitch", rtmpPrefix: "rtmp://live.twitch.tv/app" },
   youtube: { label: "YouTube", rtmpPrefix: "rtmp://a.rtmp.youtube.com/live2" },

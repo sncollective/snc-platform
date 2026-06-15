@@ -1,5 +1,3 @@
-import { createRequire } from "node:module";
-
 import {
   createFederation,
   generateCryptoKeyPair,
@@ -18,11 +16,11 @@ import { config } from "../config.js";
 import { sql, db } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { getFrontendBaseUrl } from "../lib/route-utils.js";
+import pkg from "../../package.json" with { type: "json" };
 
 // ── Module-level Constants ──
 
-const require = createRequire(import.meta.url);
-const { version: VERSION } = require("../../package.json") as { version: string };
+const VERSION = pkg.version;
 
 // ── Types ──
 

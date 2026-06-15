@@ -29,6 +29,7 @@ import {
   skipChannelTrack,
 } from "../../lib/playout-channels.js";
 import { retryPlayoutIngest } from "../../lib/playout.js";
+import { formatSeconds } from "../../lib/format-duration.js";
 import { usePolling } from "../../hooks/use-polling.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import formStyles from "../../styles/form.module.css";
@@ -625,15 +626,4 @@ function PlayoutPage(): React.ReactElement {
       )}
     </div>
   );
-}
-
-// ── Helpers ──
-
-function formatSeconds(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
