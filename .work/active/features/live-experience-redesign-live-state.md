@@ -87,8 +87,19 @@ unrepresentable, which simplifies this feature's client half.
   badge actually fires (replace the interim identity proxy at `live.tsx:157-161`); honest
   On-Air/Scheduled indicators + channel-type in the native `<select>`.
 - **Client half** (after research): consume the SSE spine for live updates + visible
-  takeover transitions + spine-fed viewer count, built on the researched SSE-client
-  primitive. Depends on `live-state-sse-client-pattern`.
+  takeover transitions + **re-fetch-refreshed** viewer count, built on the researched
+  SSE-client primitive. Depends on `live-state-sse-client-pattern`.
+
+  **Correction (2026-06-15, post-research cross-check):** the epic's event-needs list and
+  the earlier draft assumed *spine-fed (push)* viewer count, but **the spine publishes no
+  `channel.viewer-count` event** — `bold-event-spine-publishers` explicitly **deferred** it
+  (`bold-event-spine-publishers.md:61`: SRS has no viewer-count push mechanism; it is
+  poll-only). `viewerCount` lives only in the channel-list response. This is *absorbed* by
+  the research's re-fetch model at zero extra cost: viewer count rides the same authoritative
+  re-fetch the client already runs on every `spine.connected` and on `channel.live-state-
+  changed`. So the client gets near-live viewer counts via the existing re-sync, NOT a push
+  event. A true push `channel.viewer-count` (requiring an SRS poll→publish loop server-side)
+  is a separate future spine addition, out of this feature's scope.
 
 Design for the server half is written below; the client half is deferred to a follow-up
 design pass once the research lands. Feature stays at `stage: drafting` until then —
