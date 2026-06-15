@@ -20,6 +20,7 @@ import {
   useSpineStatus,
   useSpineTopic,
 } from "../contexts/spine-context.js";
+import { NotifyMeForm } from "../components/live/notify-me-form.js";
 import { ChatProvider } from "../contexts/chat-context.js";
 import { useSession } from "../lib/auth.js";
 
@@ -152,6 +153,11 @@ function LivePageInner(): React.ReactElement {
   }, [spineStatus, refetch]);
 
   const channels = channelList?.channels ?? [];
+
+  // Offline-page notify-me target: prefer the broadcast channel (S/NC TV — the
+  // always-present anchor), else the first known channel. Undefined when none.
+  const notifyChannel =
+    channels.find((c) => c.role === "broadcast") ?? channels[0];
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LayoutPrefs>(getInitialPrefs);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
@@ -284,7 +290,11 @@ function LivePageInner(): React.ReactElement {
       {/* Route content renders in the Outlet grid cell (below player, left column) */}
       <div className={styles.routeContent}>
         {isLoading && <ChannelZoneSkeleton />}
-        {!hasChannels && !isLoading && <OfflinePlaceholder />}
+        {!hasChannels && !isLoading && (
+          <OfflinePlaceholder
+            {...(notifyChannel ? { notifyChannel } : {})}
+          />
+        )}
 
         {hasChannels && (
           <div className={styles.streamInfo}>
@@ -540,7 +550,11 @@ function MobileTabBar({
 }
 
 /** Placeholder shown when no channels are active. */
-function OfflinePlaceholder(): React.ReactElement {
+function OfflinePlaceholder({
+  notifyChannel,
+}: {
+  readonly notifyChannel?: Channel;
+}): React.ReactElement {
   return (
     <div className={styles.offline}>
       <h1 className={styles.offlineHeading}>Nothing live right now</h1>
@@ -551,6 +565,12 @@ function OfflinePlaceholder(): React.ReactElement {
       <Link to="/calendar" className={styles.offlineCalendarLink}>
         View the calendar
       </Link>
+      {notifyChannel && (
+        <NotifyMeForm
+          channelId={notifyChannel.id}
+          channelName={notifyChannel.name}
+        />
+      )}
     </div>
   );
 }

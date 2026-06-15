@@ -1,7 +1,7 @@
 ---
 id: live-experience-redesign-notify-me-offline-ui
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, community]
 release_binding: null
 depends_on: [live-experience-redesign-notify-me-subscribe-api]
