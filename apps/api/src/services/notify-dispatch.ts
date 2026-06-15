@@ -83,7 +83,6 @@ export const dispatchChannelGoLive = async (
     rootLogger.info({ channelId }, "channel-go-live within cooldown — suppressed");
     return;
   }
-  lastDispatchedAt.set(channelId, nowMs);
 
   const [channel] = await db
     .select({ name: channels.name })
@@ -91,6 +90,8 @@ export const dispatchChannelGoLive = async (
     .where(eq(channels.id, channelId))
     .limit(1);
   if (!channel) {
+    // Don't consume the cooldown — an unknown channel here is not a real go-live,
+    // so a genuine transition right after must still dispatch.
     rootLogger.warn({ channelId }, "channel-go-live for unknown channel — skipped");
     return;
   }
@@ -125,6 +126,11 @@ export const dispatchChannelGoLive = async (
 
     enqueued++;
   }
+
+  // Arm the cooldown only after a successful dispatch pass — a throw above (DB /
+  // boss outage) leaves the cooldown unset so a retry of a genuine go-live can
+  // still deliver, rather than being silently suppressed for the window.
+  lastDispatchedAt.set(channelId, nowMs);
 
   rootLogger.info({ channelId, audienceSize: audience.length, enqueued }, "channel-go-live dispatched");
 };

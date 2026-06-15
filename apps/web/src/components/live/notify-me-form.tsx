@@ -1,8 +1,6 @@
 import { useState } from "react";
 import type React from "react";
 
-import { PRIVACY_POLICY_VERSION } from "@snc/shared";
-
 import { authClient } from "../../lib/auth-client.js";
 import { useSession } from "../../lib/auth.js";
 import { apiMutate } from "../../lib/fetch-utils.js";
@@ -33,8 +31,10 @@ export function NotifyMeForm({
   const [error, setError] = useState<string | null>(null);
 
   const subscribe = async (): Promise<void> => {
+    // policyVersion is recorded server-side from the canonical constant; the
+    // checkbox only conveys consent intent.
     await apiMutate("/api/notify-when-live", {
-      body: { channelId, consent: true, policyVersion: PRIVACY_POLICY_VERSION },
+      body: { channelId, consent: true },
     });
     setStep("done");
   };
@@ -71,17 +71,24 @@ export function NotifyMeForm({
     }
   };
 
-  // Anonymous: verify OTP (creates+signs in), then subscribe.
+  // Anonymous: verify OTP (creates+signs in), then subscribe. Distinguish the two
+  // failures — once sign-in succeeds the user is authenticated, so a subscribe
+  // failure must not look like a bad code (and the now-logged-in one-click path
+  // becomes available on retry).
   const handleVerifyOtp = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
+    if (signInError) {
+      setError("That code didn't work. Please try again.");
+      setBusy(false);
+      return;
+    }
     try {
-      const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
-      if (signInError) throw new Error(signInError.message);
       await subscribe();
     } catch {
-      setError("That code didn't work. Please try again.");
+      setError("Signed in, but couldn't subscribe. Please try the button again.");
     } finally {
       setBusy(false);
     }

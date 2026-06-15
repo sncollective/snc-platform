@@ -101,6 +101,19 @@ describe("dispatchChannelGoLive", () => {
     expect(mockBossSend).toHaveBeenCalledTimes(2);
   });
 
+  it("does NOT consume the cooldown when the channel is unknown", async () => {
+    const { dispatchChannelGoLive, enqueueResult, mockBossSend } = await setupModule();
+    enqueueResult([]); // channel lookup returns nothing → bail without dispatching
+
+    await dispatchChannelGoLive("ch-1", 1_000);
+    expect(mockBossSend).not.toHaveBeenCalled();
+
+    // A genuine go-live moments later must still dispatch (cooldown not burned).
+    seedOneSubscriber(enqueueResult);
+    await dispatchChannelGoLive("ch-1", 2_000);
+    expect(mockBossSend).toHaveBeenCalledTimes(1);
+  });
+
   it("skips a subscriber whose channel_go_live email preference is disabled", async () => {
     const { dispatchChannelGoLive, enqueueResult, mockBossSend } = await setupModule();
     enqueueResult([{ name: "S/NC TV" }]); // channel
