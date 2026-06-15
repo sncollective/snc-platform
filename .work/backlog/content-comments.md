@@ -3,7 +3,7 @@ id: content-comments
 tags: [content, community]
 release_binding: null
 created: 2026-04-20
-updated: 2026-06-10
+updated: 2026-06-15
 ---
 
 # Comments on Content
@@ -20,6 +20,12 @@ See [live-streaming-ux-patterns.md](../../.research/analysis/briefs/live-streami
 
 ## Scoping notes
 
-- Overlaps with [streaming-vod-threaded-comments](streaming-vod-threaded-comments.md) — VOD is a content type; these likely share infrastructure. Resolve duplication at scope time.
+- VOD comments are subsumed here — `streaming-vod-threaded-comments` was a subset (VOD is one content type) and is now archived into this item (see Absorbs note below); these share comment infrastructure.
 - Moderation re-use: `feature-chat-moderation` (shipped 0.3.0) handles live chat; extending it to comments means the same authorization layer (`canModerateRoom` → `canModerateContent`), the same `chat_moderation_actions` table (generalize to `moderation_actions`), the same UI (`ChatUserCard` → shared `UserCard`). Large design decision — one moderation substrate for both surfaces, or parallel implementations. Research §3.10's "one moderation substrate across surfaces" is implicitly the co-op-aligned choice.
 - Reactions: if reactions extend to comments, `feature-message-reactions` schema generalizes from `(messageId, userId, emoji)` to `(targetType, targetId, userId, emoji)`. Not blocking this item but worth deciding before both surfaces ship reactions separately.
+
+## Absorbs streaming-vod-threaded-comments (2026-06-15)
+
+`streaming-vod-threaded-comments` archived into this item — VOD is one content type, this is the
+general comments feature. VOD-specific carry-over: depends on `streaming-vod-publish-flow` producing
+accessible content items; live chat is ephemeral/session-scoped while these comments persist.

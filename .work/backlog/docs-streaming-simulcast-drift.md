@@ -37,3 +37,9 @@ of the contradiction in hand (quoted the doc in admin finding A5 and the service
 comment in creator finding C3) but no drift item was filed. Related active story
 `creator-simulcast-semantics-note` fixes the UI communication; this item fixes
 the foundation doc.
+
+## Absorbs documentation-simulcast-destinations-coverage (2026-06-15)
+
+`documentation-simulcast-destinations-coverage` (2026-04-20) archived into this item — same
+per-creator simulcast doc gap; this is the sharper code-confirmed version (streaming.md:64 vs
+simulcast.ts creatorId tier).

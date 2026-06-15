@@ -35,3 +35,9 @@ classification drives unsubscribe obligations."
 The classification of S/NC's specific email types and the operational header requirement come from
 the campaign's applied-policy-UX facet; the CAN-SPAM mechanics are grounded in the US-compliance
 facet (15 U.S.C. §7704 + 16 CFR §316.5).
+
+## Absorbs community-unsubscribe-link-emails (2026-06-15)
+
+`community-unsubscribe-link-emails` (2026-04-20) archived into this item — same one-click unsubscribe
+work; this is the research-grounded superset (RFC 8058 token-based no-auth endpoint + CAN-SPAM +
+Gmail/Yahoo deliverability headers).
