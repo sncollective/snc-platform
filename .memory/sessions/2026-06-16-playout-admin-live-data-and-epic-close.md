@@ -73,3 +73,31 @@ degraded-poll trigger path).
   switching feasibility) — needs a real design pass, surfaced to the user as not-autopilot.
 - bold-* epics remain design-gated.
 - 3 done-but-held stories still await user fix-verify (failed-upload, on-forward, systemd).
+
+## Sequencing decision (end of session) — editorial-engine BEFORE the bold epics
+
+User asked: land the bold epics first, or design the editorial-engine first? **Resolved:
+editorial-engine first.** Dependency analysis:
+
+- `unified-channel-model-editorial-engine` `depends_on: [unified-channel-model-identity-lifecycle]`
+  only — which is **done**. It has **NO hard dependency on any bold-* item**. The seam it
+  renders through (topology module + pure render, from `bold-channel-topology-model-render`) is
+  already **landed**. So nothing blocks it.
+- It's the **critical path**: its two siblings (`snctv-composition`, `creator-enablement`)
+  depend on it, so it's the bottleneck of the whole `unified-channel-model` epic.
+- The bold epics relate to it only as **future consumers/enhancers, not prerequisites**
+  (e.g. `bold-lifecycle-transitions`'s named transitions become the event-spine emission
+  points; `bold-channel-topology-drift-detection` lands a banner on the playout screen). They
+  build *on* the playout model; they don't gate the editorial config. Lower urgency — polish +
+  independent refactors, off any feature's critical path.
+
+**NEXT SESSION = pick up the editorial-engine design pass, OPENING WITH THE SPIKE.** The spike
+(named epic risk): can editorial changes — mode flips (manual|auto), source-priority changes,
+queue arm/take — apply via **live mechanisms** (Liquidsoap interactive variables / harbor
+predicates inside a *persistent* pipeline) vs. **supervised start/stop** of per-channel
+pipelines (airs-when-programmed lifecycle)? The spike settles the mechanism before any units
+are cut. **Fallback posture if the spike disappoints** (from the brief): retain
+regenerate-and-restart for channel CRUD, scope live switching to within-pipeline source
+changes. The spike outcome + the fork decision is a USER call to surface, not an autopilot
+guess. Control model is already committed (per-channel **manual | auto** mode); specific
+control verbs derive from the workshop scenarios during the design pass.
