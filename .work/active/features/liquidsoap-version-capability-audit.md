@@ -1,13 +1,14 @@
 ---
 id: liquidsoap-version-capability-audit
 kind: feature
-stage: drafting
+stage: done
 tags: [research, streaming, playout]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 research_origin: unified-channel-model-editorial-engine
+research_refs: [liquidsoap-version-capability-audit]
 created: 2026-06-16
 updated: 2026-06-16
 research_dials:
@@ -112,8 +113,64 @@ Range into the adjacent stack where gap-finding connects:
 - **output_kind: synthesis-brief + upgrade-recommendation** — a `.research/analysis/` brief (likely
   `-landscape`) mapping versions×capabilities×our-backlog, plus a crisp upgrade recommendation.
 
+## Decomposition (Checkpoint A, confirmed 2026-06-16)
+
+Candidate C (hybrid 4-facet) chosen over A (by-engagement-question — facet coupling: upgrade
+depends on version-delta) and B (by-source-domain — loses the our-paths focus, smears backlog
+mapping). Four parallel specialist facets; the upgrade recommendation is lead synthesis (inherently
+cross-facet):
+
+1. **`ls-version-delta`** — 2.4.2→2.4.5 changelog × source verification, OUR-paths focus (the
+   load-bearing facet: skip-from-harbor/crossfade, clock-detach-while-running, source.dynamic
+   maturity, queue.remove).
+2. **`ls-2.5.0-capabilities`** — forward-looking: 2.5.0 features (subtitles/captions, Icecast,
+   cross unification, source.content/track.format) + the editorial/CRUD primitives' maturity arc.
+3. **`srs-ffmpeg-seam`** — the stack-wide discovery surface (mixed scope authorizes it): SRS 6
+   capabilities, the LS↔SRS RTMP/on_forward/simulcast seam, ffmpeg encoder surface.
+4. **`backlog-feasibility-map`** — consumes the others' capability findings, maps them onto the
+   named streaming backlog items (feasibility-changed? shape-changed?).
+
 ## Output destination
 
 `.research/analysis/` (brief/landscape + recommendation). On completion, the operator-confirmed
 `research-handoff` may emit follow-up `.work/` items (e.g. an upgrade story, or feasibility-changed
 backlog items) carrying `research_origin: liquidsoap-version-capability-audit`.
+
+## Engagement record (closed 2026-06-16)
+
+Ran end-to-end through `agentic-research:research-orchestrator`. Dials honored as scoped
+(scope_authority: mixed · verification_rigor: full · intent: inform-decision · output_kind:
+synthesis-brief + upgrade-recommendation).
+
+- **Decomposition:** Candidate C (hybrid 4-facet), confirmed at Checkpoint A.
+- **Fan-out:** 4 parallel research-specialists — `ls-version-delta`, `ls-2.5.0-capabilities`,
+  `srs-ffmpeg-seam`, `backlog-feasibility-map`.
+- **Verification (full rigor, all passed):** lint (exit 0, 0 blocking; caught + fixed one
+  citation-target error) → adversarial-read (APPROVED + 1 required fix R1 applied; independently
+  re-verified load-bearing claims in source) → evaluate (isolated context, APPROVED) → spot-check
+  (clean).
+- **Output:** `.research/analysis/campaigns/liquidsoap-version-capability-audit/` — `parent.md`
+  (synthesis + upgrade recommendation), 4 specialist briefs, `acquisitions.md`,
+  `verification-checklist.md`, `campaign-evaluation.md`. 13 source-direct attestations in
+  `.research/attestation/`.
+
+### Headline outcomes (for the rearchitecture)
+
+1. **Upgrade recommendation: ship Liquidsoap 2.4.2 → 2.4.5 now** (operator-decided), lean on
+   revertibility (one-line Dockerfile pin) given thin regression coverage. The 2.4.3–2.4.5 fixes are
+   *latent* on our current simple graph but activate exactly when the editorial design reaches for
+   crossfade / runtime detach / runtime handler-removal / `source.dynamic`.
+2. **2.5.0 adds no new switching/CRUD power** — don't wait for it. Its subtitles content-type is a
+   carriage seam (no ASR), and the captions/subtitles backlog items are player-side (the seed
+   hypothesis was corrected by the discovery surface).
+3. **Backlog partitions cleanly** into LS-side (editorial cluster, reshaped by the spike), SRS-side,
+   player-side, ffmpeg-sidecar — an LS bump moves only the editorial cluster.
+4. **VAAPI/ABR: encode outside SRS** (SRS transcode is software-libx264 only).
+5. **Qualifies the spike position:** runtime detach is "possible but not race-safe" on 2.4.2 (#5051
+   fixed 2.4.3) — the upgrade discharges this.
+
+### Follow-on (operator-gated)
+- An upgrade story (2.4.2 → 2.4.5 Dockerfile bump + staging verify + the pre-upgrade greps) is the
+  natural emission — run `/agentic-research:research-handoff liquidsoap-version-capability-audit`.
+- Open questions carried (not closed): `h264_vaapi` in Liquidsoap's `%ffmpeg` encoder; SRS
+  max-streams/vhosts for dynamic channels.
