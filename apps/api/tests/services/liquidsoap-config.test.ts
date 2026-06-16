@@ -11,6 +11,7 @@ import { makeTestConfig } from "../helpers/test-constants.js";
 const mockDbSelect = vi.fn();
 const mockFetch = vi.fn();
 const mockPublish = vi.fn();
+const mockGetAllEditorialConfigs = vi.fn();
 
 // ── Setup Factory ──
 
@@ -49,6 +50,12 @@ const setupModule = async (overrides?: Parameters<typeof makeTestConfig>[0]) => 
         error: vi.fn(),
       }),
     },
+  }));
+
+  // Default: no editorial configs (channels fall back to queue-only defaults)
+  mockGetAllEditorialConfigs.mockResolvedValue({ ok: true, value: [] });
+  vi.doMock("../../src/services/editorial-config.js", () => ({
+    getAllEditorialConfigs: mockGetAllEditorialConfigs,
   }));
 
   return await import("../../src/services/liquidsoap-config.js");

@@ -9,6 +9,7 @@ import type { Result } from "@snc/shared";
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
 import { buildPlayoutTopology } from "./playout-topology.js";
+import { getAllEditorialConfigs } from "./editorial-config.js";
 import { renderPlayoutLiq } from "./liquidsoap-render.js";
 import { eventBus } from "./event-bus.js";
 import { config } from "../config.js";
@@ -42,28 +43,45 @@ const logger = rootLogger.child({ service: "liquidsoap-config" });
  * Generate the full playout.liq content from database state.
  * Returns the file content as a string.
  *
- * Thin composition: query active playout channels, build the typed topology,
- * render. The topology and render layers are pure (see playout-topology.ts /
- * liquidsoap-render.ts); this module owns the IO edges only.
+ * Thin composition: query active playout channels + editorial configs, build the
+ * typed topology, render. The topology and render layers are pure (see
+ * playout-topology.ts / liquidsoap-render.ts); this module owns the IO edges only.
  */
 export const generateLiquidsoapConfig = async (): Promise<string> => {
-  const playoutChannels = await db
-    .select({
-      id: channels.id,
-      name: channels.name,
-      srsStreamName: channels.srsStreamName,
-    })
-    .from(channels)
-    .where(
-      and(
-        eq(channels.role, "playout"),
-        eq(channels.isActive, true),
+  const [playoutChannels, editorialConfigsResult] = await Promise.all([
+    db
+      .select({
+        id: channels.id,
+        name: channels.name,
+        srsStreamName: channels.srsStreamName,
+      })
+      .from(channels)
+      .where(
+        and(
+          eq(channels.role, "playout"),
+          eq(channels.isActive, true),
+        ),
       ),
+    getAllEditorialConfigs(),
+  ]);
+
+  // Editorial configs are best-effort: a failure here degrades gracefully to
+  // config-less (queue-only) defaults for all channels rather than blocking
+  // config generation.
+  const editorialConfigs = editorialConfigsResult.ok
+    ? editorialConfigsResult.value
+    : [];
+
+  if (!editorialConfigsResult.ok) {
+    logger.warn(
+      { error: editorialConfigsResult.error.message },
+      "Failed to load editorial configs — falling back to queue-only defaults",
     );
+  }
 
   logger.info({ channelCount: playoutChannels.length }, "Generating Liquidsoap config");
 
-  return renderPlayoutLiq(buildPlayoutTopology(playoutChannels));
+  return renderPlayoutLiq(buildPlayoutTopology(playoutChannels, editorialConfigs));
 };
 
 /**

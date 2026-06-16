@@ -1,4 +1,7 @@
 import { SNC_TV_BROADCAST } from "./channels.js";
+import { detectChannelSourceCycles } from "./editorial-graph.js";
+import type { ChannelSourceEdge } from "./editorial-graph.js";
+import type { EditorialConfigWithTiers, EditorialMode } from "@snc/shared";
 
 // ── Types ──
 
@@ -11,6 +14,22 @@ export interface EnvRef {
   readonly envVar: string;
   readonly default: string;
 }
+
+/**
+ * A resolved editorial tier ready for the playout render.
+ *
+ * - `live` — live RTMP ingest from the channel's live-ingest input.
+ * - `queue` — request.queue playout (the armed, manually-ordered queue).
+ * - `pool` — request.dynamic pool of channel_content items (auto-rotated).
+ * - `channel-as-source` — another channel's rendered `_source` var (carry model).
+ *   `sourceLiqVar` is the fully-resolved Liquidsoap variable (e.g. `ch_<uuid>_source`),
+ *   NOT the raw channel ID.
+ */
+export type PlayoutEditorialTier =
+  | { readonly type: "live" }
+  | { readonly type: "queue"; readonly queueId: string }
+  | { readonly type: "pool"; readonly poolQueueId: string }
+  | { readonly type: "channel-as-source"; readonly sourceLiqVar: string };
 
 /** Input row shape — deliberately local so callers pass plain data, not Drizzle rows.
  * (The module does transitively reach db via the SNC_TV_BROADCAST import from channels.ts;
@@ -38,6 +57,18 @@ export interface PlayoutChannelTopology {
   };
   /** API callback path the channel posts track events to. */
   readonly trackEventPath: string;
+  /** Editorial control mode. `"auto"` by default when no config exists. */
+  readonly mode: EditorialMode;
+  /**
+   * Index into `tiers` for the pinned manual tier when `mode === "manual"`;
+   * null otherwise. Resolved from the config's `manualTierId`.
+   */
+  readonly manualTierIndex: number | null;
+  /**
+   * Editorial source tiers in priority order (index 0 = highest priority).
+   * Channels without editorial config default to a single queue tier.
+   */
+  readonly tiers: readonly PlayoutEditorialTier[];
 }
 
 /**
@@ -102,27 +133,216 @@ export const harborChannelPaths = (
   nowPlaying: `/channels/${channelId}/now-playing`,
 });
 
+// ── Private: Editorial tier resolution ──
+
 /**
- * Assemble the playout topology from DB channel rows. Pure — no DB, no
- * filesystem, no config reads; the only external input is the row list.
+ * Map a single editorial tier config entry to a resolved `PlayoutEditorialTier`.
+ * `channel-as-source` tiers resolve the source channel's liqVar-derived `_source`
+ * variable; the caller must supply a lookup function for this.
+ */
+const resolveEditorialTier = (
+  tier: { tierType: string; queueId?: string; sourceChannelId?: string | null; priority: number },
+  channelQueueId: string,
+  resolveSourceVar: (sourceChannelId: string) => string,
+): PlayoutEditorialTier => {
+  switch (tier.tierType) {
+    case "live":
+      return { type: "live" };
+    case "queue":
+      return { type: "queue", queueId: channelQueueId };
+    case "pool":
+      // Pool is fed via request.dynamic from channel_content; poolQueueId = channelQueueId
+      return { type: "pool", poolQueueId: channelQueueId };
+    case "channel-as-source": {
+      const sourceId = tier.sourceChannelId;
+      if (!sourceId) {
+        throw new Error(
+          `channel-as-source tier has no sourceChannelId (priority ${tier.priority})`,
+        );
+      }
+      return { type: "channel-as-source", sourceLiqVar: resolveSourceVar(sourceId) };
+    }
+    default:
+      throw new Error(`Unknown editorial tier type: ${tier.tierType}`);
+  }
+};
+
+/**
+ * Build a stable topological order of channel topology entries.
  *
- * The broadcast fallback is the first playout channel's source (static
- * selection for now), or silence when no playout channels exist.
+ * Channels that are referenced as a channel-as-source by other channels must appear
+ * BEFORE the referencing channel so the rendered `_source` variable is defined first.
+ *
+ * When there are no channel-as-source edges, the input order is preserved exactly
+ * (stable sort guarantee — critical for render golden snapshots).
+ *
+ * Throws if a cycle is detected (defense-in-depth; config-schema rejects cycles on
+ * write, so a cycle here is a build-time invariant violation).
+ */
+const topoSort = (
+  channels: PlayoutChannelTopology[],
+): PlayoutChannelTopology[] => {
+  // Collect channel-as-source edges from the resolved tiers
+  const edges: ChannelSourceEdge[] = [];
+  for (const ch of channels) {
+    for (const tier of ch.tiers) {
+      if (tier.type === "channel-as-source") {
+        // Resolve sourceLiqVar back to a channel ID for the cycle checker.
+        // Format: `ch_<uuid_with_underscores>_source` → strip prefix/suffix, restore hyphens.
+        const varName = tier.sourceLiqVar.replace(/_source$/, "").replace(/^ch_/, "");
+        const sourceChannelId = varName.replaceAll("_", "-");
+        edges.push({ channelId: ch.id, sourceChannelId });
+      }
+    }
+  }
+
+  // Fast path: no edges → preserve input order exactly
+  if (edges.length === 0) return channels;
+
+  // Defensive cycle check (config-schema should have already rejected these)
+  const cycleResult = detectChannelSourceCycles(edges);
+  if (!cycleResult.ok) {
+    throw new Error(
+      `buildPlayoutTopology: cannot sort channels — ${cycleResult.error.message}`,
+    );
+  }
+
+  // Kahn's algorithm for topological sort (preserves input order within a level)
+  const idToChannel = new Map(channels.map((ch) => [ch.id, ch]));
+
+  // Build adjacency: referencing → [referenced] (referenced must come first)
+  const dependsOn = new Map<string, Set<string>>(); // ch → set of channels it depends on
+  const dependedOnBy = new Map<string, Set<string>>(); // ch → set of channels that depend on it
+
+  for (const ch of channels) {
+    if (!dependsOn.has(ch.id)) dependsOn.set(ch.id, new Set());
+    if (!dependedOnBy.has(ch.id)) dependedOnBy.set(ch.id, new Set());
+  }
+
+  for (const { channelId, sourceChannelId } of edges) {
+    // channelId references sourceChannelId → sourceChannelId must come first
+    dependsOn.get(channelId)?.add(sourceChannelId);
+    dependedOnBy.get(sourceChannelId)?.add(channelId);
+  }
+
+  // Initialize queue with channels that have no dependencies, in input order
+  const inputOrder = new Map(channels.map((ch, i) => [ch.id, i]));
+  const queue: string[] = channels
+    .filter((ch) => (dependsOn.get(ch.id)?.size ?? 0) === 0)
+    .map((ch) => ch.id);
+
+  const result: PlayoutChannelTopology[] = [];
+  const emitted = new Set<string>();
+
+  while (queue.length > 0) {
+    // Take from front (stable: queue is already in input order for ties)
+    const id = queue.shift()!;
+    if (emitted.has(id)) continue;
+    emitted.add(id);
+    result.push(idToChannel.get(id)!);
+
+    // Collect newly-unblocked channels and re-sort by input order to maintain stability
+    const unblocked: string[] = [];
+    for (const dependerId of dependedOnBy.get(id) ?? []) {
+      const deps = dependsOn.get(dependerId)!;
+      deps.delete(id);
+      if (deps.size === 0 && !emitted.has(dependerId)) {
+        unblocked.push(dependerId);
+      }
+    }
+    // Maintain input order among newly-unblocked items
+    unblocked.sort((a, b) => (inputOrder.get(a) ?? 0) - (inputOrder.get(b) ?? 0));
+    queue.push(...unblocked);
+  }
+
+  return result;
+};
+
+/**
+ * Assemble the playout topology from DB channel rows and editorial configs. Pure — no DB,
+ * no filesystem, no config reads; all external inputs are passed by the caller.
+ *
+ * Channels without an editorial config (or with empty tiers) default to `mode: "auto"` with
+ * a single queue tier — preserving the current degenerate queue-only render behavior.
+ *
+ * Channel blocks are emitted in topological order so any referenced `_source` variable is
+ * defined before the channel that references it. When no channel-as-source edges exist
+ * (the current state), input row order is preserved exactly.
+ *
+ * @throws If a cycle exists in the channel-as-source graph (build-time invariant violation).
+ *
+ * The broadcast fallback is the first playout channel's source (after topo sort), or
+ * silence when no playout channels exist.
  */
 export const buildPlayoutTopology = (
   rows: readonly PlayoutChannelRow[],
+  editorialConfigs: readonly EditorialConfigWithTiers[],
 ): PlayoutTopology => {
-  const channels = rows.map(
-    (row): PlayoutChannelTopology => ({
+  // Index configs by channelId for O(1) lookup
+  const configByChannelId = new Map(editorialConfigs.map((c) => [c.channelId, c]));
+
+  // Build a liqVar lookup for resolving channel-as-source sourceLiqVar values.
+  // We need this before resolving tiers, so build liqVars first.
+  const channelLiqVars = new Map(rows.map((row) => [row.id, liqId(row.id)]));
+
+  const resolveSourceVar = (sourceChannelId: string): string => {
+    const liqVar = channelLiqVars.get(sourceChannelId);
+    if (!liqVar) {
+      throw new Error(
+        `buildPlayoutTopology: channel-as-source references unknown channel ${sourceChannelId}`,
+      );
+    }
+    return `${liqVar}_source`;
+  };
+
+  // Map rows to unsorted channel topologies
+  const unsorted: PlayoutChannelTopology[] = rows.map((row) => {
+    const queueId = `channel-${row.id}`;
+    const config = configByChannelId.get(row.id);
+
+    let mode: EditorialMode;
+    let manualTierIndex: number | null;
+    let tiers: readonly PlayoutEditorialTier[];
+
+    if (!config || config.tiers.length === 0) {
+      // Config-less default: queue-only, auto mode
+      mode = "auto";
+      manualTierIndex = null;
+      tiers = [{ type: "queue", queueId }];
+    } else {
+      mode = config.mode;
+
+      // Resolve tiers in priority order (already sorted ascending by the service)
+      const resolvedTiers = config.tiers.map((tier) =>
+        resolveEditorialTier(tier, queueId, resolveSourceVar),
+      );
+      tiers = resolvedTiers;
+
+      // Resolve manualTierIndex: find the index of the tier whose ID matches manualTierId
+      if (mode === "manual" && config.manualTierId != null) {
+        const idx = config.tiers.findIndex((t) => t.id === config.manualTierId);
+        manualTierIndex = idx >= 0 ? idx : null;
+      } else {
+        manualTierIndex = null;
+      }
+    }
+
+    return {
       id: row.id,
       name: row.name,
       srsStreamName: row.srsStreamName,
       liqVar: liqId(row.id),
-      queueId: `channel-${row.id}`,
+      queueId,
       harborPaths: harborChannelPaths(row.id),
       trackEventPath: `/api/playout/channels/${row.id}/track-event`,
-    }),
-  );
+      mode,
+      manualTierIndex,
+      tiers,
+    };
+  });
+
+  // Topologically sort channels so referenced _source vars are defined first
+  const channels = topoSort(unsorted);
 
   const defaultPlayout = channels[0];
 
