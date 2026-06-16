@@ -13,10 +13,11 @@ source-orient the `tusd-v2` tech-reference skill. **Engagement entry:**
 `/agentic-research:research-orchestrator`.
 
 ## Acquire — and a finding to act on first
-- **Pin:** we run `tusproject/tusd:latest` (docker-compose) — **UNPINNED.** This is itself a
-  finding: an unpinned `:latest` on a load-bearing upload path means our behavior can drift on any
-  pull, and there is no exact version to clone-and-read against. **Sub-action:** pin tusd to a
-  specific version (a small deploy story), then clone github.com/tus/tusd at that tag. Go.
+- **Pin:** we run `tusproject/tusd:latest` (docker-compose) — **UNPINNED** (currently resolves to
+  `v2.9.2`). An unpinned `:latest` on a load-bearing upload path drifts on any pull and gives no
+  exact version to clone-and-read against. The operational fix is tracked separately as the deploy
+  story `pin-docker-compose-image-versions`; once tusd is pinned, clone github.com/tus/tusd at that
+  tag for this source-orient pass. Go.
 
 ## Orient (source-grounded internals worth pinning)
 - **Hook lifecycle** — pre-create / post-finish / post-terminate semantics and ordering; our hooks
