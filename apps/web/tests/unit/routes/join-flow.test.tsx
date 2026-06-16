@@ -52,7 +52,7 @@ const PAYLOAD = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseSession.mockReturnValue({ data: null });
+  mockUseSession.mockReturnValue({ data: null, isPending: false });
   mockUseLoaderData.mockReturnValue(PAYLOAD());
   mockSendVerificationOtp.mockResolvedValue({ error: null });
   mockSignInEmailOtp.mockResolvedValue({ error: null });
@@ -95,7 +95,7 @@ describe("Join flow", () => {
   });
 
   it("authed visitor short-circuits to one-tap follow", async () => {
-    mockUseSession.mockReturnValue({ data: { user: { id: "u1" } } });
+    mockUseSession.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false });
     render(<JoinPage />);
 
     await userEvent.click(screen.getByRole("button", { name: /Follow The Band/ }));
@@ -106,8 +106,23 @@ describe("Join flow", () => {
     expect(mockSendVerificationOtp).not.toHaveBeenCalled();
   });
 
+  it("logged-in session resolving AFTER mount shows the one-tap path (not a dead-end)", async () => {
+    // The bug: useSession starts pending/null on the client and resolves post-mount.
+    // Seeding step from the initial isLoggedIn left a logged-in fan stranded.
+    mockUseSession.mockReturnValue({ data: null, isPending: true });
+    const { rerender } = render(<JoinPage />);
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
+
+    // Session resolves to logged-in.
+    mockUseSession.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false });
+    rerender(<JoinPage />);
+
+    expect(screen.getByRole("button", { name: /Follow The Band/ })).toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+  });
+
   it("explainer + CTA hidden when both config flags are off", async () => {
-    mockUseSession.mockReturnValue({ data: { user: { id: "u1" } } });
+    mockUseSession.mockReturnValue({ data: { user: { id: "u1" } }, isPending: false });
     mockUseLoaderData.mockReturnValue(
       PAYLOAD({ config: { incentiveText: null, showSncExplainer: false, showSubscribeCta: false } }),
     );

@@ -3,7 +3,6 @@ import { useState } from "react";
 import type React from "react";
 
 import type { JoinPagePayload } from "@snc/shared";
-import { PRIVACY_POLICY_VERSION } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
@@ -23,15 +22,20 @@ export const Route = createFileRoute("/join/$handle")({
   component: JoinPage,
 });
 
-type Step = "authed" | "capture" | "code" | "welcome" | "preferences" | "explainer" | "done";
+type Step = "capture" | "code" | "welcome" | "preferences" | "explainer" | "done";
 
 function JoinPage(): React.ReactElement {
   const payload = Route.useLoaderData();
   const session = useSession();
   const isLoggedIn = session.data?.user != null;
+  // useSession resolves AFTER mount (no SSR priming), so derive the entry branch
+  // live during render — never seed it into useState, or a logged-in fan whose
+  // session resolves post-mount gets stranded on a stale initial step.
+  const sessionPending = session.isPending === true;
 
-  // Authed visitors short-circuit capture+code with a one-tap follow.
-  const [step, setStep] = useState<Step>(isLoggedIn ? "authed" : "capture");
+  // `step` tracks progression WITHIN a flow only; the capture/authed entry is
+  // render-derived from isLoggedIn below.
+  const [step, setStep] = useState<Step>("capture");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -106,11 +110,26 @@ function JoinPage(): React.ReactElement {
     setStep(config.showSncExplainer || config.showSubscribeCta ? "explainer" : "done");
   };
 
+  // At entry (step hasn't advanced), the path is render-derived from the live
+  // session state — never from a stale initial useState.
+  const atEntry = step === "capture";
+
   return (
     <main className={styles.page}>
       <BandHeader creator={creator} />
 
-      {step === "capture" && !isLoggedIn && (
+      {atEntry && sessionPending && <p className={styles.lead}>Loading…</p>}
+
+      {atEntry && !sessionPending && isLoggedIn && (
+        <AuthedJoinStep
+          displayName={creator.displayName}
+          busy={busy}
+          error={error}
+          onJoin={handleOneTapJoin}
+        />
+      )}
+
+      {atEntry && !sessionPending && !isLoggedIn && (
         <CaptureStep
           name={name}
           email={email}
@@ -127,15 +146,6 @@ function JoinPage(): React.ReactElement {
 
       {step === "code" && (
         <CodeStep otp={otp} busy={busy} error={error} onOtp={setOtp} onSubmit={handleVerifyOtp} />
-      )}
-
-      {step === "authed" && (
-        <AuthedJoinStep
-          displayName={creator.displayName}
-          busy={busy}
-          error={error}
-          onJoin={handleOneTapJoin}
-        />
       )}
 
       {step === "welcome" && (
