@@ -123,18 +123,57 @@ while something is programmed; zero cost when nothing airs) collides with the ze
 clock-exit constraint IF "nothing programmed" means "zero outputs." The clean resolution: keep a
 single always-present sentinel output (the S/NC TV broadcast output is already always-on and
 serves this role), so the clock never drains to zero, and individual channel outputs
-attach/detach around it freely. This is a real design input the feature must absorb — recorded
-here, decided in the design pass.
+attach/detach around it freely. **Settled (2026-06-16): the broadcast output is the documented
+sentinel** — see the CRUD-mechanism decision below. (Note: under the chosen regenerate-and-restart
+CRUD, the clock-exit constraint does not bind at all — it only matters for the runtime-CRUD path
+the seam is kept ready for.)
 
 The render seam (`liquidsoap-render.ts` + `playout-topology.ts`, landed) is still where the chosen
-mechanisms render. Whether to drive CRUD via runtime attach/detach (one persistent process, more
-moving parts in-engine) or retain regenerate-and-restart for CRUD (simpler, brief audio gap on the
-affected channel only) is a **design-pass fork**, not settled here — the source-dive proves
-runtime CRUD is *possible*; it does not prove it's the *right* operational tradeoff. The
-high-frequency editorial path (arm/take, mode, priority, content swap) is fully live regardless.
+mechanisms render. The high-frequency editorial path (arm/take, mode, priority, content swap) is
+fully live regardless of the CRUD mechanism.
+
+**CRUD mechanism — SETTLED (2026-06-16): regenerate-and-restart now, runtime-ready later.**
+Channel CRUD (add/remove a whole channel) uses **regenerate-and-restart** — re-render the `.liq`,
+restart the pipeline. Runtime attach/detach is *not* adopted in v1. Rejected-but-available
+alternative: runtime `clock.attach`/`detach` for gapless structural CRUD. The decision (operator,
+2026-06-16) weighed the actual tradeoff:
+
+- Runtime CRUD buys *only* gapless structural channel add/remove (a rare admin action) — the
+  editorial UX (arm/take, mode, priority, content-swap) is fully live in **both** mechanisms, so
+  runtime CRUD does **not** add editorial flexibility.
+- Its cost is real: a standing "clock must never drain to zero outputs" invariant, harbor-handler
+  lifecycle management, and reliance on the least-tested engine paths (the exact paths the
+  2.4.3/2.4.5 fixes hardened — #5051 detach-while-running, `harbor.remove_http_handler`). Runtime
+  topology mutation is harder to test (soak/integration, not unit) and accumulates state;
+  regenerate-and-restart reaches a clean known-good state every time.
+- "More robust / more principled" cuts *against* runtime CRUD on inspection: the restart path is
+  the robust one, and airs-when-programmed *wants* lifecycle events, not one eternal pipeline + a
+  sentinel hack.
+
+**Design-for-later (the load-bearing part of the decision):** build the seam so runtime
+attach/detach is a clean later swap if a real gapless-CRUD UX requirement ever lands (the 2.4.5
+upgrade already makes runtime detach safe — see the version audit). Three seam constraints:
+1. Keep the always-on **S/NC TV broadcast output as the documented sentinel** — the clock already
+   never drains to zero because of it; this is the kept-alive output runtime CRUD would need, so it
+   is *already* satisfied, for free.
+2. Keep the **render pure** (topology → `.liq`, no side-effects) — so the engine can be driven
+   either by full re-render+restart (now) or by diffing topologies into attach/detach calls (later)
+   without rewriting the render.
+3. Write the **editorial control plane restart-agnostic** — control verbs (arm/take, mode,
+   priority) operate via live harbor/ref mutation and must not assume a fresh process, so they are
+   unaffected by whether CRUD restarts.
 
 The epic's "fallback posture if the spike disappoints" does **not** activate — the spike
-succeeded, and the capability surface is broader than the brief assumed.
+succeeded, and the capability surface is broader than the brief assumed. Regenerate-and-restart is
+the *chosen* mechanism on its merits, not a disappointment fallback.
+
+### Revisit if (CRUD mechanism)
+- A real product requirement for **gapless structural channel CRUD** lands (e.g. channels created/
+  destroyed frequently enough that the per-channel restart blip is user-visible and unacceptable) —
+  then adopt runtime attach/detach, which the seam-design above keeps a clean swap and 2.4.5 makes
+  safe.
+- The airs-when-programmed lifecycle drives channel create/destroy at a frequency that makes
+  restart cost dominate — re-rank.
 
 ## Control-plane surface (source-dive findings)
 

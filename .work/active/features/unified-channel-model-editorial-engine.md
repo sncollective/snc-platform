@@ -74,16 +74,25 @@ Read it before designing. Headlines:
 
 ### Design-pass forks the spike surfaced (decide in this design, with the user)
 
-1. **CRUD mechanism:** runtime attach/detach (one persistent process, more in-engine moving parts,
-   needs sentinel output) **vs** retain regenerate-and-restart for channel CRUD (simpler, brief
-   audio gap on the affected channel only). The high-frequency editorial path is live either way.
-   Spike proved runtime CRUD is *possible*, not that it's the right operational tradeoff.
-2. **Control plane:** bespoke per-channel harbor endpoints (status quo pattern in
-   `liquidsoap-render.ts`) **vs** the built-in `interactive.harbor` control surface.
-3. **Airs-when-programmed × clock-exit:** the epic's "zero cost when nothing airs" must reconcile
-   with "zero outputs → clock exits" — the sentinel-output resolution is the likely answer; confirm.
-4. **Version dependency:** 2.4.2 has bugs on paths we'll use — `source.skip` from a harbor handler
-   crashes `cross`/`crossfade` (fixed 2.4.5), runtime clock-detach-while-running (fixed 2.4.3),
-   `harbor.remove_http_handler` (fixed 2.4.5). If the design leans on runtime CRUD or crossfades,
-   it has a **soft dependency on a Liquidsoap upgrade** — tracked by the pending [research] item
-   (Liquidsoap version/gap audit). Don't hard-block this design on it; note the coupling.
+1. **CRUD mechanism — SETTLED (2026-06-16): regenerate-and-restart now, runtime-ready later.**
+   Channel CRUD uses regenerate-and-restart (re-render `.liq` + restart); runtime attach/detach is
+   NOT adopted in v1 but the seam is kept ready for it. Rationale + the three seam constraints
+   (broadcast output = documented sentinel; pure render; restart-agnostic control plane) are in the
+   position `.research/analysis/positions/editorial-engine-switching-mechanism.md` §CRUD mechanism.
+   The design pass implements this, it does not re-decide it. (Spike proved runtime CRUD *possible*;
+   the editorial UX is live in both, so runtime CRUD bought only gapless structural add/remove — not
+   worth the standing clock-exit invariant + least-tested paths for a rare admin action now.)
+2. **Control plane (OPEN):** bespoke per-channel harbor endpoints (status quo pattern in
+   `liquidsoap-render.ts`) **vs** the built-in `interactive.harbor` control surface. Must be
+   restart-agnostic (seam constraint 3 above) regardless of which. Decide in the design pass.
+3. **Airs-when-programmed × clock-exit — SETTLED via #1.** Under regenerate-and-restart the
+   zero-output clock-exit constraint does not bind; the broadcast output is the documented sentinel
+   that keeps the runtime-CRUD path available later. No open question remains here.
+4. **Version dependency — RESOLVED by the audit + upgrade story.** The Liquidsoap version/gap audit
+   ran (campaign `liquidsoap-version-capability-audit`); recommendation is upgrade 2.4.2 → 2.4.5
+   (story `research-handoff-liquidsoap-version-capability-audit-1`, filed). 2.4.2's bugs
+   (skip-from-harbor crossfade crash #5194, clock-detach-while-running #5051, `harbor.remove_http_handler`)
+   are **latent** for the chosen regenerate-and-restart design — none is on a path v1 exercises — so
+   this is a **soft dependency**: the upgrade should land first as good hygiene, but does not block
+   the v1 design. It becomes a hard dependency only if a later iteration adopts runtime CRUD or
+   crossfades.
