@@ -1,4 +1,4 @@
-FROM savonet/liquidsoap:v2.4.2
+FROM savonet/liquidsoap:v2.4.5
 
 USER root
 RUN mkdir -p /var/lib/apt/lists/partial && \
