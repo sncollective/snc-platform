@@ -56,7 +56,15 @@ end)
 # ── Channel: Classics (playout) ──
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue = request.queue(id="channel-903e6a20-0dea-42b1-8dd5-86afbec496ac")
-ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = fallback(track_sensitive=false, [ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue, mksafe(blank())])
+
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_mode = ref("auto")
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority = ref(0)
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed = ref(true)
+
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = switch(track_sensitive=false, [
+  ({ ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed() and ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority() == 0 }, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue),
+  ({ true }, mksafe(blank()))
+])
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri = ref("")
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title = ref("")
@@ -84,16 +92,48 @@ harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing", fun(_req, res) -> begin
-  e = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.elapsed()
-  r = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.remaining()
-  safe_elapsed = if e == infinity or e != e then -1. else e end
-  safe_remaining = if r == infinity or r != r then -1. else r end
+  selected = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.selected()
   res.json({
     uri = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri(),
     title = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title(),
-    elapsed = safe_elapsed,
-    remaining = safe_remaining
+    selected = selected
   })
+end)
+
+harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/mode", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_mode := req.body()
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
+end)
+
+harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/priority", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority := int_of_string(req.body())
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
+end)
+
+harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed := req.body() == "true"
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
 # ── S/NC TV (broadcast — static) ──

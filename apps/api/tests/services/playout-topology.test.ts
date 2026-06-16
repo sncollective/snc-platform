@@ -18,11 +18,14 @@ const ID_B = "bbbbbbbb-0000-0000-0000-000000000002";
 const ID_C = "cccccccc-0000-0000-0000-000000000003";
 
 describe("harborChannelPaths", () => {
-  it("builds the three control paths with the UUID verbatim", () => {
+  it("builds all six control paths with the UUID verbatim", () => {
     expect(harborChannelPaths(ROW.id)).toEqual({
       queue: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/queue",
       skip: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/skip",
       nowPlaying: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing",
+      mode: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/mode",
+      priority: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/priority",
+      arm: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm",
     });
   });
 });

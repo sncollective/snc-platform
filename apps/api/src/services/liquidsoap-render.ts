@@ -2,6 +2,7 @@ import { HARBOR_LEGACY_NOW_PLAYING, BROADCAST_INPUT_SWITCH_PATH } from "./playou
 import type {
   EnvRef,
   PlayoutChannelTopology,
+  PlayoutEditorialTier,
   PlayoutTopology,
 } from "./playout-topology.js";
 
@@ -14,18 +15,170 @@ const escLiq = (s: string): string => s.replace(/\\/g, "\\\\").replace(/"/g, '\\
 const envGet = (ref: EnvRef): string =>
   `environment.get("${ref.envVar}", default="${escLiq(ref.default)}")`;
 
+/**
+ * Render the Liquidsoap source variable declaration for a single editorial tier.
+ *
+ * Returns the variable name that represents this tier (for use in the switch predicate list),
+ * and a block of Liquidsoap declarations to emit before the switch.
+ */
+const renderTierSource = (
+  t: PlayoutTopology,
+  ch: PlayoutChannelTopology,
+  tier: PlayoutEditorialTier,
+  _tierIndex: number,
+): { varName: string; declaration: string } => {
+  const vid = ch.liqVar;
+  switch (tier.type) {
+    case "queue": {
+      // request.queue: the armed, manually-ordered queue for this channel.
+      // The _queue var is also used for on_metadata track-event webhook, so it is
+      // always declared even if the queue tier is the only tier (degenerate case).
+      const varName = `${vid}_queue`;
+      return {
+        varName,
+        declaration: `${varName} = request.queue(id="${tier.queueId}")`,
+      };
+    }
+    case "pool": {
+      // Pool: channel_content items auto-rotated via request.queue.
+      // The poolQueueId carries the pool queue identifier from topology.
+      // NOTE: pool vs queue queueId are the same string in the default topology (both
+      // map to `channel-<uuid>`); real pool configs will use a distinct poolQueueId.
+      // Rendered as a separate variable so the switch can reference them independently.
+      const varName = `${vid}_pool_source`;
+      return {
+        varName,
+        declaration: `${varName} = request.queue(id="${tier.poolQueueId}")`,
+      };
+    }
+    case "live": {
+      // Live RTMP ingest for this channel. Each channel listens on its own stream path
+      // on the broadcast input port; path is derived from the channel's srsStreamName.
+      // NOTE: per-channel live ingest URL is not yet carried in PlayoutEditorialTier;
+      // the broadcastInputPort + srsStreamName is the provisional derivation. A future
+      // topology extension should carry a `liveIngestUrl` field when live tiers are
+      // configured in practice (parked — no live tier in current test scenarios).
+      const varName = `${vid}_live_source`;
+      return {
+        varName,
+        declaration: `${varName} = input.rtmp(listen=true, "rtmp://0.0.0.0:${t.broadcastInputPort}/live/${escLiq(ch.srsStreamName)}")`,
+      };
+    }
+    case "channel-as-source": {
+      // The referenced channel's _source variable — already defined earlier in the file
+      // thanks to topological ordering enforced by buildPlayoutTopology.
+      // No new declaration needed; just reference the existing variable.
+      return {
+        varName: tier.sourceLiqVar,
+        declaration: "",
+      };
+    }
+  }
+};
+
+/**
+ * Render the Liquidsoap switch() predicate list for a channel's editorial tiers.
+ *
+ * AUTO mode: priority-ordered predicates — tier 0 is highest priority.
+ *   Each tier predicate checks `${vid}_priority() == <index>` AND (for the queue tier)
+ *   that the queue is armed. The arm ref gates the queue tier specifically; for other
+ *   tier types the predicate simply checks the priority index.
+ *
+ * MANUAL mode: a single predicate that is always true pins the manualTierIndex tier.
+ *   All other tiers are effectively shadowed.
+ *
+ * Always ends with `({ true }, mksafe(blank()))` — the infallible ready tail. This
+ * guarantees `${vid}_source.is_ready()` is always true and the output never goes dead.
+ *
+ * Behavioral-equivalence note: for a queue-only channel in AUTO mode (the current
+ * default — one tier at index 0, `{ type: "queue" }`), the switch resolves to:
+ *   switch(track_sensitive=false, [
+ *     ({ ${vid}_armed() and ${vid}_priority() == 0 }, ${vid}_queue),
+ *     ({ true }, mksafe(blank()))
+ *   ])
+ * When `${vid}_armed` is initialized to `true` for a queue-only channel (see below),
+ * and priority is 0, this is equivalent to `fallback([queue, mksafe(blank())])`:
+ * the queue plays whenever it is ready (a request.queue with pending items is_ready),
+ * else blank. The arm ref is the semantically correct gate — queue plays when armed.
+ */
+const renderSwitchPredicates = (
+  ch: PlayoutChannelTopology,
+  tierVarNames: string[],
+): string => {
+  const vid = ch.liqVar;
+
+  if (ch.mode === "manual" && ch.manualTierIndex !== null) {
+    const idx = ch.manualTierIndex;
+    const pinnedVar = tierVarNames[idx] ?? "mksafe(blank())";
+    const cases = [
+      `  ({ true }, ${pinnedVar})`,
+      `  ({ true }, mksafe(blank()))`,
+    ];
+    return `switch(track_sensitive=false, [\n${cases.join(",\n")}\n])`;
+  }
+
+  // AUTO mode: build priority-ordered predicates (index 0 = highest priority).
+  // The queue tier (if present) requires arm=true; other tiers just check priority index.
+  const cases = ch.tiers.map((tier, idx) => {
+    const varName = tierVarNames[idx] ?? "mksafe(blank())";
+    if (tier.type === "queue") {
+      // Queue tier: armed AND priority matches
+      return `  ({ ${vid}_armed() and ${vid}_priority() == ${idx} }, ${varName})`;
+    }
+    // All other tier types: just match on priority index
+    return `  ({ ${vid}_priority() == ${idx} }, ${varName})`;
+  });
+  cases.push(`  ({ true }, mksafe(blank()))`);
+  return `switch(track_sensitive=false, [\n${cases.join(",\n")}\n])`;
+};
+
 /** Render the Liquidsoap block for a single playout channel. */
 const renderChannelBlock = (t: PlayoutTopology, ch: PlayoutChannelTopology): string => {
   const vid = ch.liqVar;
-  return `
-# ── Channel: ${escLiq(ch.name)} (playout) ──
 
-${vid}_queue = request.queue(id="${ch.queueId}")
-${vid}_source = fallback(track_sensitive=false, [${vid}_queue, mksafe(blank())])
+  // ── Tier source declarations ──
+  // Collect declarations + variable names for each tier.
+  const tierDeclarations: string[] = [];
+  const tierVarNames: string[] = [];
+  for (let i = 0; i < ch.tiers.length; i++) {
+    const tier = ch.tiers[i]!;
+    const { varName, declaration } = renderTierSource(t, ch, tier, i);
+    if (declaration !== "") tierDeclarations.push(declaration);
+    tierVarNames.push(varName);
+  }
 
-${vid}_uri = ref("")
-${vid}_title = ref("")
-${vid}_queue.on_metadata(synchronous=false, fun(m) -> begin
+  // ── Queue tier detection ──
+  // Find the queue tier's variable name (for on_metadata track-event webhook).
+  const queueTierIdx = ch.tiers.findIndex((tier) => tier.type === "queue");
+  const queueVarName = queueTierIdx >= 0 ? (tierVarNames[queueTierIdx] ?? null) : null;
+  const queueTier = queueTierIdx >= 0 ? ch.tiers[queueTierIdx] : null;
+
+  // For a queue-only default channel (no explicit config → single queue tier at index 0),
+  // initialize armed=true so the switch behaves equivalently to fallback([queue, blank]):
+  // the queue plays whenever it has items (is_ready), else the mksafe tail fires.
+  // If the channel has multiple tiers, start unarmed — the operator explicitly arms the queue.
+  const initialArmed = ch.tiers.length === 1 && ch.tiers[0]?.type === "queue" ? "true" : "false";
+
+  // ── Control refs ──
+  // Initialized from persisted config (restart-agnostic: a restart re-renders these
+  // init values from the stored config, so live mutations survive across restarts).
+  const modeInit = ch.mode;
+  const priorityInit = ch.manualTierIndex !== null ? ch.manualTierIndex : 0;
+
+  // ── Switch predicates ──
+  const switchExpr = renderSwitchPredicates(ch, tierVarNames);
+
+  // ── Now-playing reads switch.selected() ──
+  // Uses switch.selected() — NOT on_metadata — per position gotcha #1. on_metadata is
+  // blind to mid-track re-selection; .selected() is the authoritative current-child query.
+  // The on_metadata webhook (track-event POST) stays for the API live-state holder;
+  // now-playing introspection reads selected state directly.
+
+  // Queue webhook block (only emitted if a queue tier exists)
+  const queueWebhookBlock =
+    queueVarName && queueTier && queueTier.type === "queue"
+      ? `
+${queueVarName}.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
   ${vid}_uri := if u == "" then m["filename"] else u end
   ${vid}_title := m["title"]
@@ -34,12 +187,27 @@ ${vid}_queue.on_metadata(synchronous=false, fun(m) -> begin
     data='{"uri":"#{${vid}_uri()}","title":"#{${vid}_title()}"}',
     "http://#{api_host}:#{api_port}${ch.trackEventPath}?secret=#{callback_secret}"
   ))
-end)
+end)`
+      : "";
+
+  return `
+# ── Channel: ${escLiq(ch.name)} (playout) ──
+
+${tierDeclarations.join("\n")}
+
+${vid}_mode = ref("${modeInit}")
+${vid}_priority = ref(${priorityInit})
+${vid}_armed = ref(${initialArmed})
+
+${vid}_source = ${switchExpr}
+
+${vid}_uri = ref("")
+${vid}_title = ref("")${queueWebhookBlock}
 
 output.url(url="rtmp://#{srs_host}:${t.srsRtmpPort}/live/${escLiq(ch.srsStreamName)}?key=#{playout_key}", enc, ${vid}_source)
 
 harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.queue}", fun(req, res) -> begin
-  ${vid}_queue.push.uri(req.body())
+  ${queueVarName ?? `${vid}_queue`}.push.uri(req.body())
   res.data("queued")
 end)
 
@@ -49,16 +217,48 @@ harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.skip
 end)
 
 harbor.http.register(port=${t.harborPort}, method="GET", "${ch.harborPaths.nowPlaying}", fun(_req, res) -> begin
-  e = ${vid}_source.elapsed()
-  r = ${vid}_source.remaining()
-  safe_elapsed = if e == infinity or e != e then -1. else e end
-  safe_remaining = if r == infinity or r != r then -1. else r end
+  selected = ${vid}_source.selected()
   res.json({
     uri = ${vid}_uri(),
     title = ${vid}_title(),
-    elapsed = safe_elapsed,
-    remaining = safe_remaining
+    selected = selected
   })
+end)
+
+harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.mode}", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${vid}_mode := req.body()
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
+end)
+
+harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.priority}", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${vid}_priority := int_of_string(req.body())
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
+end)
+
+harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.arm}", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${vid}_armed := req.body() == "true"
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 `;
 };

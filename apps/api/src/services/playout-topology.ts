@@ -54,6 +54,9 @@ export interface PlayoutChannelTopology {
     readonly queue: string;
     readonly skip: string;
     readonly nowPlaying: string;
+    readonly mode: string;
+    readonly priority: string;
+    readonly arm: string;
   };
   /** API callback path the channel posts track events to. */
   readonly trackEventPath: string;
@@ -131,6 +134,9 @@ export const harborChannelPaths = (
   queue: `/channels/${channelId}/queue`,
   skip: `/channels/${channelId}/skip`,
   nowPlaying: `/channels/${channelId}/now-playing`,
+  mode: `/channels/${channelId}/mode`,
+  priority: `/channels/${channelId}/priority`,
+  arm: `/channels/${channelId}/arm`,
 });
 
 // ── Private: Editorial tier resolution ──
