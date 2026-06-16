@@ -88,12 +88,15 @@ over-generalizing. Immediate SNC payoff: richer research-backed skills for the O
 ## Resume map
 
 - **Editorial-engine design pass is the next move** (`unified-channel-model-editorial-engine`, still
-  `drafting`) — now fully unblocked: spike settled, version question answered. It's a proper
-  `feature-design` pass with real forks to surface to the user (CRUD mechanism: runtime
-  attach/detach vs regenerate-and-restart; control plane: bespoke harbor vs `interactive.harbor`;
-  the sentinel-output reconciliation of airs-when-programmed × clock-exit; child-story
-  decomposition). Soft-depends on the 2.4.5 upgrade story landing first. The spike position +
-  feature body already carry these forks.
+  `drafting`) — now fully unblocked: spike settled, version question answered, **and the central
+  CRUD fork settled** (end of session): channel CRUD = **regenerate-and-restart now, runtime-ready
+  later** (the editorial UX is live in both; runtime CRUD bought only gapless structural add/remove
+  at a standing-invariant + least-tested-paths cost, not worth it for a rare admin action now; seam
+  kept ready via broadcast-output-as-sentinel + pure render + restart-agnostic control plane).
+  Recorded in the position §CRUD mechanism + the feature body. **Remaining open fork for the design
+  pass: the control plane** (bespoke harbor endpoints vs `interactive.harbor`) + child-story
+  decomposition. Soft-depends on the 2.4.5 upgrade story landing first (good hygiene; not a hard
+  block for the chosen regenerate-and-restart design — its bugs are latent for v1).
 - **Upgrade story is filed and ready** (`research-handoff-...-1`) — small, surgical, revertible.
 - ARD v0.6.0 cut now waits on the sixth child (`feature-ard-vendored-source-research-mode`,
   drafting) before the dual-pin move.
