@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-live-data
 kind: feature
-stage: review
+stage: done
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-event-spine-publishers]
@@ -165,3 +165,15 @@ tsc clean. Live: /admin/playout → 307 (admin-gated); /api/sse?topics=playout u
 denied:[playout] (the degraded-poll path's trigger, confirmed). Optimistic queue updates
 deferred — the spine re-fetch already lands sub-tick on a live connection, so the "up to 3s
 lag" the brief targeted is solved by the conversion itself. → review.
+
+## Review (2026-06-16)
+
+**Verdict**: Approve. Adversarial review found no blockers. It validated the riskiest
+piece (reload-gating: all 4 paths correct; the no-auto-reload-on-restart-timeout is a
+deliberate improvement over the old 500ms race, with a user toast) and the crux question
+(reactive staleness): the kill-silent-stale goal HOLDS because the 3s fallback poll is the
+re-render clock that surfaces the banner even with the spine open. Fixes applied: removed a
+dead useRef import (nit) + added the data-age staleness test (the one gap — covers the
+feature's core claim). web 1760/1760, tsc clean, live-verified (admin-gated; SSE playout
+topic denies unauth → the degraded-poll trigger). Note for future: the 3s poll is
+load-bearing for the stale banner, not merely a fallback — don't spine-gate it.
