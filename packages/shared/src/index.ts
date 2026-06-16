@@ -33,4 +33,5 @@ export * from "./consent.js";
 export * from "./join.js";
 export * from "./invite.js";
 export * from "./events.js";
+export * from "./editorial.js";
 export { textToStream, streamToText } from "./storage-contract.js";

@@ -1,0 +1,1 @@
+ALTER TABLE "channel_editorial_config" ADD CONSTRAINT "channel_editorial_config_manual_tier_id_channel_editorial_tiers_id_fk" FOREIGN KEY ("manual_tier_id") REFERENCES "public"."channel_editorial_tiers"("id") ON DELETE set null ON UPDATE no action;
