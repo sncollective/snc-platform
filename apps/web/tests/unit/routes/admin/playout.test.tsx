@@ -590,5 +590,35 @@ describe("content pool", () => {
 
       vi.unstubAllGlobals();
     });
+
+    it("shows the stale banner when data silently ages past the threshold (spine still open)", async () => {
+      // The core "kill silent-stale" claim: even with the spine OPEN, if re-fetches
+      // start failing and data ages past the threshold, the 3s fallback poll re-renders
+      // and surfaces the banner. Drive it with fake timers.
+      vi.useFakeTimers();
+      const t0 = new Date("2026-06-16T00:00:00Z");
+      vi.setSystemTime(t0);
+
+      render(<PlayoutPage />);
+      // First fetch resolves → lastUpdatedAt stamped, spine open, no banner.
+      await act(async () => {
+        lastSource().emitConnected(["playout"]);
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(screen.queryByText(/Data may be out of date/)).not.toBeInTheDocument();
+
+      // Re-fetches now fail; advance the clock past the 50s stale threshold while the
+      // 3s poll keeps ticking (each tick re-renders even on failure).
+      mockFetchChannelQueue.mockRejectedValue(new Error("Liquidsoap down"));
+      vi.setSystemTime(new Date(t0.getTime() + 60_000));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6_000); // a couple of poll ticks
+      });
+
+      expect(screen.getByText(/Data may be out of date/)).toBeInTheDocument();
+
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
   });
 });
