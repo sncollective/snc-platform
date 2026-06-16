@@ -34,6 +34,7 @@ import { calendarEventTypeRoutes } from "./routes/calendar-event-types.routes.js
 import { upcomingEventsRoutes } from "./routes/upcoming-events.routes.js";
 import { creatorEventRoutes } from "./routes/creator-events.routes.js";
 import { notifyRoutes } from "./routes/notify.routes.js";
+import { joinRoutes, joinConfigRoutes } from "./routes/join.routes.js";
 import { projectRoutes } from "./routes/project.routes.js";
 import { streamingRoutes } from "./routes/streaming.routes.js";
 import { streamingConnectRoutes } from "./routes/streaming-connect.routes.js";
@@ -139,7 +140,9 @@ app.route("/api/creators", creatorMediaRoutes);
 app.route("/api/creators", creatorMemberRoutes);
 app.route("/api/creators", creatorEventRoutes);
 app.route("/api/creators", followRoutes);
+app.route("/api/creators", joinConfigRoutes);
 app.route("/api/notify-when-live", notifyRoutes);
+app.route("/api/join", joinRoutes);
 app.route("/api/invites", inviteRoutes);
 app.route("/api/admin/creators", adminCreatorRoutes);
 app.route("/api/admin", adminRoutes);

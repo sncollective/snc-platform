@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, boolean, index, primaryKey } from "drizzle-orm/pg-core";
 
 import type { SocialLink, CreatorMemberRole, CreatorStatus } from "@snc/shared";
 
@@ -57,3 +57,16 @@ export const creatorMembers = pgTable(
     index("creator_members_creator_role_idx").on(table.creatorId, table.role),
   ],
 );
+
+// ── Join Page Config ──
+
+/** Per-creator join-page configuration. Row optional — absent row = defaults. */
+export const creatorJoinConfigs = pgTable("creator_join_configs", {
+  creatorId: text("creator_id")
+    .primaryKey()
+    .references(() => creatorProfiles.id, { onDelete: "cascade" }),
+  incentiveText: text("incentive_text"),
+  showSncExplainer: boolean("show_snc_explainer").notNull().default(true),
+  showSubscribeCta: boolean("show_subscribe_cta").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -1,13 +1,13 @@
 ---
 id: email-capture-at-shows-join-api
 kind: story
-stage: implementing
+stage: review
 tags: [community, commerce]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-16
 parent: email-capture-at-shows
 ---
 
@@ -41,3 +41,17 @@ Units 1–2 of the parent feature design (read `## Implementation Units` in
 - [ ] `complete` without `consent: true` → 422 and writes nothing
 - [ ] Join payload 404s on unknown creator; returns defaults when unconfigured
 - [ ] `PATCH join-config` rejected for non-members
+
+## Implementation (2026-06-16)
+Unit 1 (schema) + Unit 2 (service+routes). consentLog table + PRIVACY_POLICY_VERSION
+were already landed (via notify-me); this story added creatorJoinConfigs (migration 0028),
+shared join types (packages/shared/src/join.ts), services/join.ts (getJoinPagePayload,
+completeJoin [reuses followCreator + consentLog, idempotent], getJoinConfig,
+updateJoinConfig [upsert]), and routes/join.routes.ts: GET /api/join/:handleOrId (public,
+rateLimiter, dual-mode handle/id via findCreatorProfile), POST /:creatorId/complete
+(requireAuth, consent:literal-true), GET/PATCH /api/creators/:creatorId/join-config
+(editProfile permission). Mounted in app.ts.
+
+Verified: 9 route tests; api 1635/1635, tsc clean. Live stack: GET /api/join/maya-chen
+→ 200 (real payload, config defaults when no row), POST /complete unauth → 401.
+join-api → review.
