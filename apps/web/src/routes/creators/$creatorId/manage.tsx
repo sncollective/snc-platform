@@ -29,6 +29,7 @@ const MANAGE_ITEMS: readonly ContextNavItem[] = [
   { to: "/calendar", label: "Calendar", creatorPermission: "manageScheduling" },
   { to: "/projects", label: "Projects", creatorPermission: "manageScheduling" },
   { to: "/streaming", label: "Streaming" },
+  { to: "/join", label: "Join page", creatorPermission: "editProfile" },
   { to: "/settings", label: "Settings", creatorPermission: "editProfile" },
   { to: "/members", label: "Members" },
 ];
