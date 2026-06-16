@@ -1,7 +1,7 @@
 ---
 id: playout-admin-redesign-live-data
 kind: feature
-stage: implementing
+stage: review
 tags: [playout, admin-console]
 release_binding: null
 depends_on: [bold-event-spine-sse-endpoint, bold-event-spine-publishers]
@@ -147,3 +147,21 @@ broadcast live-creator badge uses derived `liveState`.
   server reject. Keep the optimistic window small.
 - **Stale-threshold tuning** — start ~2× the 25s spine heartbeat (a missed heartbeat window is
   the natural staleness signal); tune live.
+
+## Implementation (2026-06-16)
+Reused the existing SpineProvider/useSpineTopic/useSpineStatus primitive. PlayoutPage wraps
+PlayoutPageInner in <SpineProvider topics={["playout"]}>; useChannelQueue now returns
+{data, lastUpdatedAt, refetch} (stamps lastUpdatedAt on each success); useSpineTopic("playout")
+re-fetches on queue/now-playing/engine events (3s poll kept as fallback). PlayoutStatusBar
+(connection pill + stale banner, data-age-derived, extensible slot for the future drift
+banner). Engine-restart honesty: consume playout.engine-restarted → engineStatus 'ready';
+deleted both setTimeout(reload,500) races → a useEffect reloads only when engineStatus==='ready'
+(create-without-restart reloads immediately). Nothing-playing tri-state ("not responding" when
+null+stale vs "Loading…"). BroadcastStatus identity-proxy TODO replaced with the shipped
+broadcast.liveState==='live-creator' (covers the Liquidsoap-takeover case the proxy missed).
+
+Verified: web 1759/1759 (+2 spine tests: queue-changed→refetch, spine-drop→stale banner),
+tsc clean. Live: /admin/playout → 307 (admin-gated); /api/sse?topics=playout unauth →
+denied:[playout] (the degraded-poll path's trigger, confirmed). Optimistic queue updates
+deferred — the spine re-fetch already lands sub-tick on a live connection, so the "up to 3s
+lag" the brief targeted is solved by the conversion itself. → review.

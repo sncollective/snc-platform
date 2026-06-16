@@ -31,6 +31,12 @@ import {
 import { retryPlayoutIngest } from "../../lib/playout.js";
 import { formatSeconds } from "../../lib/format-duration.js";
 import { usePolling } from "../../hooks/use-polling.js";
+import {
+  SpineProvider,
+  useSpineStatus,
+  useSpineTopic,
+} from "../../contexts/spine-context.js";
+import type { SpineStatus } from "../../contexts/spine-store.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import formStyles from "../../styles/form.module.css";
 import pageHeadingStyles from "../../styles/page-heading.module.css";
@@ -65,16 +71,88 @@ export const Route = createFileRoute("/admin/playout")({
 
 // ── Channel Queue Hook ──
 
-/** Poll channel queue status every 3 seconds. Returns null while loading or when no channel is selected. */
-function useChannelQueue(channelId: string | null): ChannelQueueStatus | null {
+interface ChannelQueueState {
+  /** Latest queue status, or null while loading / no channel selected. */
+  readonly data: ChannelQueueStatus | null;
+  /** Epoch ms of the last successful (non-error) fetch — the freshness stamp. */
+  readonly lastUpdatedAt: number | null;
+  /** Trigger an immediate out-of-cycle re-fetch (e.g. on a spine event). */
+  readonly refetch: () => void;
+}
+
+/**
+ * Channel queue status: spine-driven re-fetch with a 3s poll as the degraded
+ * fallback. `lastUpdatedAt` stamps every successful fetch so staleness is measured by
+ * data age, not socket state (the spine can be open while a re-fetch fails).
+ */
+function useChannelQueue(channelId: string | null): ChannelQueueState {
   // The fetcher resolves null when no channel is selected, so no request fires;
   // re-subscribing on `channelId` resets status to null between channels.
-  const { data } = usePolling<ChannelQueueStatus | null>(
-    () => (channelId ? fetchChannelQueue(channelId) : Promise.resolve(null)),
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+
+  const { data, refetch } = usePolling<ChannelQueueStatus | null>(
+    () =>
+      channelId
+        ? fetchChannelQueue(channelId).then((d) => {
+            setLastUpdatedAt(Date.now());
+            return d;
+          })
+        : Promise.resolve(null),
     QUEUE_POLL_INTERVAL_MS,
     { key: channelId },
   );
-  return data;
+
+  return { data, lastUpdatedAt, refetch };
+}
+
+// ── Playout Status Bar ──
+
+/** Default staleness threshold: ~2× the spine's 25s heartbeat — a missed window. */
+const STALE_THRESHOLD_MS = 50_000;
+
+/** Relative "updated Ns ago" label from a freshness stamp. */
+function relativeAge(lastUpdatedAt: number | null): string {
+  if (lastUpdatedAt === null) return "not yet updated";
+  const secs = Math.max(0, Math.round((Date.now() - lastUpdatedAt) / 1000));
+  if (secs < 60) return `updated ${secs}s ago`;
+  return `updated ${Math.round(secs / 60)}m ago`;
+}
+
+/**
+ * Connection-state indicator + stale banner. A persistent subtle "Live"/"Reconnecting"
+ * pill, plus a prominent banner when the spine isn't open OR the data has aged past the
+ * threshold — killing the silent-stale failure mode. Designed as a single status slot
+ * that the future drift/restart banner (bold-channel-topology-drift-detection) can share.
+ */
+function PlayoutStatusBar({
+  spineStatus,
+  lastUpdatedAt,
+  staleThresholdMs = STALE_THRESHOLD_MS,
+}: {
+  readonly spineStatus: SpineStatus;
+  readonly lastUpdatedAt: number | null;
+  readonly staleThresholdMs?: number;
+}): React.ReactElement {
+  const dataStale =
+    lastUpdatedAt !== null && Date.now() - lastUpdatedAt > staleThresholdMs;
+  const isStale = spineStatus !== "open" || dataStale;
+
+  return (
+    <div className={styles.statusBar}>
+      <span
+        className={spineStatus === "open" ? styles.connLive : styles.connReconnecting}
+        aria-live="polite"
+      >
+        <span className={styles.connDot} aria-hidden="true" />
+        {spineStatus === "open" ? "Live" : "Reconnecting…"}
+      </span>
+      {isStale && (
+        <div className={styles.staleBanner} role="status">
+          Data may be out of date — {relativeAge(lastUpdatedAt)}.
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Broadcast Status Component ──
@@ -88,9 +166,10 @@ function BroadcastStatus({
   const broadcast = channels.find((ch) => ch.role === "broadcast");
   if (!broadcast) return null;
 
-  // TODO(live-state): replace identity proxy with derived airing-state.
-  // Interim: a creator-owned live-ingest channel stands in for "live creator on air"
-  // until live-experience-redesign-live-state lands the real on-air derivation.
+  // A creator is on air when the broadcast's derived liveState says so (covers the
+  // Liquidsoap-takeover case the old identity proxy missed). The creator's name still
+  // comes from the live-ingest channel — that data isn't on the broadcast row.
+  const broadcastIsLiveCreator = broadcast.liveState === "live-creator";
   const liveCreator = channels.find(
     (ch) => ch.ownership === "creator" && ch.role === "live-ingest" && ch.creator,
   );
@@ -108,9 +187,9 @@ function BroadcastStatus({
           </span>
         )}
       </div>
-      {liveCreator ? (
+      {broadcastIsLiveCreator ? (
         <div className={styles.nowPlaying}>
-          <strong>Live:</strong> {liveCreator.creator!.displayName}
+          <strong>Live:</strong> {liveCreator?.creator?.displayName ?? "Creator on air"}
         </div>
       ) : broadcast.nowPlaying ? (
         <div className={styles.nowPlaying}>
@@ -124,14 +203,64 @@ function BroadcastStatus({
 
 // ── Page Component ──
 
-/** Admin playout management page — channel tabs, queue, and content pool. */
+/**
+ * Admin playout management page. Wrapped in a spine connection on the admin-access
+ * `playout` topic so queue/now-playing/engine state are pushed (re-fetched on event),
+ * not polled on a fixed 3s cycle. Route-scoped — only the admin playout page opens a
+ * connection (respects the maxConnections cap for users elsewhere).
+ */
 function PlayoutPage(): React.ReactElement {
+  return (
+    <SpineProvider topics={PLAYOUT_TOPICS}>
+      <PlayoutPageInner />
+    </SpineProvider>
+  );
+}
+
+const PLAYOUT_TOPICS = ["playout"] as const;
+
+/** Channel tabs, queue, and content pool. */
+function PlayoutPageInner(): React.ReactElement {
   const { allChannels, playoutChannels } = Route.useLoaderData();
 
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     playoutChannels[0]?.id ?? null,
   );
-  const queueStatus = useChannelQueue(selectedChannelId);
+  const { data: queueStatus, lastUpdatedAt, refetch: refetchQueue } =
+    useChannelQueue(selectedChannelId);
+
+  const [engineStatus, setEngineStatus] = useState<"ready" | "restarting" | null>(null);
+
+  // Spine-driven freshness: re-fetch the queue on a playout event instead of waiting
+  // up to 3s, and resolve engine-restart honestly off the real event (not a 500ms
+  // race). The poll inside useChannelQueue stays as the degraded fallback.
+  // Set when a channel create/delete restarts the engine: the page reload is
+  // deferred until the engine is actually ready (no fixed 500ms race that reloads
+  // mid-restart and never shows the pulsing tab).
+  const [reloadWhenReady, setReloadWhenReady] = useState(false);
+
+  useSpineTopic("playout", (event) => {
+    if (event.type === "playout.engine-restarted") {
+      setEngineStatus("ready");
+    }
+    refetchQueue();
+  });
+  const spineStatus = useSpineStatus().status;
+
+  useEffect(() => {
+    if (reloadWhenReady && engineStatus === "ready") {
+      window.location.reload();
+    }
+  }, [reloadWhenReady, engineStatus]);
+
+  // Nothing-playing tri-state: a null queue is only "loading" before the first fetch.
+  // Once we've fetched at least once but the data is stale or the spine is down, the
+  // honest read is "Liquidsoap not responding", not a perpetual "Loading…".
+  const queueNotResponding =
+    queueStatus === null &&
+    selectedChannelId !== null &&
+    lastUpdatedAt !== null &&
+    (spineStatus !== "open" || Date.now() - lastUpdatedAt > STALE_THRESHOLD_MS);
 
   const [poolItems, setPoolItems] = useState<ChannelContent[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -149,9 +278,6 @@ function PlayoutPage(): React.ReactElement {
   // Channel deletion state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingChannel, setIsDeletingChannel] = useState(false);
-
-  // Engine restart status indicator
-  const [engineStatus, setEngineStatus] = useState<"ready" | "restarting" | null>(null);
 
   // Fetch content pool when selected channel changes
   useEffect(() => {
@@ -305,12 +431,14 @@ function PlayoutPage(): React.ReactElement {
           setEngineStatus("ready");
           toaster.success({ title: "Playout engine ready" });
         } else {
-          pollEngineHealth();
+          pollEngineHealth(); // no-spine fallback; the spine engine-restarted event also resolves it
         }
+        // Reload once the engine is actually ready (spine event or poll), not on a timer.
+        setReloadWhenReady(true);
+      } else {
+        // No restart — just reload to pick up the new channel in the tabs.
+        window.location.reload();
       }
-
-      // Reload to pick up new channel in tabs (after toasts are shown)
-      setTimeout(() => { window.location.reload(); }, 500);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to create channel");
     } finally {
@@ -330,9 +458,9 @@ function PlayoutPage(): React.ReactElement {
         title: "Channel deleted",
         description: "Playout engine restarting with updated configuration...",
       });
-      pollEngineHealth();
-      // Reload to remove deleted channel from tabs
-      setTimeout(() => { window.location.reload(); }, 500);
+      pollEngineHealth(); // no-spine fallback; the spine engine-restarted event also resolves it
+      // Reload once the engine is ready (spine event or poll), not on a timer.
+      setReloadWhenReady(true);
     } catch (e) {
       setShowDeleteConfirm(false);
       setActionError(e instanceof Error ? e.message : "Failed to delete channel");
@@ -353,6 +481,8 @@ function PlayoutPage(): React.ReactElement {
   return (
     <div className={styles.page}>
       <h1 className={pageHeadingStyles.heading}>Playout</h1>
+
+      <PlayoutStatusBar spineStatus={spineStatus} lastUpdatedAt={lastUpdatedAt} />
 
       <BroadcastStatus channels={allChannels} />
 
@@ -485,7 +615,11 @@ function PlayoutPage(): React.ReactElement {
             )}
 
             {queueStatus === null ? (
-              <p className={listingStyles.status}>Loading…</p>
+              <p className={listingStyles.status}>
+                {queueNotResponding
+                  ? "Playout engine not responding — data may be out of date."
+                  : "Loading…"}
+              </p>
             ) : queueStatus.nowPlaying != null ? (
               <div className={styles.nowPlayingCard}>
                 <div className={styles.nowPlayingInfo}>

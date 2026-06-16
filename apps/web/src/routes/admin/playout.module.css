@@ -307,6 +307,63 @@
   margin-top: var(--space-sm);
 }
 
+/* ── Live-data status bar ── */
+
+.statusBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.connLive,
+.connReconnecting {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.connLive {
+  color: var(--color-success);
+}
+
+.connReconnecting {
+  color: var(--color-muted);
+}
+
+.connDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.connReconnecting .connDot {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.staleBanner {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  border-left: 3px solid var(--color-error, #c0392b);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
 .statusLive {
   color: var(--color-success);
   font-weight: 600;

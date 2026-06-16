@@ -5,7 +5,9 @@ import {
   vi,
   beforeEach,
 } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+
+import { FakeEventSource } from "../../../helpers/fake-event-source.js";
 import userEvent from "@testing-library/user-event";
 import type {
   ChannelListResponse,
@@ -543,6 +545,50 @@ describe("content pool", () => {
         "ch_playout_1",
         ["item_001"],
       );
+    });
+  });
+
+  describe("spine live-data", () => {
+    const lastSource = () => {
+      const s = FakeEventSource.instances.at(-1);
+      if (!s) throw new Error("no FakeEventSource");
+      return s;
+    };
+
+    beforeEach(() => {
+      vi.stubGlobal("EventSource", FakeEventSource);
+      FakeEventSource.reset();
+    });
+
+    it("re-fetches the queue on a playout.queue-changed event (not waiting for the 3s poll)", async () => {
+      render(<PlayoutPage />);
+      // Initial mount fetch(es).
+      await waitFor(() => expect(mockFetchChannelQueue).toHaveBeenCalled());
+      const callsBefore = mockFetchChannelQueue.mock.calls.length;
+
+      act(() => lastSource().emitConnected(["playout"]));
+      act(() => lastSource().emitEvent("playout.queue-changed", { channelId: "ch_playout_1" }));
+
+      await waitFor(() =>
+        expect(mockFetchChannelQueue.mock.calls.length).toBeGreaterThan(callsBefore),
+      );
+
+      vi.unstubAllGlobals();
+    });
+
+    it("shows the stale banner when the spine connection drops", async () => {
+      render(<PlayoutPage />);
+      act(() => lastSource().emitConnected(["playout"]));
+      // Healthy: quiet Live indicator, no stale banner.
+      expect(screen.getByText("Live")).toBeInTheDocument();
+
+      act(() => lastSource().emitError(FakeEventSource.CLOSED));
+
+      await waitFor(() =>
+        expect(screen.getByText(/Data may be out of date/)).toBeInTheDocument(),
+      );
+
+      vi.unstubAllGlobals();
     });
   });
 });
