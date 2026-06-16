@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
@@ -62,3 +62,26 @@ All four `.liq` snapshot files (`playout-0ch.liq`, `playout-1ch.liq`, `playout-2
 
 ### Test results
 112 test files, 1683 tests — all pass.
+
+## Review (2026-06-16)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important** (filed → `editorial-config-review-followups` backlog §"From topology review"; none block the chain):
+- `topoSort` reverse-maps `sourceLiqVar → channelId` instead of using the edge data already available
+  from the config at build time — correct for UUID ids, fragile otherwise.
+- Plain `Error` thrown in 4 spots — violates the typed-`AppError` convention.
+- `resolveSourceVar` throwing on an unknown referenced channel fails the whole render, not just the bad
+  tier (edge case; FK cascade mostly prevents dangling refs).
+
+**Nits**: `liquidsoap-config.ts` degrades editorial-config fetch failures to queue-only + warn — a
+reasonable best-effort choice now; revisit fail-loud-vs-degrade once the render consumes tiers.
+
+**Notes**: Substrate review — read the new helpers (`resolveEditorialTier`, `topoSort`, the grown
+`buildPlayoutTopology`) + the `liquidsoap-config.ts` caller change + test titles. Confirmed: Kahn's
+topo sort is correct and stable (input-order tiebreak, fast-path preserves order → goldens byte-identical,
+verified empty `__snapshots__` diff); config-less channels default to queue-only auto (preserves current
+render); the 20 new tests assert real behavior (no gaming). The findings are quality/fragility, not
+correctness, for the current UUID-id scheme.
