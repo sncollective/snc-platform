@@ -6,15 +6,20 @@ description: >
   RTMP push, live streaming automation, playout.liq, annotate, metadata,
   on_metadata, s3 protocol, request.queue.
 user-invocable: false
-updated: 2026-04-13
+updated: 2026-06-16
 ---
 
 # Liquidsoap v2.4 Reference
 
-> **Version:** 2.4.x
+> **Version:** we run **2.4.2** (production container). Upstream latest is 2.4.5; 2.5.0 is
+> unreleased. Some runtime-topology fixes land in 2.4.3+ — see the version caveats in the
+> reference's Dynamic Topology section, and the pending Liquidsoap version/gap research engagement.
 > **Docs:** https://liquidsoap.readthedocs.io/en/latest/
 
 See [reference.md](reference.md) for the full API reference (sources, outputs, operators, settings, scripting).
+For **runtime source switching without restart** (`source.dynamic`, ref-driven `switch()`,
+`switch.selected()`, `interactive.*`, runtime attach/detach) — the editorial-engine substrate —
+see reference.md §Dynamic Topology.
 
 ## Key Gotchas
 

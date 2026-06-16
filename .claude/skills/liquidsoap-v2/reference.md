@@ -1420,3 +1420,116 @@ harbor.http.register(port=8888, method="GET", "/playlist-status", fun(_req, res)
   })
 end)
 ```
+
+---
+
+## Dynamic Topology — runtime source switching without restart
+
+> **Source-grounded against Liquidsoap 2.4.2** (the version we run) during the editorial-engine
+> spike, 2026-06-16. These primitives let a *persistent* pipeline change what it plays — and even
+> what sources/outputs exist — at runtime, without restarting the process. Load-bearing for any
+> "switch the source live, don't regenerate-and-restart" design.
+>
+> **Version caveat:** `source.dynamic` was actively buggy through 2.4.1 (source leaks / premature
+> cleanup, fixed in #4835/#4713/#4745) and runtime clock-detach was fixed in 2.4.3 (#5051). On
+> 2.4.2 the live-switch path (ref-driven `switch()`) is solid; the runtime *attach/detach* path is
+> less proven. Treat anything below the `switch()` subsection as "validate before relying on it in
+> production on 2.4.2."
+
+### `switch.selected()` — authoritative now-selected introspection
+
+A `switch()`/`fallback()` source exposes `.selected()` returning the currently-active child
+source (nullable). **This is the correct way to report what's playing — NOT `on_metadata`/`on_track`,**
+which only fire at the *new* source's track boundary and read as "stuck on the old source" on
+continuous streams (this cost real spike time before `.selected()` was found).
+
+```liquidsoap
+def current_leaf() =
+  s = my_switch.selected()
+  if null.defined(s) then source.id(null.get(s)) else "(none)" end
+end
+```
+
+### Ref-driven `switch()` predicates — the live-switch mechanism
+
+`switch()` re-evaluates each predicate against the clock — every frame when
+`track_sensitive=false`, at track boundaries when `true`. A predicate that reads a `ref()`
+therefore causes **live re-selection** when the ref is mutated (e.g. from a harbor handler). This
+is the no-restart editorial-switching primitive.
+
+```liquidsoap
+priority    = ref("a")       # mutated via harbor
+queue_armed = ref(false)
+selected = switch(track_sensitive=false, [
+  ({ queue_armed() },     armed_queue ),   # arm/take tier
+  ({ priority() == "b" }, source_b ),
+  ({ true },              mksafe(blank()) ) # always-ready default tail
+])
+# A harbor POST that does `priority := "b"` switches the live output on the next frame.
+```
+
+`fallback([a, b, c])` is exactly `switch()` with constant `{true}` predicates — same
+re-evaluation semantics. Keep an always-ready tail (`mksafe(blank())`) so the switch never has
+zero ready children.
+
+### `source.dynamic` — swap a tier's underlying source at runtime
+
+`source.dynamic(getter)` plays whatever its getter returns; the child need not exist at
+parse time. The getter signature is `() -> source('a).{activation? : activation}?`:
+
+- Return **`null`** → keep the current child unchanged.
+- Return **a source** → switch to it (the operator prepares/wakes it).
+- For a source you'll hand back later, call `dyn.prepare(src)` first — it wakes the source and
+  attaches the `activation` method the getter's return type wants.
+
+```liquidsoap
+# A ref-driven slot: harbor mutates which source the dynamic tier serves.
+next_src = ref(null)
+def getter() = let s = next_src(); next_src := null; s end
+dyn = source.dynamic(getter)
+
+# from a harbor handler: next_src := request.once(request.create("s3://..."))
+```
+
+**Gotchas (cost spike iterations):**
+- Callbacks need `synchronous=` (same as everywhere in 2.4) — `on_track`/`on_metadata` included.
+- A `null` initial slot crashes at wake-up — provide a valid `init=` source or seed the slot.
+- The getter must return the `source?` shape, not a bare source in a record — match the signature.
+
+### `interactive.*` variables + `interactive.harbor` — built-in control plane
+
+`interactive.float`/`int`/`bool`/`string`/`unit` create runtime-mutable globals backed by refs.
+`interactive.harbor(port=, uri=)` registers a built-in GET (control webpage) + POST (setter) —
+**a first-class HTTP control plane without writing per-variable harbor handlers.** Each variable
+also gets a `.set` method and telnet `var.set <name> = <value>` / `var.get <name>`.
+
+```liquidsoap
+gain = interactive.float("gain_db", 0.0)     # read as gain() in any getter/predicate
+interactive.harbor(port=8888, uri="/interactive")   # POST name=value to mutate
+```
+
+Candidate for a mode/priority control plane if preferred over bespoke harbor endpoints.
+
+### Runtime attach/detach of sources and outputs — the CRUD ceiling
+
+The clock supports `attach`/`detach` of sources and outputs at runtime (flushed once per tick),
+so a new `output.url(...)` created live activates on the next tick, and an output can be detached
+live. **One hard constraint:** the clock thread runs only `while has_sources_to_process()` — if
+the *last* output is detached the clock thread exits and does NOT auto-restart on a later attach
+(needs `Clock.start`, not script-reachable). Practical rule: keep one always-present sentinel
+output (an always-on broadcast output, or a permanent `output.dummy`) so the clock never drains
+to zero, and attach/detach per-channel outputs around it.
+
+- Add a channel (new output) live: ✅
+- Remove a channel while ≥1 output remains: ✅
+- Drain to zero then re-add: ❌ without a sentinel output or a process restart.
+
+> On 2.4.2 the runtime-detach-while-running path had a bug fixed only in 2.4.3 (#5051) and a
+> `harbor.remove_http_handler` bug fixed in 2.4.5 (#5237 area). If the design leans on runtime
+> CRUD (vs regenerate-and-restart for CRUD), factor a Liquidsoap upgrade into the plan.
+
+### Security: telnet/server surface is unauthenticated
+
+The telnet/server command interface has **no authentication** and binds `127.0.0.1` by default —
+keep it localhost-only. `server.harbor` bridges server commands over HTTP, inheriting zero auth;
+do not expose it off localhost.
