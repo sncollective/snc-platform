@@ -1,0 +1,164 @@
+.page {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.bandHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.bandAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bandName {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  text-align: left;
+}
+
+.label {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.input {
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.incentive {
+  padding: var(--space-sm);
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.incentiveCallout {
+  padding: var(--space-md);
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.submit {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: 6px;
+  background: var(--color-accent, #1a1a1a);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.skip {
+  padding: var(--space-sm);
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.lead,
+.sncText {
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+
+.welcomeHeading,
+.sncHeading {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
+.done {
+  text-align: center;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+/* S/NC explainer block — visually distinct from the band surface (platform voice). */
+.explainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sncBlock {
+  padding: var(--space-md);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
+  border-left: 3px solid var(--color-accent, #1a1a1a);
+}
+
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.planCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  cursor: pointer;
+}
+
+.planName {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.planPrice {
+  color: var(--color-text-muted);
+}
