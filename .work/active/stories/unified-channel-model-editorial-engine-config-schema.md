@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-config-schema
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: []
@@ -68,3 +68,32 @@ Both migrations applied cleanly to the dev DB (`db:migrate` exited 0).
 
 ### Adjacent issues parked
 None.
+
+## Review (2026-06-16)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important** (filed → `editorial-config-review-followups` in backlog; none block the chain):
+- `deleteEditorialConfig` doc comment claims a tier cascade that doesn't exist (tiers FK → `channels.id`,
+  not the config row) — fix the comment or delete tiers explicitly.
+- `updateEditorialTier` (the most complex write path) has no unit test — add coverage (folds into the
+  control-service story or a standalone pass).
+- `upsertEditorialConfig` doesn't validate `manualTierId` belongs to the same channel — validate when
+  manual-pin is wired (control-service).
+
+**Nits** (conversation only, not items): `getAllEditorialConfigs` test has a dead `mockSelectFrom`
+block (overridden by the later `mockSelect` mock); unique-violation detection via error-message
+`.includes(indexName)` is fragile; the `upsert` "channel may not exist" branch is effectively dead
+(an FK violation throws rather than returning no row).
+
+**Notes**: Deep-ish substrate review (read all source + both test files + migrations, not fast-lane).
+Confirmed: schema FK/onDelete choices correct (sourceChannelId cascade verified against the
+"carried-channel deletion removes carry tier" acceptance criterion — a DB-level FK behavior, correct
+by schema, not unit-testable with mocks); three-color DFS cycle detection correct (self-loop, 2/3-cycle,
+fresh path per root, balanced push/pop); sourceChannelId-IFF-channel-as-source validated on both create
+and update; migrations `0029`/`0030` genuinely drizzle-generated (random names, real ms journal
+timestamps); 31 tests are genuine behavioral assertions (no gamed tests). Hand-off to the topology
+story: `getAllEditorialConfigs` returns only channels that HAVE a config row — the topology builder
+must define default behavior for config-less channels (e.g. the current queue-only degenerate config).
