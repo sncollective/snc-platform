@@ -85,6 +85,31 @@ game-research tangent (mixed-source, mixed-goal) is the standing boundary that k
 over-generalizing. Immediate SNC payoff: richer research-backed skills for the OSS-heavy media stack
 (SRS, imgproxy, tusd, pg-boss, Garage).
 
+## 5. Vendored-source applied + dependency hygiene (end of session)
+
+Applied the new mode to platform's deps and surfaced an adjacent hygiene gap.
+
+- **5 vendored-source `[research]` backlog items** for the Tier-1 OSS infra services where the
+  applicability gate genuinely pays: `research-srs-vendored-source`, `research-garage-vendored-source`,
+  `research-tusd-vendored-source`, `research-imgproxy-vendored-source`, `research-pg-boss-vendored-source`.
+  Each = acquire (clone @ pinned version) + orient (source-ground the tech-reference skill), NOT a
+  full campaign. **Held the gate:** deliberately did NOT file the 7 frontend/API libs (Vidstack,
+  TanStack ×2, Uppy, Ark UI, Hono, Drizzle, Zod) — docs suffice there; source-reading is
+  question-triggered, not standing. Boundary note: the *method* lives at root (ARD); platform items
+  carry it via `research_origin: vendored-source-research-mode` (a slug, boundary-safe), never a link
+  to root.
+- **Pin-hygiene findings + fix.** Grounding the items surfaced that **tusd runs `:latest` (unpinned
+  → v2.9.2)** and SRS/imgproxy use major-only tags (`srs:6`, `imgproxy:v3` → v3.31). Scoped as the
+  active `[deploy]` story `pin-docker-compose-image-versions` (operator executes — compose is a
+  repo-denied file; SRS exact version needs operator confirm, blocked from `docker exec` into prod).
+  postgres `:16` + mailpit `:latest` deliberately left (conventional major-pin / dev-only).
+- **Two paired discipline items parked** (prevention + currency — we have neither today):
+  `pin-discipline-lint` (a pre-commit hook to block `:latest`/imprecise tags, needs allowlist
+  design) and `dependency-currency-strategy` (we have NO Dependabot/Renovate/CI; the LS drift was
+  caught by manual research — a real decision pass: bot vs script vs lean on the vendored-source line
+  for load-bearing deps, tangled with the no-CI-today fact). Both parked, not built — neither is
+  mechanical.
+
 ## Resume map
 
 - **Editorial-engine design pass is the next move** (`unified-channel-model-editorial-engine`, still
@@ -98,6 +123,15 @@ over-generalizing. Immediate SNC payoff: richer research-backed skills for the O
   decomposition. Soft-depends on the 2.4.5 upgrade story landing first (good hygiene; not a hard
   block for the chosen regenerate-and-restart design — its bugs are latent for v1).
 - **Upgrade story is filed and ready** (`research-handoff-...-1`) — small, surgical, revertible.
+  **Coordinates with the image-pin story** (`pin-docker-compose-image-versions`) — same hygiene
+  theme (Dockerfile `FROM` vs compose tags); can ship together.
+- **Image-pin deploy story is actionable now** (`pin-docker-compose-image-versions`) — operator
+  edits compose (denied to agents); tusd `:latest`→v2.9.2 is the urgent one. SRS exact version
+  still needs operator confirm (`srs -v` on the live container).
+- **5 vendored-source `[research]` items in backlog** (SRS, Garage, tusd, imgproxy, pg-boss) —
+  acquire+orient, pick up per-need; tusd's source-orient waits on the pin story landing first.
+- **2 dependency-discipline items parked** (`pin-discipline-lint`, `dependency-currency-strategy`)
+  — the currency one is the bigger gap (no Dependabot/Renovate/CI today) and wants a decision pass.
 - ARD v0.6.0 cut now waits on the sixth child (`feature-ard-vendored-source-research-mode`,
   drafting) before the dual-pin move.
 - bold-* epics remain design-gated (unchanged).
