@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
@@ -89,6 +89,19 @@ shape, queue-carries-poolScope, disabled-tier exclusion, degenerate all-disabled
 disabled-carry edge exclusion, unknown-sourceId drops (not throws).
 
 **Findings fixed:** 4 (edge-list direct pass), 5 (ValidationError), 6 (graceful carry drop).
+
+## Review of revision (2026-06-17)
+
+**Verdict**: Approve. No blockers; advanced `review → done` (reviewed as a bundle with the render).
+
+Union/poolScope/edge-list-refactor/typed-errors correct; findings 4–6 resolved. Validated jointly with
+the render — the rendered `.liq` typechecks on real Liquidsoap 2.4.2 (`liquidsoap --check`, exit 0; see the
+render story).
+
+**Nit (filed → `editorial-render-followups`)**: `PoolScope` is now defined in two places
+(`editorial-config.ts` and `playout-topology.ts`) — a small SSOT dup; the clean home is `@snc/shared`
+(no DB), imported by both. The worker's local redefinition was to keep `playout-topology.ts` DB-free,
+which is the right constraint — just solve it via shared rather than duplication.
 
 ## Review (2026-06-16)
 

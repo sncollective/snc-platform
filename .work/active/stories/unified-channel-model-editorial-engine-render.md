@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-render
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-topology]
@@ -53,6 +53,31 @@ correct startup behavior.
 - Broadcast block (S/NC TV) UNCHANGED.
 
 **Tests (Story B):** 1711 tests pass (112 test files). Goldens regenerated.
+
+## Review of revision (2026-06-17)
+
+**Verdict**: Approve. No blockers; advanced `review → done`.
+
+**Validated against real Liquidsoap (the spike pattern).** Ran `liquidsoap --check` on the regenerated
+`playout-1ch.liq` in a throwaway `savonet/liquidsoap:v2.4.2` container (prod untouched) — **exit 0, no
+type errors**. This clears the critical risk a golden test can't: `request.dynamic` + `http.get` (returns
+`string`, so `uri == ""` / `request.create(uri)` are valid) + `switch.selected()` + `source.id` all
+typecheck, so the pool mechanism is valid and won't break pipeline load. Structure confirmed:
+readiness-fallback auto, armed-gated queue, `mksafe(blank())` tail, now-playing returns a serializable
+`source.id` label + elapsed/remaining, mode/manual/arm endpoints (no priority), broadcast untouched.
+
+**Findings filed → `editorial-render-followups` (none blocking):**
+- **Multi-tier auto path untested** (Important): all goldens are queue-only-default channels (no editorial
+  config in the test DB); the readiness-fallback + armed-gate ordering for a configured live+queue+carry
+  channel has no golden/unit test. Add a render test with a configured multi-tier channel.
+- **Wire `liquidsoap --check` into the render test** (Important): the golden test checks the string, not
+  validity — a `--check` step in the suite would have caught the `request.dynamic` risk automatically.
+- **`null()` → `null`** (nit): the pool `request.dynamic` uses the deprecated `null()` (`--check` Warning
+  5). Non-breaking on 2.4.x; fix for forward-compat (2.5.0).
+
+**Pending (feature-level, downstream):** the `pool/next` endpoint (control-service story) + an
+end-to-end staging walk on a real running pipeline (pool resolution, multi-tier, takeover cycles) — the
+engine's full runtime behavior can't be unit-validated.
 
 ## Scope
 `apps/api/src/services/liquidsoap-render.ts` — `renderChannelBlock` emits, per channel, in place of
