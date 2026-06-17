@@ -56,13 +56,18 @@ end)
 # ── Channel: Classics (playout) ──
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue = request.queue(id="channel-903e6a20-0dea-42b1-8dd5-86afbec496ac")
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_pool = request.dynamic(fun() -> begin
+  uri = http.get("http://#{api_host}:#{api_port}/api/playout/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/pool/next?secret=#{callback_secret}")
+  if uri == "" then null() else request.create(uri) end
+end)
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue_program = fallback(track_sensitive=true, [ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_pool])
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_mode = ref("auto")
-ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority = ref(0)
+ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_manual = ref(0)
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed = ref(true)
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = switch(track_sensitive=false, [
-  ({ ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed() and ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority() == 0 }, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue),
+  ({ ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed() }, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue_program),
   ({ true }, mksafe(blank()))
 ])
 
@@ -92,11 +97,20 @@ harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing", fun(_req, res) -> begin
-  selected = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.selected()
+  e = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.elapsed()
+  r = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.remaining()
+  safe_elapsed = if e == infinity or e != e then -1. else e end
+  safe_remaining = if r == infinity or r != r then -1. else r end
+  selected_id = begin
+    s = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source.selected()
+    if null.defined(s) then source.id(null.get(s)) else "(none)" end
+  end
   res.json({
     uri = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_uri(),
     title = ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_title(),
-    selected = selected
+    elapsed = safe_elapsed,
+    remaining = safe_remaining,
+    selected = selected_id
   })
 end)
 
@@ -112,11 +126,11 @@ harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd
   end
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/priority", fun(req, res) -> begin
+harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
-    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_priority := int_of_string(req.body())
+    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed := req.body() == "true"
     res.data("ok")
   else
     res.status_code(401)
@@ -124,11 +138,11 @@ harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd
   end
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm", fun(req, res) -> begin
+harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/manual", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
-    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed := req.body() == "true"
+    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_manual := int_of_string(req.body())
     res.data("ok")
   else
     res.status_code(401)
