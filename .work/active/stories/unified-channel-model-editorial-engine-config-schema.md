@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-config-schema
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: []
@@ -157,6 +157,23 @@ must define default behavior for config-less channels (e.g. the current queue-on
 - None. All Unit 1 revised-model acceptance criteria met: no `pool` in `tierType`; `enabled` defaults
   true; ownership validation (creator own-source-only; admin key-XOR-carry); pool-scope resolver;
   cycle-detection matrix.
+
+## Review of revision (2026-06-17)
+
+**Verdict**: Approve. No blockers; advanced `review → done` (topology unblocked).
+
+Read `editorial-config.ts` in full + the migration + test integrity. Confirmed: `EDITORIAL_TIER_TYPES`
+drops `pool`; migration `0031_orange_madripoor.sql` is drizzle-generated (real journal ts) adding
+`enabled boolean NOT NULL DEFAULT true`; `poolContentScope` correct (creator → `{creatorId}`, else
+`{allCreators}`); `validateOwnershipConstraint` correct (creator rejects carry; admin enforces
+live-XOR-carry via an existing-tier check that excludes the updated tier); `manualTierId` same-channel
+validation correct; `deleteEditorialConfig` comment now states the true no-cascade semantics. Prior
+review findings 1–3 resolved. 41 genuine `it()` cases incl. the previously-untested `updateEditorialTier`,
+no gaming; 1706 API + 675 shared pass.
+
+**Nit (non-blocking)**: the live/carry mutual-exclusion check is per-write — a TOCTOU race under
+concurrent tier writes could let both through (no DB constraint backs it). Acceptable for MVP; revisit
+if concurrent editorial writes become real.
 
 **Parked issues (not addressed here — remain in `editorial-config-review-followups`):**
 
