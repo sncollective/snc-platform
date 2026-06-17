@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-editorial-engine-control-client
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-render]
 release_binding: null
 gate_origin: null
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Control client extension — API → harbor editorial verbs
@@ -25,7 +25,74 @@ The typed adapter for the new bespoke endpoints.
 - Mirror the new verbs in `createStubLiquidsoapClient`.
 
 ## Acceptance criteria
-- [ ] Each verb hits the right path with the `?secret=` query and method.
-- [ ] Failure / timeout / unconfigured map to `AppError` per the existing pattern.
-- [ ] `harborChannelPaths` returns the new paths; one constant per side of the harbor contract.
-- [ ] Stub client implements the new verbs (test parity).
+- [x] Each verb hits the right path with the `?secret=` query and method.
+- [x] Failure / timeout / unconfigured map to `AppError` per the existing pattern.
+- [x] `harborChannelPaths` returns the new paths; one constant per side of the harbor contract.
+- [x] Stub client implements the new verbs (test parity).
+
+## Implementation notes
+
+### Verbs added
+
+Three editorial control verbs added to `LiquidsoapClient` interface and `createLiquidsoapClient` impl in
+`apps/api/src/services/liquidsoap-client.ts`:
+
+- `setMode(channelId, mode: "manual" | "auto")` → POST `/channels/{id}/mode`, body = mode string, `?secret=`
+- `armQueue(channelId, armed: boolean)` → POST `/channels/{id}/arm`, body = `"true"`/`"false"`, `?secret=`
+- `setManualTier(channelId, tierIndex: number)` → POST `/channels/{id}/manual`, body = `String(tierIndex)`, `?secret=`
+
+`setPriority` was **not added** — dropped from the unified model per the revised Unit 4 design.
+
+### `?secret=` handling
+
+A private `requestGuarded(path, body)` helper was added inside `createLiquidsoapClient`. It checks
+`config.PLAYOUT_CALLBACK_SECRET` before making any network call:
+
+- **Secret present**: appends `?secret=<encoded>` to the path and delegates to the existing `request` helper.
+- **Secret absent**: returns `err(AppError("LIQUIDSOAP_SECRET_NOT_CONFIGURED", ..., 503))` immediately —
+  no fetch is issued. This avoids surfacing an opaque 401 from Liquidsoap and makes the misconfiguration
+  obvious. The secret is a deployment invariant (set at container start), not a runtime toggle, so fast-fail
+  with a clear code is the right shape here.
+
+The existing unguarded verbs (`pushTrack`, `skipTrack`) are unchanged — the queue and skip endpoints are
+not secret-guarded per the design.
+
+### `LiquidsoapNowPlaying` shape change
+
+`selected: string` added to the type — the active source label returned by `switch.selected()` in the
+rendered `.liq`. `getNowPlaying` implementation unchanged (still a cast-after-parse); the render is
+responsible for serializing the label. `uri`, `title`, `elapsed`, `remaining` retained.
+
+### Stub parity
+
+`createStubLiquidsoapClient` extended with `setMode`, `armQueue`, `setManualTier` — each logs at `info`
+level and returns `ok(undefined)` with no fetch call.
+
+### `harborChannelPaths`
+
+Already extended with `mode`, `arm`, `manual` paths in `playout-topology.ts` (landed in the render story,
+Unit 3). No changes needed here.
+
+### Tests
+
+`apps/api/tests/services/liquidsoap-client.test.ts` — extended:
+
+- `setupModule` now accepts a second `withSecret` param to toggle `PLAYOUT_CALLBACK_SECRET`.
+- `makeNowPlayingResponse` updated to include `selected: "queue"`.
+- New `describe` blocks: `setMode` (7 cases), `armQueue` (7 cases), `setManualTier` (7 cases) — each
+  covering: secret-not-configured early return, API-URL-not-configured, correct path+method+body+secret,
+  ok on 200, err on non-2xx, err on unreachable, err on timeout.
+- `getNowPlaying` "returns parsed now-playing data" test updated to assert `result?.selected === "queue"`.
+- Stub parity: 3 new `it` blocks (`setMode`, `armQueue`, `setManualTier` return ok, no fetch).
+- All 1738 tests pass (112 files).
+
+### Discrepancies from story scope
+
+- Story scope listed `setPriority` — dropped per the revised Unit 4 design (unified model has no priority
+  concept; the topology uses tier index order instead). `setManualTier` is the replacement.
+- Story scope listed `playout-topology.ts` as needing extension — already done in Unit 3 (render story);
+  no changes needed.
+
+### Parked
+
+None.
