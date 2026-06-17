@@ -54,6 +54,8 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
         id: channels.id,
         name: channels.name,
         srsStreamName: channels.srsStreamName,
+        ownership: channels.ownership,
+        creatorId: channels.creatorId,
       })
       .from(channels)
       .where(

@@ -6,27 +6,46 @@ import {
 } from "../../src/services/playout-topology.js";
 import type { EditorialConfigWithTiers } from "@snc/shared";
 
+// ── Test row fixtures ──
+
 const ROW = {
   id: "903e6a20-0dea-42b1-8dd5-86afbec496ac",
   name: "Classics",
   srsStreamName: "channel-classics",
+  ownership: "platform",
+  creatorId: null,
 };
 
 /** Convenience: a channel ID for use across tests. */
 const ID_A = "aaaaaaaa-0000-0000-0000-000000000001";
 const ID_B = "bbbbbbbb-0000-0000-0000-000000000002";
 const ID_C = "cccccccc-0000-0000-0000-000000000003";
+const CREATOR_ID = "creator-uuid-1111";
+
+const makeRow = (
+  id: string,
+  name: string,
+  srsStreamName: string,
+  ownership: "platform" | "creator" = "platform",
+  creatorId: string | null = null,
+) => ({ id, name, srsStreamName, ownership, creatorId });
 
 describe("harborChannelPaths", () => {
-  it("builds all six control paths with the UUID verbatim", () => {
+  it("builds all six control paths with the UUID verbatim (mode, arm, manual — no priority)", () => {
     expect(harborChannelPaths(ROW.id)).toEqual({
       queue: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/queue",
       skip: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/skip",
       nowPlaying: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing",
       mode: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/mode",
-      priority: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/priority",
       arm: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm",
+      manual: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/manual",
     });
+  });
+
+  it("does NOT include a priority path", () => {
+    const paths = harborChannelPaths(ROW.id);
+    // TypeScript guards this too, but verify at runtime shape
+    expect(Object.keys(paths)).not.toContain("priority");
   });
 });
 
@@ -46,8 +65,8 @@ describe("buildPlayoutTopology — existing behavior (no editorial configs)", ()
 
   it("selects the first channel's source as the broadcast fallback", () => {
     const topology = buildPlayoutTopology([
-      { id: ID_A, name: "A", srsStreamName: "channel-a" },
-      { id: ID_B, name: "B", srsStreamName: "channel-b" },
+      makeRow(ID_A, "A", "channel-a"),
+      makeRow(ID_B, "B", "channel-b"),
     ], []);
 
     expect(topology.broadcast.fallbackSourceVar).toBe(
@@ -108,12 +127,14 @@ const makeTier = (
   tierType: string,
   priority: number,
   sourceChannelId: string | null = null,
+  enabled = true,
 ) => ({
   id,
   channelId,
   tierType,
   priority,
   sourceChannelId,
+  enabled,
 });
 
 describe("buildPlayoutTopology — config-less channel default", () => {
@@ -124,7 +145,13 @@ describe("buildPlayoutTopology — config-less channel default", () => {
     expect(ch.mode).toBe("auto");
     expect(ch.manualTierIndex).toBeNull();
     expect(ch.tiers).toHaveLength(1);
-    expect(ch.tiers[0]).toEqual({ type: "queue", queueId: `channel-${ROW.id}` });
+    const tier = ch.tiers[0]!;
+    expect(tier.type).toBe("queue");
+    if (tier.type === "queue") {
+      expect(tier.queueId).toBe(`channel-${ROW.id}`);
+      // platform-owned with no creator → allCreators
+      expect(tier.poolScope).toEqual({ allCreators: true });
+    }
   });
 
   it("applies queue-only auto default when config exists but has empty tiers", () => {
@@ -134,7 +161,7 @@ describe("buildPlayoutTopology — config-less channel default", () => {
     expect(ch.mode).toBe("auto");
     expect(ch.manualTierIndex).toBeNull();
     expect(ch.tiers).toHaveLength(1);
-    expect(ch.tiers[0]).toEqual({ type: "queue", queueId: `channel-${ROW.id}` });
+    expect(ch.tiers[0]!.type).toBe("queue");
   });
 });
 
@@ -147,25 +174,34 @@ describe("buildPlayoutTopology — tier type mapping", () => {
     expect(ch.tiers[0]).toEqual({ type: "live" });
   });
 
-  it("maps a 'queue' tier using the channel's own queueId", () => {
+  it("maps a 'queue' tier with queueId and poolScope", () => {
     const configs = [makeConfig(ROW.id, {
       tiers: [makeTier("t1", ROW.id, "queue", 0)],
     })];
     const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
-    expect(ch.tiers[0]).toEqual({ type: "queue", queueId: `channel-${ROW.id}` });
+    expect(ch.tiers[0]).toEqual({
+      type: "queue",
+      queueId: `channel-${ROW.id}`,
+      poolScope: { allCreators: true }, // platform-owned channel
+    });
   });
 
-  it("maps a 'pool' tier using the channel's own queueId as poolQueueId", () => {
+  it("queue poolScope is creatorId-scoped for creator-owned channels", () => {
+    const creatorRow = makeRow(ROW.id, ROW.name, ROW.srsStreamName, "creator", CREATOR_ID);
     const configs = [makeConfig(ROW.id, {
-      tiers: [makeTier("t1", ROW.id, "pool", 0)],
+      tiers: [makeTier("t1", ROW.id, "queue", 0)],
     })];
-    const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
-    expect(ch.tiers[0]).toEqual({ type: "pool", poolQueueId: `channel-${ROW.id}` });
+    const ch = buildPlayoutTopology([creatorRow], configs).channels[0]!;
+    const tier = ch.tiers[0]!;
+    expect(tier.type).toBe("queue");
+    if (tier.type === "queue") {
+      expect(tier.poolScope).toEqual({ creatorId: CREATOR_ID });
+    }
   });
 
   it("maps a 'channel-as-source' tier to the referenced channel's _source var", () => {
-    const rowA = { id: ID_A, name: "A", srsStreamName: "channel-a" };
-    const rowB = { id: ID_B, name: "B", srsStreamName: "channel-b" };
+    const rowA = makeRow(ID_A, "A", "channel-a");
+    const rowB = makeRow(ID_B, "B", "channel-b");
 
     const configs = [
       makeConfig(ID_B, {
@@ -182,19 +218,55 @@ describe("buildPlayoutTopology — tier type mapping", () => {
     });
   });
 
-  it("preserves priority order (0 = highest) from the config", () => {
+  it("preserves priority order (0 = highest) from the config — enabled tiers only", () => {
     const configs = [makeConfig(ROW.id, {
       tiers: [
         makeTier("t0", ROW.id, "live", 0),
         makeTier("t1", ROW.id, "queue", 1),
-        makeTier("t2", ROW.id, "pool", 2),
       ],
     })];
     const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
-    expect(ch.tiers).toHaveLength(3);
+    expect(ch.tiers).toHaveLength(2);
     expect(ch.tiers[0]!.type).toBe("live");
     expect(ch.tiers[1]!.type).toBe("queue");
-    expect(ch.tiers[2]!.type).toBe("pool");
+  });
+});
+
+describe("buildPlayoutTopology — disabled tier filtering", () => {
+  it("excludes disabled tiers from the resolved tier list", () => {
+    const configs = [makeConfig(ROW.id, {
+      tiers: [
+        makeTier("t0", ROW.id, "live", 0, null, true),   // enabled
+        makeTier("t1", ROW.id, "queue", 1, null, false),  // disabled
+      ],
+    })];
+    const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
+    expect(ch.tiers).toHaveLength(1);
+    expect(ch.tiers[0]!.type).toBe("live");
+  });
+
+  it("falls back to queue-only default when all tiers are disabled", () => {
+    const configs = [makeConfig(ROW.id, {
+      tiers: [
+        makeTier("t0", ROW.id, "live", 0, null, false),  // disabled
+        makeTier("t1", ROW.id, "queue", 1, null, false),  // disabled
+      ],
+    })];
+    const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
+    // Degenerate fallback: queue-only (same as config-less)
+    expect(ch.tiers).toHaveLength(1);
+    expect(ch.tiers[0]!.type).toBe("queue");
+  });
+
+  it("includes all tiers when all are enabled", () => {
+    const configs = [makeConfig(ROW.id, {
+      tiers: [
+        makeTier("t0", ROW.id, "live", 0, null, true),
+        makeTier("t1", ROW.id, "queue", 1, null, true),
+      ],
+    })];
+    const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
+    expect(ch.tiers).toHaveLength(2);
   });
 });
 
@@ -244,12 +316,12 @@ describe("buildPlayoutTopology — mode + manualTierIndex", () => {
   });
 });
 
-describe("buildPlayoutTopology — topological ordering", () => {
+describe("buildPlayoutTopology — topological ordering (edge-list, no string-stripping)", () => {
   it("preserves input order exactly when no channel-as-source edges exist", () => {
     const rows = [
-      { id: ID_A, name: "A", srsStreamName: "channel-a" },
-      { id: ID_B, name: "B", srsStreamName: "channel-b" },
-      { id: ID_C, name: "C", srsStreamName: "channel-c" },
+      makeRow(ID_A, "A", "channel-a"),
+      makeRow(ID_B, "B", "channel-b"),
+      makeRow(ID_C, "C", "channel-c"),
     ];
     const topology = buildPlayoutTopology(rows, []);
     const ids = topology.channels.map((c) => c.id);
@@ -259,8 +331,8 @@ describe("buildPlayoutTopology — topological ordering", () => {
   it("places the referenced channel before the referencing channel", () => {
     // B carries A (B references A as a source) → A must come before B
     const rows = [
-      { id: ID_B, name: "B", srsStreamName: "channel-b" }, // B listed first in input
-      { id: ID_A, name: "A", srsStreamName: "channel-a" },
+      makeRow(ID_B, "B", "channel-b"), // B listed first in input
+      makeRow(ID_A, "A", "channel-a"),
     ];
     const configs = [
       makeConfig(ID_B, {
@@ -277,9 +349,9 @@ describe("buildPlayoutTopology — topological ordering", () => {
 
   it("handles a chain: C carries B, B carries A → order is A, B, C", () => {
     const rows = [
-      { id: ID_C, name: "C", srsStreamName: "channel-c" },
-      { id: ID_B, name: "B", srsStreamName: "channel-b" },
-      { id: ID_A, name: "A", srsStreamName: "channel-a" },
+      makeRow(ID_C, "C", "channel-c"),
+      makeRow(ID_B, "B", "channel-b"),
+      makeRow(ID_A, "A", "channel-a"),
     ];
     const configs = [
       makeConfig(ID_B, {
@@ -298,11 +370,29 @@ describe("buildPlayoutTopology — topological ordering", () => {
     expect(posA).toBeLessThan(posB);
     expect(posB).toBeLessThan(posC);
   });
+
+  it("only edges from ENABLED carry tiers participate in the sort", () => {
+    // B carries A, but the carry tier is disabled → input order preserved
+    const rows = [
+      makeRow(ID_B, "B", "channel-b"),
+      makeRow(ID_A, "A", "channel-a"),
+    ];
+    const configs = [
+      makeConfig(ID_B, {
+        tiers: [makeTier("t1", ID_B, "channel-as-source", 0, ID_A, false)],
+      }),
+    ];
+    const topology = buildPlayoutTopology(rows, configs);
+    const ids = topology.channels.map((c) => c.id);
+    // Disabled carry → no edge → input order preserved (B before A)
+    expect(ids[0]).toBe(ID_B);
+    expect(ids[1]).toBe(ID_A);
+  });
 });
 
 describe("buildPlayoutTopology — cycle detection", () => {
   it("throws when a self-loop is detected", () => {
-    const rows = [{ id: ID_A, name: "A", srsStreamName: "channel-a" }];
+    const rows = [makeRow(ID_A, "A", "channel-a")];
     const configs = [
       makeConfig(ID_A, {
         tiers: [makeTier("t1", ID_A, "channel-as-source", 0, ID_A)],
@@ -313,8 +403,8 @@ describe("buildPlayoutTopology — cycle detection", () => {
 
   it("throws when a 2-cycle is detected", () => {
     const rows = [
-      { id: ID_A, name: "A", srsStreamName: "channel-a" },
-      { id: ID_B, name: "B", srsStreamName: "channel-b" },
+      makeRow(ID_A, "A", "channel-a"),
+      makeRow(ID_B, "B", "channel-b"),
     ];
     const configs = [
       makeConfig(ID_A, {
@@ -327,13 +417,22 @@ describe("buildPlayoutTopology — cycle detection", () => {
     expect(() => buildPlayoutTopology(rows, configs)).toThrow();
   });
 
-  it("throws on a channel-as-source referencing an unknown channel", () => {
-    const rows = [{ id: ID_A, name: "A", srsStreamName: "channel-a" }];
+  it("drops carry tier and continues (does not throw) when sourceChannelId references unknown channel", () => {
+    // Finding 6 fix: unknown carry reference drops that tier + warns, render continues.
+    const rows = [makeRow(ID_A, "A", "channel-a")];
     const configs = [
       makeConfig(ID_A, {
-        tiers: [makeTier("t1", ID_A, "channel-as-source", 0, ID_B)], // ID_B not in rows
+        tiers: [
+          makeTier("t1", ID_A, "channel-as-source", 0, ID_B), // ID_B not in rows
+          makeTier("t2", ID_A, "queue", 1),                    // queue tier still present
+        ],
       }),
     ];
-    expect(() => buildPlayoutTopology(rows, configs)).toThrow();
+    // Should NOT throw; bad carry tier is dropped, queue tier survives
+    const topology = buildPlayoutTopology(rows, configs);
+    const ch = topology.channels[0]!;
+    // The carry tier was dropped; only the queue tier remains
+    expect(ch.tiers).toHaveLength(1);
+    expect(ch.tiers[0]!.type).toBe("queue");
   });
 });

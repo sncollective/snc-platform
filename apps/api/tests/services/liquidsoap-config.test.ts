@@ -39,6 +39,8 @@ const setupModule = async (overrides?: Parameters<typeof makeTestConfig>[0]) => 
       type: "type",
       srsStreamName: "srsStreamName",
       isActive: "isActive",
+      ownership: "ownership",
+      creatorId: "creatorId",
     },
   }));
 
@@ -119,7 +121,7 @@ describe("generateLiquidsoapConfig", () => {
     const { generateLiquidsoapConfig } = await setupModule();
 
     makeDbChain([
-      { id: "903e6a20-0dea-42b1-8dd5-86afbec496ac", name: "Classics", srsStreamName: "channel-classics" },
+      { id: "903e6a20-0dea-42b1-8dd5-86afbec496ac", name: "Classics", srsStreamName: "channel-classics", ownership: "platform", creatorId: null },
     ]);
 
     const config = await generateLiquidsoapConfig();
@@ -172,8 +174,8 @@ describe("generateLiquidsoapConfig", () => {
     const { generateLiquidsoapConfig } = await setupModule();
 
     makeDbChain([
-      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a" },
-      { id: "bbbbbbbb-0000-0000-0000-000000000002", name: "Channel B", srsStreamName: "channel-b" },
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a", ownership: "platform", creatorId: null },
+      { id: "bbbbbbbb-0000-0000-0000-000000000002", name: "Channel B", srsStreamName: "channel-b", ownership: "platform", creatorId: null },
     ]);
 
     const config = await generateLiquidsoapConfig();
@@ -191,7 +193,7 @@ describe("generateLiquidsoapConfig", () => {
     const { generateLiquidsoapConfig } = await setupModule();
 
     makeDbChain([
-      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: 'Channel "Special" \\ Test', srsStreamName: "channel-special" },
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: 'Channel "Special" \\ Test', srsStreamName: "channel-special", ownership: "platform", creatorId: null },
     ]);
 
     const config = await generateLiquidsoapConfig();
@@ -233,7 +235,7 @@ describe("golden output", () => {
   it("one playout channel", async () => {
     const { generateLiquidsoapConfig } = await setupModule();
     makeDbChain([
-      { id: "903e6a20-0dea-42b1-8dd5-86afbec496ac", name: "Classics", srsStreamName: "channel-classics" },
+      { id: "903e6a20-0dea-42b1-8dd5-86afbec496ac", name: "Classics", srsStreamName: "channel-classics", ownership: "platform", creatorId: null },
     ]);
 
     await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
@@ -244,8 +246,8 @@ describe("golden output", () => {
   it("two playout channels — first is the broadcast fallback", async () => {
     const { generateLiquidsoapConfig } = await setupModule();
     makeDbChain([
-      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a" },
-      { id: "bbbbbbbb-0000-0000-0000-000000000002", name: "Channel B", srsStreamName: "channel-b" },
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a", ownership: "platform", creatorId: null },
+      { id: "bbbbbbbb-0000-0000-0000-000000000002", name: "Channel B", srsStreamName: "channel-b", ownership: "platform", creatorId: null },
     ]);
 
     await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(
@@ -256,7 +258,7 @@ describe("golden output", () => {
   it("special characters in channel name", async () => {
     const { generateLiquidsoapConfig } = await setupModule();
     makeDbChain([
-      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: 'Channel "Special" \\ Test', srsStreamName: "channel-special" },
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: 'Channel "Special" \\ Test', srsStreamName: "channel-special", ownership: "platform", creatorId: null },
     ]);
 
     await expect(await generateLiquidsoapConfig()).toMatchFileSnapshot(

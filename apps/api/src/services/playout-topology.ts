@@ -1,7 +1,26 @@
 import { SNC_TV_BROADCAST } from "./channels.js";
 import { detectChannelSourceCycles } from "./editorial-graph.js";
 import type { ChannelSourceEdge } from "./editorial-graph.js";
+import { ValidationError } from "@snc/shared";
 import type { EditorialConfigWithTiers, EditorialMode } from "@snc/shared";
+
+// ── Pool scope ──
+
+/**
+ * Descriptor for the ownership-scoped pool of content a channel draws from.
+ *
+ * - `{ creatorId }` — the channel belongs to a specific creator; pool is
+ *   restricted to that creator's content.
+ * - `{ allCreators: true }` — the channel is platform-owned; pool spans all
+ *   creators' content.
+ *
+ * Kept local to this module (rather than imported from editorial-config) to
+ * preserve the pure no-DB nature of playout-topology — editorial-config.ts
+ * has a top-level DB import that would break topology unit tests.
+ */
+export type PoolScope =
+  | { readonly creatorId: string }
+  | { readonly allCreators: true };
 
 // ── Types ──
 
@@ -19,25 +38,34 @@ export interface EnvRef {
  * A resolved editorial tier ready for the playout render.
  *
  * - `live` — live RTMP ingest from the channel's live-ingest input.
- * - `queue` — request.queue playout (the armed, manually-ordered queue).
- * - `pool` — request.dynamic pool of channel_content items (auto-rotated).
+ * - `queue` — request.queue + pool auto-fill as one unified program source.
+ *   `queueId` is the operator request.queue id; `poolScope` scopes the pool feed
+ *   (creator-scoped or all-creators).
  * - `channel-as-source` — another channel's rendered `_source` var (carry model).
  *   `sourceLiqVar` is the fully-resolved Liquidsoap variable (e.g. `ch_<uuid>_source`),
  *   NOT the raw channel ID.
+ *
+ * Rejected: a separate `pool` variant — queue and pool are one continuous program
+ * source (the operator queue plays track-by-track; when empty it falls through to
+ * the pool auto-fill). The unified-program model dissolves the auto-semantics
+ * ambiguity that a split-tier model creates.
  */
 export type PlayoutEditorialTier =
   | { readonly type: "live" }
-  | { readonly type: "queue"; readonly queueId: string }
-  | { readonly type: "pool"; readonly poolQueueId: string }
+  | { readonly type: "queue"; readonly queueId: string; readonly poolScope: PoolScope }
   | { readonly type: "channel-as-source"; readonly sourceLiqVar: string };
 
 /** Input row shape — deliberately local so callers pass plain data, not Drizzle rows.
- * (The module does transitively reach db via the SNC_TV_BROADCAST import from channels.ts;
- * buildPlayoutTopology itself never touches it.) */
+ * Carries ownership + creatorId so buildPlayoutTopology can resolve poolScope without
+ * a second DB call. */
 export interface PlayoutChannelRow {
   readonly id: string;
   readonly name: string;
   readonly srsStreamName: string;
+  /** Ownership class: "creator" | "platform" (or other future values). */
+  readonly ownership: string;
+  /** Creator ID when ownership === "creator"; null for platform-owned channels. */
+  readonly creatorId: string | null;
 }
 
 /** Per-channel topology facts derived from a DB channel row. */
@@ -55,8 +83,8 @@ export interface PlayoutChannelTopology {
     readonly skip: string;
     readonly nowPlaying: string;
     readonly mode: string;
-    readonly priority: string;
     readonly arm: string;
+    readonly manual: string;
   };
   /** API callback path the channel posts track events to. */
   readonly trackEventPath: string;
@@ -69,7 +97,9 @@ export interface PlayoutChannelTopology {
   readonly manualTierIndex: number | null;
   /**
    * Editorial source tiers in priority order (index 0 = highest priority).
-   * Channels without editorial config default to a single queue tier.
+   * Only **enabled** tiers are included — disabled tiers are not part of the
+   * auto readiness fallback. Channels without editorial config default to a
+   * single queue tier.
    */
   readonly tiers: readonly PlayoutEditorialTier[];
 }
@@ -135,8 +165,8 @@ export const harborChannelPaths = (
   skip: `/channels/${channelId}/skip`,
   nowPlaying: `/channels/${channelId}/now-playing`,
   mode: `/channels/${channelId}/mode`,
-  priority: `/channels/${channelId}/priority`,
   arm: `/channels/${channelId}/arm`,
+  manual: `/channels/${channelId}/manual`,
 });
 
 // ── Private: Editorial tier resolution ──
@@ -145,31 +175,46 @@ export const harborChannelPaths = (
  * Map a single editorial tier config entry to a resolved `PlayoutEditorialTier`.
  * `channel-as-source` tiers resolve the source channel's liqVar-derived `_source`
  * variable; the caller must supply a lookup function for this.
+ *
+ * Returns null and logs a warning for an unknown `channel-as-source` source channel —
+ * dropping a single bad carry tier is safer than failing the entire render. The FK
+ * cascade on `sourceChannelId` makes this a defense-in-depth guard (dangling refs
+ * should not occur in practice).
+ *
+ * @throws {ValidationError} For unrecognized tier types (build-time invariant violation).
  */
 const resolveEditorialTier = (
   tier: { tierType: string; queueId?: string; sourceChannelId?: string | null; priority: number },
   channelQueueId: string,
-  resolveSourceVar: (sourceChannelId: string) => string,
-): PlayoutEditorialTier => {
+  poolScope: PoolScope,
+  resolveSourceVar: (sourceChannelId: string) => string | null,
+): PlayoutEditorialTier | null => {
   switch (tier.tierType) {
     case "live":
       return { type: "live" };
     case "queue":
-      return { type: "queue", queueId: channelQueueId };
-    case "pool":
-      // Pool is fed via request.dynamic from channel_content; poolQueueId = channelQueueId
-      return { type: "pool", poolQueueId: channelQueueId };
+      return { type: "queue", queueId: channelQueueId, poolScope };
     case "channel-as-source": {
       const sourceId = tier.sourceChannelId;
       if (!sourceId) {
-        throw new Error(
+        throw new ValidationError(
           `channel-as-source tier has no sourceChannelId (priority ${tier.priority})`,
         );
       }
-      return { type: "channel-as-source", sourceLiqVar: resolveSourceVar(sourceId) };
+      const sourceLiqVar = resolveSourceVar(sourceId);
+      if (sourceLiqVar === null) {
+        // Unknown referenced channel — drop this carry tier + warn (finding 6).
+        // A bad tier fails only itself, not the whole render.
+        console.warn(
+          `[playout-topology] channel-as-source references unknown channel ${sourceId} ` +
+          `(priority ${tier.priority}) — dropping tier, render continues`,
+        );
+        return null;
+      }
+      return { type: "channel-as-source", sourceLiqVar };
     }
     default:
-      throw new Error(`Unknown editorial tier type: ${tier.tierType}`);
+      throw new ValidationError(`Unknown editorial tier type: ${tier.tierType}`);
   }
 };
 
@@ -182,33 +227,25 @@ const resolveEditorialTier = (
  * When there are no channel-as-source edges, the input order is preserved exactly
  * (stable sort guarantee — critical for render golden snapshots).
  *
- * Throws if a cycle is detected (defense-in-depth; config-schema rejects cycles on
- * write, so a cycle here is a build-time invariant violation).
+ * Edges are passed directly from `buildPlayoutTopology` (which has them from the
+ * config at tier-resolution time) rather than reverse-mapped from the rendered
+ * `sourceLiqVar` string. This avoids the fragile string-strip round-trip that
+ * previously reconstructed channelId from `ch_<uuid>_source` (finding 4).
+ *
+ * @throws {ValidationError} If a cycle is detected (defense-in-depth; config-schema
+ *   rejects cycles on write, so a cycle here is a build-time invariant violation).
  */
 const topoSort = (
   channels: PlayoutChannelTopology[],
+  edges: ChannelSourceEdge[],
 ): PlayoutChannelTopology[] => {
-  // Collect channel-as-source edges from the resolved tiers
-  const edges: ChannelSourceEdge[] = [];
-  for (const ch of channels) {
-    for (const tier of ch.tiers) {
-      if (tier.type === "channel-as-source") {
-        // Resolve sourceLiqVar back to a channel ID for the cycle checker.
-        // Format: `ch_<uuid_with_underscores>_source` → strip prefix/suffix, restore hyphens.
-        const varName = tier.sourceLiqVar.replace(/_source$/, "").replace(/^ch_/, "");
-        const sourceChannelId = varName.replaceAll("_", "-");
-        edges.push({ channelId: ch.id, sourceChannelId });
-      }
-    }
-  }
-
   // Fast path: no edges → preserve input order exactly
   if (edges.length === 0) return channels;
 
   // Defensive cycle check (config-schema should have already rejected these)
   const cycleResult = detectChannelSourceCycles(edges);
   if (!cycleResult.ok) {
-    throw new Error(
+    throw new ValidationError(
       `buildPlayoutTopology: cannot sort channels — ${cycleResult.error.message}`,
     );
   }
@@ -271,11 +308,15 @@ const topoSort = (
  * Channels without an editorial config (or with empty tiers) default to `mode: "auto"` with
  * a single queue tier — preserving the current degenerate queue-only render behavior.
  *
+ * Disabled tiers (`enabled === false`) are excluded from the resolved tier list — they are
+ * not included in the auto readiness fallback.
+ *
  * Channel blocks are emitted in topological order so any referenced `_source` variable is
  * defined before the channel that references it. When no channel-as-source edges exist
  * (the current state), input row order is preserved exactly.
  *
- * @throws If a cycle exists in the channel-as-source graph (build-time invariant violation).
+ * @throws {ValidationError} If a cycle exists in the channel-as-source graph
+ *   (build-time invariant violation).
  *
  * The broadcast fallback is the first playout channel's source (after topo sort), or
  * silence when no playout channels exist.
@@ -291,20 +332,30 @@ export const buildPlayoutTopology = (
   // We need this before resolving tiers, so build liqVars first.
   const channelLiqVars = new Map(rows.map((row) => [row.id, liqId(row.id)]));
 
-  const resolveSourceVar = (sourceChannelId: string): string => {
+  /**
+   * Resolve a source channel's _source liqVar. Returns null when the channel
+   * is unknown (carry tier is dropped + warning rather than failing the render).
+   */
+  const resolveSourceVar = (sourceChannelId: string): string | null => {
     const liqVar = channelLiqVars.get(sourceChannelId);
-    if (!liqVar) {
-      throw new Error(
-        `buildPlayoutTopology: channel-as-source references unknown channel ${sourceChannelId}`,
-      );
-    }
+    if (!liqVar) return null;
     return `${liqVar}_source`;
   };
+
+  // Collect channel-as-source edges as we resolve tiers (finding 4 fix: build edges
+  // directly here rather than reverse-mapping sourceLiqVar back to a channelId later).
+  const carryEdges: ChannelSourceEdge[] = [];
 
   // Map rows to unsorted channel topologies
   const unsorted: PlayoutChannelTopology[] = rows.map((row) => {
     const queueId = `channel-${row.id}`;
     const config = configByChannelId.get(row.id);
+    // Resolve pool scope inline (mirrors poolContentScope in editorial-config.ts;
+    // kept local to avoid pulling in that module's DB import in topology unit tests).
+    const scope: PoolScope =
+      row.ownership === "creator" && row.creatorId != null
+        ? { creatorId: row.creatorId }
+        : { allCreators: true };
 
     let mode: EditorialMode;
     let manualTierIndex: number | null;
@@ -314,19 +365,41 @@ export const buildPlayoutTopology = (
       // Config-less default: queue-only, auto mode
       mode = "auto";
       manualTierIndex = null;
-      tiers = [{ type: "queue", queueId }];
+      tiers = [{ type: "queue", queueId, poolScope: scope }];
     } else {
       mode = config.mode;
 
-      // Resolve tiers in priority order (already sorted ascending by the service)
-      const resolvedTiers = config.tiers.map((tier) =>
-        resolveEditorialTier(tier, queueId, resolveSourceVar),
-      );
-      tiers = resolvedTiers;
+      // Filter to enabled tiers only (disabled tiers are not in the fallback),
+      // then resolve in priority order (already sorted ascending by the service).
+      const enabledTiers = config.tiers.filter((t) => t.enabled !== false);
 
-      // Resolve manualTierIndex: find the index of the tier whose ID matches manualTierId
+      const resolvedTiers = enabledTiers
+        .map((tier) => resolveEditorialTier(tier, queueId, scope, resolveSourceVar))
+        .filter((t): t is PlayoutEditorialTier => t !== null);
+
+      // Build channel-as-source edges from the config (finding 4 fix: use the config
+      // tier's sourceChannelId directly rather than reverse-mapping from the rendered
+      // sourceLiqVar string later in topoSort). Only include edges for source channels
+      // that are actually known — unknown refs were dropped by resolveEditorialTier
+      // returning null, so they must not participate in topoSort.
+      for (const tier of enabledTiers) {
+        if (
+          tier.tierType === "channel-as-source" &&
+          tier.sourceChannelId != null &&
+          channelLiqVars.has(tier.sourceChannelId)
+        ) {
+          carryEdges.push({ channelId: row.id, sourceChannelId: tier.sourceChannelId });
+        }
+      }
+
+      tiers = resolvedTiers.length > 0
+        ? resolvedTiers
+        : [{ type: "queue", queueId, poolScope: scope }]; // degenerate: all tiers disabled
+
+      // Resolve manualTierIndex: find the index among the resolved (enabled) tiers
+      // whose source tier ID matches manualTierId.
       if (mode === "manual" && config.manualTierId != null) {
-        const idx = config.tiers.findIndex((t) => t.id === config.manualTierId);
+        const idx = config.tiers.findIndex((t) => t.id === config.manualTierId && t.enabled !== false);
         manualTierIndex = idx >= 0 ? idx : null;
       } else {
         manualTierIndex = null;
@@ -347,8 +420,9 @@ export const buildPlayoutTopology = (
     };
   });
 
-  // Topologically sort channels so referenced _source vars are defined first
-  const channels = topoSort(unsorted);
+  // Topologically sort channels so referenced _source vars are defined first.
+  // Pass carryEdges directly (built above) — no string-stripping reverse-map needed.
+  const channels = topoSort(unsorted, carryEdges);
 
   const defaultPlayout = channels[0];
 
