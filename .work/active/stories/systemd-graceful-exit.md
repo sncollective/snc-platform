@@ -1,13 +1,13 @@
 ---
 id: systemd-graceful-exit
 kind: story
-stage: review
+stage: done
 tags: [deploy, user-station]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-04-18
-updated: 2026-06-12
+updated: 2026-06-17
 parent: null
 ---
 
@@ -67,3 +67,13 @@ snc-api` no longer hangs, no held pg-boss locks) is only observable on the prod/
 host. Tagged for the release `## Prod verification` walk alongside the other prod-only
 checks (OAuth/SMTP/SRS-RTMP). Implementation record is green; this is the one check that
 actually matters for the story and it lives at ship time.
+
+## Close (2026-06-17) — done, bound to 0.4.0; prod check moved to the release walk
+
+The fix is landed and the implementation record is green; the PM2 `kill_timeout: 35000`
+correction is in. The remaining checks (`systemctl restart snc-api` completes without hanging,
+no pg-boss lock leftovers, clean `systemctl status`) require a **systemd host** — the dev
+container has no systemd (PM2 only), so they're structurally unreachable here. Per platform
+convention these prod-ops checks belong to the release's `## Prod verification` walk **after**
+`released`, not the review stage. Advanced `review → done` bound to **0.4.0**; the systemctl
+checks are carried in `release-0.4.0.md` §Prod verification.

@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-identity-lifecycle
 depends_on: [unified-channel-model-identity-lifecycle-expand]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-13
 updated: 2026-06-13

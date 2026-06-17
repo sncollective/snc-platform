@@ -1,13 +1,13 @@
 ---
 id: failed-upload-blocks-retry
 kind: story
-stage: review
+stage: done
 tags: [content, user-station]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-04-18
-updated: 2026-06-12
+updated: 2026-06-17
 parent: null
 ---
 
@@ -56,3 +56,15 @@ path a dev station can't readily reproduce; it rides a staging or release
 prod-verification check rather than the dev fix-verify loopback.
 **Needs**: an upload killed mid-flight (CORS/network) then retried — confirm no
 "already exists" and no orphaned Garage multipart parts.
+
+## Close (2026-06-17) — done, bound to 0.4.0; behavioral check moved to the release walk
+
+The fix is landed and code-verified (error-path `removeFile` cleanup at the three handler sites
+in `upload-context.tsx`; web suite 1600/1600 green). Advanced `review → done` bound to **0.4.0**
+with the behavioral check carried in `release-0.4.0.md` §Prod verification.
+
+**Honest caveat (distinct from the other two prod-only items):** the forced mid-upload-failure →
+retry check is actually **dev-reproducible** (simulate a CORS/network kill in the running app) —
+it was deferred, not structurally blocked. It rides the release walk for convenience, but it could
+be confirmed earlier in dev if desired. Lowest-confidence of the three closed this way; re-open to
+`review` if the release walk surfaces a regression.

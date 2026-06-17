@@ -1,13 +1,13 @@
 ---
 id: on-forward-session-first-classifier
 kind: story
-stage: review
+stage: done
 tags: [streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-04-24
-updated: 2026-06-10
+updated: 2026-06-17
 parent: null
 ---
 
@@ -77,3 +77,13 @@ path a dev station can't readily reproduce; it rides a staging or release
 prod-verification check rather than the dev fix-verify loopback.
 **Needs**: a real creator RTMP push with active Twitch/YouTube simulcast destinations —
 confirm both external platforms go live AND S/NC TV takes over. Prod-shaped check.
+
+## Close (2026-06-17) — done, bound to 0.4.0; prod check moved to the release walk
+
+Code is fully verified: all scope boxes `[x]`, 1497/1497 API unit tests green, regression tests
+added (colliding-channel-name creator publish takes the creator branch; unknown-publish branch).
+The only remaining check is the **prod** simulcast go-live, which a dev station structurally cannot
+reproduce (real Twitch/YouTube destinations). Per platform convention, prod-only verification lives
+in the release's `## Prod verification` walk **after** `released`, not in the review stage — so the
+item advances `review → done` bound to **0.4.0**, with the prod check carried in `release-0.4.0.md`
+§Prod verification. (Mirrors the editorial/LS close pattern.)

@@ -59,6 +59,17 @@ credentials and can't run in CI:
   finding).
 - **Liquidsoap 2.4.5 prod ship-and-watch** (mitigation for thin automated regression coverage);
   revert plan = re-pin `v2.4.2` + rebuild.
+- **`on-forward-session-first-classifier`:** a real creator RTMP push with active Twitch/YouTube
+  simulcast destinations — confirm both external platforms go live AND S/NC TV takes over (the API
+  returns forward URLs, not an empty `urls:[]`). Code + regression tests green; this is the prod-only
+  go-live (can't reproduce real simulcast destinations in dev).
+- **`systemd-graceful-exit`:** on the prod user-station host — `systemctl restart snc-api` completes
+  within ~35s without hanging, shutdown log shows per-stage completion, no pg-boss lock leftovers
+  (`SELECT * FROM pgboss.job WHERE state='active'` immediately after), clean `systemctl status`.
+  (Dev has no systemd — PM2 only.)
+- **`failed-upload-blocks-retry`:** upload killed mid-flight (CORS/network) then retried — confirm no
+  "already exists" error and no orphaned Garage multipart parts. (Dev-reproducible; deferred here for
+  convenience — could be confirmed in dev before ship.)
 
 ## Quality gate posture
 
