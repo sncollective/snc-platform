@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-client
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-render]
@@ -11,7 +11,22 @@ created: 2026-06-16
 updated: 2026-06-17
 ---
 
-# Control client extension — API → harbor editorial verbs
+# Control client extension — armQueue (arm only; mode/manual removed)
+
+## B1-downgrade fix (2026-06-17)
+
+- **Removed `setMode`** from `LiquidsoapClient` interface, real implementation, and stub.
+  The `/channels/{channelId}/mode` endpoint is no longer emitted in the rendered `.liq`.
+  Mode changes apply via regenerate-and-restart in the control service, not via harbor.
+- **Removed `setManualTier`** from `LiquidsoapClient` interface, real implementation, and stub.
+  The `/channels/{channelId}/manual` endpoint is no longer emitted in the rendered `.liq`.
+  Manual-pin changes apply via regenerate-and-restart.
+- **Kept `armQueue`** — the only live editorial-control verb. The `/arm` endpoint remains.
+- Also removed unused `harborChannelPaths().mode` and `.manual` usages (those keys were
+  removed from `harborChannelPaths` in the topology story's B1 fix).
+- Tests: removed `setMode` and `setManualTier` describe blocks from both
+  `createLiquidsoapClient` and `createStubLiquidsoapClient` test sections.
+- All client tests pass.
 
 Implements **Unit 4** of `unified-channel-model-editorial-engine` (full design in the feature body).
 The typed adapter for the new bespoke endpoints.

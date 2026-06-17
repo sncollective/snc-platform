@@ -62,8 +62,6 @@ ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_pool = request.dynamic(fun() -> begin
 end)
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue_program = fallback(track_sensitive=true, [ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_queue, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_pool])
 
-ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_mode = ref("auto")
-ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_manual = ref(0)
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed = ref(true)
 
 ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source = switch(track_sensitive=false, [
@@ -114,35 +112,11 @@ harbor.http.register(port=8888, method="GET", "/channels/903e6a20-0dea-42b1-8dd5
   })
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/mode", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_mode := req.body()
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
 harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
     ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
-harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/manual", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_manual := int_of_string(req.body())
     res.data("ok")
   else
     res.status_code(401)

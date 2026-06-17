@@ -17,15 +17,12 @@ const mockResolvePoolNextUri = vi.fn();
 const mockPoolContentScope = vi.fn();
 
 // Mock liquidsoap-client
+// B1 downgrade (2026-06-17): setMode and setManualTier removed; armQueue is the only live verb.
 const mockCreateLiquidsoapClient = vi.fn(() => ({
-  setMode: vi.fn().mockResolvedValue(ok(undefined)),
   armQueue: vi.fn().mockResolvedValue(ok(undefined)),
-  setManualTier: vi.fn().mockResolvedValue(ok(undefined)),
 }));
 const mockCreateStubLiquidsoapClient = vi.fn(() => ({
-  setMode: vi.fn().mockResolvedValue(ok(undefined)),
   armQueue: vi.fn().mockResolvedValue(ok(undefined)),
-  setManualTier: vi.fn().mockResolvedValue(ok(undefined)),
 }));
 
 // ── DB mock for pool/next route ──
@@ -164,7 +161,8 @@ describe("editorial control routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toEqual({ ok: true });
-      expect(mockSetMode).toHaveBeenCalledWith("ch-1", "auto", expect.anything());
+      // B1 downgrade: setMode takes (channelId, mode) only — no client arg
+      expect(mockSetMode).toHaveBeenCalledWith("ch-1", "auto");
     });
 
     it("403 — forbidden without admin role", async () => {
@@ -314,7 +312,8 @@ describe("editorial control routes", () => {
       );
 
       expect(res.status).toBe(200);
-      expect(mockSetManualTier).toHaveBeenCalledWith("ch-1", "tier-1", expect.anything());
+      // B1 downgrade: setManualTier takes (channelId, tierId) only — no client arg
+      expect(mockSetManualTier).toHaveBeenCalledWith("ch-1", "tier-1");
     });
 
     it("403 — forbidden without admin role", async () => {

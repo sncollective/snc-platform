@@ -31,21 +31,23 @@ const makeRow = (
 ) => ({ id, name, srsStreamName, ownership, creatorId });
 
 describe("harborChannelPaths", () => {
-  it("builds all six control paths with the UUID verbatim (mode, arm, manual — no priority)", () => {
+  it("builds four control paths (queue, skip, nowPlaying, arm — B1 downgrade: no mode/manual/priority)", () => {
+    // B1 downgrade (2026-06-17): mode and manual-pin are render-time-static; their
+    // harbor endpoints are removed. arm is the only live editorial verb.
     expect(harborChannelPaths(ROW.id)).toEqual({
       queue: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/queue",
       skip: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/skip",
       nowPlaying: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/now-playing",
-      mode: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/mode",
       arm: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/arm",
-      manual: "/channels/903e6a20-0dea-42b1-8dd5-86afbec496ac/manual",
     });
   });
 
-  it("does NOT include a priority path", () => {
+  it("does NOT include mode, manual, or priority paths", () => {
     const paths = harborChannelPaths(ROW.id);
-    // TypeScript guards this too, but verify at runtime shape
-    expect(Object.keys(paths)).not.toContain("priority");
+    const keys = Object.keys(paths);
+    expect(keys).not.toContain("mode");
+    expect(keys).not.toContain("manual");
+    expect(keys).not.toContain("priority");
   });
 });
 
@@ -313,6 +315,24 @@ describe("buildPlayoutTopology — mode + manualTierIndex", () => {
     })];
     const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
     expect(ch.manualTierIndex).toBeNull();
+  });
+
+  it("B2 fix: computes manualTierIndex over enabled tiers — disabled tier before pinned does not shift index", () => {
+    // B2 scenario: tier at full-array index 0 is disabled; pinned tier is at full-array
+    // index 1. The enabled-array index of the pinned tier is 0 (it's the only enabled tier).
+    // Before the B2 fix, config.tiers.findIndex returned 1 (full-array), but tierVarNames
+    // has the pinned tier at index 0 → wrong tier (or out-of-range → blank) on restart.
+    const configs = [makeConfig(ROW.id, {
+      mode: "manual",
+      manualTierId: "t-queue",
+      tiers: [
+        makeTier("t-live",  ROW.id, "live",  0, null, false), // disabled — excluded from enabled array
+        makeTier("t-queue", ROW.id, "queue", 1, null, true),  // enabled — index 0 in enabled array
+      ],
+    })];
+    const ch = buildPlayoutTopology([ROW], configs).channels[0]!;
+    // Enabled array: [t-queue] → manualTierIndex should be 0, not 1
+    expect(ch.manualTierIndex).toBe(0);
   });
 });
 

@@ -62,8 +62,6 @@ ch_aaaaaaaa_0000_0000_0000_000000000001_pool = request.dynamic(fun() -> begin
 end)
 ch_aaaaaaaa_0000_0000_0000_000000000001_queue_program = fallback(track_sensitive=true, [ch_aaaaaaaa_0000_0000_0000_000000000001_queue, ch_aaaaaaaa_0000_0000_0000_000000000001_pool])
 
-ch_aaaaaaaa_0000_0000_0000_000000000001_mode = ref("auto")
-ch_aaaaaaaa_0000_0000_0000_000000000001_manual = ref(0)
 ch_aaaaaaaa_0000_0000_0000_000000000001_armed = ref(true)
 
 ch_aaaaaaaa_0000_0000_0000_000000000001_source = switch(track_sensitive=false, [
@@ -114,35 +112,11 @@ harbor.http.register(port=8888, method="GET", "/channels/aaaaaaaa-0000-0000-0000
   })
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/mode", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_aaaaaaaa_0000_0000_0000_000000000001_mode := req.body()
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
 harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/arm", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
     ch_aaaaaaaa_0000_0000_0000_000000000001_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
-harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/manual", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_aaaaaaaa_0000_0000_0000_000000000001_manual := int_of_string(req.body())
     res.data("ok")
   else
     res.status_code(401)
@@ -160,8 +134,6 @@ ch_bbbbbbbb_0000_0000_0000_000000000002_pool = request.dynamic(fun() -> begin
 end)
 ch_bbbbbbbb_0000_0000_0000_000000000002_queue_program = fallback(track_sensitive=true, [ch_bbbbbbbb_0000_0000_0000_000000000002_queue, ch_bbbbbbbb_0000_0000_0000_000000000002_pool])
 
-ch_bbbbbbbb_0000_0000_0000_000000000002_mode = ref("auto")
-ch_bbbbbbbb_0000_0000_0000_000000000002_manual = ref(0)
 ch_bbbbbbbb_0000_0000_0000_000000000002_armed = ref(true)
 
 ch_bbbbbbbb_0000_0000_0000_000000000002_source = switch(track_sensitive=false, [
@@ -212,35 +184,11 @@ harbor.http.register(port=8888, method="GET", "/channels/bbbbbbbb-0000-0000-0000
   })
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/mode", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_bbbbbbbb_0000_0000_0000_000000000002_mode := req.body()
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
 harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/arm", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
     ch_bbbbbbbb_0000_0000_0000_000000000002_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
-harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/manual", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_bbbbbbbb_0000_0000_0000_000000000002_manual := int_of_string(req.body())
     res.data("ok")
   else
     res.status_code(401)

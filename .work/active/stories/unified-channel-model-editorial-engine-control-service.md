@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-service
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-control-client, unified-channel-model-editorial-engine-config-schema]
@@ -12,6 +12,28 @@ updated: 2026-06-17
 ---
 
 # Editorial control service + routes + restart wiring
+
+## B1-downgrade fix (2026-06-17)
+
+- **`setMode`**: removed `client.setMode` live-mutate call. Now persists mode to DB then calls
+  `regenerateAndRestart()`. Signature updated: no longer takes a `LiquidsoapClient` param.
+  Route handler updated: `editorialSetMode(channelId, mode)` (no client arg).
+- **`setManualTier`**: removed `client.setMode` + `client.setManualTier` live-mutate calls.
+  Now persists `mode=manual` + `manualTierId` then calls `regenerateAndRestart()`. Signature
+  updated: no `LiquidsoapClient` param. Route handler updated: `editorialSetManualTier(channelId, tierId)`.
+- **`takeQueue` mode-change decision**: if already in auto mode, arm live only (no restart needed —
+  checks persisted mode via `getEditorialConfig`). If in manual mode, persist `mode=auto` +
+  regenerate-restart, then arm live. This avoids spurious restarts when the operator calls take
+  on a channel already in auto. `takeQueue` still takes a `LiquidsoapClient` param (arm is live).
+- **`armQueue`**: unchanged — live verb, still takes `LiquidsoapClient`, no restart.
+- Tests updated:
+  - `setMode`: asserts `mockRegenerateAndRestart` called, no `client.setMode`.
+  - `setManualTier`: asserts `mockRegenerateAndRestart` called, no `client.setManualTier`/`setMode`.
+  - `takeQueue`: 3 cases — already auto (arm only), from manual (persist+restart+arm), null config
+    (defaults to auto, arm only). `mockGetEditorialConfig` added to module setup.
+  - `makeMockClient` updated to remove `setMode`/`setManualTier`.
+- Route tests: `setMode` and `setManualTier` assertions updated (no `expect.anything()` third arg).
+- All control-service and route tests pass.
 
 Implements **Unit 5** of `unified-channel-model-editorial-engine` (full design in the feature body).
 Makes the engine controllable — the verbs the editorial UI (out of scope here) will consume.

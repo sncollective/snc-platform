@@ -18,7 +18,14 @@ export type LiquidsoapNowPlaying = {
 
 // ── Interface ──
 
-/** Operations the queue orchestrator needs from Liquidsoap. */
+/**
+ * Operations the queue orchestrator needs from Liquidsoap.
+ *
+ * B1 downgrade (2026-06-17): `setMode` and `setManualTier` are removed. Mode and
+ * manual-pin are no longer live verbs — they apply via regenerate-and-restart in the
+ * control service. The `/mode` and `/manual` harbor endpoints are not emitted in the
+ * rendered .liq. `armQueue` is the only live editorial-control verb.
+ */
 export type LiquidsoapClient = {
   /** Push a track URI to a channel's request.queue for prefetch + playback. */
   pushTrack(channelId: string, uri: string): Promise<Result<void, AppError>>;
@@ -27,14 +34,6 @@ export type LiquidsoapClient = {
   /** Fetch now-playing metadata for a channel. Returns null if unavailable. */
   getNowPlaying(channelId: string): Promise<LiquidsoapNowPlaying | null>;
   /**
-   * Set the editorial mode for a channel.
-   *
-   * Calls the `?secret=`-guarded POST `/channels/{channelId}/mode` endpoint.
-   * Returns err(LIQUIDSOAP_SECRET_NOT_CONFIGURED) when `PLAYOUT_CALLBACK_SECRET`
-   * is unset — the endpoint would 401 and the call is meaningless without it.
-   */
-  setMode(channelId: string, mode: "manual" | "auto"): Promise<Result<void, AppError>>;
-  /**
    * Arm or disarm the channel queue for take-over.
    *
    * Calls the `?secret=`-guarded POST `/channels/{channelId}/arm` endpoint.
@@ -42,14 +41,6 @@ export type LiquidsoapClient = {
    * is unset.
    */
   armQueue(channelId: string, armed: boolean): Promise<Result<void, AppError>>;
-  /**
-   * Pin the channel to a specific editorial tier by index.
-   *
-   * Calls the `?secret=`-guarded POST `/channels/{channelId}/manual` endpoint.
-   * Returns err(LIQUIDSOAP_SECRET_NOT_CONFIGURED) when `PLAYOUT_CALLBACK_SECRET`
-   * is unset.
-   */
-  setManualTier(channelId: string, tierIndex: number): Promise<Result<void, AppError>>;
 };
 
 // ── Real Implementation ──
@@ -154,16 +145,8 @@ export const createLiquidsoapClient = (): LiquidsoapClient => {
       }
     },
 
-    async setMode(channelId, mode) {
-      return requestGuarded(harborChannelPaths(channelId).mode, mode);
-    },
-
     async armQueue(channelId, armed) {
       return requestGuarded(harborChannelPaths(channelId).arm, armed ? "true" : "false");
-    },
-
-    async setManualTier(channelId, tierIndex) {
-      return requestGuarded(harborChannelPaths(channelId).manual, String(tierIndex));
     },
   };
 };
@@ -186,16 +169,8 @@ export const createStubLiquidsoapClient = (): LiquidsoapClient => ({
   async getNowPlaying() {
     return null;
   },
-  async setMode(channelId, mode) {
-    logger.info({ channelId, mode }, "STUB: setMode");
-    return ok(undefined);
-  },
   async armQueue(channelId, armed) {
     logger.info({ channelId, armed }, "STUB: armQueue");
-    return ok(undefined);
-  },
-  async setManualTier(channelId, tierIndex) {
-    logger.info({ channelId, tierIndex }, "STUB: setManualTier");
     return ok(undefined);
   },
 });

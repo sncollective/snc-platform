@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-render
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-topology]
@@ -11,7 +11,29 @@ created: 2026-06-16
 updated: 2026-06-17
 ---
 
-# Render extension — ref-driven switch() + bespoke control endpoints
+# Render extension — render-time-static switch + arm/take live endpoint
+
+## B1-downgrade fix (2026-06-17)
+
+Deep review found that `${vid}_mode` and `${vid}_manual` refs were declared but never read by
+any switch predicate — only `${vid}_armed()` was actually read. The `/mode` and `/manual`
+harbor endpoints mutated dead refs. This story removes the dead machinery:
+
+- **Removed** `${vid}_mode = ref(...)` and `${vid}_manual = ref(...)` declarations.
+- **Removed** `/mode` and `/manual` harbor endpoints.
+- **Kept** `${vid}_armed = ref(...)` and the `/arm` endpoint (the one live verb — confirmed working).
+- **I2 defer**: `live` tiers are now skipped in `renderTierSource` (return null) with a comment
+  explaining the port-1936 collision with the broadcast block's static listener. A channel with
+  only live tiers falls to `mksafe(blank())`. No live-tier config exists yet so this is safe.
+- The switch shape is baked at render time from `ch.mode` (render-time-static) — mode and
+  manual-pin changes apply via regenerate-and-restart, not live harbor mutation.
+- `renderSwitchPredicates` updated to accept explicit `renderedTiers` (live-excluded) so it
+  aligns with `tierVarNames`.
+- Goldens regenerated: `_mode`/`_manual` refs and `/mode`/`/manual` endpoints absent; `_armed`
+  + `/arm` present; switch shape intact; broadcast block unchanged.
+- `liquidsoap --check` exit 0 (warnings only: pre-existing `null()` deprecation + `_req`).
+
+Previous body below (kept for context of what shipped before the review bounce).
 
 Implements **Unit 3** of `unified-channel-model-editorial-engine` (full design in the feature body).
 Emits the live editorial mechanism the spike settled.

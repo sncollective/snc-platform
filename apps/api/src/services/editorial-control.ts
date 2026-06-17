@@ -8,6 +8,7 @@ import { channelContent } from "../db/schema/playout-queue.schema.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import {
+  getEditorialConfig,
   upsertEditorialConfig,
   getEditorialTiers,
   createEditorialTier,
@@ -49,31 +50,31 @@ const fetchPlayoutChannel = async (
   return ok(row);
 };
 
-// ── Live verb service functions ──
-// Each live verb persists state to DB (restart-agnostic) then live-mutates via the client.
-// The render initializes refs from persisted config on every Liquidsoap startup.
-// arm/take: armed state is NOT persisted — the render initializes armed=false on restart and
+// ── Structural verb service functions ──
+// setMode and setManualTier are STRUCTURAL verbs (B1 downgrade, 2026-06-17):
+// mode and manual-pin are render-time-static — mode/manual refs were declared in the
+// .liq but never read by any switch predicate, making live mutation a no-op. The
+// downgrade makes the behavior match the implementation: persist then regenerate-restart.
+//
+// The one LIVE verb is armQueue (arm/take):
+// arm state is NOT persisted — the render initializes armed=false on restart and
 // the operator re-arms after a restart if needed. This is intentional: a restart is a
-// structural event that clears transient operational state. Documented here as the load-bearing
-// decision (rejected: persist armed state — arm/take is operator intent signaled in a live
-// session, not a durable config; persisting it would auto-arm after unexpected restarts,
-// which could surprise the operator).
+// structural event that clears transient operational state.
+// Rejected: persist armed state — arm/take is operator intent in a live session, not
+// durable config; persisting would auto-arm after unexpected restarts (surprising).
 
 /**
  * Set the editorial mode for a channel.
  *
- * Persists the mode to DB (restart-agnostic), then live-mutates the running
- * Liquidsoap instance via the client. In manual mode the `manualTierId` should
- * be set separately (or together via `setManualTier`).
+ * Persists the mode to DB then regenerates and restarts Liquidsoap (structural verb —
+ * B1 downgrade 2026-06-17: mode is render-time-static, not live-mutable).
  *
  * @param channelId - The channel to configure.
  * @param mode - The editorial mode to set.
- * @param client - Liquidsoap client for live mutation.
  */
 export const setMode = async (
   channelId: string,
   mode: EditorialMode,
-  client: LiquidsoapClient,
 ): Promise<Result<void, AppError>> => {
   const channelResult = await fetchPlayoutChannel(channelId);
   if (!channelResult.ok) return channelResult;
@@ -81,15 +82,7 @@ export const setMode = async (
   const persistResult = await upsertEditorialConfig(channelId, { mode });
   if (!persistResult.ok) return persistResult;
 
-  const liveResult = await client.setMode(channelId, mode);
-  if (!liveResult.ok) {
-    logger.warn(
-      { channelId, mode, error: liveResult.error.message },
-      "setMode persisted but live-mutate failed — state will restore on next restart",
-    );
-  }
-
-  return ok(undefined);
+  return regenerateAndRestart();
 };
 
 /**
@@ -101,7 +94,7 @@ export const setMode = async (
  *
  * @param channelId - The channel to arm/disarm.
  * @param armed - Whether to arm the queue.
- * @param client - Liquidsoap client for live mutation.
+ * @param client - Liquidsoap client for live arm mutation.
  */
 export const armQueue = async (
   channelId: string,
@@ -115,15 +108,23 @@ export const armQueue = async (
 };
 
 /**
- * Take the queue: arm it and flip mode to auto so the queue source participates
- * in the readiness fallback immediately.
+ * Take the queue: arm it and ensure mode is auto so the queue source participates
+ * in the readiness fallback.
  *
  * Convenience verb for the "build a queue while pool rotates, take when ready"
- * workshop scenario. Persists mode=auto (the switch-over intent) and live-mutates
- * both armed=true and mode=auto.
+ * workshop scenario.
+ *
+ * Mode-change decision (B1 downgrade, 2026-06-17):
+ * - If the channel is already in auto mode: arm is live-only (no restart needed).
+ * - If the channel is in manual mode: a mode flip to auto is structural (rendered).
+ *   Persist mode=auto + regenerate-restart, THEN arm live so the queue takes over
+ *   immediately after the restart. The arm call after restart may race slightly
+ *   (the restart is fast); operators expecting instant take should call arm
+ *   separately if needed. Accepted: the "take" intent persists in the DB, so a
+ *   restart after the arm is lost re-renders in auto (the durable intent).
  *
  * @param channelId - The channel to take.
- * @param client - Liquidsoap client for live mutation.
+ * @param client - Liquidsoap client for live arm mutation.
  */
 export const takeQueue = async (
   channelId: string,
@@ -132,24 +133,31 @@ export const takeQueue = async (
   const channelResult = await fetchPlayoutChannel(channelId);
   if (!channelResult.ok) return channelResult;
 
-  // Persist mode=auto (the "switch over" intent survives a restart)
-  const persistResult = await upsertEditorialConfig(channelId, { mode: "auto" });
-  if (!persistResult.ok) return persistResult;
+  // Check current persisted mode — only restart if we need to flip from manual.
+  const configResult = await getEditorialConfig(channelId);
+  const currentMode = configResult.ok ? configResult.value?.mode ?? "auto" : "auto";
 
-  // Live-mutate: arm then set mode to auto
+  if (currentMode !== "auto") {
+    // Switching from manual → auto is structural; persist + regenerate-restart.
+    const persistResult = await upsertEditorialConfig(channelId, { mode: "auto" });
+    if (!persistResult.ok) return persistResult;
+
+    const restartResult = await regenerateAndRestart();
+    if (!restartResult.ok) {
+      logger.warn(
+        { channelId, error: restartResult.error.message },
+        "takeQueue: regenerate-restart failed after persisting mode=auto",
+      );
+      return restartResult;
+    }
+  }
+
+  // Arm is always live — arm the queue so it participates in the readiness fallback.
   const armResult = await client.armQueue(channelId, true);
   if (!armResult.ok) {
     logger.warn(
       { channelId, error: armResult.error.message },
-      "takeQueue: arm live-mutate failed — persisted mode=auto",
-    );
-  }
-
-  const modeResult = await client.setMode(channelId, "auto");
-  if (!modeResult.ok) {
-    logger.warn(
-      { channelId, error: modeResult.error.message },
-      "takeQueue: mode live-mutate failed — persisted mode=auto",
+      "takeQueue: arm live-mutate failed — mode=auto persisted; re-arm after restart",
     );
   }
 
@@ -159,25 +167,24 @@ export const takeQueue = async (
 /**
  * Pin the channel to a specific editorial tier by tier ID.
  *
- * Resolves the tier's index in priority order (for the Liquidsoap live ref),
- * persists mode=manual + manualTierId, then live-mutates the running instance.
+ * Persists mode=manual + manualTierId then regenerates and restarts Liquidsoap
+ * (structural verb — B1 downgrade 2026-06-17: manual-pin is render-time-static).
  *
  * This is the "choose the scheduled event over the live creator" workshop
- * scenario verb.
+ * scenario verb. The pin takes effect on the next restart (regenerate-restart
+ * is called here). No live client calls are made.
  *
  * @param channelId - The channel to pin.
  * @param tierId - The tier ID to pin to.
- * @param client - Liquidsoap client for live mutation.
  */
 export const setManualTier = async (
   channelId: string,
   tierId: string,
-  client: LiquidsoapClient,
 ): Promise<Result<void, AppError>> => {
   const channelResult = await fetchPlayoutChannel(channelId);
   if (!channelResult.ok) return channelResult;
 
-  // Load ordered tiers to resolve the tier index
+  // Load ordered tiers to validate the tier ID and confirm it's enabled.
   const tiersResult = await getEditorialTiers(channelId);
   if (!tiersResult.ok) return tiersResult;
 
@@ -198,31 +205,14 @@ export const setManualTier = async (
     );
   }
 
-  // Persist mode=manual + manualTierId (restart-agnostic)
+  // Persist mode=manual + manualTierId (the render reads these on next restart).
   const persistResult = await upsertEditorialConfig(channelId, {
     mode: "manual",
     manualTierId: tierId,
   });
   if (!persistResult.ok) return persistResult;
 
-  // Live-mutate mode and manual tier index
-  const modeResult = await client.setMode(channelId, "manual");
-  if (!modeResult.ok) {
-    logger.warn(
-      { channelId, error: modeResult.error.message },
-      "setManualTier: mode live-mutate failed — persisted mode=manual",
-    );
-  }
-
-  const tierResult = await client.setManualTier(channelId, tierIndex);
-  if (!tierResult.ok) {
-    logger.warn(
-      { channelId, tierId, tierIndex, error: tierResult.error.message },
-      "setManualTier: tier live-mutate failed — persisted tier assignment",
-    );
-  }
-
-  return ok(undefined);
+  return regenerateAndRestart();
 };
 
 // ── Structural edit helpers ──

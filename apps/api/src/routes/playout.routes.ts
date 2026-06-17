@@ -276,7 +276,7 @@ playoutRoutes.post(
   async (c) => {
     const { channelId } = c.req.valid("param" as never) as { channelId: string };
     const { mode } = c.req.valid("json" as never) as { mode: "manual" | "auto" };
-    const result = await editorialSetMode(channelId, mode, getLiquidsoapClient());
+    const result = await editorialSetMode(channelId, mode);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },
@@ -311,7 +311,7 @@ playoutRoutes.post(
 playoutRoutes.post(
   "/channels/:channelId/editorial/take",
   describeRoute({
-    description: "Arm the queue and switch mode to auto (take-over). Persists mode=auto and live-mutates.",
+    description: "Arm the queue and ensure mode=auto (take-over). Persists mode=auto if needed (regenerate-restart) then arms live.",
     tags: ["playout", "editorial"],
     responses: {
       200: { description: "Take acknowledged" },
@@ -333,7 +333,7 @@ playoutRoutes.post(
 playoutRoutes.post(
   "/channels/:channelId/editorial/manual",
   describeRoute({
-    description: "Pin the channel to a specific editorial tier in manual mode. Persists and live-mutates.",
+    description: "Pin the channel to a specific editorial tier in manual mode. Persists mode=manual + tierId then regenerates and restarts.",
     tags: ["playout", "editorial"],
     responses: {
       200: { description: "Tier pinned" },
@@ -348,7 +348,7 @@ playoutRoutes.post(
   async (c) => {
     const { channelId } = c.req.valid("param" as never) as { channelId: string };
     const { tierId } = c.req.valid("json" as never) as { tierId: string };
-    const result = await editorialSetManualTier(channelId, tierId, getLiquidsoapClient());
+    const result = await editorialSetManualTier(channelId, tierId);
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },

@@ -36,7 +36,7 @@ const renderTierSource = (
   ch: PlayoutChannelTopology,
   tier: PlayoutEditorialTier,
   _tierIndex: number,
-): { varName: string; declaration: string } => {
+): { varName: string; declaration: string } | null => {
   const vid = ch.liqVar;
   switch (tier.type) {
     case "queue": {
@@ -65,13 +65,14 @@ const renderTierSource = (
       return { varName: programVar, declaration: decls };
     }
     case "live": {
-      // Live RTMP ingest for this channel. Each channel listens on its own stream path
-      // on the broadcast input port; path is derived from the channel's srsStreamName.
-      const varName = `${vid}_live_source`;
-      return {
-        varName,
-        declaration: `${varName} = input.rtmp(listen=true, "rtmp://0.0.0.0:${t.broadcastInputPort}/live/${escLiq(ch.srsStreamName)}")`,
-      };
+      // I2 — live tier deferred: per-channel input.rtmp(listen=true, …:1936/…) collides
+      // with the static broadcast block's port-1936 listener → engine fails to start.
+      // Per-channel RTMP ingest path (SRS on_forward into one Liquidsoap input) is
+      // undesigned for MVP. Skip live tiers; a channel left with no other enabled tiers
+      // falls to the mksafe(blank()) tail. Revisit when per-channel ingest is scoped.
+      // live tier deferred — per-channel ingest path (SRS-forward) undesigned; see I2
+      void t; // suppress unused-param warning
+      return null;
     }
     case "channel-as-source": {
       // The referenced channel's _source variable — already defined earlier in the file
@@ -93,16 +94,21 @@ const renderTierSource = (
  * queue while another source airs, then arm/take. The switch is:
  *   switch(track_sensitive=false, [
  *     ({ armed() }, queue_program),    # queue tier: armed gate
- *     ({ true }, live_source),         # live/carry tiers: always-ready predicate
+ *     ({ true }, carry_source),        # carry tiers: always-ready predicate
  *     ({ true }, mksafe(blank()))      # infallible tail
  *   ])
  * This is a readiness fallback: the first READY (available) source wins. The queue
- * participates when armed; live participates when a stream is connected; carry
- * participates when the upstream channel has content. The mksafe tail ensures the
- * switch never has zero ready children.
+ * participates when armed; carry participates when the upstream channel has content.
+ * The mksafe tail ensures the switch never has zero ready children.
  *
- * MANUAL mode: pin one source via `${vid}_manual` ref. A single-case switch with
- * the manual-indexed source, then the mksafe tail.
+ * MANUAL mode (render-time-static, B1 downgrade 2026-06-17): the switch shape is baked
+ * from persisted config at render time. A single-case switch pins the tier at
+ * manualTierIndex in the rendered-tier list, then the mksafe tail. There are no live
+ * mode/manual refs — mode and manual-pin changes apply via regenerate-and-restart.
+ *
+ * `renderedTiers` must be the filtered list of tiers that produced `tierVarNames`
+ * (live tiers are excluded — see I2 in renderChannelBlock). The two arrays are
+ * parallel: renderedTiers[i] corresponds to tierVarNames[i].
  *
  * Rejected: a live `priority` ref — "auto" with a priority ref conflates auto-selection
  * with manual selection and isn't self-running. The readiness fallback is self-running
@@ -111,6 +117,7 @@ const renderTierSource = (
 const renderSwitchPredicates = (
   ch: PlayoutChannelTopology,
   tierVarNames: string[],
+  renderedTiers: readonly PlayoutEditorialTier[],
 ): string => {
   const vid = ch.liqVar;
 
@@ -127,13 +134,14 @@ const renderSwitchPredicates = (
   // AUTO mode: readiness fallback (all-true predicates = fallback semantics).
   // The queue tier gates additionally on armed so it can be built while another
   // source airs, then taken at the next track boundary.
-  const cases = ch.tiers.map((tier, idx) => {
+  // Uses renderedTiers (live tiers excluded per I2) rather than ch.tiers.
+  const cases = renderedTiers.map((tier, idx) => {
     const varName = tierVarNames[idx] ?? "mksafe(blank())";
     if (tier.type === "queue") {
       // Queue tier: participates only when armed
       return `  ({ ${vid}_armed() }, ${varName})`;
     }
-    // Live and channel-as-source: always-ready predicate (readiness fallback)
+    // channel-as-source: always-ready predicate (readiness fallback)
     return `  ({ true }, ${varName})`;
   });
   cases.push(`  ({ true }, mksafe(blank()))`);
@@ -146,13 +154,18 @@ const renderChannelBlock = (t: PlayoutTopology, ch: PlayoutChannelTopology): str
 
   // ── Tier source declarations ──
   // Collect declarations + variable names for each tier.
+  // renderTierSource returns null for deferred tier types (live tiers — I2).
+  // Null results are skipped; they do not participate in the switch predicate list.
   const tierDeclarations: string[] = [];
   const tierVarNames: string[] = [];
+  const renderedTiers: typeof ch.tiers[number][] = [];
   for (let i = 0; i < ch.tiers.length; i++) {
     const tier = ch.tiers[i]!;
-    const { varName, declaration } = renderTierSource(t, ch, tier, i);
-    if (declaration !== "") tierDeclarations.push(declaration);
-    tierVarNames.push(varName);
+    const rendered = renderTierSource(t, ch, tier, i);
+    if (rendered === null) continue; // deferred tier type — skip
+    if (rendered.declaration !== "") tierDeclarations.push(rendered.declaration);
+    tierVarNames.push(rendered.varName);
+    renderedTiers.push(tier);
   }
 
   // ── Queue tier detection ──
@@ -160,25 +173,29 @@ const renderChannelBlock = (t: PlayoutTopology, ch: PlayoutChannelTopology): str
   // The queue tier renders as ${vid}_queue_program (the combined fallback), but the
   // on_metadata hook attaches to ${vid}_queue (the operator request.queue) so that
   // track events fire on operator-curated pushes.
-  const queueTierIdx = ch.tiers.findIndex((tier) => tier.type === "queue");
+  const queueTierIdx = renderedTiers.findIndex((tier) => tier.type === "queue");
   const queueWebhookVarName = queueTierIdx >= 0 ? `${vid}_queue` : null;
 
   // For a queue-only default channel (no explicit config → single queue tier at index 0),
   // initialize armed=true so the queue participates in the readiness fallback immediately —
   // behaviorally equivalent to the prior fallback([queue, blank]) default.
-  // If the channel has multiple tiers (e.g. live + queue), start unarmed — the operator
+  // If the channel has multiple tiers (e.g. carry + queue), start unarmed — the operator
   // explicitly arms the queue when they want it to take over.
-  const initialArmed = ch.tiers.length === 1 && ch.tiers[0]?.type === "queue" ? "true" : "false";
+  const initialArmed = renderedTiers.length === 1 && renderedTiers[0]?.type === "queue" ? "true" : "false";
 
   // ── Control refs ──
-  // Initialized from persisted config (restart-agnostic: a restart re-renders these
-  // init values from the stored config, so live mutations survive across restarts).
-  // No priority ref — auto mode uses a readiness fallback, not a priority index.
-  const modeInit = ch.mode;
-  const manualInit = ch.manualTierIndex !== null ? ch.manualTierIndex : 0;
+  // Only ${vid}_armed is a live-mutable ref (arm/take is the one live verb).
+  // mode and manual-pin are render-time-static (B1 downgrade, 2026-06-17):
+  //   the switch shape is baked at render time from persisted config; mode/manual
+  //   changes apply via regenerate-and-restart. No ${vid}_mode / ${vid}_manual refs
+  //   are emitted — they were declared before but never read by any switch predicate,
+  //   making them dead + misleading. Removed here.
 
   // ── Switch predicates ──
-  const switchExpr = renderSwitchPredicates(ch, tierVarNames);
+  // renderSwitchPredicates uses ch.tiers (topology-level) for the armed gate detection,
+  // but we pass tierVarNames derived from renderedTiers only (live tiers skipped).
+  // Pass renderedTiers to renderSwitchPredicates so it aligns with tierVarNames.
+  const switchExpr = renderSwitchPredicates(ch, tierVarNames, renderedTiers);
 
   // ── Now-playing reads switch.selected() ──
   // Uses switch.selected() — NOT on_metadata — per position gotcha #1. on_metadata is
@@ -207,8 +224,6 @@ end)`
 
 ${tierDeclarations.join("\n")}
 
-${vid}_mode = ref("${modeInit}")
-${vid}_manual = ref(${manualInit})
 ${vid}_armed = ref(${initialArmed})
 
 ${vid}_source = ${switchExpr}
@@ -246,35 +261,11 @@ harbor.http.register(port=${t.harborPort}, method="GET", "${ch.harborPaths.nowPl
   })
 end)
 
-harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.mode}", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ${vid}_mode := req.body()
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
 harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.arm}", fun(req, res) -> begin
   secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
   q = req.query
   if q["secret"] == secret and secret != "" then
     ${vid}_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
-
-harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.manual}", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ${vid}_manual := int_of_string(req.body())
     res.data("ok")
   else
     res.status_code(401)

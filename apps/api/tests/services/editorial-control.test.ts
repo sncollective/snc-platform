@@ -13,6 +13,7 @@ const mockDb = {
 
 // ── editorial-config mock functions ──
 
+const mockGetEditorialConfig = vi.fn();
 const mockUpsertEditorialConfig = vi.fn();
 const mockGetEditorialTiers = vi.fn();
 const mockCreateEditorialTier = vi.fn();
@@ -69,6 +70,7 @@ const setupModule = async () => {
     content: { id: "id", mediaKey: "mediaKey", transcodedMediaKey: "transcodedMediaKey" },
   }));
   vi.doMock("../../src/services/editorial-config.js", () => ({
+    getEditorialConfig: mockGetEditorialConfig,
     upsertEditorialConfig: mockUpsertEditorialConfig,
     getEditorialTiers: mockGetEditorialTiers,
     createEditorialTier: mockCreateEditorialTier,
@@ -127,13 +129,13 @@ const makeChannelContentRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+// B1 downgrade (2026-06-17): setMode and setManualTier removed from client.
+// armQueue is the only live editorial verb.
 const makeMockClient = () => ({
   pushTrack: vi.fn().mockResolvedValue(ok(undefined)),
   skipTrack: vi.fn().mockResolvedValue(ok(undefined)),
   getNowPlaying: vi.fn().mockResolvedValue(null),
-  setMode: vi.fn().mockResolvedValue(ok(undefined)),
   armQueue: vi.fn().mockResolvedValue(ok(undefined)),
-  setManualTier: vi.fn().mockResolvedValue(ok(undefined)),
 });
 
 // ── Helper to wire a simple channel lookup ──
@@ -160,46 +162,43 @@ const wireUpdateChain = () => {
 describe("editorial-control service", () => {
   // ── setMode ──
 
+  // ── setMode (B1 downgrade: structural verb — persist + regenerate-restart) ──
+
   describe("setMode", () => {
-    it("persists the mode and live-mutates the client", async () => {
+    it("persists the mode then calls regenerateAndRestart (structural — no live client call)", async () => {
       wireChannelLookup(makeChannel());
       mockUpsertEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "auto", manualTierId: null, updatedAt: "2026-01-01T00:00:00Z" }));
+      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
 
-      const client = makeMockClient();
       const { setMode } = await setupModule();
-      const result = await setMode("ch-1", "auto", client);
+      const result = await setMode("ch-1", "auto");
 
       expect(result.ok).toBe(true);
       expect(mockUpsertEditorialConfig).toHaveBeenCalledWith("ch-1", { mode: "auto" });
-      expect(client.setMode).toHaveBeenCalledWith("ch-1", "auto");
+      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
     });
 
     it("returns NOT_FOUND error when channel not found", async () => {
       wireChannelLookup(null);
 
-      const client = makeMockClient();
       const { setMode } = await setupModule();
-      const result = await setMode("nonexistent", "auto", client);
+      const result = await setMode("nonexistent", "auto");
 
       expect(result.ok).toBe(false);
       expect((result as { ok: false; error: { code: string } }).error.code).toBe("NOT_FOUND");
       expect(mockUpsertEditorialConfig).not.toHaveBeenCalled();
-      expect(client.setMode).not.toHaveBeenCalled();
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
     });
 
-    it("succeeds even when client live-mutate fails (persisted state survives restart)", async () => {
+    it("does NOT trigger restart if the persist fails", async () => {
       wireChannelLookup(makeChannel());
-      mockUpsertEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "manual", manualTierId: null, updatedAt: "2026-01-01T00:00:00Z" }));
-
-      const client = makeMockClient();
-      client.setMode.mockResolvedValue(err(new AppError("LIQUIDSOAP_ERROR", "unreachable", 502)));
+      mockUpsertEditorialConfig.mockResolvedValue(err(new AppError("DB_ERROR", "db error", 500)));
 
       const { setMode } = await setupModule();
-      const result = await setMode("ch-1", "manual", client);
+      const result = await setMode("ch-1", "manual");
 
-      // Persist succeeded, client failed — overall success (client failure is best-effort)
-      expect(result.ok).toBe(true);
-      expect(mockUpsertEditorialConfig).toHaveBeenCalledWith("ch-1", { mode: "manual" });
+      expect(result.ok).toBe(false);
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
     });
   });
 
@@ -235,27 +234,63 @@ describe("editorial-control service", () => {
   // ── takeQueue (workshop scenario: "build a queue while pool rotates, take when ready") ──
 
   describe("takeQueue", () => {
-    it("persists mode=auto and live-mutates arm+mode", async () => {
+    it("when already in auto mode: arms live only (no restart)", async () => {
       wireChannelLookup(makeChannel());
-      mockUpsertEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "auto", manualTierId: null, updatedAt: "2026-01-01T00:00:00Z" }));
+      // Already auto — no mode change needed, just arm live
+      mockGetEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "auto", manualTierId: null, updatedAt: "2026-01-01T00:00:00Z", tiers: [] }));
 
       const client = makeMockClient();
       const { takeQueue } = await setupModule();
       const result = await takeQueue("ch-1", client);
 
       expect(result.ok).toBe(true);
-      // Persists mode=auto (the switch-over intent survives restart)
-      expect(mockUpsertEditorialConfig).toHaveBeenCalledWith("ch-1", { mode: "auto" });
-      // Live-mutates: arm=true and mode=auto
       expect(client.armQueue).toHaveBeenCalledWith("ch-1", true);
-      expect(client.setMode).toHaveBeenCalledWith("ch-1", "auto");
+      // No mode change → no persist, no restart
+      expect(mockUpsertEditorialConfig).not.toHaveBeenCalled();
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
+    });
+
+    it("when in manual mode: persists mode=auto + regenerate-restart + arms live", async () => {
+      wireChannelLookup(makeChannel());
+      // Currently in manual — mode flip is structural
+      mockGetEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "manual", manualTierId: "tier-1", updatedAt: "2026-01-01T00:00:00Z", tiers: [] }));
+      mockUpsertEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "auto", manualTierId: null, updatedAt: "2026-01-01T00:00:00Z", tiers: [] }));
+      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
+
+      const client = makeMockClient();
+      const { takeQueue } = await setupModule();
+      const result = await takeQueue("ch-1", client);
+
+      expect(result.ok).toBe(true);
+      // Persists mode=auto
+      expect(mockUpsertEditorialConfig).toHaveBeenCalledWith("ch-1", { mode: "auto" });
+      // Regenerate-restart before arming
+      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
+      // Arms live after restart
+      expect(client.armQueue).toHaveBeenCalledWith("ch-1", true);
+    });
+
+    it("when config not found (defaulting to auto): arms live only (no restart)", async () => {
+      wireChannelLookup(makeChannel());
+      // No config — defaults to auto
+      mockGetEditorialConfig.mockResolvedValue(ok(null));
+
+      const client = makeMockClient();
+      const { takeQueue } = await setupModule();
+      const result = await takeQueue("ch-1", client);
+
+      expect(result.ok).toBe(true);
+      expect(client.armQueue).toHaveBeenCalledWith("ch-1", true);
+      expect(mockUpsertEditorialConfig).not.toHaveBeenCalled();
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
     });
   });
 
   // ── setManualTier (workshop scenario: "choose the event over the live creator") ──
+  // B1 downgrade (2026-06-17): structural verb — persist + regenerate-restart, no live client calls.
 
   describe("setManualTier", () => {
-    it("resolves tier index, persists mode=manual + manualTierId, live-mutates", async () => {
+    it("validates tier, persists mode=manual + manualTierId, then calls regenerateAndRestart", async () => {
       wireChannelLookup(makeChannel());
 
       const tiers = [
@@ -264,31 +299,30 @@ describe("editorial-control service", () => {
       ];
       mockGetEditorialTiers.mockResolvedValue(ok(tiers));
       mockUpsertEditorialConfig.mockResolvedValue(ok({ channelId: "ch-1", mode: "manual", manualTierId: "tier-queue", updatedAt: "2026-01-01T00:00:00Z" }));
+      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
 
-      const client = makeMockClient();
       const { setManualTier } = await setupModule();
-      const result = await setManualTier("ch-1", "tier-queue", client);
+      const result = await setManualTier("ch-1", "tier-queue");
 
       expect(result.ok).toBe(true);
       expect(mockUpsertEditorialConfig).toHaveBeenCalledWith("ch-1", {
         mode: "manual",
         manualTierId: "tier-queue",
       });
-      // tier-queue is index 1 among enabled tiers (tier-live=0, tier-queue=1)
-      expect(client.setManualTier).toHaveBeenCalledWith("ch-1", 1);
-      expect(client.setMode).toHaveBeenCalledWith("ch-1", "manual");
+      // Structural: regenerate-restart, NOT live client calls
+      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
     });
 
     it("returns NOT_FOUND error for a tier that doesn't exist", async () => {
       wireChannelLookup(makeChannel());
       mockGetEditorialTiers.mockResolvedValue(ok([]));
 
-      const client = makeMockClient();
       const { setManualTier } = await setupModule();
-      const result = await setManualTier("ch-1", "nonexistent-tier", client);
+      const result = await setManualTier("ch-1", "nonexistent-tier");
 
       expect(result.ok).toBe(false);
       expect((result as { ok: false; error: { code: string } }).error.code).toBe("NOT_FOUND");
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
     });
 
     it("returns VALIDATION_ERROR when tier exists but is disabled", async () => {
@@ -296,12 +330,12 @@ describe("editorial-control service", () => {
       const tiers = [makeTier({ id: "tier-disabled", enabled: false })];
       mockGetEditorialTiers.mockResolvedValue(ok(tiers));
 
-      const client = makeMockClient();
       const { setManualTier } = await setupModule();
-      const result = await setManualTier("ch-1", "tier-disabled", client);
+      const result = await setManualTier("ch-1", "tier-disabled");
 
       expect(result.ok).toBe(false);
       expect((result as { ok: false; error: { code: string } }).error.code).toBe("VALIDATION_ERROR");
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
     });
   });
 

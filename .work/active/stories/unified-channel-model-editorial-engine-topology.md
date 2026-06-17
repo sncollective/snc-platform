@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
@@ -12,6 +12,21 @@ updated: 2026-06-17
 ---
 
 # Topology model extension — editorial tiers + channel-as-source resolution
+
+## B1-downgrade fix (2026-06-17)
+
+- **B2 fix**: `manualTierIndex` was computed via `config.tiers.findIndex` (full unfiltered array).
+  A disabled tier before the pinned tier produced a full-array index that was out-of-range
+  against `tierVarNames` (built from the enabled-filtered array) → `mksafe(blank())` pinned on
+  restart. Fixed to `enabledTiers.findIndex` so the index matches the `tierVarNames` array the
+  render uses.
+- **`harborChannelPaths`** type and implementation updated: `mode` and `manual` keys removed
+  (B1 downgrade — those endpoints are no longer emitted). Only `queue`, `skip`, `nowPlaying`,
+  `arm` remain. Callers in `liquidsoap-client.ts` and the render updated.
+- New test: `"B2 fix: computes manualTierIndex over enabled tiers — disabled tier before pinned
+  does not shift index"` — disabled `live` at priority 0, pinned `queue` at priority 1; confirms
+  `manualTierIndex === 0` (enabled-array index), not 1 (full-array index).
+- All topology tests pass.
 
 Implements **Unit 2** (the trickiest unit) of `unified-channel-model-editorial-engine` (full design in
 the feature body). Pure data — turns editorial config into render-ready typed topology.

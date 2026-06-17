@@ -77,22 +77,32 @@ export interface PlayoutChannelTopology {
   readonly liqVar: string;
   /** Liquidsoap request.queue id: `channel-<uuid>`. */
   readonly queueId: string;
-  /** Harbor HTTP control paths registered in the .liq (UUID verbatim, hyphens kept). */
+  /**
+   * Harbor HTTP control paths registered in the .liq (UUID verbatim, hyphens kept).
+   *
+   * `mode` and `manual` are intentionally absent (B1 downgrade, 2026-06-17): mode
+   * and manual-pin are render-time-static — they apply via regenerate-and-restart, not
+   * via live harbor mutation. The `/mode` and `/manual` endpoints are not emitted.
+   * `arm` is the only live editorial-control path; it remains here.
+   */
   readonly harborPaths: {
     readonly queue: string;
     readonly skip: string;
     readonly nowPlaying: string;
-    readonly mode: string;
     readonly arm: string;
-    readonly manual: string;
   };
   /** API callback path the channel posts track events to. */
   readonly trackEventPath: string;
   /** Editorial control mode. `"auto"` by default when no config exists. */
   readonly mode: EditorialMode;
   /**
-   * Index into `tiers` for the pinned manual tier when `mode === "manual"`;
-   * null otherwise. Resolved from the config's `manualTierId`.
+   * Index into the **enabled** `tiers` array for the pinned manual tier when
+   * `mode === "manual"`; null otherwise. Resolved from the config's `manualTierId`.
+   *
+   * B2 fix (2026-06-17): this index is computed over the enabled-tier filtered array
+   * (the same array `tiers` contains), NOT over `config.tiers` (the full unfiltered
+   * array). A disabled tier before the pinned tier would have produced an out-of-range
+   * index against `tierVarNames`, silently pinning to `mksafe(blank())` on restart.
    */
   readonly manualTierIndex: number | null;
   /**
@@ -157,16 +167,20 @@ export const HARBOR_LEGACY_NOW_PLAYING = "/now-playing";
  */
 export const BROADCAST_INPUT_SWITCH_PATH = "/api/playout/broadcast/input-switch";
 
-/** Build the harbor control paths for a playout channel (UUID verbatim). */
+/**
+ * Build the harbor control paths for a playout channel (UUID verbatim).
+ *
+ * `mode` and `manual` are NOT included (B1 downgrade, 2026-06-17): those endpoints
+ * are removed from the rendered .liq because mode/manual-pin are now render-time-static
+ * (applied via regenerate-and-restart). Only `arm` remains as the live editorial verb.
+ */
 export const harborChannelPaths = (
   channelId: string,
 ): PlayoutChannelTopology["harborPaths"] => ({
   queue: `/channels/${channelId}/queue`,
   skip: `/channels/${channelId}/skip`,
   nowPlaying: `/channels/${channelId}/now-playing`,
-  mode: `/channels/${channelId}/mode`,
   arm: `/channels/${channelId}/arm`,
-  manual: `/channels/${channelId}/manual`,
 });
 
 // ── Private: Editorial tier resolution ──
@@ -396,10 +410,17 @@ export const buildPlayoutTopology = (
         ? resolvedTiers
         : [{ type: "queue", queueId, poolScope: scope }]; // degenerate: all tiers disabled
 
-      // Resolve manualTierIndex: find the index among the resolved (enabled) tiers
-      // whose source tier ID matches manualTierId.
+      // Resolve manualTierIndex: find the index among the ENABLED tiers (enabledTiers)
+      // whose ID matches manualTierId.
+      //
+      // B2 fix (2026-06-17): previously used config.tiers.findIndex (full array), which
+      // returns the wrong index when a disabled tier precedes the pinned tier — a disabled
+      // tier at index 0 with the pinned tier at full-array index 1 would yield index 1,
+      // but tierVarNames has the pinned tier at enabled-array index 0 → out-of-range →
+      // mksafe(blank()) pinned on restart. Now indexed against enabledTiers to match
+      // the tierVarNames array the render builds from the same filtered list.
       if (mode === "manual" && config.manualTierId != null) {
-        const idx = config.tiers.findIndex((t) => t.id === config.manualTierId && t.enabled !== false);
+        const idx = enabledTiers.findIndex((t) => t.id === config.manualTierId);
         manualTierIndex = idx >= 0 ? idx : null;
       } else {
         manualTierIndex = null;
