@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-client
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-render]
@@ -96,3 +96,14 @@ Unit 3). No changes needed here.
 ### Parked
 
 None.
+
+## Review (2026-06-17)
+
+**Verdict**: Approve. No blockers; advanced `review → done` (control-service unblocked).
+
+Read `liquidsoap-client.ts` in full. Verbs route to the correct `?secret=`-guarded harbor paths via
+`requestGuarded` (fail-fast 503 `LIQUIDSOAP_SECRET_NOT_CONFIGURED` when the secret is unset — honest, not
+an opaque 401); `selected` added to `LiquidsoapNowPlaying`; no `setPriority`; full stub parity. 48 genuine
+test cases (assert exact `?secret=` URLs + method/body + the `selected` field + all error paths), no
+gaming; 1738 pass. Nit (non-blocking, pre-existing pattern): `getNowPlaying` casts the JSON `as
+LiquidsoapNowPlaying` without runtime validation — fine given the render guarantees the shape.
