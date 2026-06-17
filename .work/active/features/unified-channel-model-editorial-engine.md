@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle]

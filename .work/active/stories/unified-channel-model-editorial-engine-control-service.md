@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-service
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-control-client, unified-channel-model-editorial-engine-config-schema]

@@ -40,5 +40,17 @@ Code: `apps/api/src/services/liquidsoap-render.ts`, `apps/api/src/services/playo
    hidden creator). If the curated-per-channel pool proves insufficient before then, wire `poolContentScope`
    into the `resolvePoolNextUri` query (creator → content WHERE creatorId; admin → all-creator content).
 
+6. **Manual-pin index alignment vs the I2 live-tier exclusion** (Important — same class as B2, introduced
+   by the B1-downgrade I2 fix). The live-tier exclusion is done in the **render** (`renderTierSource`
+   returns null for `live`; `renderedTiers`/`tierVarNames` exclude it), but `manualTierIndex` is computed in
+   **topology** over `enabledTiers` which still **includes** live tiers. So a channel with an enabled `live`
+   tier *before* a manual-pinned tier gets divergent index spaces → the pin resolves to the wrong slot /
+   `mksafe(blank())` (silence). Latent today (live tiers deferred + no editorial config exists), but it'll
+   bite once a creator channel has `live` + a manual pin. **Fix:** exclude `live` tiers in **topology**
+   (drop them from `ch.tiers` and compute `manualTierIndex` over that same live-excluded set) so the render
+   has a single tier set — then the render-side skip + the index agree. Add a topology test: enabled `live`
+   before a manual-pinned `queue` → the pin resolves to the right (live-excluded) index.
+
 Done: the `pool/next` endpoint shipped in control-service (the render's `request.dynamic` calls it;
-secret-guarded, plain-text URI, LRP rotation via `lastPlayedAt`/`playCount`).
+secret-guarded, plain-text URI, LRP rotation via `lastPlayedAt`/`playCount`). The B1-downgrade landed
+(commit `d89be5a`): mode/manual via regenerate-restart, dead refs/endpoints removed, `--check` exit 0.
