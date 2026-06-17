@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
@@ -62,6 +62,33 @@ All four `.liq` snapshot files (`playout-0ch.liq`, `playout-1ch.liq`, `playout-2
 
 ### Test results
 112 test files, 1683 tests — all pass.
+
+## Revision (2026-06-17)
+
+Revised per the reframed unified editorial model (editorial model redesign, 2026-06-17). Committed as
+`d1ac67a` (implement: unified-channel-model-editorial-engine-topology).
+
+**What changed:**
+- `PlayoutEditorialTier` union drops `pool` variant; `queue` now carries `poolScope: PoolScope` so the
+  render can build the pool feed without a second DB call. `PoolScope` defined locally in
+  `playout-topology.ts` (not imported from `editorial-config.ts`) to preserve the pure no-DB module
+  boundary — `editorial-config.ts` has a top-level DB import that would break the topology unit tests.
+- `PlayoutChannelRow` gains `ownership` + `creatorId` fields; pool scope resolved inline.
+- `buildPlayoutTopology` filters disabled tiers before resolution.
+- `resolveEditorialTier`: unknown channel-as-source reference now drops the carry tier + warns
+  (finding 6 fix) instead of throwing.
+- `ValidationError` used everywhere plain `Error` was thrown (finding 5 fix).
+- topoSort receives edge list built directly in `buildPlayoutTopology` from the config at resolution
+  time — no string-strip reverse-map of `sourceLiqVar` (finding 4 fix). Unknown-source carry edges
+  excluded from edge list (dropped at resolution) so Kahn's queue never blocks on a phantom dependency.
+- `harborChannelPaths` drops `priority`, adds `manual`.
+- `liquidsoap-config.ts` selects `ownership` + `creatorId` columns from the channels table.
+
+**Tests (Story A):** 1711 tests pass (112 test files). Topology test suite updated: new harborChannelPaths
+shape, queue-carries-poolScope, disabled-tier exclusion, degenerate all-disabled fallback, topo sort with
+disabled-carry edge exclusion, unknown-sourceId drops (not throws).
+
+**Findings fixed:** 4 (edge-list direct pass), 5 (ValidationError), 6 (graceful carry drop).
 
 ## Review (2026-06-16)
 

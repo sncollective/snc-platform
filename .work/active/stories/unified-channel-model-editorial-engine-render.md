@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-render
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-topology]
@@ -15,6 +15,44 @@ updated: 2026-06-17
 
 Implements **Unit 3** of `unified-channel-model-editorial-engine` (full design in the feature body).
 Emits the live editorial mechanism the spike settled.
+
+## Revision (2026-06-17)
+
+Revised per the reframed unified editorial model. Committed as `63357f1`
+(implement: unified-channel-model-editorial-engine-render).
+
+**What changed:**
+- `queue` tier → three declarations: `${vid}_queue` (request.queue, operator push/skip),
+  `${vid}_pool` (request.dynamic fetching `pool/next?secret=...` — until the control-service
+  endpoint exists the pool is not-ready and the inner fallback skips silently, correct startup
+  behavior), `${vid}_queue_program = fallback(track_sensitive=true, [queue, pool])`. The unified
+  program source: operator queue plays track-by-track; when empty, pool auto-fills.
+  `track_sensitive=true` so a freshly-queued item is taken at the next track boundary (arm/take).
+- Control refs: `${vid}_mode`, `${vid}_manual` (was `priority`), `${vid}_armed`. No priority ref.
+- `${vid}_source` in auto: readiness fallback via `switch(track_sensitive=false, [...])` with all-true
+  predicates (first ready source wins). Queue tier additionally gates on `${vid}_armed()` so you can
+  build the queue while another source airs.
+- now-playing: elapsed + remaining kept (UI needs progress); `selected_id` from
+  `switch.selected()` as a JSON-serializable `source.id` string — not the raw source object.
+- Endpoints: `/queue`, `/skip`, `/now-playing` kept; `/mode`, `/arm`, `/manual` added; `/priority`
+  DROPPED. Each `?secret=`-guarded.
+- S/NC TV broadcast block UNTOUCHED.
+
+**Default-channel behavior change:** a queue-only channel with no operator content previously aired
+blank; now auto-fills from the pool via `request.dynamic`. This is the intended model. Until the
+`pool/next` endpoint ships (control-service story), the pool is not-ready and silence falls through —
+correct startup behavior.
+
+**Goldens regenerated (3 updated: 1ch, 2ch, special-chars). Verified:**
+- Readiness-fallback shape (switch with all-true predicates, armed gate on queue, mksafe tail).
+- `${vid}_queue_program = fallback(track_sensitive=true, [queue, pool])`.
+- `${vid}_pool = request.dynamic(...)` fetching `pool/next?secret=...` endpoint.
+- Control refs: mode/manual/armed (no priority).
+- now-playing: elapsed, remaining, selected_id from switch.selected().
+- `${vid}_source` variable name preserved (broadcast block references it).
+- Broadcast block (S/NC TV) UNCHANGED.
+
+**Tests (Story B):** 1711 tests pass (112 test files). Goldens regenerated.
 
 ## Scope
 `apps/api/src/services/liquidsoap-render.ts` — `renderChannelBlock` emits, per channel, in place of
