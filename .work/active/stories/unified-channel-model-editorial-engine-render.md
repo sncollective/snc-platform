@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-editorial-engine-render
 kind: story
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-topology]
 release_binding: null
 gate_origin: null
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Render extension — ref-driven switch() + bespoke control endpoints

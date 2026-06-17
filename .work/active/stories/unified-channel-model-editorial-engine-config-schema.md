@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-editorial-engine-config-schema
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Editorial config data model + cycle detection

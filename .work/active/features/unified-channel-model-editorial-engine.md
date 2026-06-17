@@ -8,7 +8,7 @@ depends_on: [unified-channel-model-identity-lifecycle]
 release_binding: null
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Editorial engine — source tiers, manual/auto mode, live switching
@@ -97,157 +97,183 @@ Read it before designing. Headlines:
    the v1 design. It becomes a hard dependency only if a later iteration adopts runtime CRUD or
    crossfades.
 
-## Design decisions (design pass, 2026-06-16)
+## Design decisions (design pass, 2026-06-16; editorial model revised 2026-06-17)
 
-The two forks the spike left open are resolved here (user-confirmed; "surface evidence, user decides"):
+Three forks are resolved here (user-confirmed across the design pass; "surface evidence, user decides"):
 
+- **Editorial model: one continuous program source per channel, NOT separate queue/pool tiers**
+  (revised 2026-06-17). Queue and pool are not sibling tiers you switch between — they are one
+  **program** source: an operator-editable queue that **auto-fills from a pool** when not curated. So the
+  source taxonomy is `live` (own stream key) · `queue` (operator queue + pool auto-fill) ·
+  `channel-as-source` (carry another channel) — **`pool` is folded into `queue`, not its own tier**. Three
+  editorial layers: platform-admin owns channel CRUD; the channel editor sets **mode** (`manual` = pin one
+  source · `auto` = readiness fallback over the **enabled** sources) or turns the channel **off**
+  (= existing `channels.isActive=false`); the operator curates the queue (reorder/remove/add). **Auto = the
+  line-192 generalization** (`fallback([live, queue, channel-as-source, blank])`), self-running by
+  readiness — NOT an operator-set priority index. *(Rejected: queue & pool as separate switch tiers driven
+  by a live `priority` ref — conflates "auto" with manual selection, isn't self-running, needs an external
+  driver. The unified-program model dissolves the auto-semantics ambiguity that the first cut created.)*
+  **Per-channel constraints:** creator channels = own source only (their key + their queue, no carry);
+  admin channels = stream key **XOR** channel-as-source (mutually exclusive, a config-time choice applied
+  via regenerate-and-restart) + their queue. **Pool scope by ownership:** creator channel → that creator's
+  content; admin channel → all creators' content. Scheduled tier deferred. **Admin-uploaded content is out
+  of scope** — modeled later as a hidden/system creator (its content flows into admin pools for free via
+  the all-creators scope); this feature implements only the pool-scope query.
 - **Control plane: bespoke harbor endpoints (extend the landed pattern), NOT `interactive.harbor`.**
-  The editorial control traffic is three kinds — scalar state sets (mode/priority/arm), operations
+  The control traffic is three kinds — scalar state sets (mode / arm-take / manual-pin), operations
   (queue push, skip), and introspection (`switch.selected()` now-selected). `interactive.harbor`
-  only expresses the scalar subset, so ops + introspection stay bespoke regardless; adopting it would
-  create a **split** control plane (two mechanisms, two auth stories, generic key/value wire shape,
-  manual global-var namespacing per channel). Bespoke harbor handlers (already the landed pattern in
-  `liquidsoap-render.ts` + the typed `liquidsoap-client.ts`) cover all three kinds uniformly, keep the
-  `Result`/`AppError` REST shape, and let us add the per-handler `?secret=` guard the `/admin/shutdown`
-  endpoint already uses. Rejected `interactive.harbor`'s only wins (skip ~3-line scalar setters; a free
-  debug webpage) are minor at this variable count; a debug GET can be bespoke if ever wanted.
+  only expresses the scalar subset, so ops + introspection stay bespoke regardless; adopting it splits the
+  plane (two mechanisms, two auth stories, generic key/value wire shape). Bespoke handlers (the landed
+  pattern in `liquidsoap-render.ts` + the typed `liquidsoap-client.ts`) cover all three uniformly, keep the
+  `Result`/`AppError` shape, and reuse the per-handler `?secret=` guard the `/admin/shutdown` endpoint uses.
 - **Editorial-config storage: normalized relational + FKs, NOT a JSONB blob.** Real FKs on the
-  channel-as-source edges give DB-level integrity for cycle detection + cascade-on-delete (the carry
-  model is the epic's core), reverse-lookup queryability ("who carries channel X"), and a typed Drizzle
-  schema → generated contracts (platform SSOT). It joins cleanly to the existing `channel_content`
-  (pool) / `playout_queue` tables. JSONB rejected: no DB FK on carry edges (cycle/cascade become
-  app-only), not queryable, validation only in app Zod.
+  channel-as-source edges give DB-level cycle/cascade integrity (the carry model is the epic's core),
+  reverse-lookup queryability, and typed Drizzle contracts (platform SSOT). Joins cleanly to the existing
+  `channel_content` (pool) / `playout_queue` tables. JSONB rejected: no DB FK on carry edges (cycle/cascade
+  become app-only), not queryable, validation only in app Zod.
 
 ## Architectural choice
 
-Generalize the current degenerate per-channel block — `fallback(track_sensitive=false, [queue, mksafe(blank())])`
-(`liquidsoap-render.ts:24`) — into a **ref-driven `switch()` over editorial tiers**, driven by per-channel
-editorial config stored relationally, executed through the **landed pure render seam** (`playout-topology.ts`
-→ `liquidsoap-render.ts`), and controlled via **bespoke harbor endpoints**. The high-frequency editorial
-verbs (mode/priority/arm/take, content swap) mutate live `ref()` cells with no restart (settled spike);
-**structural** changes (add/remove a tier, add/remove a channel-as-source edge, channel CRUD) go through the
-existing **regenerate-and-restart** path (re-render `.liq` + restart — the path already invoked on channel
-create/delete per the render header). This is the restart-agnostic control plane the position's seam
-constraint 3 requires.
+Generalize the degenerate per-channel `fallback(track_sensitive=false, [queue, mksafe(blank())])`
+(`liquidsoap-render.ts:24`) into a per-channel **readiness fallback over the channel's enabled editorial
+sources**, driven by relational config, executed through the landed pure render seam (`playout-topology.ts`
+→ `liquidsoap-render.ts`), controlled via **bespoke harbor endpoints**.
 
-**Scope boundary (carried from the brief):** this feature builds the general engine and applies it to
-playout/creator channels. It does **NOT** re-express the static S/NC TV broadcast block — that hardcoded
-carry (`snc_tv = fallback([live_source, snc_tv_queue, fallbackSourceVar, blank()])`,
-`liquidsoap-render.ts:154`) stays as-is; sibling `snctv-composition` migrates it later as the
-output-equivalence gate. No editorial UI (playout-admin-redesign owns the surface). Schedule tier deferred.
+- **`${vid}_source` (auto)** = `switch(track_sensitive=false, [ …enabled sources in config order…,
+  ({true}, mksafe(blank())) ])` with all-true (readiness) predicates — i.e. a `fallback`: the
+  highest-priority *ready* source wins automatically (live if connected → queue if it has content → carry →
+  blank). **Manual mode** pins one source via a `${vid}_manual` ref. The only live refs are `${vid}_mode`
+  (auto|manual) and `${vid}_manual` (pinned source index) — **no live `priority` ref**; source *order* is
+  config (reorder = regenerate-and-restart, a rare structural edit).
+- **The `queue` source itself** = `fallback(track_sensitive=true, [ ${vid}_queue, ${vid}_pool ])`: the
+  operator queue plays track-by-track; when empty it falls to the pool; a freshly-queued item is taken at
+  the next track boundary ("switch over when ready"). `${vid}_queue` = `request.queue` (operator
+  push/reorder/skip); `${vid}_pool` = the auto-fill — **least-recently-played** `request.dynamic` rotation
+  over the channel's **ownership-scoped** `channel_content` (creator channel → that creator's content;
+  admin channel → all creators'). The **arm/take** verb gates whether the queue participates as the
+  channel's active source in auto, so you can build it while the pool (or another source) airs, then take.
+- **High-frequency verbs** (mode, arm/take, manual-pin) mutate live refs, no restart. **Structural** edits
+  (enable/disable a source, reorder, add/remove a carry edge, channel CRUD, switch key↔carry) persist then
+  regenerate-and-restart. Restart-agnostic control plane (seam constraint 3).
+
+**Scope boundary:** builds the general engine for playout/creator channels. Does **NOT** re-express the
+static S/NC TV broadcast block (`snc_tv = fallback(...)`, `liquidsoap-render.ts:154`) — `snctv-composition`
+migrates it later; S/NC TV is just an always-exists admin channel under this model. No editorial UI
+(playout-admin-redesign owns it). Schedule deferred. **Admin-uploaded content out of scope** — a later
+hidden/system-creator story; its content flows into admin pools for free via the all-creators scope, so
+this feature implements only the pool-scope query.
 
 ## Implementation Units
 
 ### Unit 1 — Editorial config data model + cycle detection
-**Files**: `apps/api/src/db/schema/editorial.schema.ts` (new), `apps/api/src/services/editorial-config.ts`
-(new), `apps/api/src/services/editorial-graph.ts` (new) · **Story**: `…-config-schema`
+**Files**: `apps/api/src/db/schema/editorial.schema.ts`, `apps/api/src/services/editorial-config.ts`,
+`apps/api/src/services/editorial-graph.ts` (all new) · **Story**: `…-config-schema`
+
+Two changes from the first cut: `tierType` drops `pool` (folded into `queue`), and each tier gains an
+**`enabled`** flag (which sources are in the auto readiness fallback). `mode` stays `"manual" | "auto"`
+(off = `channels.isActive`); `manualTierId` = the pinned source in manual mode.
 
 ```ts
-// editorial.schema.ts — text ids + channels.id FK cascade, consistent with channel_content/playout_queue
-export const channelEditorialConfig = pgTable("channel_editorial_config", {
-  channelId: text("channel_id").primaryKey().references(() => channels.id, { onDelete: "cascade" }),
-  mode: text("mode").notNull().default("auto"),            // "manual" | "auto"
-  manualTierId: text("manual_tier_id"),                    // FK → channelEditorialTiers.id, onDelete set null
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
 export const channelEditorialTiers = pgTable("channel_editorial_tiers", {
   id: text("id").primaryKey(),
   channelId: text("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
-  tierType: text("tier_type").notNull(),                   // "live" | "queue" | "pool" | "channel-as-source"
-  priority: integer("priority").notNull(),                 // ordering in the switch; 0 = highest
+  tierType: text("tier_type").notNull(),                   // "live" | "queue" | "channel-as-source"
+  priority: integer("priority").notNull(),                 // config order in the fallback; 0 = highest
+  enabled: boolean("enabled").notNull().default(true),     // included in the auto readiness fallback
   sourceChannelId: text("source_channel_id").references(() => channels.id, { onDelete: "cascade" }),
 }, (t) => [
   uniqueIndex("channel_editorial_tiers_channel_priority_idx").on(t.channelId, t.priority),
-  index("channel_editorial_tiers_source_idx").on(t.sourceChannelId),  // reverse lookup "who carries X"
+  index("channel_editorial_tiers_source_idx").on(t.sourceChannelId),
 ]);
 ```
-- `sourceChannelId` non-null **iff** `tierType = "channel-as-source"` (app-validated; a CHECK is a
-  follow-up if drift appears). **`onDelete: "cascade"`** on `sourceChannelId` is deliberate: deleting a
-  carried channel removes the carry tier from its carriers (the carry is meaningless without its source;
-  the switch keeps its lower tiers + the `mksafe` tail, so carriers stay valid) — and the carriers
-  regenerate-and-restart. Rejected `restrict` (blocks carried-channel deletion on an unrelated config)
-  and `set null` (orphans the tier into an invalid no-source channel-as-source).
-- **Migration via `drizzle-kit generate`** (never hand-written — `drizzle-migrations.md`).
-- `editorial-config.ts`: typed CRUD + `getEditorialConfig(channelId)` and `getAllEditorialConfigs()`
-  (for topology build), returning `Result<…, AppError>`.
-- `editorial-graph.ts`: pure `detectChannelSourceCycles(edges): Result<void, AppError>` — DFS/topo-sort
-  over channel-as-source edges; on a cycle returns the path. Run at config-write time (reject) and again
-  defensively at topology build. Graph is shallow (epic carry-model decision).
+- `sourceChannelId` non-null **iff** `tierType="channel-as-source"`; **`onDelete: "cascade"`** (carried-channel
+  deletion drops the carry tier from carriers, which regenerate-and-restart). Rejected `restrict`/`set null`.
+  Migration via `drizzle-kit generate` (never hand-written).
+- **Ownership validation (new):** creator channels may have only `live`(own key) + `queue` (no carry); admin
+  channels may have `live` **XOR** `channel-as-source` + `queue`. Enforced on `editorial-config.ts` writes.
+- `editorial-config.ts`: typed CRUD + `getEditorialConfig` + `getAllEditorialConfigs` (topology-shaped) +
+  a **pool-scope resolver** (`poolContentScope(channel) → { creatorId } | { allCreators: true }` by
+  ownership, for the pool query). `editorial-graph.ts`: pure cycle detection (unchanged from the prior cut).
 
-**Acceptance**: tables + migration generated and applied; config CRUD round-trips; cycle detection rejects
-self-loop / 2-cycle / 3-cycle and passes DAGs (returns the offending path).
+**Acceptance**: tables + generated migration apply; `tierType` has no `pool`; `enabled` defaults true;
+ownership validation (creator own-source-only; admin key-XOR-carry); cycle-detection matrix; pool-scope
+resolver returns creator vs all-creators by ownership.
 
 ### Unit 2 — Topology model extension
 **File**: `apps/api/src/services/playout-topology.ts` · **Story**: `…-topology`
 
-Extend `PlayoutChannelTopology` with the editorial config and grow `buildPlayoutTopology` to take editorial
-config alongside channel rows. **Trickiest unit** — it resolves channel-as-source into render-ready data:
-
 ```ts
 export type EditorialTier =
   | { readonly type: "live" }
-  | { readonly type: "queue"; readonly queueId: string }
-  | { readonly type: "pool"; readonly poolQueueId: string }     // pool fed via request.dynamic from channel_content
-  | { readonly type: "channel-as-source"; readonly sourceLiqVar: string };  // resolved to the referenced channel's _source var
+  | { readonly type: "queue"; readonly queueId: string; readonly poolScope: PoolScope } // queue carries its pool feed
+  | { readonly type: "channel-as-source"; readonly sourceLiqVar: string };               // resolved _source var
+// (no `pool` variant — the queue tier owns the pool feed)
 
 export interface PlayoutChannelTopology { /* …existing… */
   readonly mode: "manual" | "auto";
-  readonly manualTierIndex: number | null;          // index into tiers when mode = manual
-  readonly tiers: readonly EditorialTier[];          // priority order (0 = highest)
+  readonly manualTierIndex: number | null;
+  readonly tiers: readonly EditorialTier[];          // ENABLED sources, config order (0 = highest)
 }
 ```
-- Resolve `channel-as-source` tiers to the referenced channel's `liqVar`-derived `_source`, and **emit
-  channel blocks in topological order** so a referenced channel's `_source` is defined before any block
-  that references it. Run `detectChannelSourceCycles` first; a cycle is a hard build error (a valid topo
-  order can't exist with one). Pure — no DB/fs/config reads (caller passes config in).
+- The `queue` tier carries the resolved `poolScope` (from `poolContentScope`) so the render can build the
+  pool source. Drop disabled tiers (they're not in the fallback). Resolve `channel-as-source` → the
+  referenced channel's `_source`; **emit channel blocks in topological order**; defensive cycle check.
+  Pure — caller passes config in.
 
-**Acceptance**: pure unit tests — tiers map to typed union; channel-as-source resolves to the right
-`_source` var; blocks are topologically ordered; cycle input is rejected; mode/manualTier carried through.
+**Acceptance**: pure unit tests — tier mapping (no `pool` type; queue carries poolScope); disabled tiers
+excluded; channel-as-source resolves; topological order; cycle reject; mode/manualTier carried through.
 
-### Unit 3 — Render extension (the `switch()` + control endpoints)
+### Unit 3 — Render extension (the readiness fallback + control endpoints)
 **File**: `apps/api/src/services/liquidsoap-render.ts` · **Story**: `…-render`
 
-`renderChannelBlock` emits, per channel, in place of today's `fallback`:
-- tier sources (`request.queue` for queue, `request.dynamic`/`playlist` for pool, `input.rtmp` for live,
-  the referenced channel's `_source` for channel-as-source);
-- control refs: `${vid}_mode = ref("…")`, `${vid}_priority = ref(…)`, `${vid}_armed = ref(false)`,
-  initialized from persisted config (restart-agnostic — a restart restores state);
-- the ref-driven `switch(track_sensitive=false, [...])`: in **auto**, priority-ordered tier predicates;
-  in **manual**, a predicate pinning `manualTierIndex`; always an `mksafe(blank())` ready tail (infallible);
-- now-playing read from **`switch.selected()`** (NOT `on_metadata` — position gotcha #1);
-- bespoke harbor endpoints — existing POST `…/queue`, POST `…/skip`, GET `…/now-playing` (now reading
-  selected), **plus** POST `…/mode`, POST `…/priority`, POST `…/arm` — each with the `?secret=` guard.
+`renderChannelBlock` emits per channel:
+- tier source vars: `live` → `input.rtmp`; `channel-as-source` → the referenced `_source`; **`queue` →
+  `fallback(track_sensitive=true, [ ${vid}_queue, ${vid}_pool ])`** where `${vid}_queue` is a
+  `request.queue` and `${vid}_pool` is a **least-recently-played `request.dynamic`** over the
+  poolScope-filtered `channel_content`;
+- control refs `${vid}_mode = ref("…")`, `${vid}_manual = ref(…)`, `${vid}_armed = ref(false)` — **no
+  `priority` ref** — initialized from persisted config (restart-agnostic);
+- **`${vid}_source`** = in **auto** a readiness fallback over the enabled sources in config order
+  (`switch(track_sensitive=false, [ …({true}, src)… , ({true}, mksafe(blank())) ])`, with the queue source
+  participating per `${vid}_armed`); in **manual** the `${vid}_manual`-pinned source; always the
+  `mksafe(blank())` tail. Keep the `${vid}_source` var name (broadcast block references it);
+- now-playing reads **`switch.selected()`** and returns a **serializable selected-source label** (id/name)
+  **plus `elapsed`/`remaining`** (the UI needs progress — do NOT drop them);
+- bespoke endpoints: POST `…/queue`, POST `…/skip`, GET `…/now-playing`, **plus** POST `…/mode`, POST
+  `…/arm`, POST `…/manual` (**no `…/priority`**) — each `?secret=`-guarded.
 
-Render stays **pure + byte-deterministic**. The S/NC TV broadcast block is untouched (scope boundary).
+Render stays **pure + byte-deterministic**. The S/NC TV broadcast block is untouched. **Goldens regenerate**
+(render output changes) — verify the queue-only-default channel stays behaviorally equivalent to today.
 
-**Acceptance**: golden `.liq` tests (byte-identical for identical topology); switch/refs/endpoints/selected
-shapes present; existing channel/broadcast goldens for unchanged paths still pass.
+**Acceptance**: regenerated goldens are correct (readiness-fallback shape, queue=fallback(queue,pool), refs,
+selected-based now-playing with elapsed/remaining, mksafe tail, `${vid}_source` preserved, broadcast block
+unchanged); queue-only default behaviorally equivalent; tests green.
 
 ### Unit 4 — Control client extension (API → harbor)
 **File**: `apps/api/src/services/liquidsoap-client.ts` + `playout-topology.ts` (`harborChannelPaths`) ·
 **Story**: `…-control-client`
 
-Extend `LiquidsoapClient` with `setMode(channelId, mode)`, `setPriority(channelId, tier)`,
-`armQueue(channelId, armed)`, all `Promise<Result<void, AppError>>`, calling the new bespoke endpoints with
-the `?secret=` query; extend `harborChannelPaths` with `mode`/`priority`/`arm`; mirror in the stub client.
+Extend `LiquidsoapClient` with `setMode(channelId, mode)`, `armQueue(channelId, armed)` /
+`takeQueue(channelId)`, `setManualTier(channelId, tierIndex)` (**drop `setPriority`**), all
+`Promise<Result<void, AppError>>`, `?secret=`-guarded; **fix `getNowPlaying`** to the new shape (selected
+label + elapsed/remaining). Extend `harborChannelPaths` with `mode`/`arm`/`manual`. Stub parity.
 
-**Acceptance**: adapter tests (mock fetch) for each verb incl. failure/timeout → `AppError`; stub parity.
+**Acceptance**: adapter tests per verb incl. failure/timeout → `AppError`; getNowPlaying parses the new
+shape; stub parity.
 
 ### Unit 5 — Editorial control service + routes + restart wiring
 **Files**: `apps/api/src/services/editorial-control.ts` (new), `apps/api/src/routes/playout.routes.ts`
 · **Story**: `…-control-service`
 
-- `editorial-control.ts`: each live verb **persists to DB and live-mutates** via the client (durable +
-  immediate; restart-agnostic). **Structural** edits (tier add/remove, carry-edge add/remove, channel
-  CRUD) persist then trigger the **existing regenerate-and-restart** path. Validates against config +
-  role/ownership.
-- Routes: thin role-scoped handlers delegating to the service — **happy-path + auth-failure tests each**
-  (AGENTS testing convention). The editorial UI is out of scope; these are the verbs it will consume.
+- `editorial-control.ts`: live verbs (mode, arm/take, manual-pin) **persist + live-mutate** via the client;
+  **structural** edits (enable/disable a source, reorder, carry add/remove, key↔carry switch, channel CRUD)
+  persist then **regenerate-and-restart**; `isActive` toggles the channel off/on. The pool-scope query
+  feeds the render. Validates role/ownership (creator own-source-only; admin key-XOR-carry).
+- Routes: thin role-scoped handlers — happy-path + auth-failure tests each. Editorial UI out of scope.
 
-**Acceptance**: route happy-path + auth-failure; service persists + calls client for live verbs; structural
-edit triggers regenerate-and-restart; manual/auto + arm/take scenarios from the workshop are expressible
-without a playout reset.
+**Acceptance**: route happy-path + auth-failure; live verbs persist + call client; structural edit triggers
+regenerate-and-restart; the workshop scenarios ("build a queue while the pool rotates, take when ready" =
+arm/take; "choose the event over the live creator" = manual-pin) are expressible without a playout reset.
 
 ## Implementation Order
 1. `…-config-schema`  (deps: none)
@@ -277,7 +303,13 @@ artificial parallelism here). Soft-precede with the landed `…-version-capabili
   downward switches (position `revisit_if`).
 - **Now-playing must read `switch.selected()`**, not `on_metadata` (blind to mid-track re-selection). The
   render change moves now-playing onto selected state; the current `on_metadata` uri/title refs stay only
-  for the track-event webhook.
+  for the track-event webhook. **Serialization gotcha** (caught in the first render cut): `res.json` cannot
+  serialize a raw `source` — return a selected-source **label** (id/name) derived from `.selected()`, and
+  **keep `elapsed`/`remaining`** (the UI needs progress).
+- **Editorial model revised 2026-06-17** (queue/pool unified into one program source; auto = readiness
+  fallback). This reopened `config-schema` → `topology` → `render` (re-walked from the prior cut). Lower
+  risk than greenfield — the prior code is the revision base — but the taxonomy change (`tierType` drops
+  `pool`, gains `enabled`) and the render's pool/`request.dynamic` are net-new vs the first cut.
 - **Live mutation lost on restart** if not persisted: control verbs persist to DB AND mutate live; rendered
   refs init from persisted config. Designed-for, not incidental.
 - **v2.4.5 soft-dep**: design targets 2.4.5 primitives but is latent-safe on 2.4.2 for v1 (no

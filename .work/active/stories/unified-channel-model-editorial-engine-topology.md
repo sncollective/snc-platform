@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
 release_binding: null
 gate_origin: null
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Topology model extension — editorial tiers + channel-as-source resolution
