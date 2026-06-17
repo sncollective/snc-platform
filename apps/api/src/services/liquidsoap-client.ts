@@ -10,8 +10,8 @@ import { harborChannelPaths } from "./playout-topology.js";
 export type LiquidsoapNowPlaying = {
   uri: string;
   title: string;
-  /** Active source label returned by `switch.selected()` in the .liq render. */
-  selected: string;
+  /** Active source label returned by `switch.selected()` in the .liq render. Only present on per-channel responses; absent on the legacy S/NC TV broadcast endpoint. */
+  selected?: string;
   elapsed: number;
   remaining: number;
 };

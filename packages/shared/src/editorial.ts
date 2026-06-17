@@ -73,11 +73,12 @@ export type UpsertEditorialConfig = z.infer<typeof UpsertEditorialConfigSchema>;
 export const CreateEditorialTierSchema = z.object({
   tierType: EditorialTierTypeSchema,
   priority: z.number().int().min(0),
-  enabled: z.boolean().default(true),
+  enabled: z.boolean().optional().default(true),
   sourceChannelId: z.string().nullable().optional(),
 });
 
-export type CreateEditorialTier = z.infer<typeof CreateEditorialTierSchema>;
+/** Input type for tier creation. `enabled` is optional and defaults to `true` at parse time. */
+export type CreateEditorialTier = z.input<typeof CreateEditorialTierSchema>;
 
 export const UpdateEditorialTierSchema = z.object({
   tierType: EditorialTierTypeSchema.optional(),

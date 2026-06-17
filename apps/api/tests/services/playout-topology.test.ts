@@ -4,7 +4,7 @@ import {
   buildPlayoutTopology,
   harborChannelPaths,
 } from "../../src/services/playout-topology.js";
-import type { EditorialConfigWithTiers } from "@snc/shared";
+import type { EditorialConfigWithTiers, EditorialTierType } from "@snc/shared";
 
 // ── Test row fixtures ──
 
@@ -126,7 +126,7 @@ const makeConfig = (
 const makeTier = (
   id: string,
   channelId: string,
-  tierType: string,
+  tierType: EditorialTierType,
   priority: number,
   sourceChannelId: string | null = null,
   enabled = true,
