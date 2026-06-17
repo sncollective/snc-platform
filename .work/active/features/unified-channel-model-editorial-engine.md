@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle]
@@ -115,10 +115,12 @@ Three forks are resolved here (user-confirmed across the design pass; "surface e
   driver. The unified-program model dissolves the auto-semantics ambiguity that the first cut created.)*
   **Per-channel constraints:** creator channels = own source only (their key + their queue, no carry);
   admin channels = stream key **XOR** channel-as-source (mutually exclusive, a config-time choice applied
-  via regenerate-and-restart) + their queue. **Pool scope by ownership:** creator channel → that creator's
-  content; admin channel → all creators' content. Scheduled tier deferred. **Admin-uploaded content is out
-  of scope** — modeled later as a hidden/system creator (its content flows into admin pools for free via
-  the all-creators scope); this feature implements only the pool-scope query.
+  via regenerate-and-restart) + their queue. **Pool scope — MVP reality (revised at control-service, 2026-06-17):**
+the pool draws from the channel's **curated `channel_content` rows** (LRP rotation, `channelId`-bounded), NOT
+yet the ownership-scoped library auto-draw (creator → own; admin → all creators) the model intends. The
+`poolContentScope` resolver exists but is unused at query time. The ownership-scoped auto-draw is **deferred
+with the admin-content/hidden-creator work** (set aside per the design discussion) — once admin content lives
+under a hidden/system creator, the all-creators scope falls out for free. Scheduled tier deferred.
 - **Control plane: bespoke harbor endpoints (extend the landed pattern), NOT `interactive.harbor`.**
   The control traffic is three kinds — scalar state sets (mode / arm-take / manual-pin), operations
   (queue push, skip), and introspection (`switch.selected()` now-selected). `interactive.harbor`
@@ -310,6 +312,31 @@ artificial parallelism here). Soft-precede with the landed `…-version-capabili
   fallback). This reopened `config-schema` → `topology` → `render` (re-walked from the prior cut). Lower
   risk than greenfield — the prior code is the revision base — but the taxonomy change (`tierType` drops
   `pool`, gains `enabled`) and the render's pool/`request.dynamic` are net-new vs the first cut.
+
+## Implementation summary (2026-06-17) — all 5 children done; feature → review
+
+Built on the unified program-source model. All children reviewed + done:
+- **config-schema** — `channel_editorial_config` + `channel_editorial_tiers` (`tierType` live/queue/channel-as-source,
+  `enabled`, FKs); ownership validation (creator own-source / admin key-XOR-carry); `poolContentScope` resolver;
+  cycle detection. Migrations 0029–0031.
+- **topology** — `EditorialTier` (queue carries `poolScope`); enabled-tier filtering; channel-as-source resolution
+  + topological order; edge-list-driven cycle check; typed errors.
+- **render** — per-channel readiness-fallback `switch` (auto), `${vid}_manual` pin (manual), queue =
+  `fallback(track_sensitive=true, [operator_queue, pool])`, pool = LRP `request.dynamic` → `pool/next`;
+  `switch.selected()` now-playing (serializable label + elapsed/remaining); mode/arm/manual endpoints.
+  **Validated against real Liquidsoap** (`liquidsoap --check`, exit 0).
+- **control-client** — typed `setMode`/`armQueue`/`setManualTier` (`?secret=`-guarded); `selected` in now-playing.
+- **control-service** — editorial-control verbs (persist + live-mutate; structural → regenerate-and-restart);
+  the `pool/next` LRP callback endpoint; admin editorial routes.
+
+**Verification**: unit suite 1777 pass; render typechecks on real Liquidsoap. **Pending (feature-level): an
+end-to-end staging walk on a real running pipeline** (pool LRP rotation, multi-tier readiness fallback,
+arm/take + manual-pin live, regenerate-and-restart) — runtime behavior unit tests + `--check` can't cover.
+
+**Follow-ups (backlog, none blocking):** `editorial-render-followups` (multi-tier render untested; wire
+`liquidsoap --check` into the suite; pool scope `channelId`-bounded vs ownership-scoped; `null()`→`null`;
+`PoolScope` SSOT dup). Structural-edit routes + creator-scoped access deferred to playout-admin-redesign /
+creator-enablement. S/NC TV broadcast block still static — `snctv-composition` migrates it.
 - **Live mutation lost on restart** if not persisted: control verbs persist to DB AND mutate live; rendered
   refs init from persisted config. Designed-for, not incidental.
 - **v2.4.5 soft-dep**: design targets 2.4.5 primitives but is latent-safe on 2.4.2 for v1 (no

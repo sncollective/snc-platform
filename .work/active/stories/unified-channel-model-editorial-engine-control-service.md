@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-service
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-control-client, unified-channel-model-editorial-engine-config-schema]
@@ -101,3 +101,24 @@ Pool scope is enforced at seed time (when content is assigned to `channel_conten
 - **No `setTierPriority` route**: structural edit verbs (setTierEnabled, addCarryEdge, removeTier, setTierPriority) are in the service but not wired as routes. The editorial UI (playout-admin-redesign) is out of scope for this story; when it lands it will add routes for these structural edits. The service functions are ready.
 - **Live-mutate round-trip**: not tested in unit (no container). Integration/staging check noted.
 - **Creator-scoped access**: editorial routes are admin-only. Creator-scoped access (a creator managing their own channel) arrives with the creator-enablement story.
+
+## Review (2026-06-17)
+
+**Verdict**: Approve with comments. No blockers; advanced `review → done` (final link — feature complete).
+
+Read `editorial-control.ts` in full + verified the seams. Confirmed: `regenerateAndRestart` is a real
+liquidsoap-config.ts export (writes `.liq` + POSTs `/admin/shutdown` → container restart); the pool/next
+route `/api/playout/channels/:channelId/pool/next` matches the render's `http.get` URL exactly (plain-text
+URI body / empty when pool empty / secret-guarded); live verbs persist-then-mutate; `setManualTier`
+resolves the **enabled-tier** index (matches the render's switch order); arm transient (documented);
+39 genuine tests, 1777 pass.
+
+**Important finding (filed → `editorial-render-followups`; design reconciled):** the pool draws from
+`channel_content` `channelId`-bounded (curated per-channel), NOT the design's ownership-scoped library
+auto-draw — `poolContentScope` is `void`ed at query time. Defensible MVP and consistent with deferring the
+admin-content/hidden-creator work, but narrower than stated; the feature body's pool-scope decision is
+updated to reflect MVP reality + the deferral.
+
+**Pending (feature-level):** end-to-end staging walk on a real pipeline (pool resolution + LRP rotation,
+multi-tier readiness fallback, arm/take + manual-pin live, regenerate-and-restart) — runtime behavior the
+unit suite + `liquidsoap --check` can't cover.

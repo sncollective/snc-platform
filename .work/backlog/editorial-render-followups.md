@@ -32,5 +32,13 @@ Liquidsoap (`liquidsoap --check`, exit 0) — these are coverage/hygiene, not co
    (no DB) and import in both, rather than duplicating.
 
 Code: `apps/api/src/services/liquidsoap-render.ts`, `apps/api/src/services/playout-topology.ts`.
-Reminder: the `pool/next` endpoint the render's `request.dynamic` calls is the control-service story's
-job; until it ships the pool is not-ready and the fallback skips silently (correct startup behavior).
+5. **Pool scope is `channelId`-bounded, not ownership-scoped** (Important). `resolvePoolNextUri`
+   (control-service) draws from the channel's curated `channel_content` rows (LRP), and `void`s the
+   `poolContentScope` resolver. The design's ownership-scoped auto-draw (creator → own content; admin →
+   *all* creators') is NOT realized — admin channels don't auto-draw the whole library. Deferred with the
+   admin-content/hidden-creator work (the all-creators scope falls out once admin content lives under a
+   hidden creator). If the curated-per-channel pool proves insufficient before then, wire `poolContentScope`
+   into the `resolvePoolNextUri` query (creator → content WHERE creatorId; admin → all-creator content).
+
+Done: the `pool/next` endpoint shipped in control-service (the render's `request.dynamic` calls it;
+secret-guarded, plain-text URI, LRP rotation via `lastPlayedAt`/`playCount`).
