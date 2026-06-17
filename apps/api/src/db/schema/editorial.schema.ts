@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -63,8 +64,13 @@ export const channelEditorialTiers = pgTable(
     channelId: text("channel_id")
       .notNull()
       .references(() => channels.id, { onDelete: "cascade" }),
+    // "live" | "queue" | "channel-as-source" (pool is folded into queue)
     tierType: text("tier_type").$type<EditorialTierType>().notNull(),
     priority: integer("priority").notNull(), // 0 = highest
+    // Whether this tier participates in the auto readiness fallback.
+    // Disabled tiers are preserved in the DB for auditing but omitted from the
+    // rendered switch(). Defaults true so new tiers are active immediately.
+    enabled: boolean("enabled").notNull().default(true),
     sourceChannelId: text("source_channel_id").references(() => channels.id, {
       onDelete: "cascade",
     }),

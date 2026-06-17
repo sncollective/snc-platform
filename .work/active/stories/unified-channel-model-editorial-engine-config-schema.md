@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-config-schema
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: []
@@ -97,3 +97,69 @@ and update; migrations `0029`/`0030` genuinely drizzle-generated (random names, 
 timestamps); 31 tests are genuine behavioral assertions (no gamed tests). Hand-off to the topology
 story: `getAllEditorialConfigs` returns only channels that HAVE a config row — the topology builder
 must define default behavior for config-less channels (e.g. the current queue-only degenerate config).
+
+## Revision (2026-06-17)
+
+**What changed — unified editorial model:**
+
+- `pool` tier type removed from `EDITORIAL_TIER_TYPES` (was `["live","queue","pool","channel-as-source"]`,
+  now `["live","queue","channel-as-source"]`). Pool is folded into the `queue` tier: the operator queue
+  plays track-by-track; when empty it falls through to the pool auto-fill. No separate `pool` tier.
+- `enabled: boolean` added to `channelEditorialTiers` schema (DB column: `boolean NOT NULL DEFAULT true`)
+  and to the `EditorialTier` response shape + `CreateEditorialTier` / `UpdateEditorialTier` mutation
+  shapes in `packages/shared/src/editorial.ts`.
+- `enabled` carried through all CRUD operations and the `toTier` transformer.
+
+**New migration:** `apps/api/drizzle/migrations/0031_orange_madripoor.sql` — adds
+`"enabled" boolean DEFAULT true NOT NULL` to `channel_editorial_tiers`. Applied cleanly
+(`db:migrate` exited 0). Prior `0029`/`0030` migrations untouched.
+
+**Review findings folded in (items 1–3 from `editorial-config-review-followups`):**
+
+1. **`deleteEditorialConfig` cascade comment** — **decision: keep config-only delete, correct the
+   comment.** The comment previously claimed "and all its tiers via cascade" — false: tiers FK to
+   `channels.id`, not the config row. Comment now states the real behavior: deleting the config row
+   leaves tiers in place (recoverable by re-creating a config); deleting the channel cascades both.
+   `deleteEditorialConfig` remains a config-only delete (adding an explicit tier delete here would be
+   surprising action-at-a-distance; the correct cleanup path is `deleteChannel`). A new test verifies
+   `mockDelete` is called exactly once, guarding against regression.
+
+2. **`updateEditorialTier` now has unit tests** — 7 new test cases: priority change, `enabled` toggle,
+   `tierType` change (valid for platform channel), `tierType` change rejected on creator channel,
+   cycle-forming carry-edge change rejected, source-constraint violation on update, NotFoundError on
+   missing tier / race-condition empty update return.
+
+3. **`manualTierId` same-channel validation** — `upsertEditorialConfig` now validates that
+   `manualTierId`, when provided, references a tier belonging to the same channel. Two new test cases:
+   reject tier not found, reject tier belonging to a different channel.
+
+**New ownership validation (new, not in prior review):**
+- `createEditorialTier` and `updateEditorialTier` (on tierType change) now enforce: creator channels
+  reject `channel-as-source`; admin channels reject simultaneous `live` + `channel-as-source`. Reads
+  `channels.ownership` + `creatorId` via a new `fetchChannel` helper.
+
+**New pool-scope resolver:**
+- `poolContentScope(channel) → PoolScope` exported from `editorial-config.ts`. Creator channel →
+  `{ creatorId }`, admin/platform channel → `{ allCreators: true }`. Pure derivation; no DB access.
+
+**Tests added/updated:**
+
+- `editorial-config.test.ts` fully rewritten: 43 tests total (was 18). Covers all prior cases plus
+  the 7 `updateEditorialTier` cases, 2 `manualTierId` same-channel cases, 4 ownership-validation cases
+  (creator rejects carry; admin rejects live+carry coexistence; valid creator queue; valid admin queue
+  with existing live), 4 `poolContentScope` cases, the cascade-comment regression guard. Test mock
+  updated to include `channels` schema mock for `fetchChannel` queries.
+- `editorial-graph.test.ts` — unchanged (no code change to `editorial-graph.ts`).
+- **All 1706 API unit tests pass.** Shared tests: 675 pass. No regressions.
+
+**Discrepancies from revised design:**
+
+- None. All Unit 1 revised-model acceptance criteria met: no `pool` in `tierType`; `enabled` defaults
+  true; ownership validation (creator own-source-only; admin key-XOR-carry); pool-scope resolver;
+  cycle-detection matrix.
+
+**Parked issues (not addressed here — remain in `editorial-config-review-followups`):**
+
+- Items 4–6 (topology review findings: `topoSort` fragile reverse-map; plain `Error` in 4 places;
+  `resolveSourceVar` failing the whole render on one bad tier) — natural home is the topology
+  or render story.

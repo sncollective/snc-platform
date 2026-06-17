@@ -1,0 +1,1 @@
+ALTER TABLE "channel_editorial_tiers" ADD COLUMN "enabled" boolean DEFAULT true NOT NULL;

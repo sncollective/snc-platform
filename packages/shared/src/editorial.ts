@@ -13,14 +13,18 @@ export const EditorialModeSchema = z.enum(EDITORIAL_MODES);
  * Source tier type within a channel's editorial switch.
  *
  * - `live` — live RTMP ingest from the channel's live-ingest input
- * - `queue` — request.queue playout (the armed, manually-ordered queue)
- * - `pool` — request.dynamic pool of channel_content items (auto-rotated)
+ * - `queue` — operator-editable request.queue that auto-fills from a pool when
+ *   not curated (pool is folded into queue, not a separate tier)
  * - `channel-as-source` — another channel's rendered source (carry model)
+ *
+ * Rejected: a separate `pool` tier — queue and pool are one continuous program
+ * source (the operator queue plays track-by-track; when empty it falls through
+ * to the pool auto-fill). Separating them conflates "auto" with manual selection
+ * and needs an external driver. The unified-program model dissolves the ambiguity.
  */
 export const EDITORIAL_TIER_TYPES = [
   "live",
   "queue",
-  "pool",
   "channel-as-source",
 ] as const;
 export type EditorialTierType = (typeof EDITORIAL_TIER_TYPES)[number];
@@ -42,6 +46,7 @@ export const EditorialTierSchema = z.object({
   channelId: z.string(),
   tierType: EditorialTierTypeSchema,
   priority: z.number().int().min(0),
+  enabled: z.boolean(),
   sourceChannelId: z.string().nullable(),
 });
 
@@ -68,6 +73,7 @@ export type UpsertEditorialConfig = z.infer<typeof UpsertEditorialConfigSchema>;
 export const CreateEditorialTierSchema = z.object({
   tierType: EditorialTierTypeSchema,
   priority: z.number().int().min(0),
+  enabled: z.boolean().default(true),
   sourceChannelId: z.string().nullable().optional(),
 });
 
@@ -76,6 +82,7 @@ export type CreateEditorialTier = z.infer<typeof CreateEditorialTierSchema>;
 export const UpdateEditorialTierSchema = z.object({
   tierType: EditorialTierTypeSchema.optional(),
   priority: z.number().int().min(0).optional(),
+  enabled: z.boolean().optional(),
   sourceChannelId: z.string().nullable().optional(),
 });
 
