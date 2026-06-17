@@ -29,6 +29,17 @@ technical risk. The spike is empirical: run against a throwaway container off th
 `platform-snc-liquidsoap` image (Liquidsoap 2.4.2), it confirmed the mechanism. The production
 playout container was never touched.
 
+> **Implementation divergence (2026-06-17, `unified-channel-model-editorial-engine`).** The spike proves
+> live ref-driven switching is *possible* for all editorial verbs, and that remains true. **The engine, by
+> contrast, wires only `arm/take` live; `mode` (manual↔auto) and `manual-pin` apply via
+> regenerate-and-restart** (the switch *shape* is baked at render time from persisted `mode`, not selected
+> by a live `mode()`/`manual()` ref). Why: the first implementation shipped the live mode/manual refs
+> *dead* (the rendered `switch()` never read them — a deep review caught it), and v1 chose the restart path
+> over reworking the switch ref-driven, since mode/manual changes are infrequent. So **do not assume the
+> running engine flips mode/manual live** — read the feature's §Architectural choice + §Review findings.
+> *Revisit if:* mode/manual edits become frequent enough that the restart blip is user-visible — then make
+> the switch ref-driven (this position shows it's feasible).
+
 ## The mechanism
 
 A channel's editorial priority is expressed as a `switch()` over its source tiers, where each
