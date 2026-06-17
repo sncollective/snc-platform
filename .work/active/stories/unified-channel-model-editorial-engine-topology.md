@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-topology
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
@@ -15,6 +15,16 @@ updated: 2026-06-17
 
 Implements **Unit 2** (the trickiest unit) of `unified-channel-model-editorial-engine` (full design in
 the feature body). Pure data — turns editorial config into render-ready typed topology.
+
+## Bounce (deep feature review, 2026-06-17) — reopened `done → implementing`
+
+**B2 — manual-tier index-space mismatch → silence** (full detail in the feature body §Review findings):
+`buildPlayoutTopology` computes `manualTierIndex` via `config.tiers.findIndex` (the FULL tier array), but
+the render indexes `tierVarNames` (enabled-filtered) and the service computes the enabled-filtered index.
+When a disabled tier precedes the pinned tier the spaces diverge → render-init pins out-of-range →
+`mksafe(blank())` (silence) on restart. Fix: compute `manualTierIndex` over the enabled tiers (same array
+the render + service use). Add a topology test with a disabled tier *before* the pinned tier (existing
+tests use fully-enabled tiers, so the bug hides).
 
 ## Scope
 - `apps/api/src/services/playout-topology.ts`: add `EditorialTier` discriminated union (live / queue /

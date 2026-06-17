@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine
 kind: feature
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle]
@@ -337,6 +337,50 @@ arm/take + manual-pin live, regenerate-and-restart) — runtime behavior unit te
 `liquidsoap --check` into the suite; pool scope `channelId`-bounded vs ownership-scoped; `null()`→`null`;
 `PoolScope` SSOT dup). Structural-edit routes + creator-scoped access deferred to playout-admin-redesign /
 creator-enablement. S/NC TV broadcast block still static — `snctv-composition` migrates it.
+
+## Review findings (deep feature review, 2026-06-17) — BOUNCED to implementing
+
+Fresh-context deep review (opus, independent) found **2 blockers at the live-switching seam** — the
+exact risk the epic named — that all 5 per-story reviews missed (the tests assert "client was called,"
+not "the rendered switch consumes the ref"; goldens only cover config-less default channels). Feature
+bounced `review → implementing`; `render` + `topology` reopened.
+
+**Blockers:**
+- **B1 — live mode-flip and manual-pin are no-ops.** `liquidsoap-render.ts` `renderSwitchPredicates`
+  bakes the switch *shape* at render time from the JS `ch.mode` branch; the emitted `.liq` declares
+  `${vid}_mode`/`${vid}_manual` refs and the harbor `/mode` + `/manual` endpoints mutate them, but **no
+  predicate reads those refs** (only `${vid}_armed()` is read). So `setMode`/`setManualTier` return ok but
+  have NO live effect — they only apply on regenerate-restart, contradicting the design's central
+  no-restart claim + workshop scenario #2. Only arm/take is genuinely live. **Open decision:** rework the
+  switch to be fully ref-driven (read `mode()`/`manual()` per the spike exemplar) — OR explicitly downgrade
+  the claim (mode/manual = regenerate-restart, arm/take the only live verb) and document it. → reopens `render`.
+- **B2 — manual-tier index-space mismatch → silence.** `playout-topology.ts` computes `manualTierIndex`
+  via `config.tiers.findIndex` (full array) while the render indexes `tierVarNames` (enabled-filtered) and
+  the service computes the enabled-filtered index. Divergent when a disabled tier precedes the pinned tier
+  → render-init pins out-of-range → `mksafe(blank())` (silence) on restart. Fix: compute the index over
+  the enabled tiers. → reopens `topology`.
+
+**Important:**
+- **I1 — `docs/streaming.md` foundation-doc drift.** Describes the old fallback-chain model, M3U-reload,
+  two hardcoded channels, `v2.4.2`, and a legacy `/classics/*` + `/now-playing` harbor table — none match
+  the editorial engine. Rolling-foundation requires it roll forward (Harbor API table + playout model
+  sections). → `editorial-docs-streaming-drift` (backlog); also a `gate-docs` catch at release.
+- **I2 — per-channel `live` tier emits a 2nd `input.rtmp(listen=true)` on port 1936**, colliding with the
+  static broadcast block's listener → engine fails to start when any `live` tier is enabled (`--check`
+  misses it; no listeners started). Latent (no live-tier config exists yet). **Open design question:**
+  per-channel RTMP listener vs SRS `on_forward` into one Liquidsoap input (the streaming-doc model). →
+  reopens `render` (with the design call).
+
+**Nits:** the new per-channel `getNowPlaying`/`selected` has no runtime consumer yet (editorial UI
+deferred); `deleteEditorialConfig` orphan-tiers edge (documented).
+
+**Seams that check out (confirmed by the reviewer):** pool/next contract, harborChannelPaths↔render↔client,
+the regenerate-restart pipeline (validated via `liquidsoap --check` on a live multi-tier render),
+ownership validation, cycle detection + topo-sort, LRP pool query, arm/take live, migrations, test
+integrity (genuine, not gamed — the gap is coverage, not honesty).
+
+**Hard precondition for re-approval:** the end-to-end staging walk on a real pipeline is not optional — it
+is the gate that catches B1/B2/I2 (runtime behavior unit tests + `--check` cannot see).
 - **Live mutation lost on restart** if not persisted: control verbs persist to DB AND mutate live; rendered
   refs init from persisted config. Designed-for, not incidental.
 - **v2.4.5 soft-dep**: design targets 2.4.5 primitives but is latent-safe on 2.4.2 for v1 (no

@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-render
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-topology]
@@ -15,6 +15,20 @@ updated: 2026-06-17
 
 Implements **Unit 3** of `unified-channel-model-editorial-engine` (full design in the feature body).
 Emits the live editorial mechanism the spike settled.
+
+## Bounce (deep feature review, 2026-06-17) — reopened `done → implementing`
+
+Two blockers from the feature-level deep review (full detail in the feature body §Review findings):
+- **B1 — live mode-flip + manual-pin are no-ops.** `renderSwitchPredicates` bakes the switch shape from
+  the JS `ch.mode` branch; the emitted `.liq` never reads `${vid}_mode()`/`${vid}_manual()` (only
+  `${vid}_armed()`). The harbor `/mode` + `/manual` endpoints mutate refs nothing consumes → those verbs
+  have no live effect (only on regenerate-restart). **Open decision (resolve before fixing):** rework the
+  switch to be fully ref-driven (read `mode()`/`manual()` per the spike exemplar) vs. downgrade the claim
+  to "mode/manual = regenerate-restart, arm/take live." Add a golden assertion that `_mode()`/`_manual()`
+  appear, + a test that flipping the ref changes selection.
+- **I2 — per-channel `live` tier emits a 2nd `input.rtmp(listen=true)` on port 1936**, colliding with the
+  static broadcast listener → engine won't start when a `live` tier is enabled (latent; `--check` misses
+  it). **Open design question:** per-channel RTMP listener vs SRS `on_forward` into one input.
 
 ## Revision (2026-06-17)
 
