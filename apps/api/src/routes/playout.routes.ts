@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   CreatePlayoutItemSchema,
   UpdatePlayoutItemSchema,
+  EditorialModeSchema,
 } from "@snc/shared";
 import type { CreatePlayoutItem, UpdatePlayoutItem } from "@snc/shared";
 
@@ -22,7 +23,21 @@ import {
   skipCurrentTrack,
   retryPlayoutIngest,
 } from "../services/playout.js";
+import {
+  setMode as editorialSetMode,
+  armQueue as editorialArmQueue,
+  takeQueue as editorialTakeQueue,
+  setManualTier as editorialSetManualTier,
+} from "../services/editorial-control.js";
+import { createLiquidsoapClient, createStubLiquidsoapClient } from "../services/liquidsoap-client.js";
+import { config } from "../config.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
+
+// ── Liquidsoap client singleton (shared with playout-channels.init.ts pattern) ──
+// Note: creator-scoped access to editorial routes arrives with the creator-enablement story.
+// For now all editorial control routes are admin-only.
+const getLiquidsoapClient = () =>
+  config.LIQUIDSOAP_API_URL ? createLiquidsoapClient() : createStubLiquidsoapClient();
 
 /** Playout item ID param (text, not UUID) */
 const PlayoutIdParam = z.object({ id: z.string().min(1) });
@@ -227,6 +242,113 @@ playoutRoutes.post(
   async (c) => {
     const { id } = c.req.valid("param" as never) as { id: string };
     const result = await queuePlayoutItem(id);
+    if (!result.ok) throw result.error;
+    return c.json({ ok: true });
+  },
+);
+
+// ── Editorial Control Routes (admin-only) ──
+// Creator-scoped access arrives with the creator-enablement story. These routes
+// are admin-only for the initial platform-admin editorial surface.
+
+const ChannelIdParam = z.object({ channelId: z.string().min(1) });
+const TierIdParam = z.object({ tierId: z.string().min(1) });
+
+playoutRoutes.use("/channels/:channelId/editorial/*", requireAuth, requireRole("admin"));
+playoutRoutes.use("/tiers/:tierId/editorial/*", requireAuth, requireRole("admin"));
+
+// POST /channels/:channelId/editorial/mode — set editorial mode (auto|manual)
+playoutRoutes.post(
+  "/channels/:channelId/editorial/mode",
+  describeRoute({
+    description: "Set the editorial mode for a playout channel. Persists to DB and live-mutates the running engine.",
+    tags: ["playout", "editorial"],
+    responses: {
+      200: { description: "Mode set" },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", ChannelIdParam),
+  validator("json", z.object({ mode: EditorialModeSchema })),
+  async (c) => {
+    const { channelId } = c.req.valid("param" as never) as { channelId: string };
+    const { mode } = c.req.valid("json" as never) as { mode: "manual" | "auto" };
+    const result = await editorialSetMode(channelId, mode, getLiquidsoapClient());
+    if (!result.ok) throw result.error;
+    return c.json({ ok: true });
+  },
+);
+
+// POST /channels/:channelId/editorial/arm — arm or disarm the queue for take-over
+playoutRoutes.post(
+  "/channels/:channelId/editorial/arm",
+  describeRoute({
+    description: "Arm or disarm the channel queue for take-over. Transient live-only — not persisted to DB.",
+    tags: ["playout", "editorial"],
+    responses: {
+      200: { description: "Arm state set" },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", ChannelIdParam),
+  validator("json", z.object({ armed: z.boolean() })),
+  async (c) => {
+    const { channelId } = c.req.valid("param" as never) as { channelId: string };
+    const { armed } = c.req.valid("json" as never) as { armed: boolean };
+    const result = await editorialArmQueue(channelId, armed, getLiquidsoapClient());
+    if (!result.ok) throw result.error;
+    return c.json({ ok: true });
+  },
+);
+
+// POST /channels/:channelId/editorial/take — arm + switch to auto (queue take-over)
+playoutRoutes.post(
+  "/channels/:channelId/editorial/take",
+  describeRoute({
+    description: "Arm the queue and switch mode to auto (take-over). Persists mode=auto and live-mutates.",
+    tags: ["playout", "editorial"],
+    responses: {
+      200: { description: "Take acknowledged" },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", ChannelIdParam),
+  async (c) => {
+    const { channelId } = c.req.valid("param" as never) as { channelId: string };
+    const result = await editorialTakeQueue(channelId, getLiquidsoapClient());
+    if (!result.ok) throw result.error;
+    return c.json({ ok: true });
+  },
+);
+
+// POST /channels/:channelId/editorial/manual — pin to a specific tier (manual mode)
+playoutRoutes.post(
+  "/channels/:channelId/editorial/manual",
+  describeRoute({
+    description: "Pin the channel to a specific editorial tier in manual mode. Persists and live-mutates.",
+    tags: ["playout", "editorial"],
+    responses: {
+      200: { description: "Tier pinned" },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", ChannelIdParam),
+  validator("json", z.object({ tierId: z.string().min(1) })),
+  async (c) => {
+    const { channelId } = c.req.valid("param" as never) as { channelId: string };
+    const { tierId } = c.req.valid("json" as never) as { tierId: string };
+    const result = await editorialSetManualTier(channelId, tierId, getLiquidsoapClient());
     if (!result.ok) throw result.error;
     return c.json({ ok: true });
   },

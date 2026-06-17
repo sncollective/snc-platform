@@ -18,6 +18,8 @@ import { setAiringSource } from "../services/playout-live-state.js";
 import type { AiringSource } from "../services/playout-live-state.js";
 import { dispatchChannelGoLive } from "../services/notify-dispatch.js";
 import { orchestrator } from "./playout-channels.init.js";
+import { poolContentScope } from "../services/editorial-config.js";
+import { resolvePoolNextUri } from "../services/editorial-control.js";
 
 /** Playout channel queue management and Liquidsoap webhook endpoints. */
 export const playoutChannelRoutes = new Hono<AuthEnv>();
@@ -466,5 +468,63 @@ playoutChannelRoutes.delete(
       );
     }
     return c.json({ ok: true });
+  },
+);
+
+// ── Pool / Next Callback (Liquidsoap → API) ──
+// Called by the rendered `.liq` via `request.dynamic` — `GET /api/playout/channels/{id}/pool/next?secret=<secret>`.
+// The render treats the plain-text response body as the next URI to play.
+// An empty body signals "no content available" and the pool source is not-ready (safe for fallback).
+// Auth: shared-secret guard (same pattern as track-event / input-switch).
+// NOT behind requireAuth/requireRole — this is a Liquidsoap container callback.
+
+playoutChannelRoutes.get(
+  "/channels/:channelId/pool/next",
+  describeRoute({
+    description:
+      "Fetch the next pool URI for a channel (Liquidsoap request.dynamic callback). " +
+      "Returns the URI as plain text or empty body when the pool is empty. " +
+      "Authenticated via PLAYOUT_CALLBACK_SECRET query param.",
+    tags: ["playout"],
+    responses: {
+      200: { description: "Next pool URI (plain text) or empty body" },
+      401: { description: "Invalid or missing callback secret" },
+    },
+  }),
+  async (c) => {
+    // Secret guard — mirror the track-event / input-switch pattern
+    const secret = c.req.query("secret");
+    if (
+      !config.PLAYOUT_CALLBACK_SECRET ||
+      secret !== config.PLAYOUT_CALLBACK_SECRET
+    ) {
+      // Return 401 with empty body so the Liquidsoap request.dynamic receives an error,
+      // not a URI string. The pool source will be not-ready and the fallback skips through.
+      c.status(401);
+      return c.text("");
+    }
+
+    const channelId = c.req.param("channelId");
+
+    // Resolve the channel's ownership to determine pool scope
+    const [channel] = await db
+      .select({
+        id: channels.id,
+        ownership: channels.ownership,
+        creatorId: channels.creatorId,
+      })
+      .from(channels)
+      .where(eq(channels.id, channelId));
+
+    if (!channel) {
+      // Channel not found — return empty body so pool is not-ready, not an error
+      return c.text("");
+    }
+
+    const scope = poolContentScope(channel);
+    const uri = await resolvePoolNextUri(channelId, scope);
+
+    // Return the URI as plain text (empty string when pool is empty)
+    return c.text(uri ?? "");
   },
 );
