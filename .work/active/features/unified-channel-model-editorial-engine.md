@@ -141,22 +141,28 @@ Generalize the degenerate per-channel `fallback(track_sensitive=false, [queue, m
 sources**, driven by relational config, executed through the landed pure render seam (`playout-topology.ts`
 → `liquidsoap-render.ts`), controlled via **bespoke harbor endpoints**.
 
-- **`${vid}_source` (auto)** = `switch(track_sensitive=false, [ …enabled sources in config order…,
-  ({true}, mksafe(blank())) ])` with all-true (readiness) predicates — i.e. a `fallback`: the
-  highest-priority *ready* source wins automatically (live if connected → queue if it has content → carry →
-  blank). **Manual mode** pins one source via a `${vid}_manual` ref. The only live refs are `${vid}_mode`
-  (auto|manual) and `${vid}_manual` (pinned source index) — **no live `priority` ref**; source *order* is
-  config (reorder = regenerate-and-restart, a rare structural edit).
+- **`${vid}_source`** is rendered per the channel's **persisted mode (render-time-static)**: in **auto**, a
+  `switch(track_sensitive=false, [ …enabled sources in config order…, ({true}, mksafe(blank())) ])` with
+  all-true (readiness) predicates — highest-priority *ready* source wins (live → queue → carry → blank); in
+  **manual**, the single pinned tier (resolved from `manualTierId` → its index among the **enabled** tiers).
+  **mode and manual-pin are NOT live (revised 2026-06-17 — B1).** The spike proved live ref-driven switching
+  *possible*, but the first cut shipped it **dead** (the switch never read the `mode`/`manual` refs), and MVP
+  applies mode + manual-pin via **regenerate-and-restart** rather than reworking the switch ref-driven. So
+  there are **no `${vid}_mode` / `${vid}_manual` refs and no `/mode` / `/manual` harbor endpoints** — those
+  are removed. Source *order* is config (reorder = regenerate-and-restart).
 - **The `queue` source itself** = `fallback(track_sensitive=true, [ ${vid}_queue, ${vid}_pool ])`: the
   operator queue plays track-by-track; when empty it falls to the pool; a freshly-queued item is taken at
   the next track boundary ("switch over when ready"). `${vid}_queue` = `request.queue` (operator
   push/reorder/skip); `${vid}_pool` = the auto-fill — **least-recently-played** `request.dynamic` rotation
-  over the channel's **ownership-scoped** `channel_content` (creator channel → that creator's content;
-  admin channel → all creators'). The **arm/take** verb gates whether the queue participates as the
+  over the channel's **curated `channel_content`** (`channelId`-bounded for MVP; the ownership-scoped
+  auto-draw — creator → own, admin → all creators — is deferred with the hidden-creator work; see §Design
+  decisions). The **arm/take** verb gates whether the queue participates as the
   channel's active source in auto, so you can build it while the pool (or another source) airs, then take.
-- **High-frequency verbs** (mode, arm/take, manual-pin) mutate live refs, no restart. **Structural** edits
-  (enable/disable a source, reorder, add/remove a carry edge, channel CRUD, switch key↔carry) persist then
-  regenerate-and-restart. Restart-agnostic control plane (seam constraint 3).
+- **The one live verb: arm/take** — mutates `${vid}_armed` live, no restart (the queue's switch predicate
+  reads `${vid}_armed()`, confirmed working). **Everything else is structural** — mode flip, manual-pin,
+  enable/disable, reorder, carry add/remove, channel CRUD, key↔carry — persist then regenerate-and-restart.
+  So `editorial-control.setMode` / `setManualTier` **persist + regenerate-restart** (not live-mutate via the
+  client), and the client's `setMode` / `setManualTier` verbs are removed.
 
 **Scope boundary:** builds the general engine for playout/creator channels. Does **NOT** re-express the
 static S/NC TV broadcast block (`snc_tv = fallback(...)`, `liquidsoap-render.ts:154`) — `snctv-composition`

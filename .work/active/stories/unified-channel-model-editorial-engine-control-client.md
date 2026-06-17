@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-editorial-engine-control-client
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-render]
