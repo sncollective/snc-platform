@@ -387,6 +387,31 @@ integrity (genuine, not gamed — the gap is coverage, not honesty).
 
 **Hard precondition for re-approval:** the end-to-end staging walk on a real pipeline is not optional — it
 is the gate that catches B1/B2/I2 (runtime behavior unit tests + `--check` cannot see).
+
+## Re-review (2026-06-17) — fixes verified; held at review pending the staging walk
+
+Fresh-context re-review (independent opus) of the B1-downgrade fixes (`bd3b19a` → `d89be5a`):
+**Approve with comments.** The downgrade is correct AND complete — traced end-to-end that a mode/manual
+change now takes effect through persist → `regenerateAndRestart` → `generateLiquidsoapConfig` →
+`buildPlayoutTopology` (reads persisted `mode`/`manualTierId`) → render → restart. Dead refs/endpoints
+gone; arm/take still live; **B2** (manualTierIndex over enabled tiers) + **I2** (live-tier defer → clean
+`mksafe(blank())` degradation) fixed and reproduced; no regression in the confirmed seams (pool/next,
+harbor paths, LRP, now-playing, migrations); 1762 tests + `liquidsoap --check` exit 0.
+
+**Typecheck-gate failure the per-story reviews missed** (unit suite is green because vitest transpiles
+without typechecking): `tsc --noEmit` was RED with 42 feature-introduced errors — 1 real src
+(`liquidsoap.ts` legacy `getNowPlaying` broken by the new `selected` field) + 40 test-type errors.
+**Fixed** (`d546292`): `selected` + `CreateEditorialTier.enabled` made optional, test helpers +
+orchestrator mock typed. `tsc --noEmit` now GREEN, tests green, no `any`/ignores.
+
+**Residual (latent, deferred):** finding #6 (manual-pin index vs render-side live-exclusion) — confirmed
+real but unreachable today (live tiers deferred + no tier-creation route + no editorial config); tracked in
+`editorial-render-followups` #6 as a hard precondition for whoever wires tier creation.
+
+**State: code-complete, reviewed twice fresh-context, typecheck + tests + `--check` green.** Held at
+`review` (NOT advanced to `done`) pending the **one remaining gate — the end-to-end staging walk on a real
+pipeline** (operator-at-station): mode/manual-after-restart, arm/take live, LRP rotation, the
+regenerate-restart cycle. Mirrors the LS-upgrade hold pattern.
 - **Live mutation lost on restart** if not persisted: control verbs persist to DB AND mutate live; rendered
   refs init from persisted config. Designed-for, not incidental.
 - **v2.4.5 soft-dep**: design targets 2.4.5 primitives but is latent-safe on 2.4.2 for v1 (no
