@@ -1,15 +1,15 @@
 ---
 id: research-handoff-liquidsoap-version-capability-audit-1
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, deploy]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 research_origin: liquidsoap-version-capability-audit
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 
 # Upgrade Liquidsoap 2.4.2 → 2.4.5
@@ -69,20 +69,43 @@ drafting→implementing transition was a trivial confirmation, not a fresh desig
 - **Discrepancies from design:** none.
 - **Adjacent issues parked:** none.
 
-### Pending operator verification (at-station, not agent-executable)
+### Operator verification (at-station)
 
-The code change is landed; steps 2 (rebuild)–4 (verify/ship/revert) require a station and the
-operator was remote when this landed. Per platform's fix-verify loopback, the story stays at
-`stage: review` with verification explicitly **pending** — do not close until the operator confirms
-in the running app:
+The code change is landed. Per platform's fix-verify loopback, the story stays at `stage: review`
+until the operator confirms the stream renders end-to-end; the rebuild + structural verify are done.
 
-1. **Rebuild the playout image** off the bumped Dockerfile.
-2. **Staging verify end-to-end** before prod — the editorial spike's harbor-control paths
-   (skip/queue), the fallback chain, now-playing, and a live creator takeover/fallback cycle.
-3. **Ship-and-watch** to prod (mitigation for thin automated regression coverage).
+1. **Rebuild the playout image** off the bumped Dockerfile. — **DONE (2026-06-17, staging).**
+   `docker compose build --no-cache snc-liquidsoap` → recreate. `docker exec snc-liquidsoap
+   liquidsoap --version` reports **2.4.5** (was 2.4.2). Container `(healthy)`; `.liq` typechecked +
+   evaluated clean; all per-channel harbor endpoints registered (incl. the editorial
+   `now-playing`/`skip` routes); clocks started with all channel sources; no error/fatal log lines;
+   S3 content fetch + playout resumed; the `awscli`/`curl` apt layer rebuilt correctly. The editorial
+   staging walk (sibling gate) then runs against this 2.4.5 pipeline.
+2. **Staging verify end-to-end** — **DONE (2026-06-17, operator visual confirm).** The stream renders
+   in a player off the 2.4.5 pipeline (operator confirmed video plays on S/NC Music / S/NC TV). SRS is
+   serving HLS for every channel off the 2.4.5 engine (`channel-*.ts` segments writing continuously);
+   harbor-control paths exercised via the sibling editorial staging walk on the same pipeline (skip/queue,
+   now-playing, arm/take live, the regenerate-restart cycle — all green). Staging verify complete.
+3. **Ship-and-watch** to prod (mitigation for thin automated regression coverage). — **operator-at-station,
+   outstanding.** This story closes on the staging verify; the prod rebuild+ship is the deploy action,
+   tracked alongside `pin-docker-compose-image-versions`.
 4. **Revert plan** if any regression surfaces on the live stream: revert the one-line Dockerfile
    pin back to `v2.4.2` and rebuild.
 
 Note: the only other in-repo `v2.4.2` references are in
 `.research/attestation/liquidsoap-src-version-delta.md` — a point-in-time research attestation
 recording the source-diff evidence (production = v2.4.2 at audit time); deliberately left unchanged.
+
+## Close (2026-06-17) — staging-verified → done, bound to 0.4.0
+
+**Verdict: Approve — staging verify complete.** The image was rebuilt from the v2.4.5-pinned Dockerfile,
+the container recreated, and `liquidsoap --version` confirms **2.4.5** (was 2.4.2). The pipeline came up
+healthy (`.liq` typechecked + evaluated, all harbor endpoints registered, clocks started, S3 fetch +
+playout resumed, 0 error/fatal lines). The operator confirmed the stream renders in a player off the 2.4.5
+pipeline, and the sibling editorial staging walk exercised the harbor-control / regenerate-restart paths
+on the same engine (all green). The `awscli`/`curl` apt layer rebuilt correctly.
+
+**Advanced `review → done`, bound to release `0.4.0`** (the engine the editorial-engine bundle builds on).
+**Outstanding (deploy action, not this story's gate):** the prod rebuild + ship-and-watch is operator-at-
+station, tracked alongside `pin-docker-compose-image-versions`. Revert plan if a prod regression surfaces:
+re-pin `v2.4.2` + rebuild.

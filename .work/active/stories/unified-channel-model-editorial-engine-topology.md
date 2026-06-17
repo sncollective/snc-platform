@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-editorial-engine
 depends_on: [unified-channel-model-editorial-engine-config-schema]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-16
 updated: 2026-06-17

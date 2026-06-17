@@ -1,11 +1,11 @@
 ---
 id: unified-channel-model-editorial-engine
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-13
 updated: 2026-06-17
@@ -416,3 +416,64 @@ regenerate-restart cycle. Mirrors the LS-upgrade hold pattern.
   refs init from persisted config. Designed-for, not incidental.
 - **v2.4.5 soft-dep**: design targets 2.4.5 primitives but is latent-safe on 2.4.2 for v1 (no
   crossfade/runtime-detach). Upgrade story should land first as hygiene.
+
+## Staging walk (2026-06-17) — runtime verbs verified against live 2.4.5; operator visual confirm pending
+
+The end-to-end staging walk ran against the **live dev pipeline on Liquidsoap 2.4.5** (rebuilt from the
+`…-version-capability-audit-1` upgrade first, since the engine targets 2.4.5 primitives). Driven by a
+throwaway service-layer script (`apps/api/src/scripts/editorial-walk.ts`, deleted after the walk — there
+is no config-creation route yet; tier-creation is deferred to playout-admin-redesign / creator-enablement,
+so the walk seeded config directly via `upsertEditorialConfig`/`createEditorialTier`). Subject channel:
+**S/NC Music** (`228067cf-…`, platform-owned → pool scope `{allCreators:true}`), the channel actively
+rendering, with a real 3-row `channel_content` pool.
+
+**Every verb verified at runtime — the gate that B1/B2/I2 unit tests + `--check` structurally cannot see:**
+
+| Verb | Mechanism | Restart? | Result |
+|------|-----------|----------|--------|
+| **render (configured)** | `.liq` generation | — | ✓ all 5 editorial constructs present: pool `request.dynamic`, `/pool/next` callback URL, `_queue_program = fallback(track_sensitive=true, …)`, `_armed` ref, `switch.selected()` now-playing |
+| **pool/next (LRP)** | DB query + S3 resolve | No | ✓ 4 draws → 3 distinct real Garage URIs (`neon-frequency`/`morning-cascade`/`dusk-migration`.mkv) round-robin then wrap; `lastPlayedAt` advances + `playCount` increments + LRP order re-sorts. Pool auto-fill rotation fully working. |
+| **manual-pin** (`setManualTier`) | persist `mode=manual`+`manualTierId` → `regenerateAndRestart` | **Yes** (RestartCount 1) | ✓ engine restarts healthy on 2.4.5, typecheck+eval clean, channel `gets up from switch.9` with proper content type — **NO `mksafe(blank())` silence** (B2 index-over-enabled-tiers fix held) |
+| **auto-flip** (`setMode auto`) | persist → `regenerateAndRestart` | **Yes** (RestartCount 2) | ✓ engine restarts healthy on `mode=auto`, re-typechecked clean |
+| **arm** (`armQueue true`) | live harbor mutation | **No** | ✓ **StartedAt unchanged** — harbor received `POST /channels/…/arm`, fired handler, mutated `_armed` ref in place. The central B1-downgrade claim confirmed: arm is genuinely live. |
+| **take in auto** (`takeQueue`) | live arm only (skips restart when already auto) | **No** | ✓ StartedAt unchanged; the `currentMode === "auto"` branch correctly skipped regenerate-restart, armed live |
+
+**Runtime finding (real, recorded — not an editorial bug):** each `regenerateAndRestart` causes a brief
+(~10–30s) per-channel RTMP output gap. The kill-and-reconnect restart races SRS releasing the prior publish
+session — the freshly-restarted engine's `output.url` push gets `Avutil.Error(Input/output error)`, retries
+every 2s ("Will try again in 2.00 seconds"), and connects as soon as SRS frees the stream name. **0 such
+errors at the clean 2.4.5 boot before any config**, so it is inherent to regenerate-restart (kill + reconnect),
+not the configured topology. SRS confirmed `on_publish ok {code:0}` + `on_forward {code:0,data:{urls:[]}}`
+for `channel-s-nc-music` once each restart settled. Implication: structural editorial verbs (mode/manual,
+tier enable/reorder/carry) are **not** gapless — operators flipping mode see a short output interruption.
+Acceptable for the v1 admin-action cadence; worth a UI affordance ("applying — brief interruption") when the
+editorial UI lands. *(Aligns with the epic's "regenerate-restart now, runtime-detach later" CRUD decision —
+runtime attach/detach would close this gap but was explicitly deferred.)*
+
+**Post-walk:** config + tiers torn down (DB clean: 0 configs / 0 tiers), engine regenerate-restarted back to
+the clean default render (RestartCount 3), healthy on 2.4.5, 0 connect-errors / 0 fatal in steady state.
+
+**State: the runtime mechanism is verified end-to-end.** The one piece that needs operator eyes — **a player
+rendering the stream** (the agent can confirm the pipeline pushes to SRS via logs, but not that the video
+visibly plays) — is the remaining at-station confirm. This also discharges the LS-2.4.5 step-2 visual check
+(same pipeline). Once the operator confirms the stream renders in a player, this feature and
+`…-version-capability-audit-1` both close.
+
+## Close (2026-06-17) — staging gate discharged → done, bound to 0.4.0
+
+**Verdict: Approve — gate satisfied.** The one held precondition (the end-to-end staging walk on a real
+pipeline + a player rendering the stream) is discharged: the operator confirmed video plays off the live
+Liquidsoap 2.4.5 pipeline (S/NC Music / S/NC TV). Combined with the agent-side walk above (every runtime
+verb verified: render-with-config, pool LRP rotation, manual-pin + auto-flip regenerate-restart, arm/take
+live, clean teardown) and the two prior fresh-context deep reviews (both Approve w/ comments), the feature
+is complete. tsc + 1762 unit tests + `liquidsoap --check` green.
+
+**Surfaced + parked during close (non-blocking):** `idea-livestate-offline-while-streaming` — a pre-existing
+UI status-derivation gap (`srs.ts` `deriveLiveState`: playout channels airing from pool/default render show
+"Offline" despite live HLS). The editorial model sharpens it (pool-fed auto channels are first-class) but did
+not cause it; it's the separate UI status layer, not the editorial runtime mechanism. Tracked in backlog.
+
+**Advanced `review → done`, bound to release `0.4.0`** (new release bundle for the unified-channel-model
+epic). All 5 children (`config-schema`, `topology`, `render`, `control-client`, `control-service`) bind to
+0.4.0 with it (`epic_cohesion: total`). Backlog follow-ups (`editorial-render-followups`,
+`editorial-docs-streaming-drift`) remain non-blocking and tracked.
