@@ -217,15 +217,15 @@ vhost __defaultVhost__ {
 ```
 
 - URLs are **full RTMP paths** — can include any app and stream key
-- Return an **empty array** `[]` to disable forwarding for this stream
-- Return `{"code": 1}` to reject forwarding (does not reject the publish itself — that's handled by `on_publish`)
+- Return `{"code": 0, "data": { "urls": [] }}` (an **empty array**) to publish with **no** forwarding destinations — this is how you "skip forwarding"
+- **Do NOT return `{"code": 1}` to skip forwarding.** A non-zero `code` (or any HTTP status other than 200/201) from `on_forward` is treated as a hook error and **rejects the entire publish** — the publisher is torn down, not merely un-forwarded. Source-verified against SRS v6.0.48: the `on_forward_backend` error propagates `create_backend_forwarders` → `SrsOriginHub::on_publish` → `acquire_publish`, and `publishing()` gates the media loop on `acquire_publish` succeeding, so the publish never starts. (Attestation: `.research/attestation/srs-src-v6.md`.)
 - Called **once per publish** — not per-frame or per-segment
 
 ### Forward + Callbacks Interaction
 
 Forward backend (`on_forward`) and auth callback (`on_publish`) are **separate hooks**:
 1. `on_publish` fires first — authenticates the publisher (return non-zero to reject)
-2. `on_forward` fires after — determines forward destinations (return empty URLs to skip forwarding)
+2. `on_forward` fires after — determines forward destinations (return `code:0` with empty `urls` to forward nowhere). Note: rejection is **only** `on_publish`'s job — a non-zero `code` from `on_forward` rejects the whole publish, it does not "skip" anything (see the Forward Hook section above).
 
 Both can inspect the same `stream`, `app`, and `param` fields to make per-stream decisions.
 
