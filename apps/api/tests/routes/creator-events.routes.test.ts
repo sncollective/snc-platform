@@ -302,6 +302,37 @@ describe("creator event routes", () => {
       expect(body.event.creatorId).toBe("creator_1");
     });
 
+    it("persists submitted visibility on create (not the column default)", async () => {
+      const event = makeMockCalendarEvent({ creatorId: "creator_1", visibility: "public" });
+
+      // Creator lookup
+      mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
+      // Insert returning
+      mockInsertReturning.mockResolvedValue([event]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Animal Future Show",
+            startAt: "2026-03-20T14:00:00.000Z",
+            eventType: "show",
+            visibility: "public",
+          }),
+        },
+      );
+
+      expect(res.status).toBe(201);
+      // The insert must carry the submitted visibility — otherwise the row falls
+      // to the column default ("internal") and a new public event reads back as
+      // internal on reload (the create-path half of the visibility bug).
+      expect(mockInsertValues).toHaveBeenCalledWith(
+        expect.objectContaining({ visibility: "public" }),
+      );
+    });
+
     it("returns 403 when user lacks manageScheduling permission", async () => {
       const { ForbiddenError } = await import("@snc/shared");
 

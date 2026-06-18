@@ -1,13 +1,13 @@
 ---
 id: calendar-event-patch-drops-visibility
 kind: story
-stage: implementing
+stage: review
 tags: [calendar]
 release_binding: null
 depends_on: []
 gate_origin: null
 created: 2026-04-24
-updated: 2026-06-12
+updated: 2026-06-18
 parent: null
 ---
 
@@ -66,3 +66,49 @@ The **POST create path** at `creator-events.routes.ts:222-235` (`.insert().value
 value) into the POST `.values()` block; add a create-path regression test asserting the
 insert receives `visibility: "public"` when submitted — mirror of the existing PATCH
 regression test. Keep the PATCH fix.
+
+## Fix (2026-06-18) — create path
+
+Added `visibility: data.visibility` to the POST `.values()` block
+(`creator-events.routes.ts`, in the `.insert(calendarEvents).values({...})`). No `?? "internal"`
+fallback is needed: `CreateCalendarEventSchema.visibility` already carries `.default("internal")`
+(`packages/shared/src/calendar.ts:68`), so `data.visibility` is always a defined enum value on the
+create path — threading it straight through mirrors how the handler already passes the other
+defaulted fields (`allDay`, `description`, `location`). The PATCH fix is unchanged.
+
+**Regression test** (`creator-events.routes.test.ts`, POST describe block): "persists submitted
+visibility on create (not the column default)" — submits `visibility: "public"` on POST and
+asserts `mockInsertValues` was called with `expect.objectContaining({ visibility: "public" })`.
+Mirror of the existing PATCH `persists visibility change` test.
+
+**Verification**:
+- New test **proven to catch the bug**: stashed the fix → the test fails (insert called without
+  `visibility`); restored → passes.
+- Full API unit suite green: **1763 passed** (was 1762; +1 new test).
+- `tsc --noEmit` on `@snc/api` clean (exit 0).
+
+- [x] POST create path persists submitted `visibility` (was the bounce root cause).
+- [x] Create-path regression test added + proven to fail without the fix.
+- [x] Full API unit suite + typecheck green.
+- [ ] **User acceptance (fix-verify loopback)**: create a *new* show-type event for Animal Future
+  with visibility=public, save, reload — confirm it stays public on first save (no second-save
+  workaround needed).
+
+## Review (2026-06-18) — post-bounce
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast lane. The 2026-06-13 bounce root cause (POST create path omitted `visibility`)
+is fixed and re-verified: code change at the `.insert().values()` block, create-path regression
+test proven to fail without the fix and pass with it, full API suite green (1763), `tsc` clean.
+The PATCH fix from the original pass is intact. Both create and update paths now persist
+submitted visibility.
+
+**Hold — fix-verify loopback pending.** Per platform's stronger-than-default loopback, this
+user-verifiable fix re-confirms in the running app before close: create a *new* public show-type
+event for Animal Future and confirm it stays public on **first** save + reload (the bounce repro
+was first-save-reverts). Story stays at `stage: review` until the user confirms.

@@ -229,6 +229,7 @@ creatorEventRoutes.post(
         allDay: data.allDay,
         eventType: data.eventType,
         location: data.location,
+        visibility: data.visibility,
         projectId: data.projectId ?? null,
         createdBy: user.id,
         creatorId,
