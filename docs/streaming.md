@@ -16,7 +16,7 @@ Three layers, each with one job:
 └─────────────────────┘     └──────────────┘     └─────────────────────────┘
 ```
 
-**Liquidsoap** decides what plays. It runs a fallback chain — if a creator is live, play their stream; otherwise, play from the admin queue; otherwise, play the classics playlist. Its output is a single continuous RTMP stream that it pushes to SRS.
+**Liquidsoap** decides what plays. Each channel's airing priority is its **editorial config** — an ordered set of source tiers the engine renders into a readiness fallback. S/NC TV's config is: live creator (highest priority) → its own queue → a carried playout channel (S/NC Classics) → silence. The highest-priority *ready* source wins, so a live creator preempts automatically and falls back when they stop. Its output is a single continuous RTMP stream that it pushes to SRS.
 
 **SRS** (Simple Realtime Server) is the streaming server. It receives Liquidsoap's output, serves HLS to viewers on `/live`, and forwards the stream to any configured simulcast destinations (Twitch, YouTube, etc.). It also receives incoming creator streams and routes them to Liquidsoap for the live takeover.
 
@@ -28,11 +28,11 @@ Liquidsoap doesn't know about Twitch. SRS doesn't know about playlists. The API 
 
 Three types of channels:
 
-**S/NC TV** is the main broadcast channel. It's always on. Whatever Liquidsoap outputs — classics rotation, a live creator, a queued item — is what S/NC TV shows. This is the channel that gets simulcast to external platforms.
+**S/NC TV** is the main broadcast channel. It's always on. Whatever Liquidsoap outputs — classics rotation, a live creator, a queued item — is what S/NC TV shows. This is the channel that gets simulcast to external platforms. S/NC TV is an ordinary editorial-config channel (role `broadcast`): its live takeover is the priority-0 tier of its config, not a Liquidsoap special case. Its config carries the S/NC Classics channel as a `channel-as-source` fallback tier.
 
-**Playout channels** (like S/NC Classics) are content sources. Each has its own playlist and admin queue. S/NC TV currently uses the Classics channel as its fallback source. Future themed channels (Horror, Retro, etc.) will be additional playout channels that an admin can switch between.
+**Playout channels** (like S/NC Classics) are content sources. Each has its own playlist and admin queue. S/NC TV carries the Classics channel as a fallback tier in its editorial config. Future themed channels (Horror, Retro, etc.) will be additional playout channels that an admin can switch between or carry.
 
-**Creator channels** are temporary. When a creator starts streaming, the API creates a live channel for them. When they stop, it's deactivated. While active, the creator's stream takes over S/NC TV automatically via Liquidsoap's fallback chain.
+**Creator channels** are temporary. When a creator starts streaming, the API creates a live channel for them. When they stop, it's deactivated. While active, the creator's stream takes over S/NC TV automatically — it arrives on the broadcast live input, which is the highest-priority tier of S/NC TV's editorial config.
 
 ## Stream Flow
 
@@ -83,23 +83,23 @@ Admins can also skip the current track, which advances to the next queued item o
 
 ### Liquidsoap configuration
 
-The playout engine runs from `liquidsoap/playout.liq` inside a Docker container (Liquidsoap v2.4.2). It defines two output channels — S/NC TV and S/NC Classics — each with its own fallback chain.
+The playout engine runs from `liquidsoap/playout.liq` inside a Docker container. The `.liq` is **generated from the database** — every active channel (playout + the S/NC TV broadcast) emits a channel block from its editorial config; there is no hand-maintained per-channel section. S/NC TV and S/NC Classics are two of those generated channels.
 
 **S/NC Classics** (the content source):
 
 ```
-classics queue > classics playlist > silence
+classics queue (+ pool auto-fill) > silence
 ```
 
-The playlist reads from `/etc/liquidsoap/playlist.m3u` with automatic reload on file change. The classics queue is a `request.queue` that accepts items pushed via Harbor HTTP.
+The queue is a `request.queue` that accepts items pushed via Harbor HTTP; when empty it auto-fills from the channel's content pool (least-recently-played rotation).
 
 **S/NC TV** (the broadcast channel):
 
 ```
-live creator > snc-tv queue > classics output > silence
+live creator > snc-tv queue > S/NC Classics (carried) > silence
 ```
 
-Live creator input comes via RTMP on port 1936. When a creator stream arrives, it takes over automatically. The S/NC TV queue allows admins to push items directly to the broadcast channel. When nothing is live or queued, it carries whatever Classics is playing.
+This is S/NC TV's editorial config rendered as a fallback chain. Live creator input comes via RTMP on port 1936 (the broadcast live tier) — when a creator stream arrives it takes over automatically as the highest-priority ready source. The S/NC TV queue lets admins push items directly to the broadcast channel. When nothing is live or queued, it carries whatever S/NC Classics is playing (a `channel-as-source` tier). A small telemetry hook posts each source switch to the API so the live-state view stays current.
 
 Both channels encode to H.264/AAC (2500k video, 128k audio, ultrafast preset) and push RTMP to SRS. The playout stream key (`PLAYOUT_STREAM_KEY` env var) authenticates the connection.
 

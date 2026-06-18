@@ -51,7 +51,7 @@ harbor.http.register(port=8888, method="POST", "/admin/shutdown", fun(req, res) 
   end
 end)
 
-# ── Playout Channels (generated from database) ──
+# ── Channels (generated from database — playout + S/NC TV broadcast) ──
 
 # ── Channel: Classics (playout) ──
 
@@ -124,16 +124,24 @@ harbor.http.register(port=8888, method="POST", "/channels/903e6a20-0dea-42b1-8dd
   end
 end)
 
-# ── S/NC TV (broadcast — static) ──
 
-live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
-snc_tv_queue = request.queue(id="snc-tv-queue")
+# ── Channel: S/NC TV (broadcast) ──
+
+ch_f0f0f0f0_0000_0000_0000_000000000001_live = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
+ch_f0f0f0f0_0000_0000_0000_000000000001_queue = request.queue(id="channel-f0f0f0f0-0000-0000-0000-000000000001")
+ch_f0f0f0f0_0000_0000_0000_000000000001_pool = request.dynamic(fun() -> begin
+  uri = http.get("http://#{api_host}:#{api_port}/api/playout/channels/f0f0f0f0-0000-0000-0000-000000000001/pool/next?secret=#{callback_secret}")
+  if uri == "" then null() else request.create(uri) end
+end)
+ch_f0f0f0f0_0000_0000_0000_000000000001_queue_program = fallback(track_sensitive=true, [ch_f0f0f0f0_0000_0000_0000_000000000001_queue, ch_f0f0f0f0_0000_0000_0000_000000000001_pool])
+
+ch_f0f0f0f0_0000_0000_0000_000000000001_armed = ref(false)
 
 # Input-switch telemetry: one transition per source, same order as the fallback list.
 # Each transition posts the source name to the API so the live-state holder stays current.
 # SPIKE NOTE: fallback(transitions=[...]) firing semantics in Liquidsoap 2.4 must be
 # validated in the dev container before relying on these in production. The fallback plan
-# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.md.
+# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.
 def notify_switch(name) =
   fun (_, b) -> begin
     ignore(http.post(
@@ -145,30 +153,61 @@ def notify_switch(name) =
   end
 end
 
-snc_tv = fallback(track_sensitive=false,
+ch_f0f0f0f0_0000_0000_0000_000000000001_source = fallback(track_sensitive=false,
   transitions=[notify_switch("live"), notify_switch("queue"), notify_switch("fallback"), notify_switch("blank")],
-  [live_source, snc_tv_queue, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source, mksafe(blank())])
+  [ch_f0f0f0f0_0000_0000_0000_000000000001_live, ch_f0f0f0f0_0000_0000_0000_000000000001_queue_program, ch_903e6a20_0dea_42b1_8dd5_86afbec496ac_source, mksafe(blank())])
 
-snc_tv_uri = ref("")
-snc_tv_title = ref("")
-snc_tv.on_metadata(synchronous=false, fun(m) -> begin
+ch_f0f0f0f0_0000_0000_0000_000000000001_uri = ref("")
+ch_f0f0f0f0_0000_0000_0000_000000000001_title = ref("")
+ch_f0f0f0f0_0000_0000_0000_000000000001_queue.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
-  snc_tv_uri := if u == "" then m["filename"] else u end
-  snc_tv_title := m["title"]
+  ch_f0f0f0f0_0000_0000_0000_000000000001_uri := if u == "" then m["filename"] else u end
+  ch_f0f0f0f0_0000_0000_0000_000000000001_title := m["title"]
+  ignore(http.post(
+    headers=[("Content-Type", "application/json")],
+    data='{"uri":"#{ch_f0f0f0f0_0000_0000_0000_000000000001_uri()}","title":"#{ch_f0f0f0f0_0000_0000_0000_000000000001_title()}"}',
+    "http://#{api_host}:#{api_port}/api/playout/channels/f0f0f0f0-0000-0000-0000-000000000001/track-event?secret=#{callback_secret}"
+  ))
 end)
 
-snc_tv_stream = environment.get("CHANNEL_SNCTV_STREAM", default="snc-tv")
-output.url(url="rtmp://#{srs_host}:1935/live/#{snc_tv_stream}?key=#{playout_key}", enc, snc_tv)
+output.url(url="rtmp://#{srs_host}:1935/live/snc-tv?key=#{playout_key}", enc, ch_f0f0f0f0_0000_0000_0000_000000000001_source)
 
-harbor.http.register(port=8888, method="GET", "/now-playing", fun(_req, res) -> begin
-  e = snc_tv.elapsed()
-  r = snc_tv.remaining()
+harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/queue", fun(req, res) -> begin
+  ch_f0f0f0f0_0000_0000_0000_000000000001_queue.push.uri(req.body())
+  res.data("queued")
+end)
+
+harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/skip", fun(_req, res) -> begin
+  ch_f0f0f0f0_0000_0000_0000_000000000001_source.skip()
+  res.data("skipped")
+end)
+
+harbor.http.register(port=8888, method="GET", "/channels/f0f0f0f0-0000-0000-0000-000000000001/now-playing", fun(_req, res) -> begin
+  e = ch_f0f0f0f0_0000_0000_0000_000000000001_source.elapsed()
+  r = ch_f0f0f0f0_0000_0000_0000_000000000001_source.remaining()
   safe_elapsed = if e == infinity or e != e then -1. else e end
   safe_remaining = if r == infinity or r != r then -1. else r end
+  selected_id = begin
+    s = ch_f0f0f0f0_0000_0000_0000_000000000001_source.selected()
+    if null.defined(s) then source.id(null.get(s)) else "(none)" end
+  end
   res.json({
-    uri = snc_tv_uri(),
-    title = snc_tv_title(),
+    uri = ch_f0f0f0f0_0000_0000_0000_000000000001_uri(),
+    title = ch_f0f0f0f0_0000_0000_0000_000000000001_title(),
     elapsed = safe_elapsed,
-    remaining = safe_remaining
+    remaining = safe_remaining,
+    selected = selected_id
   })
+end)
+
+harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/arm", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_f0f0f0f0_0000_0000_0000_000000000001_armed := req.body() == "true"
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)

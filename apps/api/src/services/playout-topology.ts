@@ -1,4 +1,3 @@
-import { SNC_TV_BROADCAST } from "./channels.js";
 import { detectChannelSourceCycles } from "./editorial-graph.js";
 import type { ChannelSourceEdge } from "./editorial-graph.js";
 import { ValidationError } from "@snc/shared";
@@ -145,19 +144,8 @@ export interface PlayoutTopology {
     readonly apiHost: EnvRef;
     readonly apiPort: EnvRef;
     readonly callbackSecret: EnvRef;
-    readonly sncTvStream: EnvRef;
   };
   readonly channels: readonly PlayoutChannelTopology[];
-  readonly broadcast: {
-    /**
-     * Own datum, NOT derived from the stream name: CHANNEL_SNCTV_STREAM can
-     * override the stream name at .liq runtime, but the queue id is baked at
-     * render time and does not follow it.
-     */
-    readonly queueId: string;
-    /** Liquidsoap source expression S/NC TV falls back to when live + queue are silent. */
-    readonly fallbackSourceVar: string;
-  };
 }
 
 // ── Private Helpers ──
@@ -460,8 +448,6 @@ export const buildPlayoutTopology = (
   // Pass carryEdges directly (built above) — no string-stripping reverse-map needed.
   const channels = topoSort(unsorted, carryEdges);
 
-  const defaultPlayout = channels[0];
-
   return {
     harborPort: 8888,
     srsRtmpPort: 1935,
@@ -474,17 +460,7 @@ export const buildPlayoutTopology = (
       apiHost: { envVar: "API_CALLBACK_HOST", default: "snc-api" },
       apiPort: { envVar: "API_CALLBACK_PORT", default: "3000" },
       callbackSecret: { envVar: "PLAYOUT_CALLBACK_SECRET", default: "" },
-      sncTvStream: {
-        envVar: "CHANNEL_SNCTV_STREAM",
-        default: SNC_TV_BROADCAST.srsStreamName,
-      },
     },
     channels,
-    broadcast: {
-      queueId: "snc-tv-queue",
-      fallbackSourceVar: defaultPlayout
-        ? `${defaultPlayout.liqVar}_source`
-        : "mksafe(blank())",
-    },
   };
 };

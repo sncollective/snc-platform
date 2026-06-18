@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { AppError, ok, err } from "@snc/shared";
 import type { Result } from "@snc/shared";
 
@@ -56,11 +56,15 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
         srsStreamName: channels.srsStreamName,
         ownership: channels.ownership,
         creatorId: channels.creatorId,
+        role: channels.role,
       })
       .from(channels)
       .where(
         and(
-          eq(channels.role, "playout"),
+          // Broadcast (S/NC TV) renders through the unified topology as a generated
+          // channel block — it is no longer a static tail. Playout channels are the
+          // ordinary content channels. Both reach buildPlayoutTopology.
+          inArray(channels.role, ["playout", "broadcast"]),
           eq(channels.isActive, true),
         ),
       ),

@@ -51,7 +51,7 @@ harbor.http.register(port=8888, method="POST", "/admin/shutdown", fun(req, res) 
   end
 end)
 
-# ── Playout Channels (generated from database) ──
+# ── Channels (generated from database — playout + S/NC TV broadcast) ──
 
 # ── Channel: Channel \"Special\" \\ Test (playout) ──
 
@@ -122,53 +122,4 @@ harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-000
     res.status_code(401)
     res.data("unauthorized")
   end
-end)
-
-# ── S/NC TV (broadcast — static) ──
-
-live_source = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")
-snc_tv_queue = request.queue(id="snc-tv-queue")
-
-# Input-switch telemetry: one transition per source, same order as the fallback list.
-# Each transition posts the source name to the API so the live-state holder stays current.
-# SPIKE NOTE: fallback(transitions=[...]) firing semantics in Liquidsoap 2.4 must be
-# validated in the dev container before relying on these in production. The fallback plan
-# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.md.
-def notify_switch(name) =
-  fun (_, b) -> begin
-    ignore(http.post(
-      headers=[("Content-Type", "application/json")],
-      data='{"source":"#{name}"}',
-      "http://#{api_host}:#{api_port}/api/playout/broadcast/input-switch?secret=#{callback_secret}"
-    ))
-    b
-  end
-end
-
-snc_tv = fallback(track_sensitive=false,
-  transitions=[notify_switch("live"), notify_switch("queue"), notify_switch("fallback"), notify_switch("blank")],
-  [live_source, snc_tv_queue, ch_aaaaaaaa_0000_0000_0000_000000000001_source, mksafe(blank())])
-
-snc_tv_uri = ref("")
-snc_tv_title = ref("")
-snc_tv.on_metadata(synchronous=false, fun(m) -> begin
-  u = m["s3_uri"]
-  snc_tv_uri := if u == "" then m["filename"] else u end
-  snc_tv_title := m["title"]
-end)
-
-snc_tv_stream = environment.get("CHANNEL_SNCTV_STREAM", default="snc-tv")
-output.url(url="rtmp://#{srs_host}:1935/live/#{snc_tv_stream}?key=#{playout_key}", enc, snc_tv)
-
-harbor.http.register(port=8888, method="GET", "/now-playing", fun(_req, res) -> begin
-  e = snc_tv.elapsed()
-  r = snc_tv.remaining()
-  safe_elapsed = if e == infinity or e != e then -1. else e end
-  safe_remaining = if r == infinity or r != r then -1. else r end
-  res.json({
-    uri = snc_tv_uri(),
-    title = snc_tv_title(),
-    elapsed = safe_elapsed,
-    remaining = safe_remaining
-  })
 end)

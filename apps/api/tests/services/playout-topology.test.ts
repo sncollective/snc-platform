@@ -66,23 +66,10 @@ describe("buildPlayoutTopology — existing behavior (no editorial configs)", ()
     expect(ch.srsStreamName).toBe("channel-classics");
   });
 
-  it("selects the first channel's source as the broadcast fallback", () => {
-    const topology = buildPlayoutTopology([
-      makeRow(ID_A, "A", "channel-a"),
-      makeRow(ID_B, "B", "channel-b"),
-    ], []);
-
-    expect(topology.broadcast.fallbackSourceVar).toBe(
-      "ch_aaaaaaaa_0000_0000_0000_000000000001_source",
-    );
-  });
-
-  it("falls back to silence when no playout channels exist", () => {
-    const topology = buildPlayoutTopology([], []);
-
-    expect(topology.channels).toHaveLength(0);
-    expect(topology.broadcast.fallbackSourceVar).toBe("mksafe(blank())");
-  });
+  // The old `broadcast` topology field (fallbackSourceVar / queueId) + the
+  // CHANNEL_SNCTV_STREAM env override were removed with the static S/NC TV tail
+  // (snctv-composition): S/NC TV is now a generated channel in `channels[]`, carrying
+  // its own channel-as-source fallback. Those data points no longer exist on the topology.
 
   it("models runtime env as references with the .liq defaults", () => {
     const { env } = buildPlayoutTopology([], []);
@@ -94,12 +81,6 @@ describe("buildPlayoutTopology — existing behavior (no editorial configs)", ()
     expect(env.callbackSecret).toEqual({ envVar: "PLAYOUT_CALLBACK_SECRET", default: "" });
     expect(env.awsEndpoint).toEqual({ envVar: "AWS_ENDPOINT", default: "http://snc-garage:3900" });
     expect(env.awsRegion).toEqual({ envVar: "AWS_DEFAULT_REGION", default: "garage" });
-    // Default follows the canonical broadcast identity (SNC_TV_BROADCAST)
-    expect(env.sncTvStream).toEqual({ envVar: "CHANNEL_SNCTV_STREAM", default: "snc-tv" });
-  });
-
-  it("keeps the broadcast queue id as its own datum", () => {
-    expect(buildPlayoutTopology([], []).broadcast.queueId).toBe("snc-tv-queue");
   });
 
   it("pins the static ports", () => {
