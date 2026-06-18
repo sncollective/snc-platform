@@ -1,5 +1,5 @@
 ---
-updated: 2026-06-17
+updated: 2026-06-18
 ---
 
 # Platform AGENTS.md
@@ -68,7 +68,7 @@ Scan rule libraries (`scan-structural`, `scan-quality`, `scan-accessibility`, `s
 
 ## Substrate, work, and research bands
 
-Platform's persistent state splits across three top-level bands by output-class: `.memory/` (internal substrate), `.work/` (work items — output-class), and `.research/` (research output, operationalizing ARD v0.5.1 via the agentic-research plugin). The conventions for each are in `.claude/rules/` (auto-loaded on the relevant paths) and summarized here.
+Platform's persistent state splits across three top-level bands by output-class: `.memory/` (internal substrate), `.work/` (work items — output-class), and `.research/` (research output, operationalizing ARD v0.6.0 via the agentic-research plugin). The conventions for each are in `.claude/rules/` (auto-loaded on the relevant paths) and summarized here.
 
 ### `.memory/` — substrate (internal working state)
 
@@ -91,9 +91,9 @@ Items are the unit of persistent work, carrying structured state in frontmatter 
 
 Convention: `.work/CONVENTIONS.md` (tag rubric, gate config, slug conventions, platform-local conventions) + `.agents/rules/agile-workflow.md` (plugin-managed rules block).
 
-### `.research/` — research band (ARD v0.5.1, plugin mode)
+### `.research/` — research band (ARD v0.6.0, plugin mode)
 
-Platform adopts **ARD v0.5.1** (Agentic Research Discipline — MIT-licensed, agent-agnostic) transitively through the **agentic-research plugin's** drift-fenced vendored kernel. The band carries external substrate + agent engagement with sources, read down-gradient only:
+Platform adopts **ARD v0.6.0** (Agentic Research Discipline — MIT-licensed, agent-agnostic) transitively through the **agentic-research plugin's** drift-fenced vendored kernel. The band carries external substrate + agent engagement with sources, read down-gradient only:
 
 - **`reference/`** — source-direct raw fetches (gitignored) + per-corpus INDEX/README.
 - **`attestation/`** — flat per-source-handle files (`<handle>.md`) — the citation anchor for `[handle]{N}` references.
