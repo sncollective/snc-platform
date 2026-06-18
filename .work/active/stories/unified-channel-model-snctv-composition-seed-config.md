@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition-seed-config
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-snctv-composition
 depends_on: [unified-channel-model-snctv-composition-topology]
@@ -179,3 +179,33 @@ sequence must guarantee the config exists (options 1/2). The dev-DB "happy path"
 leaves a config row + partial tiers; the idempotency guard (`length > 0 → skip`) would NOT repair it
 on re-run. Worth making the guard count-aware (expect exactly 3) or clear-and-recreate, but secondary
 to the trigger gap above.
+
+## Fix (2026-06-18) — BLOCKER 2: boot-time backfill
+
+**Made the broadcast editorial config a durable boot-time guarantee, not a manual step.**
+
+- **`editorial-config.ts`**: new `ensureBroadcastEditorialConfig()` — idempotent, self-contained
+  (resolves the broadcast channel + its carry target from the DB itself, via the broadcast channel's
+  `defaultPlayoutChannelId`). Ensures `mode: auto` + tiers `live(0) / queue(1) / channel-as-source→
+  default-playout(2)`. Branches: no broadcast channel → ok no-op; complete tier set → skip; **zero
+  tiers → create the full set (the backfill)**; partial set (prior run failed mid-creation) → log a
+  warning + leave for operator reconciliation, never crash. Returns `Result` so the boot caller logs
+  but continues — a degraded S/NC TV must not block startup.
+- **`register-workers.ts`**: call `ensureBroadcastEditorialConfig()` **before** `writeConfigOnly()` in
+  the boot sequence. So on every restart the broadcast config is ensured before the `.liq` is
+  regenerated — closing the silent restart-without-reseed regression. A failure is logged, not fatal.
+- **`seed-channels.ts`**: refactored to call the shared `ensureBroadcastEditorialConfig()` (deleted
+  the duplicate inline `seedBroadcastEditorialConfig`). One provisioning path for both seed + boot.
+
+**Addresses the partial-state note**: the guard is now count-aware (`>= expectedCount` → skip;
+`0` → create; partial → warn-and-leave), rather than the prior `length > 0 → skip` that would strand
+a partial set.
+
+### Verification
+- **Restart-without-reseed simulated against the live dev DB**: deleted the broadcast channel's
+  editorial config + tiers (the pre-feature state), then ran `ensureBroadcastEditorialConfig` (the
+  boot path) → tiers went `0 → live@0, queue@1, channel-as-source@2` (full backfill). 2nd run
+  idempotent (still 3, ok). This is the exact hazard the review flagged, now self-healing.
+- **Unit tests** (`editorial-config.test.ts`, +3): no-broadcast no-op; complete-set skip; partial-set
+  leave-untouched. `register-workers.test.ts` updated to mock the new boot dependency (back to green).
+- Full API unit suite **1778 passed**; `tsc --noEmit` clean.

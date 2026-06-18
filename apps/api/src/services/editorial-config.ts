@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { eq, asc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import {
   ok,
   err,
@@ -24,8 +24,11 @@ import {
   channelEditorialTiers,
 } from "../db/schema/editorial.schema.js";
 import { channels } from "../db/schema/streaming.schema.js";
+import { rootLogger } from "../logging/logger.js";
 import { detectChannelSourceCycles } from "./editorial-graph.js";
 import type { ChannelSourceEdge } from "./editorial-graph.js";
+
+const logger = rootLogger.child({ service: "editorial-config" });
 
 // ── Pool scope ──
 
@@ -588,4 +591,93 @@ export const getEditorialTiers = async (
     .orderBy(asc(channelEditorialTiers.priority));
 
   return ok(rows.map(toTier));
+};
+
+// ── Broadcast (S/NC TV) editorial config provisioning ──
+
+/**
+ * Idempotently ensure the S/NC TV broadcast channel has its editorial config:
+ * mode `auto` + tiers `live (p0) → queue (p1) → channel-as-source → default playout (p2)`.
+ * The carry tier is omitted when the broadcast channel has no `defaultPlayoutChannelId`.
+ *
+ * This is the **durable provisioning path** — it is called both by the seed script AND at
+ * server boot (before `writeConfigOnly` regenerates the .liq). Without a boot-time ensure, an
+ * existing deployment whose broadcast channel predates the editorial model would regenerate
+ * config-less (queue-only) on restart, silently dropping the live takeover + Classics carry.
+ *
+ * Safe to call repeatedly:
+ * - No broadcast channel → no-op (returns ok).
+ * - Config + complete tier set already present → no-op (skips tier creation).
+ * - Config row present but **zero** tiers (a backfill, or a pre-editorial channel) → creates them.
+ * - A partial tier set (a prior run failed mid-creation) → logs a warning and leaves it for an
+ *   operator to reconcile rather than guessing which tiers are missing — but does NOT crash boot.
+ *
+ * Returns ok on success / no-op; err only on an unexpected DB failure (so the boot caller can log
+ * but continue — a degraded S/NC TV must not block server startup).
+ */
+export const ensureBroadcastEditorialConfig = async (): Promise<Result<void>> => {
+  // Resolve the broadcast channel (the single platform/broadcast identity) + its carry target.
+  const [broadcast] = await db
+    .select({
+      id: channels.id,
+      defaultPlayoutChannelId: channels.defaultPlayoutChannelId,
+    })
+    .from(channels)
+    .where(and(eq(channels.ownership, "platform"), eq(channels.role, "broadcast")));
+
+  if (!broadcast) {
+    // No broadcast channel yet (un-provisioned env) — nothing to ensure.
+    return ok(undefined);
+  }
+
+  const configResult = await upsertEditorialConfig(broadcast.id, { mode: "auto" });
+  if (!configResult.ok) {
+    return err(configResult.error);
+  }
+
+  const existing = await getEditorialTiers(broadcast.id);
+  if (!existing.ok) {
+    return err(existing.error);
+  }
+
+  // The expected tier set: live + queue (+ carry when a default playout exists).
+  const carryId = broadcast.defaultPlayoutChannelId;
+  const expectedCount = carryId ? 3 : 2;
+
+  if (existing.value.length >= expectedCount) {
+    // Complete (or more than expected — operator-customized). Leave it alone.
+    return ok(undefined);
+  }
+
+  if (existing.value.length > 0) {
+    // Partial tier set — a prior provision failed mid-creation. Don't guess; surface it.
+    logger.warn(
+      { channelId: broadcast.id, found: existing.value.length, expected: expectedCount },
+      "S/NC TV editorial config is partial — leaving for operator reconciliation (re-run seed or clear tiers)",
+    );
+    return ok(undefined);
+  }
+
+  // Zero tiers → create the full set. Priority order reproduces the prior fallback chain;
+  // the blank tail is the render's infallible mksafe(blank()), not a seeded tier.
+  const tiers: CreateEditorialTier[] = [
+    { tierType: "live", priority: 0 },
+    { tierType: "queue", priority: 1 },
+    ...(carryId
+      ? [{ tierType: "channel-as-source" as const, priority: 2, sourceChannelId: carryId }]
+      : []),
+  ];
+
+  for (const tier of tiers) {
+    const result = await createEditorialTier(broadcast.id, tier);
+    if (!result.ok) {
+      return err(result.error);
+    }
+  }
+
+  logger.info(
+    { channelId: broadcast.id, tierCount: tiers.length },
+    "S/NC TV editorial config provisioned",
+  );
+  return ok(undefined);
 };

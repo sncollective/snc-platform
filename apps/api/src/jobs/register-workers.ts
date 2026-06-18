@@ -19,6 +19,7 @@ import type { NotificationSendJobData } from "./handlers/notification-send.js";
 import type { CleanupIncompleteUploadsJobData } from "./handlers/cleanup-incomplete-uploads.js";
 import { orchestrator } from "../routes/playout-channels.init.js";
 import { writeConfigOnly, waitForHealth } from "../services/liquidsoap-config.js";
+import { ensureBroadcastEditorialConfig } from "../services/editorial-config.js";
 import { JOB_QUEUES } from "./queue-names.js";
 
 // ── Job Queue Names ──
@@ -148,6 +149,19 @@ export const registerWorkers = async (boss: PgBoss): Promise<void> => {
     );
   }, PLAYOUT_CLEANUP_INTERVAL_MS);
   rootLogger.info("Playout queue cleanup cron registered (every hour)");
+
+  // Ensure S/NC TV's editorial config exists BEFORE generating the .liq. The config is
+  // otherwise only seeded by the manual seed-channels script; without this boot-time ensure,
+  // an existing deployment whose broadcast channel predates the editorial model would
+  // regenerate config-less (queue-only) on restart, silently dropping the live takeover +
+  // Classics carry. Idempotent + degraded-safe (never blocks boot).
+  const broadcastConfig = await ensureBroadcastEditorialConfig();
+  if (!broadcastConfig.ok) {
+    rootLogger.error(
+      { error: broadcastConfig.error.message },
+      "Failed to ensure S/NC TV editorial config — S/NC TV may render queue-only this boot",
+    );
+  }
 
   // Write Liquidsoap config from DB state before orchestrator starts
   // No restart signal — Liquidsoap reads the file on its own startup

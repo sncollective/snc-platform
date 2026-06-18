@@ -137,6 +137,17 @@ const setupModule = async () => {
       ownership: "ownership",
       creatorId: "creatorId",
       role: "role",
+      defaultPlayoutChannelId: "defaultPlayoutChannelId",
+    },
+  }));
+  vi.doMock("../../src/logging/logger.js", () => ({
+    rootLogger: {
+      child: vi.fn().mockReturnValue({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      }),
     },
   }));
 
@@ -932,5 +943,62 @@ describe("getEditorialTiers", () => {
     if (result.ok) {
       expect(result.value).toHaveLength(0);
     }
+  });
+});
+
+// ── ensureBroadcastEditorialConfig (BLOCKER 2: boot-time backfill) ──
+
+describe("ensureBroadcastEditorialConfig", () => {
+  it("no-ops (ok, no writes) when no broadcast channel exists", async () => {
+    const { ensureBroadcastEditorialConfig } = await setupModule();
+    // broadcast-channel lookup → none
+    mockSelectWhere.mockResolvedValueOnce([]);
+
+    const result = await ensureBroadcastEditorialConfig();
+
+    expect(result.ok).toBe(true);
+    // No config upsert attempted.
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("skips tier creation when the complete tier set already exists (idempotent)", async () => {
+    const { ensureBroadcastEditorialConfig } = await setupModule();
+    // 1) broadcast-channel lookup → broadcast with a carry target (expect 3 tiers)
+    mockSelectWhere.mockResolvedValueOnce([
+      { id: "snctv", defaultPlayoutChannelId: "classics" },
+    ]);
+    // 2) upsertEditorialConfig insert → config row
+    mockInsertReturning.mockResolvedValueOnce([makeConfigRow({ channelId: "snctv" })]);
+    // 3) getEditorialTiers → 3 tiers already present
+    mockSelectOrderBy.mockResolvedValueOnce([
+      makeTierRow({ id: "t0", channelId: "snctv", tierType: "live", priority: 0 }),
+      makeTierRow({ id: "t1", channelId: "snctv", tierType: "queue", priority: 1 }),
+      makeTierRow({ id: "t2", channelId: "snctv", tierType: "channel-as-source", priority: 2, sourceChannelId: "classics" }),
+    ]);
+
+    const result = await ensureBroadcastEditorialConfig();
+
+    expect(result.ok).toBe(true);
+    // Config upsert ran once (idempotent), but NO tier inserts beyond it.
+    // The config upsert is the only insert; tier creation is skipped.
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a partial tier set untouched (does not duplicate or crash)", async () => {
+    const { ensureBroadcastEditorialConfig } = await setupModule();
+    mockSelectWhere.mockResolvedValueOnce([
+      { id: "snctv", defaultPlayoutChannelId: "classics" },
+    ]);
+    mockInsertReturning.mockResolvedValueOnce([makeConfigRow({ channelId: "snctv" })]);
+    // getEditorialTiers → only 1 of 3 tiers (a prior run failed mid-creation)
+    mockSelectOrderBy.mockResolvedValueOnce([
+      makeTierRow({ id: "t0", channelId: "snctv", tierType: "live", priority: 0 }),
+    ]);
+
+    const result = await ensureBroadcastEditorialConfig();
+
+    // Returns ok (must not block boot), and does NOT create more tiers (only the config insert ran).
+    expect(result.ok).toBe(true);
+    expect(mockInsert).toHaveBeenCalledTimes(1);
   });
 });

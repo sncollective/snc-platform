@@ -15,8 +15,12 @@ const mockBoss = {
 // ── Setup ──
 
 const mockInitialize = vi.fn().mockResolvedValue(undefined);
+const mockEnsureBroadcastConfig = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 
 const setupRegisterWorkers = async () => {
+  // resetAllMocks (afterEach) clears the resolved value — restore it so the boot path's
+  // `if (!broadcastConfig.ok)` guard sees a Result, not undefined.
+  mockEnsureBroadcastConfig.mockResolvedValue({ ok: true, value: undefined });
   vi.doMock("../../src/config.js", () => ({
     config: {
       MEDIA_FFMPEG_CONCURRENCY: 2,
@@ -61,6 +65,10 @@ const setupRegisterWorkers = async () => {
     orchestrator: {
       initialize: mockInitialize,
     },
+  }));
+
+  vi.doMock("../../src/services/editorial-config.js", () => ({
+    ensureBroadcastEditorialConfig: mockEnsureBroadcastConfig,
   }));
 
   return await import("../../src/jobs/register-workers.js");
