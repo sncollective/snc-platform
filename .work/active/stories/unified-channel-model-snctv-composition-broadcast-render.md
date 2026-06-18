@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition-broadcast-render
 kind: story
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-snctv-composition
 depends_on: []
@@ -135,3 +135,43 @@ static-block tests in `liquidsoap-config.test.ts` still green (static block unto
 
 ## Design reference
 Feature body `unified-channel-model-snctv-composition` §Implementation Units / Unit 1.
+
+## Review findings — BOUNCE (feature deep review, 2026-06-18)
+
+Fresh-context adversarial review caught a real **output-equivalence regression** the snapshot
+golden (structure-only) and unit tests missed.
+
+**BLOCKER: now-playing `uri`/`title` go blank when S/NC TV airs the carried Classics (the steady
+state).** `liquidsoap-render.ts` attaches `on_metadata` to `${vid}_queue` (the broadcast's own
+operator queue) only — but the broadcast channel's dominant airing state is the **carried Classics**
+source (no live creator, empty broadcast queue). The OLD static block attached
+`snc_tv.on_metadata` to the **whole fallback**, so `snc_tv_uri`/`snc_tv_title` updated from whatever
+aired, including Classics. NEW: `${vid}_uri`/`${vid}_title` are written only by the queue's
+`on_metadata`, so they stay `""` whenever Classics carries.
+
+Downstream impact: `getNowPlaying` (`liquidsoap.ts`) reads `uri`/`title`; `srs.ts` surfaces S/NC TV's
+viewer-facing now-playing title; `playout.ts` correlates the airing item by matching `raw.uri`
+against `/playout/(id)/`. All go blank/null when Classics carries — i.e. most of the time. The
+`selected()` upgrade restored the `selected` source-id field but NOT `uri`/`title` for the carried
+source.
+
+**To fix**: the broadcast channel needs now-playing metadata that reflects the *aired* source, not
+just its own queue. Options to weigh in the fix:
+1. For the broadcast role, propagate metadata from the carried channel's now-playing (the carried
+   `_source` already has its own `on_metadata` → its `_uri`/`_title` refs; the broadcast now-playing
+   handler could read the *selected* child's refs).
+2. Attach an `on_metadata` to the broadcast `${vid}_source` (the whole fallback) as the OLD block did
+   — but reconcile with the per-channel track-event webhook semantics (the webhook should still fire
+   on operator-curated content only, not carried content, to avoid double-counting).
+3. Have the now-playing handler resolve `uri`/`title` from `.selected()`'s child source refs.
+
+Whichever path: add a test that fetches broadcast now-playing while the **carried** source airs (not
+just the queue), asserting `uri`/`title` are populated — the gap that let this through.
+
+**Also (IMPORTANT, fold in here): the broadcast `/arm` endpoint + `_armed` ref are a live no-op.**
+The broadcast block registers `POST /channels/<id>/arm` (writes `${vid}_armed`) but
+`renderBroadcastFallback` never reads `_armed` (the fallback lists sources unconditionally). So
+arming S/NC TV returns `"ok"` and does nothing. Either gate the broadcast queue tier on `_armed`
+(matching playout `switch()` semantics) or suppress the `_armed` ref + `/arm` registration for the
+broadcast role. Not an equivalence gap (old block had no arm gate either), but a confusing dead
+control surface introduced by routing broadcast through the shared block.

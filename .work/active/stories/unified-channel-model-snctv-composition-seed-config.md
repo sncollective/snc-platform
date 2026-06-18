@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition-seed-config
 kind: story
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-snctv-composition
 depends_on: [unified-channel-model-snctv-composition-topology]
@@ -139,3 +139,43 @@ integration glue validated by the live run above, consistent with the other seed
 
 ## Design reference
 Feature body §Implementation Units / Unit 3.
+
+## Review findings — BOUNCE (feature deep review, 2026-06-18)
+
+Fresh-context adversarial review caught the **backfill trigger gap** this story's §Risks named but
+the implementation didn't actually close.
+
+**BLOCKER: the backfill is operator-manual only; a restart before re-seeding silently degrades S/NC
+TV to queue-only (no live takeover, no Classics carry).** Boot regenerates the `.liq` via
+`writeConfigOnly()` (`apps/api/src/jobs/register-workers.ts:154`) from DB state, but
+`seed-channels` / `seedBroadcastEditorialConfig` is **not** invoked at boot, in `start-dev.sh`, or in
+any migrate/entrypoint hook (grep-confirmed). So an existing deployment (broadcast channel row, no
+editorial config — the pre-feature state) on its next API restart: `writeConfigOnly` regenerates →
+the broadcast channel joins the topology → gets the **config-less default (single queue tier)** →
+renders `fallback([queue_program, mksafe(blank())])`. **The `:1936` live input and the Classics carry
+both vanish silently.** Creator takeover is dead until someone manually runs `bun run db:seed-channels`.
+
+The "verified live against the dev DB" check passed because the seed had *just been run* manually in
+the same session — it never exercised the restart-without-reseed path, which is the actual deployment
+hazard. This is a silent production regression on the exact channel the feature is about.
+
+**To fix**: the broadcast editorial config must exist before the first `writeConfigOnly`, durably —
+not as a manual step. Options to weigh:
+1. **Boot-time ensure** — call an idempotent `ensureBroadcastEditorialConfig` in the startup
+   sequence (alongside / before `writeConfigOnly`), so a config-less broadcast channel self-heals on
+   boot. The seed helper is already idempotent; the work is wiring it into boot, not the script.
+2. **A data migration** — a one-time migration that backfills the editorial config for any existing
+   broadcast channel (drizzle migration or a guarded startup task).
+3. **A render-time fallback** — if the broadcast channel has no editorial config, render the
+   equivalent `[live, queue, default-carry, blank]` instead of the queue-only default (keeps S/NC TV
+   safe even un-seeded, but re-introduces a broadcast special case in the render — weigh against the
+   feature's whole point).
+
+Whichever path: add a test/assertion for the **restart-without-reseed** scenario — a broadcast
+channel with NO editorial config must still render the live input + carry (option 3) OR the boot
+sequence must guarantee the config exists (options 1/2). The dev-DB "happy path" check is not enough.
+
+**Partial-state note (lower priority)**: a mid-loop `createEditorialTier` failure (tier 2 of 3)
+leaves a config row + partial tiers; the idempotency guard (`length > 0 → skip`) would NOT repair it
+on re-run. Worth making the guard count-aware (expect exactly 3) or clear-and-recreate, but secondary
+to the trigger gap above.

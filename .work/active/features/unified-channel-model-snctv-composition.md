@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition
 kind: feature
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-editorial-engine]
@@ -295,3 +295,39 @@ and source-switch telemetry fires (the SPIKE NOTE's `fallback(transitions=[…])
 the running 2.4.5 pipeline — the one open validation; poller fallback documented if it disappoints).
 
 **Children complete** — all 4 stories at `review`. Advanced `implementing → review`.
+
+## Review findings — BOUNCE (deep feature review, 2026-06-18)
+
+Fresh-context adversarial deep review (verdict: **Request changes**). Two BLOCKERs — both real
+production-path regressions the snapshot golden (structure-only) and the dev-DB happy-path check
+missed. The fallback core, transition-name derivation, the XOR exemption, topo-sort, and the
+queue-id change all reviewed clean (see the per-category notes below).
+
+**BLOCKER 1 → `unified-channel-model-snctv-composition-broadcast-render` (bounced).** Now-playing
+`uri`/`title` go blank whenever S/NC TV airs the carried Classics (the dominant steady state): the
+new `on_metadata` attaches to the broadcast's own queue only, not the aired source — the OLD block
+attached it to the whole fallback. Breaks the viewer-facing now-playing title + the item correlation
+in `playout.ts`. (Folded in: the broadcast `/arm` endpoint + `_armed` ref are a live no-op — written
+by the endpoint, never read by the fallback.)
+
+**BLOCKER 2 → `unified-channel-model-snctv-composition-seed-config` (bounced).** The editorial-config
+backfill is operator-manual only; nothing seeds it at boot, while boot DOES regenerate the `.liq`
+(`writeConfigOnly`). An existing deployment restarting before a manual reseed renders the broadcast
+channel config-less (queue-only) — the `:1936` live input + Classics carry vanish silently. The
+"verified live against dev DB" check never exercised restart-without-reseed.
+
+**IMPORTANT (filed to backlog):**
+- `snctv-stale-nowplaying-comment` — `playout.ts:167` comment still claims S/NC TV "uses the legacy
+  /now-playing endpoint" (deleted this feature) — rolling-foundation drift.
+- `streaming-doc-audio-bitrate` (nit-tier, filed so it isn't lost) — `docs/streaming.md:104` says
+  128k audio; render emits 256k.
+
+**Clean after check**: fallback source order + track_sensitive + output.url + `:1936` input +
+notify_switch def (byte-equivalent to old block); transition-name derivation (robust under
+disable/reorder/no-carry); `getNowPlaying` broadcast resolution (consistent with the input-switch
+route); XOR exemption (sits after the creator-reject, skips only the live-XOR-carry rule, cycle +
+source-constraint checks still run); topo-sort + inactive-Classics degradation (carry tier dropped
+with warning, no dangle); queue-id change (`snc-tv-queue` → `channel-<uuid>`, no remaining
+dependents).
+
+Feature bounced `review → implementing`. Re-review when both blocker stories return to `review`.
