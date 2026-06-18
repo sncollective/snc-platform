@@ -117,20 +117,28 @@ const validateSourceConstraint = (
 /**
  * Validate ownership constraints for a tier write.
  *
- * Per-channel constraints (design decision, 2026-06-17):
+ * Per-channel constraints (design decision, 2026-06-17; broadcast exemption 2026-06-18):
  * - Creator-owned channels: may only have `live` (own key) + `queue` tiers.
  *   `channel-as-source` is rejected (no carry for creator channels).
- * - Platform/admin channels: `live` and `channel-as-source` are mutually
+ * - Platform/admin **playout** channels: `live` and `channel-as-source` are mutually
  *   exclusive (a config-time choice; switch key↔carry requires disable+add, not
  *   simultaneous ownership). `queue` is permitted alongside either.
+ * - The platform **broadcast** channel (S/NC TV) is **exempt** from the live-XOR-carry
+ *   rule: it is the one channel the unified-channel-model designed to carry both — a
+ *   `live` tier (the single broadcast creator-takeover input) AND a `channel-as-source`
+ *   tier (carry a playout channel as the always-on fallback). This is "line 192 becomes
+ *   the rule" — `fallback([live, queue, default, blank])` expressed as editorial config.
  *
  * @param ownership - The channel's ownership value ("creator" | "platform").
+ * @param role - The channel's role ("playout" | "broadcast"). Broadcast is exempt from
+ *   the live-XOR-carry rule.
  * @param tierType - The tier type being written.
  * @param existingTiers - Current tiers for the channel (to detect live/carry coexistence).
  * @param excludeTierId - Tier being updated (exclude from coexistence check).
  */
 const validateOwnershipConstraint = (
   ownership: string,
+  role: string,
   tierType: string,
   existingTiers: Array<{ tierType: string; id: string }>,
   excludeTierId?: string,
@@ -146,7 +154,14 @@ const validateOwnershipConstraint = (
     return ok(undefined);
   }
 
-  // Platform/admin channel: live XOR channel-as-source (queue is always OK)
+  // The broadcast channel (S/NC TV) is the one platform channel designed to hold both a
+  // live tier (the :1936 takeover input) and a channel-as-source tier (its fallback) —
+  // exempt from the live-XOR-carry rule that applies to ordinary playout channels.
+  if (role === "broadcast") {
+    return ok(undefined);
+  }
+
+  // Platform/admin playout channel: live XOR channel-as-source (queue is always OK)
   const otherTiers = existingTiers.filter((t) => t.id !== excludeTierId);
   if (tierType === "live") {
     const hasCarry = otherTiers.some((t) => t.tierType === "channel-as-source");
@@ -197,9 +212,9 @@ const fetchAllCarryEdges = async (): Promise<ChannelSourceEdge[]> => {
  */
 const fetchChannel = async (
   channelId: string,
-): Promise<Result<{ ownership: string; creatorId: string | null }, NotFoundError>> => {
+): Promise<Result<{ ownership: string; creatorId: string | null; role: string }, NotFoundError>> => {
   const rows = await db
-    .select({ ownership: channels.ownership, creatorId: channels.creatorId })
+    .select({ ownership: channels.ownership, creatorId: channels.creatorId, role: channels.role })
     .from(channels)
     .where(eq(channels.id, channelId));
 
@@ -397,6 +412,7 @@ export const createEditorialTier = async (
 
   const ownershipCheck = validateOwnershipConstraint(
     channel.ownership,
+    channel.role,
     data.tierType,
     existingTiersRows,
   );
@@ -490,6 +506,7 @@ export const updateEditorialTier = async (
 
     const ownershipCheck = validateOwnershipConstraint(
       channel.ownership,
+      channel.role,
       newTierType,
       existingTiersRows,
       tierId,

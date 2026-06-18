@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition-seed-config
 kind: story
-stage: drafting
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-snctv-composition
 depends_on: [unified-channel-model-snctv-composition-topology]
@@ -81,6 +81,61 @@ constraint inline.
 broadcast config (`mode: auto`) + create the 3 tiers (live p0 / queue p1 / channel-as-source→Classics
 p2), idempotent + backfill for existing deployments. The constraint fix is a prerequisite, likely
 either a small `[refactor]`/engine story or folded into this story's redesign.
+
+## Constraint resolved (2026-06-18) — folded in; back to implementing
+
+The operator chose the broadcast-role exemption (option 1). Resolved + folded into this story rather
+than a separate engine story — it's a small cohesive change that directly unblocks the seed, and
+keeping it with the seed keeps the broadcast-config work in one review unit.
+
+**`editorial-config.ts`** `validateOwnershipConstraint`: added a `role` parameter and an early
+`if (role === "broadcast") return ok(undefined)` exemption — the broadcast channel (S/NC TV) is the
+one platform channel the unified model designed to hold both a `live` tier (the `:1936` takeover
+input) and a `channel-as-source` tier (its fallback). The live-XOR-carry rule still applies to
+`playout`-role platform channels. Threaded `channel.role` through both call sites
+(`createEditorialTier`, `updateEditorialTier`); `fetchChannel` now selects `role`. JSDoc updated to
+document the exemption.
+
+**Tests** (`editorial-config.test.ts`): added `makeBroadcastChannel` fixture + `role` to the existing
+fixtures and the schema mock; two new exemption cases (broadcast allows carry-with-existing-live and
+live-with-existing-carry). The two playout XOR-rejection tests still hold (they use the now-`playout`-
+default `makePlatformChannel`). 43 passed.
+
+Stage moved back `drafting → implementing`; the seed work below proceeds.
+
+## Seed implementation (2026-06-18)
+
+**`seed-channels.ts`**: added `seedBroadcastEditorialConfig(broadcastId, classicsId)`, called after
+`ensureBroadcast`. It `upsertEditorialConfig(broadcastId, { mode: "auto" })` then, **if the channel
+has no tiers yet**, creates the 3 tiers: `live` p0 / `queue` p1 / `channel-as-source`→Classics p2.
+The blank tail is the render's infallible `mksafe(blank())`, not a seeded tier. The carry tier is
+omitted in the degenerate no-playout-channel case.
+
+**Idempotency + backfill**: the "skip tier creation if tiers already exist" guard makes a re-run a
+no-op and **backfills** an existing broadcast channel that predates the editorial model (its config
+is created on next seed run). `upsertEditorialConfig` is itself idempotent (`onConflictDoUpdate`).
+
+### Verification (live, against the dev DB)
+- **Seed runs clean**: `db:seed-channels` → "S/NC TV editorial config seeded (3 tiers)" (real
+  backfill — the dev broadcast channel had no config before).
+- **Idempotent**: second run → "S/NC TV editorial tiers already present (3) — skipping tier
+  creation" — no duplicate-priority error.
+- **Output-equivalence on the real seeded DB**: generated the config via `generateLiquidsoapConfig`
+  against the live DB — the broadcast block renders
+  `…_source = fallback(track_sensitive=false, transitions=[notify_switch("live"/"queue"/"fallback"/"blank")],
+  […_live, …_queue_program, ch_<classics>_source, mksafe(blank())])`, `:1936` input,
+  `output.url(... live/snc-tv ...)`, input-switch telemetry — and Classics' `_source` is defined
+  before the broadcast block references it (topo-sort).
+- **`liquidsoap --check` exit 0** on the real-DB config (495 lines, 6 channels). Zero errors. The
+  only warnings are pre-existing/filed: `Unused variable _req` (generic channel GET handlers) and
+  `Deprecated: use \`null\`` (the `null()`→`null` pool code — already filed as
+  `editorial-render-followups #3`, present on every channel, not introduced here).
+- Full API unit suite **1772 passed**; `tsc --noEmit` clean.
+
+No unit test for the seed script itself — it composes already-unit-tested services
+(`upsertEditorialConfig` / `createEditorialTier` / `getEditorialTiers`) and seed scripts are
+integration glue validated by the live run above, consistent with the other seed scripts in
+`src/scripts/` (which also have no unit tests).
 
 ## Design reference
 Feature body §Implementation Units / Unit 3.

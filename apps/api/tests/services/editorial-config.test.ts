@@ -91,15 +91,24 @@ const makeTierRow = (overrides?: Partial<{
 const makePlatformChannel = (overrides?: Partial<{
   ownership: string;
   creatorId: string | null;
+  role: string;
 }>) => ({
   ownership: "platform",
   creatorId: null,
+  role: "playout",
   ...overrides,
+});
+
+const makeBroadcastChannel = () => ({
+  ownership: "platform",
+  creatorId: null,
+  role: "broadcast",
 });
 
 const makeCreatorChannel = (creatorId = "creator-1") => ({
   ownership: "creator",
   creatorId,
+  role: "playout",
 });
 
 // ── Module setup factory ──
@@ -127,6 +136,7 @@ const setupModule = async () => {
       id: "id",
       ownership: "ownership",
       creatorId: "creatorId",
+      role: "role",
     },
   }));
 
@@ -643,6 +653,57 @@ describe("createEditorialTier", () => {
     if (!result.ok) {
       expect(result.error.code).toBe("VALIDATION_ERROR");
       expect(result.error.message).toContain("mutually exclusive");
+    }
+  });
+
+  // ── Broadcast exemption: S/NC TV may hold both live + channel-as-source ──
+
+  it("allows 'channel-as-source' on the broadcast channel that already has 'live' (exempt from XOR)", async () => {
+    const { createEditorialTier } = await setupModule();
+    // fetchChannel → broadcast channel (role: "broadcast")
+    mockSelectWhere.mockResolvedValueOnce([makeBroadcastChannel()]);
+    // existingTiers → already has a 'live' tier (would be rejected for a playout channel)
+    mockSelectWhere.mockResolvedValueOnce([{ id: "tier-live", tierType: "live" }]);
+    // carry edges → empty (no cycle)
+    mockSelectWhere.mockResolvedValueOnce([]);
+    const row = makeTierRow({
+      tierType: "channel-as-source",
+      priority: 2,
+      sourceChannelId: "chan-classics",
+    });
+    mockInsertValues.mockReturnValue({ returning: mockInsertReturning });
+    mockInsertReturning.mockResolvedValueOnce([row]);
+
+    const result = await createEditorialTier("chan-broadcast", {
+      tierType: "channel-as-source",
+      priority: 2,
+      sourceChannelId: "chan-classics",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.tierType).toBe("channel-as-source");
+    }
+  });
+
+  it("allows 'live' on the broadcast channel that already has 'channel-as-source' (exempt from XOR)", async () => {
+    const { createEditorialTier } = await setupModule();
+    mockSelectWhere.mockResolvedValueOnce([makeBroadcastChannel()]);
+    mockSelectWhere.mockResolvedValueOnce([
+      { id: "tier-carry", tierType: "channel-as-source" },
+    ]);
+    const row = makeTierRow({ tierType: "live", priority: 0 });
+    mockInsertValues.mockReturnValue({ returning: mockInsertReturning });
+    mockInsertReturning.mockResolvedValueOnce([row]);
+
+    const result = await createEditorialTier("chan-broadcast", {
+      tierType: "live",
+      priority: 0,
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.tierType).toBe("live");
     }
   });
 
