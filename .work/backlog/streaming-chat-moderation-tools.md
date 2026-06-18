@@ -3,12 +3,20 @@ id: streaming-chat-moderation-tools
 tags: [streaming, community, admin-console]
 release_binding: null
 created: 2026-04-20
-updated: 2026-06-10
+updated: 2026-06-18
 ---
 
-# Live Chat Moderation Tools
+# Live Chat Moderation — governance, transparency & viewer-safety layer
 
-Full moderation toolset for live chat: slow mode (configurable message rate limit per viewer), timeouts (temporary silence with configurable duration), bans (permanent removal from a channel's chat), and word filters (blocklist with pattern matching). Creators and designated moderators can action these from the chat panel or a moderation sidebar.
+**Scope reframed 2026-06-18.** The core moderation *mechanics* — slow mode, timeouts, bans, word
+filters, server-enforced with a moderator UI — **shipped in 0.3.0** (`feature-chat-moderation`).
+This item now tracks only what 0.3.0 did **not** cover: the governance-aligned, transparency, and
+viewer-safety layer on top of those mechanics (detailed under "Reality-check what's left" below).
+Do not re-scope the shipped mechanics as greenfield.
+
+_(Original capture — now shipped, kept for context: full moderation toolset for live chat: slow
+mode, timeouts, bans, word filters, actioned by creators/moderators from the chat panel or a
+moderation sidebar.)_
 
 ## Status 2026-04-21
 
