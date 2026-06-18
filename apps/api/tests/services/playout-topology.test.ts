@@ -4,6 +4,7 @@ import {
   buildPlayoutTopology,
   harborChannelPaths,
 } from "../../src/services/playout-topology.js";
+import { renderPlayoutLiq } from "../../src/services/liquidsoap-render.js";
 import type { EditorialConfigWithTiers, EditorialTierType } from "@snc/shared";
 
 // ── Test row fixtures ──
@@ -454,5 +455,110 @@ describe("buildPlayoutTopology — cycle detection", () => {
     // The carry tier was dropped; only the queue tier remains
     expect(ch.tiers).toHaveLength(1);
     expect(ch.tiers[0]!.type).toBe("queue");
+  });
+});
+
+// ── Broadcast-role render (snctv-composition: live tier + fallback telemetry) ──
+
+describe("renderChannelBlock — broadcast role", () => {
+  // A broadcast channel (S/NC TV) with the 3-tier config that reproduces the prior
+  // static fallback chain: live (p0) → queue (p1) → channel-as-source→Classics (p2).
+  const CLASSICS_ID = "903e6a20-0dea-42b1-8dd5-86afbec496ac";
+  const SNCTV_ID = "f0f0f0f0-0000-0000-0000-000000000001";
+
+  const classicsRow = {
+    id: CLASSICS_ID,
+    name: "Classics",
+    srsStreamName: "channel-classics",
+    ownership: "platform",
+    creatorId: null,
+  };
+  const broadcastRow = {
+    id: SNCTV_ID,
+    name: "S/NC TV",
+    srsStreamName: "snc-tv",
+    ownership: "platform",
+    creatorId: null,
+    role: "broadcast",
+  };
+  const broadcastConfig = makeConfig(SNCTV_ID, {
+    tiers: [
+      makeTier("bt-live", SNCTV_ID, "live", 0),
+      makeTier("bt-queue", SNCTV_ID, "queue", 1),
+      makeTier("bt-carry", SNCTV_ID, "channel-as-source", 2, CLASSICS_ID),
+    ],
+  });
+
+  const renderBroadcast = (): string => {
+    // Classics must precede the broadcast channel so its _source var is defined first;
+    // topoSort enforces this via the carry edge, but pass in dependency order anyway.
+    const topology = buildPlayoutTopology([classicsRow, broadcastRow], [broadcastConfig]);
+    return renderPlayoutLiq(topology);
+  };
+
+  const bvid = `ch_${SNCTV_ID.replaceAll("-", "_")}`;
+
+  it("renders the :1936 broadcast RTMP input as the live tier source", () => {
+    const config = renderBroadcast();
+    expect(config).toContain(
+      `${bvid}_live = input.rtmp(listen=true, "rtmp://0.0.0.0:1936/live/stream")`,
+    );
+  });
+
+  it("renders the broadcast source as fallback(transitions=[…]) (not switch)", () => {
+    const config = renderBroadcast();
+    // The broadcast channel's source is a fallback with transitions, not a switch().
+    expect(config).toContain(`${bvid}_source = fallback(track_sensitive=false,`);
+    expect(config).toContain("transitions=[");
+  });
+
+  it("emits notify_switch transitions in the input-switch enum order (live, queue, fallback, blank)", () => {
+    const config = renderBroadcast();
+    // The route's InputSwitchBodySchema is a strict enum — the names + order must match.
+    expect(config).toContain(
+      'transitions=[notify_switch("live"), notify_switch("queue"), notify_switch("fallback"), notify_switch("blank")]',
+    );
+    // The notify_switch helper posts to the input-switch webhook.
+    expect(config).toContain("def notify_switch(name)");
+    expect(config).toContain("/api/playout/broadcast/input-switch");
+  });
+
+  it("orders the fallback sources live → queue_program → carry → blank", () => {
+    const config = renderBroadcast();
+    const classicsVid = `ch_${CLASSICS_ID.replaceAll("-", "_")}`;
+    expect(config).toContain(
+      `[${bvid}_live, ${bvid}_queue_program, ${classicsVid}_source, mksafe(blank())]`,
+    );
+  });
+
+  it("uses the generated selected()-based now-playing, not the legacy /now-playing", () => {
+    const config = renderBroadcast();
+    // The broadcast channel registers a per-channel now-playing harbor path that reads
+    // .selected() — NOT the legacy /now-playing or on_metadata snc_tv_uri refs.
+    expect(config).toContain(`/channels/${SNCTV_ID}/now-playing`);
+    expect(config).toContain(`${bvid}_source.selected()`);
+  });
+
+  it("outputs to the snc-tv SRS stream (simulcast path intact)", () => {
+    const config = renderBroadcast();
+    expect(config).toContain("live/snc-tv?key=");
+  });
+
+  it("does NOT render a live input for a non-broadcast channel (I2 deferral holds)", () => {
+    // A plain playout channel with a live tier renders nothing for it.
+    const playoutRow = makeRow(ID_A, "A", "channel-a");
+    const config = makeConfig(ID_A, {
+      tiers: [
+        makeTier("t-live", ID_A, "live", 0),
+        makeTier("t-queue", ID_A, "queue", 1),
+      ],
+    });
+    const topology = buildPlayoutTopology([playoutRow], [config]);
+    const rendered = renderPlayoutLiq(topology);
+    const avid = `ch_${ID_A.replaceAll("-", "_")}`;
+    // No input.rtmp for the non-broadcast channel's live tier.
+    expect(rendered).not.toContain(`${avid}_live = input.rtmp`);
+    // It uses the switch() path, not the broadcast fallback.
+    expect(rendered).toContain(`${avid}_source = switch(`);
   });
 });

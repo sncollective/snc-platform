@@ -66,6 +66,13 @@ export interface PlayoutChannelRow {
   readonly ownership: string;
   /** Creator ID when ownership === "creator"; null for platform-owned channels. */
   readonly creatorId: string | null;
+  /**
+   * Channel role: "playout" | "broadcast". The broadcast channel (S/NC TV) renders its
+   * editorial source as a `fallback(transitions=[…])` with the `:1936` live input + switch
+   * telemetry. Defaults to "playout" when absent (the query is widened to include the
+   * broadcast role in the `topology` story).
+   */
+  readonly role?: string;
 }
 
 /** Per-channel topology facts derived from a DB channel row. */
@@ -73,6 +80,13 @@ export interface PlayoutChannelTopology {
   readonly id: string;
   readonly name: string;
   readonly srsStreamName: string;
+  /**
+   * Channel role: `"playout"` for ordinary content channels, `"broadcast"` for S/NC TV.
+   * The broadcast channel renders its editorial source as a `fallback(transitions=[…])`
+   * (source-switch telemetry + the `:1936` live input), where playout channels render the
+   * generic `switch()` readiness fallback. See `renderChannelBlock`.
+   */
+  readonly role: string;
   /** Liquidsoap variable base: `ch_<uuid with hyphens → underscores>`. */
   readonly liqVar: string;
   /** Liquidsoap request.queue id: `channel-<uuid>`. */
@@ -431,6 +445,7 @@ export const buildPlayoutTopology = (
       id: row.id,
       name: row.name,
       srsStreamName: row.srsStreamName,
+      role: row.role ?? "playout",
       liqVar: liqId(row.id),
       queueId,
       harborPaths: harborChannelPaths(row.id),

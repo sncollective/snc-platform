@@ -65,13 +65,21 @@ const renderTierSource = (
       return { varName: programVar, declaration: decls };
     }
     case "live": {
-      // I2 — live tier deferred: per-channel input.rtmp(listen=true, …:1936/…) collides
-      // with the static broadcast block's port-1936 listener → engine fails to start.
-      // Per-channel RTMP ingest path (SRS on_forward into one Liquidsoap input) is
-      // undesigned for MVP. Skip live tiers; a channel left with no other enabled tiers
-      // falls to the mksafe(blank()) tail. Revisit when per-channel ingest is scoped.
-      // live tier deferred — per-channel ingest path (SRS-forward) undesigned; see I2
-      void t; // suppress unused-param warning
+      // The broadcast channel (S/NC TV) owns the single :1936 live input — every creator
+      // who "goes live on S/NC TV" pushes to it. So for the broadcast role the live tier
+      // renders the real input.rtmp listener as the highest-priority fallback source.
+      if (ch.role === "broadcast") {
+        const liveVar = `${vid}_live`;
+        return {
+          varName: liveVar,
+          declaration: `${liveVar} = input.rtmp(listen=true, "rtmp://0.0.0.0:${t.broadcastInputPort}/live/stream")`,
+        };
+      }
+      // I2 — per-channel live tier deferred: a second input.rtmp(listen=true, …:1936/…) on a
+      // non-broadcast channel collides with the broadcast listener → engine fails to start.
+      // Per-channel RTMP ingest (SRS on_forward into one Liquidsoap input) is undesigned for
+      // MVP. Skip live tiers; a channel left with no other enabled tiers falls to the
+      // mksafe(blank()) tail. Revisit when per-channel ingest is scoped.
       return null;
     }
     case "channel-as-source": {
@@ -148,6 +156,38 @@ const renderSwitchPredicates = (
   return `switch(track_sensitive=false, [\n${cases.join(",\n")}\n])`;
 };
 
+/**
+ * Render the broadcast channel's source as a `fallback(transitions=[…])`.
+ *
+ * The broadcast channel (S/NC TV) is pure-auto with always-ready/armed sources, so a plain
+ * priority `fallback` IS the readiness semantics — and `fallback`'s `transitions` parameter
+ * carries the source-switch telemetry (`notify_switch`) that the live-state spine consumes.
+ * This is byte-equivalent to the prior static S/NC TV block.
+ *
+ * Transition names are constrained to the input-switch route's enum
+ * (`["live","queue","fallback","blank"]`, in order): live tier → "live", queue tier → "queue",
+ * channel-as-source → "fallback", and the infallible tail → "blank". `renderedTiers[i]`
+ * corresponds to `tierVarNames[i]`.
+ */
+const renderBroadcastFallback = (tierVarNames: string[]): string => {
+  // tierVarNames is in priority order: the broadcast config is [live, queue, channel-as-source],
+  // and live participates for broadcast (not skipped). The transition name for each source
+  // matches the static block + the input-switch enum.
+  const transitionFor = (varName: string): string => {
+    if (varName.endsWith("_live")) return "live";
+    if (varName.endsWith("_queue_program")) return "queue";
+    return "fallback"; // channel-as-source carry
+  };
+  const transitions = [
+    ...tierVarNames.map((v) => `notify_switch("${transitionFor(v)}")`),
+    `notify_switch("blank")`,
+  ];
+  const sources = [...tierVarNames, "mksafe(blank())"];
+  return `fallback(track_sensitive=false,
+  transitions=[${transitions.join(", ")}],
+  [${sources.join(", ")}])`;
+};
+
 /** Render the Liquidsoap block for a single playout channel. */
 const renderChannelBlock = (t: PlayoutTopology, ch: PlayoutChannelTopology): string => {
   const vid = ch.liqVar;
@@ -191,11 +231,38 @@ const renderChannelBlock = (t: PlayoutTopology, ch: PlayoutChannelTopology): str
   //   are emitted — they were declared before but never read by any switch predicate,
   //   making them dead + misleading. Removed here.
 
-  // ── Switch predicates ──
-  // renderSwitchPredicates uses ch.tiers (topology-level) for the armed gate detection,
-  // but we pass tierVarNames derived from renderedTiers only (live tiers skipped).
-  // Pass renderedTiers to renderSwitchPredicates so it aligns with tierVarNames.
-  const switchExpr = renderSwitchPredicates(ch, tierVarNames, renderedTiers);
+  // ── Source expression ──
+  // The broadcast channel (S/NC TV) renders its source as a fallback(transitions=[…]) so the
+  // source-switch telemetry (notify_switch → the live-state spine) rides on fallback's
+  // transitions parameter — byte-equivalent to the prior static block. Its config is pure-auto
+  // where every source is always-ready or armed, so a plain priority fallback IS the readiness
+  // semantics. Playout channels render the generic switch() readiness fallback.
+  const isBroadcast = ch.role === "broadcast";
+  const sourceExpr = isBroadcast
+    ? renderBroadcastFallback(tierVarNames)
+    : renderSwitchPredicates(ch, tierVarNames, renderedTiers);
+
+  // notify_switch def (broadcast only): one transition per fallback child, posting the
+  // selected source name to the input-switch webhook so the live-state holder stays current.
+  const notifySwitchDef = isBroadcast
+    ? `
+# Input-switch telemetry: one transition per source, same order as the fallback list.
+# Each transition posts the source name to the API so the live-state holder stays current.
+# SPIKE NOTE: fallback(transitions=[...]) firing semantics in Liquidsoap 2.4 must be
+# validated in the dev container before relying on these in production. The fallback plan
+# (a thread.run is_ready() poller) is documented in bold-event-spine-publishers.
+def notify_switch(name) =
+  fun (_, b) -> begin
+    ignore(http.post(
+      headers=[("Content-Type", "application/json")],
+      data='{"source":"#{name}"}',
+      "http://#{api_host}:#{api_port}${BROADCAST_INPUT_SWITCH_PATH}?secret=#{callback_secret}"
+    ))
+    b
+  end
+end
+`
+    : "";
 
   // ── Now-playing reads switch.selected() ──
   // Uses switch.selected() — NOT on_metadata — per position gotcha #1. on_metadata is
@@ -220,13 +287,13 @@ end)`
     : "";
 
   return `
-# ── Channel: ${escLiq(ch.name)} (playout) ──
+# ── Channel: ${escLiq(ch.name)} (${isBroadcast ? "broadcast" : "playout"}) ──
 
 ${tierDeclarations.join("\n")}
 
 ${vid}_armed = ref(${initialArmed})
-
-${vid}_source = ${switchExpr}
+${notifySwitchDef}
+${vid}_source = ${sourceExpr}
 
 ${vid}_uri = ref("")
 ${vid}_title = ref("")${queueWebhookBlock}
