@@ -87,7 +87,9 @@ s3:PutObject
 
 **Ordering guarantee:** `pre-create` is always first. `post-finish` starts after `pre-finish` completes. No other ordering is guaranteed between non-blocking hooks.
 
-**Retry behavior:** Hooks are NOT retried by tusd. If your post-processing fails, tusd will not retry it. Design your hook handler to be idempotent and handle its own retries.
+**Blocking vs fire-and-forget (the failure contract):** the `Blocking` column above is also the failure contract. `pre-*` hooks run *synchronously on the tus request* — tusd waits for the response and acts on it (`RejectUpload`, `ChangeFileInfo`, a custom `HTTPResponse`). `post-*` hooks are dispatched *async and fire-and-forget*: tusd spawns the call **after the client is already notified** (the tus client's final 204 is not gated on the hook result) and **discards the return**. A non-2xx from a `post-finish` handler is logged by tusd and thrown away — the client never learns whether the post-finish work succeeded. Source-verified (tusd v2.9.2): post hooks dispatch via `invokeHookAsync`, which spawns a goroutine and discards its result.
+
+**Retry behavior:** Hooks are NOT retried by tusd. If your post-processing fails, tusd will not retry it *and the client won't be told* — design `post-*` handlers as best-effort, idempotent, and self-reconciling, and hand any work that must be durable to a job queue (see the post-finish gotcha and anti-pattern 1).
 
 ### HTTP Hook Delivery
 
@@ -186,6 +188,8 @@ The `pre-create` hook fires before any upload resource is created. Use `-hooks-h
 
 The `post-finish` hook fires after the upload is complete. The `Storage.Bucket` and `Storage.Key` fields tell you exactly where the file landed in S3. Enqueue a pg-boss job from your hook handler to process the file asynchronously.
 
+`post-finish` is async/fire-and-forget (see the failure contract above): tusd fires it after the client is already notified and discards your response. So the **enqueue** is the only durability boundary that matters — once a pg-boss job is committed, the work survives a handler crash or a tusd restart. Work done *inline* in the handler (an S3 copy, a DB write) is best-effort: if it throws, tusd discards the error and the client is unaffected, so the handler must be idempotent and any inline work must be reconcilable from another signal (e.g. a later sweep over orphaned `Storage.Key` objects). Don't treat a non-2xx return as a way to signal failure back to the client — there is no path for it.
+
 ## Network & Protocol Configuration
 
 | Flag | Default | Description |
@@ -237,6 +241,10 @@ tusd buffers incoming PATCH data to local disk before transferring to S3. The bu
 ### No Auth Between Resumption Requests
 
 tusd does not enforce that the same user who created an upload is the one resuming it. The upload ID is the only "credential." If upload IDs are guessable or leaked, anyone can resume/complete the upload. Use `pre-create` hooks to embed auth context in metadata if needed.
+
+### `post-*` Hook Results Are Discarded — The Client Never Hears About a Failure
+
+`post-*` hooks (`post-create`, `post-receive`, `post-finish`, `post-terminate`) are fire-and-forget: tusd dispatches them *after* the tus client has already received its response, and **discards whatever you return**. A 500 (or any non-2xx) from a `post-finish` handler is logged by tusd and thrown away — the upload still reports success to the client. This is the opposite of `pre-*` hooks, which run synchronously on the request and whose response controls the outcome. Practical consequence: `post-finish` cannot fail an upload, and its handler can't tell the uploader anything. Make post-finish work idempotent, commit anything durable to a job queue (pg-boss) so it survives a handler crash, and make inline work reconcilable from another signal. Source-verified (tusd v2.9.2): `invokeHookAsync` spawns a goroutine and discards its return.
 
 ### Hook Ordering Is Not Fully Guaranteed
 

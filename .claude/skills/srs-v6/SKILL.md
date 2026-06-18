@@ -34,7 +34,18 @@ Callbacks **must** return HTTP 200 with either:
 - Integer `0` in the body
 - JSON `{"code": 0}` (with optional `"msg"`)
 
-Any other response (non-200 status, non-zero code, or malformed body) causes SRS to **disconnect the client**. This is how stream authentication works — return non-zero to reject.
+For **gating** callbacks (`on_publish`, `on_play`), any other response (non-200 status, non-zero code, or malformed body) causes SRS to **disconnect the client**. This is how stream authentication works — return non-zero to reject. But the failure handling is **not symmetric** across callbacks — see the next gotcha.
+
+### `on_unpublish` Swallows Callback Errors (the asymmetry)
+
+`on_publish` and `on_unpublish` do **not** handle a failing callback the same way. Source-verified (SRS v6.0.48):
+
+- **`on_publish`** returns `srs_error_t`. A callback failure (non-200, non-zero code, unreachable endpoint) is **fatal** — SRS disconnects the publisher. This is the authentication path.
+- **`on_unpublish`** returns `void`. On a callback failure SRS does `srs_freep(err); srs_warn(...); return` — the error is **silently swallowed**. The publisher is torn down regardless, with **no retry and no signal** to your API.
+
+Operational consequence: if your `on_unpublish` endpoint errors or is unreachable when a stream ends, SRS still releases the stream — you simply never find out the callback failed. **Don't rely on `on_unpublish` for must-not-be-lost work** (session-close bookkeeping, cleanup, billing): make the handler idempotent and reconcilable from another signal (an SRS API stream-list poll, a publish-presence check, a sweep), not the only place the close is recorded.
+
+This asymmetry is source-confirmed only for the `on_publish`/`on_unpublish` pair (the auth + teardown path we use); whether the other non-gating callbacks (`on_stop`, `on_dvr`, `on_hls`) swallow errors the same way was not verified — don't assume it from this gotcha.
 
 ### Stream Key via `param` Field
 

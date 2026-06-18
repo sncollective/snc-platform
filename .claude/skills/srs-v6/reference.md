@@ -422,7 +422,7 @@ Content-Type: application/json
 {"code": 0, "msg": "OK"}
 ```
 
-**Non-zero code or non-200 status disconnects the client.** This is the authentication mechanism — return `{"code": 1}` to reject a publisher.
+**For gating callbacks (`on_publish`, `on_play`), a non-zero code or non-200 status disconnects the client.** This is the authentication mechanism — return `{"code": 1}` to reject a publisher. **`on_unpublish` is the exception:** it returns `void` internally, so a failed `on_unpublish` callback (error, non-2xx, unreachable) is **silently swallowed** — SRS logs a warning and tears down the publisher regardless, with no retry and no signal. Don't depend on `on_unpublish` for must-not-be-lost work; make it idempotent and reconcilable from another signal. (Source-confirmed against SRS v6.0.48, `hooks.cpp:200–204`; attestation `.research/attestation/srs-src-v6.md`. The asymmetry is verified only for `on_publish` vs `on_unpublish`.)
 
 ### Authentication via Callbacks
 
