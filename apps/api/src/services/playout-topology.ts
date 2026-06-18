@@ -156,13 +156,6 @@ const liqId = (id: string): string => `ch_${id.replaceAll("-", "_")}`;
 // ── Public API ──
 
 /**
- * Legacy broadcast now-playing path (S/NC TV) — registered in the rendered
- * .liq and called by the API-side wrapper. One constant on both sides of the
- * harbor contract.
- */
-export const HARBOR_LEGACY_NOW_PLAYING = "/now-playing";
-
-/**
  * API path for the Liquidsoap input-switch webhook.
  * Liquidsoap posts here on every fallback transition; the same path is rendered
  * into the .liq template and registered in the API route.
