@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-editorial-engine]
@@ -261,3 +261,37 @@ review blocker, so it lands with the topology change, not after.
 - **Simulcast output name.** Simulcast `on_forward` keys on the `snc-tv` stream name; the generated
   `output.url` must produce exactly that. Verified in Unit 2 acceptance; a mismatch silently breaks
   simulcast.
+
+## Implementation summary (2026-06-18) — all 4 stories at review
+
+Implemented inline, sequentially, by the orchestrator (operator's choice — full editorial-engine
+context held from the design pass). 6 commits.
+
+- **`broadcast-render`** — the render learned broadcast-role affordances: `:1936` live input,
+  `fallback(transitions=[notify_switch…])`, role-conditioned branch. The live tier renders for the
+  broadcast role only (I2 deferral holds elsewhere). +7 render tests.
+- **`topology`** (the equivalence gate) — broadcast channel joined the generated topology; static
+  S/NC TV tail + the dead `broadcast`/`sncTvStream` fields deleted; `docs/streaming.md` rolled
+  forward. **Render golden diff reviewed: byte-equivalent on the load-bearing fallback** (transitions,
+  source order, `:1936`, `snc-tv` output, telemetry); intentional bold-refactor upgrades (pool
+  auto-fill, `selected()` now-playing) + two accepted minor deltas (`CHANNEL_SNCTV_STREAM` override
+  dropped — confirmed unused; dead `_armed` ref). `liquidsoap --check` clean on all goldens.
+- **`nowplaying-consumer`** — `getNowPlaying` repointed off the retired legacy `/now-playing` onto the
+  broadcast channel's per-channel `selected()`-based path; legacy export removed. Signature preserved
+  so callers are untouched.
+- **`seed-config`** — surfaced a real engine design conflict (live-XOR-carry constraint vs S/NC TV
+  needing both); **bounced to drafting**, resolved by operator decision (broadcast-role exemption in
+  `validateOwnershipConstraint`), folded back in. Seed creates the 3-tier config, idempotent +
+  backfills. **Verified live against the dev DB**: seed runs, re-run idempotent, the real-DB config
+  renders the correct broadcast block and passes `liquidsoap --check` (exit 0).
+
+**Cross-cutting verification:** full API suite **1772 passed**; `tsc --noEmit` clean; `liquidsoap
+--check` clean on real + golden configs.
+
+**Still owed — the feature-level close gate (operator-at-station, can't run in CI):** the staged
+takeover/fall-back/simulcast walk on the live pipeline (per §Design decisions). Verify: a live
+creator preempts S/NC TV, falls back to Classics on disconnect, the viewer + simulcast see the same,
+and source-switch telemetry fires (the SPIKE NOTE's `fallback(transitions=[…])` firing semantics on
+the running 2.4.5 pipeline — the one open validation; poller fallback documented if it disappoints).
+
+**Children complete** — all 4 stories at `review`. Advanced `implementing → review`.
