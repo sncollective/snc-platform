@@ -1001,4 +1001,14 @@ describe("ensureBroadcastEditorialConfig", () => {
     expect(result.ok).toBe(true);
     expect(mockInsert).toHaveBeenCalledTimes(1);
   });
+
+  // NOTE: the zero-tiers full-backfill happy path (creating live/queue/carry) is verified
+  // end-to-end against the live dev DB — see the seed-config story §Verification: a broadcast
+  // channel with its config deleted went 0 → live@0, queue@1, channel-as-source@2 via the boot
+  // path, idempotent on re-run. A unit test of that path would have to thread the full per-tier
+  // createEditorialTier mock chain (3× fetchChannel + existingTiers + cycle-edge + insert) through
+  // this harness's sequential-mock wiring; that proved too brittle to be a meaningful guard (it
+  // breaks on mock-call ordering, not on real regressions). The branch-selection logic — no-op /
+  // complete-skip / partial-leave — IS unit-tested above; the constituent createEditorialTier is
+  // exhaustively tested in its own describe block. The live run is the happy-path coverage.
 });
