@@ -1,10 +1,28 @@
 ---
-updated: 2026-06-10
+updated: 2026-06-17
 ---
 
 # Platform AGENTS.md
 
 Hono API + TanStack Start + Drizzle ORM + PostgreSQL + Garage S3. Monorepo with Bun workspaces: `@snc/api`, `@snc/web`, `@snc/shared`, `@snc/e2e`.
+
+## Codex working notes
+
+Codex loads this `AGENTS.md` as the primary project instruction file. `CLAUDE.md` remains a
+useful index, but its slash-command and auto-load language is Claude-specific:
+
+- Read `.agents/rules/*.md` before designing, implementing, or reviewing work items.
+- For path-specific behavior, read the relevant `.claude/rules/*.md` manually. In particular:
+  `document-evolution.md` for persistent artifacts, `path-conventions.md` for links/paths,
+  `platform-patterns.md` for platform code shape, `testing-strategy.md` for test work,
+  `drizzle-migrations.md` for schema changes, and `e2e-testing.md` for Playwright work.
+- Treat `.claude/skills/<name>/SKILL.md` as local reference docs. For platform code, read the
+  relevant tech reference or scan library before reaching for upstream docs.
+- Claude plugin commands such as `/agile-workflow:review` are not Codex commands. Use
+  `.work/bin/work-view` to inspect queue state and update item files directly when a workflow
+  step has no Codex-native command.
+- Keep secrets opaque. Do not open `.env*`; let dev scripts and test runners load them as
+  subprocess inputs.
 
 ## Build & Test
 
@@ -23,6 +41,13 @@ A human developer ignores this section — their shell runs in the base namespac
 - **Secrets.** The agent's file reads deny `.env*`. The integration suite loads `platform/.env` (`DATABASE_URL` + `BETTER_AUTH_SECRET`) via dotenv, so the sandbox must re-allow *subprocess* reads of that file.
 
 `scripts/dev/sandbox-test-integration.sh` wires both — forwarder up → `bun run --filter @snc/api test:integration` → teardown.
+
+For Codex, start with the normal project commands. Unit tests should run directly. Integration
+and e2e tests need the dev services plus subprocess access to local `.env`; if the active
+Codex sandbox blocks localhost, Docker, or environment-file access, request the narrow
+permission change needed for the command instead of copying secrets or reading `.env` into the
+thread. The Claude-specific forwarder above is only needed when running under Claude Code's
+separate network namespace.
 
 The secrets carve-out lives in `.claude/settings.local.json` (machine-local, gitignored):
 

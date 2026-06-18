@@ -1,5 +1,5 @@
 {
-  "name": "SNC Platform",
+  "name": "SNC Platform + Codex",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
 
   "features": {
@@ -13,11 +13,12 @@
 
   "mounts": [
     "source=${localEnv:HOME}/.claude-devcontainer/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.claude-devcontainer/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude-devcontainer/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.codex-devcontainer/snc,target=/home/vscode/.codex,type=bind,consistency=cached"
   ],
 
   "onCreateCommand": "sudo update-alternatives --set iptables /usr/sbin/iptables-nft && sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-nft && (sudo pkill dockerd 2>/dev/null; while pgrep -x dockerd >/dev/null; do sleep 0.5; done; sudo rm -f /var/run/docker.pid; sudo service docker start)",
-  "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg caddy && npm install -g pm2 bun@1.3.12 && bun install && bash scripts/dev/ensure-env.sh && pip install --user pre-commit && (git rev-parse --git-dir >/dev/null 2>&1 && python3 -m pre_commit install || echo 'pre-commit install skipped: no usable git dir — workspace was opened from a submodule checkout, whose .git file points outside the mount. Dev works; commit from the enclosing checkout, or clone standalone for full git function.')",
+  "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg caddy && npm install -g pm2 bun@1.3.12 && curl -fsSL https://chatgpt.com/codex/install.sh -o /tmp/codex-install.sh && CODEX_NON_INTERACTIVE=1 CODEX_INSTALL_DIR=/home/vscode/.local/bin sh /tmp/codex-install.sh && rm /tmp/codex-install.sh && if [ -d /workspaces/SNC/skills ]; then codex plugin marketplace add /workspaces/SNC/skills; else codex plugin marketplace add https://github.com/nklisch/skills; fi && codex plugin add agile-workflow@nklisch-skills && codex plugin add agentic-research@nklisch-skills && codex plugin add agent-coordination@nklisch-skills && bun install && bash scripts/dev/ensure-env.sh && pip install --user pre-commit && (git rev-parse --git-dir >/dev/null 2>&1 && python3 -m pre_commit install || echo 'pre-commit install skipped: no usable git dir — workspace was opened from a submodule checkout, whose .git file points outside the mount. Dev works; commit from the enclosing checkout, or clone standalone for full git function.')",
   "postStartCommand": "bash scripts/dev/start-dev.sh",
 
   "customizations": {
