@@ -520,6 +520,41 @@ describe("renderChannelBlock — broadcast role", () => {
     expect(config).toContain(`${bvid}_source.selected()`);
   });
 
+  it("writes now-playing refs from the aired SOURCE (not just the queue) — BLOCKER 1 regression", () => {
+    const config = renderBroadcast();
+    // The now-playing refs (${vid}_uri / ${vid}_title) must be written by an on_metadata on the
+    // whole fallback source, so they reflect whatever is airing — including the carried Classics,
+    // the dominant steady state. Without this, now-playing goes blank whenever a non-queue source
+    // airs (the bug the feature review caught).
+    expect(config).toContain(`${bvid}_source.on_metadata(synchronous=false, fun(m) -> begin`);
+    // The source on_metadata assigns the refs.
+    expect(config).toMatch(
+      new RegExp(`${bvid}_source\\.on_metadata[\\s\\S]*?${bvid}_uri :=[\\s\\S]*?${bvid}_title :=`),
+    );
+  });
+
+  it("queue webhook posts track-event only, does NOT write now-playing refs (no double-source)", () => {
+    const config = renderBroadcast();
+    // The broadcast queue on_metadata fires the operator track-event webhook but must NOT also
+    // assign ${vid}_uri/${vid}_title — those belong to the source on_metadata. If the queue
+    // webhook wrote them, a carried-source track would never update now-playing.
+    const queueHook = config.slice(
+      config.indexOf(`${bvid}_queue.on_metadata`),
+      config.indexOf(`${bvid}_source.on_metadata`),
+    );
+    expect(queueHook).toContain("/track-event");
+    expect(queueHook).not.toContain(`${bvid}_uri :=`);
+    expect(queueHook).not.toContain(`${bvid}_title :=`);
+  });
+
+  it("does NOT emit an _armed ref or /arm endpoint for the broadcast channel (inert control removed)", () => {
+    const config = renderBroadcast();
+    // The broadcast fallback lists sources unconditionally (no armed predicate), so a ${vid}_armed
+    // ref + /arm endpoint would be a live-but-inert no-op. They are suppressed for the broadcast role.
+    expect(config).not.toContain(`${bvid}_armed`);
+    expect(config).not.toContain(`/channels/${SNCTV_ID}/arm`);
+  });
+
   it("outputs to the snc-tv SRS stream (simulcast path intact)", () => {
     const config = renderBroadcast();
     expect(config).toContain("live/snc-tv?key=");

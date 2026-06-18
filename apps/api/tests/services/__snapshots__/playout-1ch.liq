@@ -135,7 +135,6 @@ ch_f0f0f0f0_0000_0000_0000_000000000001_pool = request.dynamic(fun() -> begin
 end)
 ch_f0f0f0f0_0000_0000_0000_000000000001_queue_program = fallback(track_sensitive=true, [ch_f0f0f0f0_0000_0000_0000_000000000001_queue, ch_f0f0f0f0_0000_0000_0000_000000000001_pool])
 
-ch_f0f0f0f0_0000_0000_0000_000000000001_armed = ref(false)
 
 # Input-switch telemetry: one transition per source, same order as the fallback list.
 # Each transition posts the source name to the API so the live-state holder stays current.
@@ -161,13 +160,17 @@ ch_f0f0f0f0_0000_0000_0000_000000000001_uri = ref("")
 ch_f0f0f0f0_0000_0000_0000_000000000001_title = ref("")
 ch_f0f0f0f0_0000_0000_0000_000000000001_queue.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
-  ch_f0f0f0f0_0000_0000_0000_000000000001_uri := if u == "" then m["filename"] else u end
-  ch_f0f0f0f0_0000_0000_0000_000000000001_title := m["title"]
+  q_uri = if u == "" then m["filename"] else u end
   ignore(http.post(
     headers=[("Content-Type", "application/json")],
-    data='{"uri":"#{ch_f0f0f0f0_0000_0000_0000_000000000001_uri()}","title":"#{ch_f0f0f0f0_0000_0000_0000_000000000001_title()}"}',
+    data='{"uri":"#{q_uri}","title":"#{m["title"]}"}',
     "http://#{api_host}:#{api_port}/api/playout/channels/f0f0f0f0-0000-0000-0000-000000000001/track-event?secret=#{callback_secret}"
   ))
+end)
+ch_f0f0f0f0_0000_0000_0000_000000000001_source.on_metadata(synchronous=false, fun(m) -> begin
+  u = m["s3_uri"]
+  ch_f0f0f0f0_0000_0000_0000_000000000001_uri := if u == "" then m["filename"] else u end
+  ch_f0f0f0f0_0000_0000_0000_000000000001_title := m["title"]
 end)
 
 output.url(url="rtmp://#{srs_host}:1935/live/snc-tv?key=#{playout_key}", enc, ch_f0f0f0f0_0000_0000_0000_000000000001_source)
@@ -198,16 +201,4 @@ harbor.http.register(port=8888, method="GET", "/channels/f0f0f0f0-0000-0000-0000
     remaining = safe_remaining,
     selected = selected_id
   })
-end)
-
-harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/arm", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ch_f0f0f0f0_0000_0000_0000_000000000001_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
 end)

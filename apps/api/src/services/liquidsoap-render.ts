@@ -271,9 +271,30 @@ end
   // res.json cannot serialize) plus elapsed/remaining for UI progress tracking.
 
   // Queue webhook block (only emitted if a queue tier exists — attaches to ${vid}_queue,
-  // NOT ${vid}_queue_program, so track events fire on operator-curated content only)
+  // NOT ${vid}_queue_program, so the track-event webhook fires on operator-curated content only).
+  //
+  // For a PLAYOUT channel this block also writes ${vid}_uri / ${vid}_title (its now-playing refs) —
+  // correct there because the playout source is the queue program; its airing track == its queue
+  // metadata.
+  //
+  // For the BROADCAST channel the queue is only one of several sources (live / queue / carry), and
+  // the dominant airing state is the carried channel — so the now-playing refs must NOT be sourced
+  // from the queue alone (BLOCKER 1: they'd stay "" whenever a non-queue source airs). The broadcast
+  // case therefore only POSTs the track-event from the queue webhook (operator content), and the
+  // now-playing refs are written by a separate ${vid}_source.on_metadata below (any aired source).
   const queueWebhookBlock = queueWebhookVarName
-    ? `
+    ? isBroadcast
+      ? `
+${queueWebhookVarName}.on_metadata(synchronous=false, fun(m) -> begin
+  u = m["s3_uri"]
+  q_uri = if u == "" then m["filename"] else u end
+  ignore(http.post(
+    headers=[("Content-Type", "application/json")],
+    data='{"uri":"#{q_uri}","title":"#{m["title"]}"}',
+    "http://#{api_host}:#{api_port}${ch.trackEventPath}?secret=#{callback_secret}"
+  ))
+end)`
+      : `
 ${queueWebhookVarName}.on_metadata(synchronous=false, fun(m) -> begin
   u = m["s3_uri"]
   ${vid}_uri := if u == "" then m["filename"] else u end
@@ -286,17 +307,49 @@ ${queueWebhookVarName}.on_metadata(synchronous=false, fun(m) -> begin
 end)`
     : "";
 
+  // Broadcast-only: the now-playing refs track whatever source the fallback is airing — live,
+  // queue, OR the carried channel — restoring the old static block's whole-fallback on_metadata.
+  // (Playout channels write these refs from the queue webhook above; their now-playing IS the queue.)
+  const broadcastNowPlayingBlock = isBroadcast
+    ? `
+${vid}_source.on_metadata(synchronous=false, fun(m) -> begin
+  u = m["s3_uri"]
+  ${vid}_uri := if u == "" then m["filename"] else u end
+  ${vid}_title := m["title"]
+end)`
+    : "";
+
+  // The arm verb gates the queue tier in a playout channel's switch(). The broadcast fallback
+  // lists its sources unconditionally (no armed predicate — matching the old static block's
+  // always-on snc_tv_queue), so neither the ${vid}_armed ref nor the /arm endpoint is meaningful
+  // for broadcast — emit them for playout channels only (avoids a live-but-inert control surface).
+  const armedRefDecl = isBroadcast ? "" : `\n${vid}_armed = ref(${initialArmed})`;
+  const armEndpointBlock = isBroadcast
+    ? ""
+    : `
+
+harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.arm}", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${vid}_armed := req.body() == "true"
+    res.data("ok")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
+end)`;
+
   return `
 # ── Channel: ${escLiq(ch.name)} (${isBroadcast ? "broadcast" : "playout"}) ──
 
 ${tierDeclarations.join("\n")}
-
-${vid}_armed = ref(${initialArmed})
+${armedRefDecl}
 ${notifySwitchDef}
 ${vid}_source = ${sourceExpr}
 
 ${vid}_uri = ref("")
-${vid}_title = ref("")${queueWebhookBlock}
+${vid}_title = ref("")${queueWebhookBlock}${broadcastNowPlayingBlock}
 
 output.url(url="rtmp://#{srs_host}:${t.srsRtmpPort}/live/${escLiq(ch.srsStreamName)}?key=#{playout_key}", enc, ${vid}_source)
 
@@ -326,19 +379,7 @@ harbor.http.register(port=${t.harborPort}, method="GET", "${ch.harborPaths.nowPl
     remaining = safe_remaining,
     selected = selected_id
   })
-end)
-
-harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.arm}", fun(req, res) -> begin
-  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
-  q = req.query
-  if q["secret"] == secret and secret != "" then
-    ${vid}_armed := req.body() == "true"
-    res.data("ok")
-  else
-    res.status_code(401)
-    res.data("unauthorized")
-  end
-end)
+end)${armEndpointBlock}
 `;
 };
 

@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-snctv-composition-broadcast-render
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-snctv-composition
 depends_on: []
@@ -175,3 +175,32 @@ arming S/NC TV returns `"ok"` and does nothing. Either gate the broadcast queue 
 (matching playout `switch()` semantics) or suppress the `_armed` ref + `/arm` registration for the
 broadcast role. Not an equivalence gap (old block had no arm gate either), but a confusing dead
 control surface introduced by routing broadcast through the shared block.
+
+## Fix (2026-06-18) — BLOCKER 1 + inert /arm
+
+**`liquidsoap-render.ts`**:
+
+- **Now-playing from the aired source (BLOCKER 1).** Added a broadcast-only
+  `${vid}_source.on_metadata` that writes `${vid}_uri`/`${vid}_title` from whatever the fallback is
+  airing — live, queue, OR the carried Classics — restoring the OLD static block's whole-fallback
+  `on_metadata` behavior. Metadata propagates up through the `fallback` from the selected child, so
+  carried-Classics tracks now update S/NC TV's now-playing.
+- **Queue webhook is track-event-only for broadcast.** The broadcast `${vid}_queue.on_metadata` now
+  POSTs the operator track-event using a local `q_uri` and **no longer assigns the now-playing refs**
+  — those belong to the source `on_metadata`. This avoids double-sourcing (the queue webhook fires on
+  operator content only; the now-playing reflects the aired source). Playout channels are unchanged:
+  their queue webhook still writes the refs (their now-playing IS the queue program).
+- **Inert `/arm` removed for broadcast.** The broadcast fallback lists sources unconditionally (no
+  `_armed` predicate), so `${vid}_armed` + the `/arm` endpoint were a live no-op. Both are now
+  suppressed for the broadcast role (emitted for playout channels only, where the queue tier's
+  `switch()` actually reads `_armed`).
+
+**Tests** (`playout-topology.test.ts`, broadcast-role describe, +3): now-playing refs written by
+`${vid}_source.on_metadata`; queue webhook posts track-event but does NOT write the refs; no
+`_armed`/`/arm` for broadcast. **All 3 proven to fail without the fix** (stashed the render change →
+3 fail; restored → pass).
+
+**Verification**: `liquidsoap --check` clean on the fixed broadcast block (exit 0, no new warnings).
+Full API suite **1775 passed**; `tsc` clean. The carried-source now-playing behavior is unit-tested
+at the render-structure level; the runtime metadata-propagation through the fallback is confirmed by
+the staged walk (feature-level gate).
