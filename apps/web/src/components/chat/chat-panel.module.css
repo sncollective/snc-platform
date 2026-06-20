@@ -200,8 +200,12 @@
   color: var(--color-text);
 }
 
-.input:focus {
-  outline: none;
+/* Inset focus ring (matches .userListToggle above) so the indicator isn't
+   clipped by .panel's overflow: hidden, and meets WCAG 2.4.11 shape contrast
+   that a border-color change alone does not. */
+.input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
   border-color: var(--color-primary);
 }
 
