@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import type React from "react";
 import type { ChannelContent } from "@snc/shared";
 
+import { useListboxNavigation } from "../../hooks/use-listbox-navigation.js";
 import styles from "../../routes/admin/playout.module.css";
 
 // ── Types ──
@@ -72,6 +73,18 @@ export function PoolItemPicker({
       )
     : queueableItems;
 
+  const handleSelect = (item: ChannelContent): void => {
+    onSelect(item);
+    onClose();
+  };
+
+  const listbox = useListboxNavigation({
+    items: filtered,
+    getItemId: (item) => `pool-item-opt-${item.id}`,
+    onSelect: handleSelect,
+    listboxId: "pool-item-listbox",
+  });
+
   return (
     <div className={styles.searchPicker} ref={containerRef}>
       <input
@@ -80,33 +93,24 @@ export function PoolItemPicker({
         placeholder="Filter pool items…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
         aria-label="Filter pool items"
+        {...listbox.getInputProps()}
       />
-      <div className={styles.searchPickerResults}>
+      <ul className={styles.searchPickerResults} {...listbox.getListboxProps()}>
         {filtered.length === 0 && (
-          <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
+          <li role="presentation" className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
             {queueableItems.length === 0
               ? <>No playout items in pool. Only playout-uploaded items can be queued. Creator content plays via the rotation pool.</>
               : "No matching items"}
-          </p>
+          </li>
         )}
-        {filtered.map((item) => (
-          <div
+        {filtered.map((item, index) => (
+          <li
             key={item.id}
             className={styles.searchPickerItem}
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              onSelect(item);
-              onClose();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                onSelect(item);
-                onClose();
-              }
-            }}
+            {...listbox.getOptionProps(item, index)}
           >
             <span className={styles.sourceBadge}>Playout</span>
             <span style={{ flex: 1 }}>{item.title}</span>
@@ -115,9 +119,9 @@ export function PoolItemPicker({
                 {formatDuration(item.duration)}
               </span>
             )}
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

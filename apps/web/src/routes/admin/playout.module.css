@@ -6,6 +6,22 @@
   gap: var(--space-xl);
 }
 
+/* ── Tab Panel ── */
+
+/* Carries the same column-flex + gap the page applies to its direct
+   children, so wrapping the channel content in a tabpanel preserves the
+   inter-section spacing. */
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.tabPanel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
 /* ── Section ── */
 
 .section {
@@ -652,6 +668,9 @@
   max-height: 240px;
   overflow-y: auto;
   margin-top: var(--space-xs);
+  /* Rendered as a <ul role="listbox"> — strip the default list affordances. */
+  list-style: none;
+  padding: 0;
 }
 
 .searchPickerItem {
@@ -664,7 +683,10 @@
   gap: var(--space-sm);
 }
 
-.searchPickerItem:hover {
+/* Hover and keyboard virtual-focus share one highlight: aria-selected is set
+   by the listbox hook on the active option (pointer or arrow keys). */
+.searchPickerItem:hover,
+.searchPickerItem[aria-selected="true"] {
   background: var(--color-bg);
 }
 

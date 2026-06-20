@@ -495,7 +495,9 @@ function PlayoutPageInner(): React.ReactElement {
                 key={ch.id}
                 type="button"
                 role="tab"
+                id={`playout-tab-${ch.id}`}
                 aria-selected={ch.id === selectedChannelId}
+                aria-controls={`playout-panel-${ch.id}`}
                 className={[
                   styles.channelTab,
                   ch.id === selectedChannelId ? styles.channelTabActive : null,
@@ -596,7 +598,13 @@ function PlayoutPageInner(): React.ReactElement {
       )}
 
       {selectedChannelId !== null && (
-        <>
+        <div
+          role="tabpanel"
+          id={`playout-panel-${selectedChannelId}`}
+          aria-labelledby={`playout-tab-${selectedChannelId}`}
+          tabIndex={0}
+          className={styles.tabPanel}
+        >
           {/* Global action error */}
           {actionError !== null && (
             <div className={errorStyles.error} role="alert">
@@ -756,7 +764,7 @@ function PlayoutPageInner(): React.ReactElement {
               onRetry={(item) => void handleRetryPoolItem(item)}
             />
           </section>
-        </>
+        </div>
       )}
     </div>
   );

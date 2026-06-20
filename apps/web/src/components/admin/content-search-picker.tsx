@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import type { PoolCandidate } from "@snc/shared";
 
+import { useListboxNavigation } from "../../hooks/use-listbox-navigation.js";
 import { searchAvailableContent } from "../../lib/playout-channels.js";
 import styles from "../../routes/admin/playout.module.css";
 
@@ -98,6 +99,13 @@ export function ContentSearchPicker({
     onClose();
   };
 
+  const listbox = useListboxNavigation({
+    items: results,
+    getItemId: (item) => `content-search-opt-${item.sourceType}-${item.id}`,
+    onSelect: handleSelect,
+    listboxId: "content-search-listbox",
+  });
+
   const showEmpty = !isLoading && results.length === 0;
 
   return (
@@ -111,28 +119,24 @@ export function ContentSearchPicker({
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
         aria-label="Search content"
+        {...listbox.getInputProps()}
       />
-      <div className={styles.searchPickerResults}>
+      <ul className={styles.searchPickerResults} {...listbox.getListboxProps()}>
         {isLoading && (
-          <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
+          <li role="presentation" className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
             Searching…
-          </p>
+          </li>
         )}
         {showEmpty && (
-          <p className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
+          <li role="presentation" className={styles.emptyMessage} style={{ padding: "var(--space-sm) var(--space-md)", margin: 0 }}>
             No matching content
-          </p>
+          </li>
         )}
-        {results.map((item) => (
-          <div
+        {results.map((item, index) => (
+          <li
             key={`${item.sourceType}-${item.id}`}
             className={styles.searchPickerItem}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleSelect(item)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handleSelect(item);
-            }}
+            {...listbox.getOptionProps(item, index)}
           >
             <span className={styles.sourceBadge}>
               {item.sourceType === "playout"
@@ -145,9 +149,9 @@ export function ContentSearchPicker({
                 {formatDuration(item.duration)}
               </span>
             )}
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

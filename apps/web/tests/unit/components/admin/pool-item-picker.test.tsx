@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ChannelContent } from "@snc/shared";
 
 import { PoolItemPicker } from "../../../../src/components/admin/pool-item-picker.js";
@@ -79,5 +80,75 @@ describe("PoolItemPicker — empty state", () => {
     // We can check that with a playout item present, the no-pool message does NOT show.
     expect(screen.queryByText(/No playout items in pool/i)).not.toBeInTheDocument();
     expect(screen.getByText("Metropolis")).toBeInTheDocument();
+  });
+});
+
+describe("PoolItemPicker — listbox ARIA + keyboard navigation", () => {
+  const twoItems = [
+    makePlayoutItem({ id: "cc_a", title: "Aurora" }),
+    makePlayoutItem({ id: "cc_b", title: "Borealis" }),
+  ];
+
+  it("renders the results as a combobox input driving a listbox of options", () => {
+    render(
+      <PoolItemPicker poolItems={twoItems} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "Filter pool items" });
+    expect(input).toHaveAttribute("aria-controls", "pool-item-listbox");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("ArrowDown then Enter selects the active option and closes", async () => {
+    const onSelect = vi.fn();
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <PoolItemPicker poolItems={twoItems} onSelect={onSelect} onClose={onClose} />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "Filter pool items" });
+    input.focus();
+
+    await user.keyboard("{ArrowDown}"); // activate first option
+    expect(input).toHaveAttribute("aria-activedescendant", "pool-item-opt-cc_a");
+
+    await user.keyboard("{ArrowDown}"); // move to second option
+    expect(input).toHaveAttribute("aria-activedescendant", "pool-item-opt-cc_b");
+
+    await user.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "cc_b", title: "Borealis" }),
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("ArrowUp from no selection wraps to the last option", async () => {
+    const user = userEvent.setup();
+    render(
+      <PoolItemPicker poolItems={twoItems} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "Filter pool items" });
+    input.focus();
+
+    await user.keyboard("{ArrowUp}");
+    expect(input).toHaveAttribute("aria-activedescendant", "pool-item-opt-cc_b");
+  });
+
+  it("clicking an option selects it and closes", async () => {
+    const onSelect = vi.fn();
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <PoolItemPicker poolItems={twoItems} onSelect={onSelect} onClose={onClose} />,
+    );
+
+    await user.click(screen.getByRole("option", { name: /Aurora/ }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "cc_a", title: "Aurora" }),
+    );
+    expect(onClose).toHaveBeenCalled();
   });
 });
