@@ -1,27 +1,57 @@
 ---
 id: content-media-stream-cache-control-stale
-tags: [content, ux-polish]
-release_binding: null
+kind: backlog
+tags: [content, ux-polish, bug]
 created: 2026-04-24
+updated: 2026-06-20
 ---
 
-# Media stream cache-control can serve stale bytes across mediaKey replacements
+# Media + thumbnail stream cache-control serves stale bytes across replacements
 
-The `GET /api/content/:id/media` streaming route sets `cache-control: private, max-age=3600` on its response. The URL it serves from (`/api/content/<id>/media`) is a stable path that doesn't change when the underlying `mediaKey` / `transcodedMediaKey` changes on replacement — so the browser (and especially `<video>` element media caches) can keep serving the previous response for up to an hour, even on hard refresh, after the content has been replaced with a new upload.
+The content media/thumbnail stream routes serve from **stable URL paths** that don't change when
+the underlying storage key changes on replacement, while emitting long `cache-control` lifetimes.
+After a replace, the browser (and `<video>` media cache) keeps serving the prior response until
+the cache window rotates — even on hard refresh.
 
-Surfaced 2026-04-24 during `resumable-uploads-tus` review: a 4 GB HEVC replacement completed cleanly end-to-end on the server (canonical-path rename, probe, transcode, DB updates), but the content page kept playing the prior test video until the browser's internal media cache eventually rotated. Not tus-specific — the same race exists for any mediaKey replacement on the direct-S3 path.
+Surfaced 2026-04-24 during `resumable-uploads-tus` review: a 4 GB HEVC replacement completed
+cleanly server-side (rename, probe, transcode, DB updates) but the content page kept playing the
+prior video. Not tus-specific — any `mediaKey`/`transcodedMediaKey` replacement hits it.
 
-## Fix directions (pick one at scope time)
+## Grounded findings (code-checked 2026-06-20)
 
-1. **Cache-bust the URL** — append `?v=<updatedAt epoch>` (or a short content-hash) to `mediaUrl` + `thumbnailUrl` in `resolveContentUrls`. URL changes when the row changes; cache keys are fresh. Minimal change; server still emits a single stream route. Downside: range-request cache segments don't share across versions, mild extra bandwidth on rapid re-uploads.
+| Path | Cache-Control | URL builder | Stale window |
+|---|---|---|---|
+| `GET /api/content/:id/media` | `private, max-age=3600` (`content-media.routes.ts:278`) | `content-helpers.ts:53-55` (`/api/content/<id>/media`, no version) | up to 1h |
+| `GET /api/content/:id/thumbnail` | `public, max-age=86400` (`content-media.routes.ts:304`) | static `/api/content/<id>/thumbnail`, no version | **up to 24h** |
 
-2. **Tighten cache semantics on the stream route** — drop `max-age=3600` to something shorter with `must-revalidate`, and emit an `ETag` from the S3 object's ETag so `If-None-Match` can 304 cheaply. More plumbing; respects HTTP cache properly.
+- **Thumbnail shares the bug and is worse** (24h window, `public`). Fix both in one pass.
+- `content` row carries `updatedAt` (`content.schema.ts:30-32`), already bumped to `new Date()`
+  on every media upload (`content-media.routes.ts:216`) and clear/replace
+  (`content.routes.ts:256`). It's a ready cache-bust token — no migration needed.
+- **No ETag is available** without contract surgery: `s3-storage.ts` `download()` discards the
+  S3 ETag and `DownloadResult` (`packages/shared/src/storage.ts:19-30`) has no ETag field.
+- Existing test asserts the media header verbatim (`content.routes.test.ts:1183`); **no**
+  thumbnail-header test (coverage gap).
 
-3. **Both** — version the URL for safety and add an ETag for efficiency. Probably the right long-term shape.
+## Scoped fix — Option 1 (cache-bust the URL)
 
-Relevant code: [content-media.routes.ts:278](../../apps/api/src/routes/content-media.routes.ts#L278), [content-helpers.ts:53-55](../../apps/api/src/lib/content-helpers.ts#L53-L55).
+Append `?v=<updatedAt epoch>` to `mediaUrl` **and** `thumbnailUrl` in `resolveContentUrls`
+(`content-helpers.ts`). The URL changes whenever the row changes, so the browser cache key
+refreshes on every replace. ~4-6 lines, one file, no schema/contract change, fixes both paths.
 
-## Revisit if
+**Rejected — Option 2 (ETag + shorter max-age):** requires extending the `StorageProvider`
+contract to surface the S3 ETag and plumbing it through `streamFile`, and still leaves the path
+stable (a CDN seeing only the path would serve stale). Higher cost, doesn't dominate Option 1
+for the browser-cache case that's actually biting. *Revisit if a CDN lands between browser and
+API* (the `private` directive stops fitting and proper HTTP revalidation earns its weight), or
+if rapid re-uploads make range-segment cache churn a measured bandwidth problem.
 
-- A CDN lands between browser and API; `private` stops being the right directive and cache-bust becomes mandatory for purge avoidance.
-- Media files grow enough that repeated full re-fetches after replacement become a bandwidth concern.
+## Scope (at implementing)
+
+1. `resolveContentUrls` — append `?v=${updatedAt-as-epoch}` to both URLs (guard the null cases).
+2. Update the media-header test and **add the missing thumbnail-header test**; assert the
+   versioned URL shape so a future static-URL regression is caught.
+3. Confirm `<video>`/`<img>` consumers don't strip or re-derive the query param anywhere.
+
+User-verifiable (fix-verify loopback): replace a content item's media, reload the content page,
+confirm the new media/thumbnail show immediately (no stale playback).
