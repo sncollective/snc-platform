@@ -1,0 +1,74 @@
+# S/NC tusd (resumable upload server) — systemd unit template
+#
+# Serves the tus resumable-upload protocol at /uploads/ for content-media and
+# playout-media uploads. The web client (apps/web Uppy tus plugin) POSTs to
+# /uploads/ to create an upload; Caddy reverse-proxies /uploads/* to this
+# service (see Caddyfile.prod.example). On finish, tusd calls back to the API's
+# /api/tusd/hooks to rename the object to its canonical key and kick off
+# probe/transcode.
+#
+# Prod runs the app as systemd units, so tusd (a container image) is run here as
+# a docker-managed unit rather than via docker-compose (which is dev-only).
+#
+# Replace before use:
+#   APP_USER  — service account in the `docker` group (e.g. snc)
+#   APP_IP    — address the API is reachable at FROM this host. If tusd and the
+#               API are co-located, use the host's docker bridge gateway
+#               (host.docker.internal via --add-host below) to reach the API on
+#               its host port. If separate, use the API's LAN address.
+#   GARAGE_IP — prod Garage S3 endpoint host
+#   S3_*      — prod Garage credentials + bucket (keep out of this file; pass via
+#               EnvironmentFile or systemd credentials, NOT inline)
+#
+# ── Security (closes the deferred 0.3.0 S1 "tusd hooks network auth") ──
+# The /api/tusd/hooks endpoint has no app-level network auth. Before exposing
+# tusd in prod, ensure the hook path is only reachable from this host:
+#   - bind the API hook route to loopback, OR
+#   - firewall /api/tusd/hooks to this host's address, OR
+#   - add a shared secret to -hooks-http-forward-headers and verify it in the
+#     hook handler.
+# Do NOT ship tusd to prod with the hook open to the internet.
+#
+# ── CORS ──
+# -cors-allow-origin below is set to the prod origins. The dev compose value
+# (https?://localhost(:\d+)?) must NOT be used in prod.
+
+[Unit]
+Description=S/NC tusd resumable upload server
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=APP_USER
+Group=APP_USER
+# Pull the pinned image and remove any stale container before (re)starting.
+ExecStartPre=-/usr/bin/docker rm -f snc-tusd
+ExecStartPre=/usr/bin/docker pull tusproject/tusd:v2.9.2
+EnvironmentFile=APP_DIR/.env
+ExecStart=/usr/bin/docker run --rm --name snc-tusd \
+  --add-host host.docker.internal:host-gateway \
+  -p 8070:8080 \
+  -e AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID} \
+  -e AWS_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY} \
+  -e AWS_REGION=garage \
+  --tmpfs /tmp:size=256M \
+  tusproject/tusd:v2.9.2 \
+  -s3-bucket=${S3_BUCKET} \
+  -s3-endpoint=http://GARAGE_IP:3900 \
+  -s3-object-prefix=tus/ \
+  -base-path=/uploads/ \
+  -behind-proxy \
+  -hooks-http=http://host.docker.internal:3000/api/tusd/hooks \
+  -hooks-http-forward-headers=Authorization,Cookie \
+  -hooks-http-retry=3 \
+  -hooks-http-backoff=2s \
+  -hooks-enabled-events=pre-create,post-finish,post-terminate \
+  -cors-allow-origin=https://(s-nc\.org|s-nc\.tv) \
+  -max-size=21474836480
+ExecStop=/usr/bin/docker stop snc-tusd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

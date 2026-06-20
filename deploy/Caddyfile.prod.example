@@ -6,6 +6,10 @@
 #   docs/ops/srs-deploy.md           → stream.s-nc.tv (SRS)
 #
 # Replace APP_IP with the snc-app container IP.
+# Replace TUSD_IP with the tusd host:port (the snc-tusd service — see
+# snc-tusd.service.example). Resumable uploads are served by tusd, NOT the API,
+# so /uploads/* must route there, not to APP_IP. If tusd is co-located with the
+# app, this is the host's own address on tusd's published port (e.g. :8070).
 #
 # ⚠ Do NOT add an `encode` (compression) directive without exempting /api/sse —
 # Hono streamSSE can only send Cache-Control: no-cache (no no-transform), so a
@@ -66,15 +70,23 @@ s-nc.org {
 		max_size 10MB
 	}
 
-	# API + health + uploads → API server
+	# API + health → API server
 	handle /api/* {
 		reverse_proxy APP_IP:3000
 	}
 	handle /health {
 		reverse_proxy APP_IP:3000
 	}
+
+	# Resumable uploads → tusd (NOT the API — the API has no /uploads/* route).
+	# tusd serves the tus protocol at -base-path=/uploads/; it calls back to
+	# APP_IP:3000/api/tusd/hooks on finish. Body limit must not clip tus chunk
+	# PATCHes, so exempt this path from the 10MB request_body cap above.
 	handle /uploads/* {
-		reverse_proxy APP_IP:3000
+		request_body {
+			max_size 20GB
+		}
+		reverse_proxy TUSD_IP:8070
 	}
 
 	# Everything else → Web SSR server
@@ -109,8 +121,16 @@ s-nc.tv {
 	handle /health {
 		reverse_proxy APP_IP:3000
 	}
+
+	# Resumable uploads → tusd (NOT the API — the API has no /uploads/* route).
+	# tusd serves the tus protocol at -base-path=/uploads/; it calls back to
+	# APP_IP:3000/api/tusd/hooks on finish. Body limit must not clip tus chunk
+	# PATCHes, so exempt this path from the 10MB request_body cap above.
 	handle /uploads/* {
-		reverse_proxy APP_IP:3000
+		request_body {
+			max_size 20GB
+		}
+		reverse_proxy TUSD_IP:8070
 	}
 
 	# SRS HLS — .m3u8 playlists and .ts segments

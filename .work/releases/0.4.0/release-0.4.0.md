@@ -70,6 +70,15 @@ credentials and can't run in CI:
 - **`failed-upload-blocks-retry`:** upload killed mid-flight (CORS/network) then retried — confirm no
   "already exists" error and no orphaned Garage multipart parts. (Dev-reproducible; deferred here for
   convenience — could be confirmed in dev before ship.)
+- **Resumable (tus) uploads on prod** (`tusd-prod-deploy-uploads-404`): a creator completes a
+  `content-media` upload end-to-end on prod — `/uploads/` POST → tus PATCH chunks → post-finish hook →
+  canonical rename → probe/transcode → playback. **Blocked until the tusd prod deploy lands** (tusd is
+  not deployed to prod; `/uploads/*` 404s today). The deploy artifacts (`snc-tusd.service.example`,
+  the repointed `/uploads/*` Caddy blocks) are drafted; this check is the gate that the deploy
+  actually worked. Confirm in the same pass that `/api/tusd/hooks` is not reachable from outside the
+  host (closes the deferred 0.3.0 S1 "tusd hooks network auth"). Note: the
+  `failed-upload-blocks-retry` check above also rides the tus path and is untestable on prod until
+  this lands.
 
 ## Quality gate posture
 
