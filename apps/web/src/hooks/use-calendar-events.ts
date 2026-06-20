@@ -9,6 +9,7 @@ import {
   deleteCalendarEvent,
   deleteCreatorEvent,
   toggleEventComplete,
+  toggleCreatorEventComplete,
 } from "../lib/calendar.js";
 import type { CalendarViewMode } from "../components/calendar/view-toggle.js";
 
@@ -126,14 +127,16 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
   const handleToggleComplete = useCallback(async (id: string) => {
     setError(null);
     try {
-      const updated = await toggleEventComplete(id);
+      const updated = creatorId
+        ? await toggleCreatorEventComplete(creatorId, id)
+        : await toggleEventComplete(id);
       setEvents((prev) =>
         prev.map((e) => (e.id === id ? updated : e)),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update task");
     }
-  }, []);
+  }, [creatorId]);
 
   return {
     events,

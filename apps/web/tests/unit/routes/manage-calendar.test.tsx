@@ -12,11 +12,13 @@ const {
   mockUseLoaderData,
   mockFetchCreatorEvents,
   mockDeleteCreatorEvent,
+  mockToggleCreatorEventComplete,
   mockIsFeatureEnabled,
 } = vi.hoisted(() => ({
   mockUseLoaderData: vi.fn(),
   mockFetchCreatorEvents: vi.fn(),
   mockDeleteCreatorEvent: vi.fn(),
+  mockToggleCreatorEventComplete: vi.fn(),
   mockIsFeatureEnabled: vi.fn(),
 }));
 
@@ -33,6 +35,7 @@ vi.mock("@tanstack/react-router", () =>
 vi.mock("../../../src/lib/calendar.js", () => ({
   fetchCreatorEvents: mockFetchCreatorEvents,
   deleteCreatorEvent: mockDeleteCreatorEvent,
+  toggleCreatorEventComplete: mockToggleCreatorEventComplete,
   fetchEventTypes: vi.fn().mockResolvedValue({ items: [] }),
 }));
 
@@ -69,7 +72,21 @@ vi.mock("../../../src/components/calendar/calendar-grid.js", () => ({
 }));
 
 vi.mock("../../../src/components/calendar/timeline-view.js", () => ({
-  TimelineView: () => <div data-testid="timeline-view" />,
+  TimelineView: ({
+    onToggleComplete,
+  }: {
+    onToggleComplete?: (id: string) => void;
+  }) => (
+    <div data-testid="timeline-view">
+      <button
+        type="button"
+        data-testid="timeline-toggle"
+        onClick={() => onToggleComplete?.("evt-task-1")}
+      >
+        Toggle task
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("../../../src/components/calendar/view-toggle.js", () => ({
@@ -128,6 +145,12 @@ beforeEach(() => {
     nextCursor: null,
   });
   mockDeleteCreatorEvent.mockResolvedValue(undefined);
+  mockToggleCreatorEventComplete.mockResolvedValue(
+    makeMockCalendarEvent({
+      id: "evt-task-1",
+      completedAt: "2026-06-20T00:00:00.000Z",
+    }),
+  );
 });
 
 // ── Tests ──
@@ -200,5 +223,25 @@ describe("ManageEventsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByTestId("event-form")).not.toBeInTheDocument();
+  });
+
+  it("wires the timeline checkbox toggle to the creator-scoped complete endpoint", async () => {
+    const user = userEvent.setup();
+    render(<ManageEventsPage />);
+
+    // Switch to the timeline view (where the task checkbox lives).
+    await user.click(screen.getByRole("button", { name: "Timeline" }));
+    const toggle = await screen.findByTestId("timeline-toggle");
+
+    await user.click(toggle);
+
+    // The handler must reach the creator-scoped endpoint (not the global one),
+    // which gates on creator manageScheduling rather than the org stakeholder role.
+    await waitFor(() => {
+      expect(mockToggleCreatorEventComplete).toHaveBeenCalledWith(
+        "creator-uuid-123",
+        "evt-task-1",
+      );
+    });
   });
 });

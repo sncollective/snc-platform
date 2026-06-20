@@ -132,3 +132,15 @@ export async function deleteCreatorEvent(
     { method: "DELETE" },
   );
 }
+
+/** Toggle the completion status of a creator-scoped task event. */
+export async function toggleCreatorEventComplete(
+  creatorId: string,
+  eventId: string,
+): Promise<CalendarEvent> {
+  const result = await apiMutate<{ event: CalendarEvent }>(
+    `/api/creators/${encodeURIComponent(creatorId)}/events/${encodeURIComponent(eventId)}/complete`,
+    { method: "PATCH" },
+  );
+  return result.event;
+}

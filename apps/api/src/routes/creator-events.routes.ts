@@ -12,6 +12,7 @@ import {
   CalendarEventResponseSchema,
   CalendarEventsResponseSchema,
   NotFoundError,
+  AppError,
 } from "@snc/shared";
 import type { CalendarEventsQuery } from "@snc/shared";
 
@@ -23,6 +24,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import {
+  ERROR_400,
   ERROR_401,
   ERROR_403,
   ERROR_404,
@@ -343,5 +345,71 @@ creatorEventRoutes.delete(
       .where(eq(calendarEvents.id, eventId));
 
     return c.body(null, 204);
+  },
+);
+
+// ── PATCH /:creatorId/events/:eventId/complete — Toggle task completion ──
+
+// Creator-scoped sibling of the global `/api/calendar/events/:id/complete`. The
+// global route gates on the org `stakeholder` role, which a creator-team member
+// managing their own page need not hold; this one authorizes via
+// `manageScheduling` on the creator, matching the other creator-event handlers.
+creatorEventRoutes.patch(
+  "/:creatorId/events/:eventId/complete",
+  describeRoute({
+    description: "Toggle completion status of a creator task event",
+    tags: ["creator-events"],
+    responses: {
+      200: {
+        description: "Updated creator calendar event with toggled completion",
+        content: {
+          "application/json": {
+            schema: resolver(CalendarEventResponseSchema),
+          },
+        },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorEventParams),
+  async (c) => {
+    const { creatorId, eventId } = c.req.valid("param" as never) as { creatorId: string; eventId: string };
+    const user = c.get("user");
+    const roles = getRoles(c);
+
+    await requireCreatorPermission(user.id, creatorId, "manageScheduling", roles);
+
+    const existing = await findActiveEvent(eventId, creatorId);
+    if (!existing) {
+      throw new NotFoundError("Event not found");
+    }
+
+    if (existing.eventType !== "task") {
+      throw new AppError("INVALID_EVENT_TYPE", "Only task events can be completed", 400);
+    }
+
+    const now = new Date();
+    const newCompletedAt = existing.completedAt === null ? now : null;
+
+    await db
+      .update(calendarEvents)
+      .set({ completedAt: newCompletedAt, updatedAt: now })
+      .where(eq(calendarEvents.id, eventId));
+
+    const [row] = await db
+      .select({
+        event: calendarEvents,
+        projectName: projects.name,
+        creatorName: creatorProfiles.displayName,
+      })
+      .from(calendarEvents)
+      .leftJoin(projects, eq(calendarEvents.projectId, projects.id))
+      .leftJoin(creatorProfiles, eq(calendarEvents.creatorId, creatorProfiles.id))
+      .where(eq(calendarEvents.id, eventId));
+
+    return c.json({ event: toEventResponse(row!.event, row!.projectName ?? null, row!.creatorName ?? null) });
   },
 );

@@ -128,6 +128,7 @@ function ManageCalendarPage(): React.ReactElement {
             creatorId={creator.id}
             onEdit={cal.handleEdit}
             onDelete={(id) => { void cal.handleDelete(id); }}
+            onToggleComplete={(id) => { void cal.handleToggleComplete(id); }}
           />
         )}
       </section>

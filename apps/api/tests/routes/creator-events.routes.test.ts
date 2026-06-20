@@ -470,6 +470,104 @@ describe("creator event routes", () => {
     });
   });
 
+  // ── PATCH /api/creators/:creatorId/events/:eventId/complete ──
+
+  describe("PATCH /:creatorId/events/:eventId/complete", () => {
+    it("toggles an incomplete task to complete", async () => {
+      const event = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        eventType: "task",
+        completedAt: null,
+      });
+      const updated = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        eventType: "task",
+        completedAt: new Date("2026-06-20T00:00:00.000Z"),
+      });
+
+      mockSelectWhere.mockResolvedValueOnce([event]); // findActiveEvent
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]); // re-fetch join
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_test001/complete",
+        { method: "PATCH" },
+      );
+
+      expect(res.status).toBe(200);
+      // null → a timestamp
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ completedAt: expect.any(Date) }),
+      );
+    });
+
+    it("toggles a complete task back to incomplete", async () => {
+      const event = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        eventType: "task",
+        completedAt: new Date("2026-06-01T00:00:00.000Z"),
+      });
+      const updated = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        eventType: "task",
+        completedAt: null,
+      });
+
+      mockSelectWhere.mockResolvedValueOnce([event]);
+      mockSelectWhere.mockResolvedValueOnce([wrapEventRow(updated)]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_test001/complete",
+        { method: "PATCH" },
+      );
+
+      expect(res.status).toBe(200);
+      // a timestamp → null
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ completedAt: null }),
+      );
+    });
+
+    it("returns 400 when the event is not a task", async () => {
+      const event = makeMockCalendarEvent({
+        creatorId: "creator_1",
+        eventType: "recording-session",
+      });
+      mockSelectWhere.mockResolvedValueOnce([event]);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_test001/complete",
+        { method: "PATCH" },
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 when event belongs to a different creator", async () => {
+      mockSelectWhere.mockResolvedValueOnce([]); // findActiveEvent empty
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_other/complete",
+        { method: "PATCH" },
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 403 when user lacks manageScheduling permission", async () => {
+      const { ForbiddenError } = await import("@snc/shared");
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Missing creator permission: manageScheduling"),
+      );
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events/evt_test001/complete",
+        { method: "PATCH" },
+      );
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   // ── DELETE /api/creators/:creatorId/events/:eventId ──
 
   describe("DELETE /:creatorId/events/:eventId", () => {
