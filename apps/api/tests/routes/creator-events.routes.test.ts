@@ -211,14 +211,44 @@ describe("creator event routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 for non-stakeholder", async () => {
-      ctx.auth.roles = [];
+    it("returns 403 when user lacks manageScheduling permission", async () => {
+      const { ForbiddenError } = await import("@snc/shared");
+
+      // Creator lookup
+      mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new ForbiddenError("Missing creator permission: manageScheduling"),
+      );
 
       const res = await ctx.app.request(
         "/api/creators/creator_1/events",
       );
 
       expect(res.status).toBe(403);
+    });
+
+    it("allows a creator member with no org role (per-creator authorization)", async () => {
+      // The headline scenario: a creator-team member (owner/editor) who holds no org
+      // stakeholder/admin role. The old blanket requireRole gate 403'd them here; now
+      // requireCreatorPermission is the sole authority and admits them.
+      ctx.auth.roles = [];
+      const event = makeMockCalendarEvent({ creatorId: "creator_1" });
+
+      mockSelectWhere.mockResolvedValueOnce([{ id: "creator_1" }]);
+      mockLimit.mockResolvedValueOnce([wrapEventRow(event)]);
+      mockRequireCreatorPermission.mockResolvedValueOnce(undefined);
+
+      const res = await ctx.app.request(
+        "/api/creators/creator_1/events",
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockRequireCreatorPermission).toHaveBeenCalledWith(
+        expect.anything(),
+        "creator_1",
+        "manageScheduling",
+        [],
+      );
     });
 
     it("filters events by projectId when provided", async () => {

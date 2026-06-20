@@ -44,11 +44,32 @@ report's "month grid" mention was a red herring.)
 - **Wiring** (`manage/calendar.tsx`): passed `onToggleComplete={(id) => void cal.handleToggleComplete(id)}`
   to the timeline (parity with the governance call site).
 
+### Follow-up: the headline scenario was still 403'd (review catch)
+
+Code review caught that the new endpoint — like every handler in `creator-events.routes.ts` —
+sat behind a router-level `requireRole("stakeholder", "admin")` middleware that ran *before* the
+per-handler `requireCreatorPermission`. So the exact scenario this story set out to fix (a
+creator-team member managing their own page who holds **no** org stakeholder/admin role) still
+hit a 403 at the middleware. The fix mirrored the broken siblings faithfully — but the siblings
+were broken the same way.
+
+**Resolved:** removed the blanket `requireRole` from the router. Authorization for creator
+events is now per-creator only — each handler's `requireCreatorPermission(..., "manageScheduling",
+...)` is the sole authority (it admits creator owners/editors and bypasses for org admins). The
+GET list handler, which previously relied *solely* on the blanket guard (no per-creator check of
+its own), gained an explicit `requireCreatorPermission` so removing the middleware did not turn a
+403 into a cross-creator data leak. This is the intended product behavior: **creator members
+manage their own calendars without needing an org-wide role.**
+
+*Revisit if* a viewer-facing (read-only) creator calendar is ever added — the GET handler is
+gated on `manageScheduling`, so it would need loosening to `viewPrivate` for a viewer surface.
+
 ## Verification
 
-- API 1786/1786 (added 5 endpoint tests: toggle on, toggle off, non-task 400, cross-creator 404,
-  manageScheduling 403). Web 1765/1765 (added a manage-calendar test asserting the timeline toggle
-  reaches the creator-scoped client with the creator id). `tsc` clean both packages.
+- API 1787/1787 (5 toggle-endpoint tests: toggle on, toggle off, non-task 400, cross-creator
+  404, manageScheduling 403; plus a reworked GET test proving a creator member with `roles: []`
+  now gets 200 and a non-member gets 403 — the headline scenario, which the old role-based GET
+  test could not exercise). Web 1767/1767. `tsc` clean both packages.
 
 ## Notes
 
@@ -57,7 +78,7 @@ report's "month grid" mention was a red herring.)
 
 ## Fix-verify loopback (pending)
 
-In the running app at `/creators/$id/manage/calendar`, timeline view: toggle a task event's
-checkbox and confirm it persists across reload — including as a creator-team member who is **not**
-an org stakeholder (the case the old global-endpoint path would have 403'd). Story stays at
-`stage: review` until confirmed.
+In the running app at `/creators/$id/manage/calendar`, timeline view: sign in as a creator-team
+**owner or editor who holds no org stakeholder/admin role**, toggle a task event's checkbox, and
+confirm it persists across reload (no 403). This is now the load-bearing case — it was the
+scenario the original fix did not actually unblock. Story stays at `stage: review` until confirmed.

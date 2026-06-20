@@ -21,7 +21,6 @@ import { calendarEvents } from "../db/schema/calendar.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { projects } from "../db/schema/project.schema.js";
 import { requireAuth } from "../middleware/require-auth.js";
-import { requireRole } from "../middleware/require-role.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import {
   ERROR_400,
@@ -69,7 +68,11 @@ const findActiveEvent = async (eventId: string, creatorId: string): Promise<Cale
 export const creatorEventRoutes = new Hono<AuthEnv>();
 
 creatorEventRoutes.use("*", requireAuth);
-creatorEventRoutes.use("*", requireRole("stakeholder", "admin"));
+// Authorization is per-creator, not org-wide: each handler calls
+// requireCreatorPermission(..., "manageScheduling", ...), which admits creator-team
+// members (owner/editor) managing their own page and bypasses for org admins. A blanket
+// requireRole("stakeholder","admin") here previously 403'd creator members who lacked an
+// org role before their per-creator permission was ever checked.
 
 // ── GET /:creatorId/events — List creator events ──
 
@@ -99,11 +102,18 @@ creatorEventRoutes.get(
     const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
     const { from, to, eventType, projectId, cursor, limit } =
       c.req.valid("query" as never) as CalendarEventsQuery;
+    const user = c.get("user");
+    const roles = getRoles(c);
 
     const creator = await findCreator(creatorId);
     if (!creator) {
       throw new NotFoundError("Creator not found");
     }
+
+    // Gated on manageScheduling (not viewPrivate) to keep the whole creator-events router
+    // uniform with the write handlers — this list backs the creator-manage calendar surface,
+    // not public reads. Loosen to viewPrivate if a viewer-facing creator calendar is added.
+    await requireCreatorPermission(user.id, creatorId, "manageScheduling", roles);
 
     const conditions = [
       isNull(calendarEvents.deletedAt),
