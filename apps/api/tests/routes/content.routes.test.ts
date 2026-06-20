@@ -346,22 +346,24 @@ describe("content routes", () => {
     });
 
     it("resolves content URLs (thumbnail, media) in items", async () => {
-      mockLimit.mockResolvedValue([
-        makeFeedRow({
-          id: "content-x",
-          thumbnailKey: "content/content-x/thumbnail/thumb.jpg",
-          mediaKey: "content/content-x/media/video.mp4",
-        }),
-      ]);
+      const row = makeFeedRow({
+        id: "content-x",
+        thumbnailKey: "content/content-x/thumbnail/thumb.jpg",
+        mediaKey: "content/content-x/media/video.mp4",
+      });
+      mockLimit.mockResolvedValue([row]);
 
       const res = await ctx.app.request("/api/content");
 
       expect(res.status).toBe(200);
       const body = await res.json();
+      // URLs carry a ?v=<updatedAt epoch> cache-bust so a media replace (which
+      // bumps updatedAt) invalidates the browser/media cache on the stable path.
+      const v = (row.updatedAt as Date).getTime();
       expect(body.items[0].thumbnailUrl).toBe(
-        "/api/content/content-x/thumbnail",
+        `/api/content/content-x/thumbnail?v=${v}`,
       );
-      expect(body.items[0].mediaUrl).toBe("/api/content/content-x/media");
+      expect(body.items[0].mediaUrl).toBe(`/api/content/content-x/media?v=${v}`);
     });
 
     it("returns 400 for invalid type filter", async () => {
@@ -403,7 +405,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.items[0].mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.items[0].mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(body.items[0].body).toBe("Public content");
     });
 
@@ -423,7 +425,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.items[0].mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.items[0].mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(body.items[0].body).toBe("Subscriber content");
     });
 
@@ -448,7 +450,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.items[0].mediaUrl).toBe("/api/content/public-1/media");
+      expect(body.items[0].mediaUrl).toContain("/api/content/public-1/media");
       expect(body.items[0].body).toBe("Public body");
       expect(body.items[1].mediaUrl).toBeNull();
       expect(body.items[1].body).toBeNull();
@@ -633,7 +635,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns metadata with mediaUrl null for subscribers-only when unauthenticated", async () => {
@@ -678,7 +680,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns mediaUrl null for subscribers-only content when user has no subscription", async () => {
@@ -721,7 +723,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
     });
 
     it("returns 404 for soft-deleted content", async () => {
@@ -1065,7 +1067,7 @@ describe("content routes", () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.mediaUrl).toBe("/api/content/00000000-0000-4000-a000-000000000001/media");
+      expect(body.mediaUrl).toContain("/api/content/00000000-0000-4000-a000-000000000001/media");
       expect(mockStorageUpload).toHaveBeenCalledOnce();
       const [uploadKey] = mockStorageUpload.mock.calls[0] as [string, ...unknown[]];
       expect(uploadKey).toBe("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
@@ -1281,6 +1283,48 @@ describe("content routes", () => {
       ]);
 
       const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001/media");
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+
+  // ── GET /api/content/:id/thumbnail ──
+
+  describe("GET /api/content/:id/thumbnail", () => {
+    it("streams the thumbnail with its long-lived cache header", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({
+          thumbnailKey:
+            "content/00000000-0000-4000-a000-000000000001/thumbnail/thumb.jpg",
+        }),
+      ]);
+      mockStorageDownload.mockResolvedValue(mockDownloadResult("image bytes"));
+
+      const res = await ctx.app.request(
+        "/api/content/00000000-0000-4000-a000-000000000001/thumbnail",
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toBe("image/jpeg");
+      // 1-day public cache. The serving path is stable across a thumbnail
+      // replace, so freshness rides on the ?v= cache-bust in the resolved URL
+      // (see resolveContentUrls), not on this header. If the header ever moves to
+      // a short max-age + revalidation, update this assertion deliberately.
+      expect(res.headers.get("Cache-Control")).toBe("public, max-age=86400");
+      const text = await res.text();
+      expect(text).toBe("image bytes");
+    });
+
+    it("returns 404 when content has no thumbnail uploaded", async () => {
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ thumbnailKey: null }),
+      ]);
+
+      const res = await ctx.app.request(
+        "/api/content/00000000-0000-4000-a000-000000000001/thumbnail",
+      );
 
       expect(res.status).toBe(404);
       const body = await res.json();

@@ -83,11 +83,31 @@ describe("content-helpers", () => {
       const result = resolveContentUrls(row as Parameters<typeof resolveContentUrls>[0]);
 
       expect(result.id).toBe("content-1");
-      expect(result.thumbnailUrl).toBe("/api/content/content-1/thumbnail");
+      // URLs carry a ?v=<updatedAt epoch> cache-bust so a replace (which bumps
+      // updatedAt) invalidates the browser/media cache on the stable serving path.
+      expect(result.thumbnailUrl).toBe("/api/content/content-1/thumbnail?v=1735776000000");
       expect(result.thumbnail).toBeNull();
-      expect(result.mediaUrl).toBe("/api/content/content-1/media");
+      expect(result.mediaUrl).toBe("/api/content/content-1/media?v=1735776000000");
       expect(result.title).toBe("Test Video");
       expect(result.visibility).toBe("public");
+    });
+
+    it("cache-bust token tracks updatedAt — a replace changes the served URLs", async () => {
+      const { resolveContentUrls } = await setupContentHelpers();
+      const before = resolveContentUrls(
+        makeContentRow() as Parameters<typeof resolveContentUrls>[0],
+      );
+      const after = resolveContentUrls(
+        makeContentRow({
+          updatedAt: new Date("2025-06-01T12:00:00.000Z"),
+        }) as Parameters<typeof resolveContentUrls>[0],
+      );
+
+      expect(after.mediaUrl).not.toBe(before.mediaUrl);
+      expect(after.thumbnailUrl).not.toBe(before.thumbnailUrl);
+      expect(after.mediaUrl).toBe(
+        `/api/content/content-1/media?v=${new Date("2025-06-01T12:00:00.000Z").getTime()}`,
+      );
     });
 
     it("returns null thumbnailUrl when thumbnailKey is null", async () => {

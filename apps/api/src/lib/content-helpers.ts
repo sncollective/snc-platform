@@ -14,12 +14,26 @@ type ContentRow = typeof content.$inferSelect;
 
 const THUMBNAIL_SIZES = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
+/**
+ * Cache-bust token for the stable `/api/content/:id/{media,thumbnail}` serving
+ * paths. The path doesn't change when the underlying storage key is replaced, so
+ * without this the browser (and `<video>` media cache) can serve the prior
+ * response for the route's full max-age after a replace. `updatedAt` is bumped on
+ * every media upload/replace, so keying on it refreshes the cache key exactly when
+ * the bytes change. (The imgproxy `thumbnail` srcSet is keyed on `thumbnailKey`,
+ * which already changes on replace, so it needs no bust.)
+ */
+const cacheBust = (updatedAt: Date): string => `?v=${updatedAt.getTime()}`;
+
 /** Build a ResponsiveImage object for a content thumbnail, or null if no key. */
 const buildThumbnail = (
   id: string,
   thumbnailKey: string | null,
+  updatedAt: Date,
 ): { thumbnailUrl: string | null; thumbnail: ResponsiveImage | null } => {
-  const fallbackUrl = thumbnailKey ? `/api/content/${id}/thumbnail` : null;
+  const fallbackUrl = thumbnailKey
+    ? `/api/content/${id}/thumbnail${cacheBust(updatedAt)}`
+    : null;
 
   if (!thumbnailKey || !config.IMGPROXY_URL) {
     return { thumbnailUrl: fallbackUrl, thumbnail: null };
@@ -37,7 +51,11 @@ export type { ContentRow };
 
 /** Map a content DB row to an API response, converting storage keys to serving URLs. */
 export const resolveContentUrls = (row: ContentRow): ContentResponse => {
-  const { thumbnailUrl, thumbnail } = buildThumbnail(row.id, row.thumbnailKey);
+  const { thumbnailUrl, thumbnail } = buildThumbnail(
+    row.id,
+    row.thumbnailKey,
+    row.updatedAt,
+  );
   return {
     id: row.id,
     creatorId: row.creatorId,
@@ -51,7 +69,7 @@ export const resolveContentUrls = (row: ContentRow): ContentResponse => {
     thumbnailUrl,
     thumbnail,
     mediaUrl: row.mediaKey
-      ? `/api/content/${row.id}/media`
+      ? `/api/content/${row.id}/media${cacheBust(row.updatedAt)}`
       : null,
     publishedAt: toISOOrNull(row.publishedAt),
     createdAt: toISO(row.createdAt),
