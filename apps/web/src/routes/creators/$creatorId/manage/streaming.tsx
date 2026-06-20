@@ -196,6 +196,8 @@ function StreamingPage(): React.ReactElement {
 
   return (
     <div className={settingsStyles.page}>
+      <h1 className={styles.pageHeading}>Streaming</h1>
+
       <h2 className={styles.heading}>Stream Keys</h2>
       <p className={styles.description}>
         Use these keys to connect OBS or other streaming software. Each key

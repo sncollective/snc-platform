@@ -204,9 +204,11 @@ export function SimulcastDestinationManager({
       <p className={styles.semanticsNote}>Changes to active destinations take effect immediately on the live stream.</p>
 
       {showForm && (
-        <form className={styles.form} onSubmit={(e) => { void handleSubmit(e); }}>
-          <h2>{editingId !== null ? "Edit Destination" : "Add Destination"}</h2>
-
+        <form
+          className={styles.form}
+          aria-label={editingId !== null ? "Edit Destination" : "Add Destination"}
+          onSubmit={(e) => { void handleSubmit(e); }}
+        >
           {formError !== null && (
             <div className={errorStyles.error} role="alert">{formError}</div>
           )}
