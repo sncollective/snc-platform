@@ -12,6 +12,8 @@ export interface UseListboxNavigationOptions<T> {
   readonly onSelect: (item: T) => void;
   /** Base id used to derive the listbox id and per-option ids. */
   readonly listboxId: string;
+  /** Accessible name for the listbox (emitted as aria-label). Optional. */
+  readonly listboxLabel?: string;
 }
 
 export interface UseListboxNavigationResult<T> {
@@ -29,6 +31,7 @@ export interface UseListboxNavigationResult<T> {
   readonly getListboxProps: () => {
     readonly role: "listbox";
     readonly id: string;
+    readonly "aria-label": string | undefined;
   };
   /** Spread onto each option `<li>`. */
   readonly getOptionProps: (item: T, index: number) => {
@@ -61,6 +64,7 @@ export function useListboxNavigation<T>({
   getItemId,
   onSelect,
   listboxId,
+  listboxLabel,
 }: UseListboxNavigationOptions<T>): UseListboxNavigationResult<T> {
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -125,6 +129,7 @@ export function useListboxNavigation<T>({
     getListboxProps: () => ({
       role: "listbox",
       id: listboxId,
+      "aria-label": listboxLabel,
     }),
     getOptionProps: (_item: T, index: number) => ({
       role: "option",

@@ -68,3 +68,18 @@ User-verifiable in the running app at `/admin/playout`:
 
 Story stays at `stage: review` until confirmed. Provenance screenshots for the original findings
 are under `.memory/scratchpad/streaming-playout-ux-review/`.
+
+## Review pass (2026-06-20)
+
+**Verdict: PASS-WITH-NITS → nits fixed inline.** ARIA wiring verified correct on both fronts
+(tab↔tabpanel association; combobox + aria-activedescendant + listbox/option, with the active
+descendant id provably pointing at a real option). The reset-on-keystroke hook bug is genuinely
+fixed (clamp keyed on `items.length`, not array identity) and the `pool-item-picker` keyboard
+tests would catch a regression.
+
+- **Nit fixed:** the listbox had no accessible name. Added an optional `listboxLabel` to
+  `useListboxNavigation` (emitted as `aria-label` from `getListboxProps`); both pickers now pass
+  one ("Content search results" / "Content pool results").
+- **Deferred (out of this sweep's scope):** focus is not returned to the trigger button when a
+  picker closes (a WCAG 2.4.3 Focus Order concern, pre-existing — not a 4.1.2 finding). Filed as
+  a separate backlog item rather than expanding this feature.

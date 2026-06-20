@@ -104,6 +104,7 @@ export function ContentSearchPicker({
     getItemId: (item) => `content-search-opt-${item.sourceType}-${item.id}`,
     onSelect: handleSelect,
     listboxId: "content-search-listbox",
+    listboxLabel: "Content search results",
   });
 
   const showEmpty = !isLoading && results.length === 0;

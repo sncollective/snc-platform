@@ -79,3 +79,20 @@ User-verifiable in the running app at `/creators/:id/manage/streaming`:
 
 Story stays at `stage: review` until confirmed. Provenance screenshots for the original
 findings are under `.memory/scratchpad/streaming-playout-ux-review/`.
+
+## Review pass (2026-06-20)
+
+**Verdict: PASS-WITH-NITS → nits addressed.** All five findings verified correct: `.secondaryButton`
+now resolves the `buttonStyles.secondaryButton` reference and clears the WCAG 2.5.8 target size;
+exactly one H1 with clean h2/h3 nesting; the shared-component aria-label decision is sound (the
+manager really is mounted under an `<h2>` on creator-streaming and directly under `<h1>` on
+admin/simulcast, so no hardcoded heading level is correct in both).
+
+- **Nit fixed:** added a regression guard for the original undefined-CSS-Modules-class bug class
+  (`tests/unit/styles/button-module-contract.test.ts`). Vitest's default CSS-Modules handling
+  returns the key string for *any* accessed property, so a render-based `className` assertion
+  cannot catch a missing class — the guard instead statically asserts every `buttonStyles.X`
+  reference in the streaming route resolves to a `.X` rule actually defined in `button.module.css`.
+- **Note (no change):** the `.revokeButton:focus-visible` rule is technically redundant with the
+  global `:focus-visible` outline in `global.css` (so WCAG 2.4.7 was likely not actually violated),
+  but it is harmless and adds rounded ring corners. Left as-is.

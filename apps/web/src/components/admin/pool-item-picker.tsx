@@ -83,6 +83,7 @@ export function PoolItemPicker({
     getItemId: (item) => `pool-item-opt-${item.id}`,
     onSelect: handleSelect,
     listboxId: "pool-item-listbox",
+    listboxLabel: "Content pool results",
   });
 
   return (
