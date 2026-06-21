@@ -83,3 +83,31 @@ tests would catch a regression.
 - **Deferred (out of this sweep's scope):** focus is not returned to the trigger button when a
   picker closes (a WCAG 2.4.3 Focus Order concern, pre-existing — not a 4.1.2 finding). Filed as
   a separate backlog item rather than expanding this feature.
+
+## Review (2026-06-21)
+
+**Verdict**: Approve (deep lane — cross-model adversarial convergence)
+
+**Lane**: Deep. Phase 1 completeness pass (Opus host, inline). Phase 2 adversarial
+pass via peeragent → codex (different model class), two rounds to convergence.
+
+**Round 1 — codex found:**
+- **Blocker**: channel tabs each set `aria-controls="playout-panel-<id>"` but only the
+  selected channel's panel renders, so with 2+ channels inactive tabs referenced panel
+  IDs absent from the DOM (broken ARIA reference — defeated the WCAG 4.1.2 wiring claim).
+- *Important (self-resolved)*: listbox unnamed in the artifact commit — already fixed at
+  HEAD by the aria-label change earlier this session.
+- *Important*: picker test gaps (doesn't assert the activedescendant target exists; no
+  Home/End; no ContentSearchPicker keyboard test) — left as known coverage gaps, not blocking.
+
+**Fix (commit 4f311c9)**: single swap-in-place panel given a stable `id="playout-panel"`;
+every tab's `aria-controls` points at it; panel keeps `aria-labelledby` tracking the selected
+tab. Web 1767/1767, tsc clean.
+
+**Round 2 — codex verdict: RESOLVED.** All tabs reference a panel that exists; ARIA pattern
+correct for a single reused panel (matches APG tabs pattern); no new issues, no duplicate ids,
+no selected-state mismatch.
+
+**Blockers**: none (round-1 blocker fixed + re-confirmed resolved)
+**Important**: none outstanding
+**Nits**: picker test could add Home/End + ContentSearchPicker coverage (non-blocking)

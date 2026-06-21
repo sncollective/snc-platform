@@ -96,3 +96,29 @@ admin/simulcast, so no hardcoded heading level is correct in both).
 - **Note (no change):** the `.revokeButton:focus-visible` rule is technically redundant with the
   global `:focus-visible` outline in `global.css` (so WCAG 2.4.7 was likely not actually violated),
   but it is harmless and adds rounded ring corners. Left as-is.
+
+## Review (2026-06-21)
+
+**Verdict**: Approve (deep lane — cross-model adversarial convergence)
+
+**Lane**: Deep. Phase 1 completeness pass (Opus host, inline). Phase 2 adversarial
+pass via peeragent → codex (different model class), two rounds to convergence.
+
+**Round 1 — codex found:**
+- **Important**: the "exactly one H1" claim only held on the owner/admin render path; the
+  non-owner branch returned a bare `<p>` with no heading, and the route loader admits
+  non-owner members, so a non-owner navigating directly got a headingless page (WCAG 1.3.1).
+- *Nit (acknowledged adequate)*: the button-class contract test is route-scoped, not
+  repo-wide — adequate for this bug; broaden only if catching every `buttonStyles.*` typo.
+
+**Fix (commit 4f311c9)**: added the page `<h1>Streaming</h1>` to the non-owner branch;
+extended the streaming test to assert the level-1 heading for a non-owner (editor, non-admin).
+Web 1767/1767, tsc clean.
+
+**Round 2 — codex verdict: RESOLVED.** Non-owner branch now has exactly one H1; owner branch
+H1 is mutually exclusive; no skipped levels, no duplicate H1, ContextShell adds none; the test
+assertion is sound. No new issues.
+
+**Blockers**: none
+**Important**: none outstanding (round-1 finding fixed + re-confirmed resolved)
+**Nits**: contract test is route-scoped (acknowledged adequate, non-blocking)
