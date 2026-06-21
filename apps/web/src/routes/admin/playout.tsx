@@ -497,7 +497,9 @@ function PlayoutPageInner(): React.ReactElement {
                 role="tab"
                 id={`playout-tab-${ch.id}`}
                 aria-selected={ch.id === selectedChannelId}
-                aria-controls={`playout-panel-${ch.id}`}
+                // Single swap-in-place panel: every tab controls the one rendered
+                // panel (stable id), not a per-channel panel that isn't in the DOM.
+                aria-controls="playout-panel"
                 className={[
                   styles.channelTab,
                   ch.id === selectedChannelId ? styles.channelTabActive : null,
@@ -600,7 +602,7 @@ function PlayoutPageInner(): React.ReactElement {
       {selectedChannelId !== null && (
         <div
           role="tabpanel"
-          id={`playout-panel-${selectedChannelId}`}
+          id="playout-panel"
           aria-labelledby={`playout-tab-${selectedChannelId}`}
           tabIndex={0}
           className={styles.tabPanel}

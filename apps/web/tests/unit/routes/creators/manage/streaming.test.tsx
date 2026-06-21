@@ -122,6 +122,9 @@ describe("StreamingPage", () => {
 
     expect(screen.getByText("Only creator owners can manage stream keys.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create Key" })).toBeNull();
+    // The non-owner branch must still carry the page H1 — a headingless page
+    // fails WCAG 1.3.1 (the owner branch is not the only render path).
+    expect(screen.getByRole("heading", { level: 1, name: "Streaming" })).toBeInTheDocument();
   });
 
   it("lists active keys", async () => {

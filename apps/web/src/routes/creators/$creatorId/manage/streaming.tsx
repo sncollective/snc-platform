@@ -186,6 +186,7 @@ function StreamingPage(): React.ReactElement {
   if (!isOwner) {
     return (
       <div className={settingsStyles.page}>
+        <h1 className={styles.pageHeading}>Streaming</h1>
         <p>Only creator owners can manage stream keys.</p>
       </div>
     );
