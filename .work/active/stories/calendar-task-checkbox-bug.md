@@ -76,9 +76,22 @@ gated on `manageScheduling`, so it would need loosening to `viewPrivate` for a v
 - `UpdateCalendarEventSchema` omits `completedAt` by design (toggle-only via the dedicated
   endpoint, no arbitrary date-set) — left as-is.
 
-## Fix-verify loopback (pending)
+## Fix-verify loopback (CONFIRMED 2026-06-20)
 
-In the running app at `/creators/$id/manage/calendar`, timeline view: sign in as a creator-team
-**owner or editor who holds no org stakeholder/admin role**, toggle a task event's checkbox, and
-confirm it persists across reload (no 403). This is now the load-bearing case — it was the
-scenario the original fix did not actually unblock. Story stays at `stage: review` until confirmed.
+Verified in the running app as `pat@snc.demo` — a creator `editor` of maya-chen holding **no**
+org role (the load-bearing case the original fix did not unblock). Toggled the task checkbox:
+the completion **persisted** (DB `completed_at` set; checked after reload) with **no 403** and no
+`creator_authz_denial` in the API logs. The per-creator authorization path works for a creator
+member without an org role. ✅
+
+### Two separate pre-existing bugs found during verification (filed, not blocking)
+
+Neither is a regression from this fix (this fix's handler + response shapes are correct):
+
+- **Public-page "Manage" button missing** for a creator member with no org role — the public
+  page still gates on org roles, not membership (same half-migration class). Filed as
+  `creator-public-page-manage-button-org-role-gate`.
+- **Timeline checkbox no live update** — toggling persists but the checkmark only appears after
+  refresh, because the shared `TimelineView` renders from its own `useCursorPagination` state,
+  not the `useCalendarEvents` state the toggle updates. Affects all timeline surfaces. Filed as
+  `timeline-checkbox-no-live-update`.
