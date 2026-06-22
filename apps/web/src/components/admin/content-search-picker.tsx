@@ -3,7 +3,7 @@ import type React from "react";
 import type { PoolCandidate } from "@snc/shared";
 
 import { useListboxNavigation } from "../../hooks/use-listbox-navigation.js";
-import { searchAvailableContent } from "../../lib/playout-channels.js";
+import { useEditorialApi } from "../playout/editorial-api.js";
 import styles from "../../routes/admin/playout.module.css";
 
 // ── Types ──
@@ -34,6 +34,7 @@ export function ContentSearchPicker({
   onSelect,
   onClose,
 }: ContentSearchPickerProps): React.ReactElement {
+  const { searchAvailableContent } = useEditorialApi();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PoolCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(false);

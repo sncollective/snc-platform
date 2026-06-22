@@ -3,7 +3,7 @@ import type React from "react";
 import type { PlayoutItem } from "@snc/shared";
 
 import { createPlayoutItem } from "../../lib/playout.js";
-import { assignChannelContent } from "../../lib/playout-channels.js";
+import { useEditorialApi } from "../playout/editorial-api.js";
 import { useUpload } from "../../contexts/upload-context.js";
 import errorStyles from "../../styles/error-alert.module.css";
 import formStyles from "../../styles/form.module.css";
@@ -28,6 +28,7 @@ export function AddContentForm({
   onCancel,
 }: AddContentFormProps): React.ReactElement {
   const { actions } = useUpload();
+  const { assignChannelContent } = useEditorialApi();
   const [title, setTitle] = useState("");
   const [year, setYear] = useState("");
   const [director, setDirector] = useState("");

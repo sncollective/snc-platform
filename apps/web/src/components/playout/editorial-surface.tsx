@@ -12,15 +12,8 @@ import { ContentPoolTable } from "../admin/content-pool-table.js";
 import { ContentSearchPicker } from "../admin/content-search-picker.js";
 import { PoolItemPicker } from "../admin/pool-item-picker.js";
 import { QueueItemRow } from "../admin/queue-item-row.js";
-import {
-  assignChannelContent,
-  fetchChannelContent,
-  fetchChannelQueue,
-  insertQueueItem,
-  removeChannelContent,
-  removeQueueItem,
-  skipChannelTrack,
-} from "../../lib/playout-channels.js";
+import { useEditorialApi } from "./editorial-api.js";
+import type { EditorialApi } from "./editorial-api.js";
 import { retryPlayoutIngest } from "../../lib/playout.js";
 import { formatSeconds } from "../../lib/format-duration.js";
 import { usePolling } from "../../hooks/use-polling.js";
@@ -52,8 +45,13 @@ interface ChannelQueueState {
  * Channel queue status: spine-driven re-fetch with a 3s poll as the degraded
  * fallback. `lastUpdatedAt` stamps every successful fetch so staleness is measured by
  * data age, not socket state (the spine can be open while a re-fetch fails).
+ *
+ * @param fetchQueue - The injected queue fetcher (admin or creator scope).
  */
-function useChannelQueue(channelId: string | null): ChannelQueueState {
+function useChannelQueue(
+  channelId: string | null,
+  fetchQueue: EditorialApi["fetchChannelQueue"],
+): ChannelQueueState {
   // The fetcher resolves null when no channel is selected, so no request fires;
   // re-subscribing on `channelId` resets status to null between channels.
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
@@ -61,7 +59,7 @@ function useChannelQueue(channelId: string | null): ChannelQueueState {
   const { data, refetch } = usePolling<ChannelQueueStatus | null>(
     () =>
       channelId
-        ? fetchChannelQueue(channelId).then((d) => {
+        ? fetchQueue(channelId).then((d) => {
             setLastUpdatedAt(Date.now());
             return d;
           })
@@ -148,8 +146,19 @@ export function EditorialSurface({
   channelId,
   spineTopic,
 }: EditorialSurfaceProps): React.ReactElement {
+  const api = useEditorialApi();
+  const {
+    fetchChannelQueue,
+    fetchChannelContent,
+    skipChannelTrack,
+    insertQueueItem,
+    removeQueueItem,
+    assignChannelContent,
+    removeChannelContent,
+  } = api;
+
   const { data: queueStatus, lastUpdatedAt, refetch: refetchQueue } =
-    useChannelQueue(channelId);
+    useChannelQueue(channelId, fetchChannelQueue);
 
   // Spine-driven freshness: re-fetch the queue on a topic event instead of waiting up to
   // 3s. The poll inside useChannelQueue stays as the degraded fallback.

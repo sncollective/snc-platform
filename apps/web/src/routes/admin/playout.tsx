@@ -5,6 +5,7 @@ import type { ChannelListResponse } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { EditorialSurface } from "../../components/playout/editorial-surface.js";
+import { EditorialApiProvider, ADMIN_EDITORIAL_API } from "../../components/playout/editorial-api.js";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog.js";
 import { toaster } from "../../components/ui/toast.js";
 import { fetchApiServer } from "../../lib/api-server.js";
@@ -370,12 +371,14 @@ function PlayoutPageInner(): React.ReactElement {
             </div>
           )}
 
-          <EditorialSurface
-            key={selectedChannelId}
-            channelId={selectedChannelId}
-            spineTopic="playout"
-            capabilities={{ channelCrud: true, broadcastBanner: true, channelTabs: true }}
-          />
+          <EditorialApiProvider api={ADMIN_EDITORIAL_API}>
+            <EditorialSurface
+              key={selectedChannelId}
+              channelId={selectedChannelId}
+              spineTopic="playout"
+              capabilities={{ channelCrud: true, broadcastBanner: true, channelTabs: true }}
+            />
+          </EditorialApiProvider>
         </div>
       )}
     </div>
