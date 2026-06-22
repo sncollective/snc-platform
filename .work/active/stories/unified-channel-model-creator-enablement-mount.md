@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-mount
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-enablement
 depends_on: [unified-channel-model-creator-enablement-extract-surface, unified-channel-model-creator-enablement-api-gate, unified-channel-model-creator-enablement-channel-resolve]
@@ -226,3 +226,27 @@ scope. Both production mounts already wrap explicitly, so the live feature is un
   the existing "+ Create New" affordance).
 
 **Results:** web typecheck clean; full web suite 167 files / 1796 tests green.
+
+## Fix + final review record — APPROVE (cross-model verified)
+All four bounce findings fixed and confirmed CLOSED by cross-model re-review (Codex, resumed
+session), zero new issues:
+1. **handle-vs-id** — loader no longer blanket-catches (403/5xx → error boundary, only successful
+   `{channelId:null}` → setup card); paired with the channel-resolve endpoint's handle resolution.
+2. **creator Create New** — new `canCreateContent` capability flag gates "+ Create New" + the
+   `AddContentForm`; admin `true`, creator `false`. The "+ Add Content" search (own-content via
+   `contentIds`) stays available on the creator mount — the admin-only playout-item-creation path
+   is unreachable from the creator surface.
+3. **route content-gate** — the route component reads `memberRole`/`isAdmin` and renders an
+   access-denied state for non-owner/non-admin (mirroring Streaming); direct editor/viewer
+   navigation is blocked from the surface (defense-in-depth: backend already 403s every action).
+4. **context footgun** — `createContext<EditorialApi | undefined>(undefined)` + `useEditorialApi`
+   throws when unwrapped (fail-closed). Both production mounts wrap explicitly; the isolated
+   component tests wrap with the admin bundle (required by the new contract). A dedicated
+   `editorial-api.test.tsx` locks the throw-when-unwrapped contract (the reviewer's follow-up nit).
+
+Admin path behavior-identical: `admin/playout.test.tsx` green with zero edits; admin passes
+`canCreateContent: true` preserving its affordance. Full suite green (API 115 files, web 167 files,
+typecheck clean).
+
+**Live fix-verify (AC#5) remains a user step** — a creator driving their channel's queue in the
+running app. Code-correct and reviewed; the running-app confirmation loops back to the operator.

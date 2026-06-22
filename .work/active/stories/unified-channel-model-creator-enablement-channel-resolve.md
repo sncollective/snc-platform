@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-channel-resolve
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -123,3 +123,10 @@ to the endpoint's `describeRoute` responses (it can now NotFound on an unknown h
   `findCreatorProfile` row and kept green.
 
 **Results:** `creator.routes.test.ts` 57 pass; full API unit suite 115 files / 1842 tests green.
+
+## Final review record — APPROVE (cross-model verified)
+The handle-resolution fix was confirmed CLOSED by cross-model re-review: the endpoint now resolves
+the param via `findCreatorProfile` (dual-mode handle-or-id) → `profile.id` before the permission
+check + channel lookup, 404 if not found. A handle now resolves a real provisioned channel. The
+handle-param regression test was verified to FAIL against the pre-fix endpoint and pass after — the
+test gap that hid the bug is closed.
