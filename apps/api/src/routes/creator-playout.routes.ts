@@ -26,12 +26,34 @@ import { orchestrator } from "./playout-channels.init.js";
  */
 export const creatorPlayoutRoutes = new Hono<AuthEnv>();
 
+// ── Input validators ──
+// SQL is already parameterized, so these are not an injection boundary — they
+// enforce the platform's input-validation convention (bounded, well-typed params)
+// and keep the route surface explicit.
+
+/** `:channelId` path param. */
+const ChannelIdParamSchema = z.object({
+  channelId: z.string().min(1).max(128),
+});
+
+/** `:channelId` + `:entryId` path params (queue-entry routes). */
+const ChannelEntryParamSchema = z.object({
+  channelId: z.string().min(1).max(128),
+  entryId: z.string().min(1).max(128),
+});
+
+/** Bounded content-search query. `q` is optional and length-capped. */
+const ContentSearchQuerySchema = z.object({
+  q: z.string().max(200).optional(),
+});
+
 // ── Queue Status ──
 
 creatorPlayoutRoutes.get(
   "/channels/:channelId/queue",
   requireAuth,
   requireCreatorChannelPermission("manageStreaming"),
+  validator("param", ChannelIdParamSchema),
   describeRoute({
     description: "Get the current queue status for a creator-owned playout channel.",
     tags: ["creator-playout"],
@@ -43,7 +65,7 @@ creatorPlayoutRoutes.get(
     },
   }),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const result = await orchestrator.getChannelQueueStatus(channelId);
     if (!result.ok) {
       return c.json(
@@ -71,6 +93,7 @@ creatorPlayoutRoutes.post(
       404: { description: "Channel or playout item not found" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
   validator(
     "json",
     z.object({
@@ -79,7 +102,7 @@ creatorPlayoutRoutes.post(
     }),
   ),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const { playoutItemId, position } = c.req.valid("json");
     const result = await orchestrator.insertIntoQueue(
       channelId,
@@ -111,9 +134,9 @@ creatorPlayoutRoutes.delete(
       409: { description: "Cannot remove currently playing item" },
     },
   }),
+  validator("param", ChannelEntryParamSchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
-    const entryId = c.req.param("entryId");
+    const { channelId, entryId } = c.req.valid("param");
     const result = await orchestrator.removeFromQueue(channelId, entryId);
     if (!result.ok) {
       return c.json(
@@ -139,8 +162,9 @@ creatorPlayoutRoutes.post(
       404: { description: "Channel not found or not creator-owned" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const result = await orchestrator.skip(channelId);
     if (!result.ok) {
       return c.json(
@@ -168,10 +192,12 @@ creatorPlayoutRoutes.get(
       404: { description: "Channel not found or not creator-owned" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
+  validator("query", ContentSearchQuerySchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
-    const q = c.req.query("q") ?? "";
-    const result = await orchestrator.searchAvailableContent(channelId, q);
+    const { channelId } = c.req.valid("param");
+    const { q } = c.req.valid("query");
+    const result = await orchestrator.searchAvailableContent(channelId, q ?? "");
     if (!result.ok) {
       return c.json(
         { error: { code: result.error.code, message: result.error.message } },
@@ -196,8 +222,9 @@ creatorPlayoutRoutes.get(
       404: { description: "Channel not found or not creator-owned" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const result = await orchestrator.listContent(channelId);
     if (!result.ok) {
       return c.json(
@@ -220,13 +247,14 @@ creatorPlayoutRoutes.post(
     responses: {
       200: { description: "Items assigned" },
       401: { description: "Unauthorized" },
-      403: { description: "Forbidden" },
+      403: { description: "Forbidden — not a member, or content not owned by this creator" },
       404: { description: "Channel not found or not creator-owned" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
   validator("json", AssignContentSchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const { playoutItemIds, contentIds } = c.req.valid("json");
     const result = await orchestrator.assignContent(
       channelId,
@@ -236,7 +264,7 @@ creatorPlayoutRoutes.post(
     if (!result.ok) {
       return c.json(
         { error: { code: result.error.code, message: result.error.message } },
-        result.error.statusCode as 500,
+        result.error.statusCode as 403 | 500,
       );
     }
     return c.json({ ok: true });
@@ -258,9 +286,10 @@ creatorPlayoutRoutes.delete(
       404: { description: "Channel not found or not creator-owned" },
     },
   }),
+  validator("param", ChannelIdParamSchema),
   validator("json", RemoveContentSchema),
   async (c) => {
-    const channelId = c.req.param("channelId");
+    const { channelId } = c.req.valid("param");
     const { playoutItemIds, contentIds } = c.req.valid("json");
     const result = await orchestrator.removeContent(
       channelId,

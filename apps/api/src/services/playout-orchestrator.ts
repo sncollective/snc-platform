@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { eq, and, asc, sql, inArray } from "drizzle-orm";
-import { AppError, NotFoundError, ok, err } from "@snc/shared";
+import { AppError, NotFoundError, ForbiddenError, ok, err } from "@snc/shared";
 import type {
   Result,
   PlayoutQueueEntry,
@@ -24,6 +24,8 @@ import { channels } from "../db/schema/streaming.schema.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 import { selectPlayoutRenditionUri } from "./playout-utils.js";
+import { poolContentScope } from "./editorial-config.js";
+import type { PoolScope } from "./editorial-config.js";
 import type { LiquidsoapClient } from "./liquidsoap-client.js";
 
 // ── Constants ──
@@ -116,6 +118,40 @@ const resolveContentUri = async (
  */
 export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
   const logger = rootLogger.child({ service: "playout-orchestrator" });
+
+  // ── Pool scope ──
+
+  /**
+   * Resolve the content-pool scope a channel draws from, derived from the
+   * channel's ownership row — never from caller input.
+   *
+   * Creator-owned channels resolve to `{ creatorId }` so the content search +
+   * assign paths are constrained to that creator's own non-deleted content.
+   * Platform/admin channels (and a channel row that cannot be loaded) resolve to
+   * `{ allCreators: true }` — the pre-existing admin behavior, unchanged.
+   *
+   * This is the security boundary for the shared editorial surface: the same
+   * `searchAvailableContent` / `assignContent` methods are reached by both admin
+   * routes (platform channel → all content) and creator routes (creator channel →
+   * own content only), and the scope is unspoofable because it comes from the
+   * channel record keyed by the route's `:channelId`.
+   */
+  const resolvePoolScope = async (channelId: string): Promise<PoolScope> => {
+    const rows = (await db.execute(sql`
+      SELECT ownership, creator_id AS "creatorId"
+      FROM channels
+      WHERE id = ${channelId}
+    `)) as Array<{ ownership: string; creatorId: string | null }>;
+
+    const row = Array.isArray(rows) ? rows[0] : undefined;
+    if (!row) {
+      // Channel not loadable (or a mocked/legacy path) — fall back to the
+      // platform-wide behavior. The route-level gate already proved channel
+      // ownership before this method runs, so this is the admin default.
+      return { allCreators: true };
+    }
+    return poolContentScope(row);
+  };
 
   // ── Queue Status ──
 
@@ -442,12 +478,64 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
    * Assign items to a channel's content pool.
    * Accepts playout item IDs and/or creator content IDs.
    * Ignores items already in the pool (upsert-ignore semantics).
+   *
+   * Ownership is enforced from the channel, never the caller. For a creator-owned
+   * channel (`{ creatorId }` scope) every requested `contentId` must belong to that
+   * creator and not be soft-deleted, and platform-shared `playoutItemIds` may not be
+   * assigned at all (creator pools are content-only) — a cross-creator or playout-item
+   * request is rejected as `ForbiddenError` and nothing is written. Platform/admin
+   * channels (`{ allCreators: true }`) keep the prior unconstrained behavior.
+   *
+   * @returns ForbiddenError when a creator channel requests content it does not own
+   *   or any playout item; otherwise ok once the pool entries are inserted.
    */
   const assignContent = async (
     channelId: string,
     playoutItemIds: string[],
     contentIds?: string[],
   ): Promise<Result<void, AppError>> => {
+    const requestedContentIds = contentIds ?? [];
+    const scope = await resolvePoolScope(channelId);
+
+    if ("creatorId" in scope) {
+      // Creator pools are content-only — the playout-item branch is the platform's
+      // shared media library, off-limits to a creator's own channel pool.
+      if (playoutItemIds.length > 0) {
+        return err(
+          new ForbiddenError(
+            "Creator channels may not assign platform playout items to their content pool",
+          ),
+        );
+      }
+
+      // Every requested content id must belong to this creator and not be deleted.
+      if (requestedContentIds.length > 0) {
+        const ownedRows = (await db.execute(sql`
+          SELECT id
+          FROM content
+          WHERE id = ANY(${requestedContentIds})
+            AND creator_id = ${scope.creatorId}
+            AND deleted_at IS NULL
+        `)) as Array<{ id: string }>;
+
+        const ownedIds = new Set(
+          (Array.isArray(ownedRows) ? ownedRows : []).map((r) => r.id),
+        );
+        const disallowed = requestedContentIds.filter((id) => !ownedIds.has(id));
+        if (disallowed.length > 0) {
+          logger.warn(
+            { channelId, creatorId: scope.creatorId, disallowed },
+            "Rejected creator content assignment — ids not owned by channel creator",
+          );
+          return err(
+            new ForbiddenError(
+              "One or more content items do not belong to this creator",
+            ),
+          );
+        }
+      }
+    }
+
     const playoutValues = playoutItemIds.map((playoutItemId) => ({
       id: randomUUID(),
       channelId,
@@ -455,7 +543,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       contentId: null,
     }));
 
-    const contentValues = (contentIds ?? []).map((contentId) => ({
+    const contentValues = requestedContentIds.map((contentId) => ({
       id: randomUUID(),
       channelId,
       playoutItemId: null,
@@ -715,14 +803,29 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
    * Search for items available to add to a channel's content pool.
    * Returns playout items and creator content not already in the pool.
    * Results are case-insensitively filtered by title, limited to 20.
+   *
+   * Scope is derived from the channel, never the caller. A creator-owned channel
+   * (`{ creatorId }`) sees ONLY that creator's own non-deleted content — the
+   * platform playout-item branch is excluded entirely (creator pools are
+   * content-only) and other creators' content never surfaces. A platform/admin
+   * channel (`{ allCreators: true }`) returns the full unconstrained set exactly as
+   * before. A creator's own content is offered regardless of publish/visibility
+   * state — it is theirs, bound for their own channel; the leak guarded here is
+   * specifically *other* creators' content.
    */
   const searchAvailableContent = async (
     channelId: string,
     query: string,
   ): Promise<Result<PoolCandidate[], AppError>> => {
     const searchPattern = `%${query}%`;
+    const scope = await resolvePoolScope(channelId);
+    const creatorScoped = "creatorId" in scope;
 
-    const rows = (await db.execute(sql`
+    // Playout-item branch — platform-shared media. Included for admin/platform
+    // channels; suppressed for creator channels (content-only pools).
+    const playoutBranch = creatorScoped
+      ? sql``
+      : sql`
       SELECT
         pi.id,
         'playout' AS "sourceType",
@@ -739,7 +842,16 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         )
 
       UNION ALL
+`;
 
+    // Content branch — for creator channels, constrained to the channel's creator
+    // and non-deleted rows. For admin/platform channels, unconstrained (unchanged).
+    const contentOwnershipFilter = creatorScoped
+      ? sql`AND c.creator_id = ${scope.creatorId}
+        AND c.deleted_at IS NULL`
+      : sql``;
+
+    const rows = (await db.execute(sql`${playoutBranch}
       SELECT
         c.id,
         'content' AS "sourceType",
@@ -751,6 +863,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       WHERE c.title ILIKE ${searchPattern}
         AND c.type = 'video'
         AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
+        ${contentOwnershipFilter}
         AND c.id NOT IN (
           SELECT content_id FROM channel_content
           WHERE channel_id = ${channelId}

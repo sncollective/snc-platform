@@ -1064,4 +1064,211 @@ describe("playout orchestrator", () => {
       expect(mockDbExecute).toHaveBeenCalled();
     });
   });
+
+  // ── Cross-creator content scope (security regression guard) ──
+  //
+  // These prove the blocker fix: the shared editorial content methods derive their
+  // pool scope from the channel's ownership row, not the caller. A creator-owned
+  // channel constrains search to its own non-deleted content and rejects assigning
+  // any content it does not own (or any platform playout item). A platform/admin
+  // channel keeps the prior unconstrained behavior.
+  //
+  // Against the OLD (unscoped) code these tests fail: the old searchAvailableContent
+  // ran the same UNION for every channel (so a creator would see other creators'
+  // rows), and the old assignContent inserted any caller-supplied contentId with no
+  // ownership check (so the cross-creator assignment returned ok).
+
+  describe("content pool scope (creator vs admin)", () => {
+    const CREATOR_ID = "creator-A";
+
+    /** A creator-owned channel row, as returned by the resolvePoolScope SELECT. */
+    const creatorChannelScopeRow = [{ ownership: "creator", creatorId: CREATOR_ID }];
+    /** A platform-owned channel row → allCreators scope. */
+    const platformChannelScopeRow = [{ ownership: "platform", creatorId: null }];
+
+    describe("searchAvailableContent — creator scope", () => {
+      it("only emits the creator's own content (no playout branch, no cross-creator rows)", async () => {
+        const orchestrator = await setupModule();
+
+        // Call 1: resolvePoolScope channel lookup → creator-owned.
+        // Call 2: the scoped search query. The orchestrator builds the SQL with the
+        // creator filter embedded; the DB layer returns only that creator's rows.
+        mockDbExecute
+          .mockResolvedValueOnce(creatorChannelScopeRow)
+          .mockResolvedValueOnce([
+            {
+              id: "content-A1",
+              sourceType: "content",
+              title: "My Own Film",
+              duration: 90,
+              creator: "Creator A",
+            },
+          ]);
+
+        const result = await orchestrator.searchAvailableContent(
+          "creator-channel-A",
+          "film",
+        );
+
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        // Only the creator's own content surfaced.
+        expect(result.value).toHaveLength(1);
+        expect(result.value[0]?.id).toBe("content-A1");
+        // No other creator's content leaked into the result.
+        expect(result.value.some((r) => r.id === "content-B1")).toBe(false);
+        // No playout branch for a creator (content-only pool).
+        expect(result.value.some((r) => r.sourceType === "playout")).toBe(false);
+
+        // The scoped search SQL carries the creator_id constraint and excludes the
+        // playout_items branch — assert against the rendered query string.
+        const searchSql = mockDbExecute.mock.calls[1]?.[0] as { queryChunks?: unknown };
+        const rendered = JSON.stringify(searchSql);
+        expect(rendered).toContain("c.creator_id");
+        expect(rendered).toContain("deleted_at");
+        // The creator id is bound as a parameter on the search call.
+        expect(rendered).toContain(CREATOR_ID);
+        // No playout_items table in the creator-scoped query.
+        expect(rendered).not.toContain("playout_items");
+      });
+    });
+
+    describe("searchAvailableContent — admin scope (unchanged)", () => {
+      it("does NOT add a creator_id constraint and keeps the playout branch", async () => {
+        const orchestrator = await setupModule();
+
+        mockDbExecute
+          .mockResolvedValueOnce(platformChannelScopeRow)
+          .mockResolvedValueOnce([]);
+
+        const result = await orchestrator.searchAvailableContent("admin-channel", "x");
+
+        expect(result.ok).toBe(true);
+        const searchSql = mockDbExecute.mock.calls[1]?.[0] as { queryChunks?: unknown };
+        const rendered = JSON.stringify(searchSql);
+        // Admin path keeps both branches and adds no creator constraint.
+        expect(rendered).toContain("playout_items");
+        expect(rendered).not.toContain("c.creator_id =");
+      });
+    });
+
+    describe("assignContent — creator scope", () => {
+      it("rejects assigning another creator's content id with ForbiddenError and inserts nothing", async () => {
+        const orchestrator = await setupModule();
+
+        // Call 1: resolvePoolScope → creator-owned.
+        // Call 2: ownership validation SELECT → only content-A1 is owned; the
+        // requested content-B1 (another creator's) is absent from the owned set.
+        mockDbExecute
+          .mockResolvedValueOnce(creatorChannelScopeRow)
+          .mockResolvedValueOnce([{ id: "content-A1" }]);
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.assignContent(
+          "creator-channel-A",
+          [],
+          ["content-A1", "content-B1"],
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("FORBIDDEN");
+        expect(result.error.statusCode).toBe(403);
+        // Nothing was written when the request contained an unowned id.
+        expect(mockDbInsert).not.toHaveBeenCalled();
+      });
+
+      it("rejects assigning a platform playout item to a creator pool (content-only)", async () => {
+        const orchestrator = await setupModule();
+
+        // Only the scope lookup runs — the playout-item guard short-circuits before
+        // any ownership validation query.
+        mockDbExecute.mockResolvedValueOnce(creatorChannelScopeRow);
+
+        mockDbInsert.mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+          }),
+        });
+
+        const result = await orchestrator.assignContent(
+          "creator-channel-A",
+          ["platform-item-1"],
+          [],
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("FORBIDDEN");
+        expect(mockDbInsert).not.toHaveBeenCalled();
+      });
+
+      it("allows assigning the creator's own content id (inserts the pool entry)", async () => {
+        const orchestrator = await setupModule();
+
+        mockDbExecute
+          .mockResolvedValueOnce(creatorChannelScopeRow)
+          // ownership validation: content-A1 IS owned by creator-A
+          .mockResolvedValueOnce([{ id: "content-A1" }]);
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.assignContent(
+          "creator-channel-A",
+          [],
+          ["content-A1"],
+        );
+
+        expect(result.ok).toBe(true);
+        expect(mockDbInsert).toHaveBeenCalledTimes(1);
+        const values = insertChain.values.mock.calls[0]?.[0] as Array<{ contentId: string }>;
+        expect(values).toHaveLength(1);
+        expect(values[0]?.contentId).toBe("content-A1");
+      });
+    });
+
+    describe("assignContent — admin scope (unchanged)", () => {
+      it("inserts caller-supplied content ids without an ownership check", async () => {
+        const orchestrator = await setupModule();
+
+        // Scope lookup → platform/admin. No ownership-validation query is issued.
+        mockDbExecute.mockResolvedValueOnce(platformChannelScopeRow);
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.assignContent(
+          "admin-channel",
+          ["item-1"],
+          ["content-from-any-creator"],
+        );
+
+        expect(result.ok).toBe(true);
+        // Admin path inserts both the playout item and the content id, unchanged.
+        expect(mockDbInsert).toHaveBeenCalledTimes(1);
+        const values = insertChain.values.mock.calls[0]?.[0] as Array<{
+          playoutItemId: string | null;
+          contentId: string | null;
+        }>;
+        expect(values).toHaveLength(2);
+        // Only the scope lookup ran on db.execute — no ownership validation query.
+        expect(mockDbExecute).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
 });

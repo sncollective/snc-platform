@@ -23,10 +23,16 @@ const CREATOR_CHANNEL_ID = "creator-channel-1";
 const CREATOR_ID = "creator-1";
 const MEMBER_USER_ID = "user_test123";
 
+/**
+ * A creator editorial channel row, as the middleware's gate query selects it.
+ * Creator editorial channels are `ownership='creator'` / `role='live-ingest'`
+ * (the persistent channel `ensureCreatorChannel` provisions).
+ */
 const makeCreatorChannel = (overrides: Record<string, unknown> = {}) => ({
   id: CREATOR_CHANNEL_ID,
   ownership: "creator",
   creatorId: CREATOR_ID,
+  role: "live-ingest",
   ...overrides,
 });
 
@@ -68,7 +74,12 @@ const makeChannelContent = () => ({
 /**
  * Build a fresh test app for each test. Isolates all module state via vi.doMock.
  * `channelRow` controls what the DB returns when the middleware loads the channel.
- * `permissionThrows` controls whether requireCreatorPermission throws ForbiddenError.
+ * `permissionThrows` controls whether the (mocked) requireCreatorPermission throws.
+ *
+ * This builder mocks `requireCreatorPermission` wholesale — it proves arg-forwarding
+ * and the channel-ownership/role gate, NOT the real permission decision. The real
+ * permission decision is exercised separately in the "real permission service" suite
+ * below (which does NOT mock the permission service).
  */
 const buildApp = async (options: {
   channelRow?: Record<string, unknown> | null;
@@ -95,6 +106,7 @@ const buildApp = async (options: {
       id: "id",
       ownership: "ownership",
       creatorId: "creator_id",
+      role: "role",
     },
   }));
 
@@ -132,7 +144,7 @@ const buildApp = async (options: {
     mockRequireCreatorPermission.mockResolvedValue(undefined);
   }
 
-  const { UnauthorizedError, ForbiddenError, NotFoundError } = await import("@snc/shared");
+  const { UnauthorizedError } = await import("@snc/shared");
 
   // Mock requireAuth to inject a user with the given roles
   vi.doMock("../../src/middleware/require-auth.js", () => ({
@@ -181,7 +193,7 @@ afterEach(() => {
 // ── Tests ──
 
 describe("creator playout routes", () => {
-  // ── requireCreatorChannelPermission middleware ──
+  // ── requireCreatorChannelPermission middleware (gate shape) ──
 
   describe("requireCreatorChannelPermission middleware", () => {
     it("returns 404 when channel does not exist", async () => {
@@ -214,6 +226,21 @@ describe("creator playout routes", () => {
         `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
       );
       expect(res.status).toBe(404);
+    });
+
+    // Role-gate test (second finding): a creator-OWNED channel of an unexpected role
+    // is rejected. The editorial surface accepts only the creator's live-ingest
+    // editorial channel, not e.g. a future creator-owned 'playout' channel.
+    it("returns 404 when channel is creator-owned but of an unexpected role", async () => {
+      const app = await buildApp({
+        channelRow: makeCreatorChannel({ ownership: "creator", role: "playout" }),
+      });
+      const res = await app.request(
+        `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+      );
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error.code).toBe("NOT_FOUND");
     });
 
     it("returns 403 when user lacks manageStreaming permission", async () => {
@@ -494,6 +521,31 @@ describe("creator playout routes", () => {
       );
     });
 
+    // The route maps an orchestrator ForbiddenError (the cross-creator content
+    // rejection) to a 403 response.
+    it("returns 403 when the orchestrator rejects unowned content", async () => {
+      mockAssignContent.mockResolvedValue({
+        ok: false,
+        error: {
+          code: "FORBIDDEN",
+          message: "One or more content items do not belong to this creator",
+          statusCode: 403,
+        },
+      });
+      const app = await buildApp({});
+      const res = await app.request(
+        `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/content`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentIds: ["other-creators-content"] }),
+        },
+      );
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error.code).toBe("FORBIDDEN");
+    });
+
     it("returns 403 when permission denied", async () => {
       const app = await buildApp({ permissionThrows: true });
       const res = await app.request(
@@ -544,6 +596,169 @@ describe("creator playout routes", () => {
   });
 });
 
+// ── Real permission service (authorization, not forwarding) ──
+//
+// Third finding: the suite above mocks requireCreatorPermission wholesale, so it
+// proves arg-forwarding and the channel gate, not the real owner-only decision.
+// This suite wires the REAL requireCreatorChannelPermission middleware to the REAL
+// requireCreatorPermission service (real CREATOR_ROLE_PERMISSIONS) over a mocked
+// membership/role DB layer, and proves the actual authorization decision:
+//   - owner (manageStreaming: true)            → 200
+//   - editor / viewer (manageStreaming: false) → 403
+//   - a member of a DIFFERENT creator          → 403
+
+describe("creator playout routes — real permission service", () => {
+  const realDbSelect = vi.fn();
+
+  /**
+   * Build an app that uses the real permission service. `membershipRows` is what
+   * the creatorMembers lookup returns ([] = not a member of this creator).
+   *
+   * The middleware issues two db.select calls in order:
+   *   1. channel gate lookup  → the creator editorial channel row
+   *   2. creatorMembers lookup (inside checkCreatorPermission) → membershipRows
+   */
+  const buildRealApp = async (options: {
+    channelRow?: Record<string, unknown> | null;
+    membershipRows: Array<{ role: string }>;
+    userRoles?: string[];
+  }) => {
+    const { channelRow = makeCreatorChannel(), membershipRows, userRoles = [] } = options;
+
+    vi.doMock("../../src/config.js", () => ({
+      config: makeTestConfig(),
+      parseOrigins: (raw: string) => raw.split(",").map((o: string) => o.trim()).filter(Boolean),
+    }));
+
+    vi.doMock("../../src/db/connection.js", () => ({
+      db: { select: realDbSelect },
+    }));
+
+    vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
+      channels: { id: "id", ownership: "ownership", creatorId: "creator_id", role: "role" },
+    }));
+
+    vi.doMock("../../src/db/schema/creator.schema.js", () => ({
+      creatorMembers: { userId: "user_id", creatorId: "creator_id", role: "role" },
+    }));
+
+    // CRITICAL: this suite uses the REAL permission service. The forwarding suite
+    // above doMock's creator-team.js; ensure that registration is not in effect here
+    // so requireCreatorChannelPermission delegates to the real requireCreatorPermission.
+    vi.doUnmock("../../src/services/creator-team.js");
+
+    // Orchestrator is still mocked — this suite is about the gate, not the methods.
+    vi.doMock("../../src/routes/playout-channels.init.js", () => ({
+      orchestrator: {
+        getChannelQueueStatus: vi.fn().mockResolvedValue({ ok: true, value: makeQueueStatus() }),
+        insertIntoQueue: vi.fn(),
+        removeFromQueue: vi.fn(),
+        skip: vi.fn(),
+        listContent: vi.fn(),
+        assignContent: vi.fn(),
+        removeContent: vi.fn(),
+        searchAvailableContent: vi.fn(),
+      },
+    }));
+
+    // The middleware issues db.select calls in order: (1) the channel gate lookup,
+    // then (2) the creatorMembers lookup inside checkCreatorPermission. A
+    // call-counter implementation routes each call to the right rows and avoids the
+    // queue-pollution of mockReturnValueOnce when a test (e.g. admin) short-circuits
+    // before the membership lookup.
+    let selectCall = 0;
+    realDbSelect.mockImplementation(() => {
+      selectCall += 1;
+      const rows =
+        selectCall === 1 ? (channelRow ? [channelRow] : []) : membershipRows;
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(rows),
+        }),
+      };
+    });
+
+    const { UnauthorizedError } = await import("@snc/shared");
+
+    vi.doMock("../../src/middleware/require-auth.js", () => ({
+      requireAuth: async (c: any, next: any) => {
+        const user = makeMockUser({ id: MEMBER_USER_ID });
+        if (!user) throw new UnauthorizedError();
+        c.set("user", user);
+        c.set("session", makeMockSession());
+        c.set("roles", userRoles);
+        await next();
+      },
+    }));
+
+    const { errorHandler } = await import("../../src/middleware/error-handler.js");
+    const { corsMiddleware } = await import("../../src/middleware/cors.js");
+    const { creatorPlayoutRoutes } = await import(
+      "../../src/routes/creator-playout.routes.js"
+    );
+
+    const app = new Hono();
+    app.use("*", corsMiddleware);
+    app.onError(errorHandler);
+    app.route("/api/creator/playout", creatorPlayoutRoutes);
+    return app;
+  };
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.resetAllMocks();
+    realDbSelect.mockReset();
+  });
+
+  it("allows an owner (manageStreaming permission granted)", async () => {
+    const app = await buildRealApp({ membershipRows: [{ role: "owner" }] });
+    const res = await app.request(
+      `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("denies an editor (manageStreaming not granted) with 403", async () => {
+    const app = await buildRealApp({ membershipRows: [{ role: "editor" }] });
+    const res = await app.request(
+      `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+    );
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("denies a viewer (manageStreaming not granted) with 403", async () => {
+    const app = await buildRealApp({ membershipRows: [{ role: "viewer" }] });
+    const res = await app.request(
+      `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("denies a member of a DIFFERENT creator with 403", async () => {
+    // The user is a member of some OTHER creator, so the membership lookup for THIS
+    // channel's creator returns no rows → not a member → denied.
+    const app = await buildRealApp({ membershipRows: [] });
+    const res = await app.request(
+      `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+    );
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("allows an admin platform role regardless of membership", async () => {
+    // checkCreatorPermission short-circuits on the admin platform role before any
+    // membership lookup. Membership rows are irrelevant.
+    const app = await buildRealApp({ membershipRows: [], userRoles: ["admin"] });
+    const res = await app.request(
+      `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue`,
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
 // ── SSE content.playout-changed scope filter integration assertion ──
 
 describe("content.playout-changed SSE scope filter", () => {
@@ -552,7 +767,6 @@ describe("content.playout-changed SSE scope filter", () => {
     const { createEventBus } = await import("../../src/services/event-bus.js");
     const bus = createEventBus();
 
-    const receivedEvents: unknown[] = [];
     const sub = bus.subscribe(["content"], {
       userId: "user-1",
       roles: [],

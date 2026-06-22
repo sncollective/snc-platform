@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout, identity, security]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -178,3 +178,80 @@ Every route is `requireAuth` + `requireCreatorChannelPermission("manageStreaming
 resolved from the channel row (unspoofable); the SSE `content.playout-changed` filter is fail-closed
 and requires matching `creatorIds`; the unwired publish path is non-functional, not insecure; admin
 routes behaviorally unchanged.
+
+## Fix (re-implementation)
+
+All four findings resolved. The design keeps "one logic path, two gates": admin and creator
+routes call the SAME orchestrator methods, and the content-pool scope is DERIVED FROM THE CHANNEL,
+never from the caller. The admin (`{ allCreators: true }`) path is byte-equivalent to before — the
+pre-existing admin route tests + orchestrator tests stay green with zero edits.
+
+### 1. BLOCKER — cross-creator content disclosure + playback (fixed)
+`poolContentScope(channel)` (`editorial-config.ts:58`) is now wired into the orchestrator's content
+methods via a private `resolvePoolScope(channelId)` helper (`playout-orchestrator.ts`). The helper
+loads the channel's `ownership`/`creatorId` by id (raw `db.execute` SELECT) and returns the existing
+`PoolScope` descriptor: creator-owned → `{ creatorId }`, platform/admin (or an unloadable row) →
+`{ allCreators: true }`.
+
+- **`searchAvailableContent`**: for `{ creatorId }` scope the SQL is rebuilt to (a) **drop the
+  `playout_items` UNION branch entirely** — creator pools are content-only — and (b) constrain the
+  `content` branch with `AND c.creator_id = <scope.creatorId> AND c.deleted_at IS NULL`. The
+  creator's own content is offered regardless of publish/visibility state (it's theirs, bound for
+  their own channel — the leak guarded is specifically *other* creators' content). For
+  `{ allCreators: true }` the query is reconstructed byte-for-byte (both branches, no creator
+  filter) so admin behavior is unchanged.
+- **`assignContent`**: for `{ creatorId }` scope it (a) rejects any `playoutItemIds` outright with a
+  `ForbiddenError` (platform playout media is off-limits to creator pools — the content-only
+  decision), and (b) validates every requested `contentId` with
+  `SELECT id FROM content WHERE id = ANY(...) AND creator_id = scope.creatorId AND deleted_at IS NULL`;
+  if any requested id is not in the owned set, returns `ForbiddenError` and writes nothing. For
+  `{ allCreators: true }` the prior unconstrained insert runs unchanged.
+- **`listContent` / `removeContent`**: confirmed already safe — both are bounded by
+  `channel_content.channel_id = <channelId>`, so they only read/affect rows already in *this*
+  channel's pool (which were gated at assign time). No change needed.
+
+**playout_items in creator scope: excluded.** `poolContentScope` consumers treat playout items as
+the platform's shared media library; a creator channel's pool is its own content only. So for
+creator scope the search omits the playout branch and assign rejects playout-item ids. Admin scope
+keeps playout items (the platform's library is legitimately theirs).
+
+### 2. IMPORTANT — role gate (fixed)
+`require-creator-channel-permission.ts` now asserts the channel `role` explicitly. Confirmed via
+`ensureCreatorChannel` (`channels.ts:191`) that creator editorial channels are provisioned as
+`ownership='creator'` / `role='live-ingest'`. The gate now requires
+`role === "live-ingest"` (named `CREATOR_EDITORIAL_ROLE`) in addition to creator-ownership +
+non-null creatorId; anything else → 404. **`role === "playout"` was NOT used** (Codex's suggestion)
+because playout channels are platform-owned and that check would reject every legitimate creator
+channel. The gate now states its accepted role intentionally rather than accepting any creator-owned
+channel by omission.
+
+### 3. IMPORTANT — tests prove authorization, not just forwarding (fixed)
+- New `creator playout routes — real permission service` suite exercises the REAL
+  `requireCreatorChannelPermission` + REAL `requireCreatorPermission` (real `CREATOR_ROLE_PERMISSIONS`)
+  over a mocked membership/role DB layer: owner → 200; editor → 403; viewer → 403; member of a
+  DIFFERENT creator → 403; admin platform-role → 200. (The forwarding suite that mocks
+  `requireCreatorPermission` is retained for arg-forwarding coverage; `vi.doUnmock` isolates the real
+  suite from it.)
+- New `content pool scope (creator vs admin)` suite in `playout-orchestrator.test.ts` is the
+  blocker's regression guard: a creator search emits ONLY its own content (other creators' ids
+  absent, no playout branch); assigning another creator's content id → `ForbiddenError`, nothing
+  inserted; assigning a platform playout item → `ForbiddenError`; assigning the creator's OWN content
+  id → ok + inserted; admin scope unchanged (no creator filter, playout branch kept, no ownership
+  check). **Verified these fail against the OLD unscoped orchestrator** (5/6 fail; the admin-unchanged
+  one passes in both) and pass against the fix.
+- New role-gate test: a creator-owned channel of role `playout` → 404. **Verified it returns 200
+  against the OLD middleware** and 404 against the fix.
+
+### 4. NIT — input validators (fixed)
+Added hono-openapi `validator(...)` + zod to the creator routes: `ChannelIdParamSchema` /
+`ChannelEntryParamSchema` (`validator("param", ...)`) for `channelId`/`entryId`, and a bounded
+`ContentSearchQuerySchema` (`validator("query", ...)`, `q` length-capped) on the search route.
+Handlers read `c.req.valid("param"|"query")`. Admin routes were left untouched (out of scope —
+SQL is parameterized; not the vuln).
+
+### Verification
+`@snc/shared` 675 tests pass; `@snc/api` typecheck clean; full `@snc/api` unit suite 1834 tests pass
+(115 files), including the admin orchestrator + admin route regression gates green with zero edits.
+The cross-creator security tests are integration-adjacent but written unit-class (mocked DB layer) —
+they run in the unit suite. A full real-DB integration pass (real creator membership + content rows)
+would run via `scripts/dev/sandbox-test-integration.sh`.
