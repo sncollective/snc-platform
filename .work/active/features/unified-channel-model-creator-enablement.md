@@ -230,3 +230,20 @@ not an error.
   so the `content` topic's existing creator-membership filter contains them. Verify the publish
   carries the creatorId scope; a mis-scoped publish would broadcast one creator's queue events to
   others. Covered by an integration assertion in Unit 2.
+
+## Real-time publish wire-up (follow-on, surfaced at Wave-1 review)
+Unit 2 (api-gate) landed the `content.playout-changed` event schema, its `EVENT_REGISTRY`
+scopeFilter on the `content` topic (creator-membership-scoped, admin-bypass, required `creatorId`
+— adversarially reviewed clean, cannot fail open), AND the creator route surface. But it did **not**
+wire the *publish* callsites: nothing emits `content.playout-changed` yet — the queue-transition
+path (`apps/api/src/services/playout-queue-transitions.ts`) still only publishes the admin-only
+`playout.*` events, because the owning `creatorId` isn't in context at transition time.
+
+**Consequence:** the creator surface's real-time updates ride the **3s poll fallback** (identical
+to how admin's queue refreshes), NOT server push, until the publish is wired. This is acceptable —
+the surface is fully functional, just not instant — and the secure-but-inert filter means there is
+no leak risk in the interim. **Wiring the publish (resolve `creatorId` at transition time, emit
+`content.playout-changed` alongside the `playout.*` event) is the remaining work for a fully live
+creator surface.** Scope it as a small follow-on story under this feature once mount lands, or fold
+it into mount if the loader already has the creatorId in hand. Not a blocker for closing the
+queue+pool+control surface.

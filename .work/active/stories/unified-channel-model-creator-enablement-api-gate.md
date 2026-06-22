@@ -1,8 +1,8 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: done
-tags: [streaming, playout, identity]
+stage: implementing
+tags: [streaming, playout, identity, security]
 parent: unified-channel-model-creator-enablement
 depends_on: []
 release_binding: null
@@ -126,22 +126,55 @@ All 115 test files / 1821 tests pass. TypeScript typecheck clean (shared + api).
 The route tests are unit-class (all DB and permission service mocked). The full integration
 surface (real DB, real creator membership rows) needs `scripts/dev/sandbox-test-integration.sh`.
 
-## Review record
-Verdict: **Approve** (deep adversarial lane, fresh-context reviewer) — zero blockers, zero
-importants. Traced all 7 authz/leak lenses against the real code + ran the 30 tests:
-- **No authz bypass** — all 8 editorial routes carry `requireCreatorChannelPermission("manageStreaming")`; `manageStreaming` is owner-only (`CREATOR_ROLE_PERMISSIONS`), so editor/viewer members are denied.
-- **No cross-creator access** — middleware resolves `creatorId` from the channel record, not a URL param (unspoofable); a member of A cannot drive B's channel.
-- **No channel-type confusion** — non-creator (admin/broadcast/platform) channel via a creator route → 404 with no existence oracle.
-- **No SSE scope leak** — `content.playout-changed` scopeFilter on the authenticated `content` topic is identical in shape to the proven `content.processing-status-changed`; required `creatorId` field can't fail open; ctx.creatorIds is membership-derived server-side.
-- **No admin regression** — admin routes untouched (`8fc4454` doesn't modify `playout-channels.routes.ts`); same orchestrator, two gates.
-- **Tests genuine** — cross-creator-403 exercises a real different membership; no `expect(true)`, no mocking-away of the check under test.
+## Review findings — BOUNCED (cross-model review, Codex xhigh)
+The first review pass (Claude/opus, deep adversarial) Approved by verifying the authz *gate*
+(who can call the routes). A second independent cross-model pass (Codex, xhigh) caught a real
+**Blocker the first pass missed**: it verified the *data* the gated methods expose. Verdict: **Bounce**.
 
-**Known deferred (acceptable, by story design):** the real-time *publish* path is inert — no
-`content.playout-changed` is emitted from `playout-queue-transitions.ts` yet (`creatorId` not in
-context at transition time). The filter exists and is secure; the push path is non-functional
-until wired. Creator real-time updates ride the 3s poll fallback meanwhile (same as admin). The
-publish wire-up is feature-level follow-on work, tracked in the feature body, not a blocker here.
+### BLOCKER — cross-creator content disclosure + playback (confirmed against code)
+The creator routes reuse the **admin-wide** orchestrator (`playout-orchestrator.ts`). Those methods
+were built for admins, who legitimately see all content — so they apply **no creator scoping**:
+- `searchAvailableContent(channelId, query)` (`playout-orchestrator.ts:719`) searches ALL `content`
+  of `type='video'` across **every creator** — `c.creator_id` is selected but never constrained to
+  the channel's creator, and there is no `visibility` / `publishedAt` / `deletedAt` filter. A creator
+  using their Programming content-search would see every other creator's videos, including
+  private/subscriber/unpublished.
+- `assignContent(channelId, playoutItemIds, contentIds)` (`playout-orchestrator.ts:446`) inserts the
+  caller-supplied `contentIds` into `channel_content` with **zero ownership/eligibility check** — a
+  creator could assign another creator's content id and play it out.
 
-Two optional nits (not gating): an integration test wiring the *real* permission service with an
-`editor` membership would make "manageStreaming is owner-only" self-evident in this file; the
-middleware dereferences `c.get("user")` without a null guard (safe — `requireAuth` always precedes).
+This was safe as an admin-only surface; it becomes a cross-tenant leak the moment a creator can call it.
+
+**Fix (grounded):** the scoping primitive already exists — `poolContentScope(channel)`
+(`editorial-config.ts:58`) returns `{creatorId}` for creator channels vs `{allCreators: true}` for
+platform. Wire it into the creator content path: creator-scoped `search`/`assign` must constrain to
+`content.creatorId === channel.creatorId`, `deletedAt IS NULL`, and the creator's own
+publish/visibility rules. Either add creator-scoped orchestrator methods, or pass the channel's
+resolved scope into the existing methods and branch. Admin path keeps `{allCreators: true}` (unchanged).
+
+### IMPORTANT — gate doesn't constrain channel `role`
+`require-creator-channel-permission.ts` checks `ownership === "creator"` + non-null `creatorId` but
+not `role`. (Codex's *specific* suggestion — require `role === "playout"` — is WRONG for this feature:
+creator editorial channels are the persistent `live-ingest` channel, so that check would break the
+whole surface. Reject that fix.) The valid underlying point: decide deliberately which creator
+channel role(s) the editorial gate accepts and assert it. For the creator's single persistent
+`live-ingest` channel the blast radius is small, but the gate should state its intent rather than
+accept any creator-owned channel by omission.
+
+### IMPORTANT — tests prove forwarding, not authorization
+The route tests mock `requireCreatorPermission` wholesale, so they verify arg-forwarding, not the
+real owner-only `manageStreaming` decision or real cross-creator membership denial — and they don't
+cover the content-scope bug at all. Add tests using the real permission service (owner allowed;
+editor/viewer denied; different-creator membership denied) AND cross-creator content
+search/assign rejection (the Blocker's regression guard).
+
+### NIT — missing input validators
+Route params/query are raw `c.req.param()` / `c.req.query()` with no `validator("param"/"query")`
+(SQL is parameterized, so not an injection vector, but it violates the platform boundary-validation
+rule). Add param validators for `channelId`/`entryId` and a bounded query schema for `q`.
+
+### Clean (both passes agree)
+Every route is `requireAuth` + `requireCreatorChannelPermission("manageStreaming")`; creatorId is
+resolved from the channel row (unspoofable); the SSE `content.playout-changed` filter is fail-closed
+and requires matching `creatorIds`; the unwired publish path is non-functional, not insecure; admin
+routes behaviorally unchanged.
