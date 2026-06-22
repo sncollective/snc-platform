@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: review
+stage: implementing
 tags: [streaming, playout, identity, security]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -255,3 +255,39 @@ SQL is parameterized; not the vuln).
 The cross-creator security tests are integration-adjacent but written unit-class (mocked DB layer) —
 they run in the unit suite. A full real-DB integration pass (real creator membership + content rows)
 would run via `scripts/dev/sandbox-test-integration.sh`.
+
+## Review findings — BOUNCED again (cross-model re-review, Codex xhigh, round 2)
+The first fix (`f0fd873`) closed search + assign + the role gate + the test gap (all verified
+CLOSED). But the re-review caught the SAME leak class through a sibling door, plus a fail-open the
+fix introduced. Verdict: **Bounce**.
+
+### BLOCKER (NOT CLOSED) — queue insert bypasses pool scope
+The fix scoped `searchAvailableContent` + `assignContent`, but the creator queue-insert route
+(`creator-playout.routes.ts:99` → `insertIntoQueue`) was missed. `insertIntoQueue`
+(`playout-orchestrator.ts:366`) takes a `playoutItemId` and validates ONLY that the playout_items
+row exists (`:372-379`) — no creator scoping — then enqueues + prefetches for playback. A creator
+owner who knows ANY platform/other-creator `playoutItemId` can queue and play it directly, bypassing
+the now-scoped pool. Same cross-tenant class as the original blocker, different entry point.
+
+**Fix:** for creator-scoped channels, a queue insert must reference an item **already in that
+channel's (now creator-scoped) content pool** — make the pool the single chokepoint — rather than
+accepting an arbitrary global `playoutItemId`. Reject (Forbidden/NotFound `Result`) a `playoutItemId`
+that isn't a `channel_content` row for this channel. Admin path (`{allCreators:true}`) keeps today's
+behavior. Add a creator `insertIntoQueue` cross-tenant-rejection regression test (must fail against
+current code).
+
+### IMPORTANT (NEW-ISSUE, introduced by the fix) — `resolvePoolScope` fails OPEN
+`resolvePoolScope` (`playout-orchestrator.ts:146-151`) returns `{ allCreators: true }` when the
+channel row isn't loaded. A missing / raced / bogus-id lookup therefore defaults to admin-wide
+scope — the most-permissive scope is the failure default on a security boundary. The inline comment
+("the route gate already proved ownership") doesn't hold: the helper is shared with the admin path,
+and "no row" means the channel doesn't exist.
+
+**Fix:** fail CLOSED — return/propagate `NotFoundError` (or the most-restrictive scope) when the
+channel row is absent. Never default a security scope to `allCreators`.
+
+### Confirmed CLOSED from round 1 (no regression)
+- search + assign creator-scoped (`:824` search filter, `:500` assign ownership validation) — CLOSED.
+- role gate asserts `live-ingest` (`require-creator-channel-permission.ts:31`) matching provisioning — CLOSED.
+- tests wire the real permission service + orchestrator regression tests fail against unscoped code — CLOSED (gap: no creator queue-insert rejection test — add with the blocker fix).
+- admin `{allCreators:true}` branch behaviorally unchanged; no SQL injection (Drizzle `sql` params) — CLOSED.
