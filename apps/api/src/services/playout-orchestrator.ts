@@ -126,17 +126,26 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
    * channel's ownership row — never from caller input.
    *
    * Creator-owned channels resolve to `{ creatorId }` so the content search +
-   * assign paths are constrained to that creator's own non-deleted content.
-   * Platform/admin channels (and a channel row that cannot be loaded) resolve to
-   * `{ allCreators: true }` — the pre-existing admin behavior, unchanged.
+   * assign + queue-insert paths are constrained to that creator's own pool.
+   * Platform/admin channels resolve to `{ allCreators: true }` — the pre-existing
+   * admin behavior, unchanged.
    *
-   * This is the security boundary for the shared editorial surface: the same
-   * `searchAvailableContent` / `assignContent` methods are reached by both admin
-   * routes (platform channel → all content) and creator routes (creator channel →
-   * own content only), and the scope is unspoofable because it comes from the
-   * channel record keyed by the route's `:channelId`.
+   * Fails CLOSED: when the channel row is absent the helper returns a
+   * `NotFoundError`, never a scope. This is a security boundary shared by both the
+   * admin orchestrator path (platform channel → all content) and the creator path
+   * (creator channel → own content only); a missing / raced / bogus-id lookup must
+   * NEVER default to the most-permissive admin-wide scope. A real channel always
+   * resolves to its true scope (a platform row → `{ allCreators: true }`, a creator
+   * row → `{ creatorId }`), so admin behavior is unchanged for any existing channel.
+   *
+   * The scope is unspoofable because it comes from the channel record keyed by the
+   * route's `:channelId`, not from any caller input.
+   *
+   * @returns NotFoundError when no channel row exists for `channelId`.
    */
-  const resolvePoolScope = async (channelId: string): Promise<PoolScope> => {
+  const resolvePoolScope = async (
+    channelId: string,
+  ): Promise<Result<PoolScope, NotFoundError>> => {
     const rows = (await db.execute(sql`
       SELECT ownership, creator_id AS "creatorId"
       FROM channels
@@ -145,12 +154,11 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
     const row = Array.isArray(rows) ? rows[0] : undefined;
     if (!row) {
-      // Channel not loadable (or a mocked/legacy path) — fall back to the
-      // platform-wide behavior. The route-level gate already proved channel
-      // ownership before this method runs, so this is the admin default.
-      return { allCreators: true };
+      // Channel genuinely does not exist — fail closed. Returning the admin-wide
+      // scope here would let a missing/bogus channelId reach all-creator content.
+      return err(new NotFoundError("Channel not found"));
     }
-    return poolContentScope(row);
+    return ok(poolContentScope(row));
   };
 
   // ── Queue Status ──
@@ -362,13 +370,57 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
   /**
    * Insert an item into the queue at a given position (default: end).
    * Shifts existing entries at >= position up by 1 when position is given.
+   *
+   * Scope-gated like the rest of the shared editorial surface: the scope is
+   * derived from the channel's ownership row (`resolvePoolScope`), never the caller.
+   *
+   * - Creator-owned channel (`{ creatorId }`): the `playoutItemId` MUST already be in
+   *   THIS channel's content pool (`channel_content`). The pool is creator-scoped
+   *   (the search/assign paths only admit the creator's own content), so this makes
+   *   the scoped pool the single chokepoint — a creator cannot queue an arbitrary
+   *   platform/other-creator `playoutItemId` they happen to know. An item outside the
+   *   pool is rejected as `ForbiddenError` (matching the round-1 assign-rejection code,
+   *   and not leaking whether the foreign item exists) and nothing is enqueued.
+   * - Platform/admin channel (`{ allCreators: true }`): unchanged — admins legitimately
+   *   queue from the full playout library, so only the existence check below applies.
+   *
+   * Fails closed: a missing channel row resolves to NotFoundError (never admin scope).
    */
   const insertIntoQueue = async (
     channelId: string,
     playoutItemId: string,
     position?: number,
   ): Promise<Result<PlayoutQueueEntry, AppError>> => {
-    // 1. Validate the playout item exists
+    // 1. Resolve the channel's pool scope (fails closed on a missing channel).
+    const scopeResult = await resolvePoolScope(channelId);
+    if (!scopeResult.ok) return scopeResult;
+    const scope = scopeResult.value;
+
+    // 1a. Creator channels may only queue items already in their scoped pool —
+    //     the pool is the chokepoint that keeps cross-tenant items out of playback.
+    if ("creatorId" in scope) {
+      const poolRows = (await db.execute(sql`
+        SELECT 1
+        FROM channel_content
+        WHERE channel_id = ${channelId}
+          AND playout_item_id = ${playoutItemId}
+      `)) as Array<unknown>;
+
+      const inPool = Array.isArray(poolRows) && poolRows.length > 0;
+      if (!inPool) {
+        logger.warn(
+          { channelId, creatorId: scope.creatorId, playoutItemId },
+          "Rejected creator queue insert — playout item not in channel's scoped pool",
+        );
+        return err(
+          new ForbiddenError(
+            "Playout item is not in this channel's content pool",
+          ),
+        );
+      }
+    }
+
+    // 2. Validate the playout item exists
     const [item] = await db
       .select()
       .from(playoutItems)
@@ -378,7 +430,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       return err(new NotFoundError("Playout item not found"));
     }
 
-    // 2. Create queue entry (position-shift + insert delegated to transitions)
+    // 3. Create queue entry (position-shift + insert delegated to transitions)
     const row = await enqueue({
       channelId,
       playoutItemId,
@@ -495,7 +547,9 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     contentIds?: string[],
   ): Promise<Result<void, AppError>> => {
     const requestedContentIds = contentIds ?? [];
-    const scope = await resolvePoolScope(channelId);
+    const scopeResult = await resolvePoolScope(channelId);
+    if (!scopeResult.ok) return scopeResult;
+    const scope = scopeResult.value;
 
     if ("creatorId" in scope) {
       // Creator pools are content-only — the playout-item branch is the platform's
@@ -818,7 +872,9 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     query: string,
   ): Promise<Result<PoolCandidate[], AppError>> => {
     const searchPattern = `%${query}%`;
-    const scope = await resolvePoolScope(channelId);
+    const scopeResult = await resolvePoolScope(channelId);
+    if (!scopeResult.ok) return scopeResult;
+    const scope = scopeResult.value;
     const creatorScoped = "creatorId" in scope;
 
     // Playout-item branch — platform-shared media. Included for admin/platform

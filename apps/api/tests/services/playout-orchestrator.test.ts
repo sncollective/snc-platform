@@ -210,8 +210,16 @@ describe("playout orchestrator", () => {
   // ── assignContent ──
 
   describe("assignContent", () => {
+    // These exercise the platform/admin path (channel-1 is platform-owned), where
+    // playout items are assignable and no ownership-validation query runs. The
+    // resolvePoolScope SELECT must return a platform row — a missing row now fails
+    // closed (round-2), so the scope mock is required, not optional.
+    const platformScopeRow = [{ ownership: "platform", creatorId: null }];
+
     it("inserts channel_content entries for given playout item IDs", async () => {
       const orchestrator = await setupModule();
+
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       const insertChain = {
         values: vi.fn().mockReturnValue({
@@ -236,6 +244,8 @@ describe("playout orchestrator", () => {
     it("uses onConflictDoNothing to ignore duplicate assignments", async () => {
       const orchestrator = await setupModule();
 
+      mockDbExecute.mockResolvedValue(platformScopeRow);
+
       const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
       mockDbInsert.mockReturnValue({
         values: vi.fn().mockReturnValue({ onConflictDoNothing }),
@@ -248,6 +258,8 @@ describe("playout orchestrator", () => {
 
     it("inserts channel_content entries for given content IDs", async () => {
       const orchestrator = await setupModule();
+
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       const insertChain = {
         values: vi.fn().mockReturnValue({
@@ -269,6 +281,8 @@ describe("playout orchestrator", () => {
     it("inserts mixed playout and content entries in one call", async () => {
       const orchestrator = await setupModule();
 
+      mockDbExecute.mockResolvedValue(platformScopeRow);
+
       const insertChain = {
         values: vi.fn().mockReturnValue({
           onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
@@ -286,6 +300,8 @@ describe("playout orchestrator", () => {
 
     it("returns ok without inserting when both arrays are empty", async () => {
       const orchestrator = await setupModule();
+
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       const result = await orchestrator.assignContent("channel-1", []);
 
@@ -408,8 +424,14 @@ describe("playout orchestrator", () => {
   // ── insertIntoQueue ──
 
   describe("insertIntoQueue", () => {
+    /** A platform-owned channel row, as returned by the resolvePoolScope SELECT. */
+    const platformScopeRow = [{ ownership: "platform", creatorId: null }];
+
     it("returns NotFoundError for nonexistent playout item", async () => {
       const orchestrator = await setupModule();
+
+      // resolvePoolScope → platform/admin (no pool-membership gate; admin path).
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       mockDbSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -429,6 +451,9 @@ describe("playout orchestrator", () => {
 
     it("inserts at end when no position given", async () => {
       const orchestrator = await setupModule();
+
+      // resolvePoolScope → platform/admin (admin path, unchanged behavior).
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       // Select calls in order:
       // 1. Look up playout item → [item]
@@ -474,6 +499,9 @@ describe("playout orchestrator", () => {
 
     it("shifts existing entries when inserting at specific position", async () => {
       const orchestrator = await setupModule();
+
+      // resolvePoolScope → platform/admin (admin path, unchanged behavior).
+      mockDbExecute.mockResolvedValue(platformScopeRow);
 
       // Select calls in order:
       // 1. Look up playout item → [item]
@@ -1003,25 +1031,31 @@ describe("playout orchestrator", () => {
   // ── searchAvailableContent ──
 
   describe("searchAvailableContent", () => {
+    /** A platform-owned channel row, as returned by the resolvePoolScope SELECT. */
+    const platformScopeRow = [{ ownership: "platform", creatorId: null }];
+
     it("returns mixed playout and creator content results", async () => {
       const orchestrator = await setupModule();
 
-      mockDbExecute.mockResolvedValue([
-        {
-          id: "item-1",
-          sourceType: "playout",
-          title: "Test Film",
-          duration: 90.0,
-          creator: null,
-        },
-        {
-          id: "content-1",
-          sourceType: "content",
-          title: "Creator Video",
-          duration: 120.0,
-          creator: "Jane Doe",
-        },
-      ]);
+      // db.execute: 1. resolvePoolScope → platform/admin; 2. the search UNION.
+      mockDbExecute
+        .mockResolvedValueOnce(platformScopeRow)
+        .mockResolvedValueOnce([
+          {
+            id: "item-1",
+            sourceType: "playout",
+            title: "Test Film",
+            duration: 90.0,
+            creator: null,
+          },
+          {
+            id: "content-1",
+            sourceType: "content",
+            title: "Creator Video",
+            duration: 120.0,
+            creator: "Jane Doe",
+          },
+        ]);
 
       const result = await orchestrator.searchAvailableContent("channel-1", "test");
 
@@ -1045,7 +1079,10 @@ describe("playout orchestrator", () => {
     it("returns empty array when no matches found", async () => {
       const orchestrator = await setupModule();
 
-      mockDbExecute.mockResolvedValue([]);
+      // db.execute: 1. resolvePoolScope → platform/admin; 2. the search UNION → none.
+      mockDbExecute
+        .mockResolvedValueOnce(platformScopeRow)
+        .mockResolvedValueOnce([]);
 
       const result = await orchestrator.searchAvailableContent("channel-1", "no-match");
 
@@ -1057,7 +1094,9 @@ describe("playout orchestrator", () => {
     it("uses db.execute for the UNION query", async () => {
       const orchestrator = await setupModule();
 
-      mockDbExecute.mockResolvedValue([]);
+      mockDbExecute
+        .mockResolvedValueOnce(platformScopeRow)
+        .mockResolvedValueOnce([]);
 
       await orchestrator.searchAvailableContent("channel-1", "query");
 
@@ -1267,6 +1306,254 @@ describe("playout orchestrator", () => {
         }>;
         expect(values).toHaveLength(2);
         // Only the scope lookup ran on db.execute — no ownership validation query.
+        expect(mockDbExecute).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    // ── insertIntoQueue scope (round-2 blocker) ──
+    //
+    // The creator queue-insert path is the second cross-tenant entry point: a
+    // creator owner who knows ANY platform/other-creator playoutItemId could queue
+    // and play it directly, bypassing the now-scoped content pool. The fix makes the
+    // creator-scoped pool the single chokepoint — a creator may only queue an item
+    // already in THIS channel's channel_content pool. Admin channels are unchanged
+    // (they legitimately queue from the full library).
+    //
+    // Against the OLD (unscoped) insertIntoQueue these creator tests fail: the old
+    // method validated only that the playout_items row existed, with no pool check,
+    // so a foreign playoutItemId was enqueued and returned ok.
+
+    describe("insertIntoQueue — creator scope", () => {
+      it("rejects a playoutItemId NOT in the channel's pool with ForbiddenError and enqueues nothing", async () => {
+        const orchestrator = await setupModule();
+
+        // db.execute calls in order:
+        // 1. resolvePoolScope → creator-owned.
+        // 2. pool-membership SELECT 1 → empty (item not in this channel's pool).
+        mockDbExecute
+          .mockResolvedValueOnce(creatorChannelScopeRow)
+          .mockResolvedValueOnce([]);
+
+        // The item DOES exist globally — so a leak would only be caught by the pool
+        // check, not the existence check. Wire the item lookup to succeed to prove
+        // the pool gate (not the existence gate) is what rejects.
+        mockDbSelect.mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([makeItemRow({ id: "foreign-item" })]),
+          }),
+        });
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([makeQueueRow()]),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.insertIntoQueue(
+          "creator-channel-A",
+          "foreign-item",
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("FORBIDDEN");
+        expect(result.error.statusCode).toBe(403);
+        // Nothing was enqueued — the queue insert never ran.
+        expect(mockDbInsert).not.toHaveBeenCalled();
+        // The pool-membership query carried this channel + playout item.
+        const poolSql = mockDbExecute.mock.calls[1]?.[0] as { queryChunks?: unknown };
+        const rendered = JSON.stringify(poolSql);
+        expect(rendered).toContain("channel_content");
+        expect(rendered).toContain("creator-channel-A");
+        expect(rendered).toContain("foreign-item");
+      });
+
+      it("allows a playoutItemId that IS in the channel's scoped pool (enqueues it)", async () => {
+        const orchestrator = await setupModule();
+
+        // db.execute calls in order:
+        // 1. resolvePoolScope → creator-owned.
+        // 2. pool-membership SELECT 1 → one row (item is in this channel's pool).
+        mockDbExecute
+          .mockResolvedValueOnce(creatorChannelScopeRow)
+          .mockResolvedValueOnce([{ "?column?": 1 }]);
+
+        // mockDbSelect serves, in order: item lookup → [item]; enqueue max-position
+        // → [{ max: 0 }]; pushPrefetchBuffer unpushed → [].
+        mockDbSelect
+          .mockReturnValueOnce({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([makeItemRow({ id: "pooled-item" })]),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([{ max: 0 }]),
+            }),
+          })
+          .mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          });
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              makeQueueRow({ playoutItemId: "pooled-item", position: 1 }),
+            ]),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.insertIntoQueue(
+          "creator-channel-A",
+          "pooled-item",
+        );
+
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        expect(result.value.playoutItemId).toBe("pooled-item");
+        // The pooled item was actually enqueued.
+        expect(mockDbInsert).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("insertIntoQueue — admin scope (unchanged)", () => {
+      it("enqueues any existing playout item without a pool-membership check", async () => {
+        const orchestrator = await setupModule();
+
+        // db.execute → platform/admin scope only. NO pool-membership query is issued
+        // on the admin path (admins queue from the full library).
+        mockDbExecute.mockResolvedValueOnce(platformChannelScopeRow);
+
+        mockDbSelect
+          .mockReturnValueOnce({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([makeItemRow({ id: "any-item" })]),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([{ max: 0 }]),
+            }),
+          })
+          .mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          });
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              makeQueueRow({ playoutItemId: "any-item", position: 1 }),
+            ]),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.insertIntoQueue("admin-channel", "any-item");
+
+        expect(result.ok).toBe(true);
+        expect(mockDbInsert).toHaveBeenCalledTimes(1);
+        // Only the scope lookup ran on db.execute — no pool-membership query.
+        expect(mockDbExecute).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    // ── resolvePoolScope fail-closed (round-2 important) ──
+    //
+    // A missing / raced / bogus channelId must NEVER resolve to the most-permissive
+    // admin-wide scope. resolvePoolScope returns NotFoundError when the channel row
+    // is absent, and the methods that call it short-circuit on that error — so no
+    // cross-creator data is reachable through a phantom channel.
+    //
+    // Against the OLD (fail-open) code these tests fail: a missing channel row
+    // yielded { allCreators: true }, so searchAvailableContent ran the unconstrained
+    // admin UNION, assignContent inserted unchecked, and insertIntoQueue skipped the
+    // pool gate — all returning ok against a channel that does not exist.
+
+    describe("missing channel row fails closed (never admin scope)", () => {
+      it("searchAvailableContent returns NotFoundError and runs no content query", async () => {
+        const orchestrator = await setupModule();
+
+        // resolvePoolScope channel lookup → no row.
+        mockDbExecute.mockResolvedValueOnce([]);
+
+        const result = await orchestrator.searchAvailableContent(
+          "missing-channel",
+          "film",
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("NOT_FOUND");
+        expect(result.error.statusCode).toBe(404);
+        // Only the scope lookup ran — the content UNION query never executed, so no
+        // cross-creator rows could be returned.
+        expect(mockDbExecute).toHaveBeenCalledTimes(1);
+      });
+
+      it("assignContent returns NotFoundError and inserts nothing", async () => {
+        const orchestrator = await setupModule();
+
+        mockDbExecute.mockResolvedValueOnce([]);
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.assignContent(
+          "missing-channel",
+          [],
+          ["content-from-any-creator"],
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("NOT_FOUND");
+        // Nothing was written for a phantom channel.
+        expect(mockDbInsert).not.toHaveBeenCalled();
+        // Only the scope lookup ran — no ownership-validation query.
+        expect(mockDbExecute).toHaveBeenCalledTimes(1);
+      });
+
+      it("insertIntoQueue returns NotFoundError and enqueues nothing", async () => {
+        const orchestrator = await setupModule();
+
+        mockDbExecute.mockResolvedValueOnce([]);
+
+        const insertChain = {
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([makeQueueRow()]),
+          }),
+        };
+        mockDbInsert.mockReturnValue(insertChain);
+
+        const result = await orchestrator.insertIntoQueue(
+          "missing-channel",
+          "item-1",
+        );
+
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.code).toBe("NOT_FOUND");
+        // Nothing was enqueued for a phantom channel.
+        expect(mockDbInsert).not.toHaveBeenCalled();
+        // Only the scope lookup ran — no pool-membership query, no item lookup.
         expect(mockDbExecute).toHaveBeenCalledTimes(1);
       });
     });

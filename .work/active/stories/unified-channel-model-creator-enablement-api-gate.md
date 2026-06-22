@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout, identity, security]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -291,3 +291,70 @@ channel row is absent. Never default a security scope to `allCreators`.
 - role gate asserts `live-ingest` (`require-creator-channel-permission.ts:31`) matching provisioning — CLOSED.
 - tests wire the real permission service + orchestrator regression tests fail against unscoped code — CLOSED (gap: no creator queue-insert rejection test — add with the blocker fix).
 - admin `{allCreators:true}` branch behaviorally unchanged; no SQL injection (Drizzle `sql` params) — CLOSED.
+
+## Fix round 2
+
+Both confirmed issues fixed in `apps/api/src/services/playout-orchestrator.ts`; no schema/migration
+change. Tests added to `apps/api/tests/services/playout-orchestrator.test.ts`.
+
+### Issue 1 (BLOCKER) — creator queue-insert now goes through the scoped-pool chokepoint
+`insertIntoQueue` now resolves the channel's scope via `resolvePoolScope` (same helper as
+search/assign), then:
+- **Creator channel (`{ creatorId }`):** before any enqueue, asserts the `playoutItemId` is a
+  `channel_content` row for THIS channel
+  (`SELECT 1 FROM channel_content WHERE channel_id = ${channelId} AND playout_item_id = ${playoutItemId}`,
+  parameterized). Absent → `ForbiddenError` (403, matching round-1's assign-rejection code; does not
+  leak whether the foreign item exists), nothing enqueued. Because the pool itself is now
+  creator-scoped (round-1 search/assign), an item-in-pool check is sufficient to bar a creator from
+  queuing any platform/other-creator `playoutItemId` they happen to know — the pool is the single
+  chokepoint.
+- **Admin/platform channel (`{ allCreators: true }`):** unchanged — the original `playout_items`
+  existence check (`:372-379` pre-fix) still runs and any existing item is queueable. No
+  pool-membership constraint added to the admin path.
+
+**contentId pool entries — not handled, and correctly so.** `playout_queue.playoutItemId` is
+`notNull` with an FK to `playout_items`; the queue can only ever hold playout items, never raw
+`content`. The creator route body only accepts `playoutItemId`. So a creator's content-pool
+`contentId` entries are unqueueable by construction — the `playout_item_id` membership check is the
+complete and sufficient gate. (Confirmed by reading `playout-queue.schema.ts` + the creator route
+validator.)
+
+### Issue 2 (IMPORTANT) — `resolvePoolScope` now fails CLOSED
+Chose the **preferred** approach: `resolvePoolScope` now returns `Result<PoolScope, NotFoundError>`.
+A missing channel row returns `err(NotFoundError("Channel not found"))` instead of
+`{ allCreators: true }`. The three callers (`searchAvailableContent`, `assignContent`,
+`insertIntoQueue`) short-circuit on that error — each already returns `Result<T, AppError>`, so the
+thread-through is clean and keeps every caller's contract. The misleading "route gate already proved
+ownership" comment is replaced with the fail-closed rationale. A real channel still resolves to its
+true scope (platform row → `{ allCreators: true }`), so **admin behavior is unchanged for any
+existing channel** — the fail-closed branch only fires when no row exists.
+
+### Tests (proven to fail against current/pre-fix code)
+Added under `content pool scope (creator vs admin)`:
+- `insertIntoQueue — creator scope`: rejects a `playoutItemId` NOT in the channel's pool
+  (`ForbiddenError`, nothing enqueued); allows one that IS in the scoped pool (enqueues it).
+- `insertIntoQueue — admin scope (unchanged)`: enqueues any existing playout item with no
+  pool-membership query (only the scope lookup runs on `db.execute`).
+- `missing channel row fails closed (never admin scope)`: `searchAvailableContent`, `assignContent`,
+  and `insertIntoQueue` each return `NotFoundError` and run no content/insert query for a phantom
+  channel.
+
+Verified by stashing only the orchestrator source change (keeping the new tests) and re-running:
+the 4 discriminating tests — creator pool-rejection + all three fail-closed — **fail against the
+pre-fix code** (old `insertIntoQueue` enqueued the foreign item; old `resolvePoolScope` returned
+admin-wide scope for a missing channel, so the methods returned ok against a non-existent channel).
+
+### Admin-unchanged confirmation
+- Admin route tests (`playout-channels.routes.test.ts`) and the creator route tests
+  (`creator-playout.routes.test.ts`) are **byte-untouched** — they mock the orchestrator method, so
+  the service change does not reach them.
+- The round-1 admin orchestrator regression tests (`assignContent`/`searchAvailableContent — admin
+  scope`) are unchanged and green.
+- The only test edits are in `playout-orchestrator.test.ts`: (a) the new round-2 security tests, and
+  (b) mock-plumbing on pre-existing platform-path `assignContent` / `searchAvailableContent` /
+  `insertIntoQueue` mechanics tests — they now supply the `resolvePoolScope` SELECT row that
+  fail-closed requires. Their **assertions are identical**; only the DB mock setup changed (a new DB
+  round-trip was added to the method under test). No admin *behavior* changed.
+
+Verification: `@snc/shared` 675 pass, `@snc/api` typecheck clean, `@snc/api` unit 1840 pass (was
+1834; +6 new security tests).
