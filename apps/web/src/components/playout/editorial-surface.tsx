@@ -128,11 +128,19 @@ export interface EditorialSurfaceProps {
    * the `<SpineProvider topics={…}>` and topic choice live at the mount level.
    */
   readonly spineTopic: SseTopic;
-  /** Capabilities the mount grants; creator mount omits CRUD/broadcast/tabs. */
+  /** Capabilities the mount grants; creator mount omits CRUD/broadcast/tabs/create. */
   readonly capabilities: {
     readonly channelCrud: boolean; // admin only
     readonly broadcastBanner: boolean; // admin only
     readonly channelTabs: boolean; // admin only (creator = single channel)
+    /**
+     * Whether to render the "+ Create New" pool affordance. Admin only — it calls
+     * the admin-scoped `createPlayoutItem` (`POST /api/playout/items`) and assigns
+     * the returned playout-item id, which the creator content path rejects (creator
+     * pools are content-only). Creators add to their pool via the search picker over
+     * their own existing content instead.
+     */
+    readonly canCreateContent: boolean;
   };
 }
 
@@ -145,6 +153,7 @@ export interface EditorialSurfaceProps {
 export function EditorialSurface({
   channelId,
   spineTopic,
+  capabilities,
 }: EditorialSurfaceProps): React.ReactElement {
   const api = useEditorialApi();
   const {
@@ -420,17 +429,21 @@ export function EditorialSurface({
                 />
               )}
             </div>
-            <button
-              type="button"
-              className={styles.addButton}
-              onClick={() => setShowAddForm(!showAddForm)}
-            >
-              + Create New
-            </button>
+            {/* Admin-only: "Create New" calls the admin-scoped createPlayoutItem +
+                playout-item assignment, which the creator content path rejects. */}
+            {capabilities.canCreateContent && (
+              <button
+                type="button"
+                className={styles.addButton}
+                onClick={() => setShowAddForm(!showAddForm)}
+              >
+                + Create New
+              </button>
+            )}
           </div>
         </div>
 
-        {showAddForm && (
+        {capabilities.canCreateContent && showAddForm && (
           <AddContentForm
             channelId={channelId}
             onAdded={() => {

@@ -28,14 +28,16 @@ interface ProgrammingLoaderData {
 // ── Route ──
 
 export const Route = createFileRoute("/creators/$creatorId/manage/programming")({
-  // Resolve the creator's channel id server-side. Null means the channel hasn't been
-  // provisioned yet (no stream key created) — the component shows setup guidance, not
-  // an error. Uses the SSR-safe server fetch (the client `fetchCreatorChannel` lib hits
-  // the same `/api/creators/:id/channel` endpoint from the browser).
+  // Resolve the creator's channel id server-side. A successful response carrying
+  // `channelId: null` means the channel hasn't been provisioned yet (no stream key
+  // created) — the component shows setup guidance, not an error. A genuine failure
+  // (403/401/5xx) is NOT "unprovisioned": `fetchApiServer` throws on a non-ok response,
+  // and that error is left to propagate to the route's `errorComponent`
+  // (`RouteErrorBoundary`) rather than being swallowed as a false setup card.
   loader: async ({ params }): Promise<ProgrammingLoaderData> => {
     const res = (await fetchApiServer({
       data: `/api/creators/${encodeURIComponent(params.creatorId)}/channel`,
-    }).catch(() => ({ channelId: null }))) as { channelId: string | null };
+    })) as { channelId: string | null };
     return { channelId: res.channelId ?? null };
   },
   head: () => ({ meta: [{ title: "Programming — S/NC" }] }),
@@ -54,13 +56,30 @@ const CONTENT_TOPICS = ["content"] as const;
  * Creator "Programming" tab — the shared `<EditorialSurface>` wired to the creator's own
  * channel via the creator-scoped editorial data layer (`/api/creator/playout/*`). When
  * the channel isn't provisioned yet, shows setup guidance linking to the Streaming tab
- * (creating the first stream key provisions the channel). Owner-only — the nav item is
- * gated on `manageStreaming`, which only the owner role carries.
+ * (creating the first stream key provisions the channel).
+ *
+ * Owner-only: the nav item is gated on `manageStreaming` (owner-only), but the route is
+ * also content-gated here so a direct navigation by an editor/viewer renders an
+ * access-denied state instead of non-functional controls — mirroring the Streaming tab's
+ * component-level owner check. The backend remains the real gate (every action 403s for
+ * non-owners); this enforces the owner-only UI contract.
  */
 function ProgrammingPage(): React.ReactElement {
   const { channelId } = Route.useLoaderData();
-  const { creator } = parentRoute.useLoaderData();
+  const { creator, memberRole, isAdmin } = parentRoute.useLoaderData();
   const creatorSlug = creator.handle ?? creator.id;
+  const isOwner = isAdmin || memberRole === "owner";
+
+  if (!isOwner) {
+    return (
+      <div className={styles.page}>
+        <h1 className={pageHeadingStyles.heading}>Programming</h1>
+        <p className={listingStyles.status}>
+          Only creator owners can manage programming.
+        </p>
+      </div>
+    );
+  }
 
   if (channelId === null) {
     return (
@@ -93,7 +112,7 @@ function ProgrammingPage(): React.ReactElement {
             key={channelId}
             channelId={channelId}
             spineTopic="content"
-            capabilities={{ channelCrud: false, broadcastBanner: false, channelTabs: false }}
+            capabilities={{ channelCrud: false, broadcastBanner: false, channelTabs: false, canCreateContent: false }}
           />
         </EditorialApiProvider>
       </SpineProvider>

@@ -376,7 +376,7 @@ function PlayoutPageInner(): React.ReactElement {
               key={selectedChannelId}
               channelId={selectedChannelId}
               spineTopic="playout"
-              capabilities={{ channelCrud: true, broadcastBanner: true, channelTabs: true }}
+              capabilities={{ channelCrud: true, broadcastBanner: true, channelTabs: true, canCreateContent: true }}
             />
           </EditorialApiProvider>
         </div>

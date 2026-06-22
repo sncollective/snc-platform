@@ -125,6 +125,10 @@ vi.mock("../../../../src/contexts/upload-context.js", () => ({
 
 // Component under test — imported after mocks are registered.
 import { EditorialSurface } from "../../../../src/components/playout/editorial-surface.js";
+import {
+  EditorialApiProvider,
+  ADMIN_EDITORIAL_API,
+} from "../../../../src/components/playout/editorial-api.js";
 
 // ── Render helper ──
 
@@ -132,8 +136,12 @@ const ALL_CAPS = {
   channelCrud: true,
   broadcastBanner: true,
   channelTabs: true,
+  canCreateContent: true,
 } as const;
 
+// `useEditorialApi` now fail-closes when no provider wraps the surface, so the
+// isolated render must supply one. The admin bundle is the `playout-channels.ts`
+// module mocked above, so the injected fetchers resolve to exactly those mocks.
 function renderSurface(
   props?: Partial<React.ComponentProps<typeof EditorialSurface>>,
 ): void {
@@ -142,12 +150,14 @@ function renderSurface(
       topics={["playout"]}
       eventSourceCtor={FakeEventSource as unknown as typeof EventSource}
     >
-      <EditorialSurface
-        channelId="ch_playout_1"
-        spineTopic="playout"
-        capabilities={ALL_CAPS}
-        {...props}
-      />
+      <EditorialApiProvider api={ADMIN_EDITORIAL_API}>
+        <EditorialSurface
+          channelId="ch_playout_1"
+          spineTopic="playout"
+          capabilities={ALL_CAPS}
+          {...props}
+        />
+      </EditorialApiProvider>
     </SpineProvider>,
   );
 }
@@ -190,15 +200,32 @@ describe("EditorialSurface — channel-scoped body", () => {
     expect(screen.queryByText("S/NC TV")).not.toBeInTheDocument();
   });
 
-  it("renders an identical body when all capability flags are false", () => {
+  it("renders the now-playing/queue/pool body when all capability flags are false", () => {
     renderSurface({
-      capabilities: { channelCrud: false, broadcastBanner: false, channelTabs: false },
+      capabilities: { channelCrud: false, broadcastBanner: false, channelTabs: false, canCreateContent: false },
     });
-    // The moved body (now-playing/queue/pool) is capability-independent in this extraction;
-    // the flags exist for the creator-mount contract but gate no in-surface block yet.
+    // The core body (now-playing/queue/pool) is capability-independent.
     expect(screen.getByRole("heading", { name: "Now Playing" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Queue" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Content Pool/ })).toBeInTheDocument();
+  });
+
+  it("renders the '+ Create New' affordance when canCreateContent is true", () => {
+    renderSurface(); // ALL_CAPS → canCreateContent: true
+    expect(screen.getByRole("button", { name: "+ Create New" })).toBeInTheDocument();
+    // The search picker over existing content stays available regardless.
+    expect(screen.getByRole("button", { name: "+ Add Content" })).toBeInTheDocument();
+  });
+
+  it("hides the '+ Create New' affordance when canCreateContent is false (creator mount)", () => {
+    renderSurface({
+      capabilities: { channelCrud: false, broadcastBanner: false, channelTabs: false, canCreateContent: false },
+    });
+    // The admin-shaped create path (createPlayoutItem + playout-item assignment) is
+    // rejected for creator scope, so the affordance is hidden on the creator mount...
+    expect(screen.queryByRole("button", { name: "+ Create New" })).not.toBeInTheDocument();
+    // ...but adding existing own-content via the search picker IS allowed and stays.
+    expect(screen.getByRole("button", { name: "+ Add Content" })).toBeInTheDocument();
   });
 });
 

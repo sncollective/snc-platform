@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-mount
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model-creator-enablement
 depends_on: [unified-channel-model-creator-enablement-extract-surface, unified-channel-model-creator-enablement-api-gate, unified-channel-model-creator-enablement-channel-resolve]
@@ -175,3 +175,54 @@ Creator fetchers correctly target `/api/creator/playout/channels/*`; admin mount
 `ADMIN_EDITORIAL_API` with no behavior change beyond the provider; surface + search picker use
 injected context (no leftover hardcoded admin import for channel ops); null-channel UX shows setup
 guidance, not an error, on a genuine `channelId: null`.
+
+## Fix
+
+### BLOCKER 1 part B — loader error distinction (`routes/creators/$creatorId/manage/programming.tsx`)
+The loader no longer blanket-catches all errors as `{channelId: null}`. `fetchApiServer` throws on a
+non-ok response, so a genuine 403/401/5xx now propagates to the route's `errorComponent`
+(`RouteErrorBoundary`) instead of masquerading as "unprovisioned." Only a *successful* response
+carrying `channelId: null` reaches the setup-card branch. (Paired with the channel-resolve story's
+Fix A, which makes the handle param resolve correctly so the common case returns a real channel.)
+
+### BLOCKER 2 — hide "Create New" on the creator mount (`canCreateContent` capability)
+Added `canCreateContent: boolean` to `EditorialSurface`'s `capabilities` (`editorial-surface.tsx`),
+gating both the "+ Create New" button and the `AddContentForm` it toggles. The admin mount sets it
+`true`; the creator mount sets it `false`. "Create New" calls the admin-scoped `createPlayoutItem`
+(`POST /api/playout/items`) + playout-item assignment, which the hardened creator content path
+rejects (creator pools are content-only). The smaller correct fix: hide it on the creator mount;
+creators add to their pool via the "+ Add Content" search picker over their own existing content
+(`assignContent` with `contentIds`), which IS allowed and stays visible. No new creator-upload path
+wired (that's a separate feature). The surface previously accepted `capabilities` but gated nothing
+on it; `canCreateContent` is the first flag it actually consumes.
+
+### IMPORTANT 1 — owner content-gate on the route (`programming.tsx`)
+The route component now reads `memberRole`/`isAdmin` from the parent manage loader and renders an
+access-denied state ("Only creator owners can manage programming.") for non-owner/non-admin, instead
+of relying on nav-gating alone. Mirrors the Streaming tab's component-level owner check
+(`isAdmin || memberRole === "owner"`), so a direct navigation by an editor/viewer no longer shows
+non-functional controls. The backend stays the real gate (every action 403s for non-owners); this
+enforces the owner-only UI contract.
+
+### IMPORTANT 2 — EditorialApi context fail-closed (`editorial-api.tsx`)
+`createContext<EditorialApi | undefined>(undefined)` (no admin default) + `useEditorialApi()` now
+throws `"useEditorialApi must be used within an EditorialApiProvider"` when no provider wraps the
+consumer. A future mount that forgets the provider fails loudly instead of silently hitting the admin
+scope. Both production mounts already wrap explicitly, so the live feature is unaffected.
+
+### Tests
+- `editorial-surface.test.tsx` (isolated component test) — wrapped the bare render with
+  `<EditorialApiProvider api={ADMIN_EDITORIAL_API}>`; **required** by the new fail-closed contract
+  (the surface no longer resolves a default bundle). This is a contract change the test must reflect,
+  not a behavior regression. Added two tests: "+ Create New" present when `canCreateContent: true`,
+  absent (with "+ Add Content" still present) when `false`. The hidden-affordance test was verified
+  to FAIL against the un-gated surface (the button always rendered) and pass after.
+- `programming.test.tsx` — parent loader mock now carries `memberRole`/`isAdmin`; added owner-gate
+  tests: admin sees the surface, editor and viewer are blocked with access-denied copy (and no setup
+  card), even when a channel exists.
+- Admin **route** tests (`admin/playout.test.tsx`) pass with **zero edits** — `PlayoutPage` wraps its
+  own `<EditorialApiProvider api={ADMIN_EDITORIAL_API}>`, so the fail-closed contract is satisfied by
+  the real component; admin behavior is identical (now passes `canCreateContent: true`, preserving
+  the existing "+ Create New" affordance).
+
+**Results:** web typecheck clean; full web suite 167 files / 1796 tests green.

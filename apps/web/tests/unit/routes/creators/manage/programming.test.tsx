@@ -61,7 +61,13 @@ const ProgrammingPage = extractRouteComponent(
 // ── Lifecycle ──
 
 beforeEach(() => {
-  mockParentLoaderData.mockReturnValue({ creator: { id: "creator-123", handle: "my-band" } });
+  // Default to an owner — the route is owner-gated (Finding 3). Non-owner cases
+  // override `memberRole`/`isAdmin` per test.
+  mockParentLoaderData.mockReturnValue({
+    creator: { id: "creator-123", handle: "my-band" },
+    memberRole: "owner",
+    isAdmin: false,
+  });
 });
 
 afterEach(() => {
@@ -109,5 +115,53 @@ describe("ProgrammingPage", () => {
     const link = screen.getByRole("link", { name: "Go to Streaming" });
     // The StubLink renders the resolved href; it points at this creator's Streaming tab.
     expect(link).toHaveAttribute("href", "/creators/my-band/manage/streaming");
+  });
+});
+
+describe("ProgrammingPage — owner-only content gate (Finding 3)", () => {
+  it("renders the programming surface for a platform admin", async () => {
+    mockParentLoaderData.mockReturnValue({
+      creator: { id: "creator-123", handle: "my-band" },
+      memberRole: "viewer",
+      isAdmin: true,
+    });
+    mockRouteLoaderData.mockReturnValue({ channelId: "ch_creator_1" });
+
+    render(<ProgrammingPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("editorial-surface")).toBeInTheDocument();
+    });
+  });
+
+  it("blocks an editor navigating directly to the route (no surface, access-denied copy)", () => {
+    mockParentLoaderData.mockReturnValue({
+      creator: { id: "creator-123", handle: "my-band" },
+      memberRole: "editor",
+      isAdmin: false,
+    });
+    // A channel exists, but a non-owner must NOT see the surface even so.
+    mockRouteLoaderData.mockReturnValue({ channelId: "ch_creator_1" });
+
+    render(<ProgrammingPage />);
+
+    expect(screen.queryByTestId("editorial-surface")).toBeNull();
+    expect(screen.getByText("Only creator owners can manage programming.")).toBeInTheDocument();
+    // The setup card is not the gate either — this is access-denied, not unprovisioned.
+    expect(screen.queryByText("Set up streaming to start programming")).toBeNull();
+  });
+
+  it("blocks a viewer navigating directly to the route", () => {
+    mockParentLoaderData.mockReturnValue({
+      creator: { id: "creator-123", handle: "my-band" },
+      memberRole: "viewer",
+      isAdmin: false,
+    });
+    mockRouteLoaderData.mockReturnValue({ channelId: "ch_creator_1" });
+
+    render(<ProgrammingPage />);
+
+    expect(screen.queryByTestId("editorial-surface")).toBeNull();
+    expect(screen.getByText("Only creator owners can manage programming.")).toBeInTheDocument();
   });
 });

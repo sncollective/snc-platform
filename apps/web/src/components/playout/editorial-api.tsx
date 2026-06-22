@@ -85,14 +85,12 @@ export const CREATOR_EDITORIAL_API: EditorialApi = {
 
 // ── Context ──
 
-// Default is the admin bundle. This is the admin module the isolated component tests
-// already mock at module scope (so they render the surface bare and assert on the
-// mock); it is NOT a per-mount fallback — both production mounts wrap
-// `<EditorialApiProvider>` explicitly, so neither relies on this default. A new mount
-// that forgets the provider gets the admin scope, which the admin route's `requireRole`
-// gate then 403s for non-admins — the footgun the creator mount avoids by injecting
-// `CREATOR_EDITORIAL_API` explicitly.
-const EditorialApiContext = createContext<EditorialApi>(ADMIN_EDITORIAL_API);
+// No default bundle. A missing provider must fail loudly (see `useEditorialApi`)
+// rather than silently resolve to the admin scope — a forgotten provider on a new
+// mount would otherwise hit `/api/playout/*` (admin) instead of the mount's intended
+// scope. Both production mounts wrap `<EditorialApiProvider>` explicitly, so neither
+// relies on a default.
+const EditorialApiContext = createContext<EditorialApi | undefined>(undefined);
 
 // ── Provider + Hook ──
 
@@ -111,7 +109,17 @@ export function EditorialApiProvider({
   );
 }
 
-/** Read the injected editorial data layer (admin bundle when no provider wraps). */
+/**
+ * Read the injected editorial data layer.
+ *
+ * @throws {Error} When no `<EditorialApiProvider>` wraps the consumer — fail-closed
+ * so a mount that forgets the provider errors loudly instead of silently hitting the
+ * admin scope.
+ */
 export function useEditorialApi(): EditorialApi {
-  return useContext(EditorialApiContext);
+  const api = useContext(EditorialApiContext);
+  if (api === undefined) {
+    throw new Error("useEditorialApi must be used within an EditorialApiProvider");
+  }
+  return api;
 }
