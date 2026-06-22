@@ -234,6 +234,44 @@ describe("channel service", () => {
     });
   });
 
+  // findChannelCreatorId is the leak-guard for content.playout-changed: it must
+  // return a creatorId ONLY for creator-owned channels, so the queue-transition
+  // publishers never emit a creator-scoped event for a platform/admin channel.
+  describe("findChannelCreatorId", () => {
+    it("returns the creatorId for a creator-owned channel", async () => {
+      mockDbSelect.mockReturnValueOnce(
+        buildSelectWhereChain([{ ownership: "creator", creatorId: "creator-7" }]),
+      );
+
+      const { findChannelCreatorId } = await setupService();
+      const result = await findChannelCreatorId("channel-1");
+
+      expect(result).toBe("creator-7");
+    });
+
+    it("returns null for a platform channel even when creatorId is populated", async () => {
+      // The ownership check — not the creatorId column — is the gate. A stray
+      // creatorId on a platform row must NOT leak a creator emit.
+      mockDbSelect.mockReturnValueOnce(
+        buildSelectWhereChain([{ ownership: "platform", creatorId: "creator-stray" }]),
+      );
+
+      const { findChannelCreatorId } = await setupService();
+      const result = await findChannelCreatorId("channel-1");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when the channel does not exist", async () => {
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereChain([]));
+
+      const { findChannelCreatorId } = await setupService();
+      const result = await findChannelCreatorId("missing-channel");
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe("ensureCreatorChannel", () => {
     it("creates a new persistent channel when none exists", async () => {
       mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));

@@ -159,7 +159,11 @@ export const selectDefaultChannel = (
  * Returns the `creatorId` when `ownership='creator'`, or `null` when the
  * channel is platform-owned or does not exist. Used by queue-transition
  * publishers to decide whether to emit `content.playout-changed`.
- * Never throws — callers treat null as "no creator emit needed."
+ *
+ * A DB error propagates (it does not catch). The queue-transition publisher
+ * calls this inside its fire-and-forget wrapper, which swallows the throw so a
+ * lookup failure degrades to "no creator emit this tick" without failing the
+ * transition. A non-fire-and-forget caller must handle the throw itself.
  */
 export const findChannelCreatorId = async (
   channelId: string,
