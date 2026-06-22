@@ -134,6 +134,18 @@ export async function removeCreatorMember(
 }
 
 /**
+ * Resolve a creator's persistent channel id (team-members only).
+ * Returns null when the channel has not yet been provisioned.
+ */
+export async function fetchCreatorChannel(
+  creatorId: string,
+): Promise<{ channelId: string | null }> {
+  return apiGet<{ channelId: string | null }>(
+    `/api/creators/${encodeURIComponent(creatorId)}/channel`,
+  );
+}
+
+/**
  * Browse eligible users to add as creator members.
  */
 export async function fetchMemberCandidates(

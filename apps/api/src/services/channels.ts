@@ -154,6 +154,29 @@ export const selectDefaultChannel = (
 };
 
 /**
+ * Read-only lookup of a creator's persistent channel id.
+ *
+ * Returns the channel id when the `ownership='creator'` / `role='live-ingest'`
+ * row exists, or `null` when the channel has not yet been provisioned.
+ * Never creates a row — use `ensureCreatorChannel` for provisioning.
+ */
+export const findCreatorChannelId = async (
+  creatorId: string,
+): Promise<string | null> => {
+  const [row] = await db
+    .select({ id: channels.id })
+    .from(channels)
+    .where(
+      and(
+        eq(channels.creatorId, creatorId),
+        eq(channels.ownership, "creator"),
+        eq(channels.role, "live-ingest"),
+      ),
+    );
+  return row?.id ?? null;
+};
+
+/**
  * Idempotently provision a persistent creator channel.
  *
  * Creates a single `ownership='creator'` / `role='live-ingest'` row for the

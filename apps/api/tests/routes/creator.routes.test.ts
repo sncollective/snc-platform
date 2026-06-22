@@ -10,6 +10,10 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 
 const mockRequireCreatorPermission = vi.fn();
 const mockGetCreatorMemberships = vi.fn();
+
+// ── Channels Service Mock ──
+
+const mockFindCreatorChannelId = vi.fn();
 // Holds the ForbiddenError class from the same module instance as the error handler
 // (captured in mocks() callback since vi.resetModules() runs between tests)
 let TestForbiddenError: new (msg?: string) => Error;
@@ -92,6 +96,10 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
       getCreatorMemberships: mockGetCreatorMemberships,
+    }));
+
+    vi.doMock("../../src/services/channels.js", () => ({
+      findCreatorChannelId: mockFindCreatorChannelId,
     }));
 
     vi.doMock("../../src/db/schema/content.schema.js", () => ({
@@ -192,6 +200,8 @@ const ctx = setupRouteTest({
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     // Default: user has no memberships
     mockGetCreatorMemberships.mockResolvedValue([]);
+    // Default: creator has no channel provisioned
+    mockFindCreatorChannelId.mockResolvedValue(null);
   },
 });
 
@@ -1286,6 +1296,56 @@ describe("creator routes", () => {
       expect(res.status).toBe(404);
       const body = await res.json();
       expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+
+  // ── GET /api/creators/:creatorId/channel ──
+
+  describe("GET /api/creators/:creatorId/channel", () => {
+    it("returns channelId when the creator channel is provisioned", async () => {
+      mockFindCreatorChannelId.mockResolvedValueOnce("chan_abc123");
+
+      const res = await ctx.app.request("/api/creators/user_test123/channel");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.channelId).toBe("chan_abc123");
+      // Confirm the read-only lookup fn was called (not ensureCreatorChannel)
+      expect(mockFindCreatorChannelId).toHaveBeenCalledWith("user_test123");
+    });
+
+    it("returns channelId: null when the creator channel is not yet provisioned", async () => {
+      mockFindCreatorChannelId.mockResolvedValueOnce(null);
+
+      const res = await ctx.app.request("/api/creators/user_test123/channel");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.channelId).toBeNull();
+    });
+
+    it("returns 403 when requester is not a team member", async () => {
+      mockRequireCreatorPermission.mockRejectedValueOnce(
+        new TestForbiddenError("Insufficient permissions"),
+      );
+
+      const res = await ctx.app.request("/api/creators/user_test123/channel");
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error.code).toBe("FORBIDDEN");
+      // Channel lookup must NOT have been called before the authz check
+      expect(mockFindCreatorChannelId).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+
+      const res = await ctx.app.request("/api/creators/user_test123/channel");
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error.code).toBe("UNAUTHORIZED");
     });
   });
 });

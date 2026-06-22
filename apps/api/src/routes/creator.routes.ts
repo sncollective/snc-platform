@@ -23,6 +23,7 @@ import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { buildCursorCondition, buildPaginatedResponse, decodeCursor } from "../lib/cursor.js";
 import { requireCreatorPermission, getCreatorMemberships } from "../services/creator-team.js";
+import { findCreatorChannelId } from "../services/channels.js";
 import { generateUniqueSlug } from "../services/slug.js";
 import {
   batchGetContentCounts,
@@ -266,5 +267,44 @@ creatorRoutes.patch(
     const contentCount = await getContentCount(profile.id);
     const response = toProfileResponse(updated, contentCount);
     return c.json(response);
+  },
+);
+
+// GET /:creatorId/channel — Resolve creator's persistent channel id (team-members only)
+creatorRoutes.get(
+  "/:creatorId/channel",
+  requireAuth,
+  describeRoute({
+    description: "Resolve a creator's persistent channel id. Returns null when not yet provisioned.",
+    tags: ["creators"],
+    responses: {
+      200: {
+        description: "Channel id (or null if unprovisioned)",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["channelId"],
+              properties: {
+                channelId: { type: ["string", "null"] },
+              },
+            },
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  async (c) => {
+    const { creatorId } = c.req.valid("param" as never) as { creatorId: string };
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+
+    await requireCreatorPermission(user.id, creatorId, "viewPrivate", roles as string[]);
+
+    const channelId = await findCreatorChannelId(creatorId);
+    return c.json({ channelId });
   },
 );
