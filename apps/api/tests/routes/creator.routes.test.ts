@@ -1303,6 +1303,8 @@ describe("creator routes", () => {
 
   describe("GET /api/creators/:creatorId/channel", () => {
     it("returns channelId when the creator channel is provisioned", async () => {
+      // findCreatorProfile (param is the canonical id) → profile row.
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile({ id: "user_test123" })]);
       mockFindCreatorChannelId.mockResolvedValueOnce("chan_abc123");
 
       const res = await ctx.app.request("/api/creators/user_test123/channel");
@@ -1310,11 +1312,37 @@ describe("creator routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.channelId).toBe("chan_abc123");
-      // Confirm the read-only lookup fn was called (not ensureCreatorChannel)
+      // Confirm the read-only lookup fn was called (not ensureCreatorChannel),
+      // against the resolved canonical id.
       expect(mockFindCreatorChannelId).toHaveBeenCalledWith("user_test123");
     });
 
+    it("resolves a handle param to the canonical id before the channel lookup", async () => {
+      // The manage UI routes by `handle ?? id`, so the param is usually a handle.
+      // findCreatorProfile is dual-mode: a handle resolves to its canonical-id row.
+      mockSelectWhere.mockResolvedValueOnce([
+        makeMockDbCreatorProfile({ id: "creator-uuid", handle: "my-band" }),
+      ]);
+      mockFindCreatorChannelId.mockResolvedValueOnce("chan_for_my_band");
+
+      const res = await ctx.app.request("/api/creators/my-band/channel");
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.channelId).toBe("chan_for_my_band");
+      // The permission check + channel lookup must run against the canonical id,
+      // NOT the raw handle param — the bug this regression test guards.
+      expect(mockRequireCreatorPermission).toHaveBeenCalledWith(
+        expect.anything(),
+        "creator-uuid",
+        "viewPrivate",
+        expect.anything(),
+      );
+      expect(mockFindCreatorChannelId).toHaveBeenCalledWith("creator-uuid");
+    });
+
     it("returns channelId: null when the creator channel is not yet provisioned", async () => {
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile({ id: "user_test123" })]);
       mockFindCreatorChannelId.mockResolvedValueOnce(null);
 
       const res = await ctx.app.request("/api/creators/user_test123/channel");
@@ -1324,7 +1352,22 @@ describe("creator routes", () => {
       expect(body.channelId).toBeNull();
     });
 
+    it("returns 404 when the creator (handle or id) does not exist", async () => {
+      // findCreatorProfile → empty: neither id nor handle matched.
+      mockSelectWhere.mockResolvedValueOnce([]);
+
+      const res = await ctx.app.request("/api/creators/nonexistent/channel");
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error.code).toBe("NOT_FOUND");
+      // Neither the authz check nor the channel lookup runs for an unknown creator.
+      expect(mockRequireCreatorPermission).not.toHaveBeenCalled();
+      expect(mockFindCreatorChannelId).not.toHaveBeenCalled();
+    });
+
     it("returns 403 when requester is not a team member", async () => {
+      mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile({ id: "user_test123" })]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
         new TestForbiddenError("Insufficient permissions"),
       );

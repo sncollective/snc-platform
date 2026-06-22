@@ -294,6 +294,7 @@ creatorRoutes.get(
       },
       401: ERROR_401,
       403: ERROR_403,
+      404: ERROR_404,
     },
   }),
   validator("param", CreatorIdParam),
@@ -302,9 +303,17 @@ creatorRoutes.get(
     const user = c.get("user");
     const roles = c.get("roles") ?? [];
 
-    await requireCreatorPermission(user.id, creatorId, "viewPrivate", roles as string[]);
+    // The manage UI routes by `handle ?? id`, so this param is usually a handle.
+    // Resolve it to the canonical creator id (dual-mode, mirrors GET /:creatorId)
+    // before the permission check + channel lookup — both match on the literal id.
+    const profile = await findCreatorProfile(creatorId);
+    if (!profile) {
+      throw new NotFoundError("Creator not found");
+    }
 
-    const channelId = await findCreatorChannelId(creatorId);
+    await requireCreatorPermission(user.id, profile.id, "viewPrivate", roles as string[]);
+
+    const channelId = await findCreatorChannelId(profile.id);
     return c.json({ channelId });
   },
 );

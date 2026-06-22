@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-channel-resolve
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -99,3 +99,27 @@ permission check + `findCreatorChannelId` against the canonical id. Add a test t
 
 Original implementation (endpoint + read-only `findCreatorChannelId` + web fetcher + no-leak) is
 otherwise intact; this is the missing handle-resolution + its test.
+
+## Fix
+
+### Handle→id resolution at the top of `GET /:creatorId/channel` (`apps/api/src/routes/creator.routes.ts`)
+The handler now resolves the param via `findCreatorProfile(creatorId)` — the same dual-mode
+(handle-or-id) resolver the sibling public `GET /:creatorId` uses — *before* the permission check
+and channel lookup. The flow is now: `findCreatorProfile(param)` → 404 (`NotFoundError`) if not
+found → `requireCreatorPermission(user.id, profile.id, "viewPrivate", roles)` →
+`findCreatorChannelId(profile.id)`. Both the authz check and the channel lookup run against the
+canonical `profile.id`, so a handle param (the common case from the manage UI's `handle ?? id`
+routing) now resolves correctly instead of silently matching nothing → `null`. Added `404: ERROR_404`
+to the endpoint's `describeRoute` responses (it can now NotFound on an unknown handle/id).
+
+### Tests (`apps/api/tests/routes/creator.routes.test.ts`)
+- **New handle-param regression test** — passes a HANDLE (`my-band`) that resolves to a different
+  canonical id (`creator-uuid`), and asserts both `requireCreatorPermission` and
+  `findCreatorChannelId` are called with the canonical id, not the raw handle. Verified to FAIL
+  against the pre-fix endpoint (the old code passed `my-band` straight through, so the assertion on
+  `creator-uuid` failed) and pass after.
+- **New 404 test** — unknown handle/id → 404, with the authz check + channel lookup both skipped.
+- Existing id-param tests (provisioned / unprovisioned / 403 / 401) updated to seed the
+  `findCreatorProfile` row and kept green.
+
+**Results:** `creator.routes.test.ts` 57 pass; full API unit suite 115 files / 1842 tests green.
