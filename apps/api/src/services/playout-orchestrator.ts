@@ -564,17 +564,18 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
       // Every requested content id must belong to this creator and not be deleted.
       if (requestedContentIds.length > 0) {
-        const ownedRows = (await db.execute(sql`
-          SELECT id
-          FROM content
-          WHERE id = ANY(${requestedContentIds})
-            AND creator_id = ${scope.creatorId}
-            AND deleted_at IS NULL
-        `)) as Array<{ id: string }>;
+        const ownedRows = await db
+          .select({ id: content.id })
+          .from(content)
+          .where(
+            and(
+              inArray(content.id, requestedContentIds),
+              eq(content.creatorId, scope.creatorId),
+              sql`${content.deletedAt} IS NULL`,
+            ),
+          );
 
-        const ownedIds = new Set(
-          (Array.isArray(ownedRows) ? ownedRows : []).map((r) => r.id),
-        );
+        const ownedIds = new Set(ownedRows.map((r) => r.id));
         const disallowed = requestedContentIds.filter((id) => !ownedIds.has(id));
         if (disallowed.length > 0) {
           logger.warn(

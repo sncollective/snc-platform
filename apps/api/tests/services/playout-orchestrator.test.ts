@@ -1195,12 +1195,16 @@ describe("playout orchestrator", () => {
       it("rejects assigning another creator's content id with ForbiddenError and inserts nothing", async () => {
         const orchestrator = await setupModule();
 
-        // Call 1: resolvePoolScope → creator-owned.
-        // Call 2: ownership validation SELECT → only content-A1 is owned; the
-        // requested content-B1 (another creator's) is absent from the owned set.
-        mockDbExecute
-          .mockResolvedValueOnce(creatorChannelScopeRow)
-          .mockResolvedValueOnce([{ id: "content-A1" }]);
+        // Call 1: resolvePoolScope → creator-owned (uses db.execute).
+        mockDbExecute.mockResolvedValueOnce(creatorChannelScopeRow);
+
+        // Call 2: ownership validation uses db.select().from().where() →
+        // returns only content-A1; content-B1 (another creator's) is absent.
+        mockDbSelect.mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ id: "content-A1" }]),
+          }),
+        });
 
         const insertChain = {
           values: vi.fn().mockReturnValue({
@@ -1251,10 +1255,16 @@ describe("playout orchestrator", () => {
       it("allows assigning the creator's own content id (inserts the pool entry)", async () => {
         const orchestrator = await setupModule();
 
-        mockDbExecute
-          .mockResolvedValueOnce(creatorChannelScopeRow)
-          // ownership validation: content-A1 IS owned by creator-A
-          .mockResolvedValueOnce([{ id: "content-A1" }]);
+        // Call 1: resolvePoolScope → creator-owned (uses db.execute).
+        mockDbExecute.mockResolvedValueOnce(creatorChannelScopeRow);
+
+        // Call 2: ownership validation uses db.select().from().where() →
+        // returns content-A1, confirming it is owned by the channel's creator.
+        mockDbSelect.mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ id: "content-A1" }]),
+          }),
+        });
 
         const insertChain = {
           values: vi.fn().mockReturnValue({
