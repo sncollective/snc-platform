@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-extract-surface
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, refactor]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -122,3 +122,8 @@ reports one error in `src/contexts/spine-store.ts` — its `EVENT_TOPIC` map is 
 `packages/shared/src/events.ts` union but has not yet wired into the topic map. This predates this
 story (it reproduces with this story's source changes stashed) and is outside the extraction scope;
 flagged for the sibling story / orchestrator. No backend changes in this story.
+
+## Review record
+Verdict: **Approve** (fast lane) — behavior-identical extraction; existing admin playout tests
+(regression gate) pass with zero test changes; new isolated `<EditorialSurface>` render test added;
+full web suite (1776) + typecheck + build green. Verified by orchestrator re-run.

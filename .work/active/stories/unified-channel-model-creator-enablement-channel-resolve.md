@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-channel-resolve
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -74,3 +74,11 @@ Four tests added under `GET /api/creators/:creatorId/channel`:
 `CreatorProfileResponse` shape and `toProfileResponse` were not modified. The `GET /:creatorId`
 public-profile endpoint continues to return only the fields already in `CreatorProfileResponseSchema`
 — no `channelId` field added there.
+
+## Review record
+Verdict: **Approve** (fast lane) — pure read confirmed (`findCreatorChannelId` is a SELECT-only
+fn, no provision-on-read; the unprovisioned test asserts the lookup returns null without calling
+`ensureCreatorChannel`); `viewPrivate` gate gives team-member read + non-member 403; channel id NOT
+added to `CreatorProfileResponse` / public profile (`toProfileResponse` untouched). Happy-path +
+auth-failure (403/401) tests present; API (1791) + web (1767) suites green. Verified by orchestrator
+re-run.

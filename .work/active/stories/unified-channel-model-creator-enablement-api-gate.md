@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -125,3 +125,23 @@ All 115 test files / 1821 tests pass. TypeScript typecheck clean (shared + api).
 ### Integration tests
 The route tests are unit-class (all DB and permission service mocked). The full integration
 surface (real DB, real creator membership rows) needs `scripts/dev/sandbox-test-integration.sh`.
+
+## Review record
+Verdict: **Approve** (deep adversarial lane, fresh-context reviewer) — zero blockers, zero
+importants. Traced all 7 authz/leak lenses against the real code + ran the 30 tests:
+- **No authz bypass** — all 8 editorial routes carry `requireCreatorChannelPermission("manageStreaming")`; `manageStreaming` is owner-only (`CREATOR_ROLE_PERMISSIONS`), so editor/viewer members are denied.
+- **No cross-creator access** — middleware resolves `creatorId` from the channel record, not a URL param (unspoofable); a member of A cannot drive B's channel.
+- **No channel-type confusion** — non-creator (admin/broadcast/platform) channel via a creator route → 404 with no existence oracle.
+- **No SSE scope leak** — `content.playout-changed` scopeFilter on the authenticated `content` topic is identical in shape to the proven `content.processing-status-changed`; required `creatorId` field can't fail open; ctx.creatorIds is membership-derived server-side.
+- **No admin regression** — admin routes untouched (`8fc4454` doesn't modify `playout-channels.routes.ts`); same orchestrator, two gates.
+- **Tests genuine** — cross-creator-403 exercises a real different membership; no `expect(true)`, no mocking-away of the check under test.
+
+**Known deferred (acceptable, by story design):** the real-time *publish* path is inert — no
+`content.playout-changed` is emitted from `playout-queue-transitions.ts` yet (`creatorId` not in
+context at transition time). The filter exists and is secure; the push path is non-functional
+until wired. Creator real-time updates ride the 3s poll fallback meanwhile (same as admin). The
+publish wire-up is feature-level follow-on work, tracked in the feature body, not a blocker here.
+
+Two optional nits (not gating): an integration test wiring the *real* permission service with an
+`editor` membership would make "manageStreaming is owner-only" self-evident in this file; the
+middleware dereferences `c.get("user")` without a null guard (safe — `requireAuth` always precedes).
