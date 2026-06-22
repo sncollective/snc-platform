@@ -36,6 +36,22 @@ export const ContentProcessingStatusChangedSchema = z.object({
 });
 
 /**
+ * Schema for a creator-channel playout state change notification.
+ * Published alongside the admin-scoped `playout.queue-changed` /
+ * `playout.now-playing-changed` events so that creator team members can
+ * subscribe via the `content` topic (which carries a creatorId scope filter).
+ * The `channelId` is the affected channel; `changeType` is a hint (client
+ * should re-fetch for full state).
+ */
+export const ContentPlayoutChangedSchema = z.object({
+  type: z.literal("content.playout-changed"),
+  channelId: z.string(),
+  creatorId: z.string(),
+  /** Hint for the client: "queue" or "now-playing". */
+  changeType: z.enum(["queue", "now-playing"]),
+});
+
+/**
  * Discriminated union of all platform SSE events.
  * Every event type must be registered in the API-side EVENT_REGISTRY.
  */
@@ -45,10 +61,14 @@ export const PlatformEventSchema = z.discriminatedUnion("type", [
   PlayoutNowPlayingChangedSchema,
   PlayoutEngineRestartedSchema,
   ContentProcessingStatusChangedSchema,
+  ContentPlayoutChangedSchema,
 ]);
 
 /** Union of all platform SSE event payloads. */
 export type PlatformEvent = z.infer<typeof PlatformEventSchema>;
+
+/** Creator-channel playout state change notification. */
+export type ContentPlayoutChanged = z.infer<typeof ContentPlayoutChangedSchema>;
 
 // ── Topics ──
 

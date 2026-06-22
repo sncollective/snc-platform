@@ -105,6 +105,20 @@ export const EVENT_REGISTRY: Record<PlatformEvent["type"], EventTypeEntry> = {
       return ctx.creatorIds.includes(event.creatorId);
     },
   },
+  "content.playout-changed": {
+    topic: "content",
+    // Coalesce by channel + change type — bursts of queue edits collapse per channel.
+    coalesceKey: (event) =>
+      event.type === "content.playout-changed"
+        ? `${event.channelId}:${event.changeType}`
+        : event.type,
+    // Admin sees all; creator members see only their own channel's playout events.
+    scopeFilter: (event, ctx) => {
+      if (ctx.roles.includes("admin")) return true;
+      if (event.type !== "content.playout-changed") return false;
+      return ctx.creatorIds.includes(event.creatorId);
+    },
+  },
 };
 
 // ── Internal Implementation ──

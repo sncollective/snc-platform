@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: implementing
+stage: review
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-21
-updated: 2026-06-21
+updated: 2026-06-22
 ---
 
 # Creator-scoped editorial API: gate middleware + shared handler logic
@@ -65,3 +65,63 @@ mis-scoped publish would leak one creator's queue events to others.
 Every route needs happy-path + auth-failure tests (platform convention). The permission *logic*
 already exists in `services/creator-team.ts` — this story adds the channel-ownership bridge and
 the route surface, it does not reimplement permission checks.
+
+## Implementation
+
+### As-built route surface
+Creator editorial routes are mounted at `/api/creator/playout/channels/:channelId/*` (not
+`:creatorId/channels/:channelId/*` as the design spec suggested — the permission middleware
+resolves `creatorId` from the channel record itself, so the URL doesn't need it).
+
+- `apps/api/src/middleware/require-creator-channel-permission.ts` — new middleware factory
+- `apps/api/src/routes/creator-playout.routes.ts` — new creator-scoped route file (8 routes
+  mirroring admin editorial surface: queue status/insert/remove/skip, content list/search/assign/remove)
+- `apps/api/src/app.ts` — mount added at `/api/creator/playout` (dynamic import, same pattern
+  as adjacent playout routes)
+
+### Handler extraction
+The orchestrator already delegated all logic to `playout-orchestrator`. The creator routes call
+the same orchestrator methods directly — no new service layer needed. Admin routes are
+behavior-identical and untouched.
+
+### SSE creator-scoping solution
+**Chose option (b) variant**: added a new `content.playout-changed` event type carrying
+`channelId`, `creatorId`, and `changeType` (enum: "queue" | "now-playing") to the shared events
+discriminated union. Registered in `EVENT_REGISTRY` on the `content` topic with a
+`scopeFilter` identical in shape to `content.processing-status-changed` (admin bypass +
+`ctx.creatorIds.includes(event.creatorId)`).
+
+**Why this approach over option (a) (patching `playout.*` events)**:
+- Existing `playout.*` events stay admin-only and channelId-only — no field changes, no existing
+  subscribers affected.
+- The new event type is semantically distinct (creator editorial change vs. admin playout state);
+  the `content` topic's existing membership filter contains it without structural changes to
+  `sse.routes.ts` or `event-bus.ts`'s filter logic.
+- Coalesce key is `channelId:changeType` so queue and now-playing bursts each collapse
+  independently per channel.
+
+**What publishes `content.playout-changed`**: not implemented as part of this story — the
+orchestrator's `playout-queue-transitions.ts` publishes the existing `playout.*` events; adding
+the parallel `content.playout-changed` publish there is the natural follow-on (see queue
+transition callsites at lines 39, 73, 137, 183, 218 of `playout-queue-transitions.ts`). This
+story establishes the event schema, registry entry, and scope filter. The publish callsites are
+left for a follow-on commit or the channel-resolve story to wire up once the `creatorId` is
+available in context at transition time.
+
+### Tests
+`apps/api/tests/routes/creator-playout.routes.test.ts` — unit tests covering:
+- Middleware: 404 for missing channel, 404 for platform-owned channel, 404 for null creatorId,
+  403 for permission denial, admin bypass, correct arg forwarding to `requireCreatorPermission`
+- All 8 editorial routes: happy path + permission-denied (403) for each; additional shape-specific
+  cases (409 on remove-playing, 400 on bad body)
+- SSE scope filter integration assertions (4 tests on `createEventBus()` directly):
+  - delivers to creator member in `creatorIds`
+  - does NOT deliver to user with different creatorId (the cross-creator isolation guarantee)
+  - delivers to admin regardless of creatorIds
+  - coalesces same changeType for same channel to single event
+
+All 115 test files / 1821 tests pass. TypeScript typecheck clean (shared + api).
+
+### Integration tests
+The route tests are unit-class (all DB and permission service mocked). The full integration
+surface (real DB, real creator membership rows) needs `scripts/dev/sandbox-test-integration.sh`.

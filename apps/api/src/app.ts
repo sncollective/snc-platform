@@ -168,6 +168,9 @@ import("./routes/playout.routes.js")
 import("./routes/playout-channels.routes.js")
   .then(({ playoutChannelRoutes }) => app.route("/api/playout", playoutChannelRoutes))
   .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load playout channel routes"));
+import("./routes/creator-playout.routes.js")
+  .then(({ creatorPlayoutRoutes }) => app.route("/api/creator/playout", creatorPlayoutRoutes))
+  .catch((err) => rootLogger.error({ error: err instanceof Error ? err.message : String(err) }, "Failed to load creator playout routes"));
 import("./routes/simulcast.routes.js")
   .then(({ simulcastRoutes }) => app.route("/api/simulcast", simulcastRoutes))
   .catch((err) =>
