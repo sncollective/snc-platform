@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle, unified-channel-model-editorial-engine]
@@ -247,3 +247,42 @@ no leak risk in the interim. **Wiring the publish (resolve `creatorId` at transi
 creator surface.** Scope it as a small follow-on story under this feature once mount lands, or fold
 it into mount if the loader already has the creatorId in hand. Not a blocker for closing the
 queue+pool+control surface.
+
+## Children complete — advanced to review (orchestrated implementation, 2026-06-22)
+
+All four child stories implemented, reviewed, and `done`:
+
+| Story | Outcome |
+|---|---|
+| `extract-surface` | `<EditorialSurface>` extracted from `admin/playout.tsx`; admin route re-pointed, behavior-identical. Fast-lane Approve. |
+| `api-gate` | Creator-scoped editorial API (`requireCreatorChannelPermission` + `/api/creator/playout/*` + SSE scopeFilter). **3 cross-model review rounds** — caught + fixed 2 cross-tenant content leaks (search/assign + queue-insert) and a fail-open scope. |
+| `channel-resolve` | `GET /api/creators/:creatorId/channel` (handle-or-id, pure read, no public leak). Reopened once for handle resolution. |
+| `mount` | Programming tab on creator manage; `<EditorialSurface>` data layer parameterized via `EditorialApi` context (admin + creator bundles). Reopened once (4 findings incl. the handle bug + create-path + route guard + context fail-close). |
+
+**Implementation approach:** parallel Wave-1 (3 foundation stories), then Wave-2 (mount). Every
+story got an agent implementation pass + verification; the security-bearing and integration-bearing
+stories additionally got **cross-model (Codex) adversarial review**, which caught defects the
+single-model pass and the green unit tests both missed — three cross-tenant paths on `api-gate` and
+a feature-breaking handle-resolution bug spanning `channel-resolve`+`mount`. All fixed and
+re-verified to convergence.
+
+**Architecture delivered:** one editorial surface, two mounts (admin keeps channel CRUD / broadcast
+/ all-channel tabs + the `playout` topic; creator gets queue+pool+control scoped to its own channel
+via the `content` topic), one backend logic path behind two gates (admin `requireRole` / creator
+per-creator `manageStreaming`), creator content pool strictly scoped to the creator's own content at
+every entry point. Honors the unified epic's no-second-surface mandate.
+
+**Verification:** full suite green — `@snc/shared` 675, `@snc/api` 115 files, `@snc/web` 167 files,
+web typecheck + API build clean.
+
+**Deferred (recorded, not blocking):**
+- **Real-time publish wire-up** — the `content.playout-changed` event schema + scopeFilter exist and
+  are secure, but nothing publishes it yet (creatorId not in context at queue-transition time), so
+  creator real-time updates ride the 3s poll fallback (like admin). See the `## Real-time publish
+  wire-up` section above. Small feature-level follow-on.
+- **Live fix-verify (AC#5)** — a creator driving their channel's queue in the running app. Code is
+  correct + cross-model-reviewed; the running-app confirmation is a user step (platform fix-verify
+  convention).
+
+Closing this feature makes all four `unified-channel-model` epic features terminal — the epic (the
+playout re-architecture's main arc) can close.
