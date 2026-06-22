@@ -84,3 +84,17 @@ half-adopted `manageStreaming` permission.
 - **Fix-verify loopback:** as a creator owner/editor with no org role, (a) create a project, and
   (b) confirm the Streaming nav item appears iff the role has `manageStreaming`. Confirmed in the
   running app before close.
+
+## New `manageStreaming` consumer (from unified-channel-model-creator-enablement, 2026-06-22)
+The creator-editorial-enablement feature shipped a fourth `manageStreaming` consumer beyond the
+existing stream-keys / simulcast / streaming-connect surfaces: a creator-scoped editorial API
+(`requireCreatorChannelPermission("manageStreaming")` over `/api/creator/playout/*`) and a
+"Programming" manage-nav item gated on `creatorPermission: "manageStreaming"`. This is a clean
+**consumer** of this migration's permission model — no conflict, and it advances the fine-grained
+per-creator goal. But it widens the **nav-reconciliation task's** surface: the Streaming-nav fix
+should be verified to also surface the new **Programming** item correctly for a non-owner team
+member who holds `manageStreaming` (today `manageStreaming` is owner-only in the matrix, so the
+practical set is unchanged — but if the matrix ever grants `manageStreaming` to a non-owner role,
+both the Streaming AND Programming nav items must follow the matrix, not a hard-coded owner check).
+The creator-editorial routes are integration-tested for cross-tenant isolation with an owner role;
+add a non-owner-with-`manageStreaming` case here if/when the matrix changes.
