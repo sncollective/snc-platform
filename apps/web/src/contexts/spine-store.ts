@@ -36,6 +36,7 @@ const EVENT_TOPIC: Record<PlatformEvent["type"], SseTopic> = {
   "playout.now-playing-changed": "playout",
   "playout.engine-restarted": "playout",
   "content.processing-status-changed": "content",
+  "content.playout-changed": "content",
 };
 
 // ── Public API ──
