@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 // ── Mock DB State ──
 
@@ -11,6 +11,10 @@ const mockDbDelete = vi.fn();
 
 const mockPublish = vi.fn();
 const mockEventBus = { publish: mockPublish };
+
+// ── Mock Channel Lookup ──
+
+const mockFindChannelCreatorId = vi.fn<(channelId: string) => Promise<string | null>>();
 
 // ── Setup ──
 
@@ -38,6 +42,10 @@ const setupModule = async () => {
 
   vi.doMock("../../src/services/event-bus.js", () => ({
     eventBus: mockEventBus,
+  }));
+
+  vi.doMock("../../src/services/channels.js", () => ({
+    findChannelCreatorId: mockFindChannelCreatorId,
   }));
 
   const mod = await import("../../src/services/playout-queue-transitions.js");
@@ -99,10 +107,21 @@ const buildDeleteChain = () => ({
 // ── Tests ──
 
 describe("playout-queue-transitions", () => {
+  beforeEach(() => {
+    // Default to platform channel so existing tests that don't care about
+    // creator emit don't need to set up the mock explicitly.
+    mockFindChannelCreatorId.mockResolvedValue(null);
+  });
+
   afterEach(() => {
     vi.resetModules();
     vi.resetAllMocks();
   });
+
+  // Override per-test for creator-channel scenarios.
+  const setupCreatorChannel = (creatorId = "creator-abc") => {
+    mockFindChannelCreatorId.mockResolvedValue(creatorId);
+  };
 
   // ── markPlayed ──
 
@@ -557,6 +576,255 @@ describe("playout-queue-transitions", () => {
       await removeQueued({ id: "entry-1", channelId: "channel-1", status: "playing" });
 
       expect(mockPublish).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── content.playout-changed — creator vs. platform channel conditional ──
+
+  describe("content.playout-changed conditional emit", () => {
+    // ── markPlayed ──
+
+    it("markPlayed: creator channel — publishes both playout.now-playing-changed AND content.playout-changed", async () => {
+      const { markPlayed } = await setupModule();
+      setupCreatorChannel("creator-xyz");
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await markPlayed("entry-1", "ch-creator");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "ch-creator",
+      });
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.playout-changed",
+        channelId: "ch-creator",
+        creatorId: "creator-xyz",
+        changeType: "now-playing",
+      });
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it("markPlayed: platform channel — publishes ONLY playout.now-playing-changed (no content event)", async () => {
+      const { markPlayed } = await setupModule();
+      // beforeEach already sets platform channel (null)
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await markPlayed("entry-1", "ch-platform");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "ch-platform",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    });
+
+    // ── promoteNext ──
+
+    it("promoteNext: creator channel — publishes both playout.now-playing-changed AND content.playout-changed", async () => {
+      const { promoteNext } = await setupModule();
+      setupCreatorChannel("creator-xyz");
+
+      const nextRow = makeQueueRow({ id: "entry-2", status: "queued" });
+      mockDbSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([nextRow]),
+            }),
+          }),
+        }),
+      });
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await promoteNext("ch-creator");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "ch-creator",
+      });
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.playout-changed",
+        channelId: "ch-creator",
+        creatorId: "creator-xyz",
+        changeType: "now-playing",
+      });
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it("promoteNext: platform channel — publishes ONLY playout.now-playing-changed", async () => {
+      const { promoteNext } = await setupModule();
+      // beforeEach: platform channel
+
+      const nextRow = makeQueueRow({ id: "entry-2", status: "queued" });
+      mockDbSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([nextRow]),
+            }),
+          }),
+        }),
+      });
+      mockDbUpdate.mockReturnValue(buildUpdateChain());
+
+      await promoteNext("ch-platform");
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.now-playing-changed",
+        channelId: "ch-platform",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    });
+
+    // ── enqueue ──
+
+    it("enqueue: creator channel — publishes both playout.queue-changed AND content.playout-changed", async () => {
+      const { enqueue } = await setupModule();
+      setupCreatorChannel("creator-xyz");
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      const insertedRow = makeQueueRow({ position: 1 });
+      mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
+
+      await enqueue({ channelId: "ch-creator", playoutItemId: "item-1" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-creator",
+      });
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.playout-changed",
+        channelId: "ch-creator",
+        creatorId: "creator-xyz",
+        changeType: "queue",
+      });
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it("enqueue: platform channel — publishes ONLY playout.queue-changed", async () => {
+      const { enqueue } = await setupModule();
+      // beforeEach: platform channel
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      const insertedRow = makeQueueRow({ position: 1 });
+      mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
+
+      await enqueue({ channelId: "ch-platform", playoutItemId: "item-1" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-platform",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    });
+
+    // ── enqueueBatch ──
+
+    it("enqueueBatch: creator channel — publishes both playout.queue-changed AND content.playout-changed", async () => {
+      const { enqueueBatch } = await setupModule();
+      setupCreatorChannel("creator-xyz");
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
+
+      await enqueueBatch("ch-creator", ["item-1"]);
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-creator",
+      });
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.playout-changed",
+        channelId: "ch-creator",
+        creatorId: "creator-xyz",
+        changeType: "queue",
+      });
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it("enqueueBatch: platform channel — publishes ONLY playout.queue-changed", async () => {
+      const { enqueueBatch } = await setupModule();
+      // beforeEach: platform channel
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
+
+      await enqueueBatch("ch-platform", ["item-1"]);
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-platform",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    });
+
+    // ── removeQueued ──
+
+    it("removeQueued: creator channel — publishes both playout.queue-changed AND content.playout-changed", async () => {
+      const { removeQueued } = await setupModule();
+      setupCreatorChannel("creator-xyz");
+      mockDbDelete.mockReturnValue(buildDeleteChain());
+
+      await removeQueued({ id: "entry-1", channelId: "ch-creator", status: "queued" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-creator",
+      });
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "content.playout-changed",
+        channelId: "ch-creator",
+        creatorId: "creator-xyz",
+        changeType: "queue",
+      });
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+    });
+
+    it("removeQueued: platform channel — publishes ONLY playout.queue-changed", async () => {
+      const { removeQueued } = await setupModule();
+      // beforeEach: platform channel
+      mockDbDelete.mockReturnValue(buildDeleteChain());
+
+      await removeQueued({ id: "entry-1", channelId: "ch-platform", status: "queued" });
+
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-platform",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    });
+
+    it("removeQueued: channel lookup failure — still completes successfully (fire-and-forget)", async () => {
+      const { removeQueued } = await setupModule();
+      mockFindChannelCreatorId.mockRejectedValue(new Error("db error"));
+      mockDbDelete.mockReturnValue(buildDeleteChain());
+
+      const result = await removeQueued({ id: "entry-1", channelId: "ch-any", status: "queued" });
+
+      expect(result.ok).toBe(true);
+      // playout.queue-changed still fires; content.playout-changed does not (lookup failed)
+      expect(mockPublish).toHaveBeenCalledWith({
+        type: "playout.queue-changed",
+        channelId: "ch-any",
+      });
+      expect(mockPublish).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "content.playout-changed" }),
+      );
     });
   });
 });

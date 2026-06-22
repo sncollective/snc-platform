@@ -24,6 +24,10 @@ const mockDbUpdate = vi.fn();
 const mockDbDelete = vi.fn();
 const mockDbExecute = vi.fn();
 
+// ── Mock Channel Lookup (used by publishCreatorEditorialChange inside transitions) ──
+
+const mockFindChannelCreatorId = vi.fn<(channelId: string) => Promise<string | null>>();
+
 // ── Fixtures ──
 
 const makeChannelRow = (overrides: Record<string, unknown> = {}) => ({
@@ -141,6 +145,12 @@ const setupModule = async () => {
     },
   }));
 
+  // Stub out the channel lookup used by publishCreatorEditorialChange so it does
+  // not reach the DB mock. Default: platform channel (null → no creator emit).
+  vi.doMock("../../src/services/channels.js", () => ({
+    findChannelCreatorId: mockFindChannelCreatorId,
+  }));
+
   const { createPlayoutOrchestrator } = await import(
     "../../src/services/playout-orchestrator.js"
   );
@@ -205,6 +215,8 @@ describe("playout orchestrator", () => {
   beforeEach(() => {
     mockPushTrack.mockResolvedValue({ ok: true, value: undefined });
     mockSkipTrack.mockResolvedValue({ ok: true, value: undefined });
+    // Default: platform channel — publishCreatorEditorialChange no-ops (no creator emit).
+    mockFindChannelCreatorId.mockResolvedValue(null);
   });
 
   // ── assignContent ──

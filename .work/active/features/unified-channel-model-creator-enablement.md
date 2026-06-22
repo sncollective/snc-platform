@@ -231,22 +231,30 @@ not an error.
   carries the creatorId scope; a mis-scoped publish would broadcast one creator's queue events to
   others. Covered by an integration assertion in Unit 2.
 
-## Real-time publish wire-up (follow-on, surfaced at Wave-1 review)
+## Real-time publish wire-up — WIRED (2026-06-22)
 Unit 2 (api-gate) landed the `content.playout-changed` event schema, its `EVENT_REGISTRY`
-scopeFilter on the `content` topic (creator-membership-scoped, admin-bypass, required `creatorId`
-— adversarially reviewed clean, cannot fail open), AND the creator route surface. But it did **not**
-wire the *publish* callsites: nothing emits `content.playout-changed` yet — the queue-transition
-path (`apps/api/src/services/playout-queue-transitions.ts`) still only publishes the admin-only
-`playout.*` events, because the owning `creatorId` isn't in context at transition time.
+scopeFilter on the `content` topic, AND the creator route surface. The publish callsites are now
+wired as a small follow-on.
 
-**Consequence:** the creator surface's real-time updates ride the **3s poll fallback** (identical
-to how admin's queue refreshes), NOT server push, until the publish is wired. This is acceptable —
-the surface is fully functional, just not instant — and the secure-but-inert filter means there is
-no leak risk in the interim. **Wiring the publish (resolve `creatorId` at transition time, emit
-`content.playout-changed` alongside the `playout.*` event) is the remaining work for a fully live
-creator surface.** Scope it as a small follow-on story under this feature once mount lands, or fold
-it into mount if the loader already has the creatorId in hand. Not a blocker for closing the
-queue+pool+control surface.
+**What was done:** Added `findChannelCreatorId(channelId): Promise<string | null>` to
+`apps/api/src/services/channels.ts` — reads `ownership` + `creatorId` from the channels table;
+returns `creatorId` for `ownership='creator'` channels, `null` otherwise (platform/admin → skip).
+Added a private `publishCreatorEditorialChange(channelId, changeType)` helper in
+`apps/api/src/services/playout-queue-transitions.ts` that resolves the creatorId and emits
+`content.playout-changed` conditionally — fire-and-forget, errors swallowed, never fails a
+transition. Wired it at all 5 existing `eventBus.publish` callsites in that file:
+
+| Callsite | Existing event | New event (creator channels only) |
+|---|---|---|
+| `markPlayed` | `playout.now-playing-changed` | `content.playout-changed` changeType=`now-playing` |
+| `promoteNext` | `playout.now-playing-changed` | `content.playout-changed` changeType=`now-playing` |
+| `enqueue` (on row) | `playout.queue-changed` | `content.playout-changed` changeType=`queue` |
+| `enqueueBatch` (count>0) | `playout.queue-changed` | `content.playout-changed` changeType=`queue` |
+| `removeQueued` (success) | `playout.queue-changed` | `content.playout-changed` changeType=`queue` |
+
+Platform/admin channels: only the existing `playout.*` event fires — unchanged. The admin
+real-time path is untouched. Tests assert creator→both events, platform→only `playout.*` for all
+5 callsites. All 1853 API unit tests green.
 
 ## Children complete — advanced to review (orchestrated implementation, 2026-06-22)
 
@@ -276,10 +284,8 @@ every entry point. Honors the unified epic's no-second-surface mandate.
 web typecheck + API build clean.
 
 **Deferred (recorded, not blocking):**
-- **Real-time publish wire-up** — the `content.playout-changed` event schema + scopeFilter exist and
-  are secure, but nothing publishes it yet (creatorId not in context at queue-transition time), so
-  creator real-time updates ride the 3s poll fallback (like admin). See the `## Real-time publish
-  wire-up` section above. Small feature-level follow-on.
+- **Real-time publish wire-up** — DONE (2026-06-22). See the `## Real-time publish wire-up` section
+  above for what was wired and tested.
 - **Live fix-verify (AC#5)** — a creator driving their channel's queue in the running app. Code is
   correct + cross-model-reviewed; the running-app confirmation is a user step (platform fix-verify
   convention).

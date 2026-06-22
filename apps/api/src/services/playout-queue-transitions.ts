@@ -7,6 +7,7 @@ import type { Result } from "@snc/shared";
 import { db } from "../db/connection.js";
 import { playoutQueue } from "../db/schema/playout-queue.schema.js";
 import { eventBus } from "./event-bus.js";
+import { findChannelCreatorId } from "./channels.js";
 
 /**
  * Playout queue entry lifecycle transitions.
@@ -22,6 +23,28 @@ import { eventBus } from "./event-bus.js";
 
 /** Inferred row type from the playout_queue schema. */
 export type QueueRow = typeof playoutQueue.$inferSelect;
+
+// ── Private helpers ──
+
+/**
+ * Emit `content.playout-changed` for creator-owned channels after a queue transition.
+ *
+ * Resolves the channel's creatorId; if the channel is platform-owned or the
+ * lookup fails, does nothing — the existing `playout.*` admin event covers those.
+ * Fire-and-forget: errors are swallowed so they never fail a queue transition.
+ */
+const publishCreatorEditorialChange = async (
+  channelId: string,
+  changeType: "queue" | "now-playing",
+): Promise<void> => {
+  try {
+    const creatorId = await findChannelCreatorId(channelId);
+    if (!creatorId) return; // platform/admin channel — no creator emit needed
+    eventBus.publish({ type: "content.playout-changed", channelId, creatorId, changeType });
+  } catch {
+    // fire-and-forget: a failed lookup or publish must never fail a transition
+  }
+};
 
 // ── Transitions ──
 
@@ -40,6 +63,7 @@ export const markPlayed = async (entryId: string, channelId: string): Promise<vo
   } catch {
     // fire-and-forget: publish must never fail a transition
   }
+  await publishCreatorEditorialChange(channelId, "now-playing");
 };
 
 /**
@@ -74,6 +98,7 @@ export const promoteNext = async (channelId: string): Promise<QueueRow | null> =
   } catch {
     // fire-and-forget: publish must never fail a transition
   }
+  await publishCreatorEditorialChange(channelId, "now-playing");
 
   return next;
 };
@@ -138,6 +163,7 @@ export const enqueue = async (opts: {
     } catch {
       // fire-and-forget: publish must never fail a transition
     }
+    await publishCreatorEditorialChange(channelId, "queue");
   }
 
   return row ?? null;
@@ -184,6 +210,7 @@ export const enqueueBatch = async (
     } catch {
       // fire-and-forget: publish must never fail a transition
     }
+    await publishCreatorEditorialChange(channelId, "queue");
   }
 
   return count;
@@ -219,6 +246,7 @@ export const removeQueued = async (entry: {
   } catch {
     // fire-and-forget: publish must never fail a transition
   }
+  await publishCreatorEditorialChange(entry.channelId, "queue");
 
   return ok(undefined);
 };

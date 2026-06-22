@@ -154,6 +154,25 @@ export const selectDefaultChannel = (
 };
 
 /**
+ * Read-only lookup of the creatorId for a creator-owned channel.
+ *
+ * Returns the `creatorId` when `ownership='creator'`, or `null` when the
+ * channel is platform-owned or does not exist. Used by queue-transition
+ * publishers to decide whether to emit `content.playout-changed`.
+ * Never throws — callers treat null as "no creator emit needed."
+ */
+export const findChannelCreatorId = async (
+  channelId: string,
+): Promise<string | null> => {
+  const [row] = await db
+    .select({ ownership: channels.ownership, creatorId: channels.creatorId })
+    .from(channels)
+    .where(eq(channels.id, channelId));
+  if (!row || row.ownership !== "creator") return null;
+  return row.creatorId;
+};
+
+/**
  * Read-only lookup of a creator's persistent channel id.
  *
  * Returns the channel id when the `ownership='creator'` / `role='live-ingest'`
