@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-mount
 kind: story
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model-creator-enablement
 depends_on: [unified-channel-model-creator-enablement-extract-surface, unified-channel-model-creator-enablement-api-gate, unified-channel-model-creator-enablement-channel-resolve]
@@ -109,3 +109,69 @@ admin playout route tests and the isolated `<EditorialSurface>` tests pass with 
   for editor/viewer.
 
 Full web suite: 167 files / 1791 tests green. `tsc --noEmit` clean.
+
+## Review findings — BOUNCED (cross-model review, Codex high)
+The mount implemented the surface parameterization cleanly (creator fetchers hit
+`/api/creator/playout/*`, admin mount unchanged, null-state UX correct, search picker + surface
+use injected context). But cross-model review caught two functional Blockers the green tests missed
+(tests used id-shaped fixtures, hiding the handle bug). Verdict: **Bounce**.
+
+### BLOCKER 1 — handle-vs-id mismatch makes Programming show "unprovisioned" for real channels
+The manage nav builds URLs with `creator.handle ?? creator.id` (`manage.tsx:96`), so the route
+param `creatorId` is usually a **handle**. The Programming loader (`programming.tsx:35`) passes that
+param straight to `/api/creators/${params.creatorId}/channel`. But that endpoint
+(`creator.routes.ts:275`, the channel-resolve story) looks up by literal id —
+`requireCreatorPermission(user.id, creatorId, …)` and `findCreatorChannelId(creatorId)` both match
+`eq(channels.creatorId, creatorId)` / the membership row by id, NOT handle. (Contrast the public
+`GET /:creatorId` at `:164`, which uses the dual-mode `findCreatorProfile` handle-or-id resolver.)
+So for any creator with a handle, the channel lookup fails → `programming.tsx:38`'s blanket
+`.catch(() => ({channelId: null}))` swallows it → the page shows "set up streaming" **even when the
+creator has a fully provisioned channel.** Broken for the common case, masked by the catch-all.
+
+**Fix (spans two stories):**
+- **channel-resolve endpoint** (`creator.routes.ts` GET `/:creatorId/channel`): resolve the param
+  handle→canonical-id before the permission check + channel lookup, mirroring `findCreatorProfile`'s
+  dual-mode resolver. This is the real home of the bug — the endpoint's AC didn't account for handle
+  params. (channel-resolve reopened — see its file.)
+- **mount loader** (`programming.tsx:35-39`): do NOT blanket-catch all errors as "no channel." A 403
+  (auth) or 5xx is not "unprovisioned" — only a successful `{channelId: null}` is. Distinguish them
+  so a real failure surfaces instead of silently showing the setup card.
+
+### BLOCKER 2 — creator "Create New" uses admin-only playout-item creation
+`AddContentForm`'s "Create New" path (`add-content-form.tsx:5,46`) calls `createPlayoutItem` →
+`POST /api/playout/items` (admin-only), then assigns the returned **playout item id**
+(`:51`). But the hardened creator content path REJECTS playout-item assignment for creator scope
+(the api-gate round-2 fix — creators can't assign platform playout items; pool is content-only). So
+on the creator mount, "Create New" 403s at creation (admin route) and/or is rejected at assignment.
+The capability flags (`channelCrud`/`broadcastBanner`/`channelTabs`) don't cover this create path.
+
+**Fix:** for the creator mount, either (a) hide "Create New" (creators add to the pool via search
+over their OWN existing content — `assignContent` with `contentIds`, which IS allowed), or (b) wire
+a creator-owned content-creation/upload path that assigns via `contentIds` not `playoutItemIds`.
+Option (a) is the smaller correct fix and matches the content-only pool model; (b) is a larger
+feature. Add a capability flag (e.g. `canCreateContent`) or thread the create affordance through the
+injected API so the creator mount omits it.
+
+### IMPORTANT 1 — Programming is nav-gated, not route-content gated
+The nav item is hidden for editor/viewer (`manage.tsx`, `creatorPermission: manageStreaming`), but
+the route component (`programming.tsx:60`) renders without checking `memberRole`/`isAdmin`. A
+viewer/editor can navigate directly to `/manage/programming`; the page renders and the backend then
+403s every action (data IS protected server-side — the API is the real gate, good defense-in-depth).
+But the owner-only UI contract is broken — a non-owner sees controls that don't work.
+**Fix:** add a route/component owner guard mirroring the Streaming tab's owner check; test direct
+editor/viewer access.
+
+### IMPORTANT 2 — EditorialApiProvider context default is a footgun
+`editorial-api.tsx:95` defaults the context to `ADMIN_EDITORIAL_API`. A future mount that forgets the
+provider silently hits ADMIN endpoints rather than failing loudly. (Both current mounts wrap
+explicitly, so the live feature is correct — this is latent.) Flagged independently by both the
+orchestrator and the cross-model reviewer.
+**Fix:** `createContext<EditorialApi | undefined>(undefined)` + throw in `useEditorialApi()` when no
+provider wraps; wrap the isolated `editorial-surface.test.tsx` (+ child-picker tests) with the
+intended provider.
+
+### Good (confirmed by the review)
+Creator fetchers correctly target `/api/creator/playout/channels/*`; admin mount wraps
+`ADMIN_EDITORIAL_API` with no behavior change beyond the provider; surface + search picker use
+injected context (no leftover hardcoded admin import for channel ops); null-channel UX shows setup
+guidance, not an error, on a genuine `channelId: null`.

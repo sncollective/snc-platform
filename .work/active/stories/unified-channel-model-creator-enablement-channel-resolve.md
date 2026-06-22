@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-channel-resolve
 kind: story
-stage: done
+stage: implementing
 tags: [streaming, playout, identity]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -82,3 +82,20 @@ fn, no provision-on-read; the unprovisioned test asserts the lookup returns null
 added to `CreatorProfileResponse` / public profile (`toProfileResponse` untouched). Happy-path +
 auth-failure (403/401) tests present; API (1791) + web (1767) suites green. Verified by orchestrator
 re-run.
+
+## Reopened — handle param not resolved (found integrating with mount, cross-model review)
+The endpoint's happy path was verified with **id-shaped** test fixtures, which hid a real bug: the
+creator-manage UI routes by `creator.handle ?? creator.id`, so `GET /api/creators/:creatorId/channel`
+receives a **handle** for most creators. But this endpoint passes the raw param to
+`requireCreatorPermission(user.id, creatorId, …)` and `findCreatorChannelId(creatorId)`, both of
+which match on the literal creator **id** — so a handle never matches, and a provisioned creator's
+channel resolves to `null`. The sibling public `GET /:creatorId` (`creator.routes.ts:164`) does NOT
+have this bug because it uses the dual-mode `findCreatorProfile(handleOrId)` resolver.
+
+**Fix:** resolve the param handle→canonical creator id at the top of the handler (reuse
+`findCreatorProfile` / the established `human-readable-url-slug` dual-mode resolver), THEN run the
+permission check + `findCreatorChannelId` against the canonical id. Add a test that passes a HANDLE
+(not an id) and asserts the channel resolves — the regression guard the original tests lacked.
+
+Original implementation (endpoint + read-only `findCreatorChannelId` + web fetcher + no-leak) is
+otherwise intact; this is the missing handle-resolution + its test.
