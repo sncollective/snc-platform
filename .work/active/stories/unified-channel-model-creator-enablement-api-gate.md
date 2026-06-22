@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-enablement-api-gate
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, identity, security]
 parent: unified-channel-model-creator-enablement
 depends_on: []
@@ -358,3 +358,35 @@ admin-wide scope for a missing channel, so the methods returned ok against a non
 
 Verification: `@snc/shared` 675 pass, `@snc/api` typecheck clean, `@snc/api` unit 1840 pass (was
 1834; +6 new security tests).
+
+## Final review record — APPROVE (cross-model, 3 rounds, converged)
+Verdict: **Approve**. The security surface converged after two fix rounds; round-3 cross-model
+re-review (Codex xhigh, resumed session) surfaced ZERO new findings and confirmed every prior
+concern CLOSED — the stopping condition for the review loop.
+
+**What the cross-model loop caught that the single-model (opus) pass missed** — three distinct
+cross-tenant paths, all confirmed against code before accepting:
+1. `searchAvailableContent` / `assignContent` exposed/accepted all creators' content (round 1).
+2. `insertIntoQueue` was the same leak through the queue door (round 2).
+3. `resolvePoolScope` failed OPEN to admin-wide scope on a missing channel row (round 2, fix-introduced).
+
+**Final state (all CLOSED, traced across all 8 creator-route entry points):**
+- Content pool scope derived from the channel (`resolvePoolScope` → `poolContentScope`), unspoofable.
+- search/assign/insert all creator-scoped; `removeFromQueue`/`skip`/`removeContent`/`listContent`
+  all bound to `channel_id` (already safe). The creator-scoped pool is the single chokepoint.
+- `resolvePoolScope` returns `Result<PoolScope, NotFoundError>` — fails CLOSED; all 3 callers
+  short-circuit.
+- role gate asserts `live-ingest` (the creator editorial role); admin `{allCreators:true}` path
+  byte-identical; no SQL injection (Drizzle params).
+- Tests exercise the real permission service + cross-creator regression guards; the discriminating
+  tests verified to FAIL against the pre-fix code.
+
+**Operational follow-up (conditional, low-risk):** these routes are brand-new in this branch and
+have never deployed, so there is no real exposure. IF the vulnerable intermediate commits had ever
+run against a live DB with a creator hitting these routes, a one-time audit of `channel_content` /
+`playout_queue` for stale unauthorized cross-creator rows would be warranted. Not applicable to a
+never-shipped surface; noted so the assumption is checkable.
+
+**Method note:** rejected Codex's specific round-1 role-gate suggestion (`role === "playout"` would
+have broken the feature) while accepting its underlying point — the host weighs, the reviewer
+surfaces. Two model families, genuinely different blind spots.
