@@ -12,7 +12,7 @@ Integration architecture for connecting desktop audio production tools to S/NC's
 
 The platform doesn't care which DAW produced the audio. It accepts stems — time-aligned audio files with a JSON manifest — from any tool. Pro Tools, Logic, Ardour, Reaper, Ableton, FL Studio. The platform is the publish-and-collaborate layer, not the creative tool.
 
-This is the same model used for video (see `nle-platform-integration.md`): NLEs handle editing, the platform handles everything after.
+This is the same model used for video (grounded by the `video-production-media-hub` research campaign): NLEs handle editing, the platform handles everything after.
 
 ### DAW Compatibility Matrix
 
@@ -568,7 +568,7 @@ The proprietary DAWs aren't second-class citizens — Level 1-3 covers the full 
 ## References
 
 - `audio-production-tools.md` — DAW landscape survey, plugin ecosystem, collaboration lessons
-- `nle-platform-integration.md` — video NLE integration patterns (same model, different medium)
+- video NLE integration patterns — grounded by the `video-production-media-hub` research campaign (same model, different medium)
 - `org/docs/creative-tool-strategy.md` — strategic thesis: platform as publish layer
 - `object-storage.md` — Garage S3 infrastructure, Seafile for studio sync
 - `job-queue-libraries.md` — pg-boss evaluation for background processing (position at `.research/analysis/positions/pg-boss-job-queue.md`)
