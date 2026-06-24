@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -6,6 +7,7 @@ import {
   boolean,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 import { channels } from "./streaming.schema.js";
@@ -57,9 +59,12 @@ export const playoutQueue = pgTable(
     channelId: text("channel_id")
       .notNull()
       .references(() => channels.id, { onDelete: "cascade" }),
-    playoutItemId: text("playout_item_id")
-      .notNull()
-      .references(() => playoutItems.id, { onDelete: "cascade" }),
+    playoutItemId: text("playout_item_id").references(() => playoutItems.id, {
+      onDelete: "cascade",
+    }),
+    contentId: text("content_id").references(() => content.id, {
+      onDelete: "cascade",
+    }),
     position: integer("position").notNull(),
     status: text("status").notNull().default("queued"),
     pushedToLiquidsoap: boolean("pushed_to_liquidsoap")
@@ -77,6 +82,10 @@ export const playoutQueue = pgTable(
     index("playout_queue_channel_status_idx").on(
       table.channelId,
       table.status,
+    ),
+    check(
+      "playout_queue_one_source",
+      sql`num_nonnulls(playout_item_id, content_id) = 1`,
     ),
   ],
 );
