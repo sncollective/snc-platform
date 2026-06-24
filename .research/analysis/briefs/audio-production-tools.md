@@ -131,6 +131,6 @@ S/NC's recording studio produces content that flows to the platform for distribu
 
 See also:
 - `audio-platform-integration.md` — integration architecture: stem packages, Ardour adoption, S3 handoff
-- `video-editing-tools.md` — same strategy applied to video
+- video clipping strategy — grounded by the `stream-clipping-twitch-parity` research campaign
 - `podcasting-2.0-v4v.md` — podcast distribution pipeline
 - `streaming-infrastructure.md` — live streaming infrastructure
