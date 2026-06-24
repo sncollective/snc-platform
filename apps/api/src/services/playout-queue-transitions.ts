@@ -24,6 +24,24 @@ import { findChannelCreatorId } from "./channels.js";
 /** Inferred row type from the playout_queue schema. */
 export type QueueRow = typeof playoutQueue.$inferSelect;
 
+/**
+ * The single content source for a queue entry. Exactly one of `playoutItemId`
+ * (admin/library playout item) or `contentId` (creator/content piece) is set;
+ * the `playout_queue_one_source` DB CHECK (`num_nonnulls(...) = 1`) enforces it.
+ *
+ * Spread into an INSERT's `.values({...})` so the unset column is omitted —
+ * Drizzle maps an omitted column to NULL, satisfying the exactly-one constraint.
+ */
+export type QueueSource = { playoutItemId: string } | { contentId: string };
+
+/** Project a QueueSource into the column subset Drizzle inserts (the other column stays NULL). */
+const sourceColumns = (
+  source: QueueSource,
+): { playoutItemId: string } | { contentId: string } =>
+  "playoutItemId" in source
+    ? { playoutItemId: source.playoutItemId }
+    : { contentId: source.contentId };
+
 // ── Private helpers ──
 
 /**
@@ -111,10 +129,10 @@ export const promoteNext = async (channelId: string): Promise<QueueRow | null> =
  */
 export const enqueue = async (opts: {
   channelId: string;
-  playoutItemId: string;
+  source: QueueSource;
   position?: number;
 }): Promise<QueueRow | null> => {
-  const { channelId, playoutItemId, position } = opts;
+  const { channelId, source, position } = opts;
 
   let insertPosition: number;
   if (position !== undefined) {
@@ -150,7 +168,7 @@ export const enqueue = async (opts: {
     .values({
       id,
       channelId,
-      playoutItemId,
+      ...sourceColumns(source),
       position: insertPosition,
       status: "queued",
       pushedToLiquidsoap: false,
@@ -171,14 +189,15 @@ export const enqueue = async (opts: {
 
 /**
  * Batch birth (auto-fill): reads MAX(position) over live rows, inserts all
- * playoutItemIds at consecutive positions starting from max+1.
+ * sources at consecutive positions starting from max+1. Each source writes
+ * exactly one of `playoutItemId` / `contentId` per the one-source CHECK.
  * Returns the number of rows inserted.
  */
 export const enqueueBatch = async (
   channelId: string,
-  playoutItemIds: string[],
+  sources: QueueSource[],
 ): Promise<number> => {
-  if (playoutItemIds.length === 0) return 0;
+  if (sources.length === 0) return 0;
 
   const [maxRow] = await db
     .select({ max: sql<number | null>`MAX(${playoutQueue.position})` })
@@ -192,10 +211,10 @@ export const enqueueBatch = async (
 
   let nextPosition = (maxRow?.max ?? 0) + 1;
 
-  const newEntries = playoutItemIds.map((playoutItemId) => ({
+  const newEntries = sources.map((source) => ({
     id: randomUUID(),
     channelId,
-    playoutItemId,
+    ...sourceColumns(source),
     position: nextPosition++,
     status: "queued" as const,
     pushedToLiquidsoap: false,

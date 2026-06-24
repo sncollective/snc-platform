@@ -33,6 +33,7 @@ const setupModule = async () => {
       id: {},
       channelId: {},
       playoutItemId: {},
+      contentId: {},
       position: {},
       status: {},
       pushedToLiquidsoap: {},
@@ -314,7 +315,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 3 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      const result = await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+      const result = await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" } });
 
       expect(result).toEqual(insertedRow);
       const insertValues = (
@@ -335,7 +336,7 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: null }]));
       mockDbInsert.mockReturnValue(buildInsertChain([]));
 
-      const result = await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+      const result = await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" } });
 
       expect(result).toBeNull();
     });
@@ -348,7 +349,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 1 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+      await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" } });
 
       const insertValues = (
         mockDbInsert.mock.results[0]?.value.values.mock.calls[0]?.[0] as {
@@ -370,7 +371,7 @@ describe("playout-queue-transitions", () => {
 
       const result = await enqueue({
         channelId: "channel-1",
-        playoutItemId: "item-1",
+        source: { playoutItemId: "item-1" },
         position: 2,
       });
 
@@ -389,7 +390,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 2 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      await enqueue({ channelId: "channel-1", playoutItemId: "item-1", position: 2 });
+      await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" }, position: 2 });
 
       const insertValues = (
         mockDbInsert.mock.results[0]?.value.values.mock.calls[0]?.[0] as {
@@ -408,7 +409,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 1 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+      await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" } });
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
@@ -422,9 +423,40 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: null }]));
       mockDbInsert.mockReturnValue(buildInsertChain([]));
 
-      await enqueue({ channelId: "channel-1", playoutItemId: "item-1" });
+      await enqueue({ channelId: "channel-1", source: { playoutItemId: "item-1" } });
 
       expect(mockPublish).not.toHaveBeenCalled();
+    });
+
+    // ── content source ──
+
+    it("writes a content_id row with playout_item_id null/absent when given a content source", async () => {
+      const { enqueue } = await setupModule();
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      const insertedRow = makeQueueRow({
+        position: 1,
+        playoutItemId: null,
+        contentId: "content-1",
+      });
+      mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
+
+      const result = await enqueue({
+        channelId: "channel-1",
+        source: { contentId: "content-1" },
+      });
+
+      expect(result).toEqual(insertedRow);
+      const insertValues = (
+        mockDbInsert.mock.results[0]?.value.values.mock.calls[0]?.[0] as {
+          playoutItemId?: string;
+          contentId?: string;
+        }
+      );
+      // exactly-one source: contentId is set, playoutItemId is omitted (→ NULL column)
+      expect(insertValues.contentId).toBe("content-1");
+      expect(insertValues.playoutItemId).toBeUndefined();
+      expect("playoutItemId" in insertValues).toBe(false);
     });
   });
 
@@ -447,7 +479,11 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 1 }]));
       mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
 
-      const count = await enqueueBatch("channel-1", ["item-1", "item-2", "item-3"]);
+      const count = await enqueueBatch("channel-1", [
+        { playoutItemId: "item-1" },
+        { playoutItemId: "item-2" },
+        { playoutItemId: "item-3" },
+      ]);
 
       expect(count).toBe(3);
       const inserted = (
@@ -473,7 +509,10 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: null }]));
       mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
 
-      await enqueueBatch("channel-1", ["item-1", "item-2"]);
+      await enqueueBatch("channel-1", [
+        { playoutItemId: "item-1" },
+        { playoutItemId: "item-2" },
+      ]);
 
       const inserted = (
         mockDbInsert.mock.results[0]?.value.values.mock.calls[0]?.[0] as Array<{
@@ -490,12 +529,40 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
       mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
 
-      await enqueueBatch("channel-1", ["item-1"]);
+      await enqueueBatch("channel-1", [{ playoutItemId: "item-1" }]);
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
         channelId: "channel-1",
       });
+    });
+
+    it("inserts content_id rows with playout_item_id absent for content sources", async () => {
+      const { enqueueBatch } = await setupModule();
+
+      mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
+      mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
+
+      const count = await enqueueBatch("channel-1", [
+        { contentId: "content-1" },
+        { contentId: "content-2" },
+      ]);
+
+      expect(count).toBe(2);
+      const inserted = (
+        mockDbInsert.mock.results[0]?.value.values.mock.calls[0]?.[0] as Array<{
+          playoutItemId?: string;
+          contentId?: string;
+          position: number;
+        }>
+      );
+      expect(inserted).toHaveLength(2);
+      // each row sets exactly contentId; playoutItemId omitted → NULL column
+      expect(inserted[0]?.contentId).toBe("content-1");
+      expect(inserted[1]?.contentId).toBe("content-2");
+      expect(inserted.every((r) => !("playoutItemId" in r))).toBe(true);
+      expect(inserted[0]?.position).toBe(1);
+      expect(inserted[1]?.position).toBe(2);
     });
 
     it("does not publish when given empty array", async () => {
@@ -692,7 +759,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 1 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      await enqueue({ channelId: "ch-creator", playoutItemId: "item-1" });
+      await enqueue({ channelId: "ch-creator", source: { playoutItemId: "item-1" } });
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
@@ -715,7 +782,7 @@ describe("playout-queue-transitions", () => {
       const insertedRow = makeQueueRow({ position: 1 });
       mockDbInsert.mockReturnValue(buildInsertChain([insertedRow]));
 
-      await enqueue({ channelId: "ch-platform", playoutItemId: "item-1" });
+      await enqueue({ channelId: "ch-platform", source: { playoutItemId: "item-1" } });
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
@@ -736,7 +803,7 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
       mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
 
-      await enqueueBatch("ch-creator", ["item-1"]);
+      await enqueueBatch("ch-creator", [{ playoutItemId: "item-1" }]);
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
@@ -758,7 +825,7 @@ describe("playout-queue-transitions", () => {
       mockDbSelect.mockReturnValue(buildSimpleSelectChain([{ max: 0 }]));
       mockDbInsert.mockReturnValue(buildInsertChainNoReturn());
 
-      await enqueueBatch("ch-platform", ["item-1"]);
+      await enqueueBatch("ch-platform", [{ playoutItemId: "item-1" }]);
 
       expect(mockPublish).toHaveBeenCalledWith({
         type: "playout.queue-changed",
