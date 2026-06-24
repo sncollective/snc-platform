@@ -360,12 +360,13 @@ platform playout branch for creator channels, matching `searchAvailableContent`)
 playout item, and a soft-deleted own row, then asserts `listContent` lists ONLY A's own active row.
 All 11 cross-tenant integration tests green.
 
-**B1 — ROUTED TO DESIGN.** The creator-content-unplayable gap is a design fork with schema
-implications, not an inline patch. Scoped as a new child story `…-creator-content-playable` at
-`stage: drafting` for `/agile-workflow:feature-design` to weigh: (a) project creator `content` into
-a `playout_item` so it rides the existing queue model, vs (b) widen the queue model to carry
-`content_id` (schema + FK + `playout-queue-transitions` + Liquidsoap render). No position committed
-pre-design (substrate-before-stance). Feature stays at `implementing` and the parent epic cannot
-close until B1 lands.
+**B1 — DESIGNED, split into a sibling feature.** The creator-content-unplayable gap is a design fork
+with schema implications, not an inline patch — bigger than this feature's tail. Promoted to a
+sibling feature `unified-channel-model-creator-content-playable` (parent: the `unified-channel-model`
+epic), designed 2026-06-24: **Option B — widen `playout_queue` to be source-polymorphic** like
+`channel_content` already is (the URI-resolution layer `resolveContentUri` already handles content
+natively, so this is narrow). Four child stories (schema → transitions + reads → UI). This feature
+(`…creator-enablement`) stays at `implementing` until that sibling lands; the parent epic cannot
+close until both are done.
 
 Next: feature-design B1 → implement → re-dispatch Codex for pass 2 on the full fix set.
