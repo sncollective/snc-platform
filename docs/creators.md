@@ -27,6 +27,7 @@ The three team roles and their permissions, defined in `CREATOR_ROLE_PERMISSIONS
 | `manageContent` | yes | yes | no |
 | `manageScheduling` | yes | yes | no |
 | `manageMembers` | yes | no | no |
+| `manageStreaming` | yes | no | no |
 | `viewPrivate` | yes | yes | yes |
 
 Permission checks are enforced server-side by `requireCreatorPermission()` in `apps/api/src/services/creator-team.ts`. Platform admins bypass all creator permission checks -- if the user has the `admin` platform role, every permission returns `true` regardless of team membership.
@@ -65,6 +66,24 @@ All routes are mounted under `/api/creators`. The `creatorId` parameter accepts 
 | `PATCH` | `/:creatorId/members/:memberId` | required | `manageMembers` | Change a member's team role. |
 | `DELETE` | `/:creatorId/members/:memberId` | required | `manageMembers` | Remove a member. Cannot remove the last owner (returns 422). |
 | `GET` | `/:creatorId/members/candidates` | required | `manageMembers` | Search eligible users to add. Filters to stakeholders/admins not already members. Supports `?q=` search by name/email and `?limit=` (default 20, max 50). |
+
+### Creator Programming Routes
+
+The creator editorial surface (the Programming tab — queue, content pool, playout control for a creator's own persistent channel) is served by two route surfaces. The channel-resolution endpoint lives on `creator.routes.ts`; the editorial operations live on `creator-playout.routes.ts`, mounted at `/api/creator/playout`. See [streaming.md](streaming.md) for the shared-surface architecture.
+
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/api/creators/:creatorId/channel` | required | `viewPrivate` | Resolve the creator's persistent channel id. Returns `{ channelId: string \| null }` (null = not yet provisioned). Never leaked on public profile fetches. |
+| `GET` | `/api/creator/playout/channels/:channelId/queue` | required | `manageStreaming` | Get the channel's queue status. |
+| `POST` | `/api/creator/playout/channels/:channelId/queue/items` | required | `manageStreaming` | Insert an item into the queue. The item must already be in the channel's scoped pool. |
+| `DELETE` | `/api/creator/playout/channels/:channelId/queue/items/:entryId` | required | `manageStreaming` | Remove a queued item. |
+| `POST` | `/api/creator/playout/channels/:channelId/skip` | required | `manageStreaming` | Skip the current track. |
+| `GET` | `/api/creator/playout/channels/:channelId/content` | required | `manageStreaming` | List the channel's content pool. |
+| `GET` | `/api/creator/playout/channels/:channelId/content/search` | required | `manageStreaming` | Search the creator's own content (auto-scoped) to add to the pool. |
+| `POST` | `/api/creator/playout/channels/:channelId/content` | required | `manageStreaming` | Assign the creator's own content to the pool. A `contentId` not owned by the creator rejects the whole batch (403). |
+| `DELETE` | `/api/creator/playout/channels/:channelId/content` | required | `manageStreaming` | Remove items from the pool. |
+
+The `manageStreaming` permission is owner-only. The `/api/creator/playout/*` routes are gated by `requireCreatorChannelPermission("manageStreaming")`, which loads the channel, asserts it is the creator's own `live-ingest` channel (404 otherwise — no existence leak), then delegates to `requireCreatorPermission`. Content scope is derived from the channel's ownership row inside the orchestrator, never from caller input.
 
 ## Schema
 

@@ -651,12 +651,31 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     return ok(undefined);
   };
 
-  /** List content pool items for a channel, enriched with title, duration, and source type. */
+  /**
+   * List content pool items for a channel, enriched with title, duration, and source type.
+   *
+   * Scope is derived from the channel, never the caller (mirrors `searchAvailableContent`).
+   * This is a read-side tenant guard, NOT merely a convenience: the pool *should* only hold
+   * own content because every write path (`assignContent`) is creator-scoped, but the read must
+   * not rely on that invariant holding forever. A creator-owned channel (`{ creatorId }`) lists
+   * ONLY that creator's own non-deleted content — the platform playout-item branch is suppressed
+   * (creator pools are content-only) and a stale / foreign / soft-deleted `channel_content` row is
+   * never surfaced. A platform/admin channel (`{ allCreators: true }`) lists the full pool exactly
+   * as before.
+   */
   const listContent = async (
     channelId: string,
   ): Promise<Result<ChannelContent[], AppError>> => {
-    // Use raw SQL to UNION results from both playout_items and content tables
-    const rows = (await db.execute(sql`
+    const scopeResult = await resolvePoolScope(channelId);
+    if (!scopeResult.ok) return scopeResult;
+    const scope = scopeResult.value;
+    const creatorScoped = "creatorId" in scope;
+
+    // Playout-item branch — platform-shared media. Listed for admin/platform channels;
+    // suppressed for creator channels (content-only pools, matching searchAvailableContent).
+    const playoutBranch = creatorScoped
+      ? sql``
+      : sql`
       SELECT
         cc.id,
         cc.channel_id AS "channelId",
@@ -675,7 +694,17 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         AND cc.playout_item_id IS NOT NULL
 
       UNION ALL
+`;
 
+    // Content branch — for creator channels, constrained to the channel's creator and
+    // non-deleted rows. For admin/platform channels, unconstrained (unchanged).
+    const contentOwnershipFilter = creatorScoped
+      ? sql`AND c.creator_id = ${scope.creatorId}
+        AND c.deleted_at IS NULL`
+      : sql``;
+
+    // Use raw SQL to UNION results from both playout_items and content tables
+    const rows = (await db.execute(sql`${playoutBranch}
       SELECT
         cc.id,
         cc.channel_id AS "channelId",
@@ -692,6 +721,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       JOIN content c ON c.id = cc.content_id
       WHERE cc.channel_id = ${channelId}
         AND cc.content_id IS NOT NULL
+        ${contentOwnershipFilter}
 
       ORDER BY "createdAt" ASC
     `)) as Array<{

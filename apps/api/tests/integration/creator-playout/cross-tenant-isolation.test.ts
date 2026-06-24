@@ -479,6 +479,74 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
     expect(rows).toHaveLength(0);
   });
 
+  // ── Guarantee 8: listContent is creator-scoped (read-side guard) ────────────
+
+  it("G8: listContent excludes foreign/platform/deleted rows even when they pollute channel_content directly", async () => {
+    // The write path (assignContent) is creator-scoped, but the read must not rely
+    // on that invariant. We insert polluted rows DIRECTLY into channel_content —
+    // bypassing assignContent — to simulate a stale, migrated, or buggy write, then
+    // assert listContent does not surface them. This is the read-side tenant guard.
+    const { createPlayoutOrchestrator } = await import(
+      "../../../src/services/playout-orchestrator.js"
+    );
+    const { createStubLiquidsoapClient } = await import(
+      "../../../src/services/liquidsoap-client.js"
+    );
+    const { db } = await import("../../../src/db/connection.js");
+    const { channelContent } = await import(
+      "../../../src/db/schema/playout-queue.schema.js"
+    );
+    const { randomUUID } = await import("node:crypto");
+
+    // Pollute channel A's pool directly: B's content, a platform playout item, and
+    // A's own soft-deleted content — none of which a scoped write would ever allow.
+    await db.insert(channelContent).values([
+      {
+        id: randomUUID(),
+        channelId: CHANNEL_A_ID,
+        contentId: CONTENT_B1_ID, // foreign creator's content
+        playoutItemId: null,
+      },
+      {
+        id: randomUUID(),
+        channelId: CHANNEL_A_ID,
+        contentId: null,
+        playoutItemId: PLAYOUT_ITEM_ID, // platform playout item
+      },
+      {
+        id: randomUUID(),
+        channelId: CHANNEL_A_ID,
+        contentId: CONTENT_A_DELETED_ID, // own, but soft-deleted
+        playoutItemId: null,
+      },
+      {
+        id: randomUUID(),
+        channelId: CHANNEL_A_ID,
+        contentId: CONTENT_A1_ID, // own, active — the ONLY row that should list
+        playoutItemId: null,
+      },
+    ]);
+
+    const orch = createPlayoutOrchestrator(createStubLiquidsoapClient());
+    const result = await orch.listContent(CHANNEL_A_ID);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const listedContentIds = result.value.map((r) => r.contentId);
+    const listedPlayoutIds = result.value.map((r) => r.playoutItemId);
+
+    // Only creator A's own active content surfaces
+    expect(listedContentIds).toContain(CONTENT_A1_ID);
+    // Foreign creator's content must NOT be listed
+    expect(listedContentIds).not.toContain(CONTENT_B1_ID);
+    // Soft-deleted own content must NOT be listed
+    expect(listedContentIds).not.toContain(CONTENT_A_DELETED_ID);
+    // Platform playout item must NOT be listed (creator pools are content-only)
+    expect(listedPlayoutIds).not.toContain(PLAYOUT_ITEM_ID);
+    // Exactly one row total (the active own-content row)
+    expect(result.value).toHaveLength(1);
+  });
+
   // ── Bonus: platform playout item assign rejected on creator channel ─────────
 
   it("creator channel: assigning a platform playoutItemId is rejected (creator pools are content-only)", async () => {

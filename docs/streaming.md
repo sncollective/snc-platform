@@ -32,7 +32,7 @@ Three types of channels:
 
 **Playout channels** (like S/NC Classics) are content sources. Each has its own playlist and admin queue. S/NC TV carries the Classics channel as a fallback tier in its editorial config. Future themed channels (Horror, Retro, etc.) will be additional playout channels that an admin can switch between or carry.
 
-**Creator channels** are temporary. When a creator starts streaming, the API creates a live channel for them. When they stop, it's deactivated. While active, the creator's stream takes over S/NC TV automatically — it arrives on the broadcast live input, which is the highest-priority tier of S/NC TV's editorial config.
+**Creator channels** are persistent. Each creator has one durable `ownership='creator'` / `role='live-ingest'` channel, lazy-provisioned by `ensureCreatorChannel` on first stream-key creation and surviving publish/unpublish cycles. It is the creator's editorial surface: even offline, a creator with `manageStreaming` drives its queue and content pool from the Programming tab on creator manage (see [creators.md](creators.md)). Going live flips `isActive`, not the channel's existence; ending the stream flips it back. While active, the creator's stream takes over S/NC TV automatically — it arrives on the broadcast live input, which is the highest-priority tier of S/NC TV's editorial config.
 
 ## Stream Flow
 
@@ -80,6 +80,17 @@ live creator > admin queue > playlist > silence
 ```
 
 Admins can also skip the current track, which advances to the next queued item or playlist track.
+
+### Creator editorial surface
+
+The queue + content-pool + control surface admins use at `/admin/playout` is the **same surface** creators use for their own channel, at the Programming tab on creator manage. There is one editorial surface (`<EditorialSurface>`), mounted at two points, and one backend logic path behind two gates:
+
+- **Admin mount** keeps the full surface: all-channel tabs, channel create/delete, broadcast banner, engine-restart. Gated by `requireRole("admin")` on the `/api/playout/*` routes.
+- **Creator mount** is the surface minus those admin-only capabilities — queue, content pool (auto-scoped to the creator's own content), and manual/auto control for the creator's single persistent channel. Gated by `requireCreatorChannelPermission("manageStreaming")` on the `/api/creator/playout/*` routes, which loads the channel, asserts it is the creator's own `live-ingest` channel, and delegates to the per-creator permission check (owner-only; see [creators.md](creators.md)).
+
+Cross-tenant isolation lives in the orchestrator: the content scope is derived from the channel's ownership row, never from caller input, so a creator can only search, assign, or queue their own non-deleted content. Creator editorial changes ride the `content` SSE topic scoped to the owning creator (admin changes ride the `playout` topic, unchanged).
+
+Creator channels do **not** carry other channels (no `channel-as-source` tier) — cross-creator "hosting" is a viewer-layer presentation re-point, not media-layer carry, and is deferred to the live-experience work.
 
 ### Liquidsoap configuration
 

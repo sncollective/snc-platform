@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-creator-enablement
 kind: feature
-stage: review
+stage: implementing
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle, unified-channel-model-editorial-engine]
 release_binding: null
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-24
 ---
 
 # Creator editorial enablement — the surface mounts on creator manage
@@ -292,3 +292,80 @@ web typecheck + API build clean.
 
 Closing this feature makes all four `unified-channel-model` epic features terminal — the epic (the
 playout re-architecture's main arc) can close.
+
+## Review findings (2026-06-24) — BOUNCED to implementing
+
+**Verdict**: Request changes. Two blockers, both surfaced by the **cross-model (Codex) pass**,
+both missed by the green unit suite + the same-model fresh-context reviewer. Feature returned to
+`stage: implementing`. The doc-drift fixes from the first pass were correct and stand (not
+reverted) — they are foundation rolling-forward, independent of these code fixes.
+
+### Blocker B1 — creator-owned content cannot be queued or played (functional break)
+The creator content pool's *primary purpose* — queue and play your own content — does not work:
+- **Manual queue silently excludes creator content.** Creator-assigned content is stored as
+  `channel_content` rows with `content_id` set and `playout_item_id: null` (the
+  `sourceType === "content"` branch, `editorial-surface.tsx:237`). But `handlePlayNext`
+  early-returns `if (!item.playoutItemId)` (`editorial-surface.tsx:220`) and the picker filters to
+  `sourceType === "playout"` only (`pool-item-picker.tsx:66`). So a creator can assign their
+  content to the pool but has no way to "play next" with it.
+- **Auto-fill hits a non-deferred FK violation on creator content.** Auto-fill aliases
+  `cc.content_id AS playout_item_id` (`playout-orchestrator.ts:776`) and feeds those values into
+  `enqueueBatch` → `playout_queue.playout_item_id`, which is `.notNull().references(playoutItems.id)`
+  (`playout-queue.schema.ts:60-62`). A `content.id` is not a `playout_items.id`, so the insert
+  throws. A creator channel whose pool is all creator content can't auto-fill at all.
+
+Root: `playout_queue` only models playout-item rows; creator content (`content` table) was added to
+the *pool* but there's no path from a pooled `content_id` to a playable queue row. Fix options to
+weigh at implement-design (don't pre-commit): (a) give creator content a playout-item projection so
+it can ride the existing queue, or (b) widen the queue model to carry `content_id` (schema + FK +
+transitions + Liquidsoap render). This needs feature-design judgment, not an inline patch.
+
+Why the tests missed it: cross-tenant tests assert *isolation* (B's content stays out of A's pool),
+not *function* (A's content actually plays); AC#5 live fix-verify (a creator driving their queue in
+the running app) was deferred to the user and never ran.
+
+### Blocker B2 — `listContent` is not creator-scoped (read-side tenant gap)
+`listContent` (`playout-orchestrator.ts:655`) selects from `channel_content` filtered only by
+`channel_id` — unlike `searchAvailableContent` / `assignContent` / `insertIntoQueue`, it does NOT
+constrain the content branch to `c.creator_id = scope.creatorId` and does NOT exclude soft-deleted
+content (`c.deleted_at IS NULL`). Today writes are scoped so the pool *should* only hold own content,
+but the read relies entirely on every write path staying perfect forever, with no read-side guard.
+Given this feature's leak history, the read must scope too (defense in depth). Fix: derive scope via
+`resolvePoolScope` and add the `creator_id` + `deleted_at` filters to the content branch; add a
+regression test that a stale/foreign `channel_content` row is NOT listed.
+
+The same-model reviewer rationalized this as "safe by construction" — exactly the blind spot the
+cross-model loop exists to catch.
+
+### Verified SAFE (Codex concurred with the first-pass findings)
+- **Gate** (`require-creator-channel-permission.ts`): authorization is sound — loads channel by
+  `:channelId`, requires creator-ownership + non-null creatorId + `live-ingest` role, keys
+  permission on the channel's own creatorId. (Nit: cross-creator denial is 403 vs 404 for
+  nonexistent, so creator-channel existence is distinguishable — low-severity, note only.)
+- **SSE scope** (`playout-queue-transitions.ts` + `event-bus.ts` + `channels.ts`): publish carries
+  the owning creatorId; platform/admin channels emit no new creator event; subscriber filter keys on
+  `event.creatorId`.
+- **Admin extraction identity** (`admin/playout.tsx`): admin keeps broadcast status, channel tabs,
+  channel CRUD, engine-restart, `ADMIN_EDITORIAL_API`, `spineTopic="playout"`; creator mount uses
+  `CREATOR_EDITORIAL_API` + `spineTopic="content"`. Behavior-identical on the admin path.
+
+### Loop status
+Cross-model peer-review loop pass 1 of ≤5 (peeragent → Codex, job 20260624T225104Z).
+
+**B2 — RESOLVED (2026-06-24).** `listContent` now derives scope via `resolvePoolScope` and applies
+the creator `creator_id` + `deleted_at IS NULL` filters to the content branch (suppressing the
+platform playout branch for creator channels, matching `searchAvailableContent`). Regression test
+**G8** added to `tests/integration/creator-playout/cross-tenant-isolation.test.ts` — pollutes
+`channel_content` DIRECTLY (bypassing the scoped write) with a foreign creator's content, a platform
+playout item, and a soft-deleted own row, then asserts `listContent` lists ONLY A's own active row.
+All 11 cross-tenant integration tests green.
+
+**B1 — ROUTED TO DESIGN.** The creator-content-unplayable gap is a design fork with schema
+implications, not an inline patch. Scoped as a new child story `…-creator-content-playable` at
+`stage: drafting` for `/agile-workflow:feature-design` to weigh: (a) project creator `content` into
+a `playout_item` so it rides the existing queue model, vs (b) widen the queue model to carry
+`content_id` (schema + FK + `playout-queue-transitions` + Liquidsoap render). No position committed
+pre-design (substrate-before-stance). Feature stays at `implementing` and the parent epic cannot
+close until B1 lands.
+
+Next: feature-design B1 → implement → re-dispatch Codex for pass 2 on the full fix set.
