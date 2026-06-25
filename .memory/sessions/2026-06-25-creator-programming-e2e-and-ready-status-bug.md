@@ -53,10 +53,10 @@ fork in levels 1-2 determines what 3-4 can assert. Until they land, AC#5's playb
 one-time manual check and the feature+epic stay at review.
 
 ## Notes
-- Pre-existing `channel-lifecycle.test.ts` FK failures (3) are unrelated (already parked twice:
-  `channel-lifecycle-creator-profile-seed`, `fix-channel-lifecycle-integration-test-seeding`) —
-  reproduce on clean HEAD with all of this stashed. **Two backlog items for one bug** — worth
-  merging when one is next touched.
+- Pre-existing `channel-lifecycle.test.ts` FK failures (3) are unrelated — reproduce on clean HEAD
+  with all of this stashed. Were parked twice; **merged this session** into the single
+  `channel-lifecycle-creator-profile-seed` backlog item (the duplicate
+  `fix-channel-lifecycle-integration-test-seeding` deleted).
 - Auth sign-in rate-limits at `windowMs: 60_000, max: 10` (`app.ts:77` `authStrictLimiter`); rapid
   e2e reruns trip 429 in `global.setup.ts`. Wait ~70s, or use `--no-deps` to reuse cached auth.
 - `.claude/settings.json` (platform) shows a plugin-marketplace blanking diff — a session/env
