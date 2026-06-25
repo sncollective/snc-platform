@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-content-playable-ui
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-content-playable
 depends_on: [unified-channel-model-creator-content-playable-reads, unified-channel-model-creator-content-playable-transitions]
@@ -138,3 +138,7 @@ just this story. Steps for the user:
 
 If all of the above hold, AC#5 is satisfied and the creator-enablement arc's deferred
 fix-verify closes.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve — advanced to done. Cross-model peer-review loop converged at pass 3 (Codex SAFE on the full B1+B2+B3 fix set). Code complete + verified (typecheck clean; API unit 1866 + cross-tenant integration 13 green).

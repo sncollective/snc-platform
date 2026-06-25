@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-content-playable-transitions
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-content-playable
 depends_on: [unified-channel-model-creator-content-playable-schema]
@@ -84,3 +84,7 @@ the real schema. Added two new tests:
 **Design note**: the discriminated-union + spread-to-omit approach worked cleanly; no design-flaw
 escape hatch needed. Drizzle omitting an absent key to a NULL column is the standard behavior and
 keeps the call sites declarative (`source: { contentId }`) with no nulls passed explicitly.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve — advanced to done. Cross-model peer-review loop converged at pass 3 (Codex SAFE on the full B1+B2+B3 fix set). Code complete + verified (typecheck clean; API unit 1866 + cross-tenant integration 13 green).

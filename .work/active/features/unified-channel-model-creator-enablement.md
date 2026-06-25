@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-creator-enablement
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle, unified-channel-model-editorial-engine]
 release_binding: null
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Creator editorial enablement — the surface mounts on creator manage
@@ -370,3 +370,24 @@ natively, so this is narrow). Four child stories (schema → transitions + reads
 close until both are done.
 
 Next: feature-design B1 → implement → re-dispatch Codex for pass 2 on the full fix set.
+
+## Status (2026-06-25) — at review, pending AC#5 live fix-verify
+
+B1 + B2 (and the pass-2 B3 follow-on) are all resolved:
+- **B2** — `listContent` read-side creator scope. Fixed (commit 5d2b559), G8 regression test.
+- **B1** — creator content unplayable. Fixed via the sibling feature
+  `unified-channel-model-creator-content-playable` (now `done`): widened `playout_queue` to be
+  source-polymorphic. 4 stories, all done.
+- **B3** — read/playback-path scope (`autoFill` + `resolvePoolNextUri`). Found in cross-model pass 2,
+  fixed (commit 029e0fb), G9 regression test.
+
+**Cross-model peer-review loop CONVERGED at pass 3** (Codex SAFE on the full B1+B2+B3 fix set; no
+admin/platform regression). Verified: API typecheck clean, API unit 1866 green, web 1801 green,
+cross-tenant integration 13 green (G1–G9 + bonus). One pre-existing finding parked separately
+(`idea-poolcontentscope-null-creator-fallthrough`).
+
+**Held at `review`, NOT advanced to `done`** — the one remaining gate is **AC#5, the live fix-verify**
+(platform fix-verify convention): a creator driving their own queue with their own content in the
+running app. That is a USER step an agent cannot perform; the exact steps are in the `…-ui` story
+body's "Live fix-verify needed (AC#5)" section. This feature and the parent epic close only after the
+user confirms AC#5 in the running app.

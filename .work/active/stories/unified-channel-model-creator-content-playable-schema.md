@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-content-playable-schema
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout, schema]
 parent: unified-channel-model-creator-content-playable
 depends_on: []
@@ -72,3 +72,7 @@ from either source — this story only unblocks the queue table to hold the cont
   chain this is the regression-gate widening — fixed by the transitions/reads stories (units 2–4),
   NOT this one. Left unpatched intentionally; no unexpected breakage anywhere else.
 - **Adjacent issues parked**: none.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve — advanced to done. Cross-model peer-review loop converged at pass 3 (Codex SAFE on the full B1+B2+B3 fix set). Code complete + verified (typecheck clean; API unit 1866 + cross-tenant integration 13 green).

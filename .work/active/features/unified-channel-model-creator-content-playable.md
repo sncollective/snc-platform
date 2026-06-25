@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-content-playable
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout, media-pipeline]
 parent: unified-channel-model
 depends_on: []
@@ -222,3 +222,9 @@ Liquidsoap + track play-stats) — in-scope for "make content sources playable,"
   whole creator-enablement arc.
 - **Cross-model peer-review loop pass 2** — Codex re-reviews the full B1 + B2 fix set before this
   feature and its sibling `…creator-enablement` advance and the epic closes.
+
+## Review (2026-06-25) — Approve, advanced to done
+
+All 4 child stories done. The cross-model peer-review loop converged at pass 3: Codex confirmed the full B1+B2+B3 fix set SAFE (the queue widening did not reopen cross-tenant scoping; the read/playback paths are now scoped; no admin/platform regression). Verified: API typecheck clean, API unit 1866 green, cross-tenant integration 13 green (G1–G9 + bonus). One pre-existing finding parked separately (`idea-poolcontentscope-null-creator-fallthrough`), not introduced by this work.
+
+This feature is the BACKEND completion of creator content playability — its own acceptance is met at the code level. The user-facing live fix-verify (AC#5 — a creator driving their own queue with their own content in the running app) is a gate on the broader `unified-channel-model-creator-enablement` arc and is tracked there.

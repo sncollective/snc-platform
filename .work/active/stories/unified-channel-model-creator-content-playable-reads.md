@@ -1,7 +1,7 @@
 ---
 id: unified-channel-model-creator-content-playable-reads
 kind: story
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-content-playable
 depends_on: [unified-channel-model-creator-content-playable-schema]
@@ -199,3 +199,7 @@ Both read/playback paths now apply the creator scope at READ time (symmetric wit
   WOULD resolve a URI if scope were missing — the test has teeth), then asserts neither `autoFill`
   nor `resolvePoolNextUri` surfaces them, while A's own active content IS auto-queued + served.
   Cross-tenant suite now **13 passed**.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve — advanced to done. The B3 read/playback-scope fix (commit 029e0fb) was the last open item; Codex cross-model pass 3 confirmed SAFE on both paths with no admin/platform regression, G9 verified to have teeth. Cross-tenant integration 13 green; API unit 1866 green; typecheck clean. The parked pre-existing `poolContentScope` null-creatorId fall-through (idea-poolcontentscope-null-creator-fallthrough) is tracked separately, not a regression of this story.
