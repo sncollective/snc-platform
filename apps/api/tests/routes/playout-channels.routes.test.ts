@@ -255,7 +255,7 @@ describe("playout channel routes", () => {
       expect(body.id).toBe("entry-1");
       expect(mockInsertIntoQueue).toHaveBeenCalledWith(
         "channel-1",
-        "item-1",
+        { playoutItemId: "item-1" },
         undefined,
       );
     });
@@ -273,7 +273,7 @@ describe("playout channel routes", () => {
       expect(res.status).toBe(201);
       expect(mockInsertIntoQueue).toHaveBeenCalledWith(
         "channel-1",
-        "item-1",
+        { playoutItemId: "item-1" },
         2,
       );
     });

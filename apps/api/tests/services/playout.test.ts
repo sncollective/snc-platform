@@ -380,7 +380,9 @@ describe("queuePlayoutItem", () => {
     const result = await queuePlayoutItem("item-1");
 
     expect(result.ok).toBe(true);
-    expect(mockInsertIntoQueue).toHaveBeenCalledWith("channel-1", "item-1");
+    expect(mockInsertIntoQueue).toHaveBeenCalledWith("channel-1", {
+      playoutItemId: "item-1",
+    });
   });
 
   it("returns error when no active playout channel found", async () => {
@@ -433,6 +435,8 @@ describe("getPlayoutStatus", () => {
         nowPlaying: {
           id: "queue-1",
           playoutItemId: "item-1",
+          contentId: null,
+          sourceType: "playout",
           title: "Test Film",
           duration: 90.0,
           status: "playing",
@@ -442,6 +446,8 @@ describe("getPlayoutStatus", () => {
           {
             id: "queue-2",
             playoutItemId: "item-2",
+            contentId: null,
+            sourceType: "playout",
             title: "Film Two",
             duration: 60.0,
             status: "queued",

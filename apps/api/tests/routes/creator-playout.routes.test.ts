@@ -324,7 +324,7 @@ describe("creator playout routes", () => {
       expect(body.id).toBe("entry-1");
       expect(mockInsertIntoQueue).toHaveBeenCalledWith(
         CREATOR_CHANNEL_ID,
-        "item-1",
+        { playoutItemId: "item-1" },
         undefined,
       );
     });
@@ -342,7 +342,7 @@ describe("creator playout routes", () => {
       expect(res.status).toBe(201);
       expect(mockInsertIntoQueue).toHaveBeenCalledWith(
         CREATOR_CHANNEL_ID,
-        "item-1",
+        { playoutItemId: "item-1" },
         3,
       );
     });

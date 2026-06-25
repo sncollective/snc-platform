@@ -11,6 +11,8 @@ function makeEntry(overrides?: Partial<PlayoutQueueEntry>): PlayoutQueueEntry {
     id: "entry_001",
     channelId: "ch_playout_1",
     playoutItemId: "item_001",
+    contentId: null,
+    sourceType: "playout",
     position: 1,
     status: "queued",
     pushedToLiquidsoap: false,

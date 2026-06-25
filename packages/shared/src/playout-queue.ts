@@ -42,12 +42,17 @@ export type PoolCandidate = z.infer<typeof PoolCandidateSchema>;
 export const PlayoutQueueEntrySchema = z.object({
   id: z.string(),
   channelId: z.string(),
-  playoutItemId: z.string(),
+  // A queue entry sources from EXACTLY ONE of a playout item (admin/library) or a
+  // content piece (creator). The `playout_queue_one_source` DB CHECK enforces it,
+  // so exactly one of these is non-null per row; `sourceType` discriminates.
+  playoutItemId: z.string().nullable(),
+  contentId: z.string().nullable(),
+  sourceType: z.enum(["playout", "content"]),
   position: z.number().int(),
   status: z.enum(QUEUE_STATUSES),
   pushedToLiquidsoap: z.boolean(),
   createdAt: z.string().datetime(),
-  // Denormalized from playout_items for display
+  // Denormalized from playout_items / content for display
   title: z.string().nullable(),
   duration: z.number().nullable(),
 });
@@ -109,3 +114,25 @@ export const InsertQueueItemSchema = z.object({
 });
 
 export type InsertQueueItem = z.infer<typeof InsertQueueItemSchema>;
+
+/**
+ * Source-aware queue insert: exactly one of `playoutItemId` (admin/library) or
+ * `contentId` (creator content). Mirrors the service-layer `QueueSource` so a
+ * creator can queue their own pooled content and an admin can queue a library
+ * playout item through the same route shape. `position` omitted = end of queue.
+ */
+export const InsertQueueSourceSchema = z
+  .object({
+    playoutItemId: z.string().optional(),
+    contentId: z.string().optional(),
+    position: z.number().int().min(1).optional(),
+  })
+  .refine(
+    (d) =>
+      (d.playoutItemId !== undefined ? 1 : 0) +
+        (d.contentId !== undefined ? 1 : 0) ===
+      1,
+    { message: "Exactly one of playoutItemId or contentId must be provided" },
+  );
+
+export type InsertQueueSource = z.infer<typeof InsertQueueSourceSchema>;

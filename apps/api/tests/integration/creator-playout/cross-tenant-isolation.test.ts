@@ -352,7 +352,9 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
     const orch = createPlayoutOrchestrator(createStubLiquidsoapClient());
 
     // Attempt to queue a platform playout item that has not been added to the pool
-    const result = await orch.insertIntoQueue(CHANNEL_A_ID, PLAYOUT_ITEM_ID);
+    const result = await orch.insertIntoQueue(CHANNEL_A_ID, {
+      playoutItemId: PLAYOUT_ITEM_ID,
+    });
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -418,7 +420,9 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
     }
 
     // Queue-insert on a nonexistent channel must fail closed
-    const queueResult = await orch.insertIntoQueue(bogusId, PLAYOUT_ITEM_ID);
+    const queueResult = await orch.insertIntoQueue(bogusId, {
+      playoutItemId: PLAYOUT_ITEM_ID,
+    });
     expect(queueResult.ok).toBe(false);
     if (!queueResult.ok) {
       expect(queueResult.error.statusCode).toBe(404);
@@ -567,5 +571,101 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.statusCode).toBe(403);
+  });
+
+  // ── Function (not just isolation): creator's own content is playable ─────────
+  //
+  // The isolation tests above prove B's content stays OUT of A's pool. This proves
+  // A's OWN content actually plays: a creator channel whose pool is all content rows
+  // auto-fills PLAYABLE content_id queue rows (the FK-violation fix — a content.id no
+  // longer gets jammed into the playout_item_id FK column), and getChannelQueueStatus
+  // surfaces those content rows (the INNER-JOIN read bug fix). This is the AC#1/AC#2
+  // function guarantee that the original review missed.
+
+  it("creator own-content pool: auto-fill inserts playable content_id rows (no FK error) and queue-status lists them", async () => {
+    const { createPlayoutOrchestrator } = await import(
+      "../../../src/services/playout-orchestrator.js"
+    );
+    const { createStubLiquidsoapClient } = await import(
+      "../../../src/services/liquidsoap-client.js"
+    );
+    const { db } = await import("../../../src/db/connection.js");
+    const { playoutQueue, channelContent } = await import(
+      "../../../src/db/schema/playout-queue.schema.js"
+    );
+    const { eq, and, isNotNull } = await import("drizzle-orm");
+    const orch = createPlayoutOrchestrator(createStubLiquidsoapClient());
+
+    // Pool channel A with the creator's OWN content (the creator-scoped assign path
+    // accepts own content; A1 + A2 are A's active videos).
+    const assigned = await orch.assignContent(
+      CHANNEL_A_ID,
+      [],
+      [CONTENT_A1_ID, CONTENT_A2_ID],
+    );
+    expect(assigned.ok).toBe(true);
+
+    // Sanity: the pool rows are content rows (content_id set, playout_item_id null).
+    const poolRows = await db
+      .select()
+      .from(channelContent)
+      .where(eq(channelContent.channelId, CHANNEL_A_ID));
+    expect(poolRows).toHaveLength(2);
+    expect(poolRows.every((r) => r.contentId !== null && r.playoutItemId === null)).toBe(
+      true,
+    );
+
+    // Auto-fill MUST NOT throw an FK violation. Against the old alias
+    // (content_id AS playout_item_id) this rejected at insert; the fix carries the
+    // real source type so the id lands in content_id.
+    await expect(orch.autoFill(CHANNEL_A_ID)).resolves.toBeUndefined();
+
+    // The queue now holds content_id rows (playable), never a content.id in the
+    // playout_item_id FK column.
+    const queueRows = await db
+      .select()
+      .from(playoutQueue)
+      .where(eq(playoutQueue.channelId, CHANNEL_A_ID));
+    expect(queueRows.length).toBeGreaterThan(0);
+    // Every auto-filled row is a content source.
+    expect(queueRows.every((r) => r.contentId !== null)).toBe(true);
+    expect(queueRows.every((r) => r.playoutItemId === null)).toBe(true);
+    // The content ids are the creator's own pooled content.
+    const queuedContentIds = queueRows.map((r) => r.contentId).sort();
+    expect(queuedContentIds).toEqual([CONTENT_A1_ID, CONTENT_A2_ID].sort());
+
+    // Belt-and-suspenders against the FK-jam regression: no queue row carries a
+    // content.id in the playout_item_id column.
+    const jammedRows = await db
+      .select()
+      .from(playoutQueue)
+      .where(
+        and(
+          eq(playoutQueue.channelId, CHANNEL_A_ID),
+          isNotNull(playoutQueue.playoutItemId),
+        ),
+      );
+    expect(jammedRows).toHaveLength(0);
+
+    // getChannelQueueStatus must LIST the content rows (the INNER-JOIN bug would drop
+    // them) with their real title/duration coalesced from the content table.
+    const status = await orch.getChannelQueueStatus(CHANNEL_A_ID);
+    expect(status.ok).toBe(true);
+    if (!status.ok) return;
+
+    const entries = [
+      ...(status.value.nowPlaying ? [status.value.nowPlaying] : []),
+      ...status.value.upcoming,
+    ];
+    // Both content rows surface — none dropped by the join.
+    expect(entries).toHaveLength(2);
+    expect(entries.every((e) => e.sourceType === "content")).toBe(true);
+    expect(entries.every((e) => e.contentId !== null)).toBe(true);
+    expect(entries.every((e) => e.playoutItemId === null)).toBe(true);
+    // Title is coalesced from the content table (seeded titles), not null.
+    const listedTitles = entries.map((e) => e.title).sort();
+    expect(listedTitles).toEqual(
+      ["Creator A Video 1", "Creator A Video 2"].sort(),
+    );
   });
 });

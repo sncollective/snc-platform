@@ -106,7 +106,7 @@ creatorPlayoutRoutes.post(
     const { playoutItemId, position } = c.req.valid("json");
     const result = await orchestrator.insertIntoQueue(
       channelId,
-      playoutItemId,
+      { playoutItemId },
       position,
     );
     if (!result.ok) {

@@ -17,6 +17,7 @@ import {
   playoutQueue,
 } from "../db/schema/playout-queue.schema.js";
 import { markPlayed, promoteNext, enqueue, enqueueBatch, removeQueued } from "./playout-queue-transitions.js";
+import type { QueueSource } from "./playout-queue-transitions.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { content } from "../db/schema/content.schema.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
@@ -43,17 +44,55 @@ const AUTO_FILL_BATCH = 10;
 
 export type PlayoutOrchestrator = ReturnType<typeof createPlayoutOrchestrator>;
 
+// ── Queue-status read projection ──
+
+/**
+ * Column projection for queue-status reads. The queue is source-polymorphic
+ * (`playout_item_id` XOR `content_id`, enforced by the `playout_queue_one_source`
+ * CHECK), so reads LEFT JOIN both `playout_items` and `content` and coalesce the
+ * display fields from whichever side is set. An INNER JOIN against `playout_items`
+ * would silently drop every content-source row — the read bug this fixes.
+ *
+ * `sourceType` is derived from which FK is populated; `coalesce` picks the live
+ * title/duration. Shared by `getChannelQueueStatus` and `getMultiChannelQueueStatus`
+ * so the two reads never drift.
+ */
+const QUEUE_STATUS_COLUMNS = {
+  id: playoutQueue.id,
+  channelId: playoutQueue.channelId,
+  playoutItemId: playoutQueue.playoutItemId,
+  contentId: playoutQueue.contentId,
+  position: playoutQueue.position,
+  status: playoutQueue.status,
+  pushedToLiquidsoap: playoutQueue.pushedToLiquidsoap,
+  createdAt: playoutQueue.createdAt,
+  sourceType:
+    sql<"playout" | "content">`CASE WHEN ${playoutQueue.playoutItemId} IS NOT NULL THEN 'playout' ELSE 'content' END`.as(
+      "sourceType",
+    ),
+  title: sql<string | null>`coalesce(${playoutItems.title}, ${content.title})`.as(
+    "title",
+  ),
+  duration:
+    sql<number | null>`coalesce(${playoutItems.duration}, ${content.duration})`.as(
+      "duration",
+    ),
+} as const;
+
 // ── Row → Response transformer ──
 
 const toQueueEntry = (
   row: typeof playoutQueue.$inferSelect & {
+    sourceType: "playout" | "content";
     title: string | null;
     duration: number | null;
   },
 ): PlayoutQueueEntry => ({
   id: row.id,
   channelId: row.channelId,
-  playoutItemId: row.playoutItemId,
+  playoutItemId: row.playoutItemId ?? null,
+  contentId: row.contentId ?? null,
+  sourceType: row.sourceType,
   position: row.position,
   status: row.status as PlayoutQueueEntry["status"],
   pushedToLiquidsoap: row.pushedToLiquidsoap,
@@ -177,19 +216,10 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     }
 
     const queueRows = await db
-      .select({
-        id: playoutQueue.id,
-        channelId: playoutQueue.channelId,
-        playoutItemId: playoutQueue.playoutItemId,
-        position: playoutQueue.position,
-        status: playoutQueue.status,
-        pushedToLiquidsoap: playoutQueue.pushedToLiquidsoap,
-        createdAt: playoutQueue.createdAt,
-        title: playoutItems.title,
-        duration: playoutItems.duration,
-      })
+      .select(QUEUE_STATUS_COLUMNS)
       .from(playoutQueue)
-      .innerJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(content, eq(playoutQueue.contentId, content.id))
       .where(
         and(
           eq(playoutQueue.channelId, channelId),
@@ -233,19 +263,10 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
     // Single query: all queue rows across all channels
     const queueRows = await db
-      .select({
-        id: playoutQueue.id,
-        channelId: playoutQueue.channelId,
-        playoutItemId: playoutQueue.playoutItemId,
-        position: playoutQueue.position,
-        status: playoutQueue.status,
-        pushedToLiquidsoap: playoutQueue.pushedToLiquidsoap,
-        createdAt: playoutQueue.createdAt,
-        title: playoutItems.title,
-        duration: playoutItems.duration,
-      })
+      .select(QUEUE_STATUS_COLUMNS)
       .from(playoutQueue)
-      .innerJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(content, eq(playoutQueue.contentId, content.id))
       .where(
         and(
           inArray(playoutQueue.channelId, channelIds),
@@ -326,18 +347,21 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       // 2. Mark as played and update channel_content stats
       await markPlayed(playing.id, playing.channelId);
 
+      // Update the matching pool row's play stats, keyed on whichever source the
+      // playing queue row carries. A content row sets `content_id` (playoutItemId is
+      // null); matching on the null column (`playout_item_id = NULL`) would update
+      // nothing — so dispatch on the populated source.
+      const poolMatch = playing.playoutItemId
+        ? eq(channelContent.playoutItemId, playing.playoutItemId)
+        : eq(channelContent.contentId, playing.contentId!);
+
       await db
         .update(channelContent)
         .set({
           lastPlayedAt: new Date(),
           playCount: sql`${channelContent.playCount} + 1`,
         })
-        .where(
-          and(
-            eq(channelContent.channelId, channelId),
-            eq(channelContent.playoutItemId, playing.playoutItemId),
-          ),
-        );
+        .where(and(eq(channelContent.channelId, channelId), poolMatch));
     }
 
     // 3. Promote next queued to playing
@@ -371,24 +395,36 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
    * Insert an item into the queue at a given position (default: end).
    * Shifts existing entries at >= position up by 1 when position is given.
    *
+   * The source is polymorphic — exactly one of `playoutItemId` (admin/library item)
+   * or `contentId` (creator content piece) — matching the source-polymorphic queue
+   * schema and the transitions layer's `QueueSource`. The pool chokepoint and the
+   * existence validation both key off whichever source was supplied.
+   *
    * Scope-gated like the rest of the shared editorial surface: the scope is
    * derived from the channel's ownership row (`resolvePoolScope`), never the caller.
    *
-   * - Creator-owned channel (`{ creatorId }`): the `playoutItemId` MUST already be in
-   *   THIS channel's content pool (`channel_content`). The pool is creator-scoped
-   *   (the search/assign paths only admit the creator's own content), so this makes
-   *   the scoped pool the single chokepoint — a creator cannot queue an arbitrary
-   *   platform/other-creator `playoutItemId` they happen to know. An item outside the
-   *   pool is rejected as `ForbiddenError` (matching the round-1 assign-rejection code,
-   *   and not leaking whether the foreign item exists) and nothing is enqueued.
+   * - Creator-owned channel (`{ creatorId }`): the source MUST already be in THIS
+   *   channel's content pool (`channel_content`) — matched on the SAME column the
+   *   source sets (`content_id` for a content source, `playout_item_id` for a playout
+   *   source). The pool is creator-scoped (the search/assign paths only admit the
+   *   creator's own content, and `assignContent` forbids platform playout items into a
+   *   creator pool), so the scoped pool is the single chokepoint: a creator cannot
+   *   queue an arbitrary platform/other-creator id they happen to know. A source
+   *   outside the pool is rejected as `ForbiddenError` (matching the round-1
+   *   assign-rejection code, and not leaking whether the foreign item exists) and
+   *   nothing is enqueued.
    * - Platform/admin channel (`{ allCreators: true }`): unchanged — admins legitimately
    *   queue from the full playout library, so only the existence check below applies.
    *
    * Fails closed: a missing channel row resolves to NotFoundError (never admin scope).
+   *
+   * @param source - `{ playoutItemId }` (library) XOR `{ contentId }` (creator content).
+   * @returns ForbiddenError when a creator channel queues a source outside its pool;
+   *   NotFoundError when the source row does not exist; otherwise the new entry.
    */
   const insertIntoQueue = async (
     channelId: string,
-    playoutItemId: string,
+    source: QueueSource,
     position?: number,
   ): Promise<Result<PlayoutQueueEntry, AppError>> => {
     // 1. Resolve the channel's pool scope (fails closed on a missing channel).
@@ -396,44 +432,76 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     if (!scopeResult.ok) return scopeResult;
     const scope = scopeResult.value;
 
-    // 1a. Creator channels may only queue items already in their scoped pool —
+    const isPlayoutSource = "playoutItemId" in source;
+    const sourceId = isPlayoutSource ? source.playoutItemId : source.contentId;
+
+    // 1a. Creator channels may only queue sources already in their scoped pool —
     //     the pool is the chokepoint that keeps cross-tenant items out of playback.
+    //     Match on the SAME column the source sets so a content source is checked
+    //     against `content_id` and a playout source against `playout_item_id`;
+    //     keying the wrong column would let an unpooled source slip through.
     if ("creatorId" in scope) {
-      const poolRows = (await db.execute(sql`
-        SELECT 1
-        FROM channel_content
-        WHERE channel_id = ${channelId}
-          AND playout_item_id = ${playoutItemId}
-      `)) as Array<unknown>;
+      const poolRows = isPlayoutSource
+        ? ((await db.execute(sql`
+            SELECT 1
+            FROM channel_content
+            WHERE channel_id = ${channelId}
+              AND playout_item_id = ${sourceId}
+          `)) as Array<unknown>)
+        : ((await db.execute(sql`
+            SELECT 1
+            FROM channel_content
+            WHERE channel_id = ${channelId}
+              AND content_id = ${sourceId}
+          `)) as Array<unknown>);
 
       const inPool = Array.isArray(poolRows) && poolRows.length > 0;
       if (!inPool) {
         logger.warn(
-          { channelId, creatorId: scope.creatorId, playoutItemId },
-          "Rejected creator queue insert — playout item not in channel's scoped pool",
+          { channelId, creatorId: scope.creatorId, sourceId, isPlayoutSource },
+          "Rejected creator queue insert — source not in channel's scoped pool",
         );
         return err(
           new ForbiddenError(
-            "Playout item is not in this channel's content pool",
+            "Item is not in this channel's content pool",
           ),
         );
       }
     }
 
-    // 2. Validate the playout item exists
-    const [item] = await db
-      .select()
-      .from(playoutItems)
-      .where(eq(playoutItems.id, playoutItemId));
-
-    if (!item) {
-      return err(new NotFoundError("Playout item not found"));
+    // 2. Validate the source row exists, against the table the source names, and
+    //    capture its display fields for the response.
+    let title: string | null;
+    let duration: number | null;
+    let sourceType: "playout" | "content";
+    if (isPlayoutSource) {
+      const [item] = await db
+        .select()
+        .from(playoutItems)
+        .where(eq(playoutItems.id, sourceId));
+      if (!item) {
+        return err(new NotFoundError("Playout item not found"));
+      }
+      title = item.title;
+      duration = item.duration;
+      sourceType = "playout";
+    } else {
+      const [item] = await db
+        .select()
+        .from(content)
+        .where(eq(content.id, sourceId));
+      if (!item) {
+        return err(new NotFoundError("Content not found"));
+      }
+      title = item.title;
+      duration = item.duration;
+      sourceType = "content";
     }
 
     // 3. Create queue entry (position-shift + insert delegated to transitions)
     const row = await enqueue({
       channelId,
-      playoutItemId,
+      source,
       ...(position !== undefined ? { position } : {}),
     });
 
@@ -444,9 +512,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     // 4. Push prefetch buffer if within prefetch window
     await pushPrefetchBuffer(channelId);
 
-    return ok(
-      toQueueEntry({ ...row, title: item.title, duration: item.duration }),
-    );
+    return ok(toQueueEntry({ ...row, sourceType, title, duration }));
   };
 
   /**
@@ -784,11 +850,16 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     const needed = AUTO_FILL_BATCH - depth;
 
     // Select from content pool (both playout items and creator content), excluding items already in queue.
+    // Each arm carries its REAL source type + id — a content row's id stays in the
+    // content column, never aliased into `playout_item_id` (that alias jammed a
+    // content.id into the playout-item FK and threw on insert; this is the fix).
+    // The exclusion subqueries are per-column so a content row is deduped against
+    // content_id and a playout row against playout_item_id.
     // ORDER BY: last_played_at ASC NULLS FIRST, play_count ASC, random()
     // Note: db.execute() with postgres-js returns rows directly as an array (not { rows: [...] })
     const candidateRows = (await db.execute(sql`
       SELECT * FROM (
-        SELECT cc.id, cc.playout_item_id, cc.last_played_at, cc.play_count
+        SELECT cc.id, 'playout' AS source_type, cc.playout_item_id AS source_id, cc.last_played_at, cc.play_count
         FROM channel_content cc
         JOIN playout_items pi ON pi.id = cc.playout_item_id
         WHERE cc.channel_id = ${channelId}
@@ -803,31 +874,43 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
         UNION ALL
 
-        SELECT cc.id, cc.content_id AS playout_item_id, cc.last_played_at, cc.play_count
+        SELECT cc.id, 'content' AS source_type, cc.content_id AS source_id, cc.last_played_at, cc.play_count
         FROM channel_content cc
         JOIN content c ON c.id = cc.content_id
         WHERE cc.channel_id = ${channelId}
           AND cc.content_id IS NOT NULL
           AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
           AND c.type = 'video'
+          AND cc.content_id NOT IN (
+            SELECT content_id FROM playout_queue
+            WHERE channel_id = ${channelId}
+              AND status IN ('queued', 'playing')
+              AND content_id IS NOT NULL
+          )
       ) candidates
       ORDER BY
         last_played_at ASC NULLS FIRST,
         play_count ASC,
         random()
       LIMIT ${needed}
-    `)) as Array<{ playout_item_id: string }>;
+    `)) as Array<{ source_type: "playout" | "content"; source_id: string }>;
 
     if (candidateRows.length === 0) {
       logger.debug({ channelId }, "Auto-fill: no candidates in content pool");
       return;
     }
 
-    // Batch-insert candidates (MAX(position) read + INSERT delegated to transitions)
-    const added = await enqueueBatch(
-      channelId,
-      candidateRows.map((r) => r.playout_item_id),
+    // Map each candidate to its typed QueueSource — the right column is written per
+    // source, satisfying the one-source CHECK. No FK violation: a content id lands in
+    // content_id, a playout id in playout_item_id.
+    const sources: QueueSource[] = candidateRows.map((r) =>
+      r.source_type === "playout"
+        ? { playoutItemId: r.source_id }
+        : { contentId: r.source_id },
     );
+
+    // Batch-insert candidates (MAX(position) read + INSERT delegated to transitions)
+    const added = await enqueueBatch(channelId, sources);
 
     logger.info(
       { channelId, added },
@@ -847,6 +930,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       .select({
         id: playoutQueue.id,
         playoutItemId: playoutQueue.playoutItemId,
+        contentId: playoutQueue.contentId,
         position: playoutQueue.position,
       })
       .from(playoutQueue)
@@ -861,9 +945,12 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       .limit(PREFETCH_DEPTH);
 
     for (const entry of unpushed) {
+      // Resolve from whichever source the row carries — `resolveContentUri` already
+      // handles a content source (transcoded ?? media key) the same way it handles a
+      // playout item. A content row whose contentId is dropped here would never push.
       const uri = await resolveContentUri({
         playoutItemId: entry.playoutItemId ?? null,
-        contentId: null,
+        contentId: entry.contentId ?? null,
       });
       if (!uri) continue;
 

@@ -109,7 +109,7 @@ const setupModule = async () => {
 
   vi.doMock("../../src/db/schema/playout-queue.schema.js", () => ({
     channelContent: { id: {}, channelId: {}, playoutItemId: {}, contentId: {}, lastPlayedAt: {}, playCount: {}, createdAt: {} },
-    playoutQueue: { id: {}, channelId: {}, playoutItemId: {}, position: {}, status: {}, pushedToLiquidsoap: {}, createdAt: {} },
+    playoutQueue: { id: {}, channelId: {}, playoutItemId: {}, contentId: {}, position: {}, status: {}, pushedToLiquidsoap: {}, createdAt: {} },
   }));
 
   vi.doMock("../../src/db/schema/playout.schema.js", () => ({
@@ -451,10 +451,9 @@ describe("playout orchestrator", () => {
         }),
       });
 
-      const result = await orchestrator.insertIntoQueue(
-        "channel-1",
-        "nonexistent-item",
-      );
+      const result = await orchestrator.insertIntoQueue("channel-1", {
+        playoutItemId: "nonexistent-item",
+      });
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
@@ -501,7 +500,9 @@ describe("playout orchestrator", () => {
       };
       mockDbInsert.mockReturnValue(insertChain);
 
-      const result = await orchestrator.insertIntoQueue("channel-1", "item-1");
+      const result = await orchestrator.insertIntoQueue("channel-1", {
+        playoutItemId: "item-1",
+      });
 
       expect(result.ok).toBe(true);
       if (!result.ok) return;
@@ -546,13 +547,218 @@ describe("playout orchestrator", () => {
 
       const result = await orchestrator.insertIntoQueue(
         "channel-1",
-        "item-1",
+        { playoutItemId: "item-1" },
         2,
       );
 
       expect(result.ok).toBe(true);
       // An update should have been called to shift positions
       expect(mockDbUpdate).toHaveBeenCalled();
+    });
+  });
+
+  // ── getChannelQueueStatus (read coalescing) ──
+  //
+  // The reads LEFT JOIN both playout_items and content and coalesce title/duration +
+  // derive sourceType. An INNER JOIN against playout_items would drop content rows
+  // (the read bug this fixes). The DB layer evaluates the coalesce/CASE, so the mock
+  // returns the already-coalesced row shape; the assertions prove toQueueEntry carries
+  // contentId + sourceType through for BOTH a playout row and a content row.
+
+  describe("getChannelQueueStatus", () => {
+    it("surfaces both playout and content rows with sourceType + coalesced title/duration", async () => {
+      const orchestrator = await setupModule();
+
+      // 1. channel lookup → one row
+      // 2. queue rows via leftJoin/leftJoin chain → a playout row AND a content row
+      // 3. pool-count select → [{ count }]
+      mockDbSelect
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([makeChannelRow()]),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            leftJoin: vi.fn().mockReturnValue({
+              leftJoin: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  orderBy: vi.fn().mockResolvedValue([
+                    {
+                      id: "q-playout",
+                      channelId: "channel-1",
+                      playoutItemId: "item-1",
+                      contentId: null,
+                      position: 1,
+                      status: "playing",
+                      pushedToLiquidsoap: true,
+                      createdAt: new Date("2026-01-01T00:00:00Z"),
+                      sourceType: "playout",
+                      title: "Library Film",
+                      duration: 90.0,
+                    },
+                    {
+                      id: "q-content",
+                      channelId: "channel-1",
+                      playoutItemId: null,
+                      contentId: "content-1",
+                      position: 2,
+                      status: "queued",
+                      pushedToLiquidsoap: false,
+                      createdAt: new Date("2026-01-02T00:00:00Z"),
+                      sourceType: "content",
+                      title: "Creator Video",
+                      duration: 120.0,
+                    },
+                  ]),
+                }),
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 2 }]),
+          }),
+        });
+
+      const result = await orchestrator.getChannelQueueStatus("channel-1");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      // The playout row is now-playing, carrying its playout source.
+      expect(result.value.nowPlaying?.playoutItemId).toBe("item-1");
+      expect(result.value.nowPlaying?.contentId).toBeNull();
+      expect(result.value.nowPlaying?.sourceType).toBe("playout");
+      expect(result.value.nowPlaying?.title).toBe("Library Film");
+
+      // The content row is NOT dropped (the INNER-JOIN bug) — it appears in upcoming
+      // with its content source + coalesced title/duration.
+      expect(result.value.upcoming).toHaveLength(1);
+      expect(result.value.upcoming[0]?.contentId).toBe("content-1");
+      expect(result.value.upcoming[0]?.playoutItemId).toBeNull();
+      expect(result.value.upcoming[0]?.sourceType).toBe("content");
+      expect(result.value.upcoming[0]?.title).toBe("Creator Video");
+      expect(result.value.upcoming[0]?.duration).toBe(120.0);
+    });
+  });
+
+  // ── insertIntoQueue with a content source ──
+
+  describe("insertIntoQueue — content source", () => {
+    const CREATOR_ID = "creator-A";
+    const creatorChannelScopeRow = [{ ownership: "creator", creatorId: CREATOR_ID }];
+
+    it("queues a creator's own pooled content (matched on content_id) and returns a content entry", async () => {
+      const orchestrator = await setupModule();
+
+      // db.execute: 1. resolvePoolScope → creator-owned; 2. pool-membership SELECT 1
+      //   keyed on content_id → one row (the content IS in this channel's pool).
+      mockDbExecute
+        .mockResolvedValueOnce(creatorChannelScopeRow)
+        .mockResolvedValueOnce([{ "?column?": 1 }]);
+
+      // db.select: 1. content existence lookup → [content row]; 2. enqueue max-position
+      //   → [{ max: 0 }]; 3. pushPrefetchBuffer unpushed → [].
+      mockDbSelect
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([
+              { id: "content-1", title: "Creator Video", duration: 120.0 },
+            ]),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ max: 0 }]),
+          }),
+        })
+        .mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        });
+
+      const insertChain = {
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: "entry-content",
+              channelId: "creator-channel-A",
+              playoutItemId: null,
+              contentId: "content-1",
+              position: 1,
+              status: "queued",
+              pushedToLiquidsoap: false,
+              createdAt: new Date("2026-01-01T00:00:00Z"),
+            },
+          ]),
+        }),
+      };
+      mockDbInsert.mockReturnValue(insertChain);
+
+      const result = await orchestrator.insertIntoQueue("creator-channel-A", {
+        contentId: "content-1",
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      // The returned entry is a content source — contentId set, playoutItemId null.
+      expect(result.value.contentId).toBe("content-1");
+      expect(result.value.playoutItemId).toBeNull();
+      expect(result.value.sourceType).toBe("content");
+      expect(result.value.title).toBe("Creator Video");
+      // The insert wrote content_id, never playout_item_id (the one-source CHECK).
+      const inserted = insertChain.values.mock.calls[0]?.[0] as {
+        contentId?: string;
+        playoutItemId?: string;
+      };
+      expect(inserted.contentId).toBe("content-1");
+      expect(inserted.playoutItemId).toBeUndefined();
+      // The pool-membership query keyed on content_id (not playout_item_id).
+      const poolSql = mockDbExecute.mock.calls[1]?.[0] as { queryChunks?: unknown };
+      expect(JSON.stringify(poolSql)).toContain("content_id");
+    });
+
+    it("rejects a contentId NOT in the creator channel's pool with ForbiddenError", async () => {
+      const orchestrator = await setupModule();
+
+      // resolvePoolScope → creator; pool-membership SELECT 1 (content_id) → empty.
+      mockDbExecute
+        .mockResolvedValueOnce(creatorChannelScopeRow)
+        .mockResolvedValueOnce([]);
+
+      // Content exists globally — only the pool gate should reject, not existence.
+      mockDbSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            { id: "foreign-content", title: "Other", duration: 10 },
+          ]),
+        }),
+      });
+
+      const insertChain = {
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([makeQueueRow()]),
+        }),
+      };
+      mockDbInsert.mockReturnValue(insertChain);
+
+      const result = await orchestrator.insertIntoQueue("creator-channel-A", {
+        contentId: "foreign-content",
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.statusCode).toBe(403);
+      // Nothing enqueued — the pool gate rejected before the insert.
+      expect(mockDbInsert).not.toHaveBeenCalled();
     });
   });
 
@@ -1014,9 +1220,12 @@ describe("playout orchestrator", () => {
         };
       });
 
+      // Candidate rows now carry their REAL source type + id (a content row's id is
+      // NOT aliased into playout_item_id — the FK-violation fix). Auto-fill must map
+      // each to the correct QueueSource column so the one-source CHECK holds.
       mockDbExecute.mockResolvedValue([
-        { playout_item_id: "item-1" },
-        { playout_item_id: "item-2" },
+        { source_type: "playout", source_id: "item-1" },
+        { source_type: "content", source_id: "content-1" },
       ]);
 
       const insertChain = {
@@ -1028,12 +1237,18 @@ describe("playout orchestrator", () => {
 
       expect(mockDbInsert).toHaveBeenCalled();
       const inserted = insertChain.values.mock.calls[0]?.[0] as Array<{
-        playoutItemId: string;
+        playoutItemId?: string;
+        contentId?: string;
         position: number;
       }>;
       expect(inserted).toHaveLength(2);
+      // Playout source → writes playout_item_id, no content_id.
       expect(inserted[0]?.playoutItemId).toBe("item-1");
-      expect(inserted[1]?.playoutItemId).toBe("item-2");
+      expect(inserted[0]?.contentId).toBeUndefined();
+      // Content source → writes content_id, no playout_item_id (the FK-fix: a
+      // content.id never lands in the playout_item_id FK column).
+      expect(inserted[1]?.contentId).toBe("content-1");
+      expect(inserted[1]?.playoutItemId).toBeUndefined();
       // Positions should be sequential starting from max+1
       expect(inserted[0]?.position).toBe(2);
       expect(inserted[1]?.position).toBe(3);
@@ -1372,10 +1587,9 @@ describe("playout orchestrator", () => {
         };
         mockDbInsert.mockReturnValue(insertChain);
 
-        const result = await orchestrator.insertIntoQueue(
-          "creator-channel-A",
-          "foreign-item",
-        );
+        const result = await orchestrator.insertIntoQueue("creator-channel-A", {
+          playoutItemId: "foreign-item",
+        });
 
         expect(result.ok).toBe(false);
         if (result.ok) return;
@@ -1433,10 +1647,9 @@ describe("playout orchestrator", () => {
         };
         mockDbInsert.mockReturnValue(insertChain);
 
-        const result = await orchestrator.insertIntoQueue(
-          "creator-channel-A",
-          "pooled-item",
-        );
+        const result = await orchestrator.insertIntoQueue("creator-channel-A", {
+          playoutItemId: "pooled-item",
+        });
 
         expect(result.ok).toBe(true);
         if (!result.ok) return;
@@ -1484,7 +1697,9 @@ describe("playout orchestrator", () => {
         };
         mockDbInsert.mockReturnValue(insertChain);
 
-        const result = await orchestrator.insertIntoQueue("admin-channel", "any-item");
+        const result = await orchestrator.insertIntoQueue("admin-channel", {
+          playoutItemId: "any-item",
+        });
 
         expect(result.ok).toBe(true);
         expect(mockDbInsert).toHaveBeenCalledTimes(1);
@@ -1565,10 +1780,9 @@ describe("playout orchestrator", () => {
         };
         mockDbInsert.mockReturnValue(insertChain);
 
-        const result = await orchestrator.insertIntoQueue(
-          "missing-channel",
-          "item-1",
-        );
+        const result = await orchestrator.insertIntoQueue("missing-channel", {
+          playoutItemId: "item-1",
+        });
 
         expect(result.ok).toBe(false);
         if (result.ok) return;

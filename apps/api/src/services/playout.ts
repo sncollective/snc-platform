@@ -224,9 +224,20 @@ export const getPlayoutStatus = async (): Promise<PlayoutStatus> => {
 
   const { nowPlaying: np, upcoming } = result.value;
 
+  // A queue entry is source-polymorphic: `playoutItemId` (library) XOR `contentId`
+  // (creator content), discriminated by `sourceType`. `itemId` is the id of the
+  // queued thing, so pick the populated source — keeps the admin-status shape's
+  // non-null queued `itemId` correct without assuming every row is a playout item.
+  const entrySourceId = (entry: {
+    sourceType: "playout" | "content";
+    playoutItemId: string | null;
+    contentId: string | null;
+  }): string | null =>
+    entry.sourceType === "playout" ? entry.playoutItemId : entry.contentId;
+
   const nowPlaying: NowPlaying | null = np
     ? {
-        itemId: np.playoutItemId,
+        itemId: entrySourceId(np),
         title: np.title,
         year: null,
         director: null,
@@ -238,11 +249,12 @@ export const getPlayoutStatus = async (): Promise<PlayoutStatus> => {
 
   return {
     nowPlaying,
-    queuedItems: upcoming.map((entry) => ({
-      itemId: entry.playoutItemId,
-      title: entry.title ?? "Untitled",
-      queuedAt: entry.createdAt,
-    })),
+    queuedItems: upcoming.flatMap((entry) => {
+      const itemId = entrySourceId(entry);
+      // The one-source CHECK guarantees a populated id; skip defensively rather than
+      // emit an empty id if a malformed row ever slips through.
+      return itemId ? [{ itemId, title: entry.title ?? "Untitled", queuedAt: entry.createdAt }] : [];
+    }),
   };
 };
 
@@ -264,7 +276,7 @@ export const queuePlayoutItem = async (
     return err(new AppError("NO_PLAYOUT_CHANNEL", "No active playout channel found", 503));
   }
 
-  const result = await orchestrator.insertIntoQueue(channelId, itemId);
+  const result = await orchestrator.insertIntoQueue(channelId, { playoutItemId: itemId });
   if (!result.ok) return result;
   return ok(undefined);
 };
