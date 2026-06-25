@@ -116,6 +116,16 @@ export const InsertQueueItemSchema = z.object({
 export type InsertQueueItem = z.infer<typeof InsertQueueItemSchema>;
 
 /**
+ * The polymorphic queue-insert source: EXACTLY ONE of a playout item
+ * (admin/library) or a content piece (creator content). Mirrors the API
+ * service-layer `QueueSource` so callers — the web client and the route
+ * validators — speak the same discriminated shape end to end.
+ */
+export type QueueInsertSource =
+  | { playoutItemId: string }
+  | { contentId: string };
+
+/**
  * Source-aware queue insert: exactly one of `playoutItemId` (admin/library) or
  * `contentId` (creator content). Mirrors the service-layer `QueueSource` so a
  * creator can queue their own pooled content and an admin can queue a library

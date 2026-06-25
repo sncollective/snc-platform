@@ -278,6 +278,50 @@ describe("playout channel routes", () => {
       );
     });
 
+    it("inserts a content source (admin can queue content rows too)", async () => {
+      const res = await ctx.app.request(
+        "/api/playout/channels/channel-1/queue/items",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentId: "content-1" }),
+        },
+      );
+
+      expect(res.status).toBe(201);
+      expect(mockInsertIntoQueue).toHaveBeenCalledWith(
+        "channel-1",
+        { contentId: "content-1" },
+        undefined,
+      );
+    });
+
+    it("returns 400 when neither source is provided", async () => {
+      const res = await ctx.app.request(
+        "/api/playout/channels/channel-1/queue/items",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ position: 1 }),
+        },
+      );
+      expect(res.status).toBe(400);
+      expect(mockInsertIntoQueue).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when both sources are provided (exactly-one-of)", async () => {
+      const res = await ctx.app.request(
+        "/api/playout/channels/channel-1/queue/items",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playoutItemId: "item-1", contentId: "content-1" }),
+        },
+      );
+      expect(res.status).toBe(400);
+      expect(mockInsertIntoQueue).not.toHaveBeenCalled();
+    });
+
     it("returns 401 when unauthenticated", async () => {
       ctx.auth.user = null;
       ctx.auth.session = null;

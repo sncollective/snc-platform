@@ -347,7 +347,27 @@ describe("creator playout routes", () => {
       );
     });
 
-    it("returns 400 for invalid body", async () => {
+    it("inserts a content source so a creator can queue their own content", async () => {
+      const app = await buildApp({});
+      const res = await app.request(
+        `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue/items`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentId: "content-1" }),
+        },
+      );
+      expect(res.status).toBe(201);
+      // The content source threads through to the orchestrator (B1: creator
+      // content is now queueable, not rejected at the validator).
+      expect(mockInsertIntoQueue).toHaveBeenCalledWith(
+        CREATOR_CHANNEL_ID,
+        { contentId: "content-1" },
+        undefined,
+      );
+    });
+
+    it("returns 400 when neither source is provided", async () => {
       const app = await buildApp({});
       const res = await app.request(
         `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue/items`,
@@ -358,6 +378,21 @@ describe("creator playout routes", () => {
         },
       );
       expect(res.status).toBe(400);
+      expect(mockInsertIntoQueue).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when both sources are provided (exactly-one-of)", async () => {
+      const app = await buildApp({});
+      const res = await app.request(
+        `/api/creator/playout/channels/${CREATOR_CHANNEL_ID}/queue/items`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playoutItemId: "item-1", contentId: "content-1" }),
+        },
+      );
+      expect(res.status).toBe(400);
+      expect(mockInsertIntoQueue).not.toHaveBeenCalled();
     });
 
     it("returns 403 when permission denied", async () => {

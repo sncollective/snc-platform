@@ -217,11 +217,21 @@ export function EditorialSurface({
   };
 
   const handlePlayNext = async (item: ChannelContent): Promise<void> => {
-    if (!item.playoutItemId) return;
+    // Both source types are queueable: a playout row carries `playoutItemId`, a
+    // creator-content row carries `contentId` (exactly one is set per the pool's
+    // CHECK). Send the matching discriminated source so the backend writes the
+    // right column. A pool row with neither set is malformed — skip it.
+    const source =
+      item.playoutItemId !== null
+        ? { playoutItemId: item.playoutItemId }
+        : item.contentId !== null
+          ? { contentId: item.contentId }
+          : null;
+    if (source === null) return;
     setActionError(null);
     setShowSearchPicker(null);
     try {
-      await insertQueueItem(channelId, item.playoutItemId, 1);
+      await insertQueueItem(channelId, source, 1);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to queue item");
     }

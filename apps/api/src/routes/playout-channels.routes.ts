@@ -3,7 +3,12 @@ import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 
-import { AssignContentSchema, RemoveContentSchema, TrackEventSchema } from "@snc/shared";
+import {
+  AssignContentSchema,
+  InsertQueueSourceSchema,
+  RemoveContentSchema,
+  TrackEventSchema,
+} from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { requireAuth } from "../middleware/require-auth.js";
@@ -272,21 +277,14 @@ playoutChannelRoutes.post(
       404: { description: "Playout item not found" },
     },
   }),
-  validator(
-    "json",
-    z.object({
-      playoutItemId: z.string(),
-      position: z.number().int().min(1).optional(),
-    }),
-  ),
+  validator("json", InsertQueueSourceSchema),
   async (c) => {
     const channelId = c.req.param("channelId");
-    const { playoutItemId, position } = c.req.valid("json");
-    const result = await orchestrator.insertIntoQueue(
-      channelId,
-      { playoutItemId },
-      position,
-    );
+    const { playoutItemId, contentId, position } = c.req.valid("json");
+    // The schema's exactly-one-of refine guarantees precisely one source is set.
+    const source =
+      playoutItemId !== undefined ? { playoutItemId } : { contentId: contentId! };
+    const result = await orchestrator.insertIntoQueue(channelId, source, position);
     if (!result.ok) {
       return c.json(
         { error: { code: result.error.code, message: result.error.message } },

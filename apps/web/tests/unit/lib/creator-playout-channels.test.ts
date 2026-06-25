@@ -34,14 +34,27 @@ describe("creator-playout-channels — base path", () => {
     );
   });
 
-  it("insertQueueItem POSTs to the creator queue/items route with the body", async () => {
+  it("insertQueueItem POSTs a playout source to the creator queue/items route", async () => {
     getMockFetch().mockResolvedValue(okJson());
-    await insertQueueItem("ch_1", "item_9", 1);
+    await insertQueueItem("ch_1", { playoutItemId: "item_9" }, 1);
     expect(getMockFetch()).toHaveBeenCalledWith(
       "/api/creator/playout/channels/ch_1/queue/items",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ playoutItemId: "item_9", position: 1 }),
+      }),
+    );
+  });
+
+  it("insertQueueItem POSTs a content source so a creator can queue their own content", async () => {
+    getMockFetch().mockResolvedValue(okJson());
+    await insertQueueItem("ch_1", { contentId: "content_9" });
+    expect(getMockFetch()).toHaveBeenCalledWith(
+      "/api/creator/playout/channels/ch_1/queue/items",
+      expect.objectContaining({
+        method: "POST",
+        // position omitted = end of queue; the source carries only contentId.
+        body: JSON.stringify({ contentId: "content_9" }),
       }),
     );
   });

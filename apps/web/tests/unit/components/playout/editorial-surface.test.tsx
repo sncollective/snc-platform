@@ -249,7 +249,7 @@ describe("EditorialSurface — Now Playing + Skip", () => {
 });
 
 describe("EditorialSurface — Queue add/remove", () => {
-  it("fires insertQueueItem when a pool item is picked via the queue add picker", async () => {
+  it("fires insertQueueItem with a playout source when a playout pool item is picked", async () => {
     const user = userEvent.setup();
     renderSurface();
 
@@ -263,7 +263,46 @@ describe("EditorialSurface — Queue add/remove", () => {
     await user.click(option);
 
     await waitFor(() =>
-      expect(mockInsertQueueItem).toHaveBeenCalledWith("ch_playout_1", "item_001", 1),
+      expect(mockInsertQueueItem).toHaveBeenCalledWith(
+        "ch_playout_1",
+        { playoutItemId: "item_001" },
+        1,
+      ),
+    );
+  });
+
+  it("fires insertQueueItem with a content source when a creator-content pool item is picked", async () => {
+    // A creator-content pool row carries contentId (playoutItemId null). Picking
+    // it must queue the content source — the whole point of B1: creator content is
+    // now playable, not silently dropped.
+    const user = userEvent.setup();
+    mockFetchChannelContent.mockResolvedValue({
+      items: [
+        makeMockChannelContent({
+          id: "cc_content_1",
+          playoutItemId: null,
+          contentId: "content_777",
+          sourceType: "content",
+          title: "Creator Short",
+        }),
+      ],
+    });
+    renderSurface();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "+ Add to Queue" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "+ Add to Queue" }));
+
+    const option = await screen.findByRole("option", { name: /Creator Short/ });
+    await user.click(option);
+
+    await waitFor(() =>
+      expect(mockInsertQueueItem).toHaveBeenCalledWith(
+        "ch_playout_1",
+        { contentId: "content_777" },
+        1,
+      ),
     );
   });
 

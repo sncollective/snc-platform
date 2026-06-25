@@ -3,6 +3,7 @@ import type {
   ChannelContent,
   PlayoutQueueEntry,
   PoolCandidate,
+  QueueInsertSource,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
@@ -18,15 +19,20 @@ export const fetchChannelQueue = (
     signal,
   );
 
-/** Insert an item into a channel's queue at an optional position. */
+/**
+ * Insert a source into a channel's queue at an optional position.
+ *
+ * @param source - Exactly one of `{ playoutItemId }` (library item) or
+ *   `{ contentId }` (creator content); the route validates the exactly-one-of.
+ */
 export const insertQueueItem = (
   channelId: string,
-  playoutItemId: string,
+  source: QueueInsertSource,
   position?: number,
 ): Promise<PlayoutQueueEntry> =>
   apiMutate<PlayoutQueueEntry>(
     `/api/playout/channels/${channelId}/queue/items`,
-    { method: "POST", body: { playoutItemId, position } },
+    { method: "POST", body: { ...source, position } },
   );
 
 /** Remove an item from a channel's queue by entry ID. */

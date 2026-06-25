@@ -5,6 +5,7 @@ import type {
   ChannelQueueStatus,
   PlayoutQueueEntry,
   PoolCandidate,
+  QueueInsertSource,
 } from "@snc/shared";
 
 import * as adminChannels from "../../lib/playout-channels.js";
@@ -41,7 +42,7 @@ export interface EditorialApi {
   readonly skipChannelTrack: (channelId: string) => Promise<void>;
   readonly insertQueueItem: (
     channelId: string,
-    playoutItemId: string,
+    source: QueueInsertSource,
     position?: number,
   ) => Promise<PlayoutQueueEntry>;
   readonly removeQueueItem: (channelId: string, entryId: string) => Promise<void>;

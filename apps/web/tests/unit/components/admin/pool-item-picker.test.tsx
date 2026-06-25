@@ -26,8 +26,19 @@ function makePlayoutItem(overrides?: Partial<ChannelContent>): ChannelContent {
 
 // ── Tests ──
 
+function makeContentItem(overrides?: Partial<ChannelContent>): ChannelContent {
+  return makePlayoutItem({
+    id: "cc_content",
+    playoutItemId: null,
+    contentId: "content_001",
+    sourceType: "content",
+    title: "Creator Short",
+    ...overrides,
+  });
+}
+
 describe("PoolItemPicker — empty state", () => {
-  it("shows 'No playout items in pool' with explanatory note when pool has no playout items", () => {
+  it("shows the empty-pool note when the pool has no items at all", () => {
     render(
       <PoolItemPicker
         poolItems={[]}
@@ -36,38 +47,29 @@ describe("PoolItemPicker — empty state", () => {
       />,
     );
 
-    expect(screen.getByText(/No playout items in pool/i)).toBeInTheDocument();
+    expect(screen.getByText(/No items in pool/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Only playout-uploaded items can be queued/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Creator content plays via the rotation pool/i),
+      screen.getByText(/Add content or playout items to the pool/i),
     ).toBeInTheDocument();
   });
 
-  it("shows 'No playout items in pool' note even when pool has content-only items", () => {
-    const contentItem = makePlayoutItem({
-      id: "cc_002",
-      playoutItemId: null,
-      contentId: "content_001",
-      sourceType: "content",
-    });
+  it("lists content-only pool items (creator content is queueable, not filtered out)", () => {
     render(
       <PoolItemPicker
-        poolItems={[contentItem]}
+        poolItems={[makeContentItem()]}
         onSelect={vi.fn()}
         onClose={vi.fn()}
       />,
     );
 
-    // queueableItems is empty (content items filtered out), so the no-pool message shows
-    expect(screen.getByText(/No playout items in pool/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Only playout-uploaded items can be queued/i),
-    ).toBeInTheDocument();
+    // B1 fix: a content row is now selectable rather than dropped.
+    expect(screen.queryByText(/No items in pool/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Creator Short")).toBeInTheDocument();
+    // ...and it carries a "Content" source badge to distinguish it from playout.
+    expect(screen.getByText("Content")).toBeInTheDocument();
   });
 
-  it("shows 'No matching items' when pool has playout items but filter finds none", () => {
+  it("shows 'No matching items' when the pool has items but the filter finds none", () => {
     render(
       <PoolItemPicker
         poolItems={[makePlayoutItem()]}
@@ -77,8 +79,8 @@ describe("PoolItemPicker — empty state", () => {
     );
 
     // The input has a filter active by default = empty string, so items show.
-    // We can check that with a playout item present, the no-pool message does NOT show.
-    expect(screen.queryByText(/No playout items in pool/i)).not.toBeInTheDocument();
+    // We can check that with an item present, the no-pool message does NOT show.
+    expect(screen.queryByText(/No items in pool/i)).not.toBeInTheDocument();
     expect(screen.getByText("Metropolis")).toBeInTheDocument();
   });
 });
@@ -150,5 +152,27 @@ describe("PoolItemPicker — listbox ARIA + keyboard navigation", () => {
       expect.objectContaining({ id: "cc_a", title: "Aurora" }),
     );
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("selects a content-source item in a mixed pool (playout + content both queueable)", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    const mixed = [
+      makePlayoutItem({ id: "cc_play", title: "Aurora" }),
+      makeContentItem({ id: "cc_cont", title: "Creator Short" }),
+    ];
+    render(<PoolItemPicker poolItems={mixed} onSelect={onSelect} onClose={vi.fn()} />);
+
+    // Both source types render as selectable options.
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+
+    await user.click(screen.getByRole("option", { name: /Creator Short/ }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "cc_cont",
+        contentId: "content_001",
+        sourceType: "content",
+      }),
+    );
   });
 });
