@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-creator-content-playable
 kind: feature
-stage: implementing
+stage: review
 tags: [streaming, playout, media-pipeline]
 parent: unified-channel-model
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Make creator-owned content queueable and playable from the Programming pool
@@ -188,5 +188,37 @@ admin can still queue playout items unchanged.
 ## Notes
 This is the remaining blocker keeping `unified-channel-model-creator-enablement` from `done` and the
 `unified-channel-model` epic from closing. B2 (read-side `listContent` scope) was fixed inline in the
-same review loop; this story carries B1 only. After implementation, the cross-model peer-review loop
+same review loop; this feature carries B1 only. After implementation, the cross-model peer-review loop
 resumes (pass 2) on the full fix set before the feature can advance.
+
+## Implementation run (2026-06-25, orchestrated — same-harness Claude implementors)
+
+All four child stories implemented and advanced to `review`, dispatched as 4 sequential single-item
+waves (the chain is tightly coupled: each story consumes the prior's exact new signatures, so they
+serialized rather than parallelized — `reads` consumes the `QueueSource` API `transitions` defines).
+
+| Story | Commit | Outcome |
+|---|---|---|
+| `schema` | `44a2ae5` | `playout_queue` widened: nullable `playout_item_id` + new `content_id` FK + `num_nonnulls=1` CHECK. drizzle-kit migration `0032`, applied clean against 170 existing rows (all satisfy CHECK); both-null/both-set rejected (PG `23514`), live-verified. |
+| `transitions` | `64b736b` | `enqueue`/`enqueueBatch` source-polymorphic via exported `QueueSource = {playoutItemId}|{contentId}`; a `sourceColumns` helper spreads exactly one column. 41 unit tests. |
+| `reads` | `6189eea` | The security-bearing story. Both `getChannelQueueStatus` reads converted `innerJoin(playoutItems)` → `leftJoin` both tables, coalescing title/duration + `sourceType`. `insertIntoQueue` source-aware with the creator pool chokepoint keying the SAME column the source sets (the load-bearing scoping point). Auto-fill FK-alias bug fixed (no more `content_id AS playout_item_id`). |
+| `ui` | `71da268` | Picker unblocked for content; `handlePlayNext` sends `{contentId}`/`{playoutItemId}`; both queue-insert routes validate `InsertQueueSourceSchema` (both-set/neither-set → 400); client `insertQueueItem` takes the discriminated source. |
+
+**Verification (independently re-run by the orchestrator, not just agent-reported):**
+- API typecheck clean; web typecheck clean.
+- API unit: **1866 passed** (115 files). Web: **1801 passed** (168 files).
+- **Cross-tenant integration: 12 passed** — all original G1–G8 + bonus STILL GREEN through the queue
+  widening, plus a new test proving creator own-content auto-fills playable `content_id` rows (no FK
+  error) and lists in queue status. The G1–G8 guarantees survived; no cross-tenant assertion was
+  weakened to pass.
+
+**Deviations:** the `reads` story additionally fixed nullable-`playoutItemId` ripples in
+`pushPrefetchBuffer` / `onTrackStarted` / `playout.ts` (required for content rows to actually push to
+Liquidsoap + track play-stats) — in-scope for "make content sources playable," noted in that story.
+
+**Still open before this feature → done:**
+- **AC#5 live fix-verify** (a creator driving their own queue with their own content in the running
+  app) — a USER step; instructions are in the `ui` story body. Closes the deferred fix-verify for the
+  whole creator-enablement arc.
+- **Cross-model peer-review loop pass 2** — Codex re-reviews the full B1 + B2 fix set before this
+  feature and its sibling `…creator-enablement` advance and the epic closes.
