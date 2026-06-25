@@ -4,16 +4,6 @@
     "commit": "",
     "pr": ""
   },
-  "extraKnownMarketplaces": {
-    "nklisch-skills": {
-      "source": { "source": "github", "repo": "nklisch/skills", "ref": "f861a56510d3e29ecf23f3d3dc9c2b02177b3f0d" },
-      "autoUpdate": false
-    }
-  },
-  "enabledPlugins": {
-    "agile-workflow@nklisch-skills": true,
-    "agentic-research@nklisch-skills": true
-  },
   "permissions": {
     "deny": [
       "Read(.env*)",
@@ -35,5 +25,7 @@
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)"
     ]
-  }
+  },
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {}
 }
