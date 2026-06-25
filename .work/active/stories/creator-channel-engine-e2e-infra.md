@@ -50,3 +50,13 @@ Needs design (`/agile-workflow:e2e-test-design` or `feature-design`) before impl
 "run a creator-channel engine in the test stack vs route via S/NC-TV carry" choice is a real fork
 with infra implications. May itself decompose into a feature. Until this lands, AC#5's playback rung
 remains a one-time manual user check.
+
+## Capability ladder ("take the human eyeball out of the loop")
+This story is **levels 1-2** (machine signals: `track-event → nowPlaying` + HLS segment growth). The
+user wants the eyeball fully removed; two follow-on backlog items build on this story's infra:
+- **Level 3** — `e2e-browser-decode-playback-proof`: drive the real Vidstack player, assert
+  `<video>` `readyState`/`currentTime` advance (browser actually decoded + played). Deterministic.
+- **Level 4** — `e2e-agent-vision-pixel-inspection`: screenshot the playing frame, a vision agent
+  inspects the pixels (the literal "agent eyeballs"; also a general visual-debugging capability).
+Both depend on this story's engine + publisher infra. Design the ladder together next session — the
+engine/publisher fork here determines what levels 3-4 can assert.
