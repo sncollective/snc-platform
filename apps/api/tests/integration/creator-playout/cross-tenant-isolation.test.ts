@@ -190,6 +190,12 @@ const seedFixtures = async (): Promise<void> => {
       title: "Creator A Video 1",
       visibility: "public",
       sourceType: "upload",
+      // processingStatus 'ready' is the REAL terminal state for processed content
+      // (the transcode/probe pipeline writes 'ready', never 'completed'). Setting it
+      // here so the suite represents production state — a fixture left at null masked
+      // the search/autoFill status-filter bug (they filtered 'completed' OR IS NULL,
+      // so a null row passed but a real 'ready' row was silently excluded).
+      processingStatus: "ready",
       // publishedAt null, deletedAt null — available for creator search
     },
     {
@@ -258,7 +264,10 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
 
     const ids = result.value.map((r) => r.id);
 
-    // Creator A's own active content must be reachable
+    // Creator A's own active content must be reachable. CONTENT_A1 is processingStatus
+    // 'ready' (the real terminal state) — this guards the search status-filter bug:
+    // the filter must accept 'ready', not only 'completed'/NULL, or a creator can never
+    // add their own processed video to their pool.
     expect(ids).toContain(CONTENT_A1_ID);
     expect(ids).toContain(CONTENT_A2_ID);
 

@@ -4,6 +4,55 @@ import type { Locator, Page, TestInfo } from "@playwright/test";
 import { contextNav, isMobile } from "./helpers/nav.js";
 
 /**
+ * Drive the Programming surface's own UI to remove `MAYA_CONTENT` from Maya's
+ * queue and content pool, leaving a clean precondition for the test that follows.
+ *
+ * Why this exists: assigning content to the pool is a *persistent* write against
+ * the shared demo DB (`channel_content`), and the content search deliberately
+ * hides already-pooled items (`NOT IN (pool)`), so the first case that assigns
+ * Studio Tour would make every later case's `search → click MAYA_CONTENT` find
+ * nothing. The mutation also survives across runs and across the two Playwright
+ * projects (no per-project reseed). Resetting via the UI before each case — rather
+ * than a DB/API reach-around — keeps the suite's black-box boundary intact and
+ * makes each case start from the same known state regardless of run order.
+ *
+ * Tolerant by design: removes only what's present (queue first — a queue entry
+ * pins its pool item — then pool), and is a no-op on an already-clean surface.
+ */
+async function resetMayaProgramming(page: Page): Promise<void> {
+  await page.goto("/creators/maya-chen/manage/programming");
+
+  // The pool/queue rows hydrate *after* the headings paint, fed by a client-side
+  // fetch. Checking a remove button's count too early reads 0 (row not yet
+  // rendered) and skips the drain, leaving stale state. The pool heading gains its
+  // ` (N items)` count only once the queue-status fetch resolves, so gate on that
+  // parenthetical — it's the deterministic "pool data loaded" signal.
+  await expect(
+    page.getByRole("heading", { name: /Content Pool \(\d+ items\)/ }),
+  ).toBeVisible();
+
+  // The pool/queue dual-render a table and a card list (both in the DOM, one
+  // hidden by a CSS container query), so target only the *visible* copy —
+  // counting both would never reach 0. Queue entries reference a pool item, so
+  // clear the queue before the pool.
+  const queueRemove = page
+    .getByRole("button", { name: `Remove ${MAYA_CONTENT} from queue` })
+    .filter({ visible: true });
+  while ((await queueRemove.count()) > 0) {
+    await queueRemove.first().click();
+    await expect(queueRemove).toHaveCount(0);
+  }
+
+  const poolRemove = page
+    .getByRole("button", { name: `Remove ${MAYA_CONTENT} from pool` })
+    .filter({ visible: true });
+  while ((await poolRemove.count()) > 0) {
+    await poolRemove.first().click();
+    await expect(poolRemove).toHaveCount(0);
+  }
+}
+
+/**
  * Creator Programming surface — golden path (AC#5 regression guard).
  *
  * Maya (auth/stakeholder.json) owns creator `maya-chen` and has `manageStreaming`.
@@ -14,21 +63,11 @@ import { contextNav, isMobile } from "./helpers/nav.js";
  * All assertions are UI-only — the suite's committed black-box boundary. No
  * `page.request` / API probes from a test body (DB persistence is covered by the
  * integration suite). Selectors are roles / labels / text, resilient to CSS churn.
- *
- * Three cases (assign-own-content, queueable-badge, play-next) are skipped against a
- * parked product bug — `creator-content-search-excludes-ready-status`: the creator
- * "+ Add Content" search filters content on `processing_status = 'completed'`, but
- * content's terminal state is `'ready'` ('completed' is never written to content), so
- * a creator's own processed video never reaches the pool through search. Re-enable the
- * three skips once that fix lands. The surface-renders, nav, and cross-tenant-isolation
- * cases are unaffected and stay green.
  */
 
 // Maya's own video content (seed-demo.ts) and a cross-tenant creator's content.
 const MAYA_CONTENT = "Studio Tour 2026";
 const JORDAN_CONTENT = "Open Mic Night Highlights";
-
-const POOL_BUG = "creator-content-search-excludes-ready-status";
 
 /**
  * The Content Pool view present at the current viewport.
@@ -104,11 +143,49 @@ test.describe("Creator Programming surface (golden path)", () => {
     ).toBeHidden();
   });
 
-  test("assigns own content to the pool", async ({ page }, testInfo) => {
+  test("does not offer another creator's content in search", async ({ page }) => {
+    await gotoProgramming(page);
+
+    const search = await openPicker(page, "+ Add Content", "Search content");
+    await search.fill("Open Mic");
+
+    // Jordan's "Open Mic Night Highlights" must not surface in Maya's search — the
+    // creator channel scopes the search to her own content + platform library.
+    const results = page.getByRole("listbox", { name: "Content search results" });
+    await expect(results.getByText("No matching content")).toBeVisible();
+    await expect(results.getByText(JORDAN_CONTENT)).toHaveCount(0);
+  });
+});
+
+/**
+ * Pool-mutating golden cases — assigning Studio Tour to Maya's pool is a
+ * *persistent* write against the shared demo DB. These run **serially** (each
+ * case's reset→assign→assert sequence must not interleave with a sibling's
+ * mutation) and on **chromium only** (the two Playwright projects run
+ * concurrently against one shared DB with one seed-provisioned creator, so a
+ * cross-project run would race regardless of within-project serialization).
+ *
+ * Scoping to one project loses nothing: the assign/queue path is backend-scoped
+ * and viewport-independent. The viewport-sensitive pool render (table vs. card
+ * dual-render) is exercised by the read-only "renders the real editorial
+ * surface" case above, which still runs on both projects.
+ */
+test.describe("Creator Programming surface (pool mutations)", () => {
+  test.use({ storageState: "auth/stakeholder.json" });
+  test.describe.configure({ mode: "serial" });
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    // The shared-DB collision is between concurrent projects; pin these cases to
+    // chromium so only one project ever mutates Maya's pool.
     test.skip(
-      true,
-      `${POOL_BUG}: creator "+ Add Content" search excludes 'ready'-status content, so own content never reaches the pool`,
+      testInfo.project.name !== "chromium",
+      "Pool-mutating cases run on chromium only (shared-DB isolation).",
     );
+    // Reset to an empty pool/queue so run order and prior runs start clean.
+    await resetMayaProgramming(page);
+  });
+
+  test("assigns own content to the pool", async ({ page }, testInfo) => {
     await gotoProgramming(page);
 
     const search = await openPicker(page, "+ Add Content", "Search content");
@@ -125,10 +202,6 @@ test.describe("Creator Programming surface (golden path)", () => {
   });
 
   test('pooled content is queueable with a "Content" badge', async ({ page }) => {
-    test.skip(
-      true,
-      `${POOL_BUG}: own content can't reach the pool via search, so the queue picker can't list it`,
-    );
     await gotoProgramming(page);
 
     const search = await openPicker(page, "+ Add Content", "Search content");
@@ -147,10 +220,6 @@ test.describe("Creator Programming surface (golden path)", () => {
   });
 
   test("play-next queues the item with no error", async ({ page }) => {
-    test.skip(
-      true,
-      `${POOL_BUG}: own content can't reach the pool via search, so there is nothing to play-next`,
-    );
     await gotoProgramming(page);
 
     const search = await openPicker(page, "+ Add Content", "Search content");
@@ -167,18 +236,5 @@ test.describe("Creator Programming surface (golden path)", () => {
     const queue = page.getByRole("list", { name: "Upcoming queue" });
     await expect(queue).toBeVisible();
     await expect(queue.getByText(MAYA_CONTENT)).toBeVisible();
-  });
-
-  test("does not offer another creator's content in search", async ({ page }) => {
-    await gotoProgramming(page);
-
-    const search = await openPicker(page, "+ Add Content", "Search content");
-    await search.fill("Open Mic");
-
-    // Jordan's "Open Mic Night Highlights" must not surface in Maya's search — the
-    // creator channel scopes the search to her own content + platform library.
-    const results = page.getByRole("listbox", { name: "Content search results" });
-    await expect(results.getByText("No matching content")).toBeVisible();
-    await expect(results.getByText(JORDAN_CONTENT)).toHaveCount(0);
   });
 });

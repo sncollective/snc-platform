@@ -906,7 +906,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
         JOIN content c ON c.id = cc.content_id
         WHERE cc.channel_id = ${channelId}
           AND cc.content_id IS NOT NULL
-          AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
+          AND (c.processing_status = 'ready' OR c.processing_status IS NULL)
           AND c.type = 'video'
           ${autoFillContentOwnershipFilter}
           AND cc.content_id NOT IN (
@@ -1064,7 +1064,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       LEFT JOIN creator_profiles cp ON cp.id = c.creator_id
       WHERE c.title ILIKE ${searchPattern}
         AND c.type = 'video'
-        AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
+        AND (c.processing_status = 'ready' OR c.processing_status IS NULL)
         ${contentOwnershipFilter}
         AND c.id NOT IN (
           SELECT content_id FROM channel_content
