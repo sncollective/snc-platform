@@ -38,49 +38,70 @@ Test cases (all UI assertions — NO API probes from the test body; the suite's 
 5. Cross-tenant isolation: searching `+ Add Content` for Jordan's "Open Mic" returns no results.
 
 ## Acceptance
-- [x] All cases green or honestly skipped against the seeded service stack — 3/5 cases green; 2
-      net cases (assign / queueable-badge / play-next — 3 named cases, see below) skipped against a
-      parked product bug, not gamed.
+- [x] All five cases green against the seeded service stack (the 3 pool-mutating cases on chromium;
+      the 3 surface/read cases on both projects). No skips against product bugs — the blocking bug
+      was drained with a full fix (see below), not gamed.
 - [x] Pure-UI assertions; no `request`/API calls from the test body (matches the existing specs).
 - [x] Run: `bun run --filter @snc/e2e test -- creator-programming.spec.ts` (first run on a fresh
       container needs `bash scripts/dev/install-e2e-browsers.sh`).
 
 ## Implementation notes
-- **Files changed**: `apps/e2e/tests/creator-programming.spec.ts` (new — the only production file).
-- **Result**: green. `bun run --filter @snc/e2e test -- creator-programming.spec.ts` → 7 passed
-  (6 spec cases across chromium + mobile + 1 auth setup), 6 skipped (the 3 blocked cases × 2
-  projects), exit 0. `tsc --noEmit -p apps/e2e/tsconfig.json` clean. Stable across 3 consecutive
-  `--no-deps` reruns (no flake). Browsers installed via `scripts/dev/install-e2e-browsers.sh`.
-- **Cases green (3)**: (1) Programming tab renders the real surface — Now Playing / Queue / Content
-  Pool headings present, "Set up streaming…" affordance absent; (1b) the Programming nav link from
-  the creator-manage context nav reaches the surface (added as an extra guard); (5) cross-tenant
-  isolation — searching Jordan's "Open Mic" in Maya's "+ Add Content" returns "No matching content".
-- **Cases skipped (3) — `test.skip` linked to backlog `creator-content-search-excludes-ready-status`**:
-  (2) assign own content to pool, (3) queueable with a "Content" badge, (4) play-next into the
-  Upcoming queue. All three depend on Maya's `Studio Tour 2026` reaching the pool through the
-  "+ Add Content" search, which is blocked by the product bug below. They are written in full (so
-  they re-activate by deleting one `test.skip(true, …)` line each once the fix lands), not stubbed.
+- **Files changed**: `apps/e2e/tests/creator-programming.spec.ts` (new — the spec). The blocking
+  product bug fix landed alongside in `apps/api/src/services/playout-orchestrator.ts` +
+  `apps/api/tests/integration/creator-playout/cross-tenant-isolation.test.ts` (commit 0c24d10).
+- **Result**: green. `bun run --filter @snc/e2e test -- creator-programming.spec.ts` → 10 passed,
+  3 skipped, exit 0 (the 3 skips are the pool-mutating cases on the mobile project — see isolation
+  design below). Full-suite run green (`122 passed, 7 skipped`). `tsc --noEmit` on `apps/e2e` clean.
+  Idempotent across consecutive runs (verified twice from a deliberately dirty pool — the reset
+  drains it each time).
+- **All five cases green**: (1) Programming nav link reaches the provisioned surface; (2) renders the
+  real editorial surface (Now Playing / Queue / Content Pool headings; "Set up streaming…" absent);
+  (3) assigns own content to the pool; (4) pooled content is queueable with a "Content" badge;
+  (5) play-next queues the item; (6) cross-tenant isolation — Jordan's "Open Mic" returns "No
+  matching content" in Maya's search.
 
-### Product bug parked (blocks cases 2/3/4) — `creator-content-search-excludes-ready-status`
-The creator "+ Add Content" search (`searchAvailableContent`, `apps/api/src/services/playout-orchestrator.ts:1067`)
-and the autoFill candidate query (same file, ~line 909) filter creator content with
-`c.processing_status = 'completed' OR c.processing_status IS NULL`. But content's `ProcessingStatus`
-vocabulary is `["uploaded","processing","ready","failed"]` (`packages/shared/src/content.ts:12`) —
-the terminal "done" state is **`'ready'`**, and `'completed'` is never written to the content table
-(it belongs to `PROCESSING_JOB_STATUSES`, a different enum). The transcode/probe pipeline sets
-content to `'ready'` (`transcode.ts:87`, `probe-codec.ts:86`). Verified in the demo DB:
-`Studio Tour 2026` is `processing_status = 'ready'` and is excluded from Maya's search — the pool
-stays empty. Net effect: a creator can never add their own processed video to their pool via search.
-Fix: accept `'ready'` at both call sites. Parked, not fixed here (out of this item's scope).
+### Blocking product bug — DRAINED (`creator-content-search-excludes-ready-status`, fixed in 0c24d10)
+The e2e caught a real enum-mismatch bug on first run: the creator "+ Add Content" search
+(`searchAvailableContent`, ~line 1067) and the autoFill candidate query (~line 909) filtered creator
+content on `processing_status = 'completed'`, but content's terminal "done" state is **`'ready'`**
+(`PROCESSING_STATUSES`); `'completed'` belongs to `PROCESSING_JOB_STATUSES`. So a creator's own ready
+video never surfaced in search — the pool stayed empty. Per test integrity, the bug was parked when
+caught, then immediately drained as a single stride: both call sites now match `'ready' OR IS NULL`.
+The fix was invisible to typecheck (both columns are plain strings), unit tests (mocked; fixtures
+chose passing values), and integration (fixtures left status null → hit the `IS NULL` arm) — only
+the e2e exercising real seeded `ready` content surfaced it. The integration fixture
+(`CONTENT_A1_ID`) now sets `processingStatus: "ready"` so the suite exercises the same arm the
+product hits.
+
+### Shared-state isolation design (the 3 pool-mutating cases)
+Assigning content to the pool is a **persistent** write against the shared demo DB (`channel_content`),
+and the content search deliberately hides already-pooled items (`NOT IN (pool)`), so the three cases
+that search→assign Studio Tour collide: the first to assign it makes the rest find "No matching
+content". The mutation also persists across runs and across the two Playwright projects
+(`fullyParallel`, one shared DB, Maya the only seed-provisioned creator). Resolution:
+- The 3 pool-mutating cases live in a separate `describe` configured `mode: "serial"` and **skip on
+  every project except chromium** (a `beforeEach` `test.skip` guard). The assign/queue path is
+  backend-scoped and viewport-independent, so running it on one project loses no coverage; the
+  viewport-sensitive pool render (table vs. card dual-render) stays dual-project via the read-only
+  "renders the real editorial surface" case.
+- A `beforeEach` `resetMayaProgramming(page)` drives the surface's own UI to drain Maya's queue then
+  pool (queue first — a queue entry pins its pool item), so each case starts clean regardless of run
+  order or prior runs. Pure-UI, no API reach-around — preserves the suite's black-box boundary.
+- The reset gates on the pool heading's ` (N items)` count before counting remove buttons. That
+  parenthetical only renders once the queue-status fetch resolves, so it's the deterministic
+  "pool data loaded" signal — counting remove buttons before the rows hydrate would read 0 and skip
+  the drain. Remove buttons are scoped to the visible dual-render copy (`.filter({ visible: true })`).
 
 ### Selector drift / discoveries (fixed in-session as test debt)
-- **Content Pool heading** renders `Content Pool (N items)`, not bare `Content Pool`. `getByRole`'s
-  string `name` is substring-by-default, so `{ name: "Content Pool" }` still matches — but worth
-  recording. "Now Playing" and "Queue" headings are exact.
+- **Content Pool heading** renders `Content Pool (N items)` once loaded, bare `Content Pool` before
+  the queue-status fetch resolves. `getByRole` `name` is substring-by-default, so `{ name: "Content
+  Pool" }` matches either — but the ` (N items)` form is the load-bearing "loaded" signal the reset
+  gates on (above). "Now Playing" and "Queue" headings are exact.
 - **ResponsiveTable dual-renders** the pool as both a `<table>` and a card `<ul>`, *both* carrying
   `aria-label="Content pool"` and both always in the DOM (CSS container query toggles visibility).
-  Row assertions are scoped to the visible view per viewport via the `contentPool()` helper
-  (`table` on desktop, `list` on mobile) to avoid strict-mode double matches.
+  Row assertions scope to the visible view per viewport via the `contentPool()` helper (`table` on
+  desktop, `list` on mobile); the reset scopes remove buttons via `.filter({ visible: true })` — both
+  avoid strict-mode double matches.
 - **Hydration race on the pickers**: the surface is SSR'd then hydrated; the *first* click on
   "+ Add Content" / "+ Add to Queue" after the page paints is swallowed before React attaches the
   toggle handler (reproduced via keyboard activation too — not a pointer/click-outside artifact).
