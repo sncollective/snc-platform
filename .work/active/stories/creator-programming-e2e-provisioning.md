@@ -1,7 +1,7 @@
 ---
 id: creator-programming-e2e-provisioning
 kind: story
-stage: implementing
+stage: review
 tags: [testing, streaming, playout]
 parent: creator-programming-e2e
 depends_on: []
@@ -48,3 +48,54 @@ unreliable.
 ## Test integrity
 Park genuine product bugs (don't hide); fix drifted selectors/fixtures in-session; never game an
 assertion green. A red spec documenting a real break beats a green one that lies.
+
+## Implementation notes
+
+- **Files changed:**
+  - `apps/e2e/tests/creator-programming-provisioning.spec.ts` (new) — the spec.
+  - `apps/e2e/global.setup.ts` — added one extra login → `auth/creator-unprovisioned.json`.
+  - `apps/e2e/fixtures/test-users.ts` — added `USERS.jordan` (Jordan Ellis, `jordan-ellis`,
+    `jordan@snc.demo`, password123, owner of his own profile, seed-unprovisioned).
+- **New auth fixture:** `auth/creator-unprovisioned.json` (Jordan). Auth states are gitignored
+  (`.gitignore`: `apps/e2e/auth/*.json`), so the JSON is not committed — `global.setup.ts` mints
+  it. The existing setup reuses a single `request` context across logins and snapshots after each;
+  appending Jordan as the 4th/last login captures his session cookie into the new state, matching
+  the established pattern.
+- **Cases covered (both green, chromium + mobile):**
+  1. **Unprovisioned → setup affordance** — navigate to `jordan-ellis`'s `/manage/programming`,
+     assert `"Set up streaming to start programming"` + the `"Go to Streaming"` link are visible,
+     and the editorial-surface headings (`Now Playing` / `Queue` / `Content Pool`) have count 0.
+  2. **Create a stream key provisions the channel** — drive the Streaming-tab key-create UI, assert
+     the success status banner, return to Programming via context nav, assert the editorial surface
+     now renders (all three headings visible) and the affordance is gone.
+- **Did NOT take the fallback.** Kept the real provisioning path (creating a stream key through the
+  Streaming-tab UI, which lazy-provisions via `createStreamKey` → `ensureCreatorChannel`,
+  `apps/api/src/services/stream-keys.ts:89`). The Streaming-tab flow proved drivable
+  deterministically once two timing/isolation issues were handled (below).
+- **State-isolation design (grounded, deviation from the one-creator sketch in Scope):** provisioning
+  is a persistent one-way change against the shared seed DB, and both Playwright projects
+  (chromium + mobile) hit the same backend with no per-project reseed. So the spec splits the two
+  unprovisioned creators the seed leaves open:
+  - Case 1 reads **Jordan** and never mutates him → the "unprovisioned" assertion holds in both
+    projects regardless of run order.
+  - Case 2 provisions **Sam** (`sam-okafor`) — a creator no test asserts unprovisioned — so mutating
+    him in both projects / on re-runs is harmless. Case 2 is tolerant of Sam already being
+    provisioned (asserts the real affordance→surface transition on a fresh DB; asserts the
+    surface-renders invariant unconditionally). Case 2 authenticates as **admin** (`auth/admin.json`),
+    which bypasses the creator-membership gate and gets owner-level permissions, so it can drive
+    Sam's Streaming + Programming surface without minting a third per-creator auth state.
+- **Hydration-timing guard (test debt, not a product bug):** reaching the Streaming tab via the
+  client-side affordance `<Link>` lands on a form that remounts once its `loadKeys` effect settles,
+  which can wipe a value filled too early (the create button stays disabled because React's
+  controlled `newKeyName` never sees the value). Wrapped the fill in a Playwright web-first
+  `expect(async () => { fill; toHaveValue; toBeEnabled }).toPass()` retry so it re-fills until the
+  value sticks and the button enables. A real user typing after the page settles sees the button
+  enable normally — confirmed in isolation.
+- **Assertion layer:** pure-UI only, no `page.request` / API probes from the test body (matches the
+  suite's black-box boundary; `request` lives only in `global.setup.ts`).
+- **Adjacent issues parked:** none.
+- **Verification:** `bun run --filter @snc/e2e test -- creator-programming-provisioning.spec.ts`
+  → 5 passed (setup + case 1 ×2 projects + case 2 ×2 projects), exit 0. Typecheck clean
+  (`tsc --noEmit` on `apps/e2e`). Note: the auth sign-in endpoint rate-limits under rapid repeated
+  setup runs (429 on `global.setup.ts`) — a setup-harness flake from iterating, unrelated to the
+  spec; the clean run after the limiter cleared is green.

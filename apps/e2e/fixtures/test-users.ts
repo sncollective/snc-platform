@@ -26,6 +26,19 @@ export const USERS = {
     email: "pat@snc.demo",
     password: "password123",
   },
+  /**
+   * Stakeholder + creator (Jordan Ellis), owner of his own profile but with NO
+   * provisioned channel — the seed deliberately leaves Jordan unprovisioned so
+   * the lazy channel-provisioning path stays exercisable. Used by the
+   * provisioning e2e via `auth/creator-unprovisioned.json`.
+   */
+  jordan: {
+    id: "00000000-0000-4000-a000-000000000003",
+    name: "Jordan Ellis",
+    email: "jordan@snc.demo",
+    password: "password123",
+    handle: "jordan-ellis",
+  },
 } as const;
 
 export type TestUser = (typeof USERS)[keyof typeof USERS];

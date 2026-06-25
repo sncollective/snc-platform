@@ -11,6 +11,9 @@ setup("create auth storage states", async ({ request, baseURL }) => {
     { user: USERS.alex, file: "auth/admin.json" },
     { user: USERS.maya, file: "auth/stakeholder.json" },
     { user: USERS.pat, file: "auth/subscriber.json" },
+    // Jordan owns his creator profile but has no provisioned channel — exercises
+    // the lazy channel-provisioning path (creator-programming-provisioning.spec.ts).
+    { user: USERS.jordan, file: "auth/creator-unprovisioned.json" },
   ];
 
   // Origin must match the configured CORS_ORIGIN on the API. In CI that's
