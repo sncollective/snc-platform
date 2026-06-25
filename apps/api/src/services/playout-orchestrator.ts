@@ -849,16 +849,25 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
     const needed = AUTO_FILL_BATCH - depth;
 
-    // Select from content pool (both playout items and creator content), excluding items already in queue.
-    // Each arm carries its REAL source type + id — a content row's id stays in the
-    // content column, never aliased into `playout_item_id` (that alias jammed a
-    // content.id into the playout-item FK and threw on insert; this is the fix).
-    // The exclusion subqueries are per-column so a content row is deduped against
-    // content_id and a playout row against playout_item_id.
-    // ORDER BY: last_played_at ASC NULLS FIRST, play_count ASC, random()
-    // Note: db.execute() with postgres-js returns rows directly as an array (not { rows: [...] })
-    const candidateRows = (await db.execute(sql`
-      SELECT * FROM (
+    // Resolve the channel's pool scope (fails closed on a missing channel) so the
+    // candidate selection is tenant-safe at READ time — not trusting that every
+    // channel_content write was perfectly scoped. This mirrors the listContent /
+    // searchAvailableContent read-side guard: a directly-polluted, stale, or
+    // soft-deleted row must not be auto-queued for a creator channel.
+    const autoFillScopeResult = await resolvePoolScope(channelId);
+    if (!autoFillScopeResult.ok) {
+      // Missing channel — nothing to fill; never fall through to an unscoped query.
+      logger.debug({ channelId }, "Auto-fill: channel not found, skipping");
+      return;
+    }
+    const autoFillScope = autoFillScopeResult.value;
+    const autoFillCreatorScoped = "creatorId" in autoFillScope;
+
+    // Playout-item arm — platform-shared media. Suppressed for creator channels
+    // (creator pools are content-only), exactly as searchAvailableContent does.
+    const autoFillPlayoutArm = autoFillCreatorScoped
+      ? sql``
+      : sql`
         SELECT cc.id, 'playout' AS source_type, cc.playout_item_id AS source_id, cc.last_played_at, cc.play_count
         FROM channel_content cc
         JOIN playout_items pi ON pi.id = cc.playout_item_id
@@ -873,7 +882,25 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
           )
 
         UNION ALL
+`;
 
+    // Content arm — for creator channels, constrained to the channel's own creator
+    // and non-deleted rows (read-side tenant guard; matches listContent's filter).
+    const autoFillContentOwnershipFilter = autoFillCreatorScoped
+      ? sql`AND c.creator_id = ${autoFillScope.creatorId}
+          AND c.deleted_at IS NULL`
+      : sql``;
+
+    // Select from content pool, excluding items already in queue.
+    // Each arm carries its REAL source type + id — a content row's id stays in the
+    // content column, never aliased into `playout_item_id` (that alias jammed a
+    // content.id into the playout-item FK and threw on insert; this is the fix).
+    // The exclusion subqueries are per-column so a content row is deduped against
+    // content_id and a playout row against playout_item_id.
+    // ORDER BY: last_played_at ASC NULLS FIRST, play_count ASC, random()
+    // Note: db.execute() with postgres-js returns rows directly as an array (not { rows: [...] })
+    const candidateRows = (await db.execute(sql`
+      SELECT * FROM (${autoFillPlayoutArm}
         SELECT cc.id, 'content' AS source_type, cc.content_id AS source_id, cc.last_played_at, cc.play_count
         FROM channel_content cc
         JOIN content c ON c.id = cc.content_id
@@ -881,6 +908,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
           AND cc.content_id IS NOT NULL
           AND (c.processing_status = 'completed' OR c.processing_status IS NULL)
           AND c.type = 'video'
+          ${autoFillContentOwnershipFilter}
           AND cc.content_id NOT IN (
             SELECT content_id FROM playout_queue
             WHERE channel_id = ${channelId}

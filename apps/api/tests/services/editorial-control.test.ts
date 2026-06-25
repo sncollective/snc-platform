@@ -5,10 +5,12 @@ import { ok, err, AppError } from "@snc/shared";
 
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
+const mockExecute = vi.fn();
 
 const mockDb = {
   select: mockSelect,
   update: mockUpdate,
+  execute: mockExecute,
 };
 
 // ── editorial-config mock functions ──
@@ -486,30 +488,31 @@ describe("editorial-control service", () => {
       expect(uri).toBe("s3://test-bucket/renditions/item-has-uri/720p.mp4");
     });
 
-    it("works with creator scope descriptor (scope enforced at seed time)", async () => {
-      // Confirm the function works with a { creatorId } scope — scope is channelId-bounded at runtime
-      let selectCallCount = 0;
-      mockSelect.mockImplementation(() => {
-        selectCallCount++;
-        if (selectCallCount === 1) {
-          const limitMock = vi.fn().mockResolvedValue([makeChannelContentRow()]);
-          const orderByMock = vi.fn().mockReturnValue({ limit: limitMock });
-          const whereMock = vi.fn().mockReturnValue({ orderBy: orderByMock });
-          const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-          return { from: fromMock };
-        } else {
-          const whereMock = vi.fn().mockResolvedValue([makePlayoutItem()]);
-          const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-          return { from: fromMock };
-        }
-      });
+    it("creator scope queries via the scoped raw SQL path and resolves a content URI", async () => {
+      // Creator scope is enforced at READ time (not "at seed time") — the channel_content
+      // LRP query runs through db.execute() with a content JOIN constrained to the channel's
+      // creator + non-deleted rows (the playback-path tenant guard, B3 fix). The content-source
+      // row's URI resolves from content.transcodedMediaKey ?? mediaKey.
+      mockExecute.mockResolvedValue([
+        { id: "cc-1", playoutItemId: null, contentId: "content-1", lastPlayedAt: null },
+      ]);
+      // The content-table URI lookup (db.select on content) returns the playable key.
+      const whereMock = vi
+        .fn()
+        .mockResolvedValue([{ mediaKey: "media/own.mp4", transcodedMediaKey: null }]);
+      const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+      mockSelect.mockReturnValue({ from: fromMock });
 
-      wireUpdateChain();
+      const { updateMock } = wireUpdateChain();
 
       const { resolvePoolNextUri } = await setupModule();
       const uri = await resolvePoolNextUri("ch-1", { creatorId: "creator-1" });
 
-      expect(uri).toBe("s3://test-bucket/renditions/item-1/1080p.mp4");
+      // Resolved the OWN content URI, and the scoped raw query path (not the plain
+      // channelContent select) was the one that ran for creator scope.
+      expect(uri).toBe("s3://test-bucket/media/own.mp4");
+      expect(mockExecute).toHaveBeenCalledTimes(1);
+      expect(updateMock).toHaveBeenCalledTimes(1); // LRP rotation side effect still fires
     });
   });
 });

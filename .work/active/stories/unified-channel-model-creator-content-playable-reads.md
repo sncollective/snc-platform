@@ -145,3 +145,57 @@ stats). All within this story's file scope intent (make content sources playable
 ### Follow-up risk
 None blocking. Story 4 (UI) wires the routes to pass `{ contentId }` for content rows
 and drops the picker's playout-only filter; `InsertQueueSourceSchema` is ready for it.
+
+## Review findings (2026-06-25, cross-model pass 2) — BOUNCED to implementing
+
+Codex pass-2 (job 20260625T044622Z) found a **real cross-tenant blocker this story missed**, on the
+READ/PLAYBACK paths (the write/manual chokepoint in `insertIntoQueue` was confirmed SAFE). Verified
+against the code — accepting. This is the same defense-in-depth gap as B2/G8 (the read must not trust
+that writes were perfectly scoped), but on auto-fill + playback instead of `listContent`:
+
+- **B3a — `autoFill` candidate query is not creator-scoped** (`playout-orchestrator.ts` ~860). The
+  content arm joins `content` and filters only on `cc.channel_id` + processing/type — NO
+  `c.creator_id = scope.creatorId` and NO `c.deleted_at IS NULL`. A foreign/platform/soft-deleted
+  row sitting in this channel's `channel_content` (the exact G8 pollution scenario) gets auto-queued.
+  This story fixed the auto-fill FK bug (functional) but never added the tenant filter.
+- **B3b — `resolvePoolNextUri` explicitly discards scope** (`editorial-control.ts:318-342`). It takes
+  a `scope` param and `void scope;`s it (comment: "enforcement is at seed time" — the same calcified
+  assumption B2 disproved), then selects ALL `channel_content` rows for the channel and resolves
+  their URIs **for playback**. A polluted/foreign/deleted row would be served to viewers. This is the
+  most serious of the three — it's the actual Liquidsoap pool-next playback path, not a list/queue.
+
+**Fix (symmetric with B2/G8):** for creator scope, both `autoFill` and `resolvePoolNextUri` must
+suppress the playout branch and constrain content to `creator_id = scope.creatorId AND
+deleted_at IS NULL` (plus the existing playable constraints). `resolvePoolNextUri` already RECEIVES
+the scope — wire it in instead of voiding it. Add integration coverage: a directly-polluted
+`channel_content` row (foreign + deleted) is NOT auto-queued and NOT returned by pool-next — the
+auto-fill/playback analogue of G8.
+
+Loop status: cross-model pass 2 of ≤5. After the fix lands + re-verifies (incl. the new
+direct-pollution tests via the forwarder), re-dispatch Codex for pass 3.
+
+### B3 fix landed (2026-06-25) — re-advanced to review
+Both read/playback paths now apply the creator scope at READ time (symmetric with B2/G8/listContent):
+
+- **B3a — `autoFill`** (`playout-orchestrator.ts`): now calls `resolvePoolScope` first (fails closed
+  on a missing channel) and, for creator scope, suppresses the playout arm entirely and constrains
+  the content arm to `c.creator_id = scope.creatorId AND c.deleted_at IS NULL`. A polluted/foreign/
+  deleted `channel_content` row is no longer an auto-fill candidate.
+- **B3b — `resolvePoolNextUri`** (`editorial-control.ts`): the `void scope;` is gone. Creator scope
+  now runs a scoped raw query joining `content` with `creator_id = scope.creatorId AND
+  deleted_at IS NULL` (content-only, playout rows suppressed); platform/admin scope keeps the
+  prior unconstrained channel-bounded select. The playback URI path can no longer serve a foreign/
+  deleted row to viewers.
+
+**Verification:**
+- `bun run --filter @snc/api typecheck` clean; full unit suite **1866 passed**.
+- Rewrote the `editorial-control` unit test `"works with creator scope descriptor (scope enforced at
+  seed time)"` → `"creator scope queries via the scoped raw SQL path and resolves a content URI"`.
+  The old test asserted the now-disproven "scope enforced at seed time" contract against a plain
+  `channelContent` select; the new test asserts the scoped `db.execute` path runs and resolves the
+  own-content URI. (Bad-test repair, not gaming — the contract changed for a security reason.)
+- **New integration test G9** in `cross-tenant-isolation.test.ts`: directly pollutes `channel_content`
+  with a foreign creator's content + a soft-deleted own row (both given real `mediaKey`s so they
+  WOULD resolve a URI if scope were missing — the test has teeth), then asserts neither `autoFill`
+  nor `resolvePoolNextUri` surfaces them, while A's own active content IS auto-queued + served.
+  Cross-tenant suite now **13 passed**.

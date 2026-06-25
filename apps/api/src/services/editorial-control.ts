@@ -319,27 +319,46 @@ export const resolvePoolNextUri = async (
   channelId: string,
   scope: PoolScope,
 ): Promise<string | null> => {
-  // Query channel_content for this channel in LRP order (lastPlayedAt ASC, nulls first).
-  // The scope (creator vs all-creators) is enforced at content-assignment time when pool
-  // entries are seeded into channel_content. At query time the scope is channelId-bounded:
-  // each channel's channel_content rows already reflect its ownership scope. We fetch a
-  // small batch (20) so URI resolution failures don't stall the pool — we skip unresolvable
-  // entries and return the first one that yields a URI.
-  //
-  // Ownership scope annotation (unused at query time — enforcement is at seed time):
-  void scope;
+  // Query channel_content for this channel in LRP order (lastPlayedAt ASC, nulls first),
+  // applying the ownership scope at READ time — NOT trusting that every channel_content
+  // write was perfectly scoped. This is the playback-path analogue of the listContent /
+  // autoFill read-side tenant guard: a directly-polluted, foreign, or soft-deleted row must
+  // never be served to viewers via the pool-next URI. We fetch a small batch (20) so URI
+  // resolution failures don't stall the pool — we skip unresolvable entries and return the
+  // first one that yields a URI.
+  const creatorScoped = "creatorId" in scope;
 
-  const rows = await db
-    .select({
-      id: channelContent.id,
-      playoutItemId: channelContent.playoutItemId,
-      contentId: channelContent.contentId,
-      lastPlayedAt: channelContent.lastPlayedAt,
-    })
-    .from(channelContent)
-    .where(eq(channelContent.channelId, channelId))
-    .orderBy(asc(channelContent.lastPlayedAt))
-    .limit(20);
+  // For a creator channel the pool is content-only and own-creator-only: suppress playout
+  // rows entirely and require the joined content row to belong to this creator and be live.
+  // For a platform/admin channel the pool is channelId-bounded and unconstrained (unchanged).
+  const rows = creatorScoped
+    ? ((await db.execute(sql`
+        SELECT cc.id, cc.playout_item_id AS "playoutItemId", cc.content_id AS "contentId", cc.last_played_at AS "lastPlayedAt"
+        FROM channel_content cc
+        JOIN content c ON c.id = cc.content_id
+        WHERE cc.channel_id = ${channelId}
+          AND cc.content_id IS NOT NULL
+          AND c.creator_id = ${scope.creatorId}
+          AND c.deleted_at IS NULL
+        ORDER BY cc.last_played_at ASC NULLS FIRST
+        LIMIT 20
+      `)) as Array<{
+        id: string;
+        playoutItemId: string | null;
+        contentId: string | null;
+        lastPlayedAt: Date | null;
+      }>)
+    : await db
+        .select({
+          id: channelContent.id,
+          playoutItemId: channelContent.playoutItemId,
+          contentId: channelContent.contentId,
+          lastPlayedAt: channelContent.lastPlayedAt,
+        })
+        .from(channelContent)
+        .where(eq(channelContent.channelId, channelId))
+        .orderBy(asc(channelContent.lastPlayedAt))
+        .limit(20);
 
   if (rows.length === 0) return null;
 

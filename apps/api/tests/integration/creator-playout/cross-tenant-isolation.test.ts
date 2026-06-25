@@ -668,4 +668,73 @@ describe("creator editorial: cross-tenant isolation (real DB)", () => {
       ["Creator A Video 1", "Creator A Video 2"].sort(),
     );
   });
+
+  // ── Guarantee 9: read-side scope on the auto-fill + playback paths ──────────
+  //
+  // The playback-path analogue of G8 (cross-model pass-2 finding B3). The write/manual
+  // chokepoint (insertIntoQueue) is scoped, but auto-fill and resolvePoolNextUri read
+  // channel_content directly. A directly-polluted row (foreign creator + soft-deleted),
+  // bypassing the scoped assign, must NOT be auto-queued and must NOT be served as a
+  // playback URI for a creator channel. We give the polluted rows a real mediaKey so
+  // they WOULD resolve a URI if the scope filter were missing — the test has teeth.
+
+  it("G9: auto-fill and resolvePoolNextUri exclude foreign/deleted rows that pollute channel_content directly", async () => {
+    const { createPlayoutOrchestrator } = await import(
+      "../../../src/services/playout-orchestrator.js"
+    );
+    const { createStubLiquidsoapClient } = await import(
+      "../../../src/services/liquidsoap-client.js"
+    );
+    const { resolvePoolNextUri } = await import(
+      "../../../src/services/editorial-control.js"
+    );
+    const { db } = await import("../../../src/db/connection.js");
+    const { content } = await import("../../../src/db/schema/content.schema.js");
+    const { playoutQueue, channelContent } = await import(
+      "../../../src/db/schema/playout-queue.schema.js"
+    );
+    const { eq } = await import("drizzle-orm");
+    const { randomUUID } = await import("node:crypto");
+
+    // Give the polluted content rows a real mediaKey so resolvePoolNextUri WOULD
+    // return their URI if the scope filter were absent (otherwise the test passes
+    // for the wrong reason). A1 (own, active) also gets a key so it's playable.
+    await db.update(content).set({ mediaKey: "media/a1.mp4" }).where(eq(content.id, CONTENT_A1_ID));
+    await db.update(content).set({ mediaKey: "media/b1.mp4" }).where(eq(content.id, CONTENT_B1_ID));
+    await db.update(content).set({ mediaKey: "media/a-del.mp4" }).where(eq(content.id, CONTENT_A_DELETED_ID));
+
+    // Pollute channel A's pool DIRECTLY (bypassing the scoped assignContent) with a
+    // foreign creator's content and A's own soft-deleted content, plus A's own active
+    // content (the only row that should ever be auto-queued or served).
+    await db.insert(channelContent).values([
+      { id: randomUUID(), channelId: CHANNEL_A_ID, contentId: CONTENT_B1_ID, playoutItemId: null },        // foreign
+      { id: randomUUID(), channelId: CHANNEL_A_ID, contentId: CONTENT_A_DELETED_ID, playoutItemId: null }, // soft-deleted
+      { id: randomUUID(), channelId: CHANNEL_A_ID, contentId: CONTENT_A1_ID, playoutItemId: null },        // own, active
+    ]);
+
+    // ── auto-fill must NOT queue the foreign or deleted rows ──
+    const orch = createPlayoutOrchestrator(createStubLiquidsoapClient());
+    await expect(orch.autoFill(CHANNEL_A_ID)).resolves.toBeUndefined();
+
+    const queuedContentIds = (
+      await db.select().from(playoutQueue).where(eq(playoutQueue.channelId, CHANNEL_A_ID))
+    ).map((r) => r.contentId);
+
+    expect(queuedContentIds).not.toContain(CONTENT_B1_ID);        // foreign creator — never auto-queued
+    expect(queuedContentIds).not.toContain(CONTENT_A_DELETED_ID); // soft-deleted — never auto-queued
+    expect(queuedContentIds).toContain(CONTENT_A1_ID);            // own active — IS queued (function preserved)
+
+    // ── resolvePoolNextUri must NOT serve the foreign or deleted rows ──
+    // Seeded creator-A scope (what the pool-next callback resolves for a creator channel).
+    const seenUris: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const uri = await resolvePoolNextUri(CHANNEL_A_ID, { creatorId: CREATOR_A_ID });
+      if (uri) seenUris.push(uri);
+    }
+    // The foreign + deleted media keys must NEVER be returned for playback.
+    expect(seenUris.some((u) => u.includes("media/b1.mp4"))).toBe(false);
+    expect(seenUris.some((u) => u.includes("media/a-del.mp4"))).toBe(false);
+    // Only A's own active media is served.
+    expect(seenUris.every((u) => u.includes("media/a1.mp4"))).toBe(true);
+  });
 });
