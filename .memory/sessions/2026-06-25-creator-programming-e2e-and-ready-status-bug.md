@@ -61,3 +61,16 @@ one-time manual check and the feature+epic stay at review.
   e2e reruns trip 429 in `global.setup.ts`. Wait ~70s, or use `--no-deps` to reuse cached auth.
 - `.claude/settings.json` (platform) shows a plugin-marketplace blanking diff — a session/env
   artifact, left unstaged, do not commit.
+
+## End-of-session state
+- **Pushed** all 21 unpushed `main` commits to `forgejo` (`8eb05b9..c93e13c`); `main` now in sync
+  with `forgejo/main`. (`github` remote is the same s-nc.org URL — one push covers both.)
+- **Open follow-ups (deliberately not done):**
+  - The **root monorepo's platform submodule pointer** was NOT bumped — root still points at the
+    pre-session platform commit. Bump it (`git add platform && commit` at root) when the monorepo
+    should track this work.
+  - `unified-channel-model-creator-enablement` + the `unified-channel-model` **epic stay at
+    `review`** — AC#5's playback rung is the only thing left, and the user chose to build the
+    eyeball-removal capability (the L1-4 ladder above) next session rather than do the manual check.
+  - `channel-lifecycle-creator-profile-seed` is unresolved backlog (pre-existing FK-seed bug;
+    fixture-vs-bug decision pending).
