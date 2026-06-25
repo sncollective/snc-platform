@@ -1,7 +1,7 @@
 ---
 id: creator-programming-e2e-golden
 kind: story
-stage: review
+stage: done
 tags: [testing, streaming, playout]
 parent: creator-programming-e2e
 depends_on: []
@@ -118,3 +118,20 @@ content". The mutation also persists across runs and across the two Playwright p
 Park genuine product bugs (don't hide); fix drifted selectors/fixtures in-session; never game an
 assertion green. A red spec documenting a real break beats a green one that lies. The grounded
 selectors are from a read pass — verify against the live DOM and repair drift as test debt.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Verification green and reproduced this session — full golden
+spec `10 passed, 3 skipped` (the 3 skips are the pool-mutating cases on the mobile project, by
+design), full e2e suite `122 passed, 7 skipped`, `apps/e2e` typecheck clean, idempotent across two
+consecutive runs from a deliberately dirty pool. The blocking product bug
+(`creator-content-search-excludes-ready-status`) was caught by this spec, parked, then drained as a
+single stride (commit 0c24d10) rather than skipped — exemplary test-integrity handling. Shared-state
+isolation (serial + chromium-only + UI-driven `beforeEach` reset gated on the loaded `(N items)`
+signal) is sound and documented. Parent feature `creator-programming-e2e` stays active.

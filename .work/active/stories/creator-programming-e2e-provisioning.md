@@ -1,7 +1,7 @@
 ---
 id: creator-programming-e2e-provisioning
 kind: story
-stage: review
+stage: done
 tags: [testing, streaming, playout]
 parent: creator-programming-e2e
 depends_on: []
@@ -98,4 +98,19 @@ assertion green. A red spec documenting a real break beats a green one that lies
   → 5 passed (setup + case 1 ×2 projects + case 2 ×2 projects), exit 0. Typecheck clean
   (`tsc --noEmit` on `apps/e2e`). Note: the auth sign-in endpoint rate-limits under rapid repeated
   setup runs (429 on `global.setup.ts`) — a setup-harness flake from iterating, unrelated to the
-  spec; the clean run after the limiter cleared is green.
+  spec; the clean run after the limiter cleared is green. Re-confirmed green in the full-suite run
+  this session (`122 passed, 7 skipped`).
+
+## Review (2026-06-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Verification green and re-confirmed in this session's full e2e
+suite (`122 passed, 7 skipped`). The state-isolation design (Jordan read-only for the unprovisioned
+assertion, Sam mutated-and-tolerant via admin auth) is sound and is the pattern the golden spec's
+isolation later mirrored. Did not take the documented fallback — drove the real stream-key
+provisioning path. Parent feature `creator-programming-e2e` stays active.

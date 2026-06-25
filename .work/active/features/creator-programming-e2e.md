@@ -1,7 +1,7 @@
 ---
 id: creator-programming-e2e
 kind: feature
-stage: implementing
+stage: done
 tags: [testing, streaming, playout]
 parent: unified-channel-model
 depends_on: []
@@ -200,3 +200,34 @@ may itself decompose. This feature's UI specs do NOT depend on it.
   provisioning via a seed/API setup step and assert only the affordance→surface transition.
 - **Selector drift.** The grounded selectors are from a read pass; implementers verify against the
   live DOM and fix any drift in-session (test debt, not a bounce).
+
+## Children complete (2026-06-25)
+Both child stories `done`: `creator-programming-e2e-golden` (Spec A, all 5 cases green) and
+`creator-programming-e2e-provisioning` (Spec B, both cases green). Feature advanced
+`implementing → review`.
+
+## Review (2026-06-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Summary**: The feature set out to convert the automatable majority of AC#5 into durable Playwright
+coverage and carve the infra-bound playback assertion into a separate story. It did exactly that.
+Every "Automatable now" AC item has green coverage: Programming surface renders (gated on
+`manageStreaming`); creator assigns own content to the pool; content is queueable with the "Content"
+badge (the B1 regression guard); play-next queues it; cross-tenant isolation holds; and the
+lazy-provisioning path (affordance → stream key → editorial surface) is exercised end-to-end against
+real provisioning. The infra-bound real-playback assertion is correctly scoped out as the standalone
+`creator-channel-engine-e2e-infra` story (not a child), so the UI coverage shipped without waiting on
+heavy test-stack infra.
+
+**Notes**: Deep-lane feature review, inline (no fresh cross-context reviewer spawned — the aggregate
+is two already-approved fast-lane stories plus a bug fix that carries its own integration + e2e
+verification, all reproduced green this session: full e2e suite `122 passed, 7 skipped`, API unit
+`1866 passed`, cross-tenant integration `13 passed`). The mock-boundary deviation (service-stack, not
+service-level-mocked) is well-justified and consistent with the 16 preceding specs. Beyond this
+feature: AC#5's UI half is now automated coverage; its playback half remains the deferred
+`creator-channel-engine-e2e-infra` story plus a one-time manual eyeball, as designed.
