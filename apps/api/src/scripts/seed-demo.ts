@@ -20,7 +20,7 @@ if (
 
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { like, or } from "drizzle-orm";
+import { and, eq, like, or } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 
 import type { BookingStatus, ContentType, SocialLink, Visibility } from "@snc/shared";
@@ -28,6 +28,7 @@ import type { BookingStatus, ContentType, SocialLink, Visibility } from "@snc/sh
 import { users, accounts, userRoles } from "../db/schema/user.schema.js";
 import { creatorProfiles, creatorMembers } from "../db/schema/creator.schema.js";
 import { content } from "../db/schema/content.schema.js";
+import { channels } from "../db/schema/streaming.schema.js";
 import { subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { services, bookingRequests } from "../db/schema/booking.schema.js";
 import { emissions } from "../db/schema/emission.schema.js";
@@ -402,6 +403,39 @@ try {
   }
 
   console.log(`  Creator members: ${creatorRows.length} owner rows seeded`);
+
+  // ── Creator editorial channel (Maya only) ──
+  // Provision Maya's persistent creator channel so the Programming-tab e2e hits the
+  // real editorial surface (not the lazy-provisioning "set up streaming" affordance).
+  // Mirrors exactly what `ensureCreatorChannel` produces on first stream-key creation.
+  // Jordan and Sam are deliberately left UNPROVISIONED so the lazy-provisioning path
+  // (creator with no channel → setup affordance → first stream key provisions it) stays
+  // exercisable as its own e2e flow.
+  const MAYA_CHANNEL_ID = "00000000-0000-4000-c000-000000000001";
+  // Idempotent against the creator-channel shape (not just the PK): a prior
+  // ensureCreatorChannel run may have lazy-provisioned a different-id row for Maya,
+  // so delete any existing creator/live-ingest row for her first, then insert the
+  // deterministic one. Re-seeding always yields exactly one Maya creator channel.
+  await db
+    .delete(channels)
+    .where(
+      and(
+        eq(channels.creatorId, USER_IDS.maya),
+        eq(channels.ownership, "creator"),
+        eq(channels.role, "live-ingest"),
+      ),
+    );
+  await db.insert(channels).values({
+    id: MAYA_CHANNEL_ID,
+    name: "Maya Chen's Stream",
+    ownership: "creator",
+    role: "live-ingest",
+    srsStreamName: `creator-${USER_IDS.maya}`,
+    creatorId: USER_IDS.maya,
+    isActive: false,
+  });
+
+  console.log(`  Creator channel: 1 seeded (Maya, provisioned)`);
 
   // ── Content ──
 
