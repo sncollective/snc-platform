@@ -1,16 +1,29 @@
 ---
 id: e2e-agent-vision-pixel-inspection
-created: 2026-06-25
-updated: 2026-06-25
+kind: story
+stage: drafting
 tags: [testing, streaming, playout, developer-experience]
+parent: machine-verifiable-testing
+depends_on: [creator-channel-engine-e2e-infra, e2e-browser-decode-playback-proof]
+release_binding: null
+gate_origin: null
+created: 2026-06-25
+updated: 2026-06-26
 ---
 
 # Agent vision on rendered pixels (the literal "agent eyeballs" capability)
 
-Capability level 4 — the top of the "take the human eyeball out of the loop" ladder, and the one the
-user explicitly wants ("agent eyeballs on the pixels … useful for testing and debugging"). Sits above
+Capability level 4 — the top of the "take the human eyeball out of the loop" ladder. Sits above
 machine-signal playback proof (`creator-channel-engine-e2e-infra`, levels 1-2) and browser-decode
 proof (`e2e-browser-decode-playback-proof`, level 3).
+
+> **Re-scoped 2026-06-26: triage/debugging-only, NOT a CI gate.** An adversarial review (Codex,
+> verified) flagged vision-on-pixels as both fuzzy *and* token-expensive — wrong shape for a gate.
+> **L3 (`readyState`/`currentTime`) is the hard CI gate** that proves playback; this level does not
+> gate. Its value is (a) **failure triage** — when an e2e spec fails, a vision pass on the retained
+> screenshot/video tells an agent *what the user would have seen*; and (b) **general "agent looks at
+> the running app" debugging** beyond AC#5. AC#5 playback is closed by L1–L3 machine proof, not by
+> this. Plugs into the `e2e-harness-determinism` artifact-triage component.
 
 ## What this is
 Playwright screenshots the playing `<video>` frame (its bounding box), and a **vision-capable agent**

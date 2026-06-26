@@ -1,9 +1,20 @@
 ---
 id: e2e-browser-decode-playback-proof
-created: 2026-06-25
-updated: 2026-06-25
+kind: story
+stage: drafting
 tags: [testing, streaming, playout, developer-experience]
+parent: machine-verifiable-testing
+depends_on: [creator-channel-engine-e2e-infra]
+release_binding: null
+gate_origin: null
+created: 2026-06-25
+updated: 2026-06-26
 ---
+
+> **L3 — the hard CI gate for playback.** Vidstack `<video>` `readyState`/`currentTime` advance
+> is the deterministic, no-vision-model assertion that blocks CI. The L4 vision capability
+> (`e2e-agent-vision-pixel-inspection`) is triage-only and never gates. Child of the
+> `machine-verifiable-testing` epic; depends on the infra story landing first.
 
 # E2E playback proof at the browser layer (Vidstack `<video>` decode + progress)
 

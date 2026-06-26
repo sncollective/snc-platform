@@ -3,20 +3,25 @@ id: creator-channel-engine-e2e-infra
 kind: story
 stage: drafting
 tags: [testing, streaming, playout, developer-experience]
-parent: null
+parent: machine-verifiable-testing
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-25
-updated: 2026-06-25
+updated: 2026-06-26
 ---
 
 # E2E test-stack infra: assert real creator-channel playback (track-event → nowPlaying)
 
-Standalone test-infrastructure story, linked from `creator-programming-e2e`. Scoped separately
-because the creator-channel-playout-engine-in-test-stack capability is reusable by any future
-streaming e2e, and it's meaningfully heavier than the UI specs — keeping it out of the UI feature
-lets that coverage ship without waiting on this.
+**Priority: P0** — the canonical rung-4-to-rung-3 lift of the `machine-verifiable-testing` epic.
+It retires the manual AC#5 playback eyeball ("open `/live` and watch") by landing the L1–L2
+machine proof. Pulled to active and prioritized ahead of the feature coverage specs; route
+through `e2e-test-design` to decompose steps 3–4 below.
+
+Test-infrastructure story, linked from `creator-programming-e2e`. Scoped separately because the
+creator-channel-playout-engine-in-test-stack capability is reusable by any future streaming e2e,
+and it's meaningfully heavier than the UI specs — keeping it out of the UI feature let that
+coverage ship without waiting on this.
 
 ## Why
 This is the piece that retires the **manual AC#5 playback eyeball** entirely. The UI specs
