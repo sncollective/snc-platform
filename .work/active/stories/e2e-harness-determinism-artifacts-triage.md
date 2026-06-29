@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-artifacts-triage
 kind: story
-stage: review
+stage: done
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
@@ -53,3 +53,13 @@ and linked work item, never silently deleted or converted into a tautology.
 - `bunx tsc -p apps/e2e/tsconfig.json --noEmit` — passed.
 - `cd apps/e2e && bunx playwright test --list --reporter=list` — passed; listed 129 tests in 20 files.
 - `cd apps/e2e && bunx playwright test --list` — passed with configured reporters, validating the custom reporter config loads.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes record bounded artifact retention, machine-readable triage output, flake policy docs, L4 vision as triage-only, and green e2e config/reporter verification.
