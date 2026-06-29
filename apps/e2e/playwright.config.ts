@@ -38,8 +38,8 @@ export default defineConfig({
   // default (set explicitly to `undefined` it trips exactOptionalPropertyTypes).
   ...(IS_CI ? { workers: 2 } : {}),
   reporter: IS_CI
-    ? [["html", { open: "never" }], ["github"]]
-    : [["html", { open: "on-failure" }]],
+    ? [["html", { open: "never" }], ["github"], ["./tests/helpers/triage.ts"]]
+    : [["html", { open: "on-failure" }], ["./tests/helpers/triage.ts"]],
 
   use: {
     // CI uses ports 3100/3101 to avoid colliding with the host's 3000/3001
@@ -47,8 +47,9 @@ export default defineConfig({
     // boards/workflow/BOARD.md park item on 2026-04-14). Local mode hits
     // staging via Caddy on 3082.
     baseURL: IS_CI ? "http://localhost:3101" : "http://localhost:3082",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
 
   projects: [
