@@ -1,14 +1,14 @@
 ---
 id: e2e-harness-determinism
 kind: feature
-stage: drafting
+stage: implementing
 tags: [testing, developer-experience]
 parent: machine-verifiable-testing
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-28
 ---
 
 # E2E harness: determinism, isolation, and triage
@@ -67,3 +67,129 @@ coverage-heavy but missing the machinery that makes coverage cheap and trustwort
 Decompose into child stories at `feature-design` with `depends_on` chains (the reset/seed API is
 the spine; isolation conversion depends on it). Component 5 absorbs an existing backlog item —
 `git rm` it on decomposition and note the absorption.
+
+## Design decisions
+
+- **Black-box boundary:** allow test-control APIs only for setup/reset/seed and machine probes; keep
+  product assertions browser-facing. This follows the parent epic and `.work/CONVENTIONS.md` update.
+- **Isolation spine:** build a narrow e2e-only test-control surface first, then prove it by converting
+  creator-programming pool mutations off UI reset + serial/chromium-only partitioning.
+- **Clock/randomness:** prefer explicit fixture IDs/timestamps and Playwright clock controls over
+  invasive production time abstractions; production code must not depend on test clocks.
+- **Artifacts and vision:** trace/video/screenshot + triage output are the durable default; vision is
+  a post-run debugging aid, never a CI gate.
+- **Auth limiter:** use an explicit e2e/test-profile gate, not a broad staging relaxation, so production
+  strictness remains structurally tested.
+
+## Mock-boundary plan
+
+No new external service mock is introduced by this feature. The e2e suite continues to run against the
+real local/staging service stack (API, web, Postgres, Garage/S3-compatible storage, and streaming
+services where relevant). The new test-control surface is an e2e-only setup adapter, not a mocked
+replacement for product behavior. Product assertions remain UI-facing; setup/reset/seed and runtime
+machine probes are allowed support surfaces.
+
+## Taxonomy plan
+
+- **Golden:** isolation proof converts the existing creator-programming mutation journey to clean-slate
+  parallel-safe setup.
+- **Failure mode:** auth limiter tests prove the strict production/default path remains strict while the
+  e2e profile is relaxed; test-control routes fail closed outside the explicit profile.
+- **Chaos:** not included here — no retry/fallback behavior is introduced by the harness itself.
+- **Fuzz:** not applicable — no parser or serializer surface is added.
+
+## Implementation units
+
+### Unit 1: Test-control reset/seed API
+
+**Story:** `e2e-harness-determinism-test-control-api`
+
+**Files:**
+- `apps/api/src/routes/test-control.routes.ts`
+- `apps/api/src/services/test-control.ts`
+- `apps/api/src/app.ts`
+- `apps/api/src/config.ts`
+- `apps/e2e/tests/helpers/test-control.ts`
+
+**Invariant:** e2e setup can reset/seed deterministic fixture state through an explicitly gated support
+surface, while production/default runtime cannot reach that surface.
+
+**Acceptance criteria:** see child story.
+
+### Unit 2: Parallel-safe isolation proof
+
+**Story:** `e2e-harness-determinism-isolation-proof`
+**Depends on:** `e2e-harness-determinism-test-control-api`
+
+**Files:**
+- `apps/e2e/tests/creator-programming.spec.ts`
+- `apps/e2e/tests/helpers/test-control.ts`
+- `apps/e2e/playwright.config.ts`
+
+**Invariant:** creator-programming pool-mutating specs start from deterministic clean state without UI
+surgery and no longer require serial/chromium-only partitioning.
+
+### Unit 3: Clock and seed control
+
+**Story:** `e2e-harness-determinism-clock-seed-control`
+
+**Files:**
+- `apps/e2e/tests/helpers/determinism.ts`
+- `apps/e2e/global.setup.ts`
+- `apps/api/src/services/test-control.ts`
+
+**Invariant:** e2e fixtures use deterministic IDs/timestamps and browser-visible time assertions can opt
+into a fixed clock without changing production behavior.
+
+### Unit 4: Artifacts, triage output, and flake policy
+
+**Story:** `e2e-harness-determinism-artifacts-triage`
+
+**Files:**
+- `apps/e2e/playwright.config.ts`
+- `apps/e2e/tests/helpers/triage.ts` or a Playwright reporter hook
+- `apps/e2e/README.md` or the closest existing e2e documentation home
+
+**Invariant:** a failed e2e run leaves enough machine-readable evidence for an agent to triage before
+asking a human to eyeball the app.
+
+### Unit 5: Auth limiter e2e-profile gate
+
+**Story:** `e2e-harness-determinism-auth-limiter-gate`
+
+**Files:**
+- `apps/api/src/config.ts`
+- `apps/api/src/app.ts`
+- `apps/api/src/middleware/rate-limit.ts`
+- `apps/e2e/playwright.config.ts`
+- `apps/e2e/global.setup.ts`
+
+**Invariant:** rapid e2e retries do not self-throttle auth setup, while production/default auth limits
+remain strict.
+
+## Implementation order
+
+1. `e2e-harness-determinism-test-control-api`
+2. `e2e-harness-determinism-isolation-proof`
+3. `e2e-harness-determinism-clock-seed-control`
+4. `e2e-harness-determinism-artifacts-triage`
+5. `e2e-harness-determinism-auth-limiter-gate`
+
+Units 3–5 are independent of the reset/seed API and can run in parallel after design, but Unit 2 must
+wait for Unit 1.
+
+## Risks
+
+- The test-control API is the sharpest edge: it must fail closed outside the explicit e2e profile and
+  must not become a general product backdoor.
+- Converting creator-programming mutations may expose hidden coupling to the demo seed; use prefixed
+  fixtures and cleanup rather than deleting broad demo state.
+- Artifact retention can balloon CI storage; keep video/trace retention bounded to failures/retries.
+- The auth limiter fix must not weaken production or mask `security-rate-limit-auth-in-memory`, which
+  is a separate production-scaling concern.
+
+## Backlog absorption
+
+Backlog item `e2e-suite-self-rate-limits-auth` is absorbed into
+`e2e-harness-determinism-auth-limiter-gate`; the original backlog note identified latent fragility
+under tight rerun cadence and is now represented by the active child story.
