@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { eq } from "drizzle-orm";
 
 import {
@@ -6,14 +6,66 @@ import {
   seedMayaCreatorProgramming,
 } from "../../src/services/test-control.js";
 import { db } from "../../src/db/connection.js";
+import { content } from "../../src/db/schema/content.schema.js";
+import { creatorProfiles } from "../../src/db/schema/creator.schema.js";
 import { channelContent, playoutQueue } from "../../src/db/schema/playout-queue.schema.js";
+import { channels } from "../../src/db/schema/streaming.schema.js";
 
+const MAYA_CREATOR_ID = "00000000-0000-4000-a000-000000000002";
 const MAYA_CHANNEL_ID = "00000000-0000-4000-c000-000000000001";
 const STUDIO_TOUR_CONTENT_ID = "00000000-0000-4000-a000-000000000103";
 const POOL_ROW_ID = "e2e-tc-maya-programming-pool-studio-tour";
 const QUEUE_ROW_ID = "e2e-tc-maya-programming-queue-studio-tour";
 
+const ensureMayaDemoRows = async (): Promise<void> => {
+  const now = new Date();
+
+  await db
+    .insert(creatorProfiles)
+    .values({
+      id: MAYA_CREATOR_ID,
+      displayName: "Maya Chen",
+      handle: "maya-chen",
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(channels)
+    .values({
+      id: MAYA_CHANNEL_ID,
+      name: "Maya Chen's Stream",
+      ownership: "creator",
+      role: "live-ingest",
+      srsStreamName: "creator-maya-chen",
+      creatorId: MAYA_CREATOR_ID,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(content)
+    .values({
+      id: STUDIO_TOUR_CONTENT_ID,
+      creatorId: MAYA_CREATOR_ID,
+      type: "video",
+      title: "Studio Tour 2026",
+      slug: "studio-tour-2026",
+      visibility: "public",
+      sourceType: "upload",
+      processingStatus: "ready",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+};
+
 describe("test-control service", () => {
+  beforeAll(async () => {
+    await ensureMayaDemoRows();
+  });
+
   beforeEach(async () => {
     await resetMayaCreatorProgramming();
   });

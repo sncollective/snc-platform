@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-test-control-api
 kind: story
-stage: review
+stage: done
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
@@ -31,11 +31,11 @@ mutation test start from a known clean slate.
 
 ## Acceptance criteria
 
-- [ ] Test-control routes are unreachable in normal production-like runtime unless the explicit
+- [x] Test-control routes are unreachable in normal production-like runtime unless the explicit
       e2e/test-control flag is set.
-- [ ] Reset/seed creates fixture rows with stable prefixes and cleans them before and after use.
-- [ ] The helper can reset Maya creator-programming state without driving UI controls.
-- [ ] At least one API/integration test proves the test-control surface is gated off by default.
+- [x] Reset/seed creates fixture rows with stable prefixes and cleans them before and after use.
+- [x] The helper can reset Maya creator-programming state without driving UI controls.
+- [x] At least one API/integration test proves the test-control surface is gated off by default.
 
 ## Test integrity contract
 
@@ -70,10 +70,15 @@ bad fixtures/assertions in-session. Never weaken an assertion just to make the s
 - PASS: `bun x tsc --noEmit -p apps/e2e/tsconfig.json`
 - PASS: `bun run --filter @snc/api test:unit`
 - PASS: `bun run --filter @snc/api test:integration -- test-control-gating.test.ts`
-- BLOCKED: `bun run --filter @snc/api test:integration -- test-control-service.test.ts` could not
-  reach local PostgreSQL (`ECONNREFUSED ::1:5432` / `127.0.0.1:5432`) because dev services are not
-  running in this agent environment.
-- BLOCKED/UNRELATED: `bash scripts/dev/sandbox-test-integration.sh -- test-control-service.test.ts`
-  does not honor the extra test filter and ran the full integration suite; it failed on existing
-  environment/database stability errors (`ECONNRESET`, channel lifecycle setup failures) outside this
-  story's changed files.
+- PASS after starting dev services and applying migrations: `bun run --filter @snc/api test:integration -- test-control-service.test.ts` (2 tests).
+- Earlier blocked verification was resolved by starting the dev stack and running `bun run --filter @snc/api db:migrate`.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review after verification repair. The initial integration proof depended on demo rows already existing in the local DB; the test now seeds its own prerequisite Maya creator/channel/content rows with `onConflictDoNothing`, then verifies deterministic reset/seed behavior. Targeted integration now passes against migrated dev services.
