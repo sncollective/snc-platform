@@ -3,8 +3,11 @@ import { Hono } from "hono";
 
 import {
   E2E_AUTH_RATE_LIMIT_MAX,
+  E2E_SRS_CALLBACK_RATE_LIMIT_MAX,
   getAuthStrictRateLimitMax,
+  getSrsCallbackRateLimitMax,
   rateLimiter,
+  SRS_CALLBACK_RATE_LIMIT_MAX,
   STRICT_AUTH_RATE_LIMIT_MAX,
 } from "../../src/middleware/rate-limit.js";
 import { errorHandler } from "../../src/middleware/error-handler.js";
@@ -32,6 +35,22 @@ describe("getAuthStrictRateLimitMax", () => {
       getAuthStrictRateLimitMax({ AUTH_RATE_LIMIT_PROFILE: "e2e" }),
     ).toBe(E2E_AUTH_RATE_LIMIT_MAX);
     expect(E2E_AUTH_RATE_LIMIT_MAX).toBeGreaterThan(STRICT_AUTH_RATE_LIMIT_MAX);
+  });
+});
+
+describe("getSrsCallbackRateLimitMax", () => {
+  it("keeps default/production SRS callbacks bounded", () => {
+    expect(
+      getSrsCallbackRateLimitMax({ TEST_CONTROL_PROFILE: "disabled" }),
+    ).toBe(SRS_CALLBACK_RATE_LIMIT_MAX);
+    expect(SRS_CALLBACK_RATE_LIMIT_MAX).toBe(30);
+  });
+
+  it("relaxes SRS callbacks only for the explicit e2e test-control profile", () => {
+    expect(
+      getSrsCallbackRateLimitMax({ TEST_CONTROL_PROFILE: "e2e" }),
+    ).toBe(E2E_SRS_CALLBACK_RATE_LIMIT_MAX);
+    expect(E2E_SRS_CALLBACK_RATE_LIMIT_MAX).toBeGreaterThan(SRS_CALLBACK_RATE_LIMIT_MAX);
   });
 });
 

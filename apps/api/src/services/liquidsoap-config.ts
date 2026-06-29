@@ -54,7 +54,7 @@ interface LiquidsoapChannelRow {
  * than inferring from broad NODE_ENV-style environments.
  */
 const includeCreatorLiveIngestChannels = (): boolean =>
-  config.AUTH_RATE_LIMIT_PROFILE === "e2e";
+  config.TEST_CONTROL_PROFILE === "e2e";
 
 const shouldRenderChannel = (row: LiquidsoapChannelRow): boolean => {
   const role = row.role ?? "playout";

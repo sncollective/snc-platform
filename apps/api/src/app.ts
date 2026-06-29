@@ -8,7 +8,11 @@ import { config, features } from "./config.js";
 import { rootLogger } from "./logging/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
-import { getAuthStrictRateLimitMax, rateLimiter } from "./middleware/rate-limit.js";
+import {
+  getAuthStrictRateLimitMax,
+  getSrsCallbackRateLimitMax,
+  rateLimiter,
+} from "./middleware/rate-limit.js";
 import { requestIdMiddleware, requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
@@ -80,7 +84,10 @@ const authStrictLimiter = rateLimiter({
   max: getAuthStrictRateLimitMax(config),
 });
 const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
-const srsCallbackLimiter = rateLimiter({ windowMs: 60_000, max: 30 });
+const srsCallbackLimiter = rateLimiter({
+  windowMs: 60_000,
+  max: getSrsCallbackRateLimitMax(config),
+});
 app.use("/api/auth/*", (c, next) => {
   const path = c.req.path;
   if (

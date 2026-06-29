@@ -15,6 +15,8 @@ const MayaProgrammingSeedSchema = z.object({
   fixtureId: z.string().optional(),
   title: z.string().optional(),
   timestampIso: z.string().datetime().optional(),
+  channelActive: z.boolean().optional(),
+  syncPlaybackEngine: z.boolean().optional(),
 });
 
 // ── Route Surface ──

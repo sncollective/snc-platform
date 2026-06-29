@@ -1158,7 +1158,7 @@ describe("playout orchestrator", () => {
     });
 
     it("e2e startup prefetches queued creator live-ingest content", async () => {
-      const orchestrator = await setupModule({ AUTH_RATE_LIMIT_PROFILE: "e2e" });
+      const orchestrator = await setupModule({ TEST_CONTROL_PROFILE: "e2e" });
 
       mockDbSelect
         .mockReturnValueOnce({

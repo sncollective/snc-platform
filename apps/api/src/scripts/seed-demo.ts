@@ -142,16 +142,26 @@ const generateVideo = async (
   outputPath: string,
 ): Promise<void> => {
   await mkdir(node_path.dirname(outputPath), { recursive: true });
+  // Audio track is required: Liquidsoap's encoder requests
+  // {audio=pcm(stereo),video=canvas}; a video-only mp4 fails decode, the
+  // request is destroyed, on_metadata never fires, and queued creator content
+  // never promotes to nowPlaying. Mirror seed-playout-content.sh's sine-tone
+  // source so generated content mp4s decode under the playout engine.
   await execFileAsync("ffmpeg", [
     "-y",
     "-f", "lavfi",
     "-i", `color=c=${color}:s=640x360:d=${durationSec}`,
+    "-f", "lavfi",
+    "-i", `sine=frequency=440:sample_rate=44100:duration=${durationSec}`,
     "-vf", `drawtext=text='${label}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`,
     "-c:v", "libx264",
     "-preset", "ultrafast",
     "-crf", "28",
+    "-c:a", "aac",
+    "-b:a", "128k",
     "-movflags", "+faststart",
     "-pix_fmt", "yuv420p",
+    "-shortest",
     outputPath,
   ], { timeout: 60_000 });
 };

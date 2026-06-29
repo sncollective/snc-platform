@@ -168,6 +168,32 @@ describe("test-control service", () => {
     expect(remainingBPool).toHaveLength(1);
   });
 
+  it("toggles Maya's creator channel active state for playback-proof setup", async () => {
+    const activated = await seedMayaCreatorProgramming({
+      pool: true,
+      queue: false,
+      channelActive: true,
+    });
+    expect(activated.ok).toBe(true);
+    if (!activated.ok) return;
+    expect(activated.value.channelActive).toBe(true);
+
+    const [activeChannel] = await db
+      .select({ isActive: channels.isActive })
+      .from(channels)
+      .where(eq(channels.id, MAYA_CHANNEL_ID));
+    expect(activeChannel?.isActive).toBe(true);
+
+    const deactivated = await resetMayaCreatorProgramming({ channelActive: false });
+    expect(deactivated.ok).toBe(true);
+
+    const [inactiveChannel] = await db
+      .select({ isActive: channels.isActive })
+      .from(channels)
+      .where(eq(channels.id, MAYA_CHANNEL_ID));
+    expect(inactiveChannel?.isActive).toBe(false);
+  });
+
   it("rejects queue-only seeds because queue entries require a pool row", async () => {
     const result = await seedMayaCreatorProgramming({ pool: false, queue: true });
 

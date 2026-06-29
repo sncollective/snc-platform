@@ -57,7 +57,7 @@ interface StartupChannelRow {
  * Normal runtime keeps the historical startup surface: active playout channels only.
  */
 const includeCreatorLiveIngestStartupChannels = (): boolean =>
-  config.AUTH_RATE_LIMIT_PROFILE === "e2e";
+  config.TEST_CONTROL_PROFILE === "e2e";
 
 const shouldInitializeChannel = (channel: StartupChannelRow): boolean => {
   if ((channel.role ?? "playout") === "playout") return true;
@@ -1121,7 +1121,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
    * Initialize startup playback channels.
    *
    * Default runtime initializes active ordinary playout channels only. The explicit
-   * e2e auth-rate-limit profile also includes active creator-owned `live-ingest`
+   * e2e test-control profile also includes active creator-owned `live-ingest`
    * rows, matching Liquidsoap's test-profile topology inclusion so queued creator
    * content is prefetched after an API/Liquidsoap restart.
    */

@@ -40,19 +40,108 @@ mocked status or tautological assertion.
 
 ## Implementation notes
 
-- Files changed:
-  - `apps/e2e/tests/creator-channel-playback.spec.ts`
-  - `apps/e2e/tests/helpers/playback-probes.ts`
-- Tests added:
-  - `creator-channel-playback.spec.ts` adds the L1-L2 playback proof: test-control seeds Maya's creator-owned `Studio Tour 2026` pool item, the creator-scoped queue route queues it through the real orchestrator, queue status is polled for `nowPlaying.contentId`, and the channel HLS manifest is polled for new media segments.
+- Files changed (this pass):
+  - `apps/e2e/tests/creator-channel-playback.spec.ts` — seed now activates Maya's
+    channel + syncs the playback engine (`channelActive: true`,
+    `syncPlaybackEngine: true`); afterEach reset deactivates + re-syncs.
+  - `apps/e2e/tests/helpers/playback-probes.ts` — (unchanged this pass)
+  - `apps/e2e/tests/helpers/test-control.ts` — `MayaProgrammingSeedOptions` and
+    `MayaProgrammingState` carry `channelActive` / `syncPlaybackEngine`.
+  - `apps/api/src/services/test-control.ts` — `seedMayaCreatorProgramming` /
+    `resetMayaCreatorProgramming` accept `channelActive` (toggle the Maya
+    `channels.is_active` row) and `syncPlaybackEngine` (regenerate the
+    `playout.liq` from DB state, signal Liquidsoap restart, wait for health +
+    harbor handler readiness, then `orchestrator.initialize()` to prefetch).
+    `syncPlaybackEngine` polls Maya's harbor now-playing endpoint until a
+    handler is registered before initializing, fixing the race where
+    `/health` responds before per-channel harbor handlers are re-registered
+    after restart (the prefetch push would 404 and leave content unpushed).
+  - `apps/api/src/routes/test-control.routes.ts` — seed schema accepts the two
+    new options.
+  - `apps/api/src/services/liquidsoap-config.ts` and
+    `apps/api/src/services/playout-orchestrator.ts` — the creator live-ingest
+    inclusion switch now keys on `TEST_CONTROL_PROFILE === "e2e"` (the e2e
+    test-control surface) rather than `AUTH_RATE_LIMIT_PROFILE`. The auth
+    limiter and the test-control surface are separate concerns; coupling
+    creator-channel rendering to the auth profile was an incidental overload.
+  - `apps/api/src/middleware/rate-limit.ts` + `apps/api/src/app.ts` — the SRS
+    callback limiter now uses a profile-aware cap (`getSrsCallbackRateLimitMax`)
+    that relaxes to 1000/min under `TEST_CONTROL_PROFILE=e2e` while production
+    stays at 30/min. The previous fixed 30/min cap caused 429s on the SRS
+    `on_publish`/`on_forward` callbacks during e2e when Liquidsoap + SRS were
+    both publishing + polling.
+  - `apps/api/src/scripts/seed-demo.ts` — `generateVideo()` now emits an AAC
+    sine-tone audio track alongside the video, so generated creator content
+    mp4s decode under Liquidsoap (which requests `{audio=pcm(stereo),video=canvas}`).
+    The prior video-only mp4s failed decode, the request was destroyed,
+    `on_metadata` never fired, and no `track-event` reached the API — the root
+    cause of `nowPlaying` staying null.
+- Tests added/updated:
+  - `creator-channel-playback.spec.ts` — the L1-L2 playback proof: test-control
+    seeds + activates Maya's channel + syncs the engine, the creator-scoped
+    queue route queues content through the real orchestrator, queue status is
+    polled for `nowPlaying.contentId`, and the channel HLS manifest is polled
+    for new media segments.
+  - `apps/api/tests/middleware/rate-limit.test.ts` — added
+    `getSrsCallbackRateLimitMax` profile tests.
+  - `apps/api/tests/services/liquidsoap-config.test.ts` and
+    `apps/api/tests/services/playout-orchestrator.test.ts` — updated the e2e
+    creator-channel inclusion assertions to key on `TEST_CONTROL_PROFILE`.
+  - `apps/api/tests/integration/test-control-service.test.ts` — added a test
+    that the `channelActive` toggle activates/deactivates Maya's channel row.
 - Discrepancies from design:
-  - The spec queues through the creator-scoped route the Programming UI uses instead of clicking the queue picker. This keeps the queue action on a real product route/orchestrator path while avoiding unrelated UI picker hydration drift; assertions remain machine-pipeline probes.
-- Adjacent issues parked: none.
+  - The spec queues through the creator-scoped route the Programming UI uses
+    instead of clicking the queue picker. This keeps the queue action on a real
+    product route/orchestrator path while avoiding unrelated UI picker
+    hydration drift; assertions remain machine-pipeline probes.
+- Adjacent issues parked:
+  - `.work/backlog/idea-seed-demo-content-videos-lack-audio.md` — the
+    seed-demo video-only generation bug. Fixed inline (load-bearing for the
+    proof) and parked as the audit trail per the test-integrity rule.
 
 ## Verification
 
-- `bun run --filter @snc/e2e test -- --list tests/creator-channel-playback.spec.ts` — pass (spec discovery succeeds).
-- `bun run --filter @snc/e2e typecheck` — blocked by unrelated concurrent edit in `apps/e2e/tests/creator-programming.spec.ts` (`testSeededSuffix(testInfo, "studio-tour", 6)` passes a number where the current helper accepts string parts).
-- `bun run --filter @snc/e2e test -- tests/creator-channel-playback.spec.ts --project=chromium` — local staging profile blocked before playback proof: `/api/test-control/.../seed` returned 404 because the already-running local API was not started with `TEST_CONTROL_PROFILE=e2e`.
-- `CI=1 bun run --filter @snc/e2e test -- tests/creator-channel-playback.spec.ts --project=chromium --workers=1 --retries=0` — starts the e2e API with `TEST_CONTROL_PROFILE=e2e`, queues the content successfully, then fails the real machine proof: queue-status `nowPlaying.contentId` remains `null` for 90s. This indicates the current running media stack did not deliver the creator-channel Liquidsoap `track-event` path for Maya's queued item (likely stale/non-e2e Liquidsoap topology or equivalent media-stack runtime gap). Story intentionally remains `stage: implementing`; not advanced to review.
-- Follow-up retry with a speculative e2e-profile Liquidsoap restart on API startup did not prove the fix: the run failed earlier in global auth setup with 502/500 while API logs showed Liquidsoap repeatedly calling stale `/pool/next` channel IDs and SRS callbacks hitting rate limits. The speculative code change was reverted; next pass should diagnose stale Liquidsoap topology / pool-next error handling and SRS callback limiter behavior before retrying the playback proof.
+- `bun run --filter @snc/e2e test -- --list tests/creator-channel-playback.spec.ts` —
+  pass (spec discovery succeeds).
+- `bun run --filter @snc/e2e typecheck` — pass.
+- `bun run --filter @snc/api test:unit` — 1883 tests pass (incl. the new
+  `getSrsCallbackRateLimitMax` + test-control + topology/orchestrator updates).
+- `bun run --filter @snc/api test:integration -- tests/integration/test-control-service.test.ts` —
+  pass (4 tests, incl. the new `channelActive` toggle test).
+- `npx playwright test tests/creator-channel-playback.spec.ts --project=chromium
+  --workers=1 --retries=0` against the PM2 staging stack (localhost:3082) with
+  `AUTH_RATE_LIMIT_PROFILE=e2e` + `TEST_CONTROL_PROFILE=e2e` — PASS: the spec
+  seeds + activates Maya's channel, syncs the playback engine, queues
+  `Studio Tour 2026` through the creator route, observes
+  `nowPlaying.contentId === <studio-tour-id>` after the real Liquidsoap
+  `track-event` path fires, resolves the channel `hlsUrl`, and confirms the
+  `.m3u8` segment list grows over the bounded polling window. The real
+  media-stack signal (track-event → nowPlaying → HLS segment growth) is
+  observed end-to-end without a human watching pixels.
+
+### Root-cause diagnosis (this pass)
+
+Three compounding issues kept `nowPlaying.contentId` null for 90s:
+
+1. **Stale Liquidsoap topology.** Maya's creator `live-ingest` channel was
+   not rendered into `playout.liq` at runtime, so its harbor
+   `/channels/<maya-id>/queue` handler was absent and `pushTrack` 404'd. The
+   e2e profile inclusion switch was keyed on `AUTH_RATE_LIMIT_PROFILE`, which
+   is the wrong concern. Re-keyed on `TEST_CONTROL_PROFILE`, and the
+   test-control seed now activates the channel + regenerates+restarts the
+   engine so the running config includes Maya.
+2. **Content media had no audio track.** `seed-demo.ts` `generateVideo()` emitted
+   video-only mp4s; Liquidsoap's encoder requests
+   `{audio=pcm(stereo),video=canvas}` and failed decode (`Detected content:
+   {video=canvas}`), so the request was destroyed and `on_metadata` never fired.
+   Fixed `generateVideo()` to add a sine-tone AAC audio track (mirroring
+   `seed-playout-content.sh`); regenerated the three affected content objects in
+   Garage.
+3. **Harbor-readiness race.** `waitForHealth` returns true as soon as
+   `/health` responds, but per-channel harbor handlers are registered slightly
+   later after restart — `orchestrator.initialize()`'s prefetch push would then
+   404 and leave content unpushed. `syncPlaybackEngine` now polls Maya's harbor
+   now-playing endpoint until a handler is registered before initializing.
+
+The SRS callback 429s were a symptom of the fixed 30/min limiter under e2e load,
+not a root cause; the profile-aware cap removes the noise.

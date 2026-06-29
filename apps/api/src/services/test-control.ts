@@ -6,7 +6,10 @@ import { db } from "../db/connection.js";
 import { content } from "../db/schema/content.schema.js";
 import { channelContent, playoutQueue } from "../db/schema/playout-queue.schema.js";
 import { channels } from "../db/schema/streaming.schema.js";
+import { config } from "../config.js";
+import { regenerateAndRestart, waitForHealth } from "./liquidsoap-config.js";
 import { enqueue } from "./playout-queue-transitions.js";
+import { orchestrator } from "../routes/playout-channels.init.js";
 
 // ── Stable Demo Fixture IDs ──
 
@@ -25,6 +28,8 @@ export type MayaProgrammingSeedOptions = {
   fixtureId?: string | undefined;
   title?: string | undefined;
   timestampIso?: string | undefined;
+  channelActive?: boolean | undefined;
+  syncPlaybackEngine?: boolean | undefined;
 };
 
 export type MayaProgrammingState = {
@@ -35,6 +40,8 @@ export type MayaProgrammingState = {
   fixtureId: string | null;
   seededPool: boolean;
   seededQueue: boolean;
+  channelActive: boolean;
+  playbackEngineSynced: boolean;
 };
 
 // ── Private Helpers ──
@@ -131,6 +138,83 @@ const verifyMayaDemoRows = async (): Promise<Result<void, AppError>> => {
   return ok(undefined);
 };
 
+const setMayaChannelActive = async (isActive: boolean): Promise<void> => {
+  await db
+    .update(channels)
+    .set({ isActive, updatedAt: new Date() })
+    .where(eq(channels.id, MAYA_CHANNEL_ID));
+};
+
+/**
+ * Poll Maya's creator-channel harbor now-playing endpoint until a handler is
+ * registered (any 2xx or 4xx with a JSON/XHTML harbor body, NOT a connection
+ * reset or 404 "page not available"). Returns true once the handler is live.
+ */
+const waitForMayaChannelHarbor = async (
+  maxAttempts: number,
+  intervalMs: number,
+): Promise<boolean> => {
+  const baseUrl = config.LIQUIDSOAP_API_URL;
+  if (!baseUrl) return true;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(
+        `${baseUrl}/channels/${MAYA_CHANNEL_ID}/now-playing`,
+        { signal: AbortSignal.timeout(1_500) },
+      );
+      // A registered handler returns 200 with JSON; an unregistered harbor path
+      // returns 404 with an XHTML "page not available" body. Connection reset /
+      // ECONNREFUSED means the process is still restarting.
+      if (res.ok) return true;
+    } catch {
+      // still restarting or handler not registered yet
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return false;
+};
+
+const syncPlaybackEngine = async (
+  options: { expectChannelActive?: boolean } = {},
+): Promise<Result<void, AppError>> => {
+  const restart = await regenerateAndRestart();
+  if (!restart.ok) return restart;
+
+  const healthy = await waitForHealth(15, 2_000);
+  if (!healthy) {
+    return err(
+      new AppError(
+        "TEST_CONTROL_PLAYBACK_ENGINE_UNHEALTHY",
+        "Liquidsoap did not become healthy after playback test-control sync",
+        502,
+      ),
+    );
+  }
+
+  // The /health endpoint can respond before Liquidsoap has finished registering
+  // the per-channel harbor handlers after a restart — the orchestrator's
+  // prefetch push would then 404 and leave queued content unpushed (the
+  // nowPlaying-never-promotes race). When the channel is being activated for a
+  // playback proof, poll Maya's channel harbor endpoint until a handler is
+  // registered before initializing the orchestrator. Skip this when
+  // deactivating: the handler is intentionally absent for an inactive channel.
+  if (options.expectChannelActive) {
+    const harborReady = await waitForMayaChannelHarbor(20, 500);
+    if (!harborReady) {
+      return err(
+        new AppError(
+          "TEST_CONTROL_PLAYBACK_HARBOR_NOT_READY",
+          "Liquidsoap harbor handlers were not registered for Maya's channel after restart",
+          502,
+        ),
+      );
+    }
+  }
+
+  await orchestrator.initialize();
+  return ok(undefined);
+};
+
 // ── Public API ──
 
 /**
@@ -142,7 +226,10 @@ const verifyMayaDemoRows = async (): Promise<Result<void, AppError>> => {
  * workers do not delete each other's state. Queue rows go first to satisfy FK constraints.
  */
 export const resetMayaCreatorProgramming = async (
-  options: Pick<MayaProgrammingSeedOptions, "fixtureId" | "title"> = {},
+  options: Pick<
+    MayaProgrammingSeedOptions,
+    "fixtureId" | "title" | "channelActive" | "syncPlaybackEngine"
+  > = {},
 ): Promise<Result<MayaProgrammingState, AppError>> => {
   const verified = await verifyMayaDemoRows();
   if (!verified.ok) return verified;
@@ -186,6 +273,17 @@ export const resetMayaCreatorProgramming = async (
     await db.delete(content).where(like(content.id, `${TEST_CONTROL_PREFIX}-content-%`));
   }
 
+  if (options.channelActive !== undefined) {
+    await setMayaChannelActive(options.channelActive);
+  }
+
+  if (options.syncPlaybackEngine) {
+    const synced = await syncPlaybackEngine({
+      expectChannelActive: options.channelActive ?? false,
+    });
+    if (!synced.ok) return synced;
+  }
+
   return ok({
     channelId: MAYA_CHANNEL_ID,
     creatorId: MAYA_CREATOR_ID,
@@ -194,6 +292,8 @@ export const resetMayaCreatorProgramming = async (
     fixtureId: fixture.fixtureId,
     seededPool: false,
     seededQueue: false,
+    channelActive: options.channelActive ?? false,
+    playbackEngineSynced: options.syncPlaybackEngine ?? false,
   });
 };
 
@@ -201,7 +301,10 @@ export const resetMayaCreatorProgramming = async (
 export const seedMayaCreatorProgramming = async (
   options: MayaProgrammingSeedOptions = {},
 ): Promise<Result<MayaProgrammingState, AppError>> => {
-  const reset = await resetMayaCreatorProgramming(options);
+  const reset = await resetMayaCreatorProgramming({
+    ...options,
+    syncPlaybackEngine: false,
+  });
   if (!reset.ok) return reset;
 
   const seedPool = options.pool ?? true;
@@ -258,6 +361,13 @@ export const seedMayaCreatorProgramming = async (
     });
   }
 
+  if (options.syncPlaybackEngine) {
+    const synced = await syncPlaybackEngine({
+      expectChannelActive: options.channelActive ?? false,
+    });
+    if (!synced.ok) return synced;
+  }
+
   return ok({
     channelId: MAYA_CHANNEL_ID,
     creatorId: MAYA_CREATOR_ID,
@@ -266,5 +376,7 @@ export const seedMayaCreatorProgramming = async (
     fixtureId: fixture.fixtureId,
     seededPool: seedPool,
     seededQueue: seedQueue,
+    channelActive: options.channelActive ?? false,
+    playbackEngineSynced: options.syncPlaybackEngine ?? false,
   });
 };

@@ -283,7 +283,7 @@ describe("generateLiquidsoapConfig", () => {
   });
 
   it("includes creator live-ingest channels in the explicit e2e profile without rendering a live RTMP listener", async () => {
-    const { generateLiquidsoapConfig } = await setupModule({ AUTH_RATE_LIMIT_PROFILE: "e2e" });
+    const { generateLiquidsoapConfig } = await setupModule({ TEST_CONTROL_PROFILE: "e2e" });
 
     makeDbChain([CREATOR_CHANNEL_ROW]);
     mockGetAllEditorialConfigs.mockResolvedValue({ ok: true, value: [creatorConfig()] });

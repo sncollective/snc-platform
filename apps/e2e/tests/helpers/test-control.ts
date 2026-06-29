@@ -6,6 +6,8 @@ export type MayaProgrammingSeedOptions = {
   fixtureId?: string;
   title?: string;
   timestampIso?: string;
+  channelActive?: boolean;
+  syncPlaybackEngine?: boolean;
 };
 
 export type MayaProgrammingState = {
@@ -16,6 +18,8 @@ export type MayaProgrammingState = {
   fixtureId: string | null;
   seededPool: boolean;
   seededQueue: boolean;
+  channelActive: boolean;
+  playbackEngineSynced: boolean;
 };
 
 const parseJson = async (response: Awaited<ReturnType<APIRequestContext["post"]>>) => {
@@ -37,7 +41,10 @@ const assertOk = async (
 /** Reset Maya's creator-programming pool/queue to a clean state without UI surgery. */
 export const resetMayaProgramming = async (
   request: APIRequestContext,
-  options: Pick<MayaProgrammingSeedOptions, "fixtureId" | "title"> = {},
+  options: Pick<
+    MayaProgrammingSeedOptions,
+    "fixtureId" | "title" | "channelActive" | "syncPlaybackEngine"
+  > = {},
 ): Promise<MayaProgrammingState> => {
   const response = await request.post("/api/test-control/creator-programming/maya/reset", {
     data: options,

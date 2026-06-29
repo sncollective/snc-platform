@@ -6,7 +6,7 @@ import {
   fetchHlsManifestSnapshot,
   queueCreatorContent,
 } from "./helpers/playback-probes.js";
-import { seedMayaProgramming } from "./helpers/test-control.js";
+import { resetMayaProgramming, seedMayaProgramming } from "./helpers/test-control.js";
 
 const STUDIO_TOUR_TITLE = "Studio Tour 2026";
 const PLAYBACK_PROOF_TIMEOUT_MS = 90_000;
@@ -14,6 +14,13 @@ const POLL_INTERVALS_MS = [1_000, 2_000, 5_000];
 
 test.describe("Creator-channel queued playback machine proof", () => {
   test.use({ storageState: "auth/stakeholder.json" });
+
+  test.afterEach(async ({ request }) => {
+    await resetMayaProgramming(request, {
+      channelActive: false,
+      syncPlaybackEngine: true,
+    });
+  });
 
   test("promotes Maya's queued content to nowPlaying and grows the channel HLS manifest", async ({
     page,
@@ -25,7 +32,12 @@ test.describe("Creator-channel queued playback machine proof", () => {
       "Creator playback proof mutates Maya's shared queue; chromium-only avoids cross-project DB races.",
     );
 
-    const seed = await seedMayaProgramming(request, { pool: true, queue: false });
+    const seed = await seedMayaProgramming(request, {
+      pool: true,
+      queue: false,
+      channelActive: true,
+      syncPlaybackEngine: true,
+    });
     const authenticatedRequest = page.context().request;
 
     const queued = await queueCreatorContent(

@@ -16,6 +16,8 @@ export type RateLimitOptions = {
 
 export const STRICT_AUTH_RATE_LIMIT_MAX = 10;
 export const E2E_AUTH_RATE_LIMIT_MAX = 1_000;
+export const SRS_CALLBACK_RATE_LIMIT_MAX = 30;
+export const E2E_SRS_CALLBACK_RATE_LIMIT_MAX = 1_000;
 
 // ── Private State ──
 
@@ -34,6 +36,16 @@ export const getAuthStrictRateLimitMax = (
     return E2E_AUTH_RATE_LIMIT_MAX;
   }
   return STRICT_AUTH_RATE_LIMIT_MAX;
+};
+
+/** Resolve the SRS callback limiter cap for the configured runtime profile. */
+export const getSrsCallbackRateLimitMax = (
+  cfg: Pick<Config, "TEST_CONTROL_PROFILE">,
+): number => {
+  if (cfg.TEST_CONTROL_PROFILE === "e2e") {
+    return E2E_SRS_CALLBACK_RATE_LIMIT_MAX;
+  }
+  return SRS_CALLBACK_RATE_LIMIT_MAX;
 };
 
 /** Create an in-memory per-IP rate limiter with sliding window cleanup. */
