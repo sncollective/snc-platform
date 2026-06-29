@@ -1,7 +1,7 @@
 ---
 id: gate2-refactor-queue-status-concurrent-awaits
 kind: story
-stage: review
+stage: done
 tags: [refactor, perf]
 parent: null
 depends_on: []
@@ -24,3 +24,7 @@ Run independent reads (queueRows/poolCount; channelRows/queueRows/poolCounts) vi
 
 ## Implementation note
 Implemented the behavior-preserving Promise.all refactor for the single-channel queue/pool reads and multi-channel channel/queue/pool reads. Verification not run per orchestration instruction.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

@@ -1,7 +1,7 @@
 ---
 id: gate2-refactor-join-route-seo
 kind: story
-stage: review
+stage: done
 tags: [refactor, seo]
 parent: null
 depends_on: []
@@ -26,3 +26,7 @@ Add head({ loaderData }) with dynamic title/description; add canonical link; add
 - Added `head({ loaderData })` to `/join/$handle` with creator-specific title, description, Open Graph metadata, and a canonical `/join/{creator.handle ?? creator.id}` link using `VITE_SITE_URL` per route house style.
 - Added `decoding="async"` to the creator avatar image.
 - Did not run `bun` or `git` per orchestration constraints.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

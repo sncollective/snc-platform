@@ -1,7 +1,7 @@
 ---
 id: gate2-refactor-autofill-queueprojections-jsdoc
 kind: story
-stage: review
+stage: done
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -24,3 +24,7 @@ Add concise /** */ JSDoc to each exported helper. Behavior-preserving.
 
 ## Implementation note
 Added concise one-line JSDoc to the auto-fill threshold helper and both queue projection helpers. Verification not run per orchestration instruction.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

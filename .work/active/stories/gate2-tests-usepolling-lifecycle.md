@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-usepolling-lifecycle
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -27,3 +27,7 @@ Acceptance criterion: "clears the pending timeout and avoids state updates after
 - Added direct `usePolling` hook tests covering initial seed behavior, out-of-cycle `refetch()` with stable identity, key-change reset/restart, and unmount timeout cleanup.
 - Used fake timers with `renderHook`/`act` so interval and teardown behavior are deterministic without real sleeps.
 - Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

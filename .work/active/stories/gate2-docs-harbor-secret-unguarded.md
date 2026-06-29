@@ -1,7 +1,7 @@
 ---
 id: gate2-docs-harbor-secret-unguarded
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -29,3 +29,7 @@ Update the Harbor table + queue/skip/arm prose to show ?secret=-guarded mutating
 - Updated `docs/streaming.md` Harbor API table so queue and skip show `?secret=...`, matching arm.
 - Updated Harbor wrapper and skip/queue prose to state queue, skip, and arm are secret-guarded mutating endpoints requiring `PLAYOUT_CALLBACK_SECRET`.
 - Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

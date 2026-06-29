@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-testcontrol-wrong-secret
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -26,3 +26,7 @@ Acceptance criterion: wrong/missing x-test-control-secret → 403.
 ## Implementation (2026-06-29)
 - Expanded mounted e2e-profile test-control destructive-route coverage to reject both missing and wrong `x-test-control-secret` headers with 403 `Invalid test-control secret`.
 - Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.

@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-simulcast-update-rejection
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -27,3 +27,7 @@ Acceptance criterion: block private/link-local/internal on updates, not just cre
 - Added shared update-schema coverage rejecting private/internal RTMP update targets and built-in platform domain mismatches.
 - Added admin and creator simulcast PATCH route coverage for private RTMP updates returning 400 before the update service is called, proving no DB update path is reached.
 - Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (gate-rerun-1 finding, green verification — full suite: shared + api 116 + web build/test). No blockers above nit.
