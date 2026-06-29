@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 5
   snc-srs:
-    image: ossrs/srs:6
+    image: ossrs/srs:6.0.184
     container_name: snc-srs
     command: objs/srs -c conf/srs.conf
     ports:
@@ -95,7 +95,7 @@ services:
       retries: 3
 
   snc-imgproxy:
-    image: ghcr.io/imgproxy/imgproxy:v3
+    image: ghcr.io/imgproxy/imgproxy:v3.31
     container_name: snc-imgproxy
     environment:
       IMGPROXY_USE_S3: "true"
