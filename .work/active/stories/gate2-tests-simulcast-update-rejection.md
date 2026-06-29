@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-simulcast-update-rejection
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -22,3 +22,8 @@ Acceptance criterion: block private/link-local/internal on updates, not just cre
 
 ## Suggested test
 `apps/api/tests/services/simulcast.test.ts` + `packages/shared/tests/simulcast.test.ts` — PATCH existing twitch dest to private/non-twitch RTMP → 400, no DB update.
+
+## Implementation (2026-06-29)
+- Added shared update-schema coverage rejecting private/internal RTMP update targets and built-in platform domain mismatches.
+- Added admin and creator simulcast PATCH route coverage for private RTMP updates returning 400 before the update service is called, proving no DB update path is reached.
+- Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).

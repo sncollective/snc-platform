@@ -1114,6 +1114,23 @@ describe("streaming routes", () => {
         );
       });
 
+      it("returns 400 and does not update when patched to a private RTMP URL", async () => {
+        const res = await ctx.app.request(
+          `/api/streaming/simulcast/${CREATOR_ID}/${DEST_ID}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              platform: "twitch",
+              rtmpUrl: "rtmp://10.0.0.5/app",
+            }),
+          },
+        );
+
+        expect(res.status).toBe(400);
+        expect(mockUpdateCreatorSimulcastDestination).not.toHaveBeenCalled();
+      });
+
       it("returns 401 when unauthenticated", async () => {
         ctx.auth.user = null;
         ctx.auth.session = null;

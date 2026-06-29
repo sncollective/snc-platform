@@ -166,4 +166,21 @@ describe("UpdateSimulcastDestinationSchema rtmpUrl", () => {
       UpdateSimulcastDestinationSchema.parse({ rtmpUrl: "https://example.com" }),
     ).toThrow();
   });
+
+  it("rejects private/internal RTMP destinations on update", () => {
+    expect(() =>
+      UpdateSimulcastDestinationSchema.parse({
+        rtmpUrl: "rtmp://10.0.0.5/app",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects built-in platform updates outside the approved ingest domain", () => {
+    expect(() =>
+      UpdateSimulcastDestinationSchema.parse({
+        platform: "twitch",
+        rtmpUrl: "rtmp://a.rtmp.youtube.com/live2",
+      }),
+    ).toThrow();
+  });
 });

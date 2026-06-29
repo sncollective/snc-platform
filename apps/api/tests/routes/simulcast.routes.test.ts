@@ -195,6 +195,20 @@ describe("simulcast routes", () => {
       expect(mockUpdateSimulcastDestination).toHaveBeenCalledWith("dest-1", { label: "Updated Label", isActive: false });
     });
 
+    it("returns 400 and does not update when a built-in destination is patched to a private RTMP URL", async () => {
+      const res = await ctx.app.request("/api/simulcast/dest-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: "twitch",
+          rtmpUrl: "rtmp://10.0.0.5/app",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      expect(mockUpdateSimulcastDestination).not.toHaveBeenCalled();
+    });
+
     it("returns 404 when destination not found", async () => {
       const { NotFoundError } = await import("@snc/shared");
       mockUpdateSimulcastDestination.mockResolvedValue({
