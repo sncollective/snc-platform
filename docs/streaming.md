@@ -130,12 +130,12 @@ Liquidsoap exposes an HTTP control API on port 8888. The generated `playout.liq`
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | POST | `/admin/shutdown?secret=...` | Shut down Liquidsoap so the container restarts with the latest generated config |
-| POST | `/channels/{channelId}/queue` | Push the request-body URI into that channel's `request.queue` |
-| POST | `/channels/{channelId}/skip` | Skip the current source for that channel |
+| POST | `/channels/{channelId}/queue?secret=...` | Push the request-body URI into that channel's `request.queue` |
+| POST | `/channels/{channelId}/skip?secret=...` | Skip the current source for that channel |
 | GET | `/channels/{channelId}/now-playing` | Return current URI/title refs, elapsed/remaining time, and selected source label |
 | POST | `/channels/{channelId}/arm?secret=...` | Arm or disarm a non-broadcast playout channel's queue tier |
 
-The API wrapper (`services/liquidsoap-client.ts`) builds those paths through `harborChannelPaths(channelId)`, adds a 3-second timeout to Liquidsoap calls, and returns `null` for now-playing when Liquidsoap is unreachable or unconfigured. Guarded endpoints require `PLAYOUT_CALLBACK_SECRET`; the client fails fast when that secret is not configured.
+The API wrapper (`services/liquidsoap-client.ts`) builds those paths through `harborChannelPaths(channelId)`, adds `?secret=...` to mutating Harbor calls (`queue`, `skip`, and playout-channel `arm`), adds a 3-second timeout to Liquidsoap calls, and returns `null` for now-playing when Liquidsoap is unreachable or unconfigured. Mutating Harbor endpoints require `PLAYOUT_CALLBACK_SECRET`; the client fails fast when that secret is not configured.
 
 ### Configuration regeneration and pool rotation
 
@@ -151,15 +151,15 @@ Liquidsoap configuration is generated from database state. The API writes `playo
 
 **Pool selection.** The generated pool source calls `GET /api/playout/channels/:channelId/pool/next?secret=...`. The API selects the next least-recently-played pool item, applies the channel's ownership scope, resolves a playable S3 URI, updates `lastPlayedAt`/`playCount`, and returns the URI as plain text. For platform playout items, URI preference is 1080p → 720p → 480p → source; for creator content, the transcoded media key is preferred over the original media key.
 
-**Live vs structural control.** Queue push, skip, now-playing, and arm are live Harbor calls. Mode changes, manual pins, and tier topology changes are structural: they persist to the database and take effect through `regenerateAndRestart()`.
+**Live vs structural control.** Queue push, skip, now-playing, and arm are live Harbor calls; queue push, skip, and arm are secret-guarded mutating calls and now-playing is read-only. Mode changes, manual pins, and tier topology changes are structural: they persist to the database and take effect through `regenerateAndRestart()`.
 
 ### Skip and queue operations
 
 Skip and queue go through the platform API, which proxies to Liquidsoap's Harbor endpoints.
 
-**Skip** (`POST /api/playout/skip`) resolves the default active playout channel and delegates to the shared playout orchestrator. The orchestrator marks any playing queue row as played, calls Liquidsoap's per-channel `/channels/{channelId}/skip`, promotes the next queued row, auto-fills if the queue depth is low, and pushes the prefetch buffer.
+**Skip** (`POST /api/playout/skip`) resolves the default active playout channel and delegates to the shared playout orchestrator. The orchestrator marks any playing queue row as played, calls Liquidsoap's per-channel `/channels/{channelId}/skip?secret=...`, promotes the next queued row, auto-fills if the queue depth is low, and pushes the prefetch buffer.
 
-**Queue** (`POST /api/playout/queue/:id`) resolves the default active playout channel and inserts the selected playout item into that channel's durable queue through the shared orchestrator. The orchestrator validates the source, writes a `playout_queue` row, and prefetches queued items to Liquidsoap's per-channel `/channels/{channelId}/queue` endpoint.
+**Queue** (`POST /api/playout/queue/:id`) resolves the default active playout channel and inserts the selected playout item into that channel's durable queue through the shared orchestrator. The orchestrator validates the source, writes a `playout_queue` row, and prefetches queued items to Liquidsoap's per-channel `/channels/{channelId}/queue?secret=...` endpoint.
 
 **Status polling** (`GET /api/playout/status`) resolves the default active playout channel and returns the orchestrator's channel queue status in the admin status response shape. Channel-specific admin and creator surfaces use the `/api/playout/channels/:channelId/queue` and `/api/creator/playout/channels/:channelId/queue` routes.
 

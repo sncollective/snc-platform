@@ -1,7 +1,7 @@
 ---
 id: gate2-docs-harbor-secret-unguarded
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -24,3 +24,8 @@ Docs list POST /channels/{channelId}/queue and /skip without ?secret=. Code now 
 
 ## Remediation direction
 Update the Harbor table + queue/skip/arm prose to show ?secret=-guarded mutating endpoints requiring PLAYOUT_CALLBACK_SECRET.
+
+## Implementation (2026-06-29)
+- Updated `docs/streaming.md` Harbor API table so queue and skip show `?secret=...`, matching arm.
+- Updated Harbor wrapper and skip/queue prose to state queue, skip, and arm are secret-guarded mutating endpoints requiring `PLAYOUT_CALLBACK_SECRET`.
+- Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
