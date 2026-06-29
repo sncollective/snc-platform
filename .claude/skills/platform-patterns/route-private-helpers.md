@@ -8,11 +8,10 @@ When multiple route handlers in a single file share the same query, authorizatio
 
 ## Examples
 
-### Example 1: Shared query + authorization helpers used across 4 routes
-**File**: `apps/api/src/routes/content.routes.ts:89`
+### Example 1: Shared query + authorization helpers used across routes
+**File**: `apps/api/src/lib/content-helpers.ts:88-113` (imported by `apps/api/src/routes/content.routes.ts:31`)
 ```typescript
-// Used by GET /:id, PATCH /:id, DELETE /:id, and POST /:id/upload
-const findActiveContent = async (
+export const findActiveContent = async (
   id: string,
 ): Promise<ContentRow | undefined> => {
   const rows = await db
@@ -22,8 +21,7 @@ const findActiveContent = async (
   return rows[0];
 };
 
-// Wraps findActiveContent + ownership check; throws typed errors on failure
-const requireContentOwnership = async (
+export const requireContentOwnership = async (
   id: string,
   userId: string,
 ): Promise<ContentRow> => {
@@ -31,55 +29,56 @@ const requireContentOwnership = async (
   if (!existing) {
     throw new NotFoundError("Content not found");
   }
-  if (existing.creatorId !== userId) {
-    throw new ForbiddenError("Not the content owner");
-  }
+  await requireCreatorPermission(userId, existing.creatorId, "manageContent");
   return existing;
 };
 ```
 
-### Example 2: Response-mapping helper shared by all write routes
-**File**: `apps/api/src/routes/content.routes.ts:67`
+### Example 2: Response-mapping helper shared by write routes
+**File**: `apps/api/src/lib/content-helpers.ts:53-85` (imported by `apps/api/src/routes/content.routes.ts:31`)
 ```typescript
-// Transforms DB row (storage keys) → API response (URL paths)
-// Used by POST /, PATCH /:id, DELETE cascade cleanup, POST /:id/upload
-const resolveContentUrls = (row: ContentRow): ContentResponse => ({
-  id: row.id,
-  creatorId: row.creatorId,
-  type: row.type as ContentType,
-  title: row.title,
-  body: row.body ?? null,
-  description: row.description ?? null,
-  visibility: row.visibility as Visibility,
-  thumbnailUrl: row.thumbnailKey ? `/api/content/${row.id}/thumbnail` : null,
-  mediaUrl: row.mediaKey ? `/api/content/${row.id}/media` : null,
-  coverArtUrl: row.coverArtKey ? `/api/content/${row.id}/cover-art` : null,
-  publishedAt: row.publishedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});
+export const resolveContentUrls = (row: ContentRow): ContentResponse => {
+  const { thumbnailUrl, thumbnail } = buildThumbnail(
+    row.id,
+    row.thumbnailKey,
+    row.updatedAt,
+  );
+  return {
+    id: row.id,
+    creatorId: row.creatorId,
+    type: row.type,
+    title: row.title,
+    body: row.body ?? null,
+    thumbnailUrl,
+    thumbnail,
+    mediaUrl: row.mediaKey
+      ? `/api/content/${row.id}/media${cacheBust(row.updatedAt)}`
+      : null,
+    updatedAt: toISO(row.updatedAt),
+    processingStatus: row.processingStatus ?? null,
+  };
+};
 ```
 
 ### Example 3: Shared OpenAPI error-response constants
-**File**: `apps/api/src/routes/content.routes.ts:121`
+**File**: `apps/api/src/lib/openapi-errors.ts:13-31` (imported by `apps/api/src/routes/content.routes.ts:29`)
 ```typescript
-// Defined once at the top of the file; referenced in every describeRoute() call
-const ERROR_400 = {
+export const ERROR_400 = {
   description: "Validation error",
   content: { "application/json": { schema: resolver(ErrorResponse) } },
 } as const;
 
-const ERROR_401 = {
+export const ERROR_401 = {
   description: "Unauthenticated",
   content: { "application/json": { schema: resolver(ErrorResponse) } },
 } as const;
 
-const ERROR_403 = {
+export const ERROR_403 = {
   description: "Forbidden",
   content: { "application/json": { schema: resolver(ErrorResponse) } },
 } as const;
 
-const ERROR_404 = {
+export const ERROR_404 = {
   description: "Not found",
   content: { "application/json": { schema: resolver(ErrorResponse) } },
 } as const;

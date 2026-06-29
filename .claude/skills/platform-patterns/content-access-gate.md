@@ -11,7 +11,7 @@ Draft access is handled separately by `requireDraftAccess()`, which uses the `vi
 ## Examples
 
 ### Example 1: ContentGateResult discriminated union type
-**File**: `apps/api/src/services/content-access.ts:11`
+**File**: `apps/api/src/services/content-access.ts:32`
 ```typescript
 export type ContentGateResult =
   | { allowed: true }
@@ -19,7 +19,7 @@ export type ContentGateResult =
 ```
 
 ### Example 2: Two-phase access check (batch context + per-item)
-**File**: `apps/api/src/services/content-access.ts`
+**File**: `apps/api/src/services/content-access.ts:55-180`
 
 The access logic uses a two-phase approach: `buildContentAccessContext()` pre-fetches memberships and subscriptions once, then `hasContentAccess()` runs synchronously per item. `checkContentAccess()` composes both for single-item endpoints.
 
@@ -43,7 +43,7 @@ export const hasContentAccess = (
 Stakeholders and any creator team member get `hasPlatformSubscription: true` in `buildContentAccessContext`, skipping the subscription query entirely.
 
 ### Example 3: Feed endpoint soft-gates denied items (batch path)
-**File**: `apps/api/src/routes/content.routes.ts:174`
+**File**: `apps/api/src/routes/content-feed.routes.ts:114-120`
 ```typescript
 const items = rawItems.map((row) => {
   const item = resolveFeedItem(row);
@@ -55,8 +55,8 @@ const items = rawItems.map((row) => {
 });
 ```
 
-### Example 4: Detail endpoint uses requireDraftAccess + applyContentGate
-**File**: `apps/api/src/routes/content.routes.ts:376`
+### Example 4: Detail endpoints use requireDraftAccess + applyContentGate
+**File**: `apps/api/src/routes/content.routes.ts:163-165,216-218`
 ```typescript
 await requireDraftAccess(row, user?.id ?? null, roles);
 const response = await applyContentGate(row, user?.id ?? null, resolveContentUrls(row), roles);

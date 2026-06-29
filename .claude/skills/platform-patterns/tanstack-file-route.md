@@ -101,21 +101,43 @@ function LoginPage() {
 ```
 
 ### Example 3: Root layout route
-**File**: `apps/web/src/routes/__root.tsx`
+**File**: `apps/web/src/routes/__root.tsx:33-60,70-92,99-123`
 ```typescript
 export const Route = createRootRoute({
+  loader: async () => {
+    const authState = await fetchAuthStateServer();
+    return { authState };
+  },
   component: RootComponent,
 });
 
 function RootComponent() {
   return (
     <RootDocument>
-      <NavBar />
-      <main className="main-content">
-        <Outlet />
-      </main>
-      <Footer />
+      <RootLayout />
     </RootDocument>
+  );
+}
+
+export function RootLayout() {
+  const { authState } = Route.useLoaderData();
+  return (
+    <NotificationProvider userId={authState?.user?.id ?? null}>
+      <GlobalPlayerProvider>
+        <UploadProvider>
+          <AppShell serverAuth={authState} />
+        </UploadProvider>
+      </GlobalPlayerProvider>
+    </NotificationProvider>
+  );
+}
+
+function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
+  return (
+    <main id="main-content" className="main-content">
+      <GlobalPlayer />
+      <Outlet />
+    </main>
   );
 }
 ```

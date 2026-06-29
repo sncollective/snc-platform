@@ -9,199 +9,118 @@ Splitting `State` (read) from `Actions` (write) into separate exported interface
 ## Examples
 
 ### Example 1: Full context module structure
-**File**: `apps/web/src/contexts/audio-player-context.tsx:14-191`
+**File**: `apps/web/src/contexts/global-player-context.tsx:33-176`
 ```typescript
-// ── Public Types ──
-export interface AudioTrack { readonly id: string; ... }
-
-export interface AudioPlayerState {
-  readonly track: AudioTrack | null;
-  readonly isPlaying: boolean;
-  readonly currentTime: number;
-  readonly duration: number;
+export interface GlobalPlayerState {
+  readonly media: MediaMetadata | null;
+  readonly activeDetailId: string | null;
+  readonly shouldAutoPlay: boolean;
 }
 
-export interface AudioPlayerActions {
-  readonly playTrack: (track: AudioTrack) => void;
-  readonly pause: () => void;
-  readonly resume: () => void;
-  readonly seek: (time: number) => void;
-  readonly setVolume: (volume: number) => void;
-  readonly clearTrack: () => void;
+export interface GlobalPlayerActions {
+  readonly play: (media: MediaMetadata) => void;
+  readonly clear: () => void;
+  readonly setActiveDetail: (id: string | null) => void;
 }
 
-export interface AudioPlayerContextValue {
-  readonly state: AudioPlayerState;
-  readonly actions: AudioPlayerActions;
+export interface GlobalPlayerContextValue {
+  readonly state: GlobalPlayerState;
+  readonly presentation: PlayerPresentation;
+  readonly actions: GlobalPlayerActions;
+  readonly chatPortalRef: React.RefObject<HTMLDivElement | null>;
 }
 
-// ── Constants ──
-export const INITIAL_STATE: AudioPlayerState = {
-  track: null, isPlaying: false, currentTime: 0, duration: 0,
-};
+export const INITIAL_STATE: GlobalPlayerState = { /* ... */ };
 
-// ── Reducer (exported for unit testing) ──
-type AudioAction =
-  | { readonly type: "SET_TRACK"; readonly track: AudioTrack }
-  | { readonly type: "PLAY" }
-  | { readonly type: "PAUSE" }
-  | { readonly type: "SET_PROGRESS"; readonly currentTime: number }
-  | { readonly type: "SET_DURATION"; readonly duration: number }
-  | { readonly type: "CLEAR" };
-
-export function audioReducer(state: AudioPlayerState, action: AudioAction): AudioPlayerState {
+export function globalPlayerReducer(
+  state: GlobalPlayerState,
+  action: GlobalPlayerAction,
+): GlobalPlayerState {
   switch (action.type) {
-    case "SET_TRACK":    return { track: action.track, isPlaying: true, currentTime: 0, duration: 0 };
-    case "PLAY":         return { ...state, isPlaying: true };
-    case "PAUSE":        return { ...state, isPlaying: false };
-    case "SET_PROGRESS": return { ...state, currentTime: action.currentTime };
-    case "SET_DURATION": return { ...state, duration: action.duration };
-    case "CLEAR":        return INITIAL_STATE;
+    case "PLAY": return { ...state, media: action.media, shouldAutoPlay: true };
+    case "CLEAR": return INITIAL_STATE;
+    case "SET_ACTIVE_DETAIL": return { ...state, activeDetailId: action.id };
+    // ...
   }
 }
 
-// ── Provider ──
-const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
+const GlobalPlayerContext = createContext<GlobalPlayerContextValue | null>(null);
 
-export function AudioPlayerProvider({ children }: Readonly<{ children: ReactNode }>): React.ReactElement {
-  const [state, dispatch] = useReducer(audioReducer, INITIAL_STATE);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-
-  // Bridge DOM element events → reducer dispatches
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTimeUpdate = () => dispatch({ type: "SET_PROGRESS", currentTime: audio.currentTime });
-    const onLoadedMetadata = () => dispatch({ type: "SET_DURATION", duration: audio.duration });
-    const onEnded = () => dispatch({ type: "PAUSE" });
-    const onPlay = () => dispatch({ type: "PLAY" });
-    const onPause = () => dispatch({ type: "PAUSE" });
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    return () => { /* removeEventListener for all */ };
-  }, []);
-
-  // Stable actions object — does NOT depend on state
-  const actions = useMemo<AudioPlayerActions>(() => ({
-    async playTrack(track) {
-      const audio = audioRef.current;
-      if (!audio) return;
-      // Lazily create AudioContext + GainNode on first play (requires user gesture)
-      if (!audioCtxRef.current && typeof AudioContext !== "undefined") {
-        const ctx = new AudioContext();
-        const source = ctx.createMediaElementSource(audio);
-        const gain = ctx.createGain();
-        source.connect(gain); gain.connect(ctx.destination);
-        audioCtxRef.current = ctx; gainRef.current = gain;
-        audio.volume = 1; // Element volume stays at 1; GainNode controls output
-      }
-      dispatch({ type: "SET_TRACK", track });
-      audio.src = track.mediaUrl;
-      try { await audio.play(); } catch { dispatch({ type: "PAUSE" }); }
-    },
-    pause()  { audioRef.current?.pause(); },
-    resume() { void audioRef.current?.play(); },
-    seek(time) { if (audioRef.current) audioRef.current.currentTime = time; },
-    setVolume(volume) {
-      const ctx = audioCtxRef.current, gain = gainRef.current;
-      if (ctx && gain) {
-        gain.gain.cancelScheduledValues(ctx.currentTime);
-        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.02);
-      } else if (audioRef.current) { audioRef.current.volume = volume; }
-    },
-    clearTrack() {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.pause(); audio.src = ""; dispatch({ type: "CLEAR" });
-    },
-  }), []);
-
-  const value = useMemo(() => ({ state, actions }), [state, actions]);
-
-  return (
-    <AudioPlayerContext value={value}>
-      <audio ref={audioRef} hidden />
-      {children}
-    </AudioPlayerContext>
+export function GlobalPlayerProvider({ children }: Readonly<{ children: ReactNode }>): React.ReactElement {
+  const [state, dispatch] = useReducer(globalPlayerReducer, INITIAL_STATE);
+  const chatPortalRef = useRef<HTMLDivElement | null>(null);
+  const actions = useMemo<GlobalPlayerActions>(() => ({ /* dispatching actions */ }), []);
+  const value = useMemo<GlobalPlayerContextValue>(
+    () => ({ state, presentation, actions, chatPortalRef }),
+    [state, presentation, actions],
   );
+  return <GlobalPlayerContext value={value}>{children}</GlobalPlayerContext>;
 }
 
-// ── Hook ──
-export function useAudioPlayer(): AudioPlayerContextValue {
-  const context = useContext(AudioPlayerContext);
-  if (!context) throw new Error("useAudioPlayer must be used within an AudioPlayerProvider");
+export function useGlobalPlayer(): GlobalPlayerContextValue {
+  const context = useContext(GlobalPlayerContext);
+  if (!context) throw new Error("useGlobalPlayer must be used within a GlobalPlayerProvider");
   return context;
 }
 ```
 
 ### Example 2: Provider placement in root layout
-**File**: `apps/web/src/routes/__root.tsx:43-50`
+**File**: `apps/web/src/routes/__root.tsx:88-92,99-123`
 ```typescript
-// AudioPlayerProvider wraps the entire app so any route can consume audio state.
-// MiniPlayer is placed *outside* <Outlet /> so it persists across route transitions.
-function RootComponent() {
+<NotificationProvider userId={authState?.user?.id ?? null}>
+  <GlobalPlayerProvider>
+    <UploadProvider>
+      <AppShell serverAuth={authState} />
+    </UploadProvider>
+  </GlobalPlayerProvider>
+</NotificationProvider>
+
+function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
+  const { state: playerState, chatPortalRef } = useGlobalPlayer();
+  // ...
   return (
-    <RootDocument>
-      <AudioPlayerProvider>
-        <NavBar />
-        <main className="main-content"><Outlet /></main>
-        <MiniPlayer />
-        <Footer />
-      </AudioPlayerProvider>
-    </RootDocument>
+    <main id="main-content" className={clsx(/* layout classes */)}>
+      <GlobalPlayer />
+      <div className={clsx(isLiveLayout && styles.outletColumn)}>
+        <Outlet />
+      </div>
+      <div ref={chatPortalRef} />
+    </main>
   );
 }
 ```
 
 ### Example 3: Consumer using context hook
-**File**: `apps/web/src/components/media/audio-player.tsx:28-50`
+**File**: `apps/web/src/components/media/global-player.tsx:28-29`
 ```typescript
-export function AudioPlayer({ src, title, creator, coverArtUrl, contentId }: AudioPlayerProps) {
-  const { state, actions } = useAudioPlayer();
-
-  // Determine if *this* component's track is currently active
-  const isThisTrack = state.track?.id === contentId;
-  const isPlayingThis = isThisTrack && state.isPlaying;
-
-  function handlePlayPause() {
-    if (!isThisTrack) {
-      // Start new track — dispatches SET_TRACK
-      actions.playTrack({ id: contentId, title, creatorName: creator, mediaUrl: src, coverArtUrl: coverArtUrl ?? null });
-    } else if (isPlayingThis) {
-      actions.pause();
-    } else {
-      actions.resume();
-    }
-  }
+export function GlobalPlayer() {
+  const { state, presentation, actions } = useGlobalPlayer();
   // ...
 }
 ```
 
 ### Example 4: Testing the reducer in isolation
-**File**: `apps/web/tests/unit/contexts/audio-player-context.test.tsx`
+**File**: `apps/web/tests/unit/contexts/global-player-context.test.tsx:5-100`
 ```typescript
-import { audioReducer, INITIAL_STATE } from "../../../src/contexts/audio-player-context.js";
+import {
+  GlobalPlayerProvider,
+  globalPlayerReducer,
+  useGlobalPlayer,
+  INITIAL_STATE,
+} from "../../../src/contexts/global-player-context.js";
 
-describe("audioReducer", () => {
-  it("SET_TRACK resets progress and plays", () => {
-    const next = audioReducer(INITIAL_STATE, { type: "SET_TRACK", track: TEST_TRACK });
-    expect(next.track).toEqual(TEST_TRACK);
-    expect(next.isPlaying).toBe(true);
-    expect(next.currentTime).toBe(0);
+describe("globalPlayerReducer", () => {
+  it("PLAY sets media", () => {
+    const next = globalPlayerReducer(INITIAL_STATE, { type: "PLAY", media: AUDIO_MEDIA });
+    expect(next.media).toEqual(AUDIO_MEDIA);
   });
 });
 
-// Testing the hook via renderHook + wrapper
-function wrapper({ children }: Readonly<{ children: ReactNode }>) {
-  return <AudioPlayerProvider>{children}</AudioPlayerProvider>;
+function wrapper({ children }: Readonly<{ children: ReactNode }>): React.ReactElement {
+  return <GlobalPlayerProvider>{children}</GlobalPlayerProvider>;
 }
-const { result } = renderHook(() => useAudioPlayer(), { wrapper });
+
+const { result } = renderHook(() => useGlobalPlayer(), { wrapper });
 ```
 
 ## When to Use

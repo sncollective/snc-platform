@@ -9,7 +9,7 @@ A `StorageProvider` interface defines the backend-agnostic contract (upload/down
 ## Examples
 
 ### Example 1: StorageProvider interface in shared package
-**File**: `packages/shared/src/storage.ts:16`
+**File**: `packages/shared/src/storage.ts:33-66`
 ```typescript
 export type StorageProvider = {
   upload(
@@ -18,24 +18,31 @@ export type StorageProvider = {
     metadata?: UploadMetadata,
   ): Promise<Result<UploadResult, AppError>>;
 
-  download(key: string): Promise<Result<ReadableStream<Uint8Array>, AppError>>;
-
+  download(key: string): Promise<Result<DownloadResult, AppError>>;
+  downloadRange(key: string, start: number, end: number): Promise<Result<RangeDownloadResult, AppError>>;
   delete(key: string): Promise<Result<void, AppError>>;
-
-  getSignedUrl(
+  getSignedUrl(key: string, expiresInSeconds: number): Promise<Result<string, AppError>>;
+  head(key: string): Promise<Result<{ size: number; contentType: string }, AppError>>;
+  getPresignedUploadUrl(
     key: string,
+    contentType: string,
     expiresInSeconds: number,
+    contentLength: number,
   ): Promise<Result<string, AppError>>;
 };
 ```
 
 ### Example 2: Factory + singleton in storage/index.ts
-**File**: `apps/api/src/storage/index.ts:10`
+**File**: `apps/api/src/storage/provider.ts:45-59` and `apps/api/src/storage/index.ts:19-21`
 ```typescript
 export const createStorageProvider = (cfg: Config): StorageProvider => {
   switch (cfg.STORAGE_TYPE) {
     case "local":
       return createLocalStorage({ baseDir: cfg.STORAGE_LOCAL_DIR });
+    case "s3": {
+      const client = createS3Client(cfg);
+      return createS3Storage({ client, bucket: cfg.S3_BUCKET! });
+    }
     default: {
       const exhaustive: never = cfg.STORAGE_TYPE;
       throw new AppError("STORAGE_CONFIG_ERROR", `Unknown storage type: ${exhaustive}`, 500);
@@ -43,19 +50,24 @@ export const createStorageProvider = (cfg: Config): StorageProvider => {
   }
 };
 
-export const storage: StorageProvider = createStorageProvider(config);
+export const storage: StorageProvider = s3Client
+  ? createS3Storage({ client: s3Client, bucket: config.S3_BUCKET! })
+  : createLocalStorage({ baseDir: config.STORAGE_LOCAL_DIR });
 ```
 
 ### Example 3: Route file imports singleton; test mocks it via vi.doMock
-**File**: `apps/api/src/routes/content.routes.ts:27`
+**File**: `apps/api/src/routes/content-media.routes.ts:21,187-193`
 ```typescript
 import { storage } from "../storage/index.js";
 
 // Usage inside a route handler:
-const uploadResult = await storage.upload(key, stream, { contentType: file.type });
+const uploadResult = await storage.upload(key, stream, {
+  contentType: file.type,
+  contentLength: file.size,
+});
 ```
 
-**File**: `apps/api/tests/routes/content.routes.test.ts:85`
+**File**: `apps/api/tests/routes/content.routes.test.ts:65-132`
 ```typescript
 // Individual method stubs assembled into a mock object
 const mockStorageUpload = vi.fn();

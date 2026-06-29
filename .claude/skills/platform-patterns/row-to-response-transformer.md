@@ -9,7 +9,7 @@ Drizzle returns `Date` objects and raw storage keys; the API contract requires I
 ## Examples
 
 ### Example 1: Simple flat transformer
-**File**: `apps/api/src/routes/booking.routes.ts:51`
+**File**: `apps/api/src/routes/booking.routes.ts:65`
 ```typescript
 // ── Private Types ──
 type ServiceRow = typeof services.$inferSelect;
@@ -28,7 +28,7 @@ const toServiceResponse = (row: ServiceRow): Service => ({
 ```
 
 ### Example 2: Composed transformer with nested object
-**File**: `apps/api/src/routes/booking.routes.ts:66`
+**File**: `apps/api/src/routes/booking.routes.ts:80`
 ```typescript
 const toBookingWithServiceResponse = (
   booking: BookingRequestRow,
@@ -49,28 +49,35 @@ const toBookingWithServiceResponse = (
 ```
 
 ### Example 3: Transformer with URL derivation from storage keys
-**File**: `apps/api/src/routes/content.routes.ts:61`
+**File**: `apps/api/src/lib/content-helpers.ts:53-85`
 ```typescript
-const resolveContentUrls = (row: ContentRow): ContentResponse => ({
-  id: row.id,
-  creatorId: row.creatorId,
-  type: row.type as ContentType,
-  title: row.title,
-  body: row.body ?? null,
-  thumbnailUrl: row.thumbnailKey
-    ? `/api/content/${row.id}/thumbnail`
-    : null,
-  mediaUrl: row.mediaKey
-    ? `/api/content/${row.id}/media`
-    : null,
-  publishedAt: row.publishedAt?.toISOString() ?? null,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});
+export const resolveContentUrls = (row: ContentRow): ContentResponse => {
+  const { thumbnailUrl, thumbnail } = buildThumbnail(
+    row.id,
+    row.thumbnailKey,
+    row.updatedAt,
+  );
+  return {
+    id: row.id,
+    creatorId: row.creatorId,
+    type: row.type,
+    title: row.title,
+    body: row.body ?? null,
+    thumbnailUrl,
+    thumbnail,
+    mediaUrl: row.mediaKey
+      ? `/api/content/${row.id}/media${cacheBust(row.updatedAt)}`
+      : null,
+    publishedAt: toISOOrNull(row.publishedAt),
+    createdAt: toISO(row.createdAt),
+    updatedAt: toISO(row.updatedAt),
+    processingStatus: row.processingStatus ?? null,
+  };
+};
 ```
 
 ### Example 4: Plan transformer for subscription domain
-**File**: `apps/api/src/routes/subscription.routes.ts:59`
+**File**: `apps/api/src/routes/subscription.routes.ts:63`
 ```typescript
 const toPlanResponse = (row: PlanRow): SubscriptionPlan => ({
   id: row.id,

@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-stale-examples
 kind: story
-stage: drafting
+stage: review
 tags: [documentation, refactor]
 parent: null
 depends_on: []
@@ -38,3 +38,14 @@ For each pattern file, refresh the example citations to point at the current cod
 
 ## Note
 The 7 NEW patterns discovered in this same gate (`structural-edit-regenerate-restart`, `fire-and-forget-event-publish`, `exactly-one-source-contract`, `e2e-test-control-state-bracket`, `bounded-expect-poll-probe`, `controlled-confirm-dialog`, `responsive-table-dual-render`) have been written to `.claude/skills/platform-patterns/` and added to the SKILL.md + rules digest indexes — that work is done, not part of this stale-refresh item.
+
+## Implementation (2026-06-29)
+
+Refreshed all 9 stale pattern files and advanced this item from `stage: drafting` to `stage: review`.
+
+- Updated content gating citations to the current feed/detail handlers (`content-feed.routes.ts` and `content.routes.ts`).
+- Updated creator slug resolver citations to `lib/creator-helpers.ts`.
+- Updated root-layout/context examples to `GlobalPlayerProvider`, `AppShell`, `GlobalPlayer`, and `global-player-context.tsx`.
+- Updated content helper/error/transformer citations to `lib/content-helpers.ts` and `lib/openapi-errors.ts`.
+- Updated upload/storage examples to `content-media.routes.ts`, `creator-media.routes.ts`, and current storage factory/singleton locations.
+- Could not locate: none.

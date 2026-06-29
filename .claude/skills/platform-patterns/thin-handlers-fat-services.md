@@ -41,20 +41,17 @@ export const checkContentAccess = async (
 ```
 
 ### Example 2: Thin handler delegating to service
-**File**: `apps/api/src/routes/content.routes.ts:302`
+**File**: `apps/api/src/routes/content.routes.ts:163-165,216-218`
 ```typescript
 // Route handler: parse → delegate → respond
-const gate = await checkContentAccess(
-  userId,
-  row.creatorId,
-  row.visibility,
+await requireDraftAccess(row, user?.id ?? null, roles);
+const response = await applyContentGate(
+  row,
+  user?.id ?? null,
+  resolveContentUrls(row),
+  roles,
 );
-if (!gate.allowed) {
-  if (gate.reason === "AUTHENTICATION_REQUIRED") {
-    throw new UnauthorizedError("Authentication required");
-  }
-  throw new ForbiddenError("Subscription required");
-}
+return c.json(response);
 ```
 
 ### Example 3: Service returning Result<T, AppError>

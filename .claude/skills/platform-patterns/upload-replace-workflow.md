@@ -7,22 +7,17 @@ Multiple upload endpoints (avatar, banner, media, thumbnail, cover art) share th
 
 ## Examples
 
-### Example 1: Parameterized avatar/banner handler in creator routes
-**File**: `apps/api/src/routes/creator.routes.ts:132`
+### Example 1: Parameterized avatar/banner handler in creator media routes
+**File**: `apps/api/src/routes/creator-media.routes.ts:28-113,134-181`
 ```typescript
 const handleImageUpload = async (
   c: Context<AuthEnv>,
   field: "avatar" | "banner",
 ): Promise<Response> => {
-  const creatorId = c.req.param("creatorId");
+  const identifier = c.req.param("creatorId") ?? ""; // validated-upstream
   const user = c.get("user");
 
-  // 1. Ownership check
-  if (creatorId !== user.id) {
-    throw new ForbiddenError("Cannot upload to another creator's profile");
-  }
-
-  // 2. Content-Length pre-check (reject oversized requests before reading body)
+  // 1. Content-Length pre-check (reject oversized requests before reading body)
   const contentLengthHeader = c.req.header("content-length");
   if (contentLengthHeader) {
     const contentLength = parseInt(contentLengthHeader, 10);
@@ -30,6 +25,13 @@ const handleImageUpload = async (
       throw new ValidationError(`File size exceeds the ${MAX_FILE_SIZES.image} byte limit`);
     }
   }
+
+  // 2. Resolve profile by UUID or handle, then check editProfile permission
+  const profile = await findCreatorProfile(identifier);
+  if (!profile) {
+    throw new NotFoundError("Creator profile not found");
+  }
+  await requireCreatorPermission(user.id, profile.id, "editProfile");
 
   // 3. Parse multipart body and extract file
   const body = await c.req.parseBody();
@@ -50,15 +52,9 @@ const handleImageUpload = async (
 
   // 6. Generate storage key
   const sanitized = sanitizeFilename(file.name || field);
-  const key = `creators/${creatorId}/${field}/${sanitized}`;
+  const key = `creators/${profile.id}/${field}/${sanitized}`;
 
-  // 7. Ensure profile exists (lazy upsert)
-  let profile = await findCreatorProfile(creatorId);
-  if (!profile) {
-    profile = await ensureCreatorProfile(creatorId, user.name);
-  }
-
-  // 8. Delete old file before re-uploading
+  // 7. Delete old file before re-uploading
   const oldKey = field === "avatar" ? profile.avatarKey : profile.bannerKey;
   if (oldKey) {
     const deleteResult = await storage.delete(oldKey);
@@ -67,7 +63,7 @@ const handleImageUpload = async (
     }
   }
 
-  // 9. Upload new file
+  // 8. Upload new file
   const uploadResult = await storage.upload(key, file.stream(), {
     contentType: file.type,
     contentLength: file.size,
@@ -76,39 +72,44 @@ const handleImageUpload = async (
     throw new AppError("UPLOAD_ERROR", `Failed to upload ${field}`, 500);
   }
 
-  // 10. Update DB with new storage key
+  // 9. Update DB with new storage key
   const [updated] = await db
     .update(creatorProfiles)
     .set({ [field === "avatar" ? "avatarKey" : "bannerKey"]: key, updatedAt: new Date() })
-    .where(eq(creatorProfiles.userId, creatorId))
+    .where(eq(creatorProfiles.id, profile.id))
     .returning();
   if (!updated) throw new NotFoundError("Creator profile not found");
 
-  return c.json(await toProfileResponse(updated));
+  const contentCount = await getContentCount(profile.id);
+  const response = toProfileResponse(updated, contentCount);
+  return c.json(response);
 };
 
 // Two route handlers delegate to the same function, varying only field:
-creatorRoutes.post("/:creatorId/avatar", requireAuth, requireRole("creator"), ..., async (c) =>
+creatorMediaRoutes.post("/:creatorId/avatar", requireAuth, ..., async (c) =>
   handleImageUpload(c, "avatar"),
 );
-creatorRoutes.post("/:creatorId/banner", requireAuth, requireRole("creator"), ..., async (c) =>
+creatorMediaRoutes.post("/:creatorId/banner", requireAuth, ..., async (c) =>
   handleImageUpload(c, "banner"),
 );
 ```
 
 ### Example 2: Content upload handler with dynamic field constraints
-**File**: `apps/api/src/routes/content.routes.ts:434`
+**File**: `apps/api/src/routes/content-media.routes.ts:109-224`
 ```typescript
-contentRoutes.post(
+contentMediaRoutes.post(
   "/:id/upload",
   requireAuth,
+  validator("param", IdParam),
   validator("query", UploadQuerySchema),
   async (c) => {
-    const { field } = c.req.valid("query" as never) as { field: "media" | "thumbnail" | "coverArt" };
-    const contentItem = await requireContentOwnership(c);
+    const { field } = c.req.valid("query" as never) as { field: "media" | "thumbnail" };
+    const { id } = c.req.valid("param" as never) as { id: string };
+    const user = c.get("user");
+    const existing = await requireContentOwnership(id, user.id);
 
     // Dynamic constraints based on content type + upload field
-    const { maxSize, acceptedTypes } = getUploadConstraints(contentItem.type, field);
+    const { maxSize, acceptedTypes } = getUploadConstraints(existing.type, field);
 
     // Content-Length pre-check
     const contentLengthHeader = c.req.header("content-length");
@@ -130,13 +131,14 @@ contentRoutes.post(
 
     // Key, delete old, upload new, DB update — same sequence as creator handler
     const sanitized = sanitizeFilename(file.name);
-    const key = `content/${contentItem.id}/${field}/${sanitized}`;
-    const oldKey = FIELD_KEY_MAP[field](contentItem);
+    const key = `content/${id}/${field}/${sanitized}`;
+    const keyColumn = FIELD_KEY_MAP[field];
+    const oldKey = existing[keyColumn];
     if (oldKey) await storage.delete(oldKey);
     await storage.upload(key, file.stream(), { contentType: file.type, contentLength: file.size });
     await db.update(content)
-      .set({ [FIELD_KEY_MAP_COLUMNS[field]]: key, updatedAt: new Date() })
-      .where(eq(content.id, contentItem.id));
+      .set({ [keyColumn]: key, updatedAt: new Date() })
+      .where(eq(content.id, id));
     // ...
   },
 );

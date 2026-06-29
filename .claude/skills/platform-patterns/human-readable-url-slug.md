@@ -8,13 +8,13 @@ URLs are visible to users in the browser address bar, shared in links, and index
 ## Examples
 
 ### Example 1: Computing a URL slug from an entity
-**File**: `apps/web/src/components/creator/creator-card.tsx:20`
+**File**: `apps/web/src/components/creator/creator-card.tsx:22`
 ```typescript
 const creatorSlug = creator.handle ?? creator.id;
 ```
 
 ### Example 2: Using the slug in a TanStack Router Link
-**File**: `apps/web/src/components/creator/creator-card.tsx:25`
+**File**: `apps/web/src/components/creator/creator-card.tsx:35-37`
 ```tsx
 <Link
   to="/creators/$creatorId"
@@ -23,7 +23,7 @@ const creatorSlug = creator.handle ?? creator.id;
 ```
 
 ### Example 3: Using the slug in programmatic navigation
-**File**: `apps/web/src/routes/creators/index.tsx:96`
+**File**: `apps/web/src/routes/creators/index.tsx:104`
 ```typescript
 void navigate({
   to: "/creators/$creatorId/manage",
@@ -32,21 +32,22 @@ void navigate({
 ```
 
 ### Example 4: Backend dual-mode resolver (enables slug URLs)
-**File**: `apps/api/src/routes/creator.routes.ts:69`
+**File**: `apps/api/src/lib/creator-helpers.ts:17-32`
 ```typescript
-const findCreatorProfile = async (
+export const findCreatorProfile = async (
   identifier: string,
+  opts?: { activeOnly?: boolean },
 ): Promise<CreatorProfileRow | undefined> => {
-  const rows = await db
-    .select()
-    .from(creatorProfiles)
-    .where(
-      or(
-        eq(creatorProfiles.id, identifier),
-        eq(creatorProfiles.handle, identifier),
-      ),
-    );
-  return rows[0];
+  const conditions: SQL[] = [
+    or(
+      eq(creatorProfiles.id, identifier),
+      eq(creatorProfiles.handle, identifier),
+    ) as SQL,
+  ];
+  if (opts?.activeOnly) {
+    conditions.push(eq(creatorProfiles.status, "active"));
+  }
+  // ...
 };
 ```
 
