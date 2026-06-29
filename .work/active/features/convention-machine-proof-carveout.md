@@ -1,14 +1,14 @@
 ---
 id: convention-machine-proof-carveout
 kind: feature
-stage: drafting
+stage: implementing
 tags: [prose, workflow, testing]
 parent: machine-verifiable-testing
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-28
 ---
 
 # Convention edit: machine-proof carve-out for fix-verify + black-box reframe
