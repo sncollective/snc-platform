@@ -1,7 +1,7 @@
 ---
 id: pin-docker-compose-image-versions
 kind: story
-stage: review
+stage: done
 tags: [deploy, content, streaming]
 parent: null
 depends_on: []
@@ -91,3 +91,23 @@ v3.31, SRS 6.0.184.
 - The imprecise SRS/imgproxy tags are *also* noted in their vendored-source research items
   (`research-srs-vendored-source`, `research-imgproxy-vendored-source`) as the "docs/pins don't
   version-pin elegantly" case — this story is the operational fix; those are the source-research.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate mode, fast lane (story item with environment-level verification). The change
+is config-only — two surgical image-tag lines in `docker-compose.yml` (`imgproxy :v3 → :v3.31`,
+`srs :6 → :6.0.184`); tusd was already pinned 2026-06-18. No application code, so no unit/integration
+suite applies; the verification record is the live environment, re-confirmed at review time: all
+four containers `(healthy)`, `liquidsoap --version` = 2.4.5, `srs -v` = 6.0.184, imgproxy OCI label
+= v3.31-amd64, and 10 fresh HLS segments written in the last 90s (both channels live). The
+Liquidsoap 2.4.5 drift closure (the rebuild that the done research-handoff story hadn't actually
+delivered to this dev box) is documented in-body and verified. Two pre-existing conditions surfaced
+by the recreate (postgres disk-full crash; SRS StreamBusy reconnect storm) were cleared and are
+recorded — they are not part of this story's scope, but the recurring disk-pressure is flagged for
+separate environment-level work. `release_binding: 0.4.0` — left active for `release-deploy`.
