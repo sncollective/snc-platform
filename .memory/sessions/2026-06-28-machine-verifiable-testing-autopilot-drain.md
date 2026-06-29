@@ -81,22 +81,21 @@ Key commits:
 - `6720593 implement: creator-channel-engine-e2e-infra-prefetch`
 - `b98d5b1 review: creator-channel-engine-e2e-infra-prefetch (approve)`
 
-## Currently running agents
+## Running agents / latest status update
 
-- `a445f14b-1383-415` — implementing `creator-channel-engine-e2e-infra-machine-proof`.
-  - Owns dirty/untracked playback files:
-    - `.work/active/stories/creator-channel-engine-e2e-infra-machine-proof.md`
-    - `apps/e2e/tests/creator-channel-playback.spec.ts`
-    - `apps/e2e/tests/helpers/playback-probes.ts`
-  - Do not edit these until the worker finishes.
-- `2d8e670b-b86e-4f2` — fresh-context deep review of `e2e-harness-determinism` parent feature.
+No subagents are currently running as of the later bank update.
+
+Completed after the initial bank:
+
+- `2d8e670b-b86e-4f2` reviewed `e2e-harness-determinism`, requested one blocker: local PM2/staging e2e did not enable `AUTH_RATE_LIMIT_PROFILE=e2e` / `TEST_CONTROL_PROFILE=e2e`. Fixed in `edb77cf` by setting those profiles in `ecosystem.config.cjs` and documenting them in `AGENTS.md` + `apps/e2e/README.md`. Re-review `23b9ff3c-ff2c-451` approved; parent feature closed in `f314b31`.
+- `a445f14b-1383-415` implemented `creator-channel-engine-e2e-infra-machine-proof` in `c710e57`, but correctly left the story at `stage: implementing`: spec discovery passed, but the real L1-L2 proof did not. CI-profile run queued Maya content successfully, then `nowPlaying.contentId` stayed `null` for 90s. A later speculative retry to restart Liquidsoap on e2e-profile API startup failed earlier in auth setup while API logs showed stale Liquidsoap `/pool/next` channel IDs and SRS callback rate limits; that speculative code was reverted. The story body now records this.
 
 ## Current substrate snapshot
 
 Top-level `machine-verifiable-testing` children:
 
 - `convention-machine-proof-carveout` — `done`
-- `e2e-harness-determinism` — `review` (reviewer running)
+- `e2e-harness-determinism` — `done`
 - `creator-channel-engine-e2e-infra` — `implementing`
 - `e2e-browser-decode-playback-proof` — `drafting`, depends on infra
 - `e2e-agent-vision-pixel-inspection` — `drafting`, depends on infra + browser decode
@@ -107,7 +106,7 @@ Top-level `machine-verifiable-testing` children:
 
 - `creator-channel-engine-e2e-infra-topology` — `done`
 - `creator-channel-engine-e2e-infra-prefetch` — `done`
-- `creator-channel-engine-e2e-infra-machine-proof` — `implementing` (worker running)
+- `creator-channel-engine-e2e-infra-machine-proof` — `implementing` (worker finished; proof failing on real media-stack signal)
 
 ## Environment / caveats
 
@@ -121,11 +120,9 @@ Top-level `machine-verifiable-testing` children:
 
 ## Next logical steps
 
-1. Wait for `creator-channel-engine-e2e-infra-machine-proof` worker and review/close it if valid.
-2. Wait for the `e2e-harness-determinism` fresh-context review; fix or file any accepted findings,
-   then advance the feature to `done` if approved.
-3. If the machine-proof story closes, advance/review `creator-channel-engine-e2e-infra` parent.
-4. Then design the remaining dependent stories:
+1. Diagnose `creator-channel-engine-e2e-infra-machine-proof` failure. Start from API logs showing Liquidsoap `/pool/next` calls for stale/nonexistent channel IDs and SRS callback 429s, plus the story's recorded 90s `nowPlaying` timeout. Do not mark done until the real `track-event → nowPlaying` and HLS segment growth proof passes.
+2. If the machine-proof story closes, advance/review `creator-channel-engine-e2e-infra` parent.
+3. Then design the remaining dependent stories:
    - `e2e-browser-decode-playback-proof` (L3 hard CI gate)
    - `e2e-agent-vision-pixel-inspection` (L4 triage-only)
 5. Pause/start a new session around 75–80% context if still active.
