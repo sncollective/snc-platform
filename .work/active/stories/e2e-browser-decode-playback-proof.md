@@ -1,7 +1,7 @@
 ---
 id: e2e-browser-decode-playback-proof
 kind: story
-stage: implementing
+stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: machine-verifiable-testing
 depends_on: [creator-channel-engine-e2e-infra]
@@ -144,3 +144,45 @@ This splits failures cleanly:
   remain bounded but non-trivial; shortening them below the proposed windows would risk flake.
 - If `/live` ever renders multiple video elements, the selector should stay anchored to
   `[data-media-player] video` before falling back to bare `video`.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/e2e/tests/creator-channel-browser-playback.spec.ts` — the L3 chromium-only
+    spec. Mirrors the L1-L2 setup (seed + activate + sync, queue via the creator
+    route, reset in afterEach), re-proves the stream preconditions (nowPlaying,
+    hlsUrl, HLS segment publication) inside this spec so it is self-contained,
+    then drives `/live?channel=<maya-channel-id>` and reads the native Vidstack
+    `<video>` element via `page.evaluate`.
+- Tests added:
+  - `creator-channel-browser-playback.spec.ts` — the hard CI gate: poll until the
+    native `<video>` exists, poll until `readyState >= 2` (HAVE_CURRENT_DATA),
+    capture `baselineCurrentTime`, poll until `currentTime > baselineCurrentTime`
+    over a bounded window. The evaluated state also carries `paused`/`ended`/
+    `error.code` for failure diagnosability, but the pass/fail gate is the native
+    element's `readyState` + `currentTime` advance only — no Vidstack internal
+    state, no mocked status, no vision-model output.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `bun run --filter @snc/e2e typecheck` — pass.
+- `npx playwright test tests/creator-channel-browser-playback.spec.ts --list` —
+  pass (spec discovery succeeds).
+- `npx playwright test tests/creator-channel-browser-playback.spec.ts
+  --project=chromium --workers=1 --retries=0` against the PM2 staging stack
+  (localhost:3082, `AUTH_RATE_LIMIT_PROFILE=e2e` + `TEST_CONTROL_PROFILE=e2e`) —
+  PASS (2/2, 18.3s): the native `<video>` reaches `readyState >= 2` and
+  `currentTime` advances over the bounded window. The browser actually decoded
+  and played Maya's creator-channel content — the L3 hard CI gate is
+  machine-proven without a human watching pixels.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Lane: fast (story with green implementation verification).
+- Verification confirmed green: e2e browser-decode spec passes (2/2, 18.3s),
+  e2e typecheck passes.
+- The hard CI gate is the native `<video>` element's `readyState` + `currentTime`
+  advance only — deterministic, no vision model, no tautology.
