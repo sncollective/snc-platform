@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism
 kind: feature
-stage: review
+stage: done
 tags: [testing, developer-experience]
 parent: machine-verifiable-testing
 depends_on: []
@@ -212,3 +212,13 @@ profiles to `ecosystem.config.cjs` for the dev API process and documenting the l
 in `AGENTS.md` and `apps/e2e/README.md`. Verification: `pm2 restart api --update-env`,
 `bun run --filter @snc/e2e test -- --list tests/creator-programming.spec.ts`, and direct
 `/api/test-control/status` probe returned `200 {"ok":true,"profile":"e2e"}`.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Deep feature review requested one blocker on local/staging e2e profile parity. After `edb77cf`, fresh-context re-review approved: local PM2 and CI paths both set the explicit e2e profiles, docs are aligned, production remains fail-closed, and verification addressed the former failure mode.
