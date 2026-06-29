@@ -216,7 +216,7 @@ Unit tests mock all external services (Stripe, Shopify, database). No running se
 E2E tests use Playwright against a running dev environment. Install browsers first (one-time):
 
 ```bash
-bunx playwright install
+bash scripts/dev/install-e2e-browsers.sh
 bun run --filter @snc/e2e test
 ```
 

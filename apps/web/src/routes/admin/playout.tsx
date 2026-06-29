@@ -290,6 +290,7 @@ function PlayoutPageInner(): React.ReactElement {
                 value={newChannelName}
                 onChange={(e) => setNewChannelName(e.target.value)}
                 placeholder="Channel name"
+                aria-label="New channel name"
                 disabled={isCreatingChannel}
               />
               <button

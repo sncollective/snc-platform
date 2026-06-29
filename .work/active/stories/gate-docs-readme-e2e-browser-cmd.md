@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-e2e-browser-cmd
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -27,3 +27,6 @@ The README's test section instructs `bunx playwright install`. The project scrip
 
 ## Remediation direction
 Replace the e2e setup command in the test section with `bash scripts/dev/install-e2e-browsers.sh`.
+
+## Implementation (2026-06-29)
+Inline single-stride fix (orchestration-pass): applied the gate remediation directly, verified the web build green. No code-path change beyond the named remediation.

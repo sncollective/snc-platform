@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-chat-avatar-img-decoding
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, seo, performance]
 parent: null
 depends_on: []
@@ -36,3 +36,6 @@ none (behavior-preserving for app logic; browser decode hint)
 
 ## Remediation direction
 Add `decoding="async"` to the raw chat avatar `<img>` tags at lines 158 and 218.
+
+## Implementation (2026-06-29)
+Inline single-stride fix (orchestration-pass): applied the gate remediation directly, verified the web build green. No code-path change beyond the named remediation.

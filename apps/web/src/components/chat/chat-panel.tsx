@@ -161,6 +161,7 @@ export function ChatPanel({
                       className={styles.userListAvatar}
                       width={16}
                       height={16}
+                      decoding="async"
                     />
                   )}
                   <span>{user.userName}</span>
@@ -221,6 +222,7 @@ export function ChatPanel({
                   className={styles.avatar}
                   width={20}
                   height={20}
+                  decoding="async"
                 />
               )}
               <ChatUserCard
