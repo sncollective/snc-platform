@@ -2,6 +2,11 @@
 
 The e2e workspace runs Playwright against the local/staging app stack. It is the L3 machine-verifiable gate for browser-visible product behavior.
 
+Local runs target the PM2-managed staging stack on `localhost:3082`. The dev API process is started
+from `ecosystem.config.cjs` with explicit e2e-only profiles (`AUTH_RATE_LIMIT_PROFILE=e2e` and
+`TEST_CONTROL_PROFILE=e2e`) so the default command has the same deterministic setup surface as CI.
+Those profiles are non-production only; production remains strict/fail-closed.
+
 ## Deterministic fixtures and clocks
 
 Use `tests/helpers/determinism.ts` for any e2e setup that needs unique fixture names, IDs, tokens, emails, or browser-visible date assertions:

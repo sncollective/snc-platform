@@ -202,3 +202,13 @@ under tight rerun cadence and is now represented by the active child story.
 
 All child stories reached `stage: done`: test-control reset/seed API, parallel-safe isolation proof,
 clock/seed control, artifact triage, and auth limiter gating. Feature is ready for review.
+
+## Review findings (2026-06-28)
+
+Fresh-context feature review requested changes: the default local/staging e2e path used the PM2 API
+without `AUTH_RATE_LIMIT_PROFILE=e2e` / `TEST_CONTROL_PROFILE=e2e`, so `bun run --filter @snc/e2e test`
+would not have the same deterministic setup surface as CI. Fixed by adding the explicit e2e-only
+profiles to `ecosystem.config.cjs` for the dev API process and documenting the local/CI profile parity
+in `AGENTS.md` and `apps/e2e/README.md`. Verification: `pm2 restart api --update-env`,
+`bun run --filter @snc/e2e test -- --list tests/creator-programming.spec.ts`, and direct
+`/api/test-control/status` probe returned `200 {"ok":true,"profile":"e2e"}`.

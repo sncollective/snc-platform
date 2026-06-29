@@ -9,6 +9,12 @@ module.exports = {
       env: {
         NODE_ENV: "development",
         CORS_ORIGIN: "http://localhost:3080,http://localhost:3082",
+        // Local e2e runs target the PM2-managed staging stack on localhost:3082.
+        // Keep production strict/fail-closed, but make the dev API expose the
+        // explicit e2e-only setup profile so `bun run --filter @snc/e2e test`
+        // works without a manual PM2 env override.
+        AUTH_RATE_LIMIT_PROFILE: "e2e",
+        TEST_CONTROL_PROFILE: "e2e",
       },
       // Logging
       log_date_format: "YYYY-MM-DD HH:mm:ss",
