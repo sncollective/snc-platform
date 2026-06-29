@@ -4,7 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockInsertValues = vi.fn();
 const mockInsert = vi.fn();
-const mockDb = { insert: mockInsert };
+const mockSelectLimit = vi.fn();
+const mockSelectWhere = vi.fn();
+const mockSelectFrom = vi.fn();
+const mockSelect = vi.fn();
+const mockDb = { insert: mockInsert, select: mockSelect };
 
 // ── Mock Collaborators ──
 
@@ -18,6 +22,9 @@ const setupService = async () => {
   vi.doMock("../../src/db/connection.js", () => ({ db: mockDb }));
   vi.doMock("../../src/db/schema/consent.schema.js", () => ({
     consentLog: mockConsentLogTable,
+  }));
+  vi.doMock("../../src/db/schema/user.schema.js", () => ({
+    users: { id: {}, emailVerified: {} },
   }));
   vi.doMock("../../src/lib/creator-helpers.js", () => ({
     findCreatorProfile: mockFindCreatorProfile,
@@ -34,6 +41,10 @@ beforeEach(() => {
 
   mockInsert.mockReturnValue({ values: mockInsertValues });
   mockInsertValues.mockResolvedValue(undefined);
+  mockSelect.mockReturnValue({ from: mockSelectFrom });
+  mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+  mockSelectWhere.mockReturnValue({ limit: mockSelectLimit });
+  mockSelectLimit.mockResolvedValue([{ emailVerified: true }]);
   mockFindCreatorProfile.mockResolvedValue({ id: "creator-123" });
   mockFollowCreator.mockResolvedValue({ ok: true, value: undefined });
 });
@@ -61,6 +72,22 @@ describe("completeJoin", () => {
       policyVersion: "policy-2026-06-15",
       source: "join:creator-123",
     });
+  });
+
+  it("returns 403 and does not follow or append consent when the user's email is unverified", async () => {
+    mockSelectLimit.mockResolvedValueOnce([{ emailVerified: false }]);
+    const { completeJoin } = await setupService();
+
+    const result = await completeJoin("user-123", "creator-123", "policy-2026-06-15");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.statusCode).toBe(403);
+      expect(result.error.message).toBe("Email not verified");
+    }
+    expect(mockFollowCreator).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 
   it("does not append consent when the creator cannot be followed", async () => {

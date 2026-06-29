@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
 
-import { ok, err, NotFoundError, DEFAULT_JOIN_CONFIG } from "@snc/shared";
+import { ok, err, NotFoundError, ForbiddenError, DEFAULT_JOIN_CONFIG } from "@snc/shared";
 import type { Result, AppError, JoinPagePayload, JoinConfig, JoinConfigPatch, PublicPlan } from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { creatorProfiles, creatorJoinConfigs } from "../db/schema/creator.schema.js";
 import { creatorFollows } from "../db/schema/notification.schema.js";
 import { consentLog } from "../db/schema/consent.schema.js";
+import { users } from "../db/schema/user.schema.js";
 import { subscriptionPlans } from "../db/schema/subscription.schema.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
 import { resolveCreatorUrls } from "../lib/creator-url.js";
@@ -105,6 +106,13 @@ export const completeJoin = async (
 ): Promise<Result<void, AppError>> => {
   const profile = await findCreatorProfile(creatorId);
   if (!profile) return err(new NotFoundError("Creator not found"));
+
+  const [user] = await db
+    .select({ emailVerified: users.emailVerified })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!user?.emailVerified) return err(new ForbiddenError("Email not verified"));
 
   const followResult = await followCreator(userId, profile.id);
   if (!followResult.ok) return err(followResult.error);

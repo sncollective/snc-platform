@@ -64,6 +64,7 @@ joinRoutes.post(
       200: { description: "Joined", content: { "application/json": { schema: resolver(OkResponse) } } },
       400: ERROR_400,
       401: ERROR_401,
+      403: ERROR_403,
       404: ERROR_404,
     },
   }),
