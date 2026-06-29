@@ -1,5 +1,6 @@
+import { renderToString } from "react-dom/server";
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 
 import type { PlatformEvent } from "@snc/shared";
@@ -13,6 +14,7 @@ import { FakeEventSource } from "../../helpers/fake-event-source.js";
 
 afterEach(() => {
   FakeEventSource.reset();
+  vi.unstubAllGlobals();
 });
 
 /** Provider wrapper injecting the fake EventSource on the `live` topic. */
@@ -34,6 +36,22 @@ function lastSource(): FakeEventSource {
 }
 
 describe("SpineProvider + hooks", () => {
+  it("does not construct EventSource during server render", () => {
+    const eventSourceCtor = vi.fn();
+    vi.stubGlobal("window", undefined);
+
+    renderToString(
+      <SpineProvider
+        topics={["live"]}
+        eventSourceCtor={eventSourceCtor as unknown as typeof EventSource}
+      >
+        <div />
+      </SpineProvider>,
+    );
+
+    expect(eventSourceCtor).not.toHaveBeenCalled();
+  });
+
   it("opens exactly one EventSource on the requested topics", () => {
     renderHook(() => useSpineStatus(), { wrapper });
     expect(FakeEventSource.instances).toHaveLength(1);

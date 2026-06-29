@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spine-provider-ssr-invariant
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -38,3 +38,10 @@ it("does not construct EventSource during server render", () => {
 
 ## Test location (suggested)
 `apps/web/tests/unit/contexts/spine-context.test.tsx`
+
+## Implementation (2026-06-29)
+- Files changed: `apps/web/tests/unit/contexts/spine-context.test.tsx`.
+- Tests added: SSR `renderToString` coverage proving `SpineProvider` does not construct the injected `EventSource` constructor when `window` is unavailable.
+- Verification: `bun run --filter @snc/web test -- tests/unit/contexts/spine-context.test.tsx` passed.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
