@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra-topology
 kind: story
-stage: implementing
+stage: review
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: []
@@ -28,11 +28,31 @@ channels from the rendered playout engine.
 
 ## Acceptance criteria
 
-- [ ] Default config generation still excludes creator `live-ingest` channels.
-- [ ] E2E/test profile can include Maya's creator channel or a deterministic test creator channel in
+- [x] Default config generation still excludes creator `live-ingest` channels.
+- [x] E2E/test profile can include Maya's creator channel or a deterministic test creator channel in
       rendered topology.
-- [ ] Rendered creator block has queue/pool/HLS output plumbing but no per-channel live RTMP listener.
-- [ ] Any profile switch is explicit and safe-by-default.
+- [x] Rendered creator block has queue/pool/HLS output plumbing but no per-channel live RTMP listener.
+- [x] Any profile switch is explicit and safe-by-default.
+
+## Implementation notes
+
+- `generateLiquidsoapConfig()` now widens the channel query only when the existing explicit
+  `AUTH_RATE_LIMIT_PROFILE=e2e` test profile is active; default `strict` keeps the existing
+  `playout`/`broadcast` role filter.
+- The e2e-only branch admits active creator-owned `role="live-ingest"` rows into the topology and
+  keeps an in-process filter matching the SQL predicate so the safe-by-default split is unit-testable
+  without a real DB.
+- No renderer live-ingest behavior was changed: creator rows render as ordinary non-broadcast queue
+  channels, so queue/pool/RTMP-to-SRS output and track-event callbacks are present, while `live` tiers
+  on non-broadcast channels continue to be skipped and do not emit per-channel `input.rtmp` listeners.
+- Added focused Liquidsoap config tests for default creator exclusion and explicit e2e inclusion using
+  a deterministic `Live: Maya` creator channel fixture with a deferred live tier plus queue tier.
+
+## Verification
+
+- `bun run --filter @snc/api test:unit -- tests/services/liquidsoap-config.test.ts` — passed
+  (24 tests).
+- `bun run --filter @snc/api typecheck` — passed.
 
 ## Test integrity contract
 

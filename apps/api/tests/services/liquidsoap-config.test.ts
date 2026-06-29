@@ -91,6 +91,17 @@ const BROADCAST_ROW = {
   role: "broadcast",
 };
 
+const CREATOR_ID = "creator-maya";
+const CREATOR_CHANNEL_ID = "cccccccc-0000-0000-0000-000000000003";
+const CREATOR_CHANNEL_ROW = {
+  id: CREATOR_CHANNEL_ID,
+  name: "Live: Maya",
+  srsStreamName: "creator-maya",
+  ownership: "creator",
+  creatorId: CREATOR_ID,
+  role: "live-ingest",
+};
+
 /** The broadcast channel's editorial config: live → queue → carry(→classicsId). */
 const broadcastConfig = (classicsId: string) => ({
   channelId: SNCTV_ID,
@@ -101,6 +112,18 @@ const broadcastConfig = (classicsId: string) => ({
     { id: "bt-live", channelId: SNCTV_ID, tierType: "live" as const, priority: 0, enabled: true, sourceChannelId: null },
     { id: "bt-queue", channelId: SNCTV_ID, tierType: "queue" as const, priority: 1, enabled: true, sourceChannelId: null },
     { id: "bt-carry", channelId: SNCTV_ID, tierType: "channel-as-source" as const, priority: 2, enabled: true, sourceChannelId: classicsId },
+  ],
+});
+
+/** A creator config that includes a deferred live tier plus the queue tier e2e needs. */
+const creatorConfig = () => ({
+  channelId: CREATOR_CHANNEL_ID,
+  mode: "auto" as const,
+  manualTierId: null,
+  updatedAt: "2026-06-28T00:00:00.000Z",
+  tiers: [
+    { id: "ct-live", channelId: CREATOR_CHANNEL_ID, tierType: "live" as const, priority: 0, enabled: true, sourceChannelId: null },
+    { id: "ct-queue", channelId: CREATOR_CHANNEL_ID, tierType: "queue" as const, priority: 1, enabled: true, sourceChannelId: null },
   ],
 });
 
@@ -241,6 +264,38 @@ describe("generateLiquidsoapConfig", () => {
     expect(config).toContain("# ── Channel: Channel B (playout) ──");
     expect(config).toContain("_aaaaaaaa_0000_0000_0000_000000000001_queue");
     expect(config).toContain("_bbbbbbbb_0000_0000_0000_000000000002_queue");
+  });
+
+  it("excludes creator live-ingest channels by default", async () => {
+    const { generateLiquidsoapConfig } = await setupModule();
+
+    makeDbChain([
+      { id: "aaaaaaaa-0000-0000-0000-000000000001", name: "Channel A", srsStreamName: "channel-a", ownership: "platform", creatorId: null, role: "playout" },
+      CREATOR_CHANNEL_ROW,
+    ]);
+
+    const config = await generateLiquidsoapConfig();
+
+    expect(config).toContain("# ── Channel: Channel A (playout) ──");
+    expect(config).not.toContain("# ── Channel: Live: Maya");
+    expect(config).not.toContain("creator-maya");
+    expect(config).not.toContain("_cccccccc_0000_0000_0000_000000000003_queue");
+  });
+
+  it("includes creator live-ingest channels in the explicit e2e profile without rendering a live RTMP listener", async () => {
+    const { generateLiquidsoapConfig } = await setupModule({ AUTH_RATE_LIMIT_PROFILE: "e2e" });
+
+    makeDbChain([CREATOR_CHANNEL_ROW]);
+    mockGetAllEditorialConfigs.mockResolvedValue({ ok: true, value: [creatorConfig()] });
+
+    const config = await generateLiquidsoapConfig();
+
+    expect(config).toContain("# ── Channel: Live: Maya (playout) ──");
+    expect(config).toContain("ch_cccccccc_0000_0000_0000_000000000003_queue = request.queue");
+    expect(config).toContain("ch_cccccccc_0000_0000_0000_000000000003_pool = request.dynamic");
+    expect(config).toContain("live/creator-maya?key=");
+    expect(config).toContain(`/api/playout/channels/${CREATOR_CHANNEL_ID}/track-event`);
+    expect(config).not.toContain("input.rtmp");
   });
 
   it("escapes channel names with special characters in comments", async () => {

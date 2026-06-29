@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { AppError, ok, err } from "@snc/shared";
 import type { Result } from "@snc/shared";
 
@@ -39,6 +39,32 @@ const logger = rootLogger.child({ service: "liquidsoap-config" });
 
 // ── Public API ──
 
+interface LiquidsoapChannelRow {
+  readonly id: string;
+  readonly name: string;
+  readonly srsStreamName: string;
+  readonly ownership: string;
+  readonly creatorId: string | null;
+  readonly role?: string;
+}
+
+/**
+ * E2E is the only runtime profile that renders creator live-ingest rows into
+ * Liquidsoap. It reuses the existing explicit test-profile switch shape rather
+ * than inferring from broad NODE_ENV-style environments.
+ */
+const includeCreatorLiveIngestChannels = (): boolean =>
+  config.AUTH_RATE_LIMIT_PROFILE === "e2e";
+
+const shouldRenderChannel = (row: LiquidsoapChannelRow): boolean => {
+  const role = row.role ?? "playout";
+  return role === "playout" ||
+    role === "broadcast" ||
+    (includeCreatorLiveIngestChannels() &&
+      role === "live-ingest" &&
+      row.ownership === "creator");
+};
+
 /**
  * Generate the full playout.liq content from database state.
  * Returns the file content as a string.
@@ -48,7 +74,18 @@ const logger = rootLogger.child({ service: "liquidsoap-config" });
  * playout-topology.ts / liquidsoap-render.ts); this module owns the IO edges only.
  */
 export const generateLiquidsoapConfig = async (): Promise<string> => {
-  const [playoutChannels, editorialConfigsResult] = await Promise.all([
+  const renderCreatorLiveIngest = includeCreatorLiveIngestChannels();
+  const channelRolePredicate = renderCreatorLiveIngest
+    ? or(
+        // Broadcast (S/NC TV) renders through the unified topology as a generated
+        // channel block — it is no longer a static tail. Playout channels are the
+        // ordinary content channels. Both reach buildPlayoutTopology.
+        inArray(channels.role, ["playout", "broadcast"]),
+        and(eq(channels.role, "live-ingest"), eq(channels.ownership, "creator")),
+      )
+    : inArray(channels.role, ["playout", "broadcast"]);
+
+  const [queriedChannels, editorialConfigsResult] = await Promise.all([
     db
       .select({
         id: channels.id,
@@ -61,15 +98,16 @@ export const generateLiquidsoapConfig = async (): Promise<string> => {
       .from(channels)
       .where(
         and(
-          // Broadcast (S/NC TV) renders through the unified topology as a generated
-          // channel block — it is no longer a static tail. Playout channels are the
-          // ordinary content channels. Both reach buildPlayoutTopology.
-          inArray(channels.role, ["playout", "broadcast"]),
+          channelRolePredicate,
           eq(channels.isActive, true),
         ),
       ),
     getAllEditorialConfigs(),
   ]);
+
+  // Keep the safe-by-default inclusion rule enforced in-process as well as in the
+  // SQL predicate, so tests can characterize the profile split without a real DB.
+  const playoutChannels = (queriedChannels as LiquidsoapChannelRow[]).filter(shouldRenderChannel);
 
   // Editorial configs are best-effort: a failure here degrades gracefully to
   // config-less (queue-only) defaults for all channels rather than blocking
