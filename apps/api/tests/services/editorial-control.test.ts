@@ -453,14 +453,13 @@ describe("editorial-control service", () => {
       expect(uri).toBeNull();
     });
 
-    it("skips items with no playable URI and tries the next one", async () => {
+    it("batch-loads playout items and skips items with no playable URI", async () => {
       const rows = [
         makeChannelContentRow({ id: "cc-1", playoutItemId: "item-no-uri" }),
         makeChannelContentRow({ id: "cc-2", playoutItemId: "item-has-uri" }),
       ];
 
       let selectCallCount = 0;
-      let itemCallCount = 0;
       mockSelect.mockImplementation(() => {
         selectCallCount++;
         if (selectCallCount === 1) {
@@ -469,15 +468,26 @@ describe("editorial-control service", () => {
           const whereMock = vi.fn().mockReturnValue({ orderBy: orderByMock });
           const fromMock = vi.fn().mockReturnValue({ where: whereMock });
           return { from: fromMock };
-        } else {
-          itemCallCount++;
-          const items = itemCallCount === 1
-            ? [] // first item: no DB row
-            : [{ id: "item-has-uri", rendition1080pKey: null, rendition720pKey: "renditions/item-has-uri/720p.mp4", rendition480pKey: null, sourceKey: null }];
-          const whereMock = vi.fn().mockResolvedValue(items);
-          const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-          return { from: fromMock };
         }
+
+        const whereMock = vi.fn().mockResolvedValue([
+          {
+            id: "item-no-uri",
+            rendition1080pKey: null,
+            rendition720pKey: null,
+            rendition480pKey: null,
+            sourceKey: null,
+          },
+          {
+            id: "item-has-uri",
+            rendition1080pKey: null,
+            rendition720pKey: "renditions/item-has-uri/720p.mp4",
+            rendition480pKey: null,
+            sourceKey: null,
+          },
+        ]);
+        const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+        return { from: fromMock };
       });
 
       wireUpdateChain();
@@ -486,6 +496,8 @@ describe("editorial-control service", () => {
       const uri = await resolvePoolNextUri("ch-1", { allCreators: true });
 
       expect(uri).toBe("s3://test-bucket/renditions/item-has-uri/720p.mp4");
+      // One select for channel_content + one batched select for both playout items.
+      expect(mockSelect).toHaveBeenCalledTimes(2);
     });
 
     it("creator scope queries via the scoped raw SQL path and resolves a content URI", async () => {
@@ -499,7 +511,7 @@ describe("editorial-control service", () => {
       // The content-table URI lookup (db.select on content) returns the playable key.
       const whereMock = vi
         .fn()
-        .mockResolvedValue([{ mediaKey: "media/own.mp4", transcodedMediaKey: null }]);
+        .mockResolvedValue([{ id: "content-1", mediaKey: "media/own.mp4", transcodedMediaKey: null }]);
       const fromMock = vi.fn().mockReturnValue({ where: whereMock });
       mockSelect.mockReturnValue({ from: fromMock });
 

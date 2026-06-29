@@ -1,4 +1,4 @@
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc, inArray, sql } from "drizzle-orm";
 import { AppError, NotFoundError, ValidationError, ok, err } from "@snc/shared";
 import type { Result, EditorialMode } from "@snc/shared";
 
@@ -364,14 +364,31 @@ export const resolvePoolNextUri = async (
 
   const bucket = config.S3_BUCKET ?? "snc-storage";
 
+  const playoutItemIds = Array.from(
+    new Set(rows.map((row) => row.playoutItemId).filter((id): id is string => id !== null)),
+  );
+  const contentIds = Array.from(
+    new Set(rows.map((row) => row.contentId).filter((id): id is string => id !== null)),
+  );
+
+  const playoutItemRows = playoutItemIds.length > 0
+    ? await db.select().from(playoutItems).where(inArray(playoutItems.id, playoutItemIds))
+    : [];
+  const contentRows = contentIds.length > 0
+    ? await db
+        .select({ id: content.id, mediaKey: content.mediaKey, transcodedMediaKey: content.transcodedMediaKey })
+        .from(content)
+        .where(inArray(content.id, contentIds))
+    : [];
+
+  const playoutItemById = new Map(playoutItemRows.map((item) => [item.id, item]));
+  const contentById = new Map(contentRows.map((item) => [item.id, item]));
+
   for (const row of rows) {
     let uri: string | null = null;
 
     if (row.playoutItemId) {
-      const [item] = await db
-        .select()
-        .from(playoutItems)
-        .where(eq(playoutItems.id, row.playoutItemId));
+      const item = playoutItemById.get(row.playoutItemId);
       if (item) {
         if (item.rendition1080pKey) uri = `s3://${bucket}/${item.rendition1080pKey}`;
         else if (item.rendition720pKey) uri = `s3://${bucket}/${item.rendition720pKey}`;
@@ -379,10 +396,7 @@ export const resolvePoolNextUri = async (
         else if (item.sourceKey) uri = `s3://${bucket}/${item.sourceKey}`;
       }
     } else if (row.contentId) {
-      const [item] = await db
-        .select({ mediaKey: content.mediaKey, transcodedMediaKey: content.transcodedMediaKey })
-        .from(content)
-        .where(eq(content.id, row.contentId));
+      const item = contentById.get(row.contentId);
       if (item) {
         const key = item.transcodedMediaKey ?? item.mediaKey;
         if (key) uri = `s3://${bucket}/${key}`;
