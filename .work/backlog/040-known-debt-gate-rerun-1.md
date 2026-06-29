@@ -49,3 +49,7 @@ All surfaced in gate rerun 1 (2026-06-29) over the expanded 221-code-file bundle
 
 ## Not in scope (drained separately as blocking)
 The 12 critical/high rerun-1 findings (usePolling test, stale-policyVersion test, simulcast-update test, testcontrol-secret test, harbor-secret docs, queue-status concurrent-awaits, autofill/queueprojections JSDoc, join-route SEO) are drained as `gate2-*` items, not part of this debt.
+
+## Rerun-2 additions (medium/low, accepted)
+- docs/streaming.md:48,195-196 — creator publish described as "creates a live channel" vs actual "activates persistent live-ingest channel". Update wording.
+- refactor: e2e creator-channel playback precondition sequence duplicated across two specs (`creator-channel-playback.spec.ts:35-95` + `creator-channel-browser-playback.spec.ts:83-132`). Extract shared helper.
