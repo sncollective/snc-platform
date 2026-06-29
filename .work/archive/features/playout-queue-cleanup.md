@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, media-pipeline]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 archived_atop: 0.3.0
 git_ref: fb6a12b
 gate_origin: null

@@ -3,7 +3,7 @@ id: e2e-browsers-on-demand
 kind: story
 stage: done
 tags: [developer-experience, testing]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-06-11

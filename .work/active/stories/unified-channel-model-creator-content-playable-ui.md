@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-content-playable
 depends_on: [unified-channel-model-creator-content-playable-reads, unified-channel-model-creator-content-playable-transitions]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-24
 updated: 2026-06-25

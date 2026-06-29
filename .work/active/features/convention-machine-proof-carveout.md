@@ -5,7 +5,7 @@ stage: done
 tags: [prose, workflow, testing]
 parent: machine-verifiable-testing
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-26
 updated: 2026-06-28

@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout, refactor]
 parent: unified-channel-model-creator-enablement
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-21
 updated: 2026-06-22

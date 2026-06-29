@@ -3,7 +3,7 @@ id: refactor-json-ld-typed-interfaces
 kind: story
 stage: done
 tags: [refactor, quality]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 archived_atop: 0.3.0

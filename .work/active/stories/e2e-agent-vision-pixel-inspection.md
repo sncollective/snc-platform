@@ -5,7 +5,7 @@ stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: machine-verifiable-testing
 depends_on: [creator-channel-engine-e2e-infra, e2e-browser-decode-playback-proof]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-25
 updated: 2026-06-28

@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout]
 parent: unified-channel-model-creator-enablement
 depends_on: [unified-channel-model-creator-enablement-extract-surface, unified-channel-model-creator-enablement-api-gate, unified-channel-model-creator-enablement-channel-resolve]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-21
 updated: 2026-06-22

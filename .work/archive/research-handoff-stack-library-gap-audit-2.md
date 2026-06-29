@@ -5,7 +5,7 @@ stage: done
 tags: [documentation, streaming, workflow]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 research_origin: stack-library-gap-audit
 archived_atop: 0.3.0

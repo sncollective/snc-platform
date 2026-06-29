@@ -3,7 +3,7 @@ id: bold-lifecycle-transitions-playout-queue-step-2
 kind: story
 stage: done
 tags: [refactor, playout]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-lifecycle-transitions-playout-queue-step-1]
 gate_origin: null
 archived_atop: 0.3.0

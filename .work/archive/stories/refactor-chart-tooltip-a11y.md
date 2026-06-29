@@ -3,7 +3,7 @@ id: refactor-chart-tooltip-a11y
 kind: story
 stage: done
 tags: [refactor, accessibility, emissions]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 archived_atop: 0.3.0

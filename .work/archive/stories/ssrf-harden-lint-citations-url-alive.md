@@ -3,7 +3,7 @@ id: ssrf-harden-lint-citations-url-alive
 kind: story
 stage: done
 tags: [security, workflow]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-06-06

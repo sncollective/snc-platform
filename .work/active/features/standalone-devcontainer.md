@@ -3,7 +3,7 @@ id: standalone-devcontainer
 kind: feature
 stage: done
 tags: [developer-experience]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-06-11

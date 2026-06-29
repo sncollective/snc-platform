@@ -5,7 +5,7 @@ stage: done
 tags: [streaming, playout, tests]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-16
 updated: 2026-06-18

@@ -3,7 +3,7 @@ id: bold-channel-topology-model-render-step-3
 kind: story
 stage: done
 tags: [refactor, streaming, playout]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-channel-topology-model-render-step-2]
 gate_origin: refactor-design
 archived_atop: 0.3.0

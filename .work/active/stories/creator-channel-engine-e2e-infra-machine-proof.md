@@ -5,7 +5,7 @@ stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: [creator-channel-engine-e2e-infra-topology, creator-channel-engine-e2e-infra-prefetch]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-28
 updated: 2026-06-28

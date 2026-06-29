@@ -3,7 +3,7 @@ id: bold-event-spine-publishers-content-events
 kind: story
 stage: done
 tags: [streaming, media]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-event-spine-publishers-queue-events]
 gate_origin: null
 created: 2026-06-13

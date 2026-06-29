@@ -3,7 +3,7 @@ id: bold-channel-topology-model-render
 kind: feature
 stage: done
 tags: [refactor, streaming, playout]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [refactor-playout-stream-names-dedup]
 gate_origin: null
 created: 2026-06-12

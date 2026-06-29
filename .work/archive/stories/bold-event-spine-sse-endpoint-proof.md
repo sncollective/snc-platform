@@ -3,7 +3,7 @@ id: bold-event-spine-sse-endpoint-proof
 kind: story
 stage: done
 tags: [streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-event-spine-sse-endpoint-route]
 gate_origin: null
 archived_atop: 0.3.0

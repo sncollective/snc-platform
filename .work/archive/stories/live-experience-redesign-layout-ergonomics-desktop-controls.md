@@ -3,7 +3,7 @@ id: live-experience-redesign-layout-ergonomics-desktop-controls
 kind: story
 stage: done
 tags: [streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [live-experience-redesign-layout-ergonomics-mobile-tabs]
 gate_origin: null
 archived_atop: 0.3.0

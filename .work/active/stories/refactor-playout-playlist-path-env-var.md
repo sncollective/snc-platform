@@ -3,7 +3,7 @@ id: refactor-playout-playlist-path-env-var
 kind: story
 stage: done
 tags: [refactor, quality, streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-04-20

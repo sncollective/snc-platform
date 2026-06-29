@@ -3,7 +3,7 @@ id: lint-research-claims-data-source-catalogs
 kind: story
 stage: done
 tags: [workflow]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 created: 2026-06-06

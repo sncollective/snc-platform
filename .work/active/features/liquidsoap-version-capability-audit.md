@@ -5,7 +5,7 @@ stage: done
 tags: [research, streaming, playout]
 parent: null
 depends_on: []
-release_binding: 0.4.0
+release_binding: null
 gate_origin: null
 research_origin: unified-channel-model-editorial-engine
 research_refs: [liquidsoap-version-capability-audit]

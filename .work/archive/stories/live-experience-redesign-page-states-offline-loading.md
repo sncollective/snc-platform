@@ -3,7 +3,7 @@ id: live-experience-redesign-page-states-offline-loading
 kind: story
 stage: done
 tags: [streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: []
 gate_origin: null
 archived_atop: 0.3.0

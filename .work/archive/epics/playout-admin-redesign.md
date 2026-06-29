@@ -5,7 +5,7 @@ stage: done
 tags: [playout, admin-console]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 archived_atop: 0.3.0
 git_ref: 709ac30
 created: 2026-06-12

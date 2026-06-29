@@ -5,7 +5,7 @@ stage: done
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-28
 updated: 2026-06-28

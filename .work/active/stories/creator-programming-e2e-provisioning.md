@@ -5,7 +5,7 @@ stage: done
 tags: [testing, streaming, playout]
 parent: creator-programming-e2e
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-25
 updated: 2026-06-25

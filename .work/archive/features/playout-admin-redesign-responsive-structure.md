@@ -3,7 +3,7 @@ id: playout-admin-redesign-responsive-structure
 kind: feature
 stage: done
 tags: [playout, admin-console]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [responsive-table-card-pattern]
 gate_origin: null
 archived_atop: 0.3.0

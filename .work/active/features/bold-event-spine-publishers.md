@@ -3,7 +3,7 @@ id: bold-event-spine-publishers
 kind: feature
 stage: done
 tags: [streaming, playout]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-event-spine-sse-endpoint, bold-lifecycle-transitions-playout-queue]
 gate_origin: null
 created: 2026-06-12

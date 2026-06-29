@@ -3,7 +3,7 @@ id: shared-confirm-dialog-component-revoke-convergence
 kind: story
 stage: done
 tags: [design-system, streaming]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [shared-confirm-dialog-component-component]
 gate_origin: null
 archived_atop: 0.3.0
