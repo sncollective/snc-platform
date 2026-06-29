@@ -69,3 +69,22 @@ Also: profile-aware SRS callback limiter (30/min prod, 1000/min e2e) removes
   pre-existing Liquidsoap↔SRS reconnect-storm artifact, not introduced here).
 - Unrelated untracked files left untouched: `.pi/`, `publicity-advisor-brief.pdf`,
   `scripts/dev/sandbox-test-e2e.sh`.
+
+## Merge + push
+
+After the epic reached `done`, merged to `main` and pushed. The work was a
+clean fast-forward from `origin/main` (`a1993f5`) — no merge commit, linear
+history. We had been in a detached HEAD at `f7aba3c`; fast-forwarded local
+`main` to HEAD, then pushed `main` → `origin/main`
+(`a1993f5..f7aba3c`, 38 commits). `origin/main` = `main` = `f7aba3c`, in sync.
+
+The working tree is clean except three unrelated untracked files left
+untouched per instruction: `.pi/`, `publicity-advisor-brief.pdf`,
+`scripts/dev/sandbox-test-e2e.sh`.
+
+## Final state
+
+- `machine-verifiable-testing` epic: `done`, on `main`.
+- All 5 children `done`; the verification ladder is fully
+  machine-verifiable-by-default.
+- Nothing remains in scope; no blocked or escalated items.
