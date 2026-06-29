@@ -3,6 +3,7 @@ import type React from "react";
 import type { ChannelContent } from "@snc/shared";
 
 import { useListboxNavigation } from "../../hooks/use-listbox-navigation.js";
+import { formatDuration } from "../../lib/format-duration.js";
 import styles from "../../routes/admin/playout.module.css";
 
 // ── Types ──
@@ -11,17 +12,6 @@ export interface PoolItemPickerProps {
   readonly poolItems: readonly ChannelContent[];
   readonly onSelect: (item: ChannelContent) => void;
   readonly onClose: () => void;
-}
-
-// ── Helpers ──
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 // ── Component ──

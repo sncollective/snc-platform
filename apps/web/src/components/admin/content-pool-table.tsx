@@ -2,6 +2,7 @@ import type React from "react";
 import type { ReactNode } from "react";
 import type { ChannelContent } from "@snc/shared";
 
+import { formatDuration } from "../../lib/format-duration.js";
 import { ResponsiveTable } from "../ui/responsive-table.js";
 import type { ResponsiveTableColumn } from "../ui/responsive-table.js";
 import styles from "../../routes/admin/playout.module.css";
@@ -15,16 +16,6 @@ export interface ContentPoolTableProps {
 }
 
 // ── Helpers ──
-
-/** Format a duration in seconds as H:MM:SS or MM:SS. */
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
 
 /** Return a human-readable relative time string, e.g. "2h ago", "3d ago", or "Never". */
 function relativeTime(isoString: string | null): string {

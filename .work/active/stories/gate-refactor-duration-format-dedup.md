@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-duration-format-dedup
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, quality]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ function formatDuration(seconds: number): string {
 
 ## Remediation direction
 Extract one shared duration formatter used by `content-search-picker.tsx`, `pool-item-picker.tsx`, and `content-pool-table.tsx`.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/web/src/lib/format-duration.ts`, `apps/web/src/components/admin/content-search-picker.tsx`, `apps/web/src/components/admin/pool-item-picker.tsx`, `apps/web/src/components/admin/content-pool-table.tsx`, `apps/web/tests/unit/lib/format-duration.test.ts`
+- Tests added: `apps/web/tests/unit/lib/format-duration.test.ts`
+- Verification: `bun run --filter @snc/web test tests/unit/lib/format-duration.test.ts`
+- Discrepancies from design: existing `apps/web/src/lib/format-duration.ts` already held the matching clock formatter as `formatSeconds`; added the requested `formatDuration` export and kept `formatSeconds` as a compatibility alias.
+- Adjacent issues parked: none
