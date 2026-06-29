@@ -28,23 +28,24 @@ export const getChannelQueueStatus = async (
     return err(new NotFoundError("Channel not found"));
   }
 
-  const queueRows = await db
-    .select(QUEUE_STATUS_COLUMNS)
-    .from(playoutQueue)
-    .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
-    .leftJoin(content, eq(playoutQueue.contentId, content.id))
-    .where(
-      and(
-        eq(playoutQueue.channelId, channelId),
-        inArray(playoutQueue.status, ["queued", "playing"]),
-      ),
-    )
-    .orderBy(asc(playoutQueue.position));
-
-  const [poolCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(channelContent)
-    .where(eq(channelContent.channelId, channelId));
+  const [queueRows, [poolCount]] = await Promise.all([
+    db
+      .select(QUEUE_STATUS_COLUMNS)
+      .from(playoutQueue)
+      .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(content, eq(playoutQueue.contentId, content.id))
+      .where(
+        and(
+          eq(playoutQueue.channelId, channelId),
+          inArray(playoutQueue.status, ["queued", "playing"]),
+        ),
+      )
+      .orderBy(asc(playoutQueue.position)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(channelContent)
+      .where(eq(channelContent.channelId, channelId)),
+  ]);
 
   const nowPlaying =
     queueRows.find((r) => r.status === "playing") ?? null;
@@ -66,35 +67,34 @@ export const getMultiChannelQueueStatus = async (
   const result = new Map<string, ChannelQueueStatus>();
   if (channelIds.length === 0) return result;
 
-  const channelRows = await db
-    .select({ id: channels.id, name: channels.name })
-    .from(channels)
-    .where(inArray(channels.id, channelIds));
+  const [channelRows, queueRows, poolCounts] = await Promise.all([
+    db
+      .select({ id: channels.id, name: channels.name })
+      .from(channels)
+      .where(inArray(channels.id, channelIds)),
+    db
+      .select(QUEUE_STATUS_COLUMNS)
+      .from(playoutQueue)
+      .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
+      .leftJoin(content, eq(playoutQueue.contentId, content.id))
+      .where(
+        and(
+          inArray(playoutQueue.channelId, channelIds),
+          inArray(playoutQueue.status, ["queued", "playing"]),
+        ),
+      )
+      .orderBy(asc(playoutQueue.position)),
+    db
+      .select({
+        channelId: channelContent.channelId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(channelContent)
+      .where(inArray(channelContent.channelId, channelIds))
+      .groupBy(channelContent.channelId),
+  ]);
 
   const channelNameMap = new Map(channelRows.map((r) => [r.id, r.name]));
-
-  const queueRows = await db
-    .select(QUEUE_STATUS_COLUMNS)
-    .from(playoutQueue)
-    .leftJoin(playoutItems, eq(playoutQueue.playoutItemId, playoutItems.id))
-    .leftJoin(content, eq(playoutQueue.contentId, content.id))
-    .where(
-      and(
-        inArray(playoutQueue.channelId, channelIds),
-        inArray(playoutQueue.status, ["queued", "playing"]),
-      ),
-    )
-    .orderBy(asc(playoutQueue.position));
-
-  const poolCounts = await db
-    .select({
-      channelId: channelContent.channelId,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(channelContent)
-    .where(inArray(channelContent.channelId, channelIds))
-    .groupBy(channelContent.channelId);
-
   const poolCountMap = new Map(poolCounts.map((r) => [r.channelId, r.count]));
 
   const queueByChannel = new Map<string, typeof queueRows>();

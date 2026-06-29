@@ -1,7 +1,7 @@
 ---
 id: gate2-refactor-queue-status-concurrent-awaits
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, perf]
 parent: null
 depends_on: []
@@ -21,3 +21,6 @@ High (2 findings, same file — bundled)
 
 ## Remediation direction
 Run independent reads (queueRows/poolCount; channelRows/queueRows/poolCounts) via Promise.all after the channel guard. Behavior-preserving.
+
+## Implementation note
+Implemented the behavior-preserving Promise.all refactor for the single-channel queue/pool reads and multi-channel channel/queue/pool reads. Verification not run per orchestration instruction.
