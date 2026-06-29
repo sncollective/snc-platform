@@ -9,7 +9,6 @@ const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockDbDelete = vi.fn();
 const mockDbExecute = vi.fn().mockResolvedValue(undefined);
-const mockGetLiquidsoapNowPlaying = vi.fn().mockResolvedValue(null);
 
 // ── Orchestrator mock state ──
 const mockGetChannelQueueStatus = vi.fn().mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
@@ -133,9 +132,6 @@ const setupService = async () => {
       $inferSelect: {},
     },
   }));
-  vi.doMock("../../src/services/liquidsoap.js", () => ({
-    getNowPlaying: mockGetLiquidsoapNowPlaying,
-  }));
   vi.doMock("../../src/routes/playout-channels.init.js", () => ({
     orchestrator: {
       getChannelQueueStatus: mockGetChannelQueueStatus,
@@ -160,7 +156,6 @@ const setupService = async () => {
 // so defaults must be set in beforeEach to survive into the test body).
 beforeEach(() => {
   mockDbExecute.mockResolvedValue(undefined);
-  mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
   mockGetChannelQueueStatus.mockResolvedValue({ ok: true, value: { nowPlaying: null, upcoming: [], poolSize: 0 } });
   mockInsertIntoQueue.mockResolvedValue({ ok: true, value: { id: "queue-1" } });
   mockSkip.mockResolvedValue({ ok: true, value: undefined });
@@ -259,55 +254,6 @@ describe("createPlayoutItem", () => {
     if (result.ok) {
       expect(result.value.title).toBe("Test Film");
     }
-  });
-});
-
-describe("getPlayoutNowPlaying", () => {
-  it("returns null when Liquidsoap returns null", async () => {
-    const { getPlayoutNowPlaying } = await setupService();
-    mockGetLiquidsoapNowPlaying.mockResolvedValue(null);
-
-    const result = await getPlayoutNowPlaying();
-    expect(result).toBeNull();
-  });
-
-  it("enriches now-playing with DB item metadata", async () => {
-    const { getPlayoutNowPlaying } = await setupService();
-    mockGetLiquidsoapNowPlaying.mockResolvedValue({
-      uri: "s3://snc-storage/playout/item-1/1080p.mp4",
-      title: "Raw Title",
-      duration: 90.0,
-      elapsed: 30.0,
-      remaining: 60.0,
-    });
-    mockDbSelect.mockReturnValue(buildSelectWhereChain([makeItemRow()]));
-
-    const result = await getPlayoutNowPlaying();
-
-    expect(result).not.toBeNull();
-    expect(result?.itemId).toBe("item-1");
-    expect(result?.title).toBe("Test Film"); // DB title preferred over raw
-    expect(result?.year).toBe(2020);
-    expect(result?.director).toBe("Test Director");
-    expect(result?.elapsed).toBe(30.0);
-    expect(result?.remaining).toBe(60.0);
-  });
-
-  it("returns partial data when URI does not match playout pattern", async () => {
-    const { getPlayoutNowPlaying } = await setupService();
-    mockGetLiquidsoapNowPlaying.mockResolvedValue({
-      uri: "file:///some/local/file.mp4",
-      title: "Local File",
-      duration: 30.0,
-      elapsed: 5.0,
-      remaining: 25.0,
-    });
-
-    const result = await getPlayoutNowPlaying();
-
-    expect(result).not.toBeNull();
-    expect(result?.itemId).toBeNull();
-    expect(result?.title).toBe("Local File");
   });
 });
 

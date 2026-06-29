@@ -18,7 +18,6 @@ import { db } from "../db/connection.js";
 import { playoutItems } from "../db/schema/playout.schema.js";
 import { channels } from "../db/schema/streaming.schema.js";
 import { rootLogger } from "../logging/logger.js";
-import { getNowPlaying as getLiquidsoapNowPlaying } from "./liquidsoap.js";
 import {
   selectPlayoutRenditionUri,
   RENDITION_COLUMNS as RENDITION_COLUMNS_FROM_UTILS,
@@ -159,50 +158,6 @@ export const deletePlayoutItem = async (
 export { RENDITION_COLUMNS_FROM_UTILS as RENDITION_COLUMNS };
 
 // ── Now-Playing (correlate Liquidsoap data with DB) ──
-
-/**
- * Get enriched now-playing data. Fetches raw data from Liquidsoap,
- * correlates the S3 URI to a playout item, and enriches with metadata.
- *
- * Used for the broadcast channel (S/NC TV) which still uses the legacy /now-playing endpoint.
- */
-export const getPlayoutNowPlaying = async (
-  srsStreamName?: string,
-): Promise<NowPlaying | null> => {
-  void srsStreamName; // No longer used for routing — kept for signature compatibility
-  const raw = await getLiquidsoapNowPlaying();
-  if (!raw) return null;
-
-  // Extract item ID from S3 URI: s3://snc-storage/playout/{id}/rendition.mp4
-  const match = raw.uri.match(/playout\/([^/]+)\//);
-  if (!match) {
-    return {
-      itemId: null,
-      title: raw.title || null,
-      year: null,
-      director: null,
-      duration: null,
-      elapsed: raw.elapsed,
-      remaining: raw.remaining,
-    };
-  }
-
-  const itemId = match[1]!;
-  const [row] = await db
-    .select()
-    .from(playoutItems)
-    .where(eq(playoutItems.id, itemId));
-
-  return {
-    itemId: row?.id ?? null,
-    title: row?.title ?? raw.title ?? null,
-    year: row?.year ?? null,
-    director: row?.director ?? null,
-    duration: row?.duration ?? null,
-    elapsed: raw.elapsed,
-    remaining: raw.remaining,
-  };
-};
 
 // ── Queue Controls (bridged to orchestrator for backward compatibility) ──
 
