@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra-machine-proof
 kind: story
-stage: review
+stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: [creator-channel-engine-e2e-infra-topology, creator-channel-engine-e2e-infra-prefetch]
@@ -145,3 +145,15 @@ Three compounding issues kept `nowPlaying.contentId` null for 90s:
 
 The SRS callback 429s were a symptom of the fixed 30/min limiter under e2e load,
 not a root cause; the profile-aware cap removes the noise.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Lane: fast (story with green implementation verification).
+- Verification confirmed green: e2e playback spec passes (2/2, 18.5s), 1883
+  unit tests pass, test-control integration passes, e2e typecheck passes.
+- The real L1-L2 media-stack signal (track-event → nowPlaying → HLS segment
+  growth) is observed end-to-end without a human watching pixels — the
+  canonical rung-4-to-rung-3 lift this story targets.
+- Parked backlog item `idea-seed-demo-content-videos-lack-audio.md` is the
+  audit trail for the inline seed-demo fix (load-bearing for the proof).
