@@ -89,6 +89,17 @@ describe("buildPlayoutTopology — existing behavior (no editorial configs)", ()
     expect(topology.srsRtmpPort).toBe(1935);
     expect(topology.broadcastInputPort).toBe(1936);
   });
+
+  it("renders queue and skip harbor endpoints with the callback-secret guard", () => {
+    const config = renderPlayoutLiq(buildPlayoutTopology([ROW], []));
+
+    expect(config).toMatch(
+      /"\/channels\/903e6a20-0dea-42b1-8dd5-86afbec496ac\/queue"[\s\S]*?q\["secret"\] == secret and secret != ""[\s\S]*?push\.uri\(req\.body\(\)\)[\s\S]*?res\.status_code\(401\)/,
+    );
+    expect(config).toMatch(
+      /"\/channels\/903e6a20-0dea-42b1-8dd5-86afbec496ac\/skip"[\s\S]*?q\["secret"\] == secret and secret != ""[\s\S]*?_source\.skip\(\)[\s\S]*?res\.status_code\(401\)/,
+    );
+  });
 });
 
 // ── Helper for building test configs ──

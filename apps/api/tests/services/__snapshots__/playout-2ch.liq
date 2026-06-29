@@ -85,13 +85,27 @@ end)
 output.url(url="rtmp://#{srs_host}:1935/live/channel-a?key=#{playout_key}", enc, ch_aaaaaaaa_0000_0000_0000_000000000001_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/queue", fun(req, res) -> begin
-  ch_aaaaaaaa_0000_0000_0000_000000000001_queue.push.uri(req.body())
-  res.data("queued")
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_aaaaaaaa_0000_0000_0000_000000000001_queue.push.uri(req.body())
+    res.data("queued")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/skip", fun(_req, res) -> begin
-  ch_aaaaaaaa_0000_0000_0000_000000000001_source.skip()
-  res.data("skipped")
+harbor.http.register(port=8888, method="POST", "/channels/aaaaaaaa-0000-0000-0000-000000000001/skip", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_aaaaaaaa_0000_0000_0000_000000000001_source.skip()
+    res.data("skipped")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/aaaaaaaa-0000-0000-0000-000000000001/now-playing", fun(_req, res) -> begin
@@ -157,13 +171,27 @@ end)
 output.url(url="rtmp://#{srs_host}:1935/live/channel-b?key=#{playout_key}", enc, ch_bbbbbbbb_0000_0000_0000_000000000002_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/queue", fun(req, res) -> begin
-  ch_bbbbbbbb_0000_0000_0000_000000000002_queue.push.uri(req.body())
-  res.data("queued")
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_bbbbbbbb_0000_0000_0000_000000000002_queue.push.uri(req.body())
+    res.data("queued")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/skip", fun(_req, res) -> begin
-  ch_bbbbbbbb_0000_0000_0000_000000000002_source.skip()
-  res.data("skipped")
+harbor.http.register(port=8888, method="POST", "/channels/bbbbbbbb-0000-0000-0000-000000000002/skip", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_bbbbbbbb_0000_0000_0000_000000000002_source.skip()
+    res.data("skipped")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/bbbbbbbb-0000-0000-0000-000000000002/now-playing", fun(_req, res) -> begin
@@ -248,13 +276,27 @@ end)
 output.url(url="rtmp://#{srs_host}:1935/live/snc-tv?key=#{playout_key}", enc, ch_f0f0f0f0_0000_0000_0000_000000000001_source)
 
 harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/queue", fun(req, res) -> begin
-  ch_f0f0f0f0_0000_0000_0000_000000000001_queue.push.uri(req.body())
-  res.data("queued")
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_f0f0f0f0_0000_0000_0000_000000000001_queue.push.uri(req.body())
+    res.data("queued")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
-harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/skip", fun(_req, res) -> begin
-  ch_f0f0f0f0_0000_0000_0000_000000000001_source.skip()
-  res.data("skipped")
+harbor.http.register(port=8888, method="POST", "/channels/f0f0f0f0-0000-0000-0000-000000000001/skip", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ch_f0f0f0f0_0000_0000_0000_000000000001_source.skip()
+    res.data("skipped")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
 harbor.http.register(port=8888, method="GET", "/channels/f0f0f0f0-0000-0000-0000-000000000001/now-playing", fun(_req, res) -> begin

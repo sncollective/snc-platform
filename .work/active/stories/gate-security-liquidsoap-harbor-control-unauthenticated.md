@@ -1,7 +1,7 @@
 ---
 id: gate-security-liquidsoap-harbor-control-unauthenticated
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -32,3 +32,12 @@ end)
 
 ## Remediation direction
 Require the existing callback secret or an internal mTLS/header guard on queue/skip endpoints, and avoid binding the harbor control plane beyond the trusted container network.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/api/src/services/liquidsoap-render.ts`, `apps/api/src/services/liquidsoap-client.ts`, Liquidsoap client/render tests, and generated `.liq` snapshots.
+- Queue and skip harbor handlers now require `?secret=` to match `PLAYOUT_CALLBACK_SECRET` and return 401 without mutating state when missing or wrong.
+- API-originated `pushTrack` and `skipTrack` calls now use the same guarded client path as `armQueue`, failing fast with `LIQUIDSOAP_SECRET_NOT_CONFIGURED` when the callback secret is absent.
+- Tests added/updated: guarded queue/skip render regression, client request URL/secret regressions, snapshot updates.
+- Verification: `bun run --filter @snc/api test:unit -- tests/services/liquidsoap-client.test.ts tests/services/playout-topology.test.ts`; `bun run --filter @snc/api test:unit`.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

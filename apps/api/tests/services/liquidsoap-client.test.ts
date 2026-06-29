@@ -73,7 +73,7 @@ describe("createLiquidsoapClient", () => {
       }
     });
 
-    it("POSTs to /channels/{channelId}/queue", async () => {
+    it("POSTs to /channels/{channelId}/queue with ?secret=", async () => {
       const { createLiquidsoapClient } = await setupModule();
       const client = createLiquidsoapClient();
       mockFetch.mockReturnValue(mockFetchResponse("queued", 200));
@@ -81,9 +81,22 @@ describe("createLiquidsoapClient", () => {
       await client.pushTrack("channel-1", "s3://snc-storage/playout/item-1/1080p.mp4");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8888/channels/channel-1/queue",
+        "http://localhost:8888/channels/channel-1/queue?secret=test-playout-callback-secret-minimum-32-chars",
         expect.objectContaining({ method: "POST" }),
       );
+    });
+
+    it("returns err when PLAYOUT_CALLBACK_SECRET is not configured", async () => {
+      const { createLiquidsoapClient } = await setupModule(true, false);
+      const client = createLiquidsoapClient();
+      const result = await client.pushTrack("channel-1", "s3://snc-storage/playout/item-1/1080p.mp4");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("LIQUIDSOAP_SECRET_NOT_CONFIGURED");
+        expect(result.error.statusCode).toBe(503);
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("wraps URI with annotate:s3_uri= before POSTing", async () => {
@@ -160,7 +173,7 @@ describe("createLiquidsoapClient", () => {
       }
     });
 
-    it("POSTs to /channels/{channelId}/skip", async () => {
+    it("POSTs to /channels/{channelId}/skip with ?secret=", async () => {
       const { createLiquidsoapClient } = await setupModule();
       const client = createLiquidsoapClient();
       mockFetch.mockReturnValue(mockFetchResponse("skipped", 200));
@@ -168,9 +181,22 @@ describe("createLiquidsoapClient", () => {
       await client.skipTrack("channel-1");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8888/channels/channel-1/skip",
+        "http://localhost:8888/channels/channel-1/skip?secret=test-playout-callback-secret-minimum-32-chars",
         expect.objectContaining({ method: "POST" }),
       );
+    });
+
+    it("returns err when PLAYOUT_CALLBACK_SECRET is not configured", async () => {
+      const { createLiquidsoapClient } = await setupModule(true, false);
+      const client = createLiquidsoapClient();
+      const result = await client.skipTrack("channel-1");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("LIQUIDSOAP_SECRET_NOT_CONFIGURED");
+        expect(result.error.statusCode).toBe(503);
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("returns ok on success", async () => {

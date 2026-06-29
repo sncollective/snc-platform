@@ -354,13 +354,27 @@ ${vid}_title = ref("")${queueWebhookBlock}${broadcastNowPlayingBlock}
 output.url(url="rtmp://#{srs_host}:${t.srsRtmpPort}/live/${escLiq(ch.srsStreamName)}?key=#{playout_key}", enc, ${vid}_source)
 
 harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.queue}", fun(req, res) -> begin
-  ${queueWebhookVarName ?? `${vid}_queue`}.push.uri(req.body())
-  res.data("queued")
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${queueWebhookVarName ?? `${vid}_queue`}.push.uri(req.body())
+    res.data("queued")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
-harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.skip}", fun(_req, res) -> begin
-  ${vid}_source.skip()
-  res.data("skipped")
+harbor.http.register(port=${t.harborPort}, method="POST", "${ch.harborPaths.skip}", fun(req, res) -> begin
+  secret = environment.get("PLAYOUT_CALLBACK_SECRET", default="")
+  q = req.query
+  if q["secret"] == secret and secret != "" then
+    ${vid}_source.skip()
+    res.data("skipped")
+  else
+    res.status_code(401)
+    res.data("unauthorized")
+  end
 end)
 
 harbor.http.register(port=${t.harborPort}, method="GET", "${ch.harborPaths.nowPlaying}", fun(_req, res) -> begin

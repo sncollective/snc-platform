@@ -52,7 +52,7 @@ const logger = rootLogger.child({ service: "liquidsoap-client" });
  * Endpoint pattern: POST /channels/{channelId}/queue, POST /channels/{channelId}/skip,
  * GET /channels/{channelId}/now-playing.
  *
- * The editorial control endpoints (mode, arm, manual) are `?secret=`-guarded: they
+ * The mutating harbor endpoints (queue, skip, arm) are `?secret=`-guarded: they
  * require `PLAYOUT_CALLBACK_SECRET` to be set. When the secret is absent the client
  * returns err(LIQUIDSOAP_SECRET_NOT_CONFIGURED) immediately rather than making a call
  * that would 401 — the secret is a deployment invariant, not a runtime condition, so
@@ -121,15 +121,11 @@ export const createLiquidsoapClient = (): LiquidsoapClient => {
   return {
     async pushTrack(channelId, uri) {
       const annotatedUri = `annotate:s3_uri="${uri}":${uri}`;
-      return request(harborChannelPaths(channelId).queue, {
-        method: "POST",
-        body: annotatedUri,
-        headers: { "Content-Type": "text/plain" },
-      });
+      return requestGuarded(harborChannelPaths(channelId).queue, annotatedUri);
     },
 
     async skipTrack(channelId) {
-      return request(harborChannelPaths(channelId).skip, { method: "POST" });
+      return requestGuarded(harborChannelPaths(channelId).skip, "");
     },
 
     async getNowPlaying(channelId) {
