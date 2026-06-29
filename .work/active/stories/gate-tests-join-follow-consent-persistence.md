@@ -1,7 +1,7 @@
 ---
 id: gate-tests-join-follow-consent-persistence
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -34,3 +34,9 @@ it("completeJoin follows the creator and appends an email-contact consent record
 
 ## Test location (suggested)
 `apps/api/tests/services/join.test.ts`
+
+## Implementation (2026-06-29)
+- Added `apps/api/tests/services/join.test.ts` covering `completeJoin` happy-path persistence: creator resolution, `followCreator` call, and `consent_log` insert shape (`userId`, `consentType`, `policyVersion`, `source: join:<creatorId>`).
+- Added a guard test that consent is not appended when following the creator fails.
+- Verification: `bun run --filter @snc/api test:unit -- tests/services/join.test.ts` passed.
+- Adjacent issues parked: none.
