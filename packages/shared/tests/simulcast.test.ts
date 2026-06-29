@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   RTMP_URL_REGEX,
+  isAllowedSimulcastRtmpUrl,
   CreateSimulcastDestinationSchema,
   UpdateSimulcastDestinationSchema,
 } from "../src/index.js";
@@ -75,6 +76,66 @@ describe("CreateSimulcastDestinationSchema rtmpUrl", () => {
         rtmpUrl: "ftp://files.example.com/stream",
       }),
     ).toThrow();
+  });
+
+  it("accepts custom public RTMP destinations on allowed ports", () => {
+    const result = CreateSimulcastDestinationSchema.parse({
+      ...VALID_CREATE,
+      platform: "custom",
+      rtmpUrl: "rtmp://stream.example.com:1935/live",
+    });
+    expect(result.rtmpUrl).toBe("rtmp://stream.example.com:1935/live");
+  });
+
+  it("rejects private, link-local, localhost, and internal-name destinations", () => {
+    for (const rtmpUrl of [
+      "rtmp://10.0.0.5/app",
+      "rtmp://172.20.0.5/app",
+      "rtmp://192.168.1.10/app",
+      "rtmp://127.0.0.1/app",
+      "rtmp://169.254.169.254/latest",
+      "rtmp://[::1]/app",
+      "rtmp://[fd00::1]/app",
+      "rtmp://localhost/app",
+      "rtmp://snc-postgres/app",
+    ]) {
+      expect(() =>
+        CreateSimulcastDestinationSchema.parse({ ...VALID_CREATE, platform: "custom", rtmpUrl }),
+      ).toThrow();
+    }
+  });
+
+  it("rejects custom destinations on non-RTMP ports", () => {
+    expect(() =>
+      CreateSimulcastDestinationSchema.parse({
+        ...VALID_CREATE,
+        platform: "custom",
+        rtmpUrl: "rtmp://stream.example.com:5432/live",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects built-in platform URLs outside their approved domains", () => {
+    expect(() =>
+      CreateSimulcastDestinationSchema.parse({
+        ...VALID_CREATE,
+        platform: "twitch",
+        rtmpUrl: "rtmp://stream.example.com/live",
+      }),
+    ).toThrow();
+  });
+});
+
+// ── isAllowedSimulcastRtmpUrl ──
+
+describe("isAllowedSimulcastRtmpUrl", () => {
+  it("allows Twitch and YouTube ingest domains for built-in platforms", () => {
+    expect(isAllowedSimulcastRtmpUrl("rtmp://live.twitch.tv/app", "twitch")).toBe(true);
+    expect(isAllowedSimulcastRtmpUrl("rtmp://a.rtmp.youtube.com/live2", "youtube")).toBe(true);
+  });
+
+  it("rejects built-in platform domain mismatches", () => {
+    expect(isAllowedSimulcastRtmpUrl("rtmp://a.rtmp.youtube.com/live2", "twitch")).toBe(false);
   });
 });
 

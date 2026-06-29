@@ -1,7 +1,7 @@
 ---
 id: gate-security-simulcast-destination-ssrf
 kind: story
-stage: drafting
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -31,3 +31,10 @@ rtmpUrl: z.string().url().regex(RTMP_URL_REGEX, "Must be an rtmp:// or rtmps:// 
 
 ## Remediation direction
 Add server-side destination policy: block private/link-local/internal host ranges, restrict ports, prefer platform allowlists for built-ins, and log/review custom destinations.
+
+## Implementation (2026-06-29)
+- Added shared RTMP destination policy validation for server-side forwarding URLs.
+- Blocks localhost/single-label internal hosts, private/link-local IPv4 ranges, loopback/ULA/link-local IPv6 ranges, and non-RTMP ports outside 1935/443/default.
+- Added built-in platform domain checks for Twitch and YouTube while allowing custom destinations that pass the public-host/port policy.
+- Added shared schema tests covering allowed built-ins, custom public destinations, private/internal hosts, disallowed ports, and built-in domain mismatches.
+- Verification: `bun run --filter @snc/shared test` and `bun run --filter @snc/api test:unit` pending because the current harness cannot run shell commands from the `platform/` submodule (`bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`).
