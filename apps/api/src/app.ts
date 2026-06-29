@@ -44,6 +44,7 @@ import { notificationPreferencesRoutes } from "./routes/notification-preferences
 import { inviteRoutes } from "./routes/invite.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
 import { tusdHookRoutes } from "./routes/tusd-hooks.routes.js";
+import { testControlRoutes } from "./routes/test-control.routes.js";
 import { initWebSocket } from "./ws.js";
 // federation.routes uses @fedify/fedify which may not be installed;
 // imported dynamically below so the server boots even without it.
@@ -129,6 +130,10 @@ app.route("/api/me/creators", meCreatorsRoutes);
 app.route("/api/me/notifications", notificationPreferencesRoutes);
 app.route("/api/uploads", uploadRoutes);
 app.route("/api/tusd", tusdHookRoutes);
+
+if (config.TEST_CONTROL_PROFILE === "e2e" && process.env.NODE_ENV !== "production") {
+  app.route("/api/test-control", testControlRoutes);
+}
 
 // Shipped features — unconditionally mounted
 // contentFeedRoutes mounts first: its static `/drafts` must resolve ahead of

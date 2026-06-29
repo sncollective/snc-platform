@@ -37,6 +37,7 @@ export const makeTestConfig = (overrides?: Partial<Config>): Config => (({
   BETTER_AUTH_SECRET: TEST_BETTER_AUTH_SECRET,
   BETTER_AUTH_URL: "http://localhost:3080",
   AUTH_RATE_LIMIT_PROFILE: "strict",
+  TEST_CONTROL_PROFILE: "disabled",
   STORAGE_TYPE: "local",
   STORAGE_LOCAL_DIR: "/tmp/snc-test-uploads",
   S3_REGION: "garage",

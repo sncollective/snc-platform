@@ -37,6 +37,7 @@ describe("parseConfig", () => {
       SMTP_PORT: 587,
       EMAIL_FROM: "S/NC <noreply@s-nc.org>",
       AUTH_RATE_LIMIT_PROFILE: "strict",
+      TEST_CONTROL_PROFILE: "disabled",
       FEATURE_SUBSCRIPTION: true,
       FEATURE_MERCH: true,
       FEATURE_BOOKING: true,
@@ -256,6 +257,24 @@ describe("parseConfig", () => {
   it("throws ZodError when AUTH_RATE_LIMIT_PROFILE is invalid", () => {
     expect(() =>
       parseConfig({ ...BASE_ENV, AUTH_RATE_LIMIT_PROFILE: "staging" }),
+    ).toThrow();
+  });
+
+  it("keeps the test-control profile disabled by default", () => {
+    const result = parseConfig(BASE_ENV);
+
+    expect(result.TEST_CONTROL_PROFILE).toBe("disabled");
+  });
+
+  it("accepts the explicit e2e test-control profile", () => {
+    const result = parseConfig({ ...BASE_ENV, TEST_CONTROL_PROFILE: "e2e" });
+
+    expect(result.TEST_CONTROL_PROFILE).toBe("e2e");
+  });
+
+  it("throws ZodError when TEST_CONTROL_PROFILE is invalid", () => {
+    expect(() =>
+      parseConfig({ ...BASE_ENV, TEST_CONTROL_PROFILE: "production" }),
     ).toThrow();
   });
 

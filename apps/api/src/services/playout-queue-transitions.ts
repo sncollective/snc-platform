@@ -131,6 +131,7 @@ export const enqueue = async (opts: {
   channelId: string;
   source: QueueSource;
   position?: number;
+  id?: string;
 }): Promise<QueueRow | null> => {
   const { channelId, source, position } = opts;
 
@@ -162,7 +163,7 @@ export const enqueue = async (opts: {
     insertPosition = (maxRow?.max ?? 0) + 1;
   }
 
-  const id = randomUUID();
+  const id = opts.id ?? randomUUID();
   const [row] = await db
     .insert(playoutQueue)
     .values({

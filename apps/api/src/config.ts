@@ -61,6 +61,8 @@ export const ENV_SCHEMA = z.object({
   MASTODON_REDIRECT_URI: z.string().url().optional(),
   // Auth rate-limit profile. Default stays production-strict; e2e must opt in explicitly.
   AUTH_RATE_LIMIT_PROFILE: z.enum(["strict", "e2e"]).default("strict"),
+  // E2E-only test-control surface. Default fail-closed; production also refuses to mount it.
+  TEST_CONTROL_PROFILE: z.enum(["disabled", "e2e"]).default("disabled"),
   // YouTube streaming connect (separate from Google sign-in)
   YOUTUBE_CLIENT_ID: z.string().optional(),
   YOUTUBE_CLIENT_SECRET: z.string().optional(),
