@@ -67,5 +67,6 @@ core.*
 __pycache__/
 *.py[cod]
 
-# peeragent wrapper local job/run scratch
+# Agent-runtime local state (machine-local, not project substrate)
 .peeragent/
+.pi/
