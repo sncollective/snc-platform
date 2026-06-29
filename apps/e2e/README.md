@@ -2,6 +2,17 @@
 
 The e2e workspace runs Playwright against the local/staging app stack. It is the L3 machine-verifiable gate for browser-visible product behavior.
 
+## Deterministic fixtures and clocks
+
+Use `tests/helpers/determinism.ts` for any e2e setup that needs unique fixture names, IDs, tokens, emails, or browser-visible date assertions:
+
+- `stableTestId(testInfo, label, options)` builds a readable deterministic ID with a hash suffix scoped to the Playwright project, title path, repeat index, and parallel worker slot.
+- `seededSuffix(seed)` / `testSeededSuffix(testInfo, ...parts)` replace `Date.now()` and `Math.random()` in fixture names.
+- `E2E_FIXED_FIXTURE_TIMESTAMP_ISO` is the canonical explicit timestamp for backend fixture rows.
+- `installFixedClock(page)` freezes browser-visible `Date.now()` / `new Date()` for specs that assert dates or relative time. Call it before `page.goto()`; it affects only the Playwright browser context and does not force production services to use a test clock.
+
+Prefer explicit IDs and timestamps in test-control/setup payloads. Product assertions should stay browser-facing; deterministic helpers are for setup and for date/time assertions that would otherwise depend on wall-clock time.
+
 ## Failure artifacts and triage
 
 Playwright keeps artifacts only for failing tests, so artifact volume remains bounded by the number of failures rather than by the whole suite:

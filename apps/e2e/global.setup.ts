@@ -5,6 +5,9 @@ import { USERS } from "./fixtures/test-users.js";
 /**
  * Global setup: create per-role auth storage states by logging in
  * as the existing demo seed users (seeded by seed-demo.ts).
+ *
+ * Browser clock control is per-page: specs that assert date/time text opt into
+ * tests/helpers/determinism.ts `installFixedClock(page)` before navigation.
  */
 setup("create auth storage states", async ({ request, baseURL }) => {
   const roles = [

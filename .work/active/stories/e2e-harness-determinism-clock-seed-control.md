@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-clock-seed-control
 kind: story
-stage: implementing
+stage: review
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
@@ -39,3 +39,18 @@ tokens, or seeded fixture names do not depend on wall-clock timing or ambient RN
 
 If deterministic controls reveal a product bug, park it. Fix flaky test assumptions as test debt. Do
 not loosen assertions to hide timing issues.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/e2e/tests/helpers/determinism.ts`
+  - `apps/e2e/README.md`
+  - `apps/e2e/global.setup.ts`
+  - `apps/e2e/package.json`
+- Tests added: no runtime spec added; added `@snc/e2e` `typecheck` script so helper contracts are machine-verified by TypeScript.
+- Discrepancies from design: did not install a global browser clock in `global.setup.ts` because Playwright clock control is page/context-scoped and should remain opt-in per spec; documented `installFixedClock(page)` as the convention instead.
+- Adjacent issues parked: none.
+
+## Verification results
+
+- `bun run --filter @snc/e2e typecheck` — pass.

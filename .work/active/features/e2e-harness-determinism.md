@@ -141,6 +141,10 @@ surgery and no longer require serial/chromium-only partitioning.
 **Invariant:** e2e fixtures use deterministic IDs/timestamps and browser-visible time assertions can opt
 into a fixed clock without changing production behavior.
 
+**Convention:** use `apps/e2e/tests/helpers/determinism.ts` for `stableTestId`, seeded suffixes,
+`E2E_FIXED_FIXTURE_TIMESTAMP_ISO`, and opt-in `installFixedClock(page)` before navigation when a
+spec asserts browser-visible date/time text.
+
 ### Unit 4: Artifacts, triage output, and flake policy
 
 **Story:** `e2e-harness-determinism-artifacts-triage`
