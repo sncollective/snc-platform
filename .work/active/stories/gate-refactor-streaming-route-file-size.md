@@ -35,3 +35,12 @@ refactor (behavior-preserving if public routes unchanged)
 
 ## Remediation direction
 Split route-local helpers and callback workflows so the Hono route file moves back toward the ≤400-line target.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/api/src/routes/streaming.routes.ts`, `apps/api/src/services/streaming-callbacks.ts`.
+- Extracted SRS callback schemas, payload redaction, playout-stream classification, and on-publish/on-unpublish/on-forward workflows into `streaming-callbacks.ts`.
+- Kept the Hono route paths, middleware, validators, response statuses, and response bodies unchanged; route handlers now validate → delegate → respond.
+- Tests not run: the harness Bash tool fails before command execution with `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`, so the required unit-test and commit steps are blocked in this sub-agent environment.
+
+## Implementation discovery
+- Stage not advanced to review and commit not created because verification could not run in this harness. The implementation is ready for `bun run --filter @snc/api test:unit` and commit once Bash/Git execution is available.

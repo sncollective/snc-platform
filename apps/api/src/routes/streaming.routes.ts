@@ -1,9 +1,6 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { and, eq, isNull } from "drizzle-orm";
 
 import {
   ChannelListResponseSchema,
@@ -20,31 +17,25 @@ import {
   createStreamKey,
   listStreamKeys,
   revokeStreamKey,
-  lookupCreatorByKeyHash,
 } from "../services/stream-keys.js";
-import { openSession, closeSession } from "../services/stream-sessions.js";
 import {
-  ensureLiveChannelWithChat,
-  teardownLiveChannel,
-  extractStreamKey,
-} from "../services/stream-lifecycle.js";
-import {
-  getActiveSimulcastUrls,
   listCreatorSimulcastDestinations,
   createCreatorSimulcastDestination,
   updateCreatorSimulcastDestination,
   deleteCreatorSimulcastDestination,
 } from "../services/simulcast.js";
-import { config } from "../config.js";
-import { dispatchNotification } from "../services/notification-dispatch.js";
+import {
+  SrsOnForwardSchema,
+  SrsOnPublishSchema,
+  SrsOnUnpublishSchema,
+  handleSrsOnForward,
+  handleSrsOnPublish,
+  handleSrsOnUnpublish,
+} from "../services/streaming-callbacks.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
 import { verifySrsCallback } from "../middleware/verify-srs-callback.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
-import { db } from "../db/connection.js";
-import { creatorProfiles } from "../db/schema/creator.schema.js";
-import { channels, streamSessions } from "../db/schema/streaming.schema.js";
-import { rootLogger } from "../logging/logger.js";
 import {
   ERROR_400,
   ERROR_401,
@@ -69,80 +60,11 @@ const CreatorSimulcastParams = z.object({
   id: z.string().min(1),
 });
 
-// ── Callback Schemas ──
-
-const SrsOnPublishSchema = z.object({
-  action: z.literal("on_publish"),
-  client_id: z.string(),
-  ip: z.string(),
-  vhost: z.string(),
-  app: z.string(),
-  stream: z.string(),
-  param: z.string().optional().default(""),
-});
-
-const SrsOnUnpublishSchema = z.object({
-  action: z.literal("on_unpublish"),
-  client_id: z.string(),
-  ip: z.string(),
-  vhost: z.string(),
-  app: z.string(),
-  stream: z.string(),
-  param: z.string().optional().default(""),
-});
-
-const SrsOnForwardSchema = z.object({
-  action: z.literal("on_forward"),
-  server_id: z.string(),
-  client_id: z.string(),
-  ip: z.string(),
-  vhost: z.string(),
-  app: z.string(),
-  tcUrl: z.string(),
-  stream: z.string(),
-  param: z.string().optional().default(""),
-});
-
 // ── Private Helpers ──
 
 /** Extract platform roles from the request context (empty array if none). */
 const getRoles = (c: { get: (key: "roles") => unknown }): string[] =>
   (c.get("roles") as string[] | undefined) ?? [];
-
-const SAFE_SRS_CALLBACK_PAYLOAD_FIELDS = [
-  "action",
-  "client_id",
-  "ip",
-  "vhost",
-  "app",
-  "stream",
-  "stream_id",
-] as const;
-
-/** Keep audit metadata from SRS callbacks while dropping `param`, which carries RTMP stream keys. */
-const redactSrsCallbackPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
-  const safePayload: Record<string, unknown> = {};
-  for (const field of SAFE_SRS_CALLBACK_PAYLOAD_FIELDS) {
-    if (payload[field] !== undefined) {
-      safePayload[field] = payload[field];
-    }
-  }
-  return safePayload;
-};
-
-/** Check if a stream name belongs to an active playout or broadcast channel (never forward these). */
-const isPlayoutStream = async (streamName: string): Promise<boolean> => {
-  const [channel] = await db
-    .select({ id: channels.id })
-    .from(channels)
-    .where(
-      and(
-        eq(channels.srsStreamName, streamName),
-        eq(channels.isActive, true),
-      ),
-    );
-  return channel !== undefined;
-};
 
 // ── Public API ──
 
@@ -210,90 +132,8 @@ streamingRoutes.post(
   validator("json", SrsOnPublishSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnPublishSchema>;
-    const rawKey = extractStreamKey(body.param);
-
-    // Playout key: Liquidsoap authenticates with a dedicated key.
-    // No session or channel creation — playout channels are pre-seeded.
-    const playoutKey = config.PLAYOUT_STREAM_KEY;
-    if (playoutKey && rawKey) {
-      const a = Buffer.from(playoutKey, "utf-8");
-      const b = Buffer.from(rawKey, "utf-8");
-      if (a.length === b.length && timingSafeEqual(a, b)) {
-        rootLogger.info(
-          { event: "stream_key_accepted", ip: body.ip, stream: body.stream, source: "playout" },
-          "Playout stream key accepted",
-        );
-        return c.json({ code: 0 }, 200);
-      }
-    }
-
-    // Per-creator key validation
-    if (!rawKey) {
-      rootLogger.warn(
-        {
-          event: "stream_key_rejected",
-          ip: body.ip,
-          stream: body.stream,
-          reason: "missing_key",
-        },
-        "Stream key rejected",
-      );
-      return c.json({ code: 1 }, 403);
-    }
-
-    const keyHash = createHash("sha256").update(rawKey).digest("hex");
-    const lookup = await lookupCreatorByKeyHash(keyHash);
-
-    if (!lookup) {
-      rootLogger.warn(
-        {
-          event: "stream_key_rejected",
-          ip: body.ip,
-          stream: body.stream,
-          reason: "invalid_key",
-        },
-        "Stream key rejected",
-      );
-      return c.json({ code: 1 }, 403);
-    }
-
-    rootLogger.info(
-      { event: "stream_key_accepted", ip: body.ip, stream: body.stream, source: "creator", creatorId: lookup.creatorId, keyId: lookup.keyId },
-      "Creator stream key accepted",
-    );
-
-    // Open session
-    const session = await openSession({
-      creatorId: lookup.creatorId,
-      streamKeyId: lookup.keyId,
-      srsClientId: body.client_id,
-      srsStreamName: body.stream,
-      callbackPayload: redactSrsCallbackPayload(body),
-    });
-
-    // Create live channel + channel chat room (best-effort — don't block SRS callback)
-    if (session.ok) {
-      await ensureLiveChannelWithChat(lookup.creatorId, session.value.sessionId, body.stream);
-
-      // Fetch creator profile for notification payload
-      const [profile] = await db
-        .select({ displayName: creatorProfiles.displayName, handle: creatorProfiles.handle })
-        .from(creatorProfiles)
-        .where(eq(creatorProfiles.id, lookup.creatorId));
-
-      // Fire-and-forget go-live notification
-      void dispatchNotification({
-        eventType: "go_live",
-        creatorId: lookup.creatorId,
-        payload: {
-          creatorName: profile?.displayName ?? "A creator",
-          creatorId: lookup.creatorId,
-          liveUrl: `${config.BETTER_AUTH_URL}/live`,
-        },
-      });
-    }
-
-    return c.json({ code: 0 }, 200);
+    const result = await handleSrsOnPublish(body);
+    return c.json(result.body, result.status);
   },
 );
 
@@ -313,16 +153,8 @@ streamingRoutes.post(
   validator("json", SrsOnUnpublishSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnUnpublishSchema>;
-
-    await closeSession({
-      srsClientId: body.client_id,
-      callbackPayload: redactSrsCallbackPayload(body),
-    });
-
-    // Deactivate live channel and close channel chat room (best-effort)
-    await teardownLiveChannel(body.client_id);
-
-    return c.json({ code: 0 }, 200);
+    const result = await handleSrsOnUnpublish(body);
+    return c.json(result.body, result.status);
   },
 );
 
@@ -343,51 +175,8 @@ streamingRoutes.post(
   validator("json", SrsOnForwardSchema),
   async (c) => {
     const body = c.req.valid("json" as never) as z.infer<typeof SrsOnForwardSchema>;
-
-    // Session lookup discriminates creator publishes from Liquidsoap-originated playout publishes.
-    // Creator publishes carry a validated-stream-key session row written by on_publish;
-    // Liquidsoap publishes do not. Classifying by srsClientId avoids collisions with
-    // live-takeover channel rows that share a stream name with the creator's publish.
-    const [session] = await db
-      .select({ creatorId: streamSessions.creatorId })
-      .from(streamSessions)
-      .where(
-        and(
-          eq(streamSessions.srsClientId, body.client_id),
-          isNull(streamSessions.endedAt),
-        ),
-      );
-
-    if (session) {
-      const urls: string[] = [];
-      if (config.LIQUIDSOAP_RTMP_URL) {
-        urls.push(config.LIQUIDSOAP_RTMP_URL);
-      }
-      const creatorUrls = await getActiveSimulcastUrls(session.creatorId);
-      urls.push(...creatorUrls);
-      rootLogger.info(
-        { event: "on_forward_creator", clientId: body.client_id, stream: body.stream, creatorId: session.creatorId, urlCount: urls.length },
-        "on_forward creator branch",
-      );
-      return c.json({ code: 0, data: { urls } }, 200);
-    }
-
-    // No session — Liquidsoap publishing a playout channel. Platform destinations only; no Liquidsoap URL (loop prevention).
-    if (await isPlayoutStream(body.stream)) {
-      const urls = await getActiveSimulcastUrls();
-      rootLogger.info(
-        { event: "on_forward_playout", clientId: body.client_id, stream: body.stream, urlCount: urls.length },
-        "on_forward playout branch",
-      );
-      return c.json({ code: 0, data: { urls } }, 200);
-    }
-
-    // Unknown publish — no session, not a known playout stream. SRS still serves native HLS.
-    rootLogger.warn(
-      { event: "on_forward_unknown", clientId: body.client_id, stream: body.stream },
-      "on_forward received for publish with no session and no playout match",
-    );
-    return c.json({ code: 0, data: { urls: [] } }, 200);
+    const result = await handleSrsOnForward(body);
+    return c.json(result.body, result.status);
   },
 );
 
