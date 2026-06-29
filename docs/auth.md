@@ -6,7 +6,7 @@ S/NC uses [Better Auth](https://www.better-auth.com/) for session-based authenti
 
 ### Server-side (API)
 
-1. **Better Auth instance** (`apps/api/src/auth/auth.ts`) is configured with email/password auth, email verification, email OTP (for password resets), a JWT plugin (RS256 JWKS), and the OIDC provider plugin. The Drizzle adapter uses `usePlural: true`, so table names match the schema (`users`, `sessions`, etc.).
+1. **Better Auth instance** (`apps/api/src/auth/auth.ts`) is configured with email/password auth, email verification, email OTP (for password resets and sign-in codes), a JWT plugin (RS256 JWKS), and the OIDC provider plugin. The email OTP plugin is configured with `disableSignUp: false`, so sign-in OTP verification can create an account for email-capture flows. The Drizzle adapter uses `usePlural: true`, so table names match the schema (`users`, `sessions`, etc.).
 
 2. **Session validation** happens in Hono middleware. Three middleware variants cover all cases:
    - `requireAuth` (`middleware/require-auth.ts`) — resolves the session from request headers via `auth.api.getSession()`, hydrates user/session/roles onto the Hono context, and throws `UnauthorizedError` (401) if no valid session exists.
@@ -23,7 +23,7 @@ S/NC uses [Better Auth](https://www.better-auth.com/) for session-based authenti
 
 ### Client-side (Web)
 
-1. **Better Auth client** (`apps/web/src/lib/auth-client.ts`) — a `createAuthClient()` instance with the `emailOTPClient` plugin. Provides `useSession()` for reactive session state.
+1. **Better Auth client** (`apps/web/src/lib/auth-client.ts`) — a `createAuthClient()` instance with the `emailOTPClient` plugin. Provides `useSession()` for reactive session state. Email-capture UI uses `emailOtp.sendVerificationOtp({ type: "sign-in" })` followed by `signIn.emailOtp()` so anonymous users can create/sign into an account with a code before completing capture actions.
 
 2. **Auth state fetching** (`apps/web/src/lib/auth.ts`) — `fetchAuthState()` calls `GET /api/me` and returns `{ user, roles, isPatron }`. The `useAuthExtras()` hook re-fetches roles and patron status when the session changes. `hasRole(roles, role)` is a pure helper for role checks.
 
@@ -45,7 +45,7 @@ All auth endpoints are handled by Better Auth's built-in handler via a catch-all
 | POST | `/api/auth/sign-in/email` | None | Authenticate with email and password. Sets session cookie. |
 | POST | `/api/auth/sign-out` | Session | Destroy the current session. |
 | GET | `/api/auth/get-session` | Optional | Return current session and user info, or null. |
-| ALL | `/api/auth/*` | Varies | Catch-all for other Better Auth endpoints (OIDC, email verification, OTP, JWKS, etc.). |
+| ALL | `/api/auth/*` | Varies | Catch-all for other Better Auth endpoints (OIDC, email verification, OTP password reset, OTP sign-in, JWKS, etc.). |
 
 ### Session info endpoint
 
@@ -126,7 +126,7 @@ Better Auth's `oidcProvider` plugin manages its own tables (defined in `db/schem
 | `CORS_ORIGIN` | Yes | Comma-separated allowed origins for CORS and Better Auth `trustedOrigins`. |
 | `SEAFILE_OIDC_CLIENT_ID` | No | Client ID for the Seafile OIDC integration. When absent, the OIDC provider has no trusted clients. |
 | `SEAFILE_OIDC_CLIENT_SECRET` | No | Client secret for Seafile. Min 32 characters when provided. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | No | SMTP credentials for sending verification and password reset emails. Email features degrade gracefully when absent. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | No | SMTP credentials for sending verification, password reset OTP, and sign-in OTP emails. Email features degrade gracefully when absent. |
 | `EMAIL_FROM` | No | Sender address. Defaults to `S/NC <noreply@s-nc.org>`. |
 
 Feature flags that gate auth-adjacent behavior (e.g. `FEATURE_ADMIN`, `FEATURE_DASHBOARD`) are documented in [feature-flags.md](feature-flags.md).
@@ -147,7 +147,7 @@ Feature flags that gate auth-adjacent behavior (e.g. `FEATURE_ADMIN`, `FEATURE_D
 
 - **Email verification sent but not required** — `sendOnSignUp: true` sends a verification email, but `requireEmailVerification: false` allows users to use the platform before verifying. This is a deliberate onboarding choice.
 
-- **Password reset via OTP** — the `emailOTP` plugin handles the `forget-password` flow by sending a one-time code via email, avoiding magic-link infrastructure.
+- **Password reset and capture-flow sign-in via OTP** — the `emailOTP` plugin handles the `forget-password` flow by sending a one-time reset code via email, avoiding magic-link infrastructure. The same plugin also sends `sign-in` codes; with `disableSignUp: false`, verifying a sign-in OTP signs in an existing account or creates a new account. That behavior is used by anonymous email-capture surfaces such as creator join pages and the live-page "notify me" flow before they record follow/notification consent.
 
 ## Gotchas
 
