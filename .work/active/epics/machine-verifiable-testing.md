@@ -1,7 +1,7 @@
 ---
 id: machine-verifiable-testing
 kind: epic
-stage: implementing
+stage: review
 tags: [testing, workflow, developer-experience]
 parent: null
 depends_on: []
@@ -96,3 +96,37 @@ realized decomposition and are ready for their own feature/story design passes.
 Adversarial e2e architecture review — Codex (`peeragent --agent codex --effort xhigh`),
 2026-06-26. Findings verified against source before scoping (notably the `PRODUCTION_DEFAULTS`
 drift and the integration-suite isolation pattern). Review log under `.peeragent/runs/`.
+
+## Implementation summary
+
+All five children reached `done`:
+
+- `convention-machine-proof-carveout` (feature, `[prose]`) — the fix-verify loopback
+  now has a machine-proof carve-out: human re-confirm required only where no
+  deterministic proof exists; residual checks carry a paired backlog item with
+  expiry; a green suite for a machine-provable surface is a valid close.
+- `e2e-harness-determinism` (feature, 5 child stories) — deterministic
+  test-control reset/seed API, clock/seed determinism, Playwright artifact
+  retention + agent-readable failure triage, flake policy, and env-gated auth
+  limiter relaxation for e2e.
+- `creator-channel-engine-e2e-infra` (feature, 3 child stories) — the L1-L2
+  machine proof for creator-channel queued-content playback: track-event →
+  nowPlaying promotion + HLS segment growth, observed end-to-end without a
+  human watching pixels. The canonical rung-4-to-rung-3 lift of this epic.
+- `e2e-browser-decode-playback-proof` (story) — L3, the hard CI gate: drives
+  the real Vidstack `<video>` element and asserts `readyState >= 2` plus
+  `currentTime` advance. Deterministic, no vision model.
+- `e2e-agent-vision-pixel-inspection` (story) — L4, advisory triage/debugging
+  only, never a CI gate: a reusable visual-triage capture helper + triage-report
+  surfacing + documented post-run agent vision runbook.
+
+The verification ladder is now fully machine-verifiable-by-default: rungs 1-3
+(unit → integration → e2e with L1-L2 pipeline proof + L3 browser decode gate)
+are deterministic CI gates; rung 4 (the manual "open /live and watch" eyeball)
+is retired for the creator-channel playback AC#5; rung 5 (prod-only) remains
+legitimate and permanent. The L4 vision capability is additive triage
+evidence, not a gate.
+
+A parked backlog item (`idea-seed-demo-content-videos-lack-audio.md`) is the
+audit trail for an inline seed-demo fix (content videos lacked an audio track,
+which blocked the L1-L2 proof from passing — load-bearing).
