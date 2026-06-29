@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-stale-policyversion-rejection
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -22,3 +22,8 @@ Acceptance criterion: client-attested policyVersion — a stale/wrong value must
 
 ## Suggested test
 `apps/api/tests/routes/join.routes.test.ts` + `packages/shared/tests/join.test.ts` — POST /complete with stale policyVersion → 400, completeJoin not called.
+
+## Implementation (2026-06-29)
+- Added shared `CompleteJoinRequestSchema` coverage proving only `PRIVACY_POLICY_VERSION` is accepted and stale values fail on `policyVersion`.
+- Added POST `/api/join/:creatorId/complete` route coverage for a stale policy version returning 400 without calling `completeJoin`.
+- Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).

@@ -106,6 +106,23 @@ describe("POST /api/join/:creatorId/complete", () => {
     expect(mockCompleteJoin).not.toHaveBeenCalled();
   });
 
+  it("400 with a stale policyVersion — never follows", async () => {
+    const res = await json("POST", "/api/join/c1/complete", {
+      consent: true,
+      policyVersion: "privacy-policy-1900-01-01",
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toMatchObject({ success: false });
+    expect(body.error).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: ["policyVersion"] }),
+      ]),
+    );
+    expect(mockCompleteJoin).not.toHaveBeenCalled();
+  });
+
   it("422/400 without consent:true — never follows", async () => {
     const res = await json("POST", "/api/join/c1/complete", {
       consent: false,
