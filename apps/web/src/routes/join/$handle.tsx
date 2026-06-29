@@ -27,6 +27,12 @@ export const Route = createFileRoute("/join/$handle")({
     const description = creator.handle
       ? `Follow ${creator.displayName} (@${creator.handle}) on S/NC for updates, releases, and live announcements.`
       : `Follow ${creator.displayName} on S/NC for updates, releases, and live announcements.`;
+    const avatarSrc = creator.avatar?.src;
+    const ogImageUrl = avatarSrc
+      ? avatarSrc.startsWith("http://") || avatarSrc.startsWith("https://")
+        ? avatarSrc
+        : `${siteUrl}${avatarSrc.startsWith("/") ? "" : "/"}${avatarSrc}`
+      : null;
 
     return {
       meta: [
@@ -36,6 +42,7 @@ export const Route = createFileRoute("/join/$handle")({
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:url", content: canonicalUrl },
+        ...(ogImageUrl ? [{ property: "og:image", content: ogImageUrl }] : []),
       ],
       links: [
         { rel: "canonical", href: canonicalUrl },
