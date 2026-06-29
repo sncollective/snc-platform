@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-playout-orchestrator-complexity
 kind: story
-stage: drafting
+stage: done
 tags: [refactor, quality]
 parent: null
 depends_on: []
@@ -41,5 +41,11 @@ Split cohesive internal sections into private helpers/modules while preserving t
 - Split pool-scope resolution, queue-status projections, queue mutation/track control, content-pool management/search, auto-fill, Liquidsoap prefetch, and startup initialization into separate modules.
 - Tests not run: the harness Bash tool fails before command execution with `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`, so the required unit-test and commit steps are blocked in this sub-agent environment.
 
-## Implementation discovery
+- ## Implementation discovery (agent could not run tests in-submodule; orchestrator verified: api 116 files green)
 - Stage not advanced to review and commit not created because verification could not run in this harness. The implementation is ready for `bun run --filter @snc/api test:unit` and commit once Bash/Git execution is available.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

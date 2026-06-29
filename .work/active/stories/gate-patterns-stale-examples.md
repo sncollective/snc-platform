@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-stale-examples
 kind: story
-stage: review
+stage: done
 tags: [documentation, refactor]
 parent: null
 depends_on: []
@@ -49,3 +49,9 @@ Refreshed all 9 stale pattern files and advanced this item from `stage: drafting
 - Updated content helper/error/transformer citations to `lib/content-helpers.ts` and `lib/openapi-errors.ts`.
 - Updated upload/storage examples to `content-media.routes.ts`, `creator-media.routes.ts`, and current storage factory/singleton locations.
 - Could not locate: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-auth-otp-signin-scope
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -33,3 +33,9 @@ Update auth docs to cover sign-in OTP, auto-signup behavior, and its role in cap
 - Documented the load-bearing `emailOTP({ disableSignUp: false })` behavior: sign-in OTP verification can create an account for anonymous email-capture flows.
 - Grounded the capture-flow description in current call sites: creator join pages and live-page notify-me send `type: "sign-in"` OTPs and then call `signIn.emailOtp()` before recording consent/subscription actions.
 - Verification: documentation-only change; checked against `apps/api/src/auth/auth.ts`, `apps/web/src/routes/join/$handle.tsx`, and `apps/web/src/components/live/notify-me-form.tsx`.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

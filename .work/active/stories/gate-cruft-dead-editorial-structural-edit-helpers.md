@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-editorial-structural-edit-helpers
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -39,3 +39,9 @@ Remove the unused helper surface until routes/UI exist, or add the missing route
 ## Implementation (2026-06-29)
 
 Removed the unused structural-edit helper exports (`setTierEnabled`, `setTierPriority`, `addCarryEdge`, and `removeTier`) from `apps/api/src/services/editorial-control.ts`, removed their exclusive unit tests and dead mocks from `apps/api/tests/services/editorial-control.test.ts`, and verified no production importers remain by searching runtime paths.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

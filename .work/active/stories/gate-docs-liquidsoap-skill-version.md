@@ -1,7 +1,7 @@
 ---
 id: gate-docs-liquidsoap-skill-version
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -33,3 +33,9 @@ Update the Liquidsoap skill and referenced caveats to state the current 2.4.5 ba
 - Kept 2.4.2 spike observations as historical/research context rather than describing them as the running container version.
 - Updated the Dynamic Topology caveats in `.claude/skills/liquidsoap-v2/reference.md` so they describe the current 2.4.5 baseline while preserving the historical 2.4.2 risk notes.
 - Verification: documentation-only change; checked `liquidsoap/Dockerfile:1` pins `savonet/liquidsoap:v2.4.5`.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

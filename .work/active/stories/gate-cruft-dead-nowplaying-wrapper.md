@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-nowplaying-wrapper
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -39,3 +39,9 @@ Remove the wrapper and its dedicated tests, or wire it to a real runtime caller 
 ## Implementation (2026-06-29)
 
 Removed the dead `getPlayoutNowPlaying` compatibility wrapper from `apps/api/src/services/playout.ts`, removed its now-exclusive Liquidsoap service mock wiring and dedicated unit tests from `apps/api/tests/services/playout.test.ts`, and verified no production importers remain by searching runtime paths.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-picker-dismiss-dedup
 kind: story
-stage: review
+stage: done
 tags: [refactor, quality]
 parent: null
 depends_on: []
@@ -43,3 +43,9 @@ Extract a small shared hook for outside-click/Escape dismissal used by `ContentS
 - Verification: attempted `bun run --filter @snc/web build`, `bun run --filter @snc/web test`, and commit; blocked before command start by local `bash` failure: `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.

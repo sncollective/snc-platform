@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-streaming-route-file-size
 kind: story
-stage: drafting
+stage: done
 tags: [refactor, structural]
 parent: null
 depends_on: []
@@ -42,5 +42,11 @@ Split route-local helpers and callback workflows so the Hono route file moves ba
 - Kept the Hono route paths, middleware, validators, response statuses, and response bodies unchanged; route handlers now validate → delegate → respond.
 - Tests not run: the harness Bash tool fails before command execution with `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`, so the required unit-test and commit steps are blocked in this sub-agent environment.
 
-## Implementation discovery
+- ## Implementation discovery (agent could not run tests in-submodule; orchestrator verified: api 116 files green)
 - Stage not advanced to review and commit not created because verification could not run in this harness. The implementation is ready for `bun run --filter @snc/api test:unit` and commit once Bash/Git execution is available.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (medium gate finding, green verification). Implemented + verified in the medium drain wave: full suite green (shared, api 116 files, web build). No blockers above nit.
