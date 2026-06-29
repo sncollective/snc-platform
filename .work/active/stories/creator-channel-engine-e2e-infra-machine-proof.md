@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra-machine-proof
 kind: story
-stage: implementing
+stage: review
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: [creator-channel-engine-e2e-infra-topology, creator-channel-engine-e2e-infra-prefetch]
