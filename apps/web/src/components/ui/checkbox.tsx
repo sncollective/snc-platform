@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { Checkbox as ArkCheckbox } from "@ark-ui/react/checkbox";
 import { Check } from "lucide-react";
 
@@ -13,7 +13,7 @@ export interface CheckboxProps extends ComponentProps<typeof ArkCheckbox.Root> {
 // ── Public API ──
 
 /** Accessible checkbox with custom styling. */
-export function Checkbox({ children, ...props }: CheckboxProps) {
+export function Checkbox({ children, ...props }: CheckboxProps): ReactElement {
   return (
     <ArkCheckbox.Root className={styles.root} {...props}>
       <ArkCheckbox.Control className={styles.control}>

@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { clsx } from "clsx/lite";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { useEffect } from "react";
 
 import { logClientError } from "../lib/client-logger.js";
@@ -74,12 +74,12 @@ function RootComponent() {
   );
 }
 
-export function RootLayout() {
+export function RootLayout(): ReactElement {
   useRouteAnnouncer();
   const { authState } = Route.useLoaderData();
 
   return (
-    <div style={DEMO_MODE ? { "--demo-banner-height": "32px" } as React.CSSProperties : undefined}>
+    <div style={DEMO_MODE ? { "--demo-banner-height": "32px" } as CSSProperties : undefined}>
       <DemoBanner />
       <a href="#main-content" className="skip-link">
         Skip to main content

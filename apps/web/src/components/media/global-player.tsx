@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
 import "@vidstack/react/player/styles/base.css";
@@ -25,7 +26,7 @@ type PlayerStatus = "loading" | "ready" | "error";
 // ── Public API ──
 
 /** Single persistent media player rendered in the root layout. CSS controls expanded/collapsed/hidden presentation. */
-export function GlobalPlayer() {
+export function GlobalPlayer(): React.ReactElement | null {
   const { state, presentation, actions } = useGlobalPlayer();
   const modules = useVidstackModules();
 

@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-component-boundary-return-types
 kind: story
-stage: drafting
+stage: review
 tags: [refactor, stylistic]
 parent: null
 depends_on: []
@@ -33,3 +33,11 @@ export function GlobalPlayer() {
 
 ## Remediation direction
 Add explicit return types to exported component boundaries, including `GlobalPlayer`, `Checkbox`, and `RootLayout`.
+
+## Implementation (2026-06-29)
+- Stage: drafting → review.
+- Files changed: `apps/web/src/components/media/global-player.tsx`, `apps/web/src/components/ui/checkbox.tsx`, `apps/web/src/routes/__root.tsx`.
+- Tests added: none (type-boundary-only refactor).
+- Verification: attempted `bun run --filter @snc/web build`, `bun run --filter @snc/web test`, and commit; blocked before command start by local `bash` failure: `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`.
+- Discrepancies from design: `GlobalPlayer` can render `null`, so its explicit boundary type is `React.ReactElement | null`.
+- Adjacent issues parked: none.

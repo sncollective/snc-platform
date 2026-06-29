@@ -72,6 +72,7 @@ describe("ChannelCard", () => {
     const channel = makeMockChannel({
       ownership: "creator",
       role: "live-ingest",
+      liveState: "live-creator",
       viewerCount: 42,
     });
 
@@ -85,6 +86,7 @@ describe("ChannelCard", () => {
     const channel = makeMockChannel({
       ownership: "creator",
       role: "live-ingest",
+      liveState: "live-creator",
       viewerCount: 0,
     });
 

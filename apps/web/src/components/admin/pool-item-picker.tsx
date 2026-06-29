@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useState } from "react";
 import type React from "react";
 import type { ChannelContent } from "@snc/shared";
 
+import { useDismissOnOutsideClickAndEscape } from "../../hooks/use-dismiss-on-outside-click-and-escape.js";
 import { useListboxNavigation } from "../../hooks/use-listbox-navigation.js";
 import { formatDuration } from "../../lib/format-duration.js";
 import styles from "../../routes/admin/playout.module.css";
@@ -30,32 +31,7 @@ export function PoolItemPicker({
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [onClose]);
-
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
+  useDismissOnOutsideClickAndEscape(containerRef, onClose);
 
   // Every pool item is queueable: the queue carries either a playout item or a
   // content piece, so playout and creator-content rows are both selectable.
