@@ -1,13 +1,13 @@
 ---
 id: unified-channel-model
 kind: epic
-stage: implementing
+stage: done
 tags: [streaming, playout]
-release_binding: null
+release_binding: 0.4.0
 depends_on: [bold-channel-topology-model-render]
 gate_origin: null
 created: 2026-06-12
-updated: 2026-06-13
+updated: 2026-06-28
 parent: null
 ---
 
@@ -145,3 +145,25 @@ decisions; the workshop itself was the alignment pass):
   early in epic-design.
 - Per-channel pipelines on demand change the engine's process model; the
   airs-when-programmed lifecycle is new operational surface (start/stop supervision).
+
+## Completion
+
+All five child features done, bound to 0.4.0 (`epic_cohesion: total`):
+
+| Child | Outcome |
+|---|---|
+| `unified-channel-model-identity-lifecycle` | identity/state split (the `type` enum dies), persistent creator channels, lazy provisioning |
+| `unified-channel-model-editorial-engine` | source tiers, manual/auto control plane, no-restart switching; Liquidsoap 2.4.5 |
+| `unified-channel-model-snctv-composition` | S/NC TV re-expressed as channel-as-source programming |
+| `unified-channel-model-creator-enablement` | editorial surface mounted on creator manage (the terminal child, closed last) |
+| `unified-channel-model-creator-content-playable` | widened `playout_queue` to be source-polymorphic (the B1 sibling the review loop span off) |
+
+The terminal child's deferred AC#5 live fix-verify was lifted to rung 3 by the
+`machine-verifiable-testing` epic: `creator-channel-engine-e2e-infra` +
+`creator-channel-playback.spec.ts` prove the creator-content playback path end-to-end
+(track-event → nowPlaying → HLS segment growth), no human watching pixels. Per
+`.work/CONVENTIONS.md` §Fix-verify loopback, that machine proof is a valid close.
+
+Outstanding: the `0.4.0` release's `## Prod verification` (real RTMP simulcast, OAuth,
+SMTP, tusd prod deploy) — rung 5, legitimately prod-only, a release check the operator walks
+after deploy, not a story-close gate.

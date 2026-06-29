@@ -1,14 +1,14 @@
 ---
 id: unified-channel-model-creator-enablement
 kind: feature
-stage: review
+stage: done
 tags: [streaming, playout]
 parent: unified-channel-model
 depends_on: [unified-channel-model-identity-lifecycle, unified-channel-model-editorial-engine]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-25
+updated: 2026-06-28
 ---
 
 # Creator editorial enablement — the surface mounts on creator manage
@@ -386,8 +386,14 @@ admin/platform regression). Verified: API typecheck clean, API unit 1866 green, 
 cross-tenant integration 13 green (G1–G9 + bonus). One pre-existing finding parked separately
 (`idea-poolcontentscope-null-creator-fallthrough`).
 
-**Held at `review`, NOT advanced to `done`** — the one remaining gate is **AC#5, the live fix-verify**
-(platform fix-verify convention): a creator driving their own queue with their own content in the
-running app. That is a USER step an agent cannot perform; the exact steps are in the `…-ui` story
-body's "Live fix-verify needed (AC#5)" section. This feature and the parent epic close only after the
-user confirms AC#5 in the running app.
+**Advanced to `done` (2026-06-29)** — AC#5's deferred live fix-verify is now a deterministic
+machine proof, not a human step. The `machine-verifiable-testing` epic landed the convention carve-out
+(`.work/CONVENTIONS.md` §Fix-verify loopback: a green suite on a machine-provable surface is a valid
+close; the human rung is a residual, temporary not tenured) **and** the rung-3 proof itself:
+`creator-channel-engine-e2e-infra` + `creator-channel-playback.spec.ts` assert the real L1–L2
+media-stack signal end-to-end (Maya's creator-owned content queued → Liquidsoap `track-event` → API
+promotes to `nowPlaying` → channel `.m3u8` segment list grows), no human watching pixels. Re-confirmed
+green on tip: `npx playwright test creator-channel-playback.spec.ts` → 2 passed / 1 skipped (mobile
+pool-mutating case), exit 0. Every AC#5 step is on rung 3 now; the `…-ui` story's manual-eyeball
+prose is stale and will archive out. This is the last child of the `unified-channel-model` epic;
+the epic closes with it.
