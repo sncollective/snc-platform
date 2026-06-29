@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra-topology
 kind: story
-stage: review
+stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: []
@@ -58,3 +58,13 @@ channels from the rendered playout engine.
 
 Park real product bugs; fix bad fixtures/assertions; never weaken render assertions to match accidental
 output.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes record focused Liquidsoap config tests and API typecheck passing; acceptance criteria are all checked and the story preserves the safe-by-default runtime behavior.
