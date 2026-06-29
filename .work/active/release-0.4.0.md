@@ -162,3 +162,16 @@ fanned out as parallel deep-scanner subagents on gpt-5.5/high). Findings convert
 - **gate-docs** (2026-06-29) — 6 findings (1 critical, 2 high, 3 medium; 3 foundation-doc, 1 readme-stale, 2 skill-stale)
 - **gate-patterns** (2026-06-29) — 7 new patterns written + indexed; 9 stale-example findings (1 tracking item)
 - **gate-refactor** (2026-06-29) — 10 findings (0 critical, 6 high, 4 medium; 6 libraries: a11y, seo, perf, quality×3, structural×2, stylistic×2)
+
+### Gate rerun 1 (2026-06-29, after draining 33 findings)
+
+Re-run over the expanded 221-code-file bundle, each gate passed its already-tracked findings as a skip-list. Findings converted to items as each returns.
+
+- **gate-security** (rerun) — running
+- **gate-tests** (rerun) — 4 new findings (1 critical, 3 high)
+- **gate-cruft** (rerun) — running
+- **gate-docs** (rerun) — 7 new findings (1 high, 4 medium, 2 low)
+- **gate-patterns** (rerun) — running
+- **gate-refactor** (rerun) — running
+
+Release bar: criticals/highs loop-to-clean; mediums/lows accepted into one 0.4.0-known-debt backlog item.
