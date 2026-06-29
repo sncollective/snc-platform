@@ -6,12 +6,14 @@ A creator is an **entity**, not a role. Creator profiles represent bands, artist
 
 ### Entity Model
 
-The creator domain has two tables:
+The creator domain has three creator-owned tables, plus the shared consent log used by the join page:
 
-- **`creator_profiles`** -- the creator entity itself (display name, bio, avatar, banner, social links, handle).
+- **`creator_profiles`** -- the creator entity itself (display name, bio, avatar, banner, social links, handle, status).
 - **`creator_members`** -- a join table linking users to creator profiles with a team role. The composite primary key is `(creator_id, user_id)`.
+- **`creator_join_configs`** -- optional per-creator join-page settings. Absence means the default join config is used.
+- **`consent_log`** -- append-only records of captured consent, including join-page email-contact consent.
 
-Both tables use `ON DELETE CASCADE` foreign keys: deleting a creator cascades to its members, and deleting a user cascades their memberships.
+The child tables use `ON DELETE CASCADE` foreign keys from the creator or user rows they depend on: deleting a creator cascades to its members and join config, and deleting a user cascades their memberships and consent-log rows.
 
 A creator profile is **not** a 1:1 extension of a user account. It is an independent entity that one or more users manage through the `creator_members` join.
 
@@ -42,7 +44,7 @@ The candidates endpoint (`GET /api/creators/:creatorId/members/candidates`) only
 
 ## Routes
 
-All routes are mounted under `/api/creators`. The `creatorId` parameter accepts either a UUID or a handle -- the backend resolves both via `findCreatorProfile()` which queries on `OR(id = identifier, handle = identifier)`.
+Creator profile, member, follow, and join-config routes are mounted under `/api/creators`. Public join-page routes are mounted under `/api/join`, and creator editorial routes are mounted under `/api/creator/playout`. The `creatorId` parameter on creator routes accepts either a UUID or a handle -- the backend resolves both via `findCreatorProfile()` which queries on `OR(id = identifier, handle = identifier)`.
 
 ### Creator Profile Routes (`creator.routes.ts`)
 
@@ -85,6 +87,25 @@ The creator editorial surface (the Programming tab — queue, content pool, play
 
 The `manageStreaming` permission is owner-only. The `/api/creator/playout/*` routes are gated by `requireCreatorChannelPermission("manageStreaming")`, which loads the channel, asserts it is the creator's own `live-ingest` channel (404 otherwise — no existence leak), then delegates to `requireCreatorPermission`. Content scope is derived from the channel's ownership row inside the orchestrator, never from caller input.
 
+### Creator Join Page Routes (`join.routes.ts`)
+
+Join-page config routes are creator-management routes under `/api/creators`. Public fan-facing join routes are under `/api/join` and back the web route `/join/$handle`.
+
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/api/creators/:creatorId/join-config` | required | `editProfile` | Read the creator's join-page config. Returns defaults when no `creator_join_configs` row exists. |
+| `PATCH` | `/api/creators/:creatorId/join-config` | required | `editProfile` | Upsert join-page config fields: `incentiveText`, `showSncExplainer`, `showSubscribeCta`. |
+| `GET` | `/api/join/:handleOrId` | none | -- | Public join-page payload for an active creator by handle or ID. Includes creator identity/images, join config, follower count, creator plans, and S/NC plans. |
+| `POST` | `/api/join/:creatorId/complete` | required | -- | Complete a join action for the authenticated user. Requires explicit consent and the current privacy-policy version; follows the creator and records consent. |
+
+**Manage QR/link flow.** Creators manage the join page at `/creators/:creatorId/manage/join`. The page builds a public URL at `/join/<creatorId-or-handle-route-param>`, renders a QR code as SVG, offers copy/print actions, and lets the creator edit the incentive line plus the S/NC explainer and subscription CTA toggles. Saving calls `PATCH /api/creators/:creatorId/join-config`; reading calls `GET /api/creators/:creatorId/join-config`.
+
+**Public join flow.** `/join/$handle` loads `GET /api/join/:handleOrId`. Logged-in users can one-tap follow. Logged-out users enter name, email, and email-contact consent, receive an email OTP through the auth client, verify the OTP, then the client updates their display name and posts `POST /api/join/:creatorId/complete`. After joining, the page offers notification preferences for `go_live` and `new_content`, then optionally shows the S/NC explainer and creator subscription plans according to the join config.
+
+**Follower and consent effects.** `completeJoin()` validates the creator, calls `followCreator()` for the authenticated user, then appends a `consent_log` row with `consent_type = "email-contact"`, the submitted `policy_version`, and `source = "join:<creatorId>"`. Follow is idempotent through the follow service; consent capture is append-only.
+
+**Permission model.** Join config editing uses `requireCreatorPermission(..., "editProfile", roles)`: owners and editors can edit; viewers cannot. Platform admins bypass creator permission checks through the standard creator-team permission service.
+
 ## Schema
 
 ### `creator_profiles` table
@@ -98,6 +119,7 @@ The `manageStreaming` permission is owner-only. The `/api/creator/playout/*` rou
 | `banner_key` | `text` | Storage key, nullable. Resolved to `/api/creators/:id/banner` URL in responses. |
 | `social_links` | `jsonb` NOT NULL DEFAULT `[]` | Array of `SocialLink` objects (`{ platform, url, label? }`) |
 | `handle` | `text` UNIQUE | Nullable. Validated by `HANDLE_REGEX`. |
+| `status` | `text` NOT NULL DEFAULT `active` | Creator status (`CreatorStatus`). Indexed by `creator_profiles_status_idx`. |
 | `created_at` | `timestamptz` NOT NULL | |
 | `updated_at` | `timestamptz` NOT NULL | |
 
@@ -112,7 +134,30 @@ The `manageStreaming` permission is owner-only. The `/api/creator/playout/*` rou
 
 Primary key: `(creator_id, user_id)`. Indexes: `(user_id, role)` and `(creator_id, role)`.
 
-Schema source: `apps/api/src/db/schema/creator.schema.ts`
+### `creator_join_configs` table
+
+| Column | Type | Notes |
+|---|---|---|
+| `creator_id` | `text` PK/FK | References `creator_profiles.id` ON DELETE CASCADE. Row is optional; absence means `DEFAULT_JOIN_CONFIG`. |
+| `incentive_text` | `text` | Nullable line shown by the join-page flow. |
+| `show_snc_explainer` | `boolean` NOT NULL DEFAULT `true` | Controls the S/NC explainer block on the public join page. |
+| `show_subscribe_cta` | `boolean` NOT NULL DEFAULT `true` | Controls the subscription/support CTA on the public join page. |
+| `updated_at` | `timestamptz` NOT NULL | |
+
+### `consent_log` table
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `text` PK | UUID, generated application-side via `randomUUID()` |
+| `user_id` | `text` NOT NULL FK | References `users.id` ON DELETE CASCADE |
+| `consent_type` | `text` NOT NULL | Join-page completion writes `email-contact`. |
+| `policy_version` | `text` NOT NULL | Must match the submitted privacy-policy version. |
+| `source` | `text` NOT NULL | Join-page completion writes `join:<creatorId>`. |
+| `captured_at` | `timestamptz` NOT NULL | |
+
+Index: `consent_log_user_idx` on `user_id`.
+
+Schema sources: `apps/api/src/db/schema/creator.schema.ts`, `apps/api/src/db/schema/consent.schema.ts`
 
 ## Configuration
 
