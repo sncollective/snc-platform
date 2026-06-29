@@ -1,7 +1,7 @@
 ---
 id: gate-tests-otp-account-creation-semantics
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -34,3 +34,9 @@ it("email OTP sign-in creates a verified user for a new email and reuses an exis
 
 ## Test location (suggested)
 `apps/api/tests/integration/auth-email-otp.test.ts`
+
+## Implementation (2026-06-29)
+- Added `apps/api/tests/integration/auth-email-otp.test.ts` as a focused config-seam test rather than a real DB Better Auth flow: Better Auth is mocked at the plugin/config boundary and `auth.ts` is imported with captured `emailOTP` options.
+- Covered the load-bearing semantics available at this seam: `emailOTP({ disableSignUp: false })` is configured, email verification is not required for sign-in, and the configured OTP sender emits sign-in copy through `sendOtpEmail`.
+- Verification: `bun run --filter @snc/api test:integration -- tests/integration/auth-email-otp.test.ts` passed.
+- Adjacent issues parked: none.
