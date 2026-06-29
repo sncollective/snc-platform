@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-clock-seed-control
 kind: story
-stage: review
+stage: done
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
@@ -30,10 +30,10 @@ tokens, or seeded fixture names do not depend on wall-clock timing or ambient RN
 
 ## Acceptance criteria
 
-- [ ] E2E fixture IDs and timestamps are deterministic and collision-safe under parallel workers.
-- [ ] Browser-visible date/time assertions can opt into a fixed clock.
-- [ ] The convention is documented in the helper module and referenced by the feature body.
-- [ ] No production code path is forced to use test clocks or seeded RNG.
+- [x] E2E fixture IDs and timestamps are deterministic and collision-safe under parallel workers.
+- [x] Browser-visible date/time assertions can opt into a fixed clock.
+- [x] The convention is documented in the helper module and referenced by the feature body.
+- [x] No production code path is forced to use test clocks or seeded RNG.
 
 ## Test integrity contract
 
@@ -54,3 +54,13 @@ not loosen assertions to hide timing issues.
 ## Verification results
 
 - `bun run --filter @snc/e2e typecheck` — pass.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. The helper provides deterministic suffixes/IDs/timestamps and an opt-in Playwright fixed-clock helper without forcing production code onto test clocks. E2E typecheck passed.
