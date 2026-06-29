@@ -1,7 +1,7 @@
 ---
 id: gate3-refactor-join-route-og-image
 kind: story
-stage: review
+stage: done
 tags: [refactor, seo]
 parent: null
 depends_on: []
@@ -27,3 +27,7 @@ Add conditional og:image metadata when creator.avatar is present, using an absol
 
 ## Implementation (2026-06-29)
 Updated `apps/web/src/routes/join/$handle.tsx` so `head()` derives an absolute `og:image` from `creator.avatar.src` when present, preserving existing canonical/OG URL construction via `VITE_SITE_URL` and leaving metadata unchanged when no avatar exists.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve. Fast-lane (rerun-2 finding, green — full suite: shared + api 117 + web build/test). No blockers.
