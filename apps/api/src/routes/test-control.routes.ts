@@ -12,6 +12,9 @@ import {
 const MayaProgrammingSeedSchema = z.object({
   pool: z.boolean().optional(),
   queue: z.boolean().optional(),
+  fixtureId: z.string().optional(),
+  title: z.string().optional(),
+  timestampIso: z.string().datetime().optional(),
 });
 
 // ── Route Surface ──
@@ -43,11 +46,14 @@ testControlRoutes.post(
     tags: ["test-control"],
     responses: {
       200: { description: "Maya programming state reset" },
+      400: { description: "Invalid fixture options" },
       409: { description: "Required demo seed rows are missing" },
     },
   }),
+  validator("json", MayaProgrammingSeedSchema.partial()),
   async (c) => {
-    const result = await resetMayaCreatorProgramming();
+    const body = c.req.valid("json");
+    const result = await resetMayaCreatorProgramming(body);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },

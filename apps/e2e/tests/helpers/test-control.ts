@@ -3,12 +3,17 @@ import type { APIRequestContext } from "@playwright/test";
 export type MayaProgrammingSeedOptions = {
   pool?: boolean;
   queue?: boolean;
+  fixtureId?: string;
+  title?: string;
+  timestampIso?: string;
 };
 
 export type MayaProgrammingState = {
   channelId: string;
   creatorId: string;
   contentId: string;
+  title: string;
+  fixtureId: string | null;
   seededPool: boolean;
   seededQueue: boolean;
 };
@@ -32,8 +37,11 @@ const assertOk = async (
 /** Reset Maya's creator-programming pool/queue to a clean state without UI surgery. */
 export const resetMayaProgramming = async (
   request: APIRequestContext,
+  options: Pick<MayaProgrammingSeedOptions, "fixtureId" | "title"> = {},
 ): Promise<MayaProgrammingState> => {
-  const response = await request.post("/api/test-control/creator-programming/maya/reset");
+  const response = await request.post("/api/test-control/creator-programming/maya/reset", {
+    data: options,
+  });
   return assertOk(response, "reset Maya programming");
 };
 

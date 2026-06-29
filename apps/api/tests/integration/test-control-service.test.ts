@@ -16,6 +16,12 @@ const MAYA_CHANNEL_ID = "00000000-0000-4000-c000-000000000001";
 const STUDIO_TOUR_CONTENT_ID = "00000000-0000-4000-a000-000000000103";
 const POOL_ROW_ID = "e2e-tc-maya-programming-pool-studio-tour";
 const QUEUE_ROW_ID = "e2e-tc-maya-programming-queue-studio-tour";
+const FIXTURE_A_ID = "creator-programming-chromium-studio-tour-a";
+const FIXTURE_B_ID = "creator-programming-mobile-studio-tour-b";
+const fixtureContentId = (fixtureId: string) =>
+  `e2e-tc-maya-programming-content-${fixtureId}`;
+const fixturePoolRowId = (fixtureId: string) =>
+  `e2e-tc-maya-programming-pool-${fixtureId}`;
 
 const ensureMayaDemoRows = async (): Promise<void> => {
   const now = new Date();
@@ -122,6 +128,44 @@ describe("test-control service", () => {
       .where(eq(playoutQueue.id, QUEUE_ROW_ID));
     expect(remainingPoolRows).toHaveLength(0);
     expect(remainingQueueRows).toHaveLength(0);
+  });
+
+  it("scopes deterministic fixture cleanup so parallel e2e cases do not delete each other", async () => {
+    const timestampIso = "2026-01-15T12:00:00.000Z";
+    const fixtureA = await seedMayaCreatorProgramming({
+      fixtureId: FIXTURE_A_ID,
+      title: "Studio Tour fixture A",
+      pool: true,
+      timestampIso,
+    });
+    const fixtureB = await seedMayaCreatorProgramming({
+      fixtureId: FIXTURE_B_ID,
+      title: "Studio Tour fixture B",
+      pool: true,
+      timestampIso,
+    });
+    expect(fixtureA.ok).toBe(true);
+    expect(fixtureB.ok).toBe(true);
+
+    const resetA = await resetMayaCreatorProgramming({ fixtureId: FIXTURE_A_ID });
+    expect(resetA.ok).toBe(true);
+
+    const deletedAContent = await db
+      .select()
+      .from(content)
+      .where(eq(content.id, fixtureContentId(FIXTURE_A_ID)));
+    const remainingBContent = await db
+      .select()
+      .from(content)
+      .where(eq(content.id, fixtureContentId(FIXTURE_B_ID)));
+    const remainingBPool = await db
+      .select()
+      .from(channelContent)
+      .where(eq(channelContent.id, fixturePoolRowId(FIXTURE_B_ID)));
+
+    expect(deletedAContent).toHaveLength(0);
+    expect(remainingBContent).toHaveLength(1);
+    expect(remainingBPool).toHaveLength(1);
   });
 
   it("rejects queue-only seeds because queue entries require a pool row", async () => {

@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-isolation-proof
 kind: story
-stage: implementing
+stage: review
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: [e2e-harness-determinism-test-control-api]
@@ -30,14 +30,41 @@ partitioning for mutation tests.
 
 ## Acceptance criteria
 
-- [ ] Pool-mutating creator-programming specs run in both chromium and mobile projects when their UI
+- [x] Pool-mutating creator-programming specs run in both chromium and mobile projects when their UI
       assertions are viewport-valid.
-- [ ] The mutation cases no longer use UI removal loops as test setup.
-- [ ] No case depends on prior run state in the shared demo DB.
-- [ ] The converted spec remains black-box for product assertions; the test-control API is setup only.
+- [x] The mutation cases no longer use UI removal loops as test setup.
+- [x] No case depends on prior run state in the shared demo DB.
+- [x] The converted spec remains black-box for product assertions; the test-control API is setup only.
 
 ## Test integrity contract
 
 If the converted spec reveals product breakage, park the product bug and keep the test honest with a
 linked skip/xfail only when necessary. Fix bad test assumptions in-session. No tautological green
 assertions.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/e2e/tests/creator-programming.spec.ts`
+  - `apps/e2e/tests/helpers/test-control.ts`
+  - `apps/api/src/services/test-control.ts`
+  - `apps/api/src/routes/test-control.routes.ts`
+  - `apps/api/tests/integration/test-control-service.test.ts`
+  - `apps/e2e/playwright.config.ts`
+- Tests added: integration coverage for fixture-scoped test-control cleanup so parallel e2e cases do
+  not delete each other's deterministic content/pool rows.
+- Discrepancies from design: the existing test-control helper only targeted the shared Studio Tour
+  seed row, which was not actually parallel-safe across chromium/mobile projects. I extended the
+  test-control setup surface to accept deterministic per-test fixture IDs/titles, then used those
+  fixtures from the creator-programming spec.
+- Adjacent issues parked: none.
+
+## Verification results
+
+- `bun run --filter @snc/api typecheck` — passed.
+- `bun run --filter @snc/api test:integration -- test-control-service.test.ts` — passed.
+- `bun run --filter @snc/e2e typecheck` — passed.
+- `bun --cwd apps/e2e playwright test tests/creator-programming.spec.ts --reporter=list --no-deps` —
+  passed (12 tests across chromium and mobile). Local PM2 API was restarted with
+  `TEST_CONTROL_PROFILE=e2e AUTH_RATE_LIMIT_PROFILE=e2e` for this verification because the default
+  local staging API did not have the e2e-only test-control route mounted.

@@ -1,56 +1,13 @@
 import { test, expect } from "@playwright/test";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 
+import {
+  E2E_FIXED_FIXTURE_TIMESTAMP_ISO,
+  seededSuffix,
+  stableTestId,
+} from "./helpers/determinism.js";
 import { contextNav, isMobile } from "./helpers/nav.js";
-
-/**
- * Drive the Programming surface's own UI to remove `MAYA_CONTENT` from Maya's
- * queue and content pool, leaving a clean precondition for the test that follows.
- *
- * Why this exists: assigning content to the pool is a *persistent* write against
- * the shared demo DB (`channel_content`), and the content search deliberately
- * hides already-pooled items (`NOT IN (pool)`), so the first case that assigns
- * Studio Tour would make every later case's `search → click MAYA_CONTENT` find
- * nothing. The mutation also survives across runs and across the two Playwright
- * projects (no per-project reseed). Resetting via the UI before each case — rather
- * than a DB/API reach-around — keeps the suite's black-box boundary intact and
- * makes each case start from the same known state regardless of run order.
- *
- * Tolerant by design: removes only what's present (queue first — a queue entry
- * pins its pool item — then pool), and is a no-op on an already-clean surface.
- */
-async function resetMayaProgramming(page: Page): Promise<void> {
-  await page.goto("/creators/maya-chen/manage/programming");
-
-  // The pool/queue rows hydrate *after* the headings paint, fed by a client-side
-  // fetch. Checking a remove button's count too early reads 0 (row not yet
-  // rendered) and skips the drain, leaving stale state. The pool heading gains its
-  // ` (N items)` count only once the queue-status fetch resolves, so gate on that
-  // parenthetical — it's the deterministic "pool data loaded" signal.
-  await expect(
-    page.getByRole("heading", { name: /Content Pool \(\d+ items\)/ }),
-  ).toBeVisible();
-
-  // The pool/queue dual-render a table and a card list (both in the DOM, one
-  // hidden by a CSS container query), so target only the *visible* copy —
-  // counting both would never reach 0. Queue entries reference a pool item, so
-  // clear the queue before the pool.
-  const queueRemove = page
-    .getByRole("button", { name: `Remove ${MAYA_CONTENT} from queue` })
-    .filter({ visible: true });
-  while ((await queueRemove.count()) > 0) {
-    await queueRemove.first().click();
-    await expect(queueRemove).toHaveCount(0);
-  }
-
-  const poolRemove = page
-    .getByRole("button", { name: `Remove ${MAYA_CONTENT} from pool` })
-    .filter({ visible: true });
-  while ((await poolRemove.count()) > 0) {
-    await poolRemove.first().click();
-    await expect(poolRemove).toHaveCount(0);
-  }
-}
+import { resetMayaProgramming, seedMayaProgramming } from "./helpers/test-control.js";
 
 /**
  * Creator Programming surface — golden path (AC#5 regression guard).
@@ -65,9 +22,22 @@ async function resetMayaProgramming(page: Page): Promise<void> {
  * integration suite). Selectors are roles / labels / text, resilient to CSS churn.
  */
 
-// Maya's own video content (seed-demo.ts) and a cross-tenant creator's content.
-const MAYA_CONTENT = "Studio Tour 2026";
+// Cross-tenant creator content from the demo seed.
 const JORDAN_CONTENT = "Open Mic Night Highlights";
+
+const mayaProgrammingFixture = (testInfo: TestInfo) => {
+  const suffix = seededSuffix(
+    [testInfo.project.name, ...testInfo.titlePath, "studio-tour"],
+    6,
+  );
+  return {
+    fixtureId: stableTestId(testInfo, "studio-tour", {
+      prefix: "creator-programming",
+      maxLength: 80,
+    }),
+    title: `Studio Tour ${suffix}`,
+  };
+};
 
 /**
  * The Content Pool view present at the current viewport.
@@ -158,83 +128,72 @@ test.describe("Creator Programming surface (golden path)", () => {
 });
 
 /**
- * Pool-mutating golden cases — assigning Studio Tour to Maya's pool is a
- * *persistent* write against the shared demo DB. These run **serially** (each
- * case's reset→assign→assert sequence must not interleave with a sibling's
- * mutation) and on **chromium only** (the two Playwright projects run
- * concurrently against one shared DB with one seed-provisioned creator, so a
- * cross-project run would race regardless of within-project serialization).
- *
- * Scoping to one project loses nothing: the assign/queue path is backend-scoped
- * and viewport-independent. The viewport-sensitive pool render (table vs. card
- * dual-render) is exercised by the read-only "renders the real editorial
- * surface" case above, which still runs on both projects.
+ * Pool-mutating golden cases use per-test content fixtures seeded through the
+ * e2e-only test-control setup surface. Each test/project gets a deterministic
+ * Maya-owned content row, so parallel workers can mutate the shared Maya channel
+ * without hiding another test's search result or deleting another test's pool row.
+ * Product assertions remain browser-facing; test-control only establishes state.
  */
 test.describe("Creator Programming surface (pool mutations)", () => {
   test.use({ storageState: "auth/stakeholder.json" });
-  test.describe.configure({ mode: "serial" });
 
-  test.beforeEach(async ({ page }, testInfo) => {
-    // The shared-DB collision is between concurrent projects; pin these cases to
-    // chromium so only one project ever mutates Maya's pool.
-    test.skip(
-      testInfo.project.name !== "chromium",
-      "Pool-mutating cases run on chromium only (shared-DB isolation).",
-    );
-    // Reset to an empty pool/queue so run order and prior runs start clean.
-    await resetMayaProgramming(page);
+  test.beforeEach(async ({ request }, testInfo) => {
+    const fixture = mayaProgrammingFixture(testInfo);
+    await seedMayaProgramming(request, {
+      ...fixture,
+      pool: testInfo.title !== "assigns own content to the pool",
+      queue: false,
+      timestampIso: E2E_FIXED_FIXTURE_TIMESTAMP_ISO,
+    });
+  });
+
+  test.afterEach(async ({ request }, testInfo) => {
+    await resetMayaProgramming(request, mayaProgrammingFixture(testInfo));
   });
 
   test("assigns own content to the pool", async ({ page }, testInfo) => {
+    const { title } = mayaProgrammingFixture(testInfo);
     await gotoProgramming(page);
 
     const search = await openPicker(page, "+ Add Content", "Search content");
-    await search.fill("Studio");
+    await search.fill(title);
 
     // Own content is offered under a "Creator" badge in the search results.
     const results = page.getByRole("listbox", { name: "Content search results" });
-    const option = results.getByRole("option", { name: new RegExp(MAYA_CONTENT) });
+    const option = results.getByRole("option", { name: new RegExp(title) });
     await expect(option).toBeVisible();
     await option.click();
 
-    // It lands in the Content Pool table/card view.
-    await expect(contentPool(page, testInfo).getByText(MAYA_CONTENT)).toBeVisible();
+    // It lands in the Content Pool table/card view for the current viewport.
+    await expect(contentPool(page, testInfo).getByText(title)).toBeVisible();
   });
 
-  test('pooled content is queueable with a "Content" badge', async ({ page }) => {
+  test('pooled content is queueable with a "Content" badge', async ({ page }, testInfo) => {
+    const { title } = mayaProgrammingFixture(testInfo);
     await gotoProgramming(page);
-
-    const search = await openPicker(page, "+ Add Content", "Search content");
-    await search.fill("Studio");
-    const results = page.getByRole("listbox", { name: "Content search results" });
-    await results.getByRole("option", { name: new RegExp(MAYA_CONTENT) }).click();
 
     const picker = await openPicker(page, "+ Add to Queue", "Filter pool items");
     await expect(picker).toBeVisible();
 
     // The pool picker lists the item with a "Content" badge — the B1 UI fix
     // (creator content was previously filtered out of the queue picker).
-    const option = page.getByRole("option").filter({ hasText: MAYA_CONTENT });
+    const option = page.getByRole("option").filter({ hasText: title });
     await expect(option).toBeVisible();
     await expect(option.getByText("Content", { exact: true })).toBeVisible();
   });
 
-  test("play-next queues the item with no error", async ({ page }) => {
+  test("play-next queues the item with no error", async ({ page }, testInfo) => {
+    const { title } = mayaProgrammingFixture(testInfo);
     await gotoProgramming(page);
 
-    const search = await openPicker(page, "+ Add Content", "Search content");
-    await search.fill("Studio");
-    const results = page.getByRole("listbox", { name: "Content search results" });
-    await results.getByRole("option", { name: new RegExp(MAYA_CONTENT) }).click();
-
     await openPicker(page, "+ Add to Queue", "Filter pool items");
-    await page.getByRole("option").filter({ hasText: MAYA_CONTENT }).click();
+    await page.getByRole("option").filter({ hasText: title }).click();
 
     // UI assertion of the queue write: no error banner, and the item appears in the
     // Upcoming queue list. (DB persistence is covered by the integration suite.)
     await expect(page.getByRole("alert")).toHaveCount(0);
     const queue = page.getByRole("list", { name: "Upcoming queue" });
     await expect(queue).toBeVisible();
-    await expect(queue.getByText(MAYA_CONTENT)).toBeVisible();
+    await expect(queue.getByText(title)).toBeVisible();
   });
 });

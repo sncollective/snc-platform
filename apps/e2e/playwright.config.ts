@@ -85,6 +85,7 @@ export default defineConfig({
             CORS_ORIGIN: "http://localhost:3101",
             BETTER_AUTH_URL: "http://localhost:3101",
             AUTH_RATE_LIMIT_PROFILE: "e2e",
+            TEST_CONTROL_PROFILE: "e2e",
           },
           cwd: "../..",
         },
