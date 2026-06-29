@@ -7,7 +7,7 @@ parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
-created: 2026-06-29
+created: 2026-06-28
 updated: 2026-06-28
 ---
 
@@ -49,4 +49,6 @@ so the generated content mp4s carry audio and decode under Liquidsoap.
 Fixed inline during the machine-proof diagnosis because it is load-bearing
 for the proof to pass at all; this backlog item is the audit trail per the
 test-integrity rule (file real production bugs rather than silently fixing
-mid-pass). The fix is in the same stride as the proof work.
+mid-pass). The fix shipped in commit `95755bb` (implement:
+creator-channel-engine-e2e-infra-machine-proof). **Audit-only — this item is
+not open work; the bug is fixed. Retain for traceability.**
