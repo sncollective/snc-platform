@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism-auth-limiter-gate
 kind: story
-stage: review
+stage: done
 tags: [testing, developer-experience, e2e-test]
 parent: e2e-harness-determinism
 depends_on: []
@@ -66,3 +66,13 @@ it. Test assertions must prove both relaxed e2e behavior and unchanged productio
 - `bun run --filter @snc/api test:unit` — passed (115 files, 1874 tests).
 - `bun run --filter @snc/e2e test -- --list` — passed; Playwright config and setup load and list 129 tests.
 - `bunx tsc --noEmit -p apps/e2e/tsconfig.json` — blocked by pre-existing config/tooling issue: `apps/e2e/playwright.config.ts(3,17): Cannot find name 'process'. Do you need to install type definitions for node?`
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes record green targeted unit tests, API typecheck, full API unit suite, and Playwright test listing. The blocked e2e standalone `tsc` command is a pre-existing tooling mismatch and not part of the project verification surface for this story.
