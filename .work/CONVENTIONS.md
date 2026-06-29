@@ -167,15 +167,49 @@ upstream contribution; they are platform-specific until the plugin adopts them.
 
 ### Fix-verify loopback
 
-Each user-verifiable fix is re-confirmed by the user before the story closes — stronger than the
-plugin's default bounce-and-re-review cycle. This applies wherever a non-agent can visually
-confirm the change (UI work especially, but also any behavior a human can exercise at the
-keyboard or in the browser). The loopback is: implement → review → user confirms in the
-running app → close. A review that passes without the user having exercised the change is not
-complete under this convention.
+Each user-verifiable fix is re-confirmed by the user before the story closes **only where no
+deterministic machine proof exists** for the changed behavior. The loopback is a residual close
+condition, not the default close condition.
 
-*Candidate upstream PR:* the loopback matters most for platforms where user-facing work
-dominates and the agent cannot self-verify production behavior.
+Use this verification ladder, taking the highest rung that can prove the behavior:
+
+1. **Unit** — pure logic and contracts with fake env / mocked externals.
+2. **Integration** — real service assembly and real backing services where practical.
+3. **E2E** — the running app proves the user-facing behavior; for streaming playback this includes
+   machine signals such as track-events, `/status` `nowPlaying`, HLS manifest/segment growth, and
+   browser-player playback progress.
+4. **Human residual** — only behavior no rung above can yet prove. The item must carry or link a
+   paired backlog item with an expiry to lift the check up the ladder; the human rung is temporary,
+   not tenured.
+5. **Prod-only verification** — OAuth, SMTP, real-follower paths, SRS RTMP live ingestion, and other
+   checks that genuinely require production credentials or external systems. These remain in
+   `## Prod verification`; they are deployment-context checks, not failed CI automation.
+
+When a deterministic machine proof exists, a green suite for the machine-provable surface is a valid
+close and no additional human re-confirmation is required. When no such proof exists yet, the human
+confirmation remains: implement → review → user confirms in the running app → close, with the paired
+lift-the-rung follow-up recorded.
+
+*Candidate upstream PR:* the loopback matters most for platforms where user-facing work dominates,
+but it should be framed as a residual for unproven surfaces rather than an unconditional human gate.
+
+### E2E black-box boundary
+
+The e2e suite keeps product assertions at the user-facing boundary: tests should not prove product
+behavior by directly querying internal product APIs when the user-visible surface can assert it.
+The rule is **no product assertions through the API**, not "no HTTP outside the browser".
+
+Allowed support surfaces:
+
+- **Test-control APIs** for reset, seed, and deterministic setup/teardown. These are setup tools,
+  not product assertions.
+- **Machine probes** for proof-of-pipeline signals that no DOM assertion can directly observe:
+  `/status` `nowPlaying`, HLS `.m3u8` manifest/segment growth, track-events, health/status probes,
+  and similar externally visible runtime signals.
+
+User-facing assertions still belong in the browser wherever the browser can observe the behavior.
+The allowances above exist to make the verification ladder machine-provable without replacing
+product behavior checks with white-box implementation checks.
 
 ### `## Prod verification` release-file lifecycle
 

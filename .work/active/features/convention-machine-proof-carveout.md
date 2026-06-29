@@ -1,7 +1,7 @@
 ---
 id: convention-machine-proof-carveout
 kind: feature
-stage: implementing
+stage: review
 tags: [prose, workflow, testing]
 parent: machine-verifiable-testing
 depends_on: []
@@ -75,3 +75,10 @@ reference) as:
 
 `[prose]` — routes to `prose-author`, not `feature-design`. Single authoring stride; no child
 stories, no code, no exploratory sub-agents.
+
+## Implementation notes
+
+- Files changed: `.work/CONVENTIONS.md`
+- Tests added: none — prose/convention change only.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
