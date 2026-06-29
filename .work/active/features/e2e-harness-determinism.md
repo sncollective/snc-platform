@@ -1,7 +1,7 @@
 ---
 id: e2e-harness-determinism
 kind: feature
-stage: implementing
+stage: review
 tags: [testing, developer-experience]
 parent: machine-verifiable-testing
 depends_on: []
@@ -197,3 +197,8 @@ wait for Unit 1.
 Backlog item `e2e-suite-self-rate-limits-auth` is absorbed into
 `e2e-harness-determinism-auth-limiter-gate`; the original backlog note identified latent fragility
 under tight rerun cadence and is now represented by the active child story.
+
+## Children complete (2026-06-28)
+
+All child stories reached `stage: done`: test-control reset/seed API, parallel-safe isolation proof,
+clock/seed control, artifact triage, and auth limiter gating. Feature is ready for review.
