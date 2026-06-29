@@ -115,6 +115,7 @@ export const autoFill = async (
   );
 };
 
+/** Check whether a channel queue is below the auto-fill trigger depth. */
 export const queueDepthBelowAutoFillThreshold = async (
   channelId: string,
 ): Promise<boolean> => {

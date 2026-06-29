@@ -45,6 +45,7 @@ export type QueueStatusRow = typeof playoutQueue.$inferSelect & {
   duration: number | null;
 };
 
+/** Convert a queue status SQL row into the shared queue entry DTO. */
 export const toQueueEntry = (row: QueueStatusRow): PlayoutQueueEntry => ({
   id: row.id,
   channelId: row.channelId,
@@ -66,6 +67,7 @@ export type ChannelContentSqlRow = typeof channelContent.$inferSelect & {
   processingStatus: PlayoutProcessingStatus | null;
 };
 
+/** Convert a channel-content SQL row into the shared channel content DTO. */
 export const toChannelContent = (row: ChannelContentSqlRow): ChannelContent => ({
   id: row.id,
   channelId: row.channelId,
