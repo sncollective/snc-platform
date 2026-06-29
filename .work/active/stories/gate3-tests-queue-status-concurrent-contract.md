@@ -1,7 +1,7 @@
 ---
 id: gate3-tests-queue-status-concurrent-contract
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -24,3 +24,6 @@ Item: `gate2-refactor-queue-status-concurrent-awaits` — Promise.all on indepen
 
 ## Test location
 `apps/api/tests/services/playout-queue-status.test.ts`
+
+## Implementation (2026-06-29)
+Added `apps/api/tests/services/playout-queue-status.test.ts` with deferred Drizzle-chain promises proving single-channel queue/pool reads start concurrently after the channel guard, the guard short-circuits to `NOT_FOUND` without extra reads, and multi-channel channel/queue/pool reads are started before any deferred query resolves.
