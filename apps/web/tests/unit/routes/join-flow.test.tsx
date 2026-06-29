@@ -1,11 +1,11 @@
 import { createElement } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { PRIVACY_POLICY_VERSION } from "@snc/shared";
 
-import { extractRouteComponent } from "../../helpers/route-test-utils.js";
+import { extractRoute } from "../../helpers/route-test-utils.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
@@ -41,7 +41,7 @@ vi.mock("../../../src/hooks/use-checkout.js", () => ({
   useCheckout: () => ({ checkoutLoading: false, handleCheckout: mockHandleCheckout }),
 }));
 
-const JoinPage = extractRouteComponent(() => import("../../../src/routes/join/$handle.js"));
+const { component: JoinPage, route: RouteObject } = extractRoute(() => import("../../../src/routes/join/$handle.js"));
 
 const PAYLOAD = (overrides: Record<string, unknown> = {}) => ({
   creator: { id: "c1", handle: "band", displayName: "The Band", avatar: null, banner: null },
@@ -52,6 +52,17 @@ const PAYLOAD = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+type JoinRouteHead = (args: { loaderData: ReturnType<typeof PAYLOAD> }) => {
+  meta?: Array<Record<string, string>>;
+  links?: Array<Record<string, string>>;
+};
+
+const getHead = (loaderData: ReturnType<typeof PAYLOAD>) => {
+  const head = RouteObject.head as JoinRouteHead | undefined;
+  if (!head) throw new Error("Join route is missing head metadata");
+  return head({ loaderData });
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockUseSession.mockReturnValue({ data: null, isPending: false });
@@ -60,9 +71,86 @@ beforeEach(() => {
   mockSignInEmailOtp.mockResolvedValue({ error: null });
   mockUpdateUser.mockResolvedValue({});
   mockApiMutate.mockResolvedValue({ ok: true });
+  vi.stubEnv("VITE_SITE_URL", "https://snc.example");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("Join flow", () => {
+  it("builds SEO head metadata from loaderData", () => {
+    const head = getHead(PAYLOAD({
+      creator: {
+        id: "c1",
+        handle: "band",
+        displayName: "The Band",
+        avatar: { src: "/avatars/band.jpg", srcSet: "/avatars/band.jpg 1x, /avatars/band@2x.jpg 2x" },
+        banner: null,
+      },
+    }));
+    const description =
+      "Follow The Band (@band) on S/NC for updates, releases, and live announcements.";
+
+    expect(head.meta).toEqual(expect.arrayContaining([
+      { title: "Follow The Band — S/NC" },
+      { name: "description", content: description },
+      { property: "og:title", content: "Follow The Band — S/NC" },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://snc.example/join/band" },
+      { property: "og:image", content: "https://snc.example/avatars/band.jpg" },
+    ]));
+    expect(head.links).toEqual(expect.arrayContaining([
+      { rel: "canonical", href: "https://snc.example/join/band" },
+    ]));
+  });
+
+  it("uses creator id for head URLs and description when handle is null", () => {
+    const head = getHead(PAYLOAD({
+      creator: {
+        id: "creator-without-handle",
+        handle: null,
+        displayName: "Handleless Band",
+        avatar: null,
+        banner: null,
+      },
+    }));
+    const description =
+      "Follow Handleless Band on S/NC for updates, releases, and live announcements.";
+
+    expect(head.meta).toEqual(expect.arrayContaining([
+      { title: "Follow Handleless Band — S/NC" },
+      { name: "description", content: description },
+      { property: "og:title", content: "Follow Handleless Band — S/NC" },
+      { property: "og:description", content: description },
+      { property: "og:url", content: "https://snc.example/join/creator-without-handle" },
+    ]));
+    expect(head.links).toEqual(expect.arrayContaining([
+      { rel: "canonical", href: "https://snc.example/join/creator-without-handle" },
+    ]));
+    expect(head.meta).not.toContainEqual(expect.objectContaining({ property: "og:image" }));
+  });
+
+  it("renders the creator avatar with async decoding", () => {
+    mockUseLoaderData.mockReturnValue(PAYLOAD({
+      creator: {
+        id: "c1",
+        handle: "band",
+        displayName: "The Band",
+        avatar: { src: "/avatars/band.jpg", srcSet: "/avatars/band.jpg 1x, /avatars/band@2x.jpg 2x" },
+        banner: null,
+      },
+    }));
+
+    const { container } = render(<JoinPage />);
+    const avatar = container.querySelector("img");
+
+    expect(avatar).toHaveAttribute("src", "/avatars/band.jpg");
+    expect(avatar).toHaveAttribute("srcset", "/avatars/band.jpg 1x, /avatars/band@2x.jpg 2x");
+    expect(avatar).toHaveAttribute("decoding", "async");
+  });
+
   it("anonymous happy path: capture → code → welcome (one OTP email, no others)", async () => {
     render(<JoinPage />);
 
