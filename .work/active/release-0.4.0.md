@@ -156,9 +156,9 @@ Gates run at `release-deploy` against the combined deployment surface:
 Gates dispatched 2026-06-29 against the combined 151-item bundle (6 gates in CONVENTIONS order,
 fanned out as parallel deep-scanner subagents on gpt-5.5/high). Findings convert to items as each returns.
 
-- **gate-security** (2026-06-29) — running
-- **gate-tests** (2026-06-29) — running
-- **gate-cruft** (2026-06-29) — running
-- **gate-docs** (2026-06-29) — running
-- **gate-patterns** (2026-06-29) — running
-- **gate-refactor** (2026-06-29) — running (8 scan-rule libraries: accessibility, documentation, memory, performance, quality, seo, structural, stylistic)
+- **gate-security** (2026-06-29) — 6 findings (0 critical, 2 high, 3 medium, 1 low)
+- **gate-tests** (2026-06-29) — 8 coverage gaps (6 critical, 1 high, 1 medium)
+- **gate-cruft** (2026-06-29) — 6 findings (0 critical, 0 high, 3 medium, 3 low; 4 dead-code, 1 stale-comment, 1 compat-shim)
+- **gate-docs** (2026-06-29) — 6 findings (1 critical, 2 high, 3 medium; 3 foundation-doc, 1 readme-stale, 2 skill-stale)
+- **gate-patterns** (2026-06-29) — 7 new patterns written + indexed; 9 stale-example findings (1 tracking item)
+- **gate-refactor** (2026-06-29) — 10 findings (0 critical, 6 high, 4 medium; 6 libraries: a11y, seo, perf, quality×3, structural×2, stylistic×2)
