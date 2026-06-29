@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type React from "react";
 
-import type { JoinPagePayload } from "@snc/shared";
+import { PRIVACY_POLICY_VERSION, type JoinPagePayload } from "@snc/shared";
 
 import { RouteErrorBoundary } from "../../components/error/route-error-boundary.js";
 import { fetchApiServer } from "../../lib/api-server.js";
@@ -47,7 +47,9 @@ function JoinPage(): React.ReactElement {
 
   // The follow + consent server action.
   const completeJoin = async (): Promise<void> => {
-    await apiMutate(`/api/join/${creator.id}/complete`, { body: { consent: true } });
+    await apiMutate(`/api/join/${creator.id}/complete`, {
+      body: { consent: true, policyVersion: PRIVACY_POLICY_VERSION },
+    });
   };
 
   // Step 1 → send OTP.

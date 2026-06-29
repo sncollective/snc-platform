@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { PRIVACY_POLICY_VERSION } from "@snc/shared";
+
 import { setupRouteTest } from "../helpers/route-test-factory.js";
 import { makeMockUser } from "../helpers/auth-fixtures.js";
 
@@ -70,10 +72,17 @@ describe("GET /api/join/:handleOrId", () => {
 });
 
 describe("POST /api/join/:creatorId/complete", () => {
-  it("follows + records consent with consent:true", async () => {
-    const res = await json("POST", "/api/join/c1/complete", { consent: true });
+  it("follows + records consent with explicit consent and policy version", async () => {
+    const res = await json("POST", "/api/join/c1/complete", {
+      consent: true,
+      policyVersion: PRIVACY_POLICY_VERSION,
+    });
     expect(res.status).toBe(200);
-    expect(mockCompleteJoin).toHaveBeenCalledWith(ctx.auth.user!.id, "c1", expect.any(String));
+    expect(mockCompleteJoin).toHaveBeenCalledWith(
+      ctx.auth.user!.id,
+      "c1",
+      PRIVACY_POLICY_VERSION,
+    );
   });
 
   it("401 when unauthenticated", async () => {
@@ -83,8 +92,25 @@ describe("POST /api/join/:creatorId/complete", () => {
     expect(mockCompleteJoin).not.toHaveBeenCalled();
   });
 
+  it("400 without policyVersion — never follows", async () => {
+    const res = await json("POST", "/api/join/c1/complete", { consent: true });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toMatchObject({ success: false });
+    expect(body.error).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: ["policyVersion"] }),
+      ]),
+    );
+    expect(mockCompleteJoin).not.toHaveBeenCalled();
+  });
+
   it("422/400 without consent:true — never follows", async () => {
-    const res = await json("POST", "/api/join/c1/complete", { consent: false });
+    const res = await json("POST", "/api/join/c1/complete", {
+      consent: false,
+      policyVersion: PRIVACY_POLICY_VERSION,
+    });
     expect(res.status).toBe(400);
     expect(mockCompleteJoin).not.toHaveBeenCalled();
   });

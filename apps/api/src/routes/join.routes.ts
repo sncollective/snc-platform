@@ -3,7 +3,6 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 
 import {
-  PRIVACY_POLICY_VERSION,
   JoinPagePayloadSchema,
   JoinConfigSchema,
   JoinConfigPatchSchema,
@@ -73,8 +72,9 @@ joinRoutes.post(
   validator("json", CompleteJoinRequestSchema),
   async (c) => {
     const { creatorId } = c.req.valid("param" as never) as z.infer<typeof CreatorIdParam>;
+    const { policyVersion } = c.req.valid("json" as never) as z.infer<typeof CompleteJoinRequestSchema>;
     const user = c.get("user");
-    const result = await completeJoin(user.id, creatorId, PRIVACY_POLICY_VERSION);
+    const result = await completeJoin(user.id, creatorId, policyVersion);
     if (!result.ok) throw result.error;
     return c.json({ ok: true } as const);
   },

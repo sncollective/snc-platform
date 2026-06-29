@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { PRIVACY_POLICY_VERSION } from "@snc/shared";
+
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
 
@@ -80,7 +82,7 @@ describe("Join flow", () => {
     expect(mockUpdateUser).toHaveBeenCalledWith({ name: "Fan" });
     expect(mockApiMutate).toHaveBeenCalledWith(
       "/api/join/c1/complete",
-      { body: { consent: true } },
+      { body: { consent: true, policyVersion: PRIVACY_POLICY_VERSION } },
     );
     expect(await screen.findByText(/You're in/)).toBeInTheDocument();
     // No outbound email other than the OTP send.
@@ -100,7 +102,9 @@ describe("Join flow", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Follow The Band/ }));
     await waitFor(() =>
-      expect(mockApiMutate).toHaveBeenCalledWith("/api/join/c1/complete", { body: { consent: true } }),
+      expect(mockApiMutate).toHaveBeenCalledWith("/api/join/c1/complete", {
+        body: { consent: true, policyVersion: PRIVACY_POLICY_VERSION },
+      }),
     );
     // No OTP for an already-authed visitor.
     expect(mockSendVerificationOtp).not.toHaveBeenCalled();

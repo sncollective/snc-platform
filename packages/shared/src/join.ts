@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DprImageSchema, ResponsiveImageSchema } from "./content.js";
+import { PRIVACY_POLICY_VERSION } from "./consent.js";
 
 // ── Join Config ──
 
@@ -50,6 +51,7 @@ export type JoinPagePayload = z.infer<typeof JoinPagePayloadSchema>;
 /** Body for completing a join (consent must be explicit). */
 export const CompleteJoinRequestSchema = z.object({
   consent: z.literal(true),
+  policyVersion: z.literal(PRIVACY_POLICY_VERSION),
 });
 export type CompleteJoinRequest = z.infer<typeof CompleteJoinRequestSchema>;
 

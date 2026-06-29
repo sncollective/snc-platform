@@ -1,7 +1,7 @@
 ---
 id: gate-tests-join-policyversion-contract
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -34,3 +34,10 @@ it("rejects complete without policyVersion and does not call completeJoin", asyn
 
 ## Test location (suggested)
 `apps/api/tests/routes/join.routes.test.ts`
+
+## Implementation (2026-06-29)
+- Updated the shared `CompleteJoinRequestSchema` so join completion requires the current `policyVersion` alongside explicit `consent: true`.
+- Updated the API route to pass the validated policy version to `completeJoin`, and updated the join page client call/tests to send the shared canonical `PRIVACY_POLICY_VERSION`.
+- Added route coverage for missing `policyVersion`: the validator returns the exact `hono-openapi` 400 shape (`{ success: false, error: [...] }`) and `completeJoin` is not called.
+- Verification: `bun run --filter @snc/api test:unit -- tests/routes/join.routes.test.ts` passed; `bun run --filter @snc/web test -- tests/unit/routes/join-flow.test.tsx` passed.
+- Adjacent issues parked: none.
