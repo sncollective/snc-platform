@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-floating-search-promise
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, stylistic]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ searchAvailableContent(channelId, query.trim(), controller.signal)
 
 ## Remediation direction
 Prefix the handled promise chain with `void` or wrap in an async helper invoked with `void`.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/web/src/components/admin/content-search-picker.tsx`
+- Tests added: none
+- Verification: covered by bundle-final `bun run --filter @snc/web build` and `bun run --filter @snc/web test`
+- Discrepancies from design: none; the existing handled `.then(...).catch(...)` chain was already localized in the debounce callback, so a `void` prefix was the smallest behavior-preserving fix.
+- Adjacent issues parked: none

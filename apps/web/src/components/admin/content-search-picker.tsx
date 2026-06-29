@@ -40,7 +40,7 @@ export function ContentSearchPicker({
       abortRef.current = controller;
 
       setIsLoading(true);
-      searchAvailableContent(channelId, query.trim(), controller.signal)
+      void searchAvailableContent(channelId, query.trim(), controller.signal)
         .then((data) => {
           setResults(data.items);
           setIsLoading(false);
