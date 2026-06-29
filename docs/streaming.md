@@ -22,7 +22,7 @@ Three layers, each with one job:
 
 **The platform API** connects them. SRS calls back to the API when a stream starts, ends, or needs forwarding. The API validates stream keys, tracks sessions, manages channels, and tells SRS where to send things.
 
-Liquidsoap doesn't know about Twitch. SRS doesn't know about playlists. The API doesn't re-encode video.
+Liquidsoap doesn't know about Twitch. SRS doesn't know about channel queues or content pools. The API doesn't re-encode video.
 
 ## Channels
 
@@ -30,7 +30,7 @@ Three types of channels:
 
 **S/NC TV** is the main broadcast channel. It's always on. Whatever Liquidsoap outputs — classics rotation, a live creator, a queued item — is what S/NC TV shows. This is the channel that gets simulcast to external platforms. S/NC TV is an ordinary editorial-config channel (role `broadcast`): its live takeover is the priority-0 tier of its config, not a Liquidsoap special case. Its config carries the S/NC Classics channel as a `channel-as-source` fallback tier.
 
-**Playout channels** (like S/NC Classics) are content sources. Each has its own playlist and admin queue. S/NC TV carries the Classics channel as a fallback tier in its editorial config. Future themed channels (Horror, Retro, etc.) will be additional playout channels that an admin can switch between or carry.
+**Playout channels** (like S/NC Classics) are content sources. Each has its own content pool and operator queue. S/NC TV carries the Classics channel as a fallback tier in its editorial config. Future themed channels (Horror, Retro, etc.) will be additional playout channels that an admin can switch between or carry.
 
 **Creator channels** are persistent. Each creator has one durable `ownership='creator'` / `role='live-ingest'` channel, lazy-provisioned by `ensureCreatorChannel` on first stream-key creation and surviving publish/unpublish cycles. It is the creator's editorial surface: even offline, a creator with `manageStreaming` drives its queue and content pool from the Programming tab on creator manage (see [creators.md](creators.md)). Going live flips `isActive`, not the channel's existence; ending the stream flips it back. While active, the creator's stream takes over S/NC TV automatically — it arrives on the broadcast live input, which is the highest-priority tier of S/NC TV's editorial config.
 
@@ -38,7 +38,7 @@ Three types of channels:
 
 ### Always-on playout
 
-Liquidsoap runs continuously in a Docker container. It reads a playlist file (M3U), fetches media from S3 (Garage), and re-encodes to FLV/RTMP. Its output pushes to SRS under the `snc-tv` stream name.
+Liquidsoap runs continuously in a Docker container from a generated `playout.liq` file. The generated channel blocks fetch media from S3 (Garage) through per-channel queues and content-pool callbacks, then re-encode to FLV/RTMP. The S/NC TV broadcast channel pushes its output to SRS under the `snc-tv` stream name.
 
 SRS serves this as HLS at `/live`. Viewers connect, see whatever's playing. No interaction needed from anyone — it just runs.
 
@@ -48,13 +48,13 @@ SRS serves this as HLS at `/live`. Viewers connect, see whatever's playing. No i
 2. SRS receives the stream and fires `on_publish` → the API validates the stream key (SHA256 hash lookup), opens a session, and creates a live channel
 3. SRS fires `on_forward` → the API returns Liquidsoap's RTMP input URL
 4. SRS forwards the creator's stream to Liquidsoap
-5. Liquidsoap detects the live input and switches from the playlist to the creator's feed
+5. Liquidsoap detects the live input and switches from the current fallback source to the creator's feed
 6. S/NC TV now carries the creator's stream — including on any simulcast destinations
 
 ### Creator ends stream
 
 1. SRS fires `on_unpublish` → the API closes the session and deactivates the live channel
-2. Liquidsoap detects the live input has stopped and falls back to the admin queue or playlist
+2. Liquidsoap detects the live input has stopped and falls back to the S/NC TV queue or its carried playout channel
 3. S/NC TV returns to the classics rotation
 
 ### Simulcast
@@ -69,17 +69,23 @@ Destinations are managed by admins at `/admin/simulcast`. Adding or removing a d
 
 Admins manage playout content at `/admin/playout`. Two concepts:
 
-**The playlist** is the background rotation — a curated, ordered list of media items. Admins toggle items on/off, reorder them, and save as a batch. The playlist auto-plays when nothing else is queued. Changes are written to the M3U file and Liquidsoap reloads it.
+**The content pool** is the background rotation for a channel — a curated set of playable items. Liquidsoap's generated pool source asks the API for the next item with `GET /api/playout/channels/:channelId/pool/next?secret=...`; the API selects from `channel_content` in least-recently-played order, updates play stats, and returns the S3 URI to play. There is no M3U playlist reload path.
 
-**The queue** is for live control — "play this next." Queued items take priority over the playlist. They're ephemeral and managed through Liquidsoap's request queue. When the queue empties, playback falls back to the playlist.
+**The queue** is for live control — "play this next." Queue entries are stored in `playout_queue`, prefetched into Liquidsoap's per-channel `request.queue`, and can be armed so the queued program participates in the readiness fallback. When the queue source has nothing ready, the channel falls back to its pool or carried source.
 
-In Liquidsoap these are separate sources in the fallback chain:
+For S/NC TV, the generated Liquidsoap source order is:
 
 ```
-live creator > admin queue > playlist > silence
+live creator > snc-tv queue > S/NC Classics (carried channel) > silence
 ```
 
-Admins can also skip the current track, which advances to the next queued item or playlist track.
+For a playout channel like S/NC Classics, the queue tier is an operator queue plus pool auto-fill:
+
+```
+channel queue > channel content pool > silence
+```
+
+Admins can also skip the current track, which advances the active generated source.
 
 ### Creator editorial surface
 
@@ -114,52 +120,48 @@ This is S/NC TV's editorial config rendered as a fallback chain. Live creator in
 
 Both channels encode to H.264/AAC (2500k video, 128k audio, ultrafast preset) and push RTMP to SRS. The playout stream key (`PLAYOUT_STREAM_KEY` env var) authenticates the connection.
 
-**Metadata propagation.** Playlist entries use Liquidsoap's `annotate:` prefix to carry metadata through the pipeline — `s3_uri` and `title` survive source transitions so the API can report what's currently playing.
+**Metadata propagation.** Operator queue pushes use Liquidsoap's `annotate:` prefix to carry `s3_uri` through the pipeline. Generated now-playing endpoints report the current URI/title refs, elapsed/remaining time, and the selected source label from `switch.selected()`.
 
 ### Harbor HTTP API
 
-Liquidsoap exposes an HTTP control API on port 8888 for admin operations. The platform API calls these endpoints through the `liquidsoap.ts` service wrapper.
+Liquidsoap exposes an HTTP control API on port 8888. The generated `playout.liq` registers one set of Harbor paths per generated channel.
 
 | Method | Path | What it does |
 |--------|------|-------------|
 | GET | `/health` | Health check |
-| GET | `/now-playing` | S/NC TV current track metadata |
-| POST | `/skip` | Skip current track on S/NC TV |
-| POST | `/queue` | Queue URI on S/NC TV (body: annotated URI) |
-| GET | `/classics/now-playing` | S/NC Classics current track metadata |
-| POST | `/classics/skip` | Skip current track on S/NC Classics |
-| POST | `/classics/queue` | Queue URI on S/NC Classics (body: annotated URI) |
-| POST | `/reload-playlist` | Reload playlist from disk |
+| POST | `/admin/shutdown?secret=...` | Shut down Liquidsoap so the container restarts with the latest generated config |
+| POST | `/channels/{channelId}/queue` | Push the request-body URI into that channel's `request.queue` |
+| POST | `/channels/{channelId}/skip` | Skip the current source for that channel |
+| GET | `/channels/{channelId}/now-playing` | Return current URI/title refs, elapsed/remaining time, and selected source label |
+| POST | `/channels/{channelId}/arm?secret=...` | Arm or disarm a non-broadcast playout channel's queue tier |
 
-The API wrapper (`services/liquidsoap.ts`) adds a 3-second timeout to all Harbor calls and degrades gracefully — if Liquidsoap is unreachable, status endpoints return null rather than erroring. This lets the admin UI function even when Liquidsoap is restarting.
+The API wrapper (`services/liquidsoap-client.ts`) builds those paths through `harborChannelPaths(channelId)`, adds a 3-second timeout to Liquidsoap calls, and returns `null` for now-playing when Liquidsoap is unreachable or unconfigured. Guarded endpoints require `PLAYOUT_CALLBACK_SECRET`; the client fails fast when that secret is not configured.
 
-### Playlist regeneration
+### Configuration regeneration and pool rotation
 
-The playlist is an M3U file that Liquidsoap reads. The API owns the file — it regenerates it from the database whenever the playlist changes, then tells Liquidsoap to reload.
+Liquidsoap configuration is generated from database state. The API writes `playout.liq` to the configured Liquidsoap directory, and structural changes signal `POST /admin/shutdown?secret=...` so Liquidsoap restarts and reads the new file. There is no `/reload-playlist` endpoint and no `playlist.m3u` regeneration path.
 
 **The cycle:**
 
-1. Admin saves playlist changes (reorder, toggle items, delete) or the ingest job marks a new item "ready"
-2. `regeneratePlaylist()` queries enabled items with `processingStatus = "ready"`, ordered by position
-3. Builds the M3U — each entry has an `#EXTINF` line (duration, title) and an `annotate:s3_uri="...":s3://...` URI
-4. Writes to a temp file, then atomic-renames to `liquidsoap/playlist.m3u` (prevents partial reads)
-5. Calls `POST /reload-playlist` on Harbor — best-effort, since the file write already succeeded
+1. A structural channel/editorial change occurs: channel create/deactivate, editorial mode change, manual tier pin, or tier enable/reorder/add/delete.
+2. `generateLiquidsoapConfig()` queries active playout/broadcast channels and editorial configs.
+3. `buildPlayoutTopology()` resolves per-channel Harbor paths, queue ids, pool scopes, live tiers, and `channel-as-source` carry tiers.
+4. `renderPlayoutLiq()` emits channel blocks with per-channel `request.queue` sources, `request.dynamic` pool callbacks, fallback/switch expressions, RTMP outputs, and Harbor handlers.
+5. `regenerateAndRestart()` writes `playout.liq` and signals `/admin/shutdown`; the container restart loads the new structure.
 
-**Rendition selection.** Each item can have multiple renditions (1080p, 720p, 480p) plus the original source. Playlist generation picks the best available: 1080p → 720p → 480p → source. This happens at M3U generation time, not at playback time.
+**Pool selection.** The generated pool source calls `GET /api/playout/channels/:channelId/pool/next?secret=...`. The API selects the next least-recently-played pool item, applies the channel's ownership scope, resolves a playable S3 URI, updates `lastPlayedAt`/`playCount`, and returns the URI as plain text. For platform playout items, URI preference is 1080p → 720p → 480p → source; for creator content, the transcoded media key is preferred over the original media key.
 
-**When it triggers:** Any operation that changes what should be playing — `savePlaylist()`, `reorderPlayoutItems()`, `deletePlayoutItem()`, and the ingest job completing successfully.
+**Live vs structural control.** Queue push, skip, now-playing, and arm are live Harbor calls. Mode changes, manual pins, and tier topology changes are structural: they persist to the database and take effect through `regenerateAndRestart()`.
 
 ### Skip and queue operations
 
 Skip and queue go through the platform API, which proxies to Liquidsoap's Harbor endpoints.
 
-**Skip** (`POST /api/playout/skip`) calls Harbor's `/classics/skip`. The current track stops and playback advances to the next queued item, or the next playlist track if the queue is empty.
+**Skip** (`POST /api/playout/skip`) resolves the default active playout channel and delegates to the shared playout orchestrator. The orchestrator marks any playing queue row as played, calls Liquidsoap's per-channel `/channels/{channelId}/skip`, promotes the next queued row, auto-fills if the queue depth is low, and pushes the prefetch buffer.
 
-**Queue** (`POST /api/playout/queue/:id`) looks up the playout item in the database, selects the best rendition URI, wraps it with `annotate:s3_uri="..."` metadata, and posts it to Harbor's `/classics/queue`. The API also tracks queued items in memory so the status endpoint can report what's coming up.
+**Queue** (`POST /api/playout/queue/:id`) resolves the default active playout channel and inserts the selected playout item into that channel's durable queue through the shared orchestrator. The orchestrator validates the source, writes a `playout_queue` row, and prefetches queued items to Liquidsoap's per-channel `/channels/{channelId}/queue` endpoint.
 
-**Status polling** (`GET /api/playout/status`) fetches now-playing from Harbor and combines it with the in-memory queue. Queue entries are pruned as they start playing. This is the endpoint the admin UI polls for live updates.
-
-The in-memory queue is ephemeral — it's lost on API restart. This is fine because Liquidsoap's own request queue is the source of truth for playback. The API's copy is just for display.
+**Status polling** (`GET /api/playout/status`) resolves the default active playout channel and returns the orchestrator's channel queue status in the admin status response shape. Channel-specific admin and creator surfaces use the `/api/playout/channels/:channelId/queue` and `/api/creator/playout/channels/:channelId/queue` routes.
 
 ### Playout ingest
 
@@ -170,7 +172,7 @@ Uploaded media goes through an ingest pipeline before it can play:
 3. Job downloads the source from S3 to a temp file
 4. Remux with FFmpeg (codec copy) to strip non-AV streams — timecodes, chapter markers, and camera telemetry that can hang Liquidsoap's decoder
 5. Upload the clean file back to S3, probe for duration/resolution
-6. Mark the item as "ready" and trigger `regeneratePlaylist()`
+6. Mark the item as "ready" so it can be assigned to channel content pools and resolved by queue/pool playback
 
 If any step fails, the item is marked "failed" with the error message. The admin can re-upload to try again.
 

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-streaming-md-legacy-harbor
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -27,3 +27,10 @@ The doc lists fixed Harbor endpoints like `/now-playing`, `/queue`, `/classics/*
 
 ## Remediation direction
 Rewrite the Harbor API and playlist-regeneration sections around the generated per-channel editorial engine: per-channel queue/skip/now-playing/arm, pool auto-fill, generated `playout.liq`, and restart-on-structural-config changes.
+
+## Implementation (2026-06-29)
+- Files changed: `docs/streaming.md`
+- Tests added: none (foundation-doc rewrite only)
+- Verification: checked the rewritten claims against `apps/api/src/services/playout-topology.ts`, `apps/api/src/services/liquidsoap-client.ts`, `apps/api/src/services/liquidsoap-config.ts`, `apps/api/src/services/liquidsoap-render.ts`, `apps/api/src/services/editorial-control.ts`, `apps/api/src/routes/playout-channels.routes.ts`, and `apps/api/src/services/playout-orchestrator.ts`.
+- Discrepancies from design: `arm` is generated as a per-channel path, but the renderer only emits the live `/arm` Harbor handler for non-broadcast playout channels; the doc states that constraint.
+- Adjacent issues parked: none.
