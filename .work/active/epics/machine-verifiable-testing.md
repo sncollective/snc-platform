@@ -1,14 +1,14 @@
 ---
 id: machine-verifiable-testing
 kind: epic
-stage: drafting
+stage: implementing
 tags: [testing, workflow, developer-experience]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-28
 ---
 
 # Machine-verifiable-by-default testing
@@ -82,6 +82,14 @@ temporary, tracked exception.
 review (docs reference a `PRODUCTION_DEFAULTS` preset that `features.ts` does not export; e2e
 hard-codes its own `PROD_FLAGS`). Scoped standalone, not a child of this epic — it's a discrete
 fix, not part of the ladder, though it strengthens the staging-fidelity claim the ladder leans on.
+
+## Epic-design pass
+
+Decomposition pre-existed from the 2026-06-26 scoping pass — five direct children are already
+tracked under this epic. The children form a coherent ladder: convention first, harness determinism
+as the scalable e2e substrate, L1-L2 playback infrastructure, L3 browser decode proof, and L4
+vision triage. No new child features were spawned in this pass; the existing children are the
+realized decomposition and are ready for their own feature/story design passes.
 
 ## Provenance
 
