@@ -15,6 +15,7 @@ module.exports = {
         // works without a manual PM2 env override.
         AUTH_RATE_LIMIT_PROFILE: "e2e",
         TEST_CONTROL_PROFILE: "e2e",
+        TEST_CONTROL_SECRET: process.env.TEST_CONTROL_SECRET || "dev-e2e-test-control-secret-minimum-32-chars",
       },
       // Logging
       log_date_format: "YYYY-MM-DD HH:mm:ss",

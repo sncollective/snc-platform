@@ -278,6 +278,21 @@ describe("parseConfig", () => {
     ).toThrow();
   });
 
+  it("accepts a sufficiently long test-control secret", () => {
+    const result = parseConfig({
+      ...BASE_ENV,
+      TEST_CONTROL_SECRET: "test-control-secret-minimum-32-chars",
+    });
+
+    expect(result.TEST_CONTROL_SECRET).toBe("test-control-secret-minimum-32-chars");
+  });
+
+  it("throws ZodError when TEST_CONTROL_SECRET is too short", () => {
+    expect(() =>
+      parseConfig({ ...BASE_ENV, TEST_CONTROL_SECRET: "too-short" }),
+    ).toThrow();
+  });
+
   it("throws ZodError when LOG_LEVEL is invalid", () => {
     expect(() =>
       parseConfig({ ...BASE_ENV, LOG_LEVEL: "verbose" }),

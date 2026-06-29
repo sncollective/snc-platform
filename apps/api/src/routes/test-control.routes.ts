@@ -1,7 +1,13 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { Hono } from "hono";
+import type { MiddlewareHandler } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
 
+import { ForbiddenError } from "@snc/shared";
+
+import { config } from "../config.js";
 import {
   resetMayaCreatorProgramming,
   seedMayaCreatorProgramming,
@@ -19,6 +25,29 @@ const MayaProgrammingSeedSchema = z.object({
   syncPlaybackEngine: z.boolean().optional(),
 });
 
+const TEST_CONTROL_SECRET_HEADER = "x-test-control-secret";
+
+const secretsMatch = (provided: string | undefined, expected: string): boolean => {
+  if (provided === undefined) return false;
+  const providedBuffer = Buffer.from(provided, "utf8");
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  );
+};
+
+const requireTestControlSecret: MiddlewareHandler = async (c, next) => {
+  const expected = config.TEST_CONTROL_SECRET;
+  if (!expected) throw new ForbiddenError("Test-control secret is not configured");
+
+  if (!secretsMatch(c.req.header(TEST_CONTROL_SECRET_HEADER), expected)) {
+    throw new ForbiddenError("Invalid test-control secret");
+  }
+
+  await next();
+};
+
 // ── Route Surface ──
 
 /**
@@ -28,6 +57,8 @@ const MayaProgrammingSeedSchema = z.object({
  * outside production. Routes here are setup/reset adapters for Playwright, not product APIs.
  */
 export const testControlRoutes = new Hono();
+
+testControlRoutes.use("*", requireTestControlSecret);
 
 testControlRoutes.get(
   "/status",
@@ -49,6 +80,7 @@ testControlRoutes.post(
     responses: {
       200: { description: "Maya programming state reset" },
       400: { description: "Invalid fixture options" },
+      403: { description: "Missing or invalid test-control secret" },
       409: { description: "Required demo seed rows are missing" },
     },
   }),
@@ -69,6 +101,7 @@ testControlRoutes.post(
     responses: {
       200: { description: "Maya programming state seeded" },
       400: { description: "Invalid seed options" },
+      403: { description: "Missing or invalid test-control secret" },
       409: { description: "Required demo seed rows are missing" },
     },
   }),

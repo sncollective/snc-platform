@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const IS_CI = !!process.env.CI;
+const DEFAULT_TEST_CONTROL_SECRET = "dev-e2e-test-control-secret-minimum-32-chars";
+const TEST_CONTROL_SECRET = process.env.TEST_CONTROL_SECRET ?? DEFAULT_TEST_CONTROL_SECRET;
 
 /**
  * Locally: use the staging environment (port 3082 via Caddy) which mirrors
@@ -86,6 +88,7 @@ export default defineConfig({
             BETTER_AUTH_URL: "http://localhost:3101",
             AUTH_RATE_LIMIT_PROFILE: "e2e",
             TEST_CONTROL_PROFILE: "e2e",
+            TEST_CONTROL_SECRET,
           },
           cwd: "../..",
         },

@@ -22,6 +22,11 @@ export type MayaProgrammingState = {
   playbackEngineSynced: boolean;
 };
 
+const DEFAULT_TEST_CONTROL_SECRET = "dev-e2e-test-control-secret-minimum-32-chars";
+const TEST_CONTROL_HEADERS = {
+  "x-test-control-secret": process.env.TEST_CONTROL_SECRET ?? DEFAULT_TEST_CONTROL_SECRET,
+};
+
 const parseJson = async (response: Awaited<ReturnType<APIRequestContext["post"]>>) => {
   const text = await response.text();
   return text ? JSON.parse(text) : null;
@@ -48,6 +53,7 @@ export const resetMayaProgramming = async (
 ): Promise<MayaProgrammingState> => {
   const response = await request.post("/api/test-control/creator-programming/maya/reset", {
     data: options,
+    headers: TEST_CONTROL_HEADERS,
   });
   return assertOk(response, "reset Maya programming");
 };
@@ -59,6 +65,7 @@ export const seedMayaProgramming = async (
 ): Promise<MayaProgrammingState> => {
   const response = await request.post("/api/test-control/creator-programming/maya/seed", {
     data: options,
+    headers: TEST_CONTROL_HEADERS,
   });
   return assertOk(response, "seed Maya programming");
 };
