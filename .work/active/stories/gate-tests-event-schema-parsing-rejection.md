@@ -1,7 +1,7 @@
 ---
 id: gate-tests-event-schema-parsing-rejection
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -40,3 +40,10 @@ it("parses channel.live-state-changed and rejects unknown event types", () => {
 
 ## Test location (suggested)
 `packages/shared/tests/events.test.ts`
+
+## Implementation (2026-06-29)
+- Files changed: `packages/shared/tests/events.test.ts`
+- Tests added: `PlatformEventSchema` parses every documented platform event variant and rejects an unknown `type`.
+- Verification: `bun run --filter @snc/shared test` passed (20 files, 682 tests).
+- Discrepancies from design: expanded beyond the proof event to cover all documented event variants in the union.
+- Adjacent issues parked: none.
