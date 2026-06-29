@@ -1,7 +1,7 @@
 ---
 id: gate2-tests-usepolling-lifecycle
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -22,3 +22,8 @@ Acceptance criterion: "clears the pending timeout and avoids state updates after
 
 ## Suggested test
 `apps/web/tests/unit/hooks/use-polling.test.ts` — seeds initial data, refetches out-of-cycle, resets on key change, clears timeout on unmount (vi.useFakeTimers + renderHook).
+
+## Implementation (2026-06-29)
+- Added direct `usePolling` hook tests covering initial seed behavior, out-of-cycle `refetch()` with stable identity, key-change reset/restart, and unmount timeout cleanup.
+- Used fake timers with `renderHook`/`act` so interval and teardown behavior are deterministic without real sleeps.
+- Verification not run per operator instruction (`bun` unavailable in this sub-agent harness).
