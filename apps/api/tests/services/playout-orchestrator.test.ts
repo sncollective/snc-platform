@@ -96,7 +96,7 @@ const makeContentRow = (overrides: Record<string, unknown> = {}) => ({
 
 // ── Setup ──
 
-const setupModule = async () => {
+const setupModule = async (configOverrides: Record<string, unknown> = {}) => {
   vi.doMock("../../src/db/connection.js", () => ({
     db: {
       select: mockDbSelect,
@@ -125,12 +125,22 @@ const setupModule = async () => {
   }));
 
   vi.doMock("../../src/db/schema/streaming.schema.js", () => ({
-    channels: { id: {}, name: {}, type: {}, isActive: {} },
+    channels: {
+      id: {},
+      name: {},
+      type: {},
+      isActive: {},
+      role: {},
+      ownership: {},
+      creatorId: {},
+    },
   }));
 
   vi.doMock("../../src/config.js", () => ({
     config: {
       S3_BUCKET: "snc-storage",
+      AUTH_RATE_LIMIT_PROFILE: "strict",
+      ...configOverrides,
     },
   }));
 
@@ -1103,6 +1113,113 @@ describe("playout orchestrator", () => {
 
       // Should not throw
       await expect(orchestrator.initialize()).resolves.toBeUndefined();
+    });
+
+    it("default startup ignores creator live-ingest channels even if the DB returns them", async () => {
+      const orchestrator = await setupModule();
+
+      mockDbSelect
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([
+              makeChannelRow({ id: "playout-channel", role: "playout", ownership: "platform" }),
+              makeChannelRow({
+                id: "creator-channel",
+                role: "live-ingest",
+                ownership: "creator",
+                creatorId: "creator-1",
+              }),
+            ]),
+          }),
+        })
+        .mockReturnValueOnce({
+          // autoFill: playout channel is already at threshold.
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 5 }]),
+          }),
+        })
+        .mockReturnValueOnce({
+          // pushPrefetchBuffer: only the playout channel is visited.
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        });
+
+      mockDbUpdate.mockReturnValueOnce(buildUpdateChain());
+
+      await orchestrator.initialize();
+
+      expect(mockDbSelect).toHaveBeenCalledTimes(3);
+      expect(mockPushTrack).not.toHaveBeenCalled();
+    });
+
+    it("e2e startup prefetches queued creator live-ingest content", async () => {
+      const orchestrator = await setupModule({ AUTH_RATE_LIMIT_PROFILE: "e2e" });
+
+      mockDbSelect
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([
+              makeChannelRow({
+                id: "creator-channel",
+                role: "live-ingest",
+                ownership: "creator",
+                creatorId: "creator-1",
+              }),
+            ]),
+          }),
+        })
+        .mockReturnValueOnce({
+          // autoFill: existing queue is already deep enough; preserve queued content.
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 5 }]),
+          }),
+        })
+        .mockReturnValueOnce({
+          // pushPrefetchBuffer: one queued creator-content row needs pushing.
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([
+                  makeQueueRow({
+                    id: "queue-content-1",
+                    channelId: "creator-channel",
+                    playoutItemId: null,
+                    contentId: "content-1",
+                  }),
+                ]),
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          // resolveContentUri: content lookup.
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([
+              {
+                id: "content-1",
+                mediaKey: "creators/creator-1/content-1/source.mp4",
+                transcodedMediaKey: "creators/creator-1/content-1/720p.mp4",
+              },
+            ]),
+          }),
+        });
+
+      mockDbUpdate
+        .mockReturnValueOnce(buildUpdateChain())
+        .mockReturnValueOnce(buildUpdateChain());
+
+      await orchestrator.initialize();
+
+      expect(mockPushTrack).toHaveBeenCalledWith(
+        "creator-channel",
+        "s3://snc-storage/creators/creator-1/content-1/720p.mp4",
+      );
+      expect(mockDbUpdate).toHaveBeenCalledTimes(2);
     });
 
     it("calls autoFill for each active channel when queue is empty", async () => {

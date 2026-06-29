@@ -44,6 +44,28 @@ const AUTO_FILL_BATCH = 10;
 
 export type PlayoutOrchestrator = ReturnType<typeof createPlayoutOrchestrator>;
 
+// ── Startup profile helpers ──
+
+interface StartupChannelRow {
+  readonly id: string;
+  readonly role?: string | null;
+  readonly ownership?: string | null;
+}
+
+/**
+ * Creator live-ingest startup/prefetch is an explicit e2e profile affordance.
+ * Normal runtime keeps the historical startup surface: active playout channels only.
+ */
+const includeCreatorLiveIngestStartupChannels = (): boolean =>
+  config.AUTH_RATE_LIMIT_PROFILE === "e2e";
+
+const shouldInitializeChannel = (channel: StartupChannelRow): boolean => {
+  if ((channel.role ?? "playout") === "playout") return true;
+  return includeCreatorLiveIngestStartupChannels() &&
+    channel.role === "live-ingest" &&
+    channel.ownership === "creator";
+};
+
 // ── Queue-status read projection ──
 
 /**
@@ -1096,23 +1118,32 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
   // ── Startup ──
 
   /**
-   * Initialize all playout channels on API startup.
-   * For each active playout channel: auto-fill if queue is empty,
-   * then push prefetch buffer to Liquidsoap.
+   * Initialize startup playback channels.
+   *
+   * Default runtime initializes active ordinary playout channels only. The explicit
+   * e2e auth-rate-limit profile also includes active creator-owned `live-ingest`
+   * rows, matching Liquidsoap's test-profile topology inclusion so queued creator
+   * content is prefetched after an API/Liquidsoap restart.
    */
   const initialize = async (): Promise<void> => {
-    const playoutChannels = await db
+    const includeCreatorLiveIngest = includeCreatorLiveIngestStartupChannels();
+    const channelRolePredicate = includeCreatorLiveIngest
+      ? inArray(channels.role, ["playout", "live-ingest"])
+      : eq(channels.role, "playout");
+
+    const startupChannels = (await db
       .select()
       .from(channels)
       .where(
         and(
-          eq(channels.role, "playout"),
+          channelRolePredicate,
           eq(channels.isActive, true),
         ),
-      );
+      ))
+      .filter(shouldInitializeChannel);
 
-    if (playoutChannels.length === 0) {
-      logger.debug("No active playout channels found during initialization");
+    if (startupChannels.length === 0) {
+      logger.debug("No active startup playout channels found during initialization");
       return;
     }
 
@@ -1123,13 +1154,13 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
       .set({ pushedToLiquidsoap: false })
       .where(
         and(
-          inArray(playoutQueue.channelId, playoutChannels.map((c) => c.id)),
+          inArray(playoutQueue.channelId, startupChannels.map((c) => c.id)),
           inArray(playoutQueue.status, ["queued", "playing"]),
           eq(playoutQueue.pushedToLiquidsoap, true),
         ),
       );
 
-    for (const channel of playoutChannels) {
+    for (const channel of startupChannels) {
       try {
         await autoFill(channel.id);
       } catch (error) {
@@ -1158,7 +1189,7 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
     }
 
     logger.info(
-      { channelCount: playoutChannels.length },
+      { channelCount: startupChannels.length, includeCreatorLiveIngest },
       "Playout channels initialized",
     );
   };

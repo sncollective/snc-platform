@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra-prefetch
 kind: story
-stage: implementing
+stage: review
 tags: [testing, streaming, playout, developer-experience]
 parent: creator-channel-engine-e2e-infra
 depends_on: [creator-channel-engine-e2e-infra-topology]
@@ -26,11 +26,28 @@ queued content to reach Liquidsoap and trigger the real `track-event → nowPlay
 
 ## Acceptance criteria
 
-- [ ] Default startup still initializes ordinary playout channels only.
-- [ ] E2E/test profile initializes selected creator channels enough for queued content playback.
-- [ ] Existing creator queue operations still go through the shared orchestrator.
-- [ ] Creator ownership and cross-tenant isolation remain enforced by channel ownership, not caller input.
+- [x] Default startup still initializes ordinary playout channels only.
+- [x] E2E/test profile initializes selected creator channels enough for queued content playback.
+- [x] Existing creator queue operations still go through the shared orchestrator.
+- [x] Creator ownership and cross-tenant isolation remain enforced by channel ownership, not caller input.
 
 ## Test integrity contract
 
 Park real product bugs; repair bad tests in-session; do not bypass ownership checks to make playback setup easy.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/api/src/services/playout-orchestrator.ts`
+  - `apps/api/tests/services/playout-orchestrator.test.ts`
+- Tests added/updated:
+  - `playout-orchestrator.test.ts` now covers default startup filtering of creator `live-ingest` rows.
+  - `playout-orchestrator.test.ts` now covers e2e-profile startup prefetch of queued creator content through the shared orchestrator/client path.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `bun run --filter @snc/api test:unit -- tests/services/playout-orchestrator.test.ts` — pass (47 tests).
+- `bun run --filter @snc/api build` — pass (`API runs via tsx — no build step needed`).
+- `bun run --filter @snc/api test:unit` — fails on unrelated in-progress test-control changes outside this story: `tests/config.test.ts` expects no `TEST_CONTROL_PROFILE`, and `tests/services/playout-queue-single-writer.test.ts` flags untracked `src/services/test-control.ts`.
