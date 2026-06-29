@@ -1425,16 +1425,17 @@ end)
 
 ## Dynamic Topology — runtime source switching without restart
 
-> **Source-grounded against Liquidsoap 2.4.2** (the version we run) during the editorial-engine
-> spike, 2026-06-16. These primitives let a *persistent* pipeline change what it plays — and even
-> what sources/outputs exist — at runtime, without restarting the process. Load-bearing for any
-> "switch the source live, don't regenerate-and-restart" design.
+> **Production baseline:** Liquidsoap 2.4.5 (`liquidsoap/Dockerfile`). The editorial-engine
+> spike was source-grounded against 2.4.2 on 2026-06-16; those 2.4.2 observations are historical
+> research context, not the running baseline. These primitives let a *persistent* pipeline change
+> what it plays — and even what sources/outputs exist — at runtime, without restarting the process.
+> Load-bearing for any "switch the source live, don't regenerate-and-restart" design.
 >
 > **Version caveat:** `source.dynamic` was actively buggy through 2.4.1 (source leaks / premature
-> cleanup, fixed in #4835/#4713/#4745) and runtime clock-detach was fixed in 2.4.3 (#5051). On
-> 2.4.2 the live-switch path (ref-driven `switch()`) is solid; the runtime *attach/detach* path is
-> less proven. Treat anything below the `switch()` subsection as "validate before relying on it in
-> production on 2.4.2."
+> cleanup, fixed in #4835/#4713/#4745), runtime clock-detach was fixed in 2.4.3 (#5051), and a
+> `harbor.remove_http_handler` issue was fixed in the 2.4.5 area. The current 2.4.5 container
+> includes those fixes, but runtime attach/detach remains a higher-risk topology than
+> regenerate-and-restart; validate it against the current image before relying on it in production.
 
 ### `switch.selected()` — authoritative now-selected introspection
 
@@ -1524,9 +1525,10 @@ to zero, and attach/detach per-channel outputs around it.
 - Remove a channel while ≥1 output remains: ✅
 - Drain to zero then re-add: ❌ without a sentinel output or a process restart.
 
-> On 2.4.2 the runtime-detach-while-running path had a bug fixed only in 2.4.3 (#5051) and a
-> `harbor.remove_http_handler` bug fixed in 2.4.5 (#5237 area). If the design leans on runtime
-> CRUD (vs regenerate-and-restart for CRUD), factor a Liquidsoap upgrade into the plan.
+> Historical 2.4.2 caveat: the runtime-detach-while-running path depended on a 2.4.3 fix (#5051),
+> and `harbor.remove_http_handler` depended on a 2.4.5-area fix (#5237 area). The production
+> container is now 2.4.5, so those fixes are in the baseline. If the design leans on runtime CRUD
+> (vs regenerate-and-restart for CRUD), prove the full path against the current image before use.
 
 ### Security: telnet/server surface is unauthenticated
 

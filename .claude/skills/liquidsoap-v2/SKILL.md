@@ -11,9 +11,10 @@ updated: 2026-06-16
 
 # Liquidsoap v2.4 Reference
 
-> **Version:** we run **2.4.2** (production container). Upstream latest is 2.4.5; 2.5.0 is
-> unreleased. Some runtime-topology fixes land in 2.4.3+ — see the version caveats in the
-> reference's Dynamic Topology section, and the pending Liquidsoap version/gap research engagement.
+> **Version:** we run **2.4.5** (production container; see `liquidsoap/Dockerfile`).
+> Historical spike notes were gathered on 2.4.2 and are kept as research context only;
+> the current baseline includes the 2.4.3+ runtime-topology fixes called out in the
+> reference's Dynamic Topology section.
 > **Docs:** https://liquidsoap.readthedocs.io/en/latest/
 
 See [reference.md](reference.md) for the full API reference (sources, outputs, operators, settings, scripting).
@@ -162,7 +163,7 @@ ignore(http.post(
 
 Liquidsoap's FFmpeg decoder hangs indefinitely on files containing data streams (timecode, camera telemetry like Sony `rtmd`, GoPro `gpmd`, chapter markers, etc.). The request resolution blocks silently — no error, no timeout. The playlist source never becomes ready and the fallback chain stays on silence.
 
-**Always strip non-AV streams before files reach Liquidsoap.** Use `-map 0:v:0 -map 0:a:0` in any FFmpeg remux or transcode step. This is a codec-copy operation — fast regardless of file size. Confirmed on both v2.3.2 and v2.4.2.
+**Always strip non-AV streams before files reach Liquidsoap.** Use `-map 0:v:0 -map 0:a:0` in any FFmpeg remux or transcode step. This is a codec-copy operation — fast regardless of file size. Historical spike confirmation covered v2.3.2 and v2.4.2; keep the strip step in the current v2.4.5 baseline unless a dedicated regression test proves the decoder behavior has changed.
 
 ## Anti-Patterns
 
