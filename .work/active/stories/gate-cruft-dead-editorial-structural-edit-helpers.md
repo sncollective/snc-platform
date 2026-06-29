@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-editorial-structural-edit-helpers
 kind: story
-stage: drafting
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -35,3 +35,7 @@ export const setTierEnabled = async (
 
 ## Remediation direction
 Remove the unused helper surface until routes/UI exist, or add the missing route/API layer if these mutations are intended for release.
+
+## Implementation (2026-06-29)
+
+Removed the unused structural-edit helper exports (`setTierEnabled`, `setTierPriority`, `addCarryEdge`, and `removeTier`) from `apps/api/src/services/editorial-control.ts`, removed their exclusive unit tests and dead mocks from `apps/api/tests/services/editorial-control.test.ts`, and verified no production importers remain by searching runtime paths.

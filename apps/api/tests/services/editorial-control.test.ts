@@ -18,9 +18,6 @@ const mockDb = {
 const mockGetEditorialConfig = vi.fn();
 const mockUpsertEditorialConfig = vi.fn();
 const mockGetEditorialTiers = vi.fn();
-const mockCreateEditorialTier = vi.fn();
-const mockUpdateEditorialTier = vi.fn();
-const mockDeleteEditorialTier = vi.fn();
 
 // ── liquidsoap-config mock ──
 
@@ -75,9 +72,6 @@ const setupModule = async () => {
     getEditorialConfig: mockGetEditorialConfig,
     upsertEditorialConfig: mockUpsertEditorialConfig,
     getEditorialTiers: mockGetEditorialTiers,
-    createEditorialTier: mockCreateEditorialTier,
-    updateEditorialTier: mockUpdateEditorialTier,
-    deleteEditorialTier: mockDeleteEditorialTier,
   }));
   vi.doMock("../../src/services/liquidsoap-config.js", () => ({
     regenerateAndRestart: mockRegenerateAndRestart,
@@ -338,69 +332,6 @@ describe("editorial-control service", () => {
       expect(result.ok).toBe(false);
       expect((result as { ok: false; error: { code: string } }).error.code).toBe("VALIDATION_ERROR");
       expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── setTierEnabled (structural edit → regenerate-and-restart) ──
-
-  describe("setTierEnabled", () => {
-    it("persists then triggers regenerateAndRestart", async () => {
-      mockUpdateEditorialTier.mockResolvedValue(ok(makeTier({ enabled: false })));
-      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
-
-      const { setTierEnabled } = await setupModule();
-      const result = await setTierEnabled("tier-1", false);
-
-      expect(result.ok).toBe(true);
-      expect(mockUpdateEditorialTier).toHaveBeenCalledWith("tier-1", { enabled: false });
-      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
-    });
-
-    it("does NOT trigger restart if the persist fails", async () => {
-      mockUpdateEditorialTier.mockResolvedValue(err(new AppError("NOT_FOUND", "not found", 404)));
-
-      const { setTierEnabled } = await setupModule();
-      const result = await setTierEnabled("nonexistent", false);
-
-      expect(result.ok).toBe(false);
-      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── addCarryEdge (structural edit) ──
-
-  describe("addCarryEdge", () => {
-    it("creates tier then triggers regenerateAndRestart", async () => {
-      mockCreateEditorialTier.mockResolvedValue(ok(makeTier({ tierType: "channel-as-source", sourceChannelId: "ch-2" })));
-      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
-
-      const { addCarryEdge } = await setupModule();
-      const result = await addCarryEdge("ch-1", "ch-2", 0);
-
-      expect(result.ok).toBe(true);
-      expect(mockCreateEditorialTier).toHaveBeenCalledWith("ch-1", {
-        tierType: "channel-as-source",
-        priority: 0,
-        enabled: true,
-        sourceChannelId: "ch-2",
-      });
-      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ── removeTier (structural edit) ──
-
-  describe("removeTier", () => {
-    it("deletes tier then triggers regenerateAndRestart", async () => {
-      mockDeleteEditorialTier.mockResolvedValue(ok(undefined));
-      mockRegenerateAndRestart.mockResolvedValue(ok(undefined));
-
-      const { removeTier } = await setupModule();
-      const result = await removeTier("tier-1");
-
-      expect(result.ok).toBe(true);
-      expect(mockDeleteEditorialTier).toHaveBeenCalledWith("tier-1");
-      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
     });
   });
 

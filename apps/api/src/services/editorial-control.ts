@@ -11,9 +11,6 @@ import {
   getEditorialConfig,
   upsertEditorialConfig,
   getEditorialTiers,
-  createEditorialTier,
-  updateEditorialTier,
-  deleteEditorialTier,
 } from "./editorial-config.js";
 import type { PoolScope } from "./editorial-config.js";
 import { regenerateAndRestart } from "./liquidsoap-config.js";
@@ -211,88 +208,6 @@ export const setManualTier = async (
     manualTierId: tierId,
   });
   if (!persistResult.ok) return persistResult;
-
-  return regenerateAndRestart();
-};
-
-// ── Structural edit helpers ──
-// Structural edits persist state then regenerate-and-restart the Liquidsoap config.
-// They do NOT live-mutate because the change affects the rendered .liq topology.
-
-/**
- * Enable or disable an editorial tier for a channel.
- *
- * Structural edit: persists the enabled flag then regenerates and restarts Liquidsoap.
- *
- * @param tierId - The tier to enable/disable.
- * @param enabled - Whether to enable the tier.
- */
-export const setTierEnabled = async (
-  tierId: string,
-  enabled: boolean,
-): Promise<Result<void, AppError>> => {
-  const result = await updateEditorialTier(tierId, { enabled });
-  if (!result.ok) return result;
-
-  return regenerateAndRestart();
-};
-
-/**
- * Reorder an editorial tier to a new priority value.
- *
- * Structural edit: persists the new priority then regenerates and restarts.
- * Caller is responsible for ensuring no priority collision (use unique priorities).
- *
- * @param tierId - The tier to reorder.
- * @param priority - The new priority (0 = highest).
- */
-export const setTierPriority = async (
-  tierId: string,
-  priority: number,
-): Promise<Result<void, AppError>> => {
-  const result = await updateEditorialTier(tierId, { priority });
-  if (!result.ok) return result;
-
-  return regenerateAndRestart();
-};
-
-/**
- * Add a carry edge (channel-as-source tier) to a channel.
- *
- * Structural edit: creates the tier then regenerates and restarts.
- *
- * @param channelId - The channel to add the carry to.
- * @param sourceChannelId - The channel to carry from.
- * @param priority - Priority of the new tier (0 = highest).
- */
-export const addCarryEdge = async (
-  channelId: string,
-  sourceChannelId: string,
-  priority: number,
-): Promise<Result<void, AppError>> => {
-  const result = await createEditorialTier(channelId, {
-    tierType: "channel-as-source",
-    priority,
-    enabled: true,
-    sourceChannelId,
-  });
-  if (!result.ok) return result;
-
-  return regenerateAndRestart();
-};
-
-/**
- * Remove an editorial tier (including a carry edge) from a channel.
- *
- * Structural edit: deletes the tier then regenerates and restarts.
- *
- * @param tierId - The tier to remove.
- */
-export const removeTier = async (
-  tierId: string,
-): Promise<Result<void, AppError>> => {
-  const result = await deleteEditorialTier(tierId);
-  if (!result.ok) return result;
 
   return regenerateAndRestart();
 };
