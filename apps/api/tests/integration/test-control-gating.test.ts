@@ -72,14 +72,20 @@ describe("test-control route gating", () => {
     });
   });
 
-  it("rejects destructive test-control routes without the shared secret header", async () => {
+  it.each([
+    ["missing", undefined],
+    ["wrong", "wrong-test-control-secret-minimum-32-chars"],
+  ])("rejects destructive test-control routes with a %s shared secret header", async (_case, secret) => {
     vi.stubEnv("NODE_ENV", "test");
     mockConfig("e2e");
 
     const { app } = await import("../../src/app.js");
+    const headers = new Headers({ "Content-Type": "application/json" });
+    if (secret !== undefined) headers.set("x-test-control-secret", secret);
+
     const res = await app.request("/api/test-control/creator-programming/maya/reset", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({}),
     });
 
