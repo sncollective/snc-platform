@@ -435,6 +435,18 @@ describe("streaming routes", () => {
       const body = await res.json();
       expect(body).toStrictEqual({ code: 0 });
       expect(mockOpenSession).toHaveBeenCalledTimes(1);
+      expect(mockOpenSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callbackPayload: {
+            action: "on_publish",
+            client_id: "abc123",
+            ip: "127.0.0.1",
+            vhost: "__defaultVhost__",
+            app: "live",
+            stream: "livestream",
+          },
+        }),
+      );
     });
 
     it("rejects publish with unknown key (hash not found)", async () => {
@@ -512,7 +524,17 @@ describe("streaming routes", () => {
       const body = await res.json();
       expect(body).toStrictEqual({ code: 0 });
       expect(mockCloseSession).toHaveBeenCalledWith(
-        expect.objectContaining({ srsClientId: "abc123" }),
+        expect.objectContaining({
+          srsClientId: "abc123",
+          callbackPayload: {
+            action: "on_unpublish",
+            client_id: "abc123",
+            ip: "127.0.0.1",
+            vhost: "__defaultVhost__",
+            app: "live",
+            stream: "livestream",
+          },
+        }),
       );
     });
 

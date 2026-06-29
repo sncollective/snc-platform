@@ -109,6 +109,27 @@ const SrsOnForwardSchema = z.object({
 const getRoles = (c: { get: (key: "roles") => unknown }): string[] =>
   (c.get("roles") as string[] | undefined) ?? [];
 
+const SAFE_SRS_CALLBACK_PAYLOAD_FIELDS = [
+  "action",
+  "client_id",
+  "ip",
+  "vhost",
+  "app",
+  "stream",
+  "stream_id",
+] as const;
+
+/** Keep audit metadata from SRS callbacks while dropping `param`, which carries RTMP stream keys. */
+const redactSrsCallbackPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
+  const safePayload: Record<string, unknown> = {};
+  for (const field of SAFE_SRS_CALLBACK_PAYLOAD_FIELDS) {
+    if (payload[field] !== undefined) {
+      safePayload[field] = payload[field];
+    }
+  }
+  return safePayload;
+};
+
 /** Check if a stream name belongs to an active playout or broadcast channel (never forward these). */
 const isPlayoutStream = async (streamName: string): Promise<boolean> => {
   const [channel] = await db
@@ -247,7 +268,7 @@ streamingRoutes.post(
       streamKeyId: lookup.keyId,
       srsClientId: body.client_id,
       srsStreamName: body.stream,
-      callbackPayload: body as unknown as Record<string, unknown>,
+      callbackPayload: redactSrsCallbackPayload(body),
     });
 
     // Create live channel + channel chat room (best-effort — don't block SRS callback)
@@ -295,7 +316,7 @@ streamingRoutes.post(
 
     await closeSession({
       srsClientId: body.client_id,
-      callbackPayload: body as unknown as Record<string, unknown>,
+      callbackPayload: redactSrsCallbackPayload(body),
     });
 
     // Deactivate live channel and close channel chat room (best-effort)
