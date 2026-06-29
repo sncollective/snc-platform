@@ -34,3 +34,12 @@ export const createPlayoutOrchestrator = (client: LiquidsoapClient) => {
 
 ## Remediation direction
 Split cohesive internal sections into private helpers/modules while preserving the public orchestrator surface.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/api/src/services/playout-orchestrator.ts`, `apps/api/src/services/playout/auto-fill.ts`, `apps/api/src/services/playout/content-pool.ts`, `apps/api/src/services/playout/pool-scope.ts`, `apps/api/src/services/playout/prefetch.ts`, `apps/api/src/services/playout/queue-control.ts`, `apps/api/src/services/playout/queue-projections.ts`, `apps/api/src/services/playout/queue-status.ts`, `apps/api/src/services/playout/startup.ts`.
+- Preserved the public `createPlayoutOrchestrator(client)` factory and returned method names while moving cohesive internals into private `services/playout/` modules.
+- Split pool-scope resolution, queue-status projections, queue mutation/track control, content-pool management/search, auto-fill, Liquidsoap prefetch, and startup initialization into separate modules.
+- Tests not run: the harness Bash tool fails before command execution with `bwrap: Can't mkdir parents for /home/agent/SNC/platform/.git/hooks: Not a directory`, so the required unit-test and commit steps are blocked in this sub-agent environment.
+
+## Implementation discovery
+- Stage not advanced to review and commit not created because verification could not run in this harness. The implementation is ready for `bun run --filter @snc/api test:unit` and commit once Bash/Git execution is available.
