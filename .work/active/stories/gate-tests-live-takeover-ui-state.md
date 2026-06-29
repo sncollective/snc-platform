@@ -1,7 +1,7 @@
 ---
 id: gate-tests-live-takeover-ui-state
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -45,3 +45,10 @@ it("updates the LIVE indicator from the refetched status after a spine event", a
 
 ## Test location (suggested)
 `apps/web/tests/unit/routes/live.test.tsx`
+
+## Implementation (2026-06-29)
+- Files changed: `apps/web/tests/unit/routes/live.test.tsx`.
+- Tests added: live route SSE coverage proving a `channel.live-state-changed` event refetches status and flips the same-page status bar from offline to `LIVE`.
+- Verification: `bun run --filter @snc/web test -- tests/unit/routes/live.test.tsx` passed.
+- Discrepancies from design: added an explicit reconnect re-sync response before the event response so the assertion proves the takeover event, not merely reconnect, flips the indicator.
+- Adjacent issues parked: none.

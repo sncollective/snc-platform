@@ -101,6 +101,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  FakeEventSource.reset();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -269,6 +271,40 @@ describe("LivePage", () => {
     render(<LivePage />);
 
     expect(screen.queryByText("LIVE")).toBeNull();
+  });
+
+  it("updates the LIVE indicator from the refetched status after a live spine event", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    FakeEventSource.reset();
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    mockApiGet.mockClear();
+    mockApiGet
+      // The reconnect re-sync keeps the channel offline; the event refetch flips it live.
+      .mockResolvedValueOnce(makeChannelList())
+      .mockResolvedValueOnce({
+        channels: [makeChannel(liveOverrides({ id: "channel-1" }))],
+        defaultChannelId: "channel-1",
+      });
+
+    render(<LivePage />);
+    expect(screen.queryByText("LIVE")).not.toBeInTheDocument();
+
+    const source = FakeEventSource.instances.at(-1);
+    expect(source).toBeDefined();
+
+    act(() => source!.emitConnected(["live"]));
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText("LIVE")).not.toBeInTheDocument();
+
+    act(() =>
+      source!.emitEvent("channel.live-state-changed", {
+        channelId: "channel-1",
+        live: true,
+      }),
+    );
+
+    expect(await screen.findByText("LIVE")).toBeInTheDocument();
+    expect(mockApiGet).toHaveBeenCalledTimes(2);
   });
 
   it("shows creator name for live channel with creator", () => {
