@@ -52,6 +52,29 @@ const makeMockBus = (sub: ReturnType<typeof makeMockSub>, connectionCount = 0): 
 /** Read full SSE body; waits for stream to close (required since lifetimeMs is short in tests). */
 const readSseFrames = async (res: Response): Promise<string> => res.text();
 
+/** Read SSE body with an upper bound, used to prove earlier close deadlines win. */
+const readSseFramesWithTimeout = async (
+  res: Response,
+  timeoutMs: number,
+): Promise<string> => {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      readSseFrames(res),
+      new Promise<string>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`SSE stream did not close within ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) {
+      clearTimeout(timeout);
+    }
+  }
+};
+
 // ── Test App Builder ──
 
 interface TestSetup {
@@ -60,6 +83,9 @@ interface TestSetup {
   roles?: string[];
   sub?: ReturnType<typeof makeMockSub>;
   connectionCount?: number;
+  heartbeatMs?: number;
+  lifetimeMs?: number;
+  maxConnections?: number;
 }
 
 /**
@@ -119,9 +145,9 @@ const buildTestApp = async (setup: TestSetup = {}) => {
 
   const routes = createSseRoutes({
     bus: mockBus,
-    heartbeatMs: 30,
-    lifetimeMs: 200,
-    maxConnections: 2,
+    heartbeatMs: setup.heartbeatMs ?? 30,
+    lifetimeMs: setup.lifetimeMs ?? 200,
+    maxConnections: setup.maxConnections ?? 2,
   });
 
   const app = new Hono();
@@ -258,6 +284,30 @@ describe("SSE routes", () => {
     await readSseFrames(res);
 
     expect(sub.close).toHaveBeenCalled();
+  });
+
+  it("closes the stream at session expiry before the DI lifetime deadline", async () => {
+    const sub = makeMockSub([]);
+    const session = makeMockSession({
+      expiresAt: new Date(Date.now() + 80).toISOString(),
+    });
+    const { app, mockSub } = await buildTestApp({
+      sub,
+      session,
+      heartbeatMs: 20,
+      lifetimeMs: 5_000,
+    });
+
+    const startedAt = Date.now();
+    const res = await app.request("/api/sse?topics=live");
+    expect(res.status).toBe(200);
+
+    const body = await readSseFramesWithTimeout(res, 1_000);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(body).toContain("event: spine.connected");
+    expect(mockSub.close).toHaveBeenCalled();
+    expect(elapsedMs).toBeLessThan(1_000);
   });
 
   // 10b. Loop ends on subscription close — the busy-spin / shutdown regression.

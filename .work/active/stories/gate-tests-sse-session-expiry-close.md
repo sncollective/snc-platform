@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sse-session-expiry-close
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -46,3 +46,10 @@ it("closes the stream at session expiry before the DI lifetime deadline", async 
 
 ## Test location (suggested)
 `apps/api/tests/routes/sse.routes.test.ts`
+
+## Implementation (2026-06-29)
+- Files changed: `apps/api/tests/routes/sse.routes.test.ts`
+- Tests added: SSE route closes a quiet stream at an injected soon-expiring session deadline before the longer injected `lifetimeMs` deadline, after emitting `event: spine.connected`, and calls `sub.close()`.
+- Verification: `bun run --filter @snc/api test:unit` passed (116 files, 1886 tests).
+- Discrepancies from design: reused and extended the existing SSE route test harness instead of creating a new file from scratch.
+- Adjacent issues parked: none.
