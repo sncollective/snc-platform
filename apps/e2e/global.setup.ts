@@ -28,8 +28,19 @@ setup("create auth storage states", async ({ request, baseURL }) => {
 
     if (!response.ok()) {
       const body = await response.text();
+      const retryAfter = response.headers()["retry-after"];
+      const rateLimitHint = response.status() === 429
+        ? [
+            "Rate limited during auth setup",
+            retryAfter ? `Retry-After=${retryAfter}s` : null,
+            "ensure the API webServer env sets AUTH_RATE_LIMIT_PROFILE=e2e for CI",
+          ]
+            .filter(Boolean)
+            .join("; ")
+        : "";
+      const detail = rateLimitHint ? ` (${rateLimitHint})` : "";
       throw new Error(
-        `Auth setup failed for ${user.email}: ${response.status()} ${body}`,
+        `Auth setup failed for ${user.email}: ${response.status()} ${body}${detail}`,
       );
     }
 

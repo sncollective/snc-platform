@@ -59,6 +59,8 @@ export const ENV_SCHEMA = z.object({
   TWITCH_CLIENT_SECRET: z.string().optional(),
   // Social Login — Mastodon (custom per-instance OAuth)
   MASTODON_REDIRECT_URI: z.string().url().optional(),
+  // Auth rate-limit profile. Default stays production-strict; e2e must opt in explicitly.
+  AUTH_RATE_LIMIT_PROFILE: z.enum(["strict", "e2e"]).default("strict"),
   // YouTube streaming connect (separate from Google sign-in)
   YOUTUBE_CLIENT_ID: z.string().optional(),
   YOUTUBE_CLIENT_SECRET: z.string().optional(),

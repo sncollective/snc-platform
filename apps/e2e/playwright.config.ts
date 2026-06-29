@@ -83,6 +83,7 @@ export default defineConfig({
             // requests coming from the CI web origin.
             CORS_ORIGIN: "http://localhost:3101",
             BETTER_AUTH_URL: "http://localhost:3101",
+            AUTH_RATE_LIMIT_PROFILE: "e2e",
           },
           cwd: "../..",
         },

@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 
-import { rateLimiter } from "../../src/middleware/rate-limit.js";
+import {
+  E2E_AUTH_RATE_LIMIT_MAX,
+  getAuthStrictRateLimitMax,
+  rateLimiter,
+  STRICT_AUTH_RATE_LIMIT_MAX,
+} from "../../src/middleware/rate-limit.js";
 import { errorHandler } from "../../src/middleware/error-handler.js";
 
 // ── Setup ──
@@ -13,6 +18,22 @@ const createTestApp = (options = { windowMs: 60_000, max: 3 }): Hono => {
   app.get("/test", (c) => c.json({ ok: true }));
   return app;
 };
+
+describe("getAuthStrictRateLimitMax", () => {
+  it("keeps default/production auth endpoints at max 10", () => {
+    expect(
+      getAuthStrictRateLimitMax({ AUTH_RATE_LIMIT_PROFILE: "strict" }),
+    ).toBe(STRICT_AUTH_RATE_LIMIT_MAX);
+    expect(STRICT_AUTH_RATE_LIMIT_MAX).toBe(10);
+  });
+
+  it("relaxes auth endpoints only for the explicit e2e profile", () => {
+    expect(
+      getAuthStrictRateLimitMax({ AUTH_RATE_LIMIT_PROFILE: "e2e" }),
+    ).toBe(E2E_AUTH_RATE_LIMIT_MAX);
+    expect(E2E_AUTH_RATE_LIMIT_MAX).toBeGreaterThan(STRICT_AUTH_RATE_LIMIT_MAX);
+  });
+});
 
 describe("rateLimiter", () => {
   beforeEach(() => {
@@ -126,6 +147,40 @@ describe("rateLimiter", () => {
     });
 
     expect(res.status).toBe(429);
+  });
+
+  it("enforces the default strict auth cap at 10 requests", async () => {
+    const app = createTestApp({
+      windowMs: 60_000,
+      max: getAuthStrictRateLimitMax({ AUTH_RATE_LIMIT_PROFILE: "strict" }),
+    });
+
+    for (let i = 0; i < STRICT_AUTH_RATE_LIMIT_MAX; i++) {
+      const res = await app.request("/test", {
+        headers: { "x-forwarded-for": "1.2.3.4" },
+      });
+      expect(res.status).toBe(200);
+    }
+
+    const res = await app.request("/test", {
+      headers: { "x-forwarded-for": "1.2.3.4" },
+    });
+
+    expect(res.status).toBe(429);
+  });
+
+  it("allows normal e2e auth setup cadence under the explicit e2e profile", async () => {
+    const app = createTestApp({
+      windowMs: 60_000,
+      max: getAuthStrictRateLimitMax({ AUTH_RATE_LIMIT_PROFILE: "e2e" }),
+    });
+
+    for (let i = 0; i < STRICT_AUTH_RATE_LIMIT_MAX + 1; i++) {
+      const res = await app.request("/test", {
+        headers: { "x-forwarded-for": "1.2.3.4" },
+      });
+      expect(res.status).toBe(200);
+    }
   });
 
   it("uses first IP from x-forwarded-for chain", async () => {

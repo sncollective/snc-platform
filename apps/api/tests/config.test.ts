@@ -36,6 +36,7 @@ describe("parseConfig", () => {
       STRIPE_WEBHOOK_SECRET: TEST_STRIPE_WEBHOOK_SECRET,
       SMTP_PORT: 587,
       EMAIL_FROM: "S/NC <noreply@s-nc.org>",
+      AUTH_RATE_LIMIT_PROFILE: "strict",
       FEATURE_SUBSCRIPTION: true,
       FEATURE_MERCH: true,
       FEATURE_BOOKING: true,
@@ -232,6 +233,30 @@ describe("parseConfig", () => {
   it("accepts custom LOG_LEVEL", () => {
     const result = parseConfig({ ...BASE_ENV, LOG_LEVEL: "debug" });
     expect(result.LOG_LEVEL).toBe("debug");
+  });
+
+  it("keeps the auth limiter profile strict by default", () => {
+    const result = parseConfig(BASE_ENV);
+
+    expect(result.AUTH_RATE_LIMIT_PROFILE).toBe("strict");
+  });
+
+  it("accepts the explicit e2e auth limiter profile", () => {
+    const result = parseConfig({ ...BASE_ENV, AUTH_RATE_LIMIT_PROFILE: "e2e" });
+
+    expect(result.AUTH_RATE_LIMIT_PROFILE).toBe("e2e");
+  });
+
+  it("does not relax auth limits from a broad staging environment alone", () => {
+    const result = parseConfig({ ...BASE_ENV, NODE_ENV: "staging" });
+
+    expect(result.AUTH_RATE_LIMIT_PROFILE).toBe("strict");
+  });
+
+  it("throws ZodError when AUTH_RATE_LIMIT_PROFILE is invalid", () => {
+    expect(() =>
+      parseConfig({ ...BASE_ENV, AUTH_RATE_LIMIT_PROFILE: "staging" }),
+    ).toThrow();
   });
 
   it("throws ZodError when LOG_LEVEL is invalid", () => {

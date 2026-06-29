@@ -2,6 +2,7 @@ import type { MiddlewareHandler } from "hono";
 
 import { RateLimitError } from "@snc/shared";
 
+import type { Config } from "../config.js";
 import { getClientIp } from "../lib/request-helpers.js";
 
 // ── Public Types ──
@@ -11,6 +12,11 @@ export type RateLimitOptions = {
   readonly max: number;
 };
 
+// ── Public Constants ──
+
+export const STRICT_AUTH_RATE_LIMIT_MAX = 10;
+export const E2E_AUTH_RATE_LIMIT_MAX = 1_000;
+
 // ── Private State ──
 
 type ClientRecord = {
@@ -19,6 +25,16 @@ type ClientRecord = {
 };
 
 // ── Public API ──
+
+/** Resolve the strict auth endpoint limiter cap for the configured runtime profile. */
+export const getAuthStrictRateLimitMax = (
+  cfg: Pick<Config, "AUTH_RATE_LIMIT_PROFILE">,
+): number => {
+  if (cfg.AUTH_RATE_LIMIT_PROFILE === "e2e") {
+    return E2E_AUTH_RATE_LIMIT_MAX;
+  }
+  return STRICT_AUTH_RATE_LIMIT_MAX;
+};
 
 /** Create an in-memory per-IP rate limiter with sliding window cleanup. */
 export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {

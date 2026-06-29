@@ -61,8 +61,8 @@ it. Test assertions must prove both relaxed e2e behavior and unchanged productio
 
 ## Verification results
 
-- `bun run --filter @snc/api test:unit -- config.test.ts middleware/rate-limit.test.ts` — passed (4 files, 109 tests).
+- `bun run --filter @snc/api test:unit -- config.test.ts middleware/rate-limit.test.ts` — passed (4 files, 111 tests).
 - `bun run --filter @snc/api typecheck` — passed.
-- `bun run --filter @snc/api test:unit` — passed (115 files, 1872 tests).
+- `bun run --filter @snc/api test:unit` — passed (115 files, 1874 tests).
 - `bun run --filter @snc/e2e test -- --list` — passed; Playwright config and setup load and list 129 tests.
 - `bunx tsc --noEmit -p apps/e2e/tsconfig.json` — blocked by pre-existing config/tooling issue: `apps/e2e/playwright.config.ts(3,17): Cannot find name 'process'. Do you need to install type definitions for node?`

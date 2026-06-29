@@ -4,11 +4,11 @@ import { secureHeaders } from "hono/secure-headers";
 import { describeRoute, openAPIRouteHandler, resolver } from "hono-openapi";
 import { z } from "zod";
 
-import { features } from "./config.js";
+import { config, features } from "./config.js";
 import { rootLogger } from "./logging/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
-import { rateLimiter } from "./middleware/rate-limit.js";
+import { getAuthStrictRateLimitMax, rateLimiter } from "./middleware/rate-limit.js";
 import { requestIdMiddleware, requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { meRoutes } from "./routes/me.routes.js";
@@ -74,7 +74,10 @@ app.use(
 );
 app.use("*", requestIdMiddleware);
 app.use("*", requestLogger);
-const authStrictLimiter = rateLimiter({ windowMs: 60_000, max: 10 });
+const authStrictLimiter = rateLimiter({
+  windowMs: 60_000,
+  max: getAuthStrictRateLimitMax(config),
+});
 const authGeneralLimiter = rateLimiter({ windowMs: 60_000, max: 60 });
 const srsCallbackLimiter = rateLimiter({ windowMs: 60_000, max: 30 });
 app.use("/api/auth/*", (c, next) => {
