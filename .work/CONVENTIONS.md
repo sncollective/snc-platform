@@ -162,7 +162,7 @@ Shape is committed at `stage: implementing`, not necessarily at scan time.
 
 ## Platform-local conventions
 
-These are deliberate strengthenings over agile-workflow plugin defaults. Both are candidates for
+These are deliberate strengthenings over agile-workflow plugin defaults. They are candidates for
 upstream contribution; they are platform-specific until the plugin adopts them.
 
 ### Fix-verify loopback

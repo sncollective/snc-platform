@@ -225,9 +225,10 @@ Full tag rubric, gate config, slug conventions, and platform-local conventions l
   tag or branch on release. After `stage: released` is set, the operator walks the `## Prod
   verification` section of the release file for prod-only checks (OAuth/SMTP/SRS RTMP/real
   follower paths) that require production credentials and can't run in CI.
-- **Fix-verify loopback** — each user-verifiable fix is re-confirmed by the user in the
-  running app before the story closes, stronger than the plugin's default bounce-and-re-review.
-  Applies wherever a non-agent can visually or behaviorally confirm the change.
+- **Fix-verify loopback** — user re-confirmation is required only where no deterministic
+  machine proof exists for the changed behavior. A green unit/integration/e2e proof for a
+  machine-provable surface is a valid close; residual human checks carry a paired backlog item
+  with an expiry. Prod-only checks remain in `## Prod verification`.
 - **`scan-*` gate seam** — the eight `scan-*` rule libraries under `.claude/skills/scan-*`
   plug into the plugin's `gate-refactor` seam automatically via the `refactor` entry in
   `gates_for_release` declared in `.work/CONVENTIONS.md`. No additional configuration needed.

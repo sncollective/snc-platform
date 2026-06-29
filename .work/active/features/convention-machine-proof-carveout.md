@@ -78,7 +78,7 @@ stories, no code, no exploratory sub-agents.
 
 ## Implementation notes
 
-- Files changed: `.work/CONVENTIONS.md`
+- Files changed: `.work/CONVENTIONS.md`, `AGENTS.md`
 - Tests added: none — prose/convention change only.
-- Discrepancies from design: none.
+- Discrepancies from design: fresh-context review found `AGENTS.md` still carried the old unconditional loopback wording; fixed so the dense agent entry point matches `.work/CONVENTIONS.md`.
 - Adjacent issues parked: none.
