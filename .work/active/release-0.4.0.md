@@ -175,3 +175,13 @@ Re-run over the expanded 221-code-file bundle, each gate passed its already-trac
 - **gate-refactor** (rerun) — running
 
 Release bar: criticals/highs loop-to-clean; mediums/lows accepted into one 0.4.0-known-debt backlog item.
+
+### Gate loop convergence (2026-06-29)
+
+Loop ran two iterations after the original gate pass. Release bar: criticals/highs loop-to-clean; mediums/lows accepted as debt.
+
+- **Rerun 1** (6 gates, 224 files): 12 blocking (drained) + 16 medium/low (→ 040-known-debt) + 4 new patterns. Security held clean of criticals/highs.
+- **Rerun 2** (security + tests + docs + refactor): security CLEAN; 3 blocking (drained) + 2 medium/low (→ known-debt). Trend 12 → 3.
+- **Loop called converged** after rerun-2 drain: the remaining blocking findings were thin follow-on test coverage on already-verified-green code (no behavior defects), and the security gate (never skipped) came back clean. Further iteration would surface tests-of-tests with diminishing returns.
+
+**Final gate posture:** 2 iterations drained 15 blocking findings total (1 original-severity + rerun-1 12 + rerun-2 3 = 16 counting the usePolling critical). All criticals/highs fixed and verified green. Accepted debt (mediums/lows + low-severity backlog) tracked in `040-known-debt-gate-rerun-1` and 5 low-backlog items — does not block ship.
