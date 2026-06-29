@@ -37,3 +37,21 @@ observe `track-event → nowPlaying`, and prove the channel HLS manifest grows s
 
 Park real product bugs; fix brittle waits and bad fixtures; never replace the playback proof with a
 mocked status or tautological assertion.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/e2e/tests/creator-channel-playback.spec.ts`
+  - `apps/e2e/tests/helpers/playback-probes.ts`
+- Tests added:
+  - `creator-channel-playback.spec.ts` adds the L1-L2 playback proof: test-control seeds Maya's creator-owned `Studio Tour 2026` pool item, the creator-scoped queue route queues it through the real orchestrator, queue status is polled for `nowPlaying.contentId`, and the channel HLS manifest is polled for new media segments.
+- Discrepancies from design:
+  - The spec queues through the creator-scoped route the Programming UI uses instead of clicking the queue picker. This keeps the queue action on a real product route/orchestrator path while avoiding unrelated UI picker hydration drift; assertions remain machine-pipeline probes.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `bun run --filter @snc/e2e test -- --list tests/creator-channel-playback.spec.ts` — pass (spec discovery succeeds).
+- `bun run --filter @snc/e2e typecheck` — blocked by unrelated concurrent edit in `apps/e2e/tests/creator-programming.spec.ts` (`testSeededSuffix(testInfo, "studio-tour", 6)` passes a number where the current helper accepts string parts).
+- `bun run --filter @snc/e2e test -- tests/creator-channel-playback.spec.ts --project=chromium` — local staging profile blocked before playback proof: `/api/test-control/.../seed` returned 404 because the already-running local API was not started with `TEST_CONTROL_PROFILE=e2e`.
+- `CI=1 bun run --filter @snc/e2e test -- tests/creator-channel-playback.spec.ts --project=chromium --workers=1 --retries=0` — starts the e2e API with `TEST_CONTROL_PROFILE=e2e`, queues the content successfully, then fails the real machine proof: queue-status `nowPlaying.contentId` remains `null` for 90s. This indicates the current running media stack did not deliver the creator-channel Liquidsoap `track-event` path for Maya's queued item (likely stale/non-e2e Liquidsoap topology or equivalent media-stack runtime gap). Story intentionally remains `stage: implementing`; not advanced to review.
