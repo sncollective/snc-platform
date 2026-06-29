@@ -46,3 +46,17 @@ A flaky spec is a product-quality signal, not a reason to weaken the gate.
 ## L4 vision policy
 
 Vision inspection is advisory triage/debugging only. It may inspect retained screenshots or videos to help explain a failure, especially for visual regressions, but it is not a CI gate and must not replace deterministic Playwright assertions. The e2e suite remains the hard machine-verifiable gate; vision output is evidence for the agent or human doing failure analysis.
+
+### Targeted visual-triage artifacts
+
+Specs that render surfaces worth inspecting (e.g. the L3 playback spec) attach focused `vision-target:*` PNG artifacts plus a `vision-target-meta:*` JSON sidecar via `apps/e2e/tests/helpers/visual-triage.ts`. The sidecar records the coarse triage question and the non-gate policy. The triage reporter (`apps/e2e/tests/helpers/triage.ts`) surfaces these under a `visionCandidates` section in `test-results/triage.json` and `test-results/triage.md`.
+
+### Post-run vision runbook
+
+1. Read `apps/e2e/test-results/triage.json` or `triage.md`.
+2. Open the retained trace/video/screenshot as normal.
+3. If a `vision-target:*` artifact exists, pass that image to a vision-capable agent and ask the recorded `triageQuestion`.
+4. Treat the answer as **advisory evidence for debugging only** — never as a pass/fail signal. The allowed answer shape is intentionally coarse: clearly rendered / clearly blank / inconclusive / wrong-looking scene.
+5. If no targeted artifact exists, fall back to the retained Playwright failure screenshot/video.
+
+Vision is never invoked inside Playwright and never contributes to CI pass/fail. L3 (`<video>` `readyState` + `currentTime`) remains the hard playback gate.

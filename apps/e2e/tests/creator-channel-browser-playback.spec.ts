@@ -7,6 +7,7 @@ import {
   queueCreatorContent,
 } from "./helpers/playback-probes.js";
 import { resetMayaProgramming, seedMayaProgramming } from "./helpers/test-control.js";
+import { captureVisualTriageArtifact } from "./helpers/visual-triage.js";
 
 /**
  * Native media-element snapshot read via `page.evaluate`. The hard CI gate is
@@ -50,7 +51,18 @@ const BROWSER_POLL_INTERVALS_MS = [250, 500, 1_000];
 test.describe("Creator-channel browser playback proof (L3 hard gate)", () => {
   test.use({ storageState: "auth/stakeholder.json" });
 
-  test.afterEach(async ({ request }) => {
+  test.afterEach(async ({ page, request }, testInfo) => {
+    // L4 visual-triage capture: when the browser-decode gate fails, retain a
+    // focused player/video artifact so a vision-capable agent can inspect what
+    // the user would have seen. Advisory triage only — never a CI gate; L3's
+    // readyState + currentTime assertions remain the hard gate.
+    if (testInfo.status !== testInfo.expectedStatus) {
+      try {
+        await captureVisualTriageArtifact(page, testInfo);
+      } catch {
+        // capture miss must never mask the real failure
+      }
+    }
     await resetMayaProgramming(request, {
       channelActive: false,
       syncPlaybackEngine: true,

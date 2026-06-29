@@ -1,7 +1,7 @@
 ---
 id: e2e-agent-vision-pixel-inspection
 kind: story
-stage: implementing
+stage: done
 tags: [testing, streaming, playout, developer-experience]
 parent: machine-verifiable-testing
 depends_on: [creator-channel-engine-e2e-infra, e2e-browser-decode-playback-proof]
@@ -181,3 +181,63 @@ before there are pixels worth inspecting. This is the last rung; it depends on b
 Routing verb: `e2e-test-design`. Even though this exposes a reusable debugging capability, its first
 consumer, acceptance surface, and non-gate policy all live inside the e2e harness and artifact-triage
 workflow rather than in product runtime code.
+
+## Implementation notes
+
+- Files changed:
+  - `apps/e2e/tests/helpers/visual-triage.ts` (new) — the reusable L4
+    visual-triage capture helper. Resolves the most specific useful locator
+    (`[data-media-player] video`, falling back to `[data-media-player]`),
+    captures a bounded PNG artifact, writes a JSON metadata sidecar
+    (`triageQuestion`, `expectationHint`, `nonGatePolicy`), and attaches both
+    to `testInfo`. Capture misses degrade to "no targeted artifact" and never
+    throw into the test flow.
+  - `apps/e2e/tests/helpers/triage.ts` — extended to surface
+    `vision-target:*` artifacts: a `visionCandidates` section in
+    `triage.json` / `triage.md` with the image path, the recorded triage
+    question, and the explicit non-gate policy; next-step guidance routes
+    the artifact to a vision-capable agent as advisory evidence.
+  - `apps/e2e/tests/creator-channel-browser-playback.spec.ts` — the L3 spec is
+    the first consumer: `afterEach` captures a focused player/video artifact
+    when the browser-decode gate fails, so failure triage gets a focused image
+    without retaining extra artifacts for every passing run.
+  - `apps/e2e/README.md` — documented the post-run agent vision runbook
+    (read triage → pass `vision-target:*` image to a vision-capable agent →
+    ask the recorded question → treat the answer as advisory evidence only)
+    and restated that vision is advisory triage/debugging only, never a CI
+    gate; L3 remains the hard playback gate.
+- Tests added: none new — this is a triage capability, not a CI-gated spec.
+  The L3 spec exercises the capture path on its failure surface.
+- Discrepancies from design: none. The reporter reads the metadata sidecar
+  synchronously via `node:fs.readFileSync` (the reporter runs after the test,
+  so the file exists; reading is best-effort and never throws into the report).
+- Adjacent issues parked: none.
+
+## Verification
+
+- `bun run --filter @snc/e2e typecheck` — pass.
+- `npx playwright test tests/creator-channel-browser-playback.spec.ts
+  --project=chromium --workers=1 --retries=0` — PASS (2/2). The triage
+  reporter writes `test-results/triage.json` + `triage.md` cleanly (no
+  reporter crash); a passing run yields an empty `visionCandidates` section
+  as expected (capture is failure-path-only).
+- The capture path (`captureVisualTriageArtifact`) and the reporter's
+  `extractVisionCandidates` share the `vision-target:` / `vision-target-meta:`
+  naming contract; the helper attaches, the reporter surfaces.
+
+## Non-gate policy (load-bearing)
+
+Vision inspection never blocks CI. Vision output never replaces deterministic
+assertions. L3 (`<video>` `readyState` + `currentTime`) remains the hard
+playback gate. Vision is additive evidence for failure triage and debugging
+only. No model is invoked inside Playwright; no vision result contributes to
+CI pass/fail.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Lane: fast (story with green implementation verification).
+- Verification confirmed green: e2e typecheck passes; the L3 spec passes and
+  the triage reporter writes cleanly with the new `visionCandidates` section.
+- The non-gate policy is stated in code comments, the README runbook, and the
+  metadata sidecar's `nonGatePolicy: "advisory-triage-only"` field.

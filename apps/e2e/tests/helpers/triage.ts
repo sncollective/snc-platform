@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type {
@@ -33,7 +34,19 @@ type TriageResult = {
   outputDir: string;
   errorExcerpt: string | null;
   artifacts: Artifact[];
+  visionCandidates: VisionCandidate[];
   nextInspectionSteps: string[];
+};
+
+type VisionCandidate = {
+  imageArtifact: string;
+  imageContentType: string;
+  imagePath: string;
+  metaArtifact: string | null;
+  metaPath: string | null;
+  triageQuestion: string | null;
+  expectationHint: string | null;
+  nonGatePolicy: string;
 };
 
 type TriageTest = {
@@ -117,6 +130,8 @@ function buildResultSummary(testResult: TestResult): TriageResult {
       path: attachment.path as string,
     }));
 
+  const visionCandidates = extractVisionCandidates(artifacts);
+
   return {
     retry: testResult.retry,
     status: testResult.status,
@@ -124,7 +139,8 @@ function buildResultSummary(testResult: TestResult): TriageResult {
     outputDir: inferOutputDir(artifacts),
     errorExcerpt: extractErrorExcerpt(testResult),
     artifacts,
-    nextInspectionSteps: buildNextInspectionSteps(artifacts),
+    visionCandidates,
+    nextInspectionSteps: buildNextInspectionSteps(artifacts, visionCandidates),
   };
 }
 
@@ -147,7 +163,7 @@ function extractErrorExcerpt(testResult: TestResult): string | null {
     : message;
 }
 
-function buildNextInspectionSteps(artifacts: Artifact[]): string[] {
+function buildNextInspectionSteps(artifacts: Artifact[], visionCandidates: VisionCandidate[]): string[] {
   const steps = [
     "Read the error excerpt and rerun the named test before changing assertions.",
   ];
@@ -167,12 +183,59 @@ function buildNextInspectionSteps(artifacts: Artifact[]): string[] {
     steps.push(`Inspect retained video: ${video.path}`);
   }
 
-  if (!trace && !screenshot && !video) {
+  for (const candidate of visionCandidates) {
+    steps.push(
+      `Vision triage (advisory, NOT a gate): pass ${candidate.imagePath} to a vision-capable agent and ask: "${candidate.triageQuestion ?? "Does this image show real rendered video content rather than a black/blank frame?"}"`,
+    );
+  }
+
+  if (!trace && !screenshot && !video && visionCandidates.length === 0) {
     steps.push("No visual artifact was attached; inspect the result outputDir for runner logs.");
   }
 
   return steps;
 }
+
+/** Surface `vision-target:*` artifacts (image + JSON metadata sidecar) for post-run vision triage. */
+function extractVisionCandidates(artifacts: Artifact[]): VisionCandidate[] {
+  const candidates: VisionCandidate[] = [];
+  for (const image of artifacts.filter((a) => a.name.startsWith("vision-target:"))) {
+    const slug = image.name.slice("vision-target:".length);
+    const meta = artifacts.find((a) => a.name === `vision-target-meta:${slug}`);
+    const parsedMeta = readVisionMeta(meta);
+    candidates.push({
+      imageArtifact: image.name,
+      imageContentType: image.contentType,
+      imagePath: image.path,
+      metaArtifact: meta?.name ?? null,
+      metaPath: meta?.path ?? null,
+      triageQuestion: parsedMeta?.triageQuestion ?? null,
+      expectationHint: parsedMeta?.expectationHint ?? null,
+      nonGatePolicy: parsedMeta?.nonGatePolicy ?? "advisory-triage-only",
+    });
+  }
+  return candidates;
+}
+
+const readVisionMeta = (artifact: Artifact | undefined): VisualTriageCapture | null => {
+  if (!artifact) return null;
+  // The metadata sidecar is attached as a JSON body that Playwright writes to
+  // `artifact.path`. The reporter runs after the test, so the file exists by
+  // then. Reading is best-effort and never throws into the report.
+  try {
+    const body = readFileSync(artifact.path, "utf8");
+    return JSON.parse(body) as VisualTriageCapture;
+  } catch {
+    return null;
+  }
+};
+
+type VisualTriageCapture = {
+  kind: string;
+  triageQuestion: string;
+  expectationHint: string;
+  nonGatePolicy: string;
+};
 
 function buildRerunCommand(test: TestCase, project: string | null): string {
   const relativeFile = path.relative(process.cwd(), test.location.file);
@@ -228,6 +291,16 @@ function renderMarkdown(summary: TriageSummary): string {
       lines.push("- Next inspection steps:");
       for (const step of result.nextInspectionSteps) {
         lines.push(`  - ${step}`);
+      }
+      if (result.visionCandidates.length > 0) {
+        lines.push("- Vision triage candidates (advisory, NOT a CI gate):");
+        for (const candidate of result.visionCandidates) {
+          lines.push(`  - ${candidate.imageArtifact}: ${candidate.imagePath}`);
+          if (candidate.triageQuestion) {
+            lines.push(`    - Question: ${candidate.triageQuestion}`);
+          }
+          lines.push(`    - Policy: ${candidate.nonGatePolicy}`);
+        }
       }
       if (result.errorExcerpt) {
         lines.push("", "```", result.errorExcerpt, "```");
