@@ -18,6 +18,30 @@ export const Route = createFileRoute("/join/$handle")({
       data: `/api/join/${params.handle}`,
     })) as JoinPagePayload;
   },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const { creator } = loaderData;
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? "";
+    const canonicalSlug = creator.handle ?? creator.id;
+    const canonicalUrl = `${siteUrl}/join/${canonicalSlug}`;
+    const description = creator.handle
+      ? `Follow ${creator.displayName} (@${creator.handle}) on S/NC for updates, releases, and live announcements.`
+      : `Follow ${creator.displayName} on S/NC for updates, releases, and live announcements.`;
+
+    return {
+      meta: [
+        { title: `Follow ${creator.displayName} — S/NC` },
+        { name: "description", content: description },
+        { property: "og:title", content: `Follow ${creator.displayName} — S/NC` },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: canonicalUrl },
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl },
+      ],
+    };
+  },
   errorComponent: RouteErrorBoundary,
   component: JoinPage,
 });
@@ -187,6 +211,7 @@ function BandHeader({ creator }: { creator: JoinPagePayload["creator"] }): React
           src={creator.avatar.src}
           srcSet={creator.avatar.srcSet ?? undefined}
           alt=""
+          decoding="async"
         />
       )}
       <h1 className={styles.bandName}>Join {creator.displayName}</h1>
