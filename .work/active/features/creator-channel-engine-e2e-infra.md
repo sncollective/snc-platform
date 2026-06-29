@@ -1,7 +1,7 @@
 ---
 id: creator-channel-engine-e2e-infra
 kind: feature
-stage: implementing
+stage: review
 tags: [testing, streaming, playout, developer-experience]
 parent: machine-verifiable-testing
 depends_on: []
@@ -151,6 +151,29 @@ channel's HLS manifest until segment count grows.
   from channel ownership, not request input.
 - HLS segment growth can be timing-sensitive. Use bounded polling and retain artifacts on failure rather
   than a brittle fixed sleep.
+
+## Implementation summary
+
+All three child stories reached `done`:
+
+- `creator-channel-engine-e2e-infra-topology` — default Liquidsoap config still
+  excludes creator `live-ingest` channels; the explicit e2e profile (now keyed
+  on `TEST_CONTROL_PROFILE`) includes selected creator channels as queue-capable
+  outputs without rendering a per-channel live RTMP listener.
+- `creator-channel-engine-e2e-infra-prefetch` — e2e-profile startup/prefetch
+  for selected creator channels through the shared orchestrator; default startup
+  still initializes ordinary playout channels only.
+- `creator-channel-engine-e2e-infra-machine-proof` — the L1-L2 playback proof
+  passes: the real media-stack signal (track-event → nowPlaying → HLS segment
+  growth) is observed end-to-end without a human watching pixels. This is the
+  canonical rung-4-to-rung-3 lift of the epic.
+
+Three compounding root causes were diagnosed and fixed during the machine-proof
+story (see that story's body for the full diagnosis): stale Liquidsoap topology
+(wrong profile key), seed-demo content videos lacking an audio track (decode
+failure → no track-event), and a harbor-readiness race after restart. A parked
+backlog item (`idea-seed-demo-content-videos-lack-audio.md`) is the audit trail
+for the inline seed-demo fix.
 
 ## Test integrity contract
 
