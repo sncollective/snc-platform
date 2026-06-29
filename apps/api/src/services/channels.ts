@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { ok, err, AppError } from "@snc/shared";
+import { ok, err, AppError, NotFoundError } from "@snc/shared";
 import type { Result, ChannelOwnership, ChannelRole, DprImage } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -11,6 +11,7 @@ import { resolveCreatorUrls } from "../lib/creator-url.js";
 import { config } from "../config.js";
 import { rootLogger } from "../logging/logger.js";
 import { eventBus } from "./event-bus.js";
+import { regenerateAndRestart, waitForHealth } from "./liquidsoap-config.js";
 import { dispatchChannelGoLive } from "./notify-dispatch.js";
 
 // ── Public Types ──
@@ -32,6 +33,11 @@ export type ChannelInfo = {
     avatar: DprImage | null;
   } | null;
   isActive: boolean;
+};
+
+export type PlayoutChannelDeactivation = {
+  engineRestarting: boolean;
+  engineReady: boolean;
 };
 
 // ── Canonical Channel Identities ──
@@ -491,6 +497,48 @@ export const ensurePlayout = async (opts: {
       new AppError(
         "CHANNEL_ENSURE_ERROR",
         "Failed to ensure playout channel",
+        500,
+      ),
+    );
+  }
+};
+
+/**
+ * Deactivate a playout channel and regenerate the rendered Liquidsoap config.
+ *
+ * Keeps the admin route thin: the service owns the playout-role lookup, DB state
+ * transition, and regenerate/health probe workflow. A failed regenerate remains
+ * a successful deactivation response with `engineRestarting=false`, matching the
+ * legacy route behavior.
+ */
+export const deactivatePlayoutChannel = async (
+  channelId: string,
+): Promise<Result<PlayoutChannelDeactivation, AppError>> => {
+  try {
+    const [channel] = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.role, "playout")));
+
+    if (!channel) {
+      return err(new NotFoundError("Channel not found"));
+    }
+
+    await db
+      .update(channels)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(channels.id, channelId));
+
+    const regenResult = await regenerateAndRestart();
+    const engineReady = regenResult.ok ? await waitForHealth() : false;
+
+    return ok({ engineRestarting: regenResult.ok, engineReady });
+  } catch (e) {
+    rootLogger.error({ err: e, channelId }, "Failed to deactivate playout channel");
+    return err(
+      new AppError(
+        "INTERNAL_ERROR",
+        "Internal server error",
         500,
       ),
     );

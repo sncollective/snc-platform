@@ -14,6 +14,8 @@ const mockListContent = vi.fn();
 const mockAssignContent = vi.fn();
 const mockRemoveContent = vi.fn();
 const mockSearchAvailableContent = vi.fn();
+const mockDeactivatePlayoutChannel = vi.fn();
+const mockEnsurePlayout = vi.fn();
 
 // ── Fixtures ──
 
@@ -85,6 +87,10 @@ const ctx = setupRouteTest({
         searchAvailableContent: mockSearchAvailableContent,
       },
     }));
+    vi.doMock("../../src/services/channels.js", () => ({
+      deactivatePlayoutChannel: mockDeactivatePlayoutChannel,
+      ensurePlayout: mockEnsurePlayout,
+    }));
   },
   mountRoute: async (app) => {
     const { playoutChannelRoutes } = await import(
@@ -114,12 +120,70 @@ const ctx = setupRouteTest({
       ok: true,
       value: [makePoolCandidate()],
     });
+    mockDeactivatePlayoutChannel.mockResolvedValue({
+      ok: true,
+      value: { engineRestarting: true, engineReady: true },
+    });
+    mockEnsurePlayout.mockResolvedValue({ ok: true, value: { channelId: "channel-1" } });
   },
 });
 
 // ── Tests ──
 
 describe("playout channel routes", () => {
+  // ── Channel Deactivation ──
+
+  describe("DELETE /api/playout/channels/:channelId", () => {
+    it("deactivates a playout channel through the service", async () => {
+      const res = await ctx.app.request("/api/playout/channels/channel-1", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toEqual({ ok: true, engineRestarting: true, engineReady: true });
+      expect(mockDeactivatePlayoutChannel).toHaveBeenCalledWith("channel-1");
+    });
+
+    it("returns 404 when the service cannot find a playout channel", async () => {
+      mockDeactivatePlayoutChannel.mockResolvedValue({
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Channel not found", statusCode: 404 },
+      });
+
+      const res = await ctx.app.request("/api/playout/channels/missing", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toEqual({ code: "NOT_FOUND", message: "Channel not found" });
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      ctx.auth.user = null;
+      ctx.auth.session = null;
+
+      const res = await ctx.app.request("/api/playout/channels/channel-1", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(401);
+      expect(mockDeactivatePlayoutChannel).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 when not admin", async () => {
+      ctx.auth.roles = [];
+
+      const res = await ctx.app.request("/api/playout/channels/channel-1", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(403);
+      expect(mockDeactivatePlayoutChannel).not.toHaveBeenCalled();
+    });
+  });
+
   // ── Track Event ──
 
   describe("POST /api/playout/channels/:channelId/track-event", () => {
@@ -692,8 +756,9 @@ describe("POST /api/playout/broadcast/input-switch", () => {
       },
     }));
 
-    // Mock channels service for ensurePlayout (imported at module level)
+    // Mock channels service for route module imports
     vi.doMock("../../src/services/channels.js", () => ({
+      deactivatePlayoutChannel: vi.fn(),
       ensurePlayout: vi.fn(),
       SNC_TV_BROADCAST: { name: "S/NC TV", srsStreamName: "snc-tv", ownership: "platform", role: "broadcast" },
     }));

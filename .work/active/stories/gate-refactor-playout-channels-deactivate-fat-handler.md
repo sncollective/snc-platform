@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-playout-channels-deactivate-fat-handler
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, structural]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ const [channel] = await db
 
 ## Remediation direction
 Move the deactivate-channel workflow into a service and leave the route as validate/delegate/respond. Aligns with the `thin-handlers-fat-services` platform pattern.
+
+## Implementation (2026-06-29)
+- Files changed: `apps/api/src/services/channels.ts`, `apps/api/src/routes/playout-channels.routes.ts`, `apps/api/tests/services/channels.test.ts`, `apps/api/tests/routes/playout-channels.routes.test.ts`.
+- Extracted admin playout deactivation into `deactivatePlayoutChannel()`, returning `Result<PlayoutChannelDeactivation, AppError>` from the service while preserving the playout-role lookup, `isActive=false` update, regenerate/restart health probe, and `NOT_FOUND` response semantics.
+- Slimmed the route handler to param extraction, service delegation, error mapping, and response shaping.
+- Added service and route coverage for success, missing channel, auth/role rejection, and regenerate-failure response shape.
+- Verification: not run — the sandbox cannot execute `bash` commands from this submodule checkout because the harness tries to create `/home/agent/SNC/platform/.git/hooks` even though `.git` is a submodule gitfile.

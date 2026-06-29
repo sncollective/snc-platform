@@ -8,6 +8,8 @@ const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockDbDelete = vi.fn();
+const mockRegenerateAndRestart = vi.fn();
+const mockWaitForHealth = vi.fn();
 
 // ── Setup Factory ──
 
@@ -51,6 +53,10 @@ const setupService = async () => {
   }));
   vi.doMock("../../src/lib/creator-url.js", () => ({
     resolveCreatorUrls: vi.fn().mockReturnValue({ avatarUrl: null, bannerUrl: null }),
+  }));
+  vi.doMock("../../src/services/liquidsoap-config.js", () => ({
+    regenerateAndRestart: mockRegenerateAndRestart,
+    waitForHealth: mockWaitForHealth,
   }));
 
   return await import("../../src/services/channels.js");
@@ -481,6 +487,67 @@ describe("channel service", () => {
       if (result.ok) {
         expect(result.value).toBeNull();
       }
+    });
+  });
+
+  describe("deactivatePlayoutChannel", () => {
+    it("selects a playout channel, deactivates it, regenerates config, and reports health", async () => {
+      const channelRow = makeChannelRow({ id: "playout-1", role: "playout" });
+      let updatedValues: Record<string, unknown> | null = null;
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([channelRow]));
+      mockDbUpdate.mockReturnValueOnce({
+        set: vi.fn().mockImplementation((vals) => {
+          updatedValues = vals;
+          return { where: vi.fn().mockResolvedValue([]) };
+        }),
+      });
+      mockRegenerateAndRestart.mockResolvedValue({ ok: true, value: undefined });
+      mockWaitForHealth.mockResolvedValue(true);
+
+      const { deactivatePlayoutChannel } = await setupService();
+      const result = await deactivatePlayoutChannel("playout-1");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toEqual({ engineRestarting: true, engineReady: true });
+      }
+      expect(updatedValues).toEqual(
+        expect.objectContaining({ isActive: false, updatedAt: expect.any(Date) }),
+      );
+      expect(mockRegenerateAndRestart).toHaveBeenCalledTimes(1);
+      expect(mockWaitForHealth).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns NOT_FOUND when the channel is missing or not a playout channel", async () => {
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([]));
+
+      const { deactivatePlayoutChannel } = await setupService();
+      const result = await deactivatePlayoutChannel("missing");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("NOT_FOUND");
+        expect(result.error.message).toBe("Channel not found");
+      }
+      expect(mockDbUpdate).not.toHaveBeenCalled();
+      expect(mockRegenerateAndRestart).not.toHaveBeenCalled();
+      expect(mockWaitForHealth).not.toHaveBeenCalled();
+    });
+
+    it("preserves the legacy response shape when regenerate fails", async () => {
+      const channelRow = makeChannelRow({ id: "playout-1", role: "playout" });
+      mockDbSelect.mockReturnValueOnce(buildSelectWhereEqChain([channelRow]));
+      mockDbUpdate.mockReturnValueOnce(buildUpdateSetWhereChain());
+      mockRegenerateAndRestart.mockResolvedValue({ ok: false, error: new Error("restart failed") });
+
+      const { deactivatePlayoutChannel } = await setupService();
+      const result = await deactivatePlayoutChannel("playout-1");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toEqual({ engineRestarting: false, engineReady: false });
+      }
+      expect(mockWaitForHealth).not.toHaveBeenCalled();
     });
   });
 

@@ -16,7 +16,7 @@ import { requireRole } from "../middleware/require-role.js";
 import { config } from "../config.js";
 import { db } from "../db/connection.js";
 import { channels } from "../db/schema/streaming.schema.js";
-import { ensurePlayout } from "../services/channels.js";
+import { deactivatePlayoutChannel, ensurePlayout } from "../services/channels.js";
 import { regenerateAndRestart, waitForHealth } from "../services/liquidsoap-config.js";
 import { eventBus } from "../services/event-bus.js";
 import { setAiringSource } from "../services/playout-live-state.js";
@@ -94,25 +94,16 @@ playoutChannelRoutes.delete(
   }),
   async (c) => {
     const channelId = c.req.param("channelId");
+    const result = await deactivatePlayoutChannel(channelId);
 
-    const [channel] = await db
-      .select()
-      .from(channels)
-      .where(and(eq(channels.id, channelId), eq(channels.role, "playout")));
-
-    if (!channel) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Channel not found" } }, 404);
+    if (!result.ok) {
+      return c.json(
+        { error: { code: result.error.code, message: result.error.message } },
+        result.error.statusCode as 404 | 500,
+      );
     }
 
-    await db
-      .update(channels)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(channels.id, channelId));
-
-    const regenResult = await regenerateAndRestart();
-    const engineReady = regenResult.ok ? await waitForHealth() : false;
-
-    return c.json({ ok: true, engineRestarting: regenResult.ok, engineReady });
+    return c.json({ ok: true, ...result.value });
   },
 );
 
