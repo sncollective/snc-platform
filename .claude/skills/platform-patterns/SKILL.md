@@ -77,5 +77,6 @@ Available patterns:
 - [exactly-one-source-contract.md](exactly-one-source-contract.md) — Mirror "exactly one source" invariants through shared API schema refine + service union + DB num_nonnulls check constraint
 - [e2e-test-control-state-bracket.md](e2e-test-control-state-bracket.md) — Bracket mutable E2E tests with deterministic test-control seed/reset calls in beforeEach/afterEach to avoid cross-test contamination
 - [bounded-expect-poll-probe.md](bounded-expect-poll-probe.md) — Playwright expect.poll with named timeouts/intervals for eventually-consistent streaming proofs; no fixed sleeps
+- [use-polling.md](use-polling.md) — Shared usePolling<T>() hook for mount-safe recursive setTimeout polling with SSR seed, key reset, and push-triggered refetch
 - [controlled-confirm-dialog.md](controlled-confirm-dialog.md) — Shared controlled ConfirmDialog with explicit consequence labels for destructive/interrupting actions; pending state + danger tone
 - [responsive-table-dual-render.md](responsive-table-dual-render.md) — One ResponsiveTableColumn<T> definition drives both semantic table and card-list renderings; no hydration-dependent layout branching

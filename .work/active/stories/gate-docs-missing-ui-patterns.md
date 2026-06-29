@@ -1,7 +1,7 @@
 ---
 id: gate-docs-missing-ui-patterns
 kind: story
-stage: drafting
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -27,3 +27,9 @@ The pattern catalog's "Available patterns" list has no entries for `ConfirmDialo
 
 ## Remediation direction
 Add pattern entries documenting when to use these primitives, required accessibility semantics, and examples from current call sites.
+
+## Implementation (2026-06-29)
+- Verified `controlled-confirm-dialog.md` and `responsive-table-dual-render.md` already exist in `.claude/skills/platform-patterns/` and are indexed in both the skill index and digest, so no duplicate files were added for those primitives.
+- Added `.claude/skills/platform-patterns/use-polling.md` documenting the shared `usePolling<T>()` pattern, when to use it, required behavior, anti-patterns, and current call sites.
+- Added `use-polling` one-line entries to `.claude/skills/platform-patterns/SKILL.md` and `.claude/rules/platform-patterns.md` under the 0.4.0 playout/editorial pattern section.
+- Verification: documentation-only change; checked `apps/web/src/hooks/use-polling.ts`, `apps/web/src/routes/live.tsx`, and `apps/web/src/components/playout/editorial-surface.tsx`.
