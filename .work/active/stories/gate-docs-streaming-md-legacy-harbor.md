@@ -1,7 +1,7 @@
 ---
 id: gate-docs-streaming-md-legacy-harbor
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -34,3 +34,9 @@ Rewrite the Harbor API and playlist-regeneration sections around the generated p
 - Verification: checked the rewritten claims against `apps/api/src/services/playout-topology.ts`, `apps/api/src/services/liquidsoap-client.ts`, `apps/api/src/services/liquidsoap-config.ts`, `apps/api/src/services/liquidsoap-render.ts`, `apps/api/src/services/editorial-control.ts`, `apps/api/src/routes/playout-channels.routes.ts`, and `apps/api/src/services/playout-orchestrator.ts`.
 - Discrepancies from design: `arm` is generated as a per-channel path, but the renderer only emits the live `/arm` Harbor handler for non-broadcast playout channels; the doc states that constraint.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

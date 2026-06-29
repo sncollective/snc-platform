@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-duration-format-dedup
 kind: story
-stage: review
+stage: done
 tags: [refactor, quality]
 parent: null
 depends_on: []
@@ -42,3 +42,9 @@ Extract one shared duration formatter used by `content-search-picker.tsx`, `pool
 - Verification: `bun run --filter @snc/web test tests/unit/lib/format-duration.test.ts`
 - Discrepancies from design: existing `apps/web/src/lib/format-duration.ts` already held the matching clock formatter as `formatSeconds`; added the requested `formatDuration` export and kept `formatSeconds` as a compatibility alias.
 - Adjacent issues parked: none
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

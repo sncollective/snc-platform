@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-e2e-browser-cmd
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -30,3 +30,9 @@ Replace the e2e setup command in the test section with `bash scripts/dev/install
 
 ## Implementation (2026-06-29)
 Inline single-stride fix (orchestration-pass): applied the gate remediation directly, verified the web build green. No code-path change beyond the named remediation.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-live-takeover-ui-state
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -52,3 +52,9 @@ it("updates the LIVE indicator from the refetched status after a spine event", a
 - Verification: `bun run --filter @snc/web test -- tests/unit/routes/live.test.tsx` passed.
 - Discrepancies from design: added an explicit reconnect re-sync response before the event response so the assertion proves the takeover event, not merely reconnect, flips the indicator.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

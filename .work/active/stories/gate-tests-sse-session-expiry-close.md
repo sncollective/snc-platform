@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sse-session-expiry-close
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -53,3 +53,9 @@ it("closes the stream at session expiry before the DI lifetime deadline", async 
 - Verification: `bun run --filter @snc/api test:unit` passed (116 files, 1886 tests).
 - Discrepancies from design: reused and extended the existing SSE route test harness instead of creating a new file from scratch.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

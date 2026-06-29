@@ -1,7 +1,7 @@
 ---
 id: gate-refactor-floating-search-promise
 kind: story
-stage: review
+stage: done
 tags: [refactor, stylistic]
 parent: null
 depends_on: []
@@ -42,3 +42,9 @@ Prefix the handled promise chain with `void` or wrap in an async helper invoked 
 - Verification: covered by bundle-final `bun run --filter @snc/web build` and `bun run --filter @snc/web test`
 - Discrepancies from design: none; the existing handled `.then(...).catch(...)` chain was already localized in the debounce callback, so a `void` prefix was the smallest behavior-preserving fix.
 - Adjacent issues parked: none
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

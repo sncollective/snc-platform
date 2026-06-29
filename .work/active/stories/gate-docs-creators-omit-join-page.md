@@ -1,7 +1,7 @@
 ---
 id: gate-docs-creators-omit-join-page
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -34,3 +34,9 @@ Add the join-page capability to creator docs: route table entries, `creator_join
 - Verification: checked the rewritten claims against `apps/api/src/app.ts`, `apps/api/src/routes/join.routes.ts`, `apps/api/src/db/schema/creator.schema.ts`, `apps/api/src/db/schema/consent.schema.ts`, `apps/api/src/services/join.ts`, `apps/web/src/routes/creators/$creatorId/manage/join.tsx`, `apps/web/src/routes/join/$handle.tsx`, and `packages/shared/src/join.ts`.
 - Discrepancies from design: the route descriptions say join-config editing uses `editProfile`, because the shipped `join.routes.ts` gates both read and patch with `requireCreatorPermission(..., "editProfile", roles)`.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

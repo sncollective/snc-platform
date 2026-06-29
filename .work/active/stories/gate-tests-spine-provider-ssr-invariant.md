@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spine-provider-ssr-invariant
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -45,3 +45,9 @@ it("does not construct EventSource during server render", () => {
 - Verification: `bun run --filter @snc/web test -- tests/unit/contexts/spine-context.test.tsx` passed.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

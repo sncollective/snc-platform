@@ -1,7 +1,7 @@
 ---
 id: gate-tests-event-schema-parsing-rejection
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -47,3 +47,9 @@ it("parses channel.live-state-changed and rejects unknown event types", () => {
 - Verification: `bun run --filter @snc/shared test` passed (20 files, 682 tests).
 - Discrepancies from design: expanded beyond the proof event to cover all documented event variants in the union.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

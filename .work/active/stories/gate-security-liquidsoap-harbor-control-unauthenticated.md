@@ -1,7 +1,7 @@
 ---
 id: gate-security-liquidsoap-harbor-control-unauthenticated
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -41,3 +41,9 @@ Require the existing callback secret or an internal mTLS/header guard on queue/s
 - Verification: `bun run --filter @snc/api test:unit -- tests/services/liquidsoap-client.test.ts tests/services/playout-topology.test.ts`; `bun run --filter @snc/api test:unit`.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

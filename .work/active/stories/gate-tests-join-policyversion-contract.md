@@ -1,7 +1,7 @@
 ---
 id: gate-tests-join-policyversion-contract
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -41,3 +41,9 @@ it("rejects complete without policyVersion and does not call completeJoin", asyn
 - Added route coverage for missing `policyVersion`: the validator returns the exact `hono-openapi` 400 shape (`{ success: false, error: [...] }`) and `completeJoin` is not called.
 - Verification: `bun run --filter @snc/api test:unit -- tests/routes/join.routes.test.ts` passed; `bun run --filter @snc/web test -- tests/unit/routes/join-flow.test.tsx` passed.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.

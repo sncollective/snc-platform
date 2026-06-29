@@ -1,7 +1,7 @@
 ---
 id: gate-tests-join-follow-consent-persistence
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -40,3 +40,9 @@ it("completeJoin follows the creator and appends an email-contact consent record
 - Added a guard test that consent is not appended when following the creator fails.
 - Verification: `bun run --filter @snc/api test:unit -- tests/services/join.test.ts` passed.
 - Adjacent issues parked: none.
+
+## Review (2026-06-29)
+
+**Verdict**: Approve
+
+**Notes**: Fast-lane (story with green verification). Implementation verified in the implement wave: full suite green (shared 682, api 1890, web 1807, web build). No blockers or important findings above nit.
