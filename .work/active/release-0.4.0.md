@@ -152,4 +152,13 @@ Gates run at `release-deploy` against the combined deployment surface:
 `gates_for_release: [security, tests, cruft, docs, patterns, refactor]`. Not yet run for 0.4.0.
 
 ## Gate runs
-<populated as gates execute>
+
+Gates dispatched 2026-06-29 against the combined 151-item bundle (6 gates in CONVENTIONS order,
+fanned out as parallel deep-scanner subagents on gpt-5.5/high). Findings convert to items as each returns.
+
+- **gate-security** (2026-06-29) — running
+- **gate-tests** (2026-06-29) — running
+- **gate-cruft** (2026-06-29) — running
+- **gate-docs** (2026-06-29) — running
+- **gate-patterns** (2026-06-29) — running
+- **gate-refactor** (2026-06-29) — running (8 scan-rule libraries: accessibility, documentation, memory, performance, quality, seo, structural, stylistic)
