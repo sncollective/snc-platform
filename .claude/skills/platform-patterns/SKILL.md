@@ -70,3 +70,12 @@ Available patterns:
 
 ### Landing Page Polish
 - [vi-import-original-partial-mock.md](vi-import-original-partial-mock.md) — vi.mock(m, async (importOriginal)) preserves real pure utility exports while replacing async functions; pair with vi.hoisted() for factory references
+
+### Playout + Editorial Engine (0.4.0)
+- [structural-edit-regenerate-restart.md](structural-edit-regenerate-restart.md) — Persist render-time-static playout/editorial changes, then regenerate Liquidsoap config and restart; not for live-only mutations
+- [fire-and-forget-event-publish.md](fire-and-forget-event-publish.md) — Publish side-effect events inside non-failing try/catch so notification failures never break the authoritative primary DB/config transition
+- [exactly-one-source-contract.md](exactly-one-source-contract.md) — Mirror "exactly one source" invariants through shared API schema refine + service union + DB num_nonnulls check constraint
+- [e2e-test-control-state-bracket.md](e2e-test-control-state-bracket.md) — Bracket mutable E2E tests with deterministic test-control seed/reset calls in beforeEach/afterEach to avoid cross-test contamination
+- [bounded-expect-poll-probe.md](bounded-expect-poll-probe.md) — Playwright expect.poll with named timeouts/intervals for eventually-consistent streaming proofs; no fixed sleeps
+- [controlled-confirm-dialog.md](controlled-confirm-dialog.md) — Shared controlled ConfirmDialog with explicit consequence labels for destructive/interrupting actions; pending state + danger tone
+- [responsive-table-dual-render.md](responsive-table-dual-render.md) — One ResponsiveTableColumn<T> definition drives both semantic table and card-list renderings; no hydration-dependent layout branching

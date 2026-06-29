@@ -63,6 +63,15 @@ One line per pattern. Read the linked file for full details and code examples.
 ## Landing Page Polish
 - **vi-import-original-partial-mock**: `vi.mock(m, async (importOriginal) => { const actual = await importOriginal<T>(); return { ...actual, mockFn } })` preserves pure utilities while replacing async functions; pair with `vi.hoisted()` → [vi-import-original-partial-mock.md]
 
+## Playout + Editorial Engine (0.4.0)
+- **structural-edit-regenerate-restart**: Persist render-time-static playout/editorial changes, then regenerate Liquidsoap config and restart; not for live-only mutations → [structural-edit-regenerate-restart.md]
+- **fire-and-forget-event-publish**: Publish side-effect events inside non-failing try/catch so notification failures never break the authoritative primary DB/config transition → [fire-and-forget-event-publish.md]
+- **exactly-one-source-contract**: Mirror "exactly one source" invariants through shared API schema refine + service union + DB num_nonnulls check constraint → [exactly-one-source-contract.md]
+- **e2e-test-control-state-bracket**: Bracket mutable E2E tests with deterministic test-control seed/reset calls in beforeEach/afterEach to avoid cross-test contamination → [e2e-test-control-state-bracket.md]
+- **bounded-expect-poll-probe**: Playwright expect.poll with named timeouts/intervals for eventually-consistent streaming proofs; no fixed sleeps → [bounded-expect-poll-probe.md]
+- **controlled-confirm-dialog**: Shared controlled ConfirmDialog with explicit consequence labels for destructive/interrupting actions; pending state + danger tone → [controlled-confirm-dialog.md]
+- **responsive-table-dual-render**: One ResponsiveTableColumn<T> definition drives both semantic table and card-list renderings; no hydration-dependent layout branching → [responsive-table-dual-render.md]
+
 > Note: Landing section data (featured creators, recent content) is fetched server-side via the `loader` function in `routes/index.tsx` and passed as props to components. Do not use a client-side hook for new landing sections — use `loader` + `Route.useLoaderData()` instead (see `tanstack-file-route.md`).
 
 ---
