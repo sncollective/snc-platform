@@ -1,7 +1,7 @@
 ---
 id: convention-machine-proof-carveout
 kind: feature
-stage: review
+stage: done
 tags: [prose, workflow, testing]
 parent: machine-verifiable-testing
 depends_on: []
@@ -82,3 +82,13 @@ stories, no code, no exploratory sub-agents.
 - Tests added: none — prose/convention change only.
 - Discrepancies from design: fresh-context review found `AGENTS.md` still carried the old unconditional loopback wording; fixed so the dense agent entry point matches `.work/CONVENTIONS.md`.
 - Adjacent issues parked: none.
+
+## Review (2026-06-28)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Deep feature review via fresh-context subagent. Initial review requested changes because `AGENTS.md` still carried the old unconditional loopback wording and `.work/CONVENTIONS.md` had stale "Both" wording; both were fixed in `111c4cf`. Re-review approved with no findings.
