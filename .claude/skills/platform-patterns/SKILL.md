@@ -80,3 +80,9 @@ Available patterns:
 - [use-polling.md](use-polling.md) — Shared usePolling<T>() hook for mount-safe recursive setTimeout polling with SSR seed, key reset, and push-triggered refetch
 - [controlled-confirm-dialog.md](controlled-confirm-dialog.md) — Shared controlled ConfirmDialog with explicit consequence labels for destructive/interrupting actions; pending state + danger tone
 - [responsive-table-dual-render.md](responsive-table-dual-render.md) — One ResponsiveTableColumn<T> definition drives both semantic table and card-list renderings; no hydration-dependent layout branching
+
+### Editorial Engine Architecture (gate rerun 1)
+- [scoped-editorial-adapter-bundles.md](scoped-editorial-adapter-bundles.md) — One editorial UI/service contract; inject admin vs creator scope at route/client/mount boundary
+- [channel-derived-pool-scope-query-guard.md](channel-derived-pool-scope-query-guard.md) — Derive content-pool scope from the channel row; apply creator/platform filtering on every read/write path
+- [typed-sse-event-registry.md](typed-sse-event-registry.md) — Shared discriminated-union payloads + exhaustive API registry with topic, coalesce key, scope filter
+- [stable-e2e-fixture-family-ids.md](stable-e2e-fixture-family-ids.md) — Readable bounded deterministic fixture IDs from Playwright test identity + worker/project seed
