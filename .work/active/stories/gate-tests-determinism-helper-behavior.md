@@ -1,7 +1,7 @@
 ---
 id: gate-tests-determinism-helper-behavior
 kind: story
-stage: drafting
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,7 @@ it("stableTestId is deterministic, bounded, and separates parallel worker/projec
 
 ## Test location (suggested)
 `apps/e2e/tests/helpers/determinism.test.ts`
+
+## Implementation (2026-06-29)
+
+Added Vitest coverage in `apps/e2e/tests/helpers/determinism.test.ts` for deterministic suffixes, Playwright-test-scoped suffix partitioning, `stableTestId` determinism/readability/bounded-length/project-and-worker separation/truncation/error boundaries, and `fixedFixtureDate` returning fresh dates at the canonical fixture timestamp.
