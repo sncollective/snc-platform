@@ -79,7 +79,7 @@ describe("usePolling", () => {
           1_000,
           { initial: `seed-${channelId}`, key: channelId },
         ),
-      { initialProps: { channelId: "a" as const } },
+      { initialProps: { channelId: "a" } },
     );
 
     expect(result.current.data).toBe("seed-a");

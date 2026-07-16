@@ -35,30 +35,14 @@ useful index, but its slash-command and auto-load language is Claude-specific:
 
 ### Running tests from the agent sandbox
 
-A human developer ignores this section — their shell runs in the base namespace where the dev services and `.env` are directly reachable, so plain `bun run --filter @snc/api test:unit` / `test:integration` just works. The Claude Code **agent** sandbox differs on two axes, and integration tests need both bridged (unit tests need neither — fake env, all externals mocked — so the agent runs them directly):
+A human developer ignores this section — their shell runs in the base namespace where the dev services and `.env` are directly reachable, so plain `bun run --filter @snc/api test:unit` / `test:integration` just works. The pi **agent** sandbox (`pi-sandbox`, mediated via `bwrap`) differs from a bare shell, but on this machine its network mode is `open` (host netns, not isolated), so the gap to bridge is narrower than it looks. Unit tests need neither bridge — fake env, all externals mocked — so the agent runs them directly.
 
-- **Network.** Each agent Bash command runs in its own network namespace whose only listeners are the egress proxies (SOCKS5 `127.0.0.1:1080`, HTTP `:3128`). The dockerized services publish on the base-namespace localhost — a different netns — so `127.0.0.1:5432` is unreachable directly. `scripts/dev/sandbox-forward.py` relays the backing services onto the sandbox's localhost through the SOCKS proxy. Pure userspace TCP: no docker-socket access, no privilege, the socket stays at its default `660`.
-- **Secrets.** The agent's file reads deny `.env*`. The integration suite loads `platform/.env` (`DATABASE_URL` + `BETTER_AUTH_SECRET`) via dotenv, so the sandbox must re-allow *subprocess* reads of that file.
+- **Network.** pi-sandbox runs bash under `bwrap` but, with `network.mode: open` (the current global config), it keeps the **host network namespace** — `127.0.0.1:5432` and the other dockerized service ports are reachable directly, the same as a developer's shell. No forwarder is needed. (If the instance were ever moved to `network.mode: block`, the agent would lose direct localhost access and a relay would become necessary — but that is not the current setup.)
+- **Secrets.** pi-sandbox uses a `filesystem.denyRead` **denylist** (in `~/.pi/agent/extensions/sandbox.json`, global/operator) — reads are allowed by default unless a path matches a `denyRead` glob. `platform/.env` matches no denied glob (`.env.*` is **write**-denied via `denyWrite`, not read-denied), so a bash subprocess can read it directly. The integration suite loads `platform/.env` (`DATABASE_URL` + `BETTER_AUTH_SECRET`) via dotenv, so this just works. There is **no `allowRead` field** in pi-sandbox — do not add one (it fails the config parse and fail-closes bash + file tools). The agent's own `read` tool is governed by the same denylist; the local-dev `.env` is intentionally readable for test workflows.
 
-`scripts/dev/sandbox-test-integration.sh` wires both — forwarder up → `bun run --filter @snc/api test:integration` → teardown.
+Net: under the current pi-sandbox config, the agent runs integration and e2e tests with the same command a developer would use — `bun run --filter @snc/api test:integration` and `bun run --filter @snc/e2e test` — provided the dev services are up (`bash scripts/dev/start-dev.sh`). No carve-out, forwarder, or `--no-sandbox` required.
 
-For Codex, start with the normal project commands. Unit tests should run directly. Integration
-and e2e tests need the dev services plus subprocess access to local `.env`; if the active
-Codex sandbox blocks localhost, Docker, or environment-file access, request the narrow
-permission change needed for the command instead of copying secrets or reading `.env` into the
-thread. The Claude-specific forwarder above is only needed when running under Claude Code's
-separate network namespace.
-
-The secrets carve-out lives in `.claude/settings.local.json` (machine-local, gitignored):
-
-```json
-"sandbox": {
-  "filesystem": { "allowRead": ["/home/agent/SNC/platform/.env"] },
-  "network": { "allowLocalBinding": true }
-}
-```
-
-Load-bearing: the read-allow key is the **flat `allowRead`** — a nested `read: { allowWithinDeny: [...] }` is silently ignored (that wrong shape cost a session to diagnose). `allowRead` re-allows subprocess reads only; the agent's own Read tool stays blocked and `.env.production*` / `.env.local` stay denied — so this exposes only the local-dev DB URL + auth secret. `allowLocalBinding: true` is required for the forwarder to bind localhost ports. Rejected alternative: a separate gitignored secret-bridge file the agent reads — the carve-out is cleaner (real `.env` stays the single source, no second copy of the creds to drift).
+> **Historical note.** A prior setup ran the Claude Code agent in a separate network namespace with SOCKS egress proxies (1080/3128) and a `.claude/settings.local.json` `allowRead` carve-out for `.env`. That runtime is no longer used on this machine; the forwarder scripts (`scripts/dev/sandbox-forward.py`, `scripts/dev/sandbox-test-integration.sh`) are retained on disk for reference but are not the active test path under pi. The Claude `allowRead` field does not exist in pi-sandbox and must not be cargo-culted into `~/.pi/agent/extensions/sandbox.json`.
 
 ## Tech References
 

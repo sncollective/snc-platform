@@ -16,7 +16,8 @@
     "@types/node": "^24.0.0",
     "postgres": "^3.4.7",
     "drizzle-orm": "^0.45.1",
-    "better-auth": "^1.5.4",
-    "typescript": "^5.9.3"
+    "better-auth": "~1.6.23",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }
