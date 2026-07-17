@@ -33,6 +33,12 @@ const VITE_FLAGS = Object.fromEntries(
 
 export default defineConfig({
   testDir: "./tests",
+  // tests/helpers/*.test.ts are vitest-style unit tests of pure helpers,
+  // not Playwright browser specs — Playwright can't load them (vitest's
+  // describe/it need a vitest runner). Excluded from e2e discovery; they
+  // remain typechecked by tsc as contracts. See story
+  // e2e-determinism-test-vitest-import.
+  testIgnore: ["**/helpers/*.test.ts"],
   fullyParallel: true,
   forbidOnly: IS_CI,
   retries: IS_CI ? 2 : 0,
