@@ -1,14 +1,16 @@
 ---
 id: better-auth-critical-upgrade-and-audit-gate
 kind: story
-stage: drafting
+stage: done
 tags: [security, identity, developer-experience]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-16
-updated: 2026-07-16
+updated: 2026-07-17
+resolved_at: 2026-07-17
+resolved_by: "f620e6c, 04593ce"
 ---
 
 # Upgrade better-auth (critical CVE) and decide the bun-audit gate posture
@@ -100,3 +102,19 @@ unrelated CI work — a cleaner separation of "is the code sound" (tests/typeche
 from "are the deps current" (audit). Worth considering as part of the gate decision.
 
 <!-- Implementation notes accumulate here when this story is picked up. -->
+
+## Implementation notes
+
+- 2026-07-16 (`f620e6c`): bumped better-auth `^1.5.4` → `~1.6.23` across api/e2e/web.
+  Cleared the critical (GHSA-pw9m-5jxm-xr6h) and the better-auth-associated highs.
+  Audit: 20 vulns (1 crit, 19 high) → 9 high.
+- 2026-07-17 (`04593ce`): cleared the remaining 8 highs via direct pin bumps
+  (hono `^4.12.30`, vite `^8.1.5`, @fedify/fedify `^2.1.15`, nodemailer `^9.0.3`)
+  and root `resolutions` overrides for transitive copies (undici `^8.7.0`, ws
+  `^8.21.0`, fast-xml-builder `^1.1.7`). Audit: 0 high (8 low/moderate residual).
+  The audit-gate policy decision resolved as option 1 (keep `high`, clear via
+  bumps) — `bun audit --audit-level=high` now exits 0.
+- nodemailer 8→9 was the one major bump; breaking change (TLS cert validation on
+  remote content fetches) verified non-impacting — `send.ts` is a plain transport
+  with no remote attachment/proxy/OAuth2 use. Email tests green (send 5/5,
+  studio.routes 8/8, notification-send 4/4, send-otp-email 4/4).

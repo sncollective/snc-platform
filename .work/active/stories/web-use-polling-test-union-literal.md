@@ -1,14 +1,16 @@
 ---
 id: web-use-polling-test-union-literal
 kind: story
-stage: drafting
+stage: done
 tags: [testing, developer-experience]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-16
-updated: 2026-07-16
+updated: 2026-07-17
+resolved_at: 2026-07-17
+resolved_by: "f620e6c"
 ---
 
 # use-polling test fixture has a too-narrow union literal
