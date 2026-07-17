@@ -70,3 +70,5 @@ __pycache__/
 # Agent-runtime local state (machine-local, not project substrate)
 .peeragent/
 .pi/
+.CILogs
+.work/scratchpad/
