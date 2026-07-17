@@ -43,11 +43,16 @@ runner in e2e to run it under. Two resolution paths were considered:
 
 - **(Original, wrong) Add `vitest` as an e2e devDep.** Clears the typecheck (TS2307)
   but makes Playwright try to load the file at runtime → crashes the suite. Rejected.
-- **(Adopted) Exclude `tests/helpers/*.test.ts` from Playwright discovery** via
-  `testIgnore` in `playwright.config.ts`, and keep no vitest dep. The test remains
-  typechecked by `tsc` as a contract (it still must resolve its imports and typecheck),
-  but Playwright never loads it. This matches the file's actual role: a static contract
-  on the helper's surface, not an executable browser test.
+- **(Adopted, final) Keep `vitest` as an e2e devDep AND add `testIgnore` to Playwright.**
+  Two constraints must both hold: (a) tsc must resolve `vitest` types for
+  `determinism.test.ts` to typecheck, and (b) Playwright must not load the file
+  at runtime. Removing the devDep (the second attempt) cleared the runtime crash
+  but reintroduced TS2307 on a clean CI install — bun's workspace hoist doesn't
+  surface `vitest` to e2e's tsc unless e2e declares it as a direct devDep. So
+  both are needed: the devDep makes the typecheck resolve, and `testIgnore`
+  keeps Playwright from executing the vitest-style file. This matches the file's
+  actual role: a static, typechecked contract on the helper's surface, not an
+  executable Playwright spec.
 
 Rejected alternative not retried: moving the test to `@snc/api`/`@snc/web` (where
 vitest runs) would require cross-workspace imports of an e2e-local helper, which is
