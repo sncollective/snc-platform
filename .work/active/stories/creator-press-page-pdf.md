@@ -4,7 +4,7 @@ kind: story
 stage: done
 parent: creator-press-page
 depends_on: [creator-press-page-schema, creator-press-page-api]
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-08-05
 updated: 2026-08-06

@@ -79,6 +79,17 @@ baseline.
 - **A11y sweeps** — `a11y-creator-streaming-surface`, `a11y-admin-playout-console`,
   `a11y-viewer-chat-input-focus-ring`, `refactor-chart-tooltip-a11y`.
 
+### Public creator surfaces (NEW — late-bound for AF single-1, 2026-08-06)
+
+- **Creator press / EPK page** (`creator-press-page`, feature) — public, unauthenticated creator EPK
+  at `/creators/<handle>/press` + per-release one-sheet at `/press/releases/<slug>`, both with
+  OG/Twitter meta for press/radio link previews. DB-backed per-creator press config
+  (`creator_press_configs`, JSONB content incl. a `releases[]` array) editable via a primitive manage
+  form (`/manage/press`, `editProfile`-gated). Server-generated one-click PDFs (one-pager +
+  per-release one-sheet) via `@react-pdf/renderer`. v1 = Animal Future, single-1 ("The Illusionist",
+  SNCR-001). 5 child stories: schema, api, pdf, web-public, manage-editor. Reviewed (standard pass;
+  2 blockers incl. a cross-tenant photo-disclosure, both fixed).
+
 ### Refactor + quality sweep
 
 - **Refactor gate findings** — `refactor-concurrent-awaits`, `refactor-route-file-size-splits`,
@@ -113,7 +124,9 @@ where they produced shippable artifacts:
 
 ## Bundle composition
 
-- **151 bound items**: 4 epics, 34 features, 111 stories (plus this release orchestration item).
+- **157 bound items**: 4 epics, 35 features, 116 stories (plus this release orchestration item).
+  The EPK feature (`creator-press-page`) + its 5 child stories were late-bound 2026-08-06 for the
+  AF single-1 drop.
 - Binding-consistency guard: **clean** — 0 CONFLICTs, 0 INCOMPLETEs under `epic_cohesion: total` +
   `binding_guard: halt`. Every epic/feature ships whole with its children.
 - 87 archived stubs late-bound here (`archived_atop: 0.3.0` provenance — done atop the prior
@@ -145,11 +158,25 @@ credentials and can't run in CI:
   `content-media` upload end-to-end on prod — blocked until the tusd prod deploy lands (tusd is not
   deployed to prod today; `/uploads/*` 404s). The deploy artifacts are drafted; this check is the
   gate that the deploy actually worked.
+- **Creator press / EPK page (NEW):** after applying migration `0033` (adds `creator_press_configs`),
+  run `apps/api/src/scripts/seed-press.ts` against the **real** Animal Future creator in the target
+  env — the dev seed is dev-only (AF is not in the local sandbox DB). Confirm the public page renders
+  at `/creators/animalfuture/press`, the one-sheet at `/press/releases/the-illusionist`, both PDFs
+  download (`one-pager.pdf`, `one-sheet.pdf`), and OG tags resolve (a share-preview check).
+  `content.enabled` must be true; `press@s-nc.org` must be live; press photos slot in via the manage
+  editor once the shoot set is delivered (ships empty otherwise — page degrades gracefully).
 
 ## Quality gate posture
 
 Gates run at `release-deploy` against the combined deployment surface:
 `gates_for_release: [security, tests, cruft, docs, patterns, refactor]`. Not yet run for 0.4.0.
+
+**EPK late-bound gate posture (2026-08-06):** the `creator-press-page` feature received a
+standard-weight independent cross-model code review (2 blockers fixed, incl. a cross-tenant
+photo-disclosure) standing in as its security/correctness gate, plus green integrated tests
+(shared/api/web) and a targeted scan pass (a11y/seo/structural/quality on the new files). The full
+6-gate re-loop was not re-run over the whole bundle (already converged 2026-06-29); the EPK's
+security was reviewed more deeply than the gate scan would.
 
 ## Gate runs
 

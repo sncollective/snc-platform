@@ -5,7 +5,7 @@ stage: done
 tags: [creators, content, ui]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.4.0
 gate_origin: null
 created: 2026-08-04
 updated: 2026-08-06
