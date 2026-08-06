@@ -13,6 +13,7 @@ import {
   MAX_FILE_SIZES,
   NotFoundError,
   ValidationError,
+  isOwnedPressKey,
 } from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -48,10 +49,32 @@ const getCreatorProfileForManage = async (identifier: string) => {
   return profile;
 };
 
+const validateOwnedPressKeys = (
+  patch: z.infer<typeof PressConfigPatchSchema>,
+  creatorId: string,
+): void => {
+  const hasForeignPhoto = patch.photos?.some(
+    (key) => !isOwnedPressKey(key, creatorId),
+  );
+  const hasForeignArt = patch.releases?.some(
+    (release) => release.artKey && !isOwnedPressKey(release.artKey, creatorId),
+  );
+
+  if (hasForeignPhoto || hasForeignArt) {
+    throw new ValidationError(
+      "Press photos and release art must belong to this creator's press namespace",
+    );
+  }
+};
+
 const handlePressPhotoStream = async (c: Context<AuthEnv>): Promise<Response> => {
-  const { content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+  const { profile, content } = await getEnabledPressContent(
+    c.req.param("creatorId") ?? "",
+  );
   const key = content.photos[Number(c.req.param("index"))];
-  if (!key) throw new NotFoundError("Press photo not found");
+  if (!key || !isOwnedPressKey(key, profile.id)) {
+    throw new NotFoundError("Press photo not found");
+  }
   return streamFile(c, storage, key, "press photo not found");
 };
 
@@ -130,7 +153,11 @@ pressRoutes.get(
   async (c) => {
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const buffer = await renderOnePagerPdf({
-      creator: { displayName: profile.displayName, handle: profile.handle },
+      creator: {
+        id: profile.id,
+        displayName: profile.displayName,
+        handle: profile.handle,
+      },
       content,
     });
     return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
@@ -306,6 +333,8 @@ pressRoutes.patch(
     await requireCreatorPermission(user.id, profile.id, "editProfile");
 
     const patch = c.req.valid("json" as never) as z.infer<typeof PressConfigPatchSchema>;
+    validateOwnedPressKeys(patch, profile.id);
+
     const result = await upsertPressConfig(profile.id, patch);
     if (!result.ok) throw result.error;
     return c.json(result.value);

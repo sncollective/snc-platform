@@ -9,6 +9,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
+import { isOwnedPressKey } from "@snc/shared";
 import type { PressContent, ReleaseOneSheet } from "@snc/shared";
 
 import { rootLogger } from "../logging/logger.js";
@@ -172,7 +173,12 @@ const metadataRow = (label: string, value: string | null | undefined): ReactElem
       )
     : null;
 
-const readPhotoBuffer = async (key: string): Promise<Buffer | null> => {
+const readPressImageBuffer = async (
+  key: string,
+  creatorId: string,
+): Promise<Buffer | null> => {
+  if (!isOwnedPressKey(key, creatorId)) return null;
+
   try {
     const result = await storage.download(key);
     if (!result.ok) throw result.error;
@@ -188,7 +194,7 @@ const readPhotoBuffer = async (key: string): Promise<Buffer | null> => {
   } catch (error) {
     rootLogger.warn(
       { error: error instanceof Error ? error.message : String(error), key },
-      "Press PDF hero image could not be loaded; rendering without it",
+      "Press PDF image could not be loaded; rendering without it",
     );
     return null;
   }
@@ -363,10 +369,12 @@ export const renderOneSheetPdf = async (release: ReleaseOneSheet): Promise<Buffe
 
 /** Render a creator's single-page press one-pager, embedding its first readable photo. */
 export const renderOnePagerPdf = async (input: {
-  creator: { displayName: string; handle: string | null };
+  creator: { id: string; displayName: string; handle: string | null };
   content: PressContent;
 }): Promise<Buffer> => {
   const photoKey = input.content.photos[0];
-  const hero = photoKey ? await readPhotoBuffer(photoKey) : null;
+  const hero = photoKey
+    ? await readPressImageBuffer(photoKey, input.creator.id)
+    : null;
   return renderToBuffer(onePagerDocument(input, hero));
 };

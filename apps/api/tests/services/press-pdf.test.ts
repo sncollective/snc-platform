@@ -75,7 +75,11 @@ describe("press PDF rendering", () => {
 
   it("renders a creator one-pager without requiring a hero photo", async () => {
     const buffer = await renderOnePagerPdf({
-      creator: { displayName: "Animal Future", handle: "animalfuture" },
+      creator: {
+        id: "creator_animalfuture",
+        displayName: "Animal Future",
+        handle: "animalfuture",
+      },
       content: contentFixture,
     });
 
@@ -83,7 +87,7 @@ describe("press PDF rendering", () => {
     expect(mockStorageDownload).not.toHaveBeenCalled();
   });
 
-  it("resolves the first Garage photo stream to a buffer for the hero image", async () => {
+  it("resolves the first owned Garage photo stream to a buffer for the hero image", async () => {
     const png = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
       "base64",
@@ -101,22 +105,50 @@ describe("press PDF rendering", () => {
     );
 
     const buffer = await renderOnePagerPdf({
-      creator: { displayName: "Animal Future", handle: "animalfuture" },
-      content: { ...contentFixture, photos: ["creators/animalfuture/press/hero.png"] },
+      creator: {
+        id: "creator_animalfuture",
+        displayName: "Animal Future",
+        handle: "animalfuture",
+      },
+      content: {
+        ...contentFixture,
+        photos: ["creators/creator_animalfuture/press/hero.png"],
+      },
     });
 
     expectPdfBuffer(buffer);
     expect(mockStorageDownload).toHaveBeenCalledWith(
-      "creators/animalfuture/press/hero.png",
+      "creators/creator_animalfuture/press/hero.png",
     );
+  });
+
+  it("omits a foreign hero key without reading the object", async () => {
+    const buffer = await renderOnePagerPdf({
+      creator: {
+        id: "creator_animalfuture",
+        displayName: "Animal Future",
+        handle: "animalfuture",
+      },
+      content: { ...contentFixture, photos: ["content/another-creator/private.jpg"] },
+    });
+
+    expectPdfBuffer(buffer);
+    expect(mockStorageDownload).not.toHaveBeenCalled();
   });
 
   it("omits an unreadable hero photo without failing the PDF render", async () => {
     mockStorageDownload.mockRejectedValueOnce(new Error("photo unavailable"));
 
     const buffer = await renderOnePagerPdf({
-      creator: { displayName: "Animal Future", handle: "animalfuture" },
-      content: { ...contentFixture, photos: ["creators/animalfuture/press/missing.jpg"] },
+      creator: {
+        id: "creator_animalfuture",
+        displayName: "Animal Future",
+        handle: "animalfuture",
+      },
+      content: {
+        ...contentFixture,
+        photos: ["creators/creator_animalfuture/press/missing.jpg"],
+      },
     });
 
     expectPdfBuffer(buffer);

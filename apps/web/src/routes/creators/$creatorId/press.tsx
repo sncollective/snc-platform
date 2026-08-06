@@ -1,23 +1,29 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  notFound,
+} from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorProfileResponse, PressPagePayload } from "@snc/shared";
 
 import { fetchApiServer } from "../../../lib/api-server.js";
-import { Link } from "@tanstack/react-router";
+import { isApiServerError } from "../../../lib/errors.js";
 import styles from "./press.module.css";
 
 const parentRoute = getRouteApi("/creators/$creatorId");
 
 export const Route = createFileRoute("/creators/$creatorId/press")({
-  loader: async ({ params }): Promise<PressPagePayload | null> => {
+  loader: async ({ params }): Promise<PressPagePayload> => {
     try {
       return (await fetchApiServer({
         data: `/api/creators/${encodeURIComponent(params.creatorId)}/press`,
       })) as PressPagePayload;
-    } catch {
-      // Disabled press pages are a normal, user-facing state rather than a
-      // route error: keep the shell renderable with a useful empty state.
-      return null;
+    } catch (error) {
+      if (isApiServerError(error) && error.statusCode === 404) {
+        throw notFound();
+      }
+      throw error;
     }
   },
   head: ({ loaderData }) => {
@@ -49,6 +55,7 @@ export const Route = createFileRoute("/creators/$creatorId/press")({
       links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
+  notFoundComponent: PressPageNotFound,
   component: PressPage,
 });
 
@@ -58,21 +65,21 @@ function pressEndpoint(creatorId: string, suffix: string): string {
   return `${apiBase}/api/creators/${encodeURIComponent(creatorId)}${suffix}`;
 }
 
+function PressPageNotFound(): React.ReactElement {
+  return (
+    <main className={styles.page}>
+      <h1 className={styles.heading}>Press kit unavailable</h1>
+      <p className={styles.lead}>
+        This creator does not have a public press kit yet.
+      </p>
+    </main>
+  );
+}
+
 function PressPage(): React.ReactElement {
-  const creator = parentRoute.useLoaderData() as CreatorProfileResponse | null;
+  const parentCreator = parentRoute.useLoaderData() as CreatorProfileResponse | null;
   const payload = Route.useLoaderData();
-
-  if (!creator || !payload) {
-    return (
-      <main className={styles.page}>
-        <h1 className={styles.heading}>Press kit unavailable</h1>
-        <p className={styles.lead}>
-          This creator does not have a public press kit yet.
-        </p>
-      </main>
-    );
-  }
-
+  const creator = parentCreator ?? payload.creator;
   const { content } = payload;
   const downloadUrl = pressEndpoint(creator.id, "/press/one-pager.pdf");
   const photoBase = pressEndpoint(creator.id, "/press/photos");

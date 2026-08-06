@@ -10,6 +10,7 @@ const mockGetPressConfig = vi.fn();
 const mockUpsertPressConfig = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
 const mockStorageUpload = vi.fn();
+const mockStorageDownload = vi.fn();
 
 const profile = {
   id: "creator_test123",
@@ -77,7 +78,10 @@ const ctx = setupRouteTest({
       requireCreatorPermission: mockRequireCreatorPermission,
     }));
     vi.doMock("../../src/storage/index.js", () => ({
-      storage: { upload: mockStorageUpload },
+      storage: {
+        upload: mockStorageUpload,
+        download: mockStorageDownload,
+      },
     }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
@@ -100,6 +104,17 @@ const ctx = setupRouteTest({
     );
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     mockStorageUpload.mockResolvedValue(ok(undefined));
+    mockStorageDownload.mockResolvedValue(
+      ok({
+        stream: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode("image data"));
+            controller.close();
+          },
+        }),
+        size: 10,
+      }),
+    );
   },
 });
 
@@ -200,6 +215,29 @@ describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
 });
 
 describe("GET /api/creators/:creatorId/press/photos/:index", () => {
+  it("streams an owned press photo with its image MIME type", async () => {
+    const key = `creators/${profile.id}/press/hero.jpg`;
+    mockGetPressConfig.mockResolvedValueOnce(ok({ ...content, photos: [key] }));
+
+    const res = await json("GET", "/api/creators/test-creator/press/photos/0");
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/jpeg");
+    expect(await res.text()).toBe("image data");
+    expect(mockStorageDownload).toHaveBeenCalledWith(key);
+  });
+
+  it("returns 404 without reading storage when the configured key is foreign", async () => {
+    mockGetPressConfig.mockResolvedValueOnce(
+      ok({ ...content, photos: ["content/another-creator/subscriber-only.jpg"] }),
+    );
+
+    const res = await json("GET", "/api/creators/test-creator/press/photos/0");
+
+    expect(res.status).toBe(404);
+    expect(mockStorageDownload).not.toHaveBeenCalled();
+  });
+
   it("returns 404 cleanly when the creator has no press photos", async () => {
     const res = await json("GET", "/api/creators/test-creator/press/photos/0");
 
@@ -248,6 +286,24 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
   it("returns 400 for an invalid patch", async () => {
     const res = await json("PATCH", "/api/creators/test-creator/press-config", {
       pressContactEmail: "not-an-email",
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockUpsertPressConfig).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when photos contain a foreign object key", async () => {
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+      photos: ["creators/another-creator/press/private.jpg"],
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockUpsertPressConfig).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when release art contains a foreign object key", async () => {
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+      releases: [{ ...release, artKey: "content/another-creator/subscriber-only.jpg" }],
     });
 
     expect(res.status).toBe(400);

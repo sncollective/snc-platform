@@ -37,3 +37,7 @@ Full spec in feature body §"Unit 5". The editability surface (primitive, not a 
 - Added a normalized local editor state so defaults/nulls from the JSON config remain editable without inventing a second API contract.
 - For-fans-of and personnel accept newline/comma-separated input; release records are edited in-place with an add/remove sub-editor.
 - Added render/save and photo-upload tests with mocked API fetchers.
+
+## Known follow-ups
+
+- Newly uploaded or draft photos preview through the public indexed URL before save/enable, so the editor preview remains broken until the config is published.

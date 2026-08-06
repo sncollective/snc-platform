@@ -1,35 +1,35 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, notFound } from "@tanstack/react-router";
 import type React from "react";
 import type { CreatorProfileResponse, PressPagePayload, ReleaseOneSheet } from "@snc/shared";
 
 import { fetchApiServer } from "../../../../../lib/api-server.js";
+import { isApiServerError } from "../../../../../lib/errors.js";
 import styles from "./release.module.css";
 
 const parentRoute = getRouteApi("/creators/$creatorId");
 
 interface OneSheetLoaderData {
   readonly release: ReleaseOneSheet;
-  readonly press: PressPagePayload | null;
+  readonly press: PressPagePayload;
 }
 
 export const Route = createFileRoute("/creators/$creatorId/press/releases/$releaseSlug")({
-  loader: async ({ params }): Promise<OneSheetLoaderData | null> => {
+  loader: async ({ params }): Promise<OneSheetLoaderData> => {
     try {
-      const release = (await fetchApiServer({
-        data: `/api/creators/${encodeURIComponent(params.creatorId)}/press/releases/${encodeURIComponent(params.releaseSlug)}`,
-      })) as ReleaseOneSheet;
-      let press: PressPagePayload | null = null;
-      try {
-        press = (await fetchApiServer({
+      const [release, press] = await Promise.all([
+        fetchApiServer({
+          data: `/api/creators/${encodeURIComponent(params.creatorId)}/press/releases/${encodeURIComponent(params.releaseSlug)}`,
+        }) as Promise<ReleaseOneSheet>,
+        fetchApiServer({
           data: `/api/creators/${encodeURIComponent(params.creatorId)}/press`,
-        })) as PressPagePayload;
-      } catch {
-        // The release endpoint is authoritative for this page. The press
-        // payload is only needed for the hero image and may be unavailable.
-      }
+        }) as Promise<PressPagePayload>,
+      ]);
       return { release, press };
-    } catch {
-      return null;
+    } catch (error) {
+      if (isApiServerError(error) && error.statusCode === 404) {
+        throw notFound();
+      }
+      throw error;
     }
   },
   head: ({ loaderData }) => {
@@ -64,27 +64,26 @@ export const Route = createFileRoute("/creators/$creatorId/press/releases/$relea
       links: [{ rel: "canonical", href: canonicalUrl }],
     };
   },
+  notFoundComponent: ReleaseOneSheetNotFound,
   component: ReleaseOneSheetPage,
 });
 
 const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
+function ReleaseOneSheetNotFound(): React.ReactElement {
+  return (
+    <main className={styles.page}>
+      <h1 className={styles.heading}>One-sheet unavailable</h1>
+      <p className={styles.lead}>This release one-sheet could not be found.</p>
+    </main>
+  );
+}
+
 function ReleaseOneSheetPage(): React.ReactElement {
   const creator = parentRoute.useLoaderData() as CreatorProfileResponse | null;
-  const data = Route.useLoaderData();
-
-  if (!data) {
-    return (
-      <main className={styles.page}>
-        <h1 className={styles.heading}>One-sheet unavailable</h1>
-        <p className={styles.lead}>This release one-sheet could not be found.</p>
-      </main>
-    );
-  }
-
-  const { release, press } = data;
-  const displayName = creator?.displayName ?? press?.creator.displayName ?? "S/NC creator";
-  const creatorId = creator?.id ?? press?.creator.id ?? "";
+  const { release, press } = Route.useLoaderData();
+  const displayName = creator?.displayName ?? press.creator.displayName;
+  const creatorId = creator?.id ?? press.creator.id;
   const downloadUrl = `${apiBase}/api/creators/${encodeURIComponent(creatorId)}/press/releases/${encodeURIComponent(release.slug)}/one-sheet.pdf`;
 
   return (

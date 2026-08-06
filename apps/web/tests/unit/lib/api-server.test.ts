@@ -105,7 +105,7 @@ describe("fetchApiServer", () => {
 
     await expect(
       capturedHandlers.fetchApiServer!({ data: "/api/content/missing" }),
-    ).rejects.toThrow("Not Found");
+    ).rejects.toMatchObject({ message: "Not Found", statusCode: 404 });
   });
 });
 

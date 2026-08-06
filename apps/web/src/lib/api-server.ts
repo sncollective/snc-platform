@@ -3,6 +3,7 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 
 import type { AuthState } from "./auth.js";
 import { GUEST_AUTH_STATE } from "./auth.js";
+import { ApiServerError } from "./errors.js";
 import { extractErrorMessage } from "./fetch-utils.js";
 import { ssrLogger } from "./logger.js";
 
@@ -57,7 +58,7 @@ export const fetchApiServer = createServerFn({ method: "GET" })
         { endpoint, statusCode: res.status, error: message },
         "SSR API fetch failed",
       );
-      throw new Error(message);
+      throw new ApiServerError(message, res.status);
     }
     return res.json();
   });

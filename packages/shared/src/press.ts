@@ -2,6 +2,10 @@ import { z } from "zod";
 
 // ── Press Config ──
 
+/** Return whether a Garage key belongs to a creator's dedicated press namespace. */
+export const isOwnedPressKey = (key: string, creatorId: string): boolean =>
+  key.startsWith(`creators/${creatorId}/press/`);
+
 /** A labeled public listening destination for a creator. */
 export const PressStreamingLinkSchema = z.object({
   label: z.string(),
@@ -19,7 +23,10 @@ export type PressStandoutTrack = z.infer<typeof PressStandoutTrackSchema>;
 
 /** Editable metadata for a release-specific press one-sheet. */
 export const ReleaseOneSheetSchema = z.object({
-  slug: z.string(),
+  slug: z
+    .string()
+    .min(1, "Release slug is required")
+    .regex(/^[a-z0-9-]+$/, "Release slug must contain only lowercase letters, numbers, and hyphens"),
   title: z.string(),
   catalogNumber: z.string().nullable().optional(),
   releaseDate: z.string().nullable().optional(),
@@ -40,6 +47,11 @@ export const ReleaseOneSheetSchema = z.object({
 });
 export type ReleaseOneSheet = z.infer<typeof ReleaseOneSheetSchema>;
 
+const PressReleasesSchema = z.array(ReleaseOneSheetSchema).refine(
+  (releases) => new Set(releases.map((release) => release.slug)).size === releases.length,
+  { message: "Release slugs must be unique" },
+);
+
 /** Per-creator press-page configuration (the editable surface). */
 export const PressContentSchema = z.object({
   enabled: z.boolean().default(false),
@@ -52,7 +64,7 @@ export const PressContentSchema = z.object({
   pressContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).default([]),
-  releases: z.array(ReleaseOneSheetSchema).default([]),
+  releases: PressReleasesSchema.default([]),
 });
 export type PressContent = z.infer<typeof PressContentSchema>;
 
@@ -68,7 +80,7 @@ export const PressConfigPatchSchema = z.object({
   pressContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
-  releases: z.array(ReleaseOneSheetSchema).optional(),
+  releases: PressReleasesSchema.optional(),
 });
 export type PressConfigPatch = z.infer<typeof PressConfigPatchSchema>;
 
