@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-api
 kind: story
-stage: implementing
+stage: done
 parent: creator-press-page
 depends_on: [creator-press-page-schema]
 release_binding: null
@@ -26,9 +26,22 @@ Full spec in feature body §"Unit 2".
 **Pattern**: Hono + `describeRoute`/`validator` ceremony per `AGENTS.md`; handle/id resolution + `requireCreatorPermission` per `creator-media.routes.ts`.
 
 **Acceptance evidence**:
-- [ ] public endpoints 404 when disabled/inactive; return content when enabled.
-- [ ] PATCH: 403 non-member, 400 invalid patch; upserts on valid.
-- [ ] photo upload stores under `creators/{id}/press/…` and returns the key.
-- [ ] happy-path + auth-failure tests per route.
+- [x] Public endpoints 404 when disabled/inactive; return content when enabled.
+- [x] PATCH: 403 non-member, 400 invalid patch; upserts on valid.
+- [x] Photo upload stores under `creators/{id}/press/…` and returns the key.
+- [x] Happy-path + auth-failure tests per route.
+
+## Implementation notes
+
+- Added JSON-only public press and release routes, protected config GET/PATCH routes,
+  and editProfile-protected multipart press-photo upload in
+  `apps/api/src/routes/press.routes.ts`.
+- Mounted `pressRoutes` at `/api/creators` in `apps/api/src/app.ts`.
+- Public payloads resolve handle/id through `findCreatorProfile`, require an active
+  creator and enabled config, and source creator location from press content.
+- Added route coverage for enabled/disabled/inactive public access, release misses,
+  config auth/validation/permission behavior, and sanitized photo storage keys.
+- Verification: `bun run --filter @snc/api typecheck` passed; targeted press route
+  tests passed (13/13); full API unit suite passed.
 
 **Order**: after schema; unblocks web-public, pdf, and manage-editor.
