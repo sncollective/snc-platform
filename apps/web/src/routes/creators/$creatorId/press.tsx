@@ -47,7 +47,7 @@ export const Route = createFileRoute("/creators/$creatorId/press")({
         { property: "og:type", content: "profile" },
         { property: "og:url", content: canonicalUrl },
         ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
-        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:card", content: imageUrl ? "summary_large_image" : "summary" },
         { name: "twitter:title", content: `${creator.displayName} — Press kit` },
         { name: "twitter:description", content: description },
         ...(imageUrl ? [{ name: "twitter:image", content: imageUrl }] : []),
@@ -67,12 +67,12 @@ function pressEndpoint(creatorId: string, suffix: string): string {
 
 function PressPageNotFound(): React.ReactElement {
   return (
-    <main className={styles.page}>
+    <article className={styles.page}>
       <h1 className={styles.heading}>Press kit unavailable</h1>
       <p className={styles.lead}>
         This creator does not have a public press kit yet.
       </p>
-    </main>
+    </article>
   );
 }
 
@@ -85,7 +85,7 @@ function PressPage(): React.ReactElement {
   const photoBase = pressEndpoint(creator.id, "/press/photos");
 
   return (
-    <main className={styles.page}>
+    <article className={styles.page}>
       <header className={styles.hero}>
         <p className={styles.kicker}>S/NC press kit</p>
         <h1 className={styles.heading}>{creator.displayName}</h1>
@@ -195,6 +195,6 @@ function PressPage(): React.ReactElement {
           <a href={`mailto:${content.pressContactEmail}`}>{content.pressContactEmail}</a>
         </footer>
       )}
-    </main>
+    </article>
   );
 }

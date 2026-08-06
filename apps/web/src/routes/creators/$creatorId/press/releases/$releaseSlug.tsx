@@ -56,7 +56,7 @@ export const Route = createFileRoute("/creators/$creatorId/press/releases/$relea
         { property: "og:type", content: "music.song" },
         { property: "og:url", content: canonicalUrl },
         ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
-        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:card", content: imageUrl ? "summary_large_image" : "summary" },
         { name: "twitter:title", content: `${release.title} — ${displayName}` },
         { name: "twitter:description", content: description },
         ...(imageUrl ? [{ name: "twitter:image", content: imageUrl }] : []),
@@ -72,10 +72,10 @@ const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 function ReleaseOneSheetNotFound(): React.ReactElement {
   return (
-    <main className={styles.page}>
+    <article className={styles.page}>
       <h1 className={styles.heading}>One-sheet unavailable</h1>
       <p className={styles.lead}>This release one-sheet could not be found.</p>
-    </main>
+    </article>
   );
 }
 
@@ -87,7 +87,7 @@ function ReleaseOneSheetPage(): React.ReactElement {
   const downloadUrl = `${apiBase}/api/creators/${encodeURIComponent(creatorId)}/press/releases/${encodeURIComponent(release.slug)}/one-sheet.pdf`;
 
   return (
-    <main className={styles.page}>
+    <article className={styles.page}>
       <header className={styles.header}>
         <p className={styles.kicker}>S/NC one-sheet</p>
         <h1 className={styles.heading}>{release.title}</h1>
@@ -122,7 +122,7 @@ function ReleaseOneSheetPage(): React.ReactElement {
           </ul>
         </section>
       )}
-    </main>
+    </article>
   );
 }
 
