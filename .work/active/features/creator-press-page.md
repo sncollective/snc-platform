@@ -1,7 +1,7 @@
 ---
 id: creator-press-page
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, ui]
 parent: null
 depends_on: []
@@ -333,3 +333,23 @@ integrated verification green across all packages.
 - **Press photos not yet ingested** — seed ships with `photos: []`; operator has shoot photos pending a location. Page renders gracefully without them; upload + display work end-to-end once delivered.
 - **imgproxy optimization for press photos** is a fast-follow — v1 serves photos via a raw stream endpoint (matching the avatar-stream pattern); responsive imgproxy descriptors are the platform-consistent upgrade.
 - **Per-release one-sheet PDF art/branding** is minimal v1 (Helvetica, plain layout); visual polish is a fast-follow.
+
+---
+
+## Review
+
+**Effective weight:** standard — one independent fresh-context pass (cross-model: `openai-codex/gpt-5.6-sol` vs. the zai orchestrator). **Pass:** 1, verdict Request changes. **Closure:** blockers fixed in `267c692` + verified green; advanced `review → done` under standard closure (no second pass).
+
+### Fixed (`267c692`)
+- **Blocker — cross-tenant photo/`artKey` disclosure:** `isOwnedPressKey` helper; PATCH rejects foreign keys (400); the public photo-stream endpoint and the PDF renderer each defensively re-check ownership before serving/buffering (defense-in-depth at write + stream + render). Closes the path where an `editProfile` member could expose other creators' Garage objects (incl. subscriber-only media) via the public press surface.
+- **Blocker — soft-404s:** both public loaders now `throw notFound()` on API 404 and propagate non-404 errors (status preserved in `lib/api-server`); graceful `notFoundComponent`s. Real HTTP 404s for disabled/missing creators/releases.
+- **Important — release slug uniqueness:** non-empty slug regex + array-level uniqueness refine (duplicates previously resolved to the first match).
+- **Important — test gaps:** foreign-key PATCH rejection, owned-stream MIME, foreign-key stream 404, PDF foreign-key refusal, real 404 status, release-page metadata + PDF link.
+
+### Parked (fast-follow)
+- Editor pre-save photo preview renders the public indexed URL before save/enable → broken preview for new/draft photos (internal UX; photos not yet delivered). Noted in `creator-press-page-manage-editor.md`.
+- imgproxy optimization for press photos (v1 uses the raw stream endpoint).
+- One-sheet / one-pager PDF visual polish (v1 Helvetica, plain layout).
+
+### Rejected proposals (reviewer-correct, receiver-confirmed)
+Partial-PATCH wipes `enabled`/lists (regression test proves otherwise), PDF/photo route shadowing, `:index` traversal, handle-resolution authz bypass — all verified non-issues.
