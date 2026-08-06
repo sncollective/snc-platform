@@ -1,7 +1,7 @@
 ---
 id: release-0.4.0
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -10,7 +10,7 @@ gate_origin: null
 quality_gates_passed: []
 related_items: []
 created: 2026-06-17
-updated: 2026-06-29
+updated: 2026-08-06
 ---
 
 # Release 0.4.0 — Post-0.3.0 Platform Sweep
@@ -177,6 +177,17 @@ photo-disclosure) standing in as its security/correctness gate, plus green integ
 (shared/api/web) and a targeted scan pass (a11y/seo/structural/quality on the new files). The full
 6-gate re-loop was not re-run over the whole bundle (already converged 2026-06-29); the EPK's
 security was reviewed more deeply than the gate scan would.
+
+The targeted scan returned one a11y blocker (nested `<main>` landmarks — `__root.tsx`
+already wraps routes in `<main>`) plus a no-image Twitter-card issue; both fixed
+(`02f6674`). Remaining importants (photo alt modeling, release SEO, manage-editor
+a11y/complexity, canonical-URL hardening) parked in `creator-press-page-scan-fast-follows`.
+
+**Ship (2026-08-06):** all 157 bound items `done`; gates addressed (original bundle
+converged 2026-06-29; EPK via feature review + targeted scan). Per `release_mapping:
+none`, deployment is user-at-station — the operator deploys to demo → prod and walks
+the §Prod verification checks (incl. the EPK `seed-press` step against the real AF
+creator). Formal release-deploy collapse (delete-refs) follows the deploy.
 
 ## Gate runs
 
