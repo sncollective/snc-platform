@@ -31,6 +31,7 @@ export * from "./notification.js";
 export * from "./notification-inbox.js";
 export * from "./consent.js";
 export * from "./join.js";
+export * from "./press.js";
 export * from "./invite.js";
 export * from "./events.js";
 export * from "./editorial.js";

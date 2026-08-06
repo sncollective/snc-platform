@@ -1,7 +1,8 @@
 import { pgTable, text, timestamp, jsonb, boolean, index, primaryKey } from "drizzle-orm/pg-core";
 
-import type { SocialLink, CreatorMemberRole, CreatorStatus } from "@snc/shared";
+import type { SocialLink, CreatorMemberRole, CreatorStatus, PressContent } from "@snc/shared";
 
+import { DEFAULT_PRESS_CONTENT } from "../../../../../packages/shared/src/press.js";
 import { users } from "./user.schema.js";
 
 // ── Creator Profiles ──
@@ -68,5 +69,19 @@ export const creatorJoinConfigs = pgTable("creator_join_configs", {
   incentiveText: text("incentive_text"),
   showSncExplainer: boolean("show_snc_explainer").notNull().default(true),
   showSubscribeCta: boolean("show_subscribe_cta").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Press Page Config ──
+
+/** Per-creator press-page configuration. Row optional — absent row = defaults. */
+export const creatorPressConfigs = pgTable("creator_press_configs", {
+  creatorId: text("creator_id")
+    .primaryKey()
+    .references(() => creatorProfiles.id, { onDelete: "cascade" }),
+  content: jsonb("content")
+    .$type<PressContent>()
+    .notNull()
+    .default(DEFAULT_PRESS_CONTENT),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

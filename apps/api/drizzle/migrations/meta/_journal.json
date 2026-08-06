@@ -232,6 +232,13 @@
       "when": 1782345098924,
       "tag": "0032_awesome_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786038721349,
+      "tag": "0033_left_vance_astro",
+      "breakpoints": true
     }
   ]
 }
