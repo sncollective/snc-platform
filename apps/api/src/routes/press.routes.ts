@@ -20,8 +20,9 @@ import { optionalAuth } from "../middleware/optional-auth.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
-import { sanitizeFilename } from "../lib/file-utils.js";
+import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { renderOnePagerPdf, renderOneSheetPdf } from "../services/press-pdf.js";
 import { getPressConfig, upsertPressConfig } from "../services/press.js";
 import { storage } from "../storage/index.js";
 import { CreatorIdParam } from "./route-params.js";
@@ -45,6 +46,13 @@ const getCreatorProfileForManage = async (identifier: string) => {
   const profile = await findCreatorProfile(identifier);
   if (!profile) throw new NotFoundError("Creator not found");
   return profile;
+};
+
+const handlePressPhotoStream = async (c: Context<AuthEnv>): Promise<Response> => {
+  const { content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+  const key = content.photos[Number(c.req.param("index"))];
+  if (!key) throw new NotFoundError("Press photo not found");
+  return streamFile(c, storage, key, "press photo not found");
 };
 
 const handlePressPhotoUpload = async (c: Context<AuthEnv>): Promise<Response> => {
@@ -100,6 +108,92 @@ const handlePressPhotoUpload = async (c: Context<AuthEnv>): Promise<Response> =>
 
 /** Public press pages and creator-managed press configuration routes. */
 export const pressRoutes = new Hono<AuthEnv>();
+
+// GET /:creatorId/press/one-pager.pdf — Public creator one-pager PDF
+pressRoutes.get(
+  "/:creatorId/press/one-pager.pdf",
+  describeRoute({
+    description: "Download a creator's public press one-pager as a PDF",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Creator press one-pager PDF",
+        content: {
+          "application/pdf": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      404: ERROR_404,
+    },
+  }),
+  optionalAuth,
+  validator("param", CreatorIdParam),
+  async (c) => {
+    const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const buffer = await renderOnePagerPdf({
+      creator: { displayName: profile.displayName, handle: profile.handle },
+      content,
+    });
+    return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+  },
+);
+
+// GET /:creatorId/press/releases/:releaseSlug/one-sheet.pdf — Public release PDF
+pressRoutes.get(
+  "/:creatorId/press/releases/:releaseSlug/one-sheet.pdf",
+  describeRoute({
+    description: "Download a public release one-sheet as a PDF",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Release one-sheet PDF",
+        content: {
+          "application/pdf": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      404: ERROR_404,
+    },
+  }),
+  optionalAuth,
+  validator(
+    "param",
+    z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
+  ),
+  async (c) => {
+    const { content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const release = content.releases.find(
+      (candidate) => candidate.slug === c.req.param("releaseSlug"),
+    );
+    if (!release) throw new NotFoundError("Release not found");
+    const buffer = await renderOneSheetPdf(release);
+    return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+  },
+);
+
+// GET /:creatorId/press/photos/:index — Stream a public press photo
+pressRoutes.get(
+  "/:creatorId/press/photos/:index",
+  describeRoute({
+    description: "Stream a public press photo for a creator",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Press photo stream",
+        content: {
+          "application/octet-stream": {
+            schema: { type: "string", format: "binary" },
+          },
+        },
+      },
+      404: ERROR_404,
+    },
+  }),
+  optionalAuth,
+  validator(
+    "param",
+    z.object({ creatorId: CreatorIdParam.shape.creatorId, index: z.string() }),
+  ),
+  async (c) => handlePressPhotoStream(c),
+);
 
 // GET /:creatorId/press — Public press page payload
 pressRoutes.get(

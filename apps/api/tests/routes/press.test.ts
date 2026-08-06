@@ -172,6 +172,39 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("returns the requested release as a PDF one-sheet", async () => {
+    const res = await json(
+      "GET",
+      "/api/creators/test-creator/press/releases/the-illusionist/one-sheet.pdf",
+    );
+    const body = Buffer.from(await res.arrayBuffer());
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/pdf");
+    expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+  });
+});
+
+describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
+  it("matches the literal PDF route and returns a PDF response", async () => {
+    ctx.auth.user = null;
+
+    const res = await json("GET", "/api/creators/test-creator/press/one-pager.pdf");
+    const body = Buffer.from(await res.arrayBuffer());
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/pdf");
+    expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+  });
+});
+
+describe("GET /api/creators/:creatorId/press/photos/:index", () => {
+  it("returns 404 cleanly when the creator has no press photos", async () => {
+    const res = await json("GET", "/api/creators/test-creator/press/photos/0");
+
+    expect(res.status).toBe(404);
+  });
 });
 
 describe("GET /api/creators/:creatorId/press-config", () => {
