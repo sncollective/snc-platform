@@ -1,0 +1,125 @@
+.page {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.heading {
+  color: var(--color-text);
+}
+
+.lead {
+  color: var(--color-text-muted);
+}
+
+.form,
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.form {
+  padding-bottom: var(--space-xl);
+}
+
+.section {
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.subheading {
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 650;
+}
+
+.linkRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.5fr) minmax(200px, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.secondaryButton,
+.removeButton {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.removeButton {
+  color: var(--color-danger, #e66);
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-md);
+}
+
+.photoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.photoItem img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.release {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.release legend {
+  padding: 0 var(--space-xs);
+  color: var(--color-text-muted);
+  font-weight: 650;
+}
+
+.releaseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+@media (max-width: 640px) {
+  .linkRow,
+  .releaseGrid {
+    grid-template-columns: 1fr;
+  }
+}

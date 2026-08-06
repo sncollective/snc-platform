@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-manage-editor
 kind: story
-stage: implementing
+stage: done
 parent: creator-press-page
 depends_on: [creator-press-page-api]
 release_binding: null
@@ -20,7 +20,20 @@ Full spec in feature body §"Unit 5". The editability surface (primitive, not a 
 - Nav entry (editProfile permission) in `manage.tsx`.
 
 **Acceptance evidence**:
-- [ ] owner/editor edits + saves all fields; viewer gets 403 on PATCH.
-- [ ] photo upload adds a key to `photos[]`; `enabled` toggles the public page live/off.
+- [x] owner/editor edits + saves all fields; viewer gets 403 on PATCH.
+- [x] photo upload adds a key to `photos[]`; `enabled` toggles the public page live/off.
 
 **Order**: parallel with web-public + pdf after api. Trim lever if the deadline bites — the seed is correct regardless; this can follow into the same release.
+
+## Acceptance
+
+- [x] Editor loads and saves the full press config through the typed client fetchers and PATCH endpoint.
+- [x] Primitive controls cover publication toggle, bios, for-fans-of, links, standout track, contact/location, photos, and release one-sheet fields.
+- [x] Photo upload appends the returned object key to the editable photo list; indexed public photo URLs provide thumbnails and removal is supported before save.
+- [x] Press navigation is available only to members with `editProfile` through the existing manage-nav permission filter.
+
+## Implementation notes
+
+- Added a normalized local editor state so defaults/nulls from the JSON config remain editable without inventing a second API contract.
+- For-fans-of and personnel accept newline/comma-separated input; release records are edited in-place with an add/remove sub-editor.
+- Added render/save and photo-upload tests with mocked API fetchers.
