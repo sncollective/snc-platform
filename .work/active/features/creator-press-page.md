@@ -1,14 +1,14 @@
 ---
 id: creator-press-page
 kind: feature
-stage: implementing
+stage: review
 tags: [creators, content, ui]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-04
-updated: 2026-08-05
+updated: 2026-08-06
 ---
 
 # Creator press / EPK page (public)
@@ -303,3 +303,33 @@ pdf → manage-editor (seed stays correct) — never web-public or the one-sheet
   Confirm the exact method on `storage/index.js` in Unit 4 (fallback: stream → Buffer).
 - **Deadline vs scope** — five units is ambitious for one drop; trim order is
   pdf → manage-editor (seed stays correct), never web-public or the one-sheet.
+
+---
+
+## Implementation summary
+
+All five child stories advanced `implementing → done` (one commit each);
+integrated verification green across all packages.
+
+| Story | Commit | Delivered |
+|---|---|---|
+| creator-press-page-schema | `183d1fe` | `creator_press_configs` table + migration `0033`; `packages/shared/src/press.ts` Zod contract; `services/press.ts` (get/upsert); AF seed (`animalfuture`, 14.5k standout, SNCR-001 one-sheet) |
+| creator-press-page-api | `a6315df` | public press/release GET, authed press-config GET/PATCH, multipart photo upload; mounted at `/api/creators`; 13 route tests |
+| creator-press-page-pdf | `c11ee8b` | `@react-pdf/renderer` 4.5.1; `services/press-pdf.ts` (one-sheet + one-pager via `renderToBuffer`); `.pdf` endpoints + public photo-stream endpoint; CI render smoke-test |
+| creator-press-page-web-public | `1b32af9` | SSR band-EPK + release one-sheet routes; OG/Twitter meta from loader data (hero photo); photos via indexed stream endpoint; PDF download links |
+| creator-press-page-manage-editor | `b842b51` | primitive manage editor (bios, links, standout, photos, releases sub-editor, `enabled` toggle); permission-gated nav |
+
+### Notable
+- **Design-flaw catch (schema):** the worker flagged that `PressContentSchema.partial()` retains Zod `.default()` in v4, so a partial PATCH would inject `enabled:false` + empty arrays and corrupt the merge. Resolved with a default-free `PressConfigPatchSchema` (explicit `.optional()`, mirroring `join.ts`) + a regression test.
+- **Renderer validated:** `@react-pdf/renderer` 4.5.1 confirmed server-rendering under the Node/tsx API runtime (`renderToBuffer`, `%PDF`); images resolved via `storage.download()` → `Buffer.concat`. The Bun-runtime caveat is moot (API runs on Node).
+- **Separate (not this feature):** the dev `snc-liquidsoap` crash-loop was diagnosed + fixed (stale bind-mount path pre-relocation → empty config); confirmed NOT a 2.4.5 regression.
+
+### Integrated verification (2026-08-06)
+- `bun run --filter '*' typecheck` — green (shared, api, web, e2e).
+- `test-all` — green: shared ✓, api unit ✓ (1922 tests / 120 files), web ✓ (1819 tests / 172 files).
+- Working tree clean except pre-existing unrelated `CHANGELOG.md` (untracked) + `.work/bin/work-view` (modified).
+
+### Known follow-ups (not blocking review)
+- **Press photos not yet ingested** — seed ships with `photos: []`; operator has shoot photos pending a location. Page renders gracefully without them; upload + display work end-to-end once delivered.
+- **imgproxy optimization for press photos** is a fast-follow — v1 serves photos via a raw stream endpoint (matching the avatar-stream pattern); responsive imgproxy descriptors are the platform-consistent upgrade.
+- **Per-release one-sheet PDF art/branding** is minimal v1 (Helvetica, plain layout); visual polish is a fast-follow.
