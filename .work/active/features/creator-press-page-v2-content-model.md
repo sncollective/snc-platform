@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-content-model
 kind: feature
-stage: implementing
+stage: review
 tags: [creators, content, ui, schema]
 parent: creator-press-page-v2
 depends_on: []
@@ -272,6 +272,27 @@ contract's parse-time union preprocessor — no duplicate work here.)
   the normalized v2 shape; an editor-written v2 row is returned as-written.
 - **Regression**: the existing v1 public-press + manage-press route tests stay
   green (the superset is backward-compatible) — do **not** weaken them.
+
+## Implementation
+
+Implemented the additive v2 shared contract in `packages/shared/src/press.ts`
+without changing the JSONB column or routes. Legacy streaming links are parsed
+with inferred service identifiers, v1 fields remain available, and the default
+and patch schemas cover both generations. `apps/api/src/services/press.ts`
+parses stored content and lazily derives gallery/highlights only when their v2
+surfaces are empty; the transform is pure and idempotent.
+
+Child stories completed:
+- `creator-press-page-v2-content-model-contract`
+- `creator-press-page-v2-content-model-normalization`
+
+Integrated verification: shared tests passed (23 files, 710 tests), API unit
+tests passed (120 files, 1,930 tests), including all existing press route tests,
+and the focused normalization tests passed. The requested API integration suite
+was run; 8 files/39 tests passed, with 4 unrelated baseline failures in channel
+lifecycle foreign-key setup and test-control-secret gating. No press integration
+tests failed. The shared `build` command is unavailable because
+`@snc/shared` has no `build` script; shared typecheck passed.
 
 ## Risks
 - **Read-time normalization correctness** — the transform must be idempotent and
