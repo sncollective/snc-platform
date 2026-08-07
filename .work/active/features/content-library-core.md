@@ -1,14 +1,14 @@
 ---
 id: content-library-core
 kind: feature
-stage: implementing
+stage: review
 tags: [media, content]
 parent: content-library
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-08
+updated: 2026-08-09
 ---
 
 # Content library — asset store + registry + API (foundation)
@@ -445,3 +445,26 @@ hash sharding, concurrent-dedup strategy, `image-size`, ≤10 MiB buffering,
 public-bytes/owner-write posture, no public GET-by-hash, no presigned upload,
 the per-use `{key,alt,credit}` metadata boundary. (One nit parked: prod Caddy
 10 MB body cap vs the 10 MiB file limit + multipart overhead — align later.)
+
+## Implementation discovery
+
+The first real Garage integration upload is blocked by the existing S3 adapter's
+`head()` not-found classification. Garage returns an AWS SDK `NotFound` error with
+`$metadata.httpStatusCode === 404` (not `NoSuchKey`), while
+`apps/api/src/storage/s3-storage.ts` only recognizes `name === "NoSuchKey"` and
+otherwise wraps the miss as indistinguishable `S3_ERROR`/502. The library service
+cannot satisfy the required invariant (treat only not-found as absent, propagate
+all other head errors) because the adapter discards the status/name before the
+service sees it. Fixing that adapter is outside this feature's exact allowed write
+scope. The implementation is therefore returned to drafting pending an adapter
+fix and a re-run of the Garage round-trip.
+
+Resolution: Resolved by 640ce21 (s3-storage head() now classifies NotFound/404); verified on real Garage.
+
+## Implementation summary
+
+Implemented the shared contract, `content_assets` registry and migration, content-addressed library service, authenticated creator library CRUD API, public immutable raw-key delivery, and library image URL resolver. Upload identity is derived from detected image bytes and deduplicates both same-creator registrations and globally stored blobs. Registrations soft-delete while raw bytes remain available for deferred GC.
+
+## Integrated verification
+
+Feature-focused Garage/Postgres integration passed: **1 file, 1 test passed**, covering relabeled JPEG/PNG bytes producing one key, two creators sharing one stored object via `head` hit, real Garage 404 classification, list/get/delete, ownership, and raw delivery after tombstoning. Library service unit tests passed (**1 file, 5 tests**); route tests passed (**1 file, 4 tests**, including 401/403); full API unit suite passed (**120 files, 1932 tests**). The full integration command ran but has four unrelated failures in existing test-control and streaming-channel fixtures (9 files / 40 tests passed). `@snc/shared` has no `build` script, so the requested shared build command is unavailable; shared tests passed (**23 files, 710 tests**).
