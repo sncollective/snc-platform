@@ -36,12 +36,16 @@ const releaseFixture: ReleaseOneSheet = {
 
 const contentFixture: PressContent = {
   enabled: true,
+  template: "A",
+  members: [],
+  highlights: [],
+  gallery: [],
   shortBio: "Animal Future makes vivid alternative pop from Fort Collins.",
   longBio: null,
   forFansOf: ["Indie pop", "Art rock"],
   streamingLinks: [
-    { label: "Bandcamp", url: "https://example.com/animal-future" },
-    { label: "YouTube", url: "https://example.com/animal-future/video" },
+    { service: "bandcamp", label: "Bandcamp", url: "https://example.com/animal-future" },
+    { service: "youtube", label: "YouTube", url: "https://example.com/animal-future/video" },
   ],
   liveDatesUrl: null,
   standoutTrack: {

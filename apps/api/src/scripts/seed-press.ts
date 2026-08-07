@@ -15,6 +15,10 @@ if (process.env.ALLOW_DEMO_SEED !== "true") {
 
 const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   enabled: true,
+  template: "A",
+  members: [],
+  highlights: [],
+  gallery: [],
   shortBio:
     "Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams. For fans of IDLES, Modest Mouse, and Pixies.",
   longBio:
@@ -29,19 +33,22 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
   streamingLinks: [
     {
+      service: "spotify",
       label: "Spotify",
       url: "https://open.spotify.com/artist/3Z65vDspGDjgs9MZzSrEOI",
     },
     {
+      service: "apple-music",
       label: "Apple Music",
       url: "https://music.apple.com/us/artist/animal-future/1787816020",
     },
     {
+      service: "amazon-music",
       label: "Amazon Music",
       url: "https://music.amazon.com/artists/B092X9HWDY/animal-future",
     },
-    { label: "YouTube", url: "https://www.youtube.com/@animalfuture" },
-    { label: "Bandcamp", url: "https://animalfuture.bandcamp.com/" },
+    { service: "youtube", label: "YouTube", url: "https://www.youtube.com/@animalfuture" },
+    { service: "bandcamp", label: "Bandcamp", url: "https://animalfuture.bandcamp.com/" },
   ],
   liveDatesUrl: "https://www.bandsintown.com/a/15532000-animal-future",
   standoutTrack: {
