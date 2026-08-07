@@ -176,3 +176,65 @@ imgproxy:
 - [Best Format](https://docs.imgproxy.net/features/best_format)
 - [Configuration Options](https://docs.imgproxy.net/configuration/options)
 - [GitHub Examples](https://github.com/imgproxy/imgproxy/tree/master/examples)
+
+## Crop / section picker (per-slot aspect ratios) — render-time, no derived asset
+
+For a crop/section picker (e.g. press-page banner 3:1, member 1:1, gallery 4:3,
+about 4:5), **crop at render-time via imgproxy processing options**; do NOT store a
+derived/cropped asset. The stored asset stays the original (content-addressable);
+the per-slot crop lives as metadata on the *reference*. Grounded in imgproxy 3.31.x
+docs (Processing Options → resize/gravity/crop/dpr; Signing).
+
+### The option shape
+
+```
+c:<cropW>:<cropH>:fp:<centerX>:<centerY>/rs:fill:<outW>:<outH>:0/g:ce/plain/s3://bucket/key
+```
+
+- `crop` / `c` (`#crop`): crop **before resize**. Dims `≥1` are absolute px; `<1`
+  are **relative to source**; `0` = full source dim. Accepts the same gravity
+  values as `g:`, so `fp` (focus point, normalized 0–1) positions the crop window.
+- `rs:fill` (`#resize`): fill the output box, crop overflow — the correct type for
+  fixed-ratio photographic slots (NOT `fit`/`force`/`auto`).
+- `g:` (`#gravity`): `ce` center; `sm` smart (libvips "most interesting" heuristic —
+  **not** a persisted editorial crop, no documented stability guarantee); `fp:x:y`
+  focal point. For a user-driven crop, encode the user's selection in `crop:…:fp:…`.
+- `dpr:n` (`#dpr`): multiplies dims for HiDPI; composes with the same crop segment.
+
+### Per-use data model (on the reference, not the asset)
+
+```ts
+// per slot/use of an image
+{
+  key: string;            // content-addressable asset key (the original)
+  alt: string;            // required
+  credit?: string | null;
+  crop?: { x: number; y: number; width: number; height: number }; // normalized 0–1, source space
+  // the slot's output aspect ratio is known by the SLOT (banner 3:1, …), not stored per image
+}
+```
+At URL-build time: convert `crop` rect → `c:<w>:<h>:fp:<cx>:<cy>`, emit
+`rs:fill:<outW>:<outH>:0` where `outW:outH` = the slot's ratio at the requested
+width. Keep the crop segment constant across a width-descriptor `srcSet`; vary only
+`outW`/`outH`. The editor's crop overlay/preview is a **client-side** concern
+(preview the original locally, or request a signed imgproxy preview URL with the
+same eventual params) — separate from delivery.
+
+### Platform-seam notes (current `apps/api/src/lib/imgproxy.ts`)
+
+- The existing `buildImgproxyUrl(key, width)` / `buildSrcSet(key, widths)` are
+  **width-only** (`rs:fill:<w>:0`) — they CANNOT enforce a fixed slot ratio or
+  encode a crop. A slot-aware variant must take the slot ratio + optional crop and
+  emit `c:…/rs:fill:<outW>:<outH>:0` (image-management adds this).
+- **Signing**: `crop`, `gravity`, `resize`, width/height, and `dpr` are all
+  processing-path segments → they participate in the HMAC signature (the existing
+  `signPath` handles this; just include the segments in the signed path).
+- **`Accept` (WebP/AVIF) is NOT signed** → caches must vary on `Accept` when format
+  detection is on (config `IMGPROXY_ENABLE_WEBP_DETECTION` etc.).
+- If `IMGPROXY_ALLOWED_PROCESSING_OPTIONS` is set, **allowlist both long and short
+  names** (`crop`+`c`, `resize`+`rs`, `gravity`+`g`) or the URL is rejected.
+- **Pro-only — do NOT depend on for OSS self-hosted**: `crop_ar`/`car` (force a crop
+  to an aspect ratio), `obj`/`objw` (object-detection gravity), Best Format tuning.
+  Derive output width/height from the slot ratio in-app instead.
+- Source limits (defaults): `IMGPROXY_MAX_SRC_RESOLUTION` 50 MP;
+  `IMGPROXY_MAX_SRC_FILE_SIZE` 0 (disabled); `IMGPROXY_MAX_RESULT_DIMENSION` 0.
