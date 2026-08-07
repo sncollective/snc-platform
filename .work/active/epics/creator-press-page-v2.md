@@ -56,7 +56,8 @@ editor needs it before the full v2).
   image objects `{key,alt,credit}`, `gallery[]`, merged `highlights[]`,
   `template` selector) — depends on: `[]`
 - `creator-press-page-v2-image-management` — size-range upload + crop/section
-  picker + credits + photo-editor fix — depends on: `[content-model]`
+  picker + credits + photo-editor fix — depends on: `[content-model, content-library-core]`
+  (cross-epic: `content-library`)
 - `creator-press-page-v2-templates` — Template A + B + selector + streaming
   icons + carousel gallery, per the locked design — depends on: `[content-model]`
 - `creator-press-page-v2-editor` — manage members/highlights/gallery/template/

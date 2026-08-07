@@ -4,7 +4,7 @@ kind: feature
 stage: drafting
 tags: [creators, content, ui]
 parent: creator-press-page-v2
-depends_on: [creator-press-page-v2-content-model]
+depends_on: [creator-press-page-v2-content-model, content-library-core]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
