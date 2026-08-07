@@ -26,9 +26,11 @@ SNC agent).
 → exit 1`) is currently **bypassed** because the `seed:demo` package script
 hardcodes `ALLOW_DEMO_SEED=true`. Safe today only because prod CI never invokes
 it. Stronger construction: remove the hardcode from the package script; set
-`ALLOW_DEMO_SEED=true` only at the (demo-only) call site. **Coordinated change**:
-platform removes the hardcode; the SNC agent sets the env var in the demo-deploy
-CI heredoc.
+`ALLOW_DEMO_SEED=true` only at the (demo-only) call site. **Platform-only change (no root-side work):** the SNC agent's demo-heredoc
+call site *already* sets `ALLOW_DEMO_SEED=true` explicitly (commit `b007a51d`), so
+removing the hardcode from the `seed:demo` package script lands the target
+construction directly — the flag stays at the demo-only call site. (Confirmed by
+the SNC agent 2026-08-06; recorded in its `story-demo-auto-seed` too.)
 
 Neither blocks the demo auto-seed (functional with the exit-code gate). Fold in
 post-EPK. Originated from the SNC agent's review of `story-demo-auto-seed`
