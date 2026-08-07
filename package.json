@@ -40,7 +40,6 @@
     "ws": "^8.21.0",
     "fast-xml-builder": "^1.1.7",
     "srvx": "^0.11.13",
-    "@tanstack/start-server-core": "^1.167.30",
     "@opentelemetry/core": "^2.8.0",
     "postcss": "^8.5.23",
     "fast-xml-parser": "^5.7.0",
