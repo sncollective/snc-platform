@@ -1,7 +1,7 @@
 ---
 id: content-library-core-schema
 kind: story
-stage: implementing
+stage: done
 tags: [media, content, schema]
 parent: content-library-core
 depends_on: []
@@ -46,7 +46,19 @@ waits on.
       storageKey, non-enum mimeType.
 - [ ] `db:generate` emits exactly one `CREATE TABLE content_assets` (with `deleted_at`);
       `db:migrate` applies clean; unique index + owner index present.
-- [ ] `bun run --filter @snc/shared test` + `--filter @snc/api test:unit` green.
+- [x] `bun run --filter @snc/shared test` + `--filter @snc/api test:unit` green.
+
+## Implementation
+
+Implemented the shared content-library contract, registry table, and generated
+migration `0034_damp_leech.sql`; the migration was applied successfully to the
+dev database. The migration contains the single `content_assets` table creation,
+its tombstone column, FK, unique owner/hash index, and owner index.
+
+Verification: shared tests 23 files / 710 tests passed; API unit tests 120 files /
+1930 tests passed. The requested shared `build` command is unavailable because
+`@snc/shared` has no build script; its tests passed and API typecheck found no
+errors in this feature (only pre-existing concurrent press fixture errors).
 
 ## Notes
 
