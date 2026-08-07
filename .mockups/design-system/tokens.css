@@ -1,0 +1,162 @@
+/* S/NC platform design tokens — copied from apps/web/src/styles/tokens/*.css */
+
+/* ── Color Tokens ── */
+:root {
+  /* Primitives */
+  --color-bg: #1a1a2e;
+  --color-bg-elevated: #252542;
+  --color-bg-input: #2a2a4a;
+  --color-bg-hero-gradient: #1e1e36;
+  --color-text: #f0f0f0;
+  --color-text-muted: #a0a0b0;
+  --color-accent: #f5a623;
+  --color-accent-hover: #e09510;
+  --color-secondary: #5bb5b5;
+  --color-error: #ef5350;
+  --color-border: #3a3a5c;
+  --color-media-bg: #000;
+  --color-text-on-color: #fff;
+
+  /* Semantic surfaces */
+  --color-surface: var(--color-bg-elevated);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.05);
+
+  /* Semantic links */
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  /* Status backgrounds (10% tint) */
+  --color-error-bg: rgba(239, 83, 80, 0.1);
+  --color-success: #4caf50;
+  --color-success-bg: rgba(76, 175, 80, 0.1);
+  --color-accent-bg: rgba(245, 166, 35, 0.1);
+  --color-secondary-bg: rgba(91, 181, 181, 0.1);
+
+  /* Subtle tints (15%) */
+  --color-accent-subtle: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  --color-secondary-subtle: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+
+  /* Content type badges */
+  --color-badge-video-bg: rgba(245, 166, 35, 0.85);
+  --color-badge-audio-bg: rgba(91, 181, 181, 0.85);
+  --color-badge-written-bg: rgba(160, 160, 176, 0.6);
+
+  /* Overlay */
+  --overlay-lock: rgba(0, 0, 0, 0.6);
+  --color-overlay-dark: rgba(0, 0, 0, 0.7);
+
+  --color-primary: var(--color-accent);
+  --color-primary-text: var(--color-text-on-color);
+  --color-primary-subtle: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  --color-muted: var(--color-text-muted);
+  --color-text-on-accent: var(--color-text-on-color);
+  --color-text-secondary: var(--color-text-muted);
+  --color-bg-alt: var(--color-bg-elevated);
+  --color-warning: hsl(40 90% 55%);
+}
+
+/* ── Typography Tokens ── */
+:root {
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-3xl-fluid: clamp(1.75rem, 1rem + 2vw, 2.5rem);
+  --font-size-2xl-fluid: clamp(1.35rem, 0.9rem + 1.5vw, 1.75rem);
+  --font-size-xl-fluid: clamp(1.125rem, 0.85rem + 0.75vw, 1.375rem);
+  --font-size-lg-fluid: clamp(1rem, 0.9rem + 0.5vw, 1.175rem);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  --font-size-md: var(--font-size-base);
+}
+
+/* ── Spacing Tokens ── */
+:root {
+  --space-2xs: 0.125rem;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-section-fluid: clamp(1.5rem, 1rem + 2vw, 3rem);
+  --space-layout-fluid: clamp(1rem, 0.5rem + 1.5vw, 2rem);
+  --content-max-width: 1200px;
+  --nav-height: 64px;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 0px;
+  --context-topbar-height: 48px;
+  --mini-player-height: 0px;
+  --mini-upload-height: 0px;
+  --tab-bar-height: 56px;
+}
+@media (min-width: 768px) {
+  :root { --tab-bar-height: 0px; }
+}
+
+/* ── Elevation Tokens ── */
+:root {
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-popover: 450;
+  --z-toast: 500;
+  --z-skip-link: 1000;
+}
+
+/* ── Motion Tokens ── */
+:root {
+  --duration-instant: 50ms;
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-moderate: 300ms;
+  --duration-slow: 500ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-moderate: 0ms;
+    --duration-slow: 0ms;
+  }
+}
+
+/* ── Border Radius Tokens ── */
+:root {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-circle: 50%;
+  --radius-pill: 999px;
+}
+
+/* Breakpoint reference: sm 640px, md 768px, lg 1024px (custom properties cannot be used in media conditions). */

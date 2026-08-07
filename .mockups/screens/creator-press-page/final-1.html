@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animal Future Press — Final 1 — Clean editorial</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { color-scheme: dark; scroll-behavior: smooth; overflow-x: hidden; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-base)/var(--line-height-relaxed) var(--font-ui); }
+main, article, section, div, figure { min-width: 0; }
+img { display: block; width: 100%; max-width: 100%; height: auto; }
+figure { margin: 0; }
+a { color: var(--color-accent); text-decoration: none; }
+a:hover { color: var(--color-accent-hover); }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.mock-meta { padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid var(--color-border); background: var(--color-media-bg); font: 13px/1.4 var(--font-ui); }
+.mock-meta > * { min-width: 0; }
+.mock-meta strong { font-weight: var(--font-weight-semibold); }
+.mock-meta span, .mock-meta code { color: var(--color-text-muted); overflow-wrap: anywhere; }
+.mock-meta code { margin-left: auto; font-size: 11px; }
+.download-pin { position: fixed; right: var(--space-lg); bottom: var(--space-lg); z-index: var(--z-sticky); min-height: 48px; display: inline-flex; align-items: center; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-media-bg); box-shadow: var(--shadow-xl); font-weight: var(--font-weight-bold); }
+.download-pin:hover { background: var(--color-accent-hover); color: var(--color-media-bg); transform: translateY(-2px); }
+.hero { position: relative; width: 100%; aspect-ratio: 3 / 1; min-height: 250px; max-height: 500px; isolation: isolate; overflow: hidden; }
+.hero > img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, var(--color-overlay-dark), transparent 72%), linear-gradient(to top, var(--color-overlay-dark), transparent 58%); }
+.wordmark { position: absolute; left: 50%; bottom: var(--space-xl); width: min(calc(100% - 2rem), 980px); transform: translateX(-50%); display: flex; align-items: end; justify-content: space-between; gap: var(--space-xl); }
+h1 { margin: 0; min-width: 0; font: var(--font-weight-normal) clamp(3.5rem, 7.8vw, 6.7rem)/.82 var(--font-heading); letter-spacing: -.06em; white-space: nowrap; }
+.hero-facts { flex: none; padding-bottom: var(--space-sm); text-align: right; font-size: var(--font-size-sm); }
+.hero-facts span { display: block; }
+.hero-facts span:first-child { color: var(--color-secondary); font-weight: var(--font-weight-bold); }
+.editorial { width: min(calc(100% - 2rem), 980px); margin: 0 auto; padding: clamp(2.5rem, 6vw, 5rem) 0; }
+.section { margin: 0 0 clamp(3rem, 7vw, 5rem); scroll-margin-top: var(--space-xl); }
+.kicker { display: block; margin-bottom: var(--space-md); color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .16em; text-transform: uppercase; }
+.deck { max-width: 930px; margin: 0 0 var(--space-xl); font: var(--font-weight-bold) var(--font-size-xl-fluid)/1.45 var(--font-heading); }
+.about-photo { float: right; width: min(42%, 360px); margin: .25rem 0 var(--space-lg) var(--space-xl); }
+.about-photo img { aspect-ratio: 4 / 5; object-fit: cover; }
+figcaption { padding-top: var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.bio { color: var(--color-text-muted); }
+.bio p { margin: 0 0 var(--space-md); }
+.about::after { content: ""; display: block; clear: both; }
+.members { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(.8rem, 2vw, 1.25rem); }
+.member { height: 100%; display: flex; flex-direction: column; padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); }
+.member img { aspect-ratio: 1; object-fit: cover; }
+.member h3 { margin: var(--space-sm) 0 0; font: var(--font-weight-normal) var(--font-size-lg)/1.25 var(--font-heading); }
+.role { margin: .2rem 0 0; color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; }
+.member-bio { margin: .55rem 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm); line-height: var(--line-height-normal); }
+.highlights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: clamp(1rem, 3vw, 2rem); align-items: stretch; }
+.highlight { height: 100%; display: grid; grid-template-columns: 145px minmax(0, 1fr); gap: var(--space-md); align-items: start; padding: var(--space-lg); border-top: 4px solid var(--color-accent); background: var(--color-bg-elevated); }
+.highlight > div { height: 100%; display: flex; flex-direction: column; align-items: flex-start; }
+.highlight.alt { border-color: var(--color-secondary); }
+.highlight img { aspect-ratio: 1; object-fit: cover; }
+.eyebrow { color: var(--color-text-muted); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .12em; text-transform: uppercase; }
+.highlight h2 { margin: .35rem 0; font: var(--font-weight-normal) var(--font-size-2xl-fluid)/1 var(--font-heading); }
+.highlight p { margin: auto 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.metric { color: var(--color-accent); font: var(--font-size-xl-fluid)/1.2 var(--font-heading); }
+.fans-cluster { margin-top: var(--space-xl); }
+.fans-cluster .kicker { margin-bottom: var(--space-sm); }
+.fans { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.carousel-shell { position: relative; }
+.carousel-viewport { overflow: hidden; border-radius: var(--radius-sm); }
+.carousel-track { display: flex; gap: var(--space-md); will-change: transform; transition: transform var(--duration-slow) var(--ease-in-out); }
+.carousel-slide { flex: 0 0 calc((100% - var(--space-xl)) / 3.25); overflow: hidden; background: var(--color-bg-elevated); }
+.carousel-slide img { aspect-ratio: 4 / 3; height: 100%; object-fit: cover; transition: transform var(--duration-moderate) var(--ease-out); }
+.carousel-slide:hover img { transform: scale(1.025); }
+.carousel-arrow { position: absolute; top: 50%; z-index: var(--z-raised); width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-circle); background: color-mix(in srgb, var(--color-media-bg) 82%, transparent); color: var(--color-text); box-shadow: var(--shadow-md); cursor: pointer; transform: translateY(-50%); transition: background var(--duration-normal) var(--ease-out), opacity var(--duration-normal) var(--ease-out); }
+.carousel-arrow:hover:not(:disabled) { background: var(--color-accent); color: var(--color-media-bg); }
+.carousel-arrow:disabled { opacity: .35; cursor: default; }
+.carousel-arrow.prev { left: var(--space-sm); }
+.carousel-arrow.next { right: var(--space-sm); }
+.gallery-note { margin: var(--space-sm) 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.dates { border-top: 1px solid var(--color-border); }
+.date { display: grid; grid-template-columns: 120px minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: var(--space-md); align-items: center; padding: .85rem 0; border-bottom: 1px solid var(--color-border); }
+.date time { color: var(--color-secondary); font-weight: var(--font-weight-bold); }
+.date .city { color: var(--color-text-muted); }
+.date a, .more { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+.more { display: inline-block; margin-top: var(--space-sm); }
+.services { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.service { min-height: 44px; display: inline-flex; align-items: center; gap: .55rem; padding: .65rem .85rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text); font-size: var(--font-size-sm); }
+.service:hover { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.service svg { width: 19px; height: 19px; flex: none; fill: currentColor; }
+footer { width: min(calc(100% - 2rem), 980px); margin: 0 auto; padding: var(--space-xl) 0 clamp(6rem, 10vw, 8rem); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-lg); border-top: 1px solid var(--color-border); color: var(--color-text-muted); }
+footer .pdf { padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); }
+@media (max-width: 760px) {
+  .mock-meta { flex-direction: column; align-items: stretch; gap: 2px; text-align: left; }
+  .mock-meta > * { width: 100%; max-width: 100%; margin-inline: 0; white-space: normal; }
+  .hero { min-height: 280px; }
+  .wordmark { bottom: var(--space-lg); display: block; }
+  h1 { font-size: clamp(2.65rem, 13.5vw, 4.3rem); }
+  .hero-facts { margin-top: var(--space-md); padding: 0; text-align: left; }
+  .about-photo { float: none; width: 100%; margin: 0 0 var(--space-lg); }
+  .members { grid-template-columns: 1fr 1fr; }
+  .highlights { grid-template-columns: 1fr; }
+  .carousel-slide { flex-basis: calc((100% - var(--space-md)) / 2.2); }
+  .date { grid-template-columns: 90px minmax(0, 1fr) auto; }
+  .date .city { grid-column: 2; }
+  .download-pin { right: var(--space-md); bottom: var(--space-md); }
+}
+@media (max-width: 480px) {
+  .highlight { grid-template-columns: 92px minmax(0, 1fr); padding: var(--space-md); }
+  .carousel-slide { flex-basis: 84%; }
+  .carousel-arrow { width: 42px; height: 42px; }
+  .date { grid-template-columns: 1fr auto; gap: var(--space-xs) var(--space-md); }
+  .date strong, .date .city { grid-column: 1; }
+  .date a { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+}
+@page { size: letter portrait; margin: .35in .5in; }
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 7pt; }
+  .mock-meta, .download-pin { display: none; }
+  .hero { width: 7.5in; height: 2.5in; min-height: 0; }
+  .wordmark { width: 7.5in; bottom: .16in; }
+  h1 { font-size: 54pt; }
+  .editorial { width: 7.5in; padding: .08in 0; }
+  .section { margin-bottom: .1in; break-inside: avoid; }
+  .kicker { margin-bottom: .025in; }
+  .deck { margin-bottom: .04in; font-size: 8.7pt; line-height: 1.18; }
+  .bio p { margin: 0 0 .03in; }
+  .about-photo { width: 1.35in; margin: 0 0 .06in .1in; }
+  .about-photo img { height: 1.15in; }
+  .members { gap: .07in; }
+  .member img { height: .75in; }
+  .highlights { gap: .08in; }
+  .highlight { grid-template-columns: .72in 1fr; gap: .06in; padding: .05in; }
+  .highlight h2 { font-size: 12pt; }
+  .carousel-viewport { overflow: visible; }
+  .carousel-track { gap: .03in; transform: none !important; }
+  .carousel-slide { flex: 1 1 0; }
+  .carousel-slide img { aspect-ratio: 1; height: .72in; }
+  .carousel-arrow { display: none; }
+  .fans, .services { gap: .035in; }
+  .pill { padding: .005in .05in; }
+  .date { padding: .018in 0; line-height: 1.1; }
+  .service { min-height: 0; padding: .02in .05in; }
+  .service svg { width: 10px; height: 10px; }
+  footer { width: 7.5in; padding: .04in 0 0; font-size: 7pt; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Final 1 — Clean editorial</strong><span>Template A: a quiet, highly legible press page with concise member biographies and a polished photo carousel.</span><code>banner 1500×500 · photos and art 800–1000px · print: US letter</code></header>
+<a class="download-pin" href="#pdf">One-pager PDF ↓</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="spotify" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6s.12-1.02.6-1.14c4.38-1.32 9.78-.66 13.5 1.62.36.18.54.78.24 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3z"/></symbol>
+<symbol id="apple" viewBox="0 0 24 24"><path d="M23.99 6.12C23.9 2.13 21.86.01 18.01 0H5.99C2.15.1.08 2.14.01 5.8L0 18.11c.07 3.29 1.45 5.11 3.76 5.6.96.34 1.96.29 2.96.29h11.03c4.2 0 6.25-1.72 6.25-6.48l-.01-11.4zm-6.42 9.71c0 1.22-.54 2.05-1.63 2.34-1.62.44-2.83-.32-3.01-1.36-.17-.98.4-1.77 1.04-2.02.75-.3 1.9-.3 2.16-.57.39-.39.52-.28.52-1.91V8.07c0-.35-.13-.47-.33-.42L9.81 8.96c-.28.08-.38.2-.39.49v7.81c0 1.25-.53 2.11-1.65 2.46-1.68.5-2.8-.32-2.95-1.25-.14-.81.23-1.69 1.15-2.08.67-.28 1.47-.3 1.97-.49.57-.22.6-.5.6-1.2V6.18c0-.44.2-.65.59-.75l7.62-1.54c.51-.1.82.15.82.7v11.24z"/></symbol>
+<symbol id="amazon" viewBox="0 0 24 24"><path d="M13.3 15.2c-1.2.9-2.9 1.4-4.4 1.4-2.2 0-4.1-.8-5.6-2.1-.1-.1 0-.3.2-.2 1.7 1 3.8 1.6 6 1.6 1.4 0 2.9-.3 4.3-.9.2-.1.4.1.2.2h-.7zm.5-.8c-.2-.2-1.1-.1-1.5-.1-.1 0-.1-.1 0-.2.8-.6 2.2-.4 2.3-.2.2.2 0 1.5-.8 2.2-.1.1-.2 0-.2-.1.2-.4.4-1.4.2-1.6zM10.7 11.8c-.9.7-2.2 1.1-3.3 1.1-1.8 0-3.1-1.1-3.1-3 0-1.5.8-2.5 1.9-3 1-.4 2.4-.5 3.5-.6V6c0-.5 0-1.1-.3-1.5-.3-.4-.8-.5-1.2-.5-.8 0-1.6.4-1.7 1.3 0 .2-.2.4-.4.4l-1.9-.2c-.2 0-.4-.2-.3-.5.4-2.2 2.4-2.9 4.2-2.9 1 0 2.2.3 3 .9 1 .9.9 2.1.9 3.4v3.1c0 .9.4 1.3.7 1.8.1.2.1.4 0 .5l-1.5 1.3c-.2.1-.4.1-.6 0-.4-.4-.7-.8-.9-1.3zm-1-3.5c-1.9 0-3 .4-3 1.7 0 .7.4 1.2 1 1.2.6 0 1.2-.4 1.6-1 .5-.8.4-1.5.4-2.4v.5z"/></symbol>
+<symbol id="youtube" viewBox="0 0 24 24"><path d="M23.5 6.19a3.02 3.02 0 00-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 00.5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 002.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 002.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></symbol>
+<symbol id="bandcamp" viewBox="0 0 24 24"><path d="M0 18.75l7.44-13.5H24l-7.44 13.5H0z"/></symbol>
+</defs></svg>
+<main>
+<section class="hero" aria-labelledby="band-name"><img src="https://picsum.photos/seed/af-banner/1500/500" alt="Animal Future press banner placeholder"><div class="wordmark"><h1 id="band-name">Animal Future</h1><div class="hero-facts"><span>Fort Collins, CO</span><span>Socially conscious punk / alt-rock</span></div></div></section>
+<article class="editorial">
+<section class="section about" aria-labelledby="about-heading"><span class="kicker" id="about-heading">About</span><p class="deck">Animal Future makes socially conscious punk-leaning rock that hits where it hurts.</p><figure class="about-photo"><img src="https://picsum.photos/seed/af-band/1000/1000" alt="Animal Future band press photo placeholder"><figcaption>Animal Future · Fort Collins, Colorado</figcaption></figure><div class="bio"><p>Raw, funny, and unpredictable, the Fort Collins band confronts mental health, addiction, and life under a corporate-run world, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams.</p><p>Fueled by the fury of the forgotten, Animal Future moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding unpredictability.</p><p>Known for sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion — for people and the planet.</p></div><div class="fans-cluster" aria-labelledby="fans-heading"><span class="kicker" id="fans-heading">For fans of</span><div class="fans"><span class="pill">IDLES</span><span class="pill">Radiohead</span><span class="pill">Modest Mouse</span><span class="pill">Pixies</span><span class="pill">Yeah Yeah Yeahs</span><span class="pill">Paramore</span></div></div></section>
+<section class="section" aria-labelledby="members-heading"><span class="kicker" id="members-heading">Members</span><div class="members">
+<article class="member"><img src="https://picsum.photos/seed/af-leanna/800/800" alt="LeAnna Warren portrait placeholder"><h3>LeAnna Warren</h3><p class="role">Vocals, electric guitar</p><p class="member-bio">LeAnna channels sharp-eyed storytelling through a voice that can turn from a hush to a full-throated roar.</p></article>
+<article class="member"><img src="https://picsum.photos/seed/af-charles/800/800" alt="Charles Tyrie portrait placeholder"><h3>Charles Tyrie</h3><p class="role">Drums</p><p class="member-bio">Charles anchors the band's sudden turns with precise, hard-hitting rhythms and an instinct for controlled chaos.</p></article>
+<article class="member"><img src="https://picsum.photos/seed/af-jarod/800/800" alt="Jarod Ford portrait placeholder"><h3>Jarod Ford</h3><p class="role">Bass</p><p class="member-bio">Jarod builds a muscular low end that keeps the band's most restless arrangements grounded and moving.</p></article>
+<article class="member"><img src="https://picsum.photos/seed/af-connor/800/800" alt="Connor Mandli portrait placeholder"><h3>Connor Mandli</h3><p class="role">Electric guitar</p><p class="member-bio">Connor threads jagged hooks, atmospheric noise, and melodic counterpoint through the band's punk pulse.</p></article>
+</div></section>
+<section class="section" aria-labelledby="highlights-heading"><span class="kicker" id="highlights-heading">Highlights</span><div class="highlights">
+<article class="highlight"><figure><img src="https://picsum.photos/seed/af-illusionist/1000/1000" alt="The Illusionist cover art placeholder"></figure><div><span class="eyebrow">New release · SNCR-001</span><h2>The Illusionist</h2><p>First single from debut LP <em>Survived By</em>, out Aug 6, 2026.</p></div></article>
+<article class="highlight alt"><figure><img src="https://picsum.photos/seed/af-gettoyou/1000/1000" alt="Standout single artwork placeholder"></figure><div><span class="eyebrow">Standout track</span><h2>Get to You</h2><div class="metric">~14.5k streams</div><p>and climbing</p></div></article>
+</div></section>
+<section class="section" aria-labelledby="live-heading"><span class="kicker" id="live-heading">Live dates</span><div class="dates"><div class="date"><time datetime="2026-09-12">Sep 12, 2026</time><strong>The Mishawaka</strong><span class="city">Bellvue, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div><div class="date"><time datetime="2026-10-03">Oct 3, 2026</time><strong>Aggie Theatre</strong><span class="city">Fort Collins, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div><div class="date"><time datetime="2026-10-24">Oct 24, 2026</time><strong>Hi-Dive</strong><span class="city">Denver, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div><div class="date"><time datetime="2026-11-14">Nov 14, 2026</time><strong>The Black Sheep</strong><span class="city">Colorado Springs, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div></div><a class="more" href="https://www.bandsintown.com/" target="_blank" rel="noopener">More on Bandsintown ↗</a></section>
+<section class="section" aria-labelledby="listen-heading"><span class="kicker" id="listen-heading">Listen</span><div class="services"><a class="service" aria-label="Listen on Spotify" href="https://open.spotify.com/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#spotify"/></svg>Spotify</a><a class="service" aria-label="Listen on Apple Music" href="https://music.apple.com/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#apple"/></svg>Apple Music</a><a class="service" aria-label="Listen on Amazon Music" href="https://music.amazon.com/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#amazon"/></svg>Amazon Music</a><a class="service" aria-label="Listen on YouTube" href="https://www.youtube.com/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#youtube"/></svg>YouTube</a><a class="service" aria-label="Listen on Bandcamp" href="https://animalfuture.bandcamp.com/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#bandcamp"/></svg>Bandcamp</a></div></section>
+<section class="section" aria-labelledby="gallery-heading"><span class="kicker" id="gallery-heading">Press photos</span><div class="carousel-shell" data-carousel><div class="carousel-viewport" tabindex="0" aria-label="Animal Future press photo carousel"><div class="carousel-track"><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-1/800/800" alt="Animal Future press photo placeholder 1"></figure><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-2/800/800" alt="Animal Future press photo placeholder 2"></figure><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-3/800/800" alt="Animal Future press photo placeholder 3"></figure><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-4/800/800" alt="Animal Future press photo placeholder 4"></figure><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-5/800/800" alt="Animal Future press photo placeholder 5"></figure><figure class="carousel-slide"><img src="https://picsum.photos/seed/af-gallery-6/800/800" alt="Animal Future press photo placeholder 6"></figure></div></div><button class="carousel-arrow prev" type="button" aria-label="Previous press photo">←</button><button class="carousel-arrow next" type="button" aria-label="Next press photo">→</button></div><p class="gallery-note">High-resolution selects available from the press contact.</p></section>
+</article>
+</main>
+<footer><span>Press · <a href="mailto:press@s-nc.org">press@s-nc.org</a></span><a class="pdf" id="pdf" href="#pdf">Download one-pager (PDF) ↓</a></footer>
+<script>
+document.querySelectorAll('[data-carousel]').forEach((carousel) => {
+  const viewport = carousel.querySelector('.carousel-viewport');
+  const track = carousel.querySelector('.carousel-track');
+  const slides = [...carousel.querySelectorAll('.carousel-slide')];
+  const prev = carousel.querySelector('.prev');
+  const next = carousel.querySelector('.next');
+  let index = 0;
+
+  const metrics = () => {
+    const gap = parseFloat(getComputedStyle(track).gap) || 0;
+    const stride = slides[0].getBoundingClientRect().width + gap;
+    const maxOffset = Math.max(0, track.scrollWidth - viewport.clientWidth);
+    return { stride, maxOffset, maxIndex: Math.ceil(maxOffset / stride) };
+  };
+  const render = () => {
+    const { stride, maxOffset, maxIndex } = metrics();
+    index = Math.max(0, Math.min(index, maxIndex));
+    track.style.transform = `translate3d(${-Math.min(index * stride, maxOffset)}px, 0, 0)`;
+    prev.disabled = index === 0;
+    next.disabled = index === maxIndex;
+  };
+  prev.addEventListener('click', () => { index -= 1; render(); });
+  next.addEventListener('click', () => { index += 1; render(); });
+  viewport.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') { event.preventDefault(); prev.click(); }
+    if (event.key === 'ArrowRight') { event.preventDefault(); next.click(); }
+  });
+  window.addEventListener('resize', render);
+  render();
+});
+</script>
+</body>
+</html>
