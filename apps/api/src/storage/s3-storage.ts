@@ -31,8 +31,22 @@ export type S3StorageOptions = {
 
 // ── Private Helpers ──
 
-const isNoSuchKey = (e: unknown): boolean =>
-  e instanceof Error && "name" in e && e.name === "NoSuchKey";
+/**
+ * Recognize an S3 "object not found" condition across the SDK error shapes:
+ * - `GetObject` on a missing key  → error.name === "NoSuchKey"
+ * - `HeadObject` on a missing key → error.name === "NotFound" (HTTP 404)
+ * Fall back to the HTTP status for any S3-compatible (e.g. Garage) that models
+ * the 404 differently. Required so `head()` can distinguish absent keys
+ * (→ caller may upload) from genuine backend errors, per the StorageProvider
+ * contract (`storage-contract.ts`: "head returns NotFoundError for non-existent key").
+ */
+const isNotFound = (e: unknown): boolean => {
+  if (!(e instanceof Error)) return false;
+  const name = "name" in e ? (e as { name: unknown }).name : "";
+  if (name === "NoSuchKey" || name === "NotFound") return true;
+  const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+  return status === 404;
+};
 
 // ── Public API ──
 
@@ -89,7 +103,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
       const webStream = response.Body.transformToWebStream() as ReadableStream<Uint8Array>;
       return ok({ stream: webStream, size: response.ContentLength ?? 0 });
     } catch (e) {
-      if (isNoSuchKey(e)) {
+      if (isNotFound(e)) {
         return err(new NotFoundError("File not found"));
       }
       return err(wrapS3Error(e, "S3_ERROR"));
@@ -128,7 +142,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
         range: { start, end },
       });
     } catch (e) {
-      if (isNoSuchKey(e)) {
+      if (isNotFound(e)) {
         return err(new NotFoundError("File not found"));
       }
       return err(wrapS3Error(e, "S3_ERROR"));
@@ -173,7 +187,7 @@ export const createS3Storage = (options: S3StorageOptions): StorageProvider => {
         contentType: response.ContentType ?? "application/octet-stream",
       });
     } catch (e) {
-      if (isNoSuchKey(e)) {
+      if (isNotFound(e)) {
         return err(new NotFoundError("File not found"));
       }
       return err(wrapS3Error(e, "S3_ERROR"));

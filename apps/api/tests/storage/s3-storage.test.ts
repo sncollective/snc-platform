@@ -283,6 +283,36 @@ describe("createS3Storage", () => {
       }
     });
 
+    it("returns NotFoundError for HeadObject NotFound (the AWS SDK 404 shape used by Garage/S3)", async () => {
+      // HeadObject on a missing key yields error.name === "NotFound" (HTTP 404),
+      // NOT "NoSuchKey" (which is the GetObject shape). Garage exhibits this.
+      const notFound = new Error("Not Found");
+      (notFound as Error & { name: string }).name = "NotFound";
+      mockSend.mockRejectedValueOnce(notFound);
+
+      const result = await storage.head("library/ab/missing.png");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(NotFoundError);
+      }
+    });
+
+    it("returns NotFoundError for an HTTP 404 status (S3-compatible fallback)", async () => {
+      const http404 = new Error("Unknown");
+      (http404 as Error & { $metadata: { httpStatusCode: number } }).$metadata = {
+        httpStatusCode: 404,
+      };
+      mockSend.mockRejectedValueOnce(http404);
+
+      const result = await storage.head("library/ab/missing.png");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(NotFoundError);
+      }
+    });
+
     it("returns S3_ERROR for generic errors", async () => {
       mockSend.mockRejectedValueOnce(new Error("Connection timeout"));
 
