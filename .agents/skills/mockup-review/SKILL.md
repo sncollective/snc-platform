@@ -1,0 +1,132 @@
+---
+name: mockup-review
+description: >
+  Serve `.mockups/` over the LAN for preview, and run vision-capable validation +
+  adversarial design review against rendered mockups. The orchestrator model is
+  NOT multimodal — it cannot see rendered HTML/PNG — so every mockup MUST be
+  screenshot + visually checked by a vision-capable subagent before it's called
+  done. Use whenever mockups are generated or iterated (the ux-ui-design
+  screens/flows skills, or any `.mockups/**` work) and before reporting a mockup
+  complete. Triggers on "serve the mockups", "validate the mockups", "review the
+  mockups", after any mockup generation/iteration pass, and before declaring a
+  mockup verified/done.
+---
+
+# Mockup review — serve · validate · adversarially review
+
+**Permanent constraint:** the orchestrator model is **not multimodal** — it
+cannot see rendered HTML/PNG. Any visual assessment of mockups (`.mockups/**`)
+MUST go through a **vision-capable subagent** (`openai-codex/gpt-5.6-sol`, which
+is multimodal). Never report a mockup "verified" or "done" without a vision
+subagent having screenshot it + looked. Pair every visual check with a
+code-level `grep` on exact strings (emails, domains, URLs) — the visual pass
+reads rendered text but misses subtle character differences (e.g. `snc.org` vs
+`s-nc.org`, which shipped wrong because only the code-check caught it).
+
+This skill encodes three capabilities: **(1) serve** mockups over the LAN for
+the operator to view, **(2) validate** them for render correctness, and
+**(3) adversarially review** them for design quality.
+
+---
+
+## 1. Serve the mockups over the LAN (preview)
+
+```bash
+cd <repo root>
+nohup python3 -m http.server <PORT> \
+  --directory <ABSOLUTE path to .mockups> --bind 0.0.0.0 \
+  > /tmp/mockup-server.log 2>&1 &
+SVPID=$!
+sleep 1.5
+# MANDATORY: confirm MY pid owns the port (not just that the port is listening)
+ps -o pid,args -p "$SVPID" && (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep ":<PORT>"
+```
+
+Give the operator: `http://<LAN-IP>:<PORT>/screens/<feature>/index.html`.
+
+**Hard-won gotchas — all of these have bitten us:**
+- **Absolute `--directory` path.** Relative can resolve to the wrong dir.
+- **Verify the port is owned by YOUR pid.** Checking "is the port listening?" is
+  a false positive if another process already holds it. On this machine **port
+  8080 is taken by the token-commune project's mockup server — use 8090** (or
+  pick a free port and confirm the pid is yours).
+- Serve the `.mockups/` **root** so relative links like
+  `../../design-system/tokens.css` resolve.
+- Find the LAN IP with `hostname -I` or `ip -4 addr` (the `ens`/ethernet
+  address; ignore docker bridges; `tailscale0` is the tailnet address).
+- It's a detached server — tell the operator the pid so they can `kill <pid>`
+  when done. Restartable any time with the same command.
+
+---
+
+## 2. Mockup validator — render correctness (run after EVERY generation/iteration)
+
+A vision-capable subagent that **screenshots each mockup, reads the PNGs, and
+verifies a checklist.** Dispatch on `openai-codex/gpt-5.6-sol`.
+
+Screenshot recipe — **Playwright browsers are NOT installed**; use the system
+firefox headless, with a **fresh profile dir per shot** (firefox locks profiles):
+```bash
+for f in <list of mockup html files>; do
+  P=/tmp/ffp-$RANDOM; rm -rf "$P"; mkdir -p "$P"
+  timeout 45 firefox -headless -no-remote -profile "$P" \
+    --screenshot "/tmp/shot-$(basename "$f" .html).png" \
+    "file://<absolute path to $f>" >/dev/null 2>&1
+done
+```
+Then the subagent `read`s each PNG and confirms.
+
+**Checklist (adapt per mockup):**
+- Page width = viewport width — **no horizontal overflow, no images off the left/right edges.**
+- Content centered; images constrained to their containers (`max-width:100%`).
+- **No duplicated content** (e.g. a track listed twice).
+- Interactive bits actually work (bio toggles, tabs, carousels).
+- **Responsive** — screenshot a narrow viewport (e.g. 390px) too.
+- Headers/wordmarks align to the content column (not stretched viewport-wide).
+- No literal typos in rendered text.
+
+**Hard rule:** the validator must NOT report "verified/done" unless it has
+visually confirmed every applicable check. If its model can't read images, it
+says so explicitly + falls back to conservative CSS safeguards
+(`img{max-width:100%;height:auto}`, `minmax(0,1fr)` grids, `min-width:0` on
+children, `html,body{overflow-x:hidden}`) and flags "no visual verify." (The
+centering/overflow bug shipped because a subagent claimed "verified rendering"
+without actually checking — this skill exists to prevent that.)
+
+---
+
+## 3. Mockup adversarial reviewer — design critique (run on locked/candidate mockups)
+
+A vision-capable subagent that **red-teams the DESIGN** — distinct from the
+validator. The validator asks "does it render correctly?"; the reviewer asks
+"**is this good design, and what would a designer flag?**" Dispatch on
+`openai-codex/gpt-5.6-sol`, **xhigh** thinking for design critique.
+
+**Lens:**
+- **Hierarchy** — is the hero actually hero? is the most important thing prominent?
+- **Spacing/rhythm/alignment** — grid consistency, optical alignment, white space, no awkward gaps/dead zones.
+- **Typography** — scale, contrast, line-length, pairing.
+- **Color/contrast** — token discipline, WCAG contrast, accent not overused.
+- **Composition/balance** — asymmetry intentional, nothing floating/stranded.
+- **Responsive behavior** across widths.
+- **Design-system consistency** with `.mockups/design-system/tokens.css`.
+- **Accessibility** — focus, alt text, semantic structure, motion-reduce.
+- **"Would a designer ship this? What's the weakest element?"**
+
+**Output:** specific, prioritized findings — **block / should-fix / nit** — each
+with `file:line` and a concrete direction, not vague "looks nice." Adversarial:
+surface the weaknesses; don't rubber-stamp.
+
+---
+
+## 4. Orchestrator discipline
+
+- **Never claim visual verification without a vision subagent** having looked.
+  "The generator said it verified" is insufficient — mandate the validator on
+  every pass.
+- **Pair every visual check with a code `grep`** on exact strings (emails,
+  domains, URLs) — the visual pass misses subtle character differences; the
+  code-check catches what vision slips.
+- These two roles (validator = correctness, adversarial reviewer = design
+  quality) close the gap the non-multimodal orchestrator cannot see. Use both
+  before any mockup is reported done to the operator.
