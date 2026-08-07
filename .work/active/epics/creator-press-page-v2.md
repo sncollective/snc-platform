@@ -1,8 +1,8 @@
 ---
 id: creator-press-page-v2
 kind: epic
-stage: drafting
-tags: [creators, content, ui, refactor]
+stage: implementing
+tags: [creators, content, ui]
 parent: null
 depends_on: []
 release_binding: null
@@ -41,20 +41,57 @@ the alt-text scan finding). Each image slot accepts a size **range**;
 non-conforming uploads get a **crop/section picker** (per-slot aspect). Per-image
 **credits** render as burn-in overlays (web + PDF).
 
-## Feature arcs (epic-design decomposes these into features/stories)
+## Decomposition
 
-1. **Content model v2** — shared schema (`members[]`, image objects
-   `{key,alt,credit}`, `gallery[]`, merged `highlights[]`, `template` selector,
-   for-fans-of placement) + migration + backward-compat with live v1 content.
-2. **Image management & picker** — upload accepting a size range + the
-   crop/section picker (per-slot aspect) + per-image credits + the photo-editor
-   fix (remove/replace/preview-local-state/orphan-GC).
-3. **Press-page templates** — Template A + B components, the selector, streaming
-   icons, carousel gallery, the locked layouts.
-4. **Editor v2** — manage members/highlights/gallery/template/credits + the
-   image picker + photo-fix.
-5. **PDF v2** — render the chosen template to letter-size (the one-pager = the
-   template printed).
+Split by capability: the content model is the foundation (every feature
+consumes its types); image-management is the pipeline the editor uses; templates
+is the rendering layer (the locked design); the editor consumes content-model +
+image-management; the PDF reuses the template render. The photo-editor bug fix
+rides in image-management (can be lifted as a quick standalone if the live
+editor needs it before the full v2).
+
+### Child features
+
+- `creator-press-page-v2-content-model` — shared schema + migration (`members[]`,
+  image objects `{key,alt,credit}`, `gallery[]`, merged `highlights[]`,
+  `template` selector) — depends on: `[]`
+- `creator-press-page-v2-image-management` — size-range upload + crop/section
+  picker + credits + photo-editor fix — depends on: `[content-model]`
+- `creator-press-page-v2-templates` — Template A + B + selector + streaming
+  icons + carousel gallery, per the locked design — depends on: `[content-model]`
+- `creator-press-page-v2-editor` — manage members/highlights/gallery/template/
+  credits via the image pipeline — depends on: `[content-model, image-management]`
+- `creator-press-page-v2-pdf` — render the chosen template to letter-size —
+  depends on: `[content-model, templates]`
+
+### Simplification arcs
+
+- content-model — retires bare-key `photos[]` (+ alt-text scan finding); merges
+  standout + release into unified `highlights[]`.
+- image-management — fixes the live photo-editor bug; replaces the indexed-stream
+  endpoint with the object pipeline + crop picker.
+- templates — replaces the v1 single layout with the selectable template system.
+- pdf — one template render serves web + PDF (replaces the duplicated @react-pdf doc).
+
+### Decomposition risks
+
+- Templates + editor are the larger features (~10–15 units); feature-design may
+  split them further. Templates depends on content-model only, so it can be
+  designed in parallel with image-management.
+- The editor UI is NOT mocked (deferred to its feature-design pass) — it's a
+  substantial authoring-form redesign; the press-page mockups cover the public
+  surface.
+
+## Mockups
+
+Public press page — **LOCKED** (signed off 2026-08-07):
+- `.mockups/screens/creator-press-page/final-1.html` (Template A — clean editorial)
+- `.mockups/screens/creator-press-page/final-3.html` (Template B — two-column zone)
+- `.mockups/screens/creator-press-page/final-index.html` (comparison)
+- Design system: `.mockups/design-system/tokens.css`
+
+Editor UI — deferred to the editor feature's design pass (feature-design
+Phase 4.6 fallback). The public surface is aligned above.
 
 ## Out of scope (separate epic)
 

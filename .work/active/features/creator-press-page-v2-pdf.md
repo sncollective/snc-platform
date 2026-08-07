@@ -1,0 +1,41 @@
+---
+id: creator-press-page-v2-pdf
+kind: feature
+stage: drafting
+tags: [creators, content, ui]
+parent: creator-press-page-v2
+depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-templates]
+release_binding: null
+gate_origin: null
+created: 2026-08-07
+updated: 2026-08-07
+---
+
+# Press page v2 — PDF (render template to letter)
+
+## Brief
+The one-pager PDF becomes the **chosen template rendered to letter-size** (one
+content source, not a separate @react-pdf document). The locked templates already
+carry `@page letter` print CSS; this feature implements the save-to-PDF path so
+the "Download one-pager (PDF)" action produces a faithful letter-size render of
+the selected template (A or B), with the burn-in photo credits.
+
+## Epic context
+- Parent epic: `creator-press-page-v2`
+- Position: consumer of the content model + templates; reuses the template
+  rendering for the PDF output.
+
+## Simplification opportunity
+- Replaces the v1's standalone `press-pdf.ts` (@react-pdf one-pager) — which
+  duplicated the layout in @react-pdf's dialect — with a single template render
+  that serves both the web page and the PDF. (Feature-design decides the
+  mechanism: headless print of the template vs. continuing @react-pdf with the
+  template's layout; the goal is one source of truth.)
+
+## Foundation references
+- v1 PDF: `apps/api/src/services/press-pdf.ts`, `apps/api/src/routes/press.routes.ts` (.pdf endpoints)
+- `.mockups/design-system/tokens.css`; the `@page letter` CSS in `final-{1,3}.html`
+
+## Mockups
+- The letter-print layout is the locked template at print size (the `@page letter`
+  + `@media print` rules in `final-1.html` / `final-3.html`).
