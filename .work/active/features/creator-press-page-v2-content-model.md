@@ -103,11 +103,18 @@ v2-ready the moment the templates feature flips the render over.
   line in the locked templates, e.g. "Socially conscious punk / alt-rock"),
   distinct from `shortBio` (the About deck). Banner image is a **press-specific**
   3:1 `PressImage`, distinct from the creator profile banner.
-- **Backfill is a hand-written jsonb UPDATE migration** (drizzle-kit generates
-  DDL only; a data backfill is legitimately hand-written SQL in the migrations
-  folder). This is the one place hand-written migration SQL appears, and it is
-  data, not schema — consistent with the `drizzle-migrations.md` rule (which is
-  about DDL).
+- **Lazy migration via read-time normalization, not a stored backfill.** There is
+  no DDL (content is JSONB) and the live data is sparse (AF page, photos not yet
+  delivered), so a stored jsonb backfill would add risk for little gain — and
+  would race with `content-library-core`'s `db:generate` on the shared migration
+  journal during the parallel W1 build. Instead the press service normalizes a
+  parsed v1 row to the v2 shape **at read time** (`gallery` ← `photos`, the lead
+  `highlights[]` ← `standoutTrack` + `releases`, streaming `service` inferred):
+  v1 rows map forward lazily, the v2 editor's explicit writes take precedence, and
+  no data migration or prod manual step is needed. This is a pure read transform;
+  it composes with the contract's streaming-link union preprocessor. (A one-shot
+  stored normalization can be folded in later at release time if read cost ever
+  matters — it doesn't at this scale.)
 
 ## Implementation Units
 
@@ -190,59 +197,60 @@ to mirror (all optional, no defaults — the patch shape).
 
 ---
 
-### Unit 2: Data backfill migration — `apps/api/drizzle/migrations/0034_<auto>.sql`
+### Unit 2: Read-time v1→v2 normalization — `apps/api/src/services/press.ts`
 
-**Story**: `creator-press-page-v2-content-model-backfill` (depends on Unit 1's
-contract; runs as one committed migration alongside any DDL)
+**Story**: `creator-press-page-v2-content-model-normalization` (depends on Unit 1's
+contract)
 
-A hand-written jsonb UPDATE that populates v2 fields from v1 for every existing
-`creator_press_configs` row, **idempotent** (re-runnable; only fills absent v2
-fields):
+A **pure read transform** applied after `readPressConfig` parses a row through
+the evolved schema. It fills v2 surface fields from v1 legacy fields **only when
+the v2 field is empty/unset** (so explicit v2 editor writes take precedence):
 
-```sql
--- gallery ← photos (bare keys become PressImages with empty alt/credit)
-UPDATE creator_press_configs
-SET content = jsonb_set(
-      content, '{gallery}',
-      COALESCE((
-        SELECT jsonb_agg(jsonb_build_object('key', ph, 'alt', '', 'credit', null))
-        FROM jsonb_array_elements_text(content->'photos') AS ph
-      ), '[]'::jsonb), true)
-WHERE content ? 'photos' AND NOT (content ? 'gallery');
-
--- highlights ← standoutTrack (first) + releases (cover art)
--- (standout: eyebrow 'Standout track', title, metric=streamsLabel, url)
--- (release : eyebrow 'New release · '||catalogNumber, title, coverArt from artKey)
--- ...jsonb_build_object + jsonb_agg, guarded by NOT content ? 'highlights'
-
--- streamingLinks service inferred by host (best-effort; fallback 'website')
--- ...jsonb mapping per known host
+```ts
+/** Lazily normalize a parsed v1-shaped PressContent toward the v2 surface shape. */
+export const normalizePressContent = (c: PressContent): PressContent => {
+  // gallery ← photos (bare keys → PressImage {key, alt:'', credit:null})
+  const gallery = c.gallery.length ? c.gallery
+    : c.photos.map((key) => ({ key, alt: "", credit: null }));
+  // highlights ← standoutTrack (lead) then releases (coverArt from artKey)
+  const highlights = c.highlights.length ? c.highlights : [
+    ...(c.standoutTrack ? [{ eyebrow: "Standout track", title: c.standoutTrack.title,
+        metric: c.standoutTrack.streamsLabel, url: c.standoutTrack.url }] : []),
+    ...c.releases.map((r) => ({ eyebrow: `New release${r.catalogNumber ? ` · ${r.catalogNumber}` : ""}`,
+        title: r.title, coverArt: r.artKey ? { key: r.artKey, alt: "", credit: null } : null })),
+  ];
+  return { ...c, gallery, highlights };
+};
 ```
 
+Wire it into `readPressConfig` so every read (public + manage) returns the
+normalized shape. (The streaming-link `service` inference already happens in the
+contract's parse-time union preprocessor — no duplicate work here.)
+
 **Implementation Notes**:
-- The exact jsonb expressions are authored against the dev DB and verified on a
-  real v1 row (the AF press config) before commit. `image-management` will later
-  let the editor fill empty alts/credits; the backfill only guarantees shape.
-- No `banner`/`aboutPhoto`/`members`/`tagline` backfill — v1 had no analog; they
-  default to null/empty.
-- Idempotence: every clause guards `NOT content ? '<field>'` so re-running
-  `db:migrate` (which records applied migrations) and re-running the SQL manually
-  are both safe.
+- `normalizePressContent` is a pure function — unit-testable with no DB.
+- `banner`/`aboutPhoto`/`members`/`tagline` have no v1 analog → stay at their
+  defaults (null/empty); not derived.
+- `image-management` (later) lets the editor fill empty alts/credits; until then
+  backfilled gallery/coverArt carry empty alt strings (the scan finding is about
+  the v1 *bare-key* `photos[]`, which this replaces structurally).
 
 **Acceptance Criteria**:
-- [ ] After the backfill, the live AF press config parses to a `PressContent`
-  with `gallery` length == v1 `photos` length, a leading "Standout track"
-  highlight, and inferred streaming services.
-- [ ] Re-running the backfill SQL is a no-op (idempotence guard holds).
-- [ ] A creator with no press row is unaffected (no row to update).
+- [ ] A v1 row (bare `photos`, `standoutTrack`, `releases`) read through
+  `getPressConfig` yields a `PressContent` with `gallery.length == photos.length`,
+  a leading "Standout track" highlight, then release highlights, and inferred
+  streaming services.
+- [ ] A row where the editor has already set `gallery`/`highlights` is returned
+  **as-written** (precedence: explicit v2 writes win).
+- [ ] `normalizePressContent` is idempotent (normalize(normalize(x)) == normalize(x)).
 
 ---
 
 ## Implementation Order
 1. `creator-press-page-v2-content-model-contract` — evolve `press.ts`
    (Unit 1). Unblocks `image-management`, `templates`, `editor`, `pdf`.
-2. `creator-press-page-v2-content-model-backfill` — the jsonb migration (Unit 2),
-   depending on the contract (it backfills *to* the new shape).
+2. `creator-press-page-v2-content-model-normalization` — the read-time v1→v2
+   transform in `services/press.ts` (Unit 2), depending on the contract.
 
 ## Simplification
 - `PressImage` retires the bare-key `photos[]` and the alt-text scan finding.
@@ -257,22 +265,21 @@ WHERE content ? 'photos' AND NOT (content ? 'gallery');
   assertion — a v1 JSON fixture parses to a valid v2 `PressContent` with inferred
   services and defaulted new fields; `DEFAULT_PRESS_CONTENT` round-trips. Also:
   `inferService` host mapping (spotify/apple/bandcamp/youtube + `website` fallback).
-- **Integration (backfill)**: run the migration SQL against a seeded v1 press
-  config in the dev DB; assert the post-backfill JSON parses to the expected v2
-  shape (gallery length, leading standout highlight, inferred services);
-  re-run and assert idempotence.
+- **Unit (normalization)**: `normalizePressContent` pure-function cases — v1 row
+  derives gallery/highlights/services; explicit v2 writes take precedence;
+  idempotence; empty/`null` `standoutTrack`/`releases` edge.
+- **Integration (read path)**: `getPressConfig` on a seeded v1 press config yields
+  the normalized v2 shape; an editor-written v2 row is returned as-written.
 - **Regression**: the existing v1 public-press + manage-press route tests stay
   green (the superset is backward-compatible) — do **not** weaken them.
 
 ## Risks
-- **Read-before-backfill**: if the app reads a not-yet-backfilled v1 row through
-  the evolved schema, the streaming-links union preprocessor + field defaults
-  must absorb it. The contract unit test covers this; the backfill is belt-and-braces
-  for the stored shape, not a hard prerequisite for reads.
-- **jsonb backfill correctness** — the expressions are fiddly; mitigated by
-  verifying on the real AF row in dev before commit and the idempotence guard.
+- **Read-time normalization correctness** — the transform must be idempotent and
+  defer to explicit v2 writes; covered by pure-function unit tests + the read-path
+  integration test. No stored data is mutated, so there is no data-migration risk
+  on the live AF row.
 - **v1 editor drift during transition** — the live v1 manage editor writes v1
-  fields; if a creator edits via v1 after the backfill, `gallery`/`highlights`
+  fields; if a creator edits via v1, `gallery`/`highlights`
   can drift from `photos`/`standoutTrack`. Acceptable: the v1 editor is replaced
   by the v2 editor in this same epic, and the transition window is short. The v2
   editor becomes the source of truth; v1 fields go read-only-legacy.
