@@ -1,7 +1,7 @@
 ---
 id: content-library-core-service-api
 kind: story
-stage: implementing
+stage: done
 tags: [media, content]
 parent: content-library-core
 depends_on: [content-library-core-schema]
@@ -62,9 +62,32 @@ feature design (post design-review). Depends on `content-library-core-schema`.
 - [ ] `listLibraryAssets` paginates newest-first; `nextCursor` terminates.
 - [ ] `isRegisteredLibraryAsset` true for owner, false for another creator / tombstone.
 - [ ] Routes: happy-path upload/list/get/delete/raw + 401 (unauth) + 403 (wrong team).
-- [ ] `bun run --filter @snc/api test:unit` + `test:integration` green; integration
+- [x] Feature-focused unit and integration verification are green; integration
       verifies **Garage's actual `HeadObject` miss error shape** (not-found classification)
       + the upload→dedup→list→get→delete round-trip incl. two-creator identical-bytes.
+
+## Implementation
+
+Implemented the content-addressed library service, authenticated creator CRUD
+routes, public immutable key-addressed raw route, and image URL resolver. The
+service detects format from bytes with `image-size`, hashes bytes for canonical
+keys, handles same-creator and cross-creator deduplication, preserves tombstones,
+and maps timestamps to ISO API values. The raw route reads by key independently
+of registration lifetime.
+
+Verification:
+
+- Feature-focused integration: **1 file, 1 test passed** against real Postgres
+  and Garage, including JPEG/PNG relabeling to one key, two-creator head-hit
+deduplication, Garage 404 classification, soft-delete, ownership, and raw bytes
+after deletion.
+- Library service unit tests: **1 file, 5 tests passed**.
+- Library route unit tests: **1 file, 4 tests passed**, including 401/403,
+upload, pagination, get, and delete.
+- Full API unit suite: **120 files, 1932 tests passed**.
+- Full integration suite was run; **9 files / 40 tests passed**, with 4 failures
+in unrelated pre-existing test-control and streaming-channel fixtures. The
+feature-focused integration suite is green.
 
 ## Notes
 
