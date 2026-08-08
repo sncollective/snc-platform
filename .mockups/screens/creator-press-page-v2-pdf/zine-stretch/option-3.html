@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>creator-press-page-v2-pdf — Option 3: Teal Constructivist Press</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+:root {
+  --af-teal: #0d6e6e; /* TODO: not in tokens.css yet — illustrative creator brand accent */
+  --af-paper: #eee9dd; /* TODO: not in tokens.css yet — uncoated zine stock */
+  --af-black: #0b0b0a; /* TODO: not in tokens.css yet — stark registration ink */
+  --af-red: #e33124; /* TODO: not in tokens.css yet — tiny registration-note accent */
+}
+html, body { margin: 0; min-width: 0; overflow-x: hidden; }
+body { background: #312d28; color: var(--af-black); font-family: "Arial Narrow", "Roboto Condensed", Impact, var(--font-ui); }
+img { display: block; width: 100%; max-width: 100%; }
+a { color: inherit; overflow-wrap: anywhere; }
+figure, p { margin: 0; }
+.mock-meta { min-height: 56px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; background: #0d1117; color: #c9d1d9; border-bottom: 1px solid #30363d; font: 13px/1.4 system-ui, sans-serif; }
+.mock-meta strong { font-weight: 600; }
+.mock-meta span { color: #8b949e; }
+.stage { width: 100%; display: flex; justify-content: center; padding: 18px 0 36px; }
+.document { width: min(8.5in, 100%); display: grid; gap: 18px; }
+.page { width: 100%; height: 11in; min-width: 0; position: relative; overflow: hidden; padding: 30px 36px 28px 48px; background-color: var(--af-paper); background-image: radial-gradient(rgba(0,0,0,.14) .5px, transparent .6px); background-size: 5px 5px; box-shadow: 0 10px 34px rgba(0,0,0,.38); }
+.page::before { content: attr(data-page); position: absolute; left: 8px; top: 44px; color: var(--af-teal); font: 900 55px/.8 Impact, sans-serif; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: -.05em; }
+.page::after { content: "+ + +"; position: absolute; right: 13px; top: 10px; color: var(--af-red); font: 900 10px/1 ui-monospace, monospace; letter-spacing: .15em; }
+.page > * { position: relative; z-index: 1; min-width: 0; }
+.register { display: grid; grid-template-columns: auto 1fr auto; gap: 11px; align-items: center; border-block: 3px solid var(--af-black); padding: 5px 0; font: 900 8.5px/1 ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; }
+.register::before { content: "●"; color: var(--af-red); }
+.register strong { color: var(--af-teal); }
+.section-heading { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; margin: 0 0 8px; font: 900 20px/.9 Impact, sans-serif; letter-spacing: .015em; text-transform: uppercase; }
+.section-heading::after { content: ""; height: 7px; background: var(--af-teal); transform: skew(-24deg); }
+.page-one { display: grid; grid-template-rows: auto 1fr 198px; gap: 14px; }
+.hero { position: relative; min-height: 0; overflow: hidden; border: 4px solid var(--af-black); background: var(--af-teal); }
+.hero img { position: absolute; right: 0; top: 0; width: 62%; height: 100%; object-fit: cover; object-position: center; filter: grayscale(1) contrast(1.6); clip-path: polygon(22% 0,100% 0,100% 100%,0 100%); }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(112deg, var(--af-teal) 0 37%, transparent 37.4%), repeating-linear-gradient(120deg, transparent 0 38px, rgba(238,233,221,.27) 39px 43px, transparent 44px 80px); mix-blend-mode: multiply; }
+.hero-copy { position: absolute; z-index: 2; inset: 25px 18px 22px 20px; display: flex; flex-direction: column; align-items: flex-start; }
+.press-mark { padding: 5px 8px; background: var(--af-paper); border: 2px solid var(--af-black); font: 900 9px/1 ui-monospace, monospace; text-transform: uppercase; transform: rotate(-2deg); }
+h1 { margin: 48px 0 0; color: var(--af-paper); font: 900 clamp(75px, 13.3vw, 128px)/.68 Impact, "Arial Narrow", sans-serif; letter-spacing: -.065em; text-transform: uppercase; text-shadow: 5px 5px 0 var(--af-black); }
+h1 span { display: block; }
+h1 span:last-child { margin-left: 54px; }
+.genre { margin-top: auto; width: 316px; max-width: 55%; padding: 10px 12px; background: var(--af-black); color: var(--af-paper); font: 900 18px/.95 Impact, sans-serif; text-transform: uppercase; transform: skew(-7deg) rotate(-1deg); }
+.genre small { display: block; margin-top: 7px; color: #78c5c2; font: 800 9px/1.2 ui-monospace, monospace; }
+.intro { display: grid; grid-template-columns: minmax(0,1.6fr) 220px; gap: 16px; align-items: stretch; }
+.deck { display: flex; align-items: center; padding: 13px 15px; border: 4px solid var(--af-black); font: 900 26px/.98 Impact, sans-serif; text-transform: uppercase; }
+.stat { display: flex; flex-direction: column; justify-content: center; padding: 11px 14px; background: var(--af-teal); color: var(--af-paper); border: 4px solid var(--af-black); box-shadow: 7px 7px 0 var(--af-black); }
+.stat b { font: 900 45px/.8 Impact, sans-serif; }
+.stat span { margin-top: 7px; font: 900 8px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+.page-two { display: grid; grid-template-rows: auto 245px 55px 1fr 66px; gap: 12px; }
+.bio-zone { display: grid; grid-template-columns: 192px minmax(0,1fr); gap: 15px; }
+.bio-photo { position: relative; overflow: hidden; border: 4px solid var(--af-black); box-shadow: 7px 7px 0 var(--af-teal); }
+.bio-photo img { height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.55); }
+.bio-photo::after { content: "AF // FORT COLLINS"; position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 7px; background: var(--af-black); color: var(--af-paper); font: 800 8px/1 ui-monospace, monospace; }
+.bio-copy { columns: 2; column-gap: 18px; font: 650 10.4px/1.36 var(--font-ui); }
+.bio-copy p { margin-bottom: 8px; break-inside: avoid; }
+.bio-copy p:first-child { font-weight: 800; }
+.bio-copy p:first-child::first-line { color: var(--af-teal); }
+.fans { display: grid; grid-template-columns: 105px 1fr; gap: 10px; align-items: center; padding: 6px 9px; background: var(--af-black); color: var(--af-paper); transform: skew(-2deg); }
+.fans strong { color: #78c5c2; font: 900 12px/1 Impact, sans-serif; text-transform: uppercase; }
+.fans span { font: 800 9px/1.25 ui-monospace, monospace; text-transform: uppercase; }
+.lineup-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lineup-zone, .members, .highlights { min-height: 0; }
+.members { height: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 7px; }
+.member { position: relative; min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) auto; overflow: hidden; border: 3px solid var(--af-black); background: #d7d1c4; }
+.member img { width: 100%; min-height: 0; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.55); }
+.member div { padding: 6px 7px; }
+.member h3 { margin: 0 0 2px; font: 900 14px/.95 Impact, sans-serif; text-transform: uppercase; }
+.member .role { display: inline-block; padding: 2px 3px; background: var(--af-teal); color: var(--af-paper); font: 800 6.7px/1 ui-monospace, monospace; text-transform: uppercase; }
+.member p { margin-top: 4px; font: 700 7.4px/1.2 var(--font-ui); }
+.highlights { display: grid; grid-template-rows: repeat(3, 1fr); gap: 7px; }
+.highlight { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 8px; align-items: center; padding: 6px; border: 3px solid var(--af-black); background: var(--af-paper); box-shadow: 4px 4px 0 var(--af-teal); }
+.highlight img { height: 68px; object-fit: cover; filter: grayscale(1) contrast(1.45); }
+.highlight .eyebrow { color: var(--af-teal); font: 800 6.7px/1.1 ui-monospace, monospace; text-transform: uppercase; }
+.highlight h3 { margin: 3px 0; font: 900 17px/.9 Impact, sans-serif; text-transform: uppercase; }
+.highlight p { font: 700 7.5px/1.18 var(--font-ui); }
+.highlight b { color: var(--af-red); }
+.pullquote { align-self: end; display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 10px 13px; background: var(--af-teal); color: var(--af-paper); border-left: 14px solid var(--af-black); }
+.pullquote strong { font: 900 21px/.9 Impact, sans-serif; text-transform: uppercase; }
+.pullquote span { max-width: 320px; font: 800 8px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+.page-three { display: grid; grid-template-rows: auto 185px 176px 1fr auto; gap: 12px; }
+.live-list { border: 4px solid var(--af-black); }
+.date { display: grid; grid-template-columns: 118px minmax(0,1.2fr) minmax(0,1fr) auto; gap: 8px; align-items: center; min-height: 36px; padding: 7px 9px; border-bottom: 2px solid var(--af-black); font: 800 9px/1.1 ui-monospace, monospace; text-transform: uppercase; }
+.date:last-child { border: 0; }
+.date:nth-child(odd) { background: var(--af-teal); color: var(--af-paper); }
+.date:nth-child(even) time { color: var(--af-red); }
+.date a { font-size: 7px; }
+.listen-block { display: grid; grid-template-columns: 138px minmax(0,1fr); gap: 15px; padding: 11px 13px; border: 4px solid var(--af-black); background: var(--af-paper); box-shadow: 8px 8px 0 var(--af-teal); }
+.qr-wrap { align-self: center; padding: 7px; background: white; border: 3px solid var(--af-black); }
+.qr { width: 116px; height: 116px; display: block; shape-rendering: crispEdges; }
+.qr-wrap b { display: block; padding-top: 4px; font: 900 7px/1 ui-monospace, monospace; text-align: center; text-transform: uppercase; }
+.listen-copy h2 { margin: 0 0 5px; color: var(--af-teal); font: 900 31px/.85 Impact, sans-serif; text-transform: uppercase; }
+.listen-copy p { margin-bottom: 6px; font: 800 8px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+.urls { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 11px; font: 800 8px/1.18 ui-monospace, monospace; }
+.urls a { text-decoration-thickness: 2px; text-underline-offset: 2px; }
+.page-three > section:nth-of-type(3) { min-height: 0; display: flex; flex-direction: column; }
+.gallery { min-height: 0; flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); grid-template-rows: repeat(2, minmax(0,1fr)); gap: 6px; }
+.gallery figure { position: relative; min-width: 0; overflow: hidden; border: 3px solid var(--af-black); }
+.gallery img { height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.55); }
+.gallery figure:nth-child(2) img, .gallery figure:nth-child(5) img { filter: grayscale(1) contrast(1.6) sepia(.28) hue-rotate(115deg); }
+.gallery figcaption { position: absolute; right: 3px; bottom: 3px; padding: 2px 4px; background: var(--af-teal); color: var(--af-paper); font: 900 7px/1 ui-monospace, monospace; }
+.contact-bar { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 9px 12px; background: var(--af-black); color: var(--af-paper); border-left: 15px solid var(--af-teal); font: 900 10px/1 Impact, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.contact-bar a { color: #78c5c2; }
+@media (max-width: 680px) {
+  .mock-meta { flex-direction: column; align-items: stretch; gap: 2px; }
+  .stage { padding-top: 0; }
+  .document { gap: 8px; }
+  .page { padding-left: clamp(39px, 6vw, 48px); padding-right: clamp(17px, 4.4vw, 36px); }
+  h1 { font-size: clamp(68px, 15vw, 116px); }
+  .genre { max-width: 61%; }
+  .date { grid-template-columns: 104px minmax(0,1fr) auto; }
+  .date .city { grid-column: 2; }
+}
+@page { size: letter portrait; margin: 0; }
+@media print {
+  body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .mock-meta { display: none; }
+  .stage { padding: 0; }
+  .document { width: 8.5in; gap: 0; }
+  .page { width: 8.5in; height: 11in; box-shadow: none; break-after: page; }
+  .page:last-child { break-after: auto; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 3 — Teal Constructivist Press · Creator Brand Accent</strong><span>Animal Future’s deep teal becomes a blunt screen-print ink across a geometric, registration-marked three-page punk dossier.</span></header>
+<div class="stage"><main class="document" aria-label="Animal Future printable press kit">
+<article class="page page-one" data-page="01" aria-labelledby="artist-name-3">
+  <div class="register"><span>S/NC PRESS DOCUMENT</span><strong>ANIMAL FUTURE // FILE 001</strong><span>FORT COLLINS CO</span></div>
+  <figure class="hero"><img src="https://picsum.photos/seed/af-teal-hero/1500/1100" alt="Animal Future in a high-contrast band press photo"><div class="hero-copy"><span class="press-mark">Social volume // 2026</span><h1 id="artist-name-3"><span>Animal</span><span>Future</span></h1><figcaption class="genre">Socially conscious punk / alt-rock<small>Fort Collins, Colorado // high contrast / no soft edges</small></figcaption></div></figure>
+  <section class="intro"><p class="deck">Animal Future makes socially conscious punk-leaning rock that hits where it hurts.</p><aside class="stat"><b>14.5K</b><span>streams on standout track “Get to You”</span></aside></section>
+</article>
+<article class="page page-two" data-page="02" aria-label="Biography, members, and release highlights">
+  <div class="register"><span>PEOPLE / POSITION / SOUND</span><strong>THE LONG VERSION</strong><span>AF + S/NC</span></div>
+  <section class="bio-zone"><figure class="bio-photo"><img src="https://picsum.photos/seed/af-teal-bio/700/900" alt="Animal Future band portrait"></figure><div><h2 class="section-heading">Statement</h2><div class="bio-copy"><p>Raw, funny, and unpredictable, the Fort Collins band confronts mental health, addiction, and life under a corporate-run world, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams.</p><p>Fueled by the fury of the forgotten, Animal Future moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding unpredictability.</p><p>Known for sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion — for people and the planet.</p></div></div></section>
+  <div class="fans"><strong>For fans of</strong><span>IDLES / Radiohead / Modest Mouse / Pixies / Yeah Yeah Yeahs / Paramore</span></div>
+  <section class="lineup-zone"><div><h2 class="section-heading">Lineup / four</h2><div class="members">
+    <article class="member"><img src="https://picsum.photos/seed/af-leanna/500/500" alt="LeAnna Warren portrait"><div><h3>LeAnna Warren</h3><span class="role">Vocals + electric guitar</span><p>Sharp-eyed storytelling through a voice that turns from hush to full-throated roar.</p></div></article>
+    <article class="member"><img src="https://picsum.photos/seed/af-charles/500/500" alt="Charles Tyrie portrait"><div><h3>Charles Tyrie</h3><span class="role">Drums</span><p>Precise, hard-hitting rhythms and an instinct for controlled chaos.</p></div></article>
+    <article class="member"><img src="https://picsum.photos/seed/af-jarod/500/500" alt="Jarod Ford portrait"><div><h3>Jarod Ford</h3><span class="role">Bass</span><p>A muscular low end keeps restless arrangements grounded and moving.</p></div></article>
+    <article class="member"><img src="https://picsum.photos/seed/af-connor/500/500" alt="Connor Mandli portrait"><div><h3>Connor Mandli</h3><span class="role">Electric guitar</span><p>Jagged hooks, atmospheric noise, and melodic counterpoint.</p></div></article>
+  </div></div><div><h2 class="section-heading">Release signal</h2><div class="highlights">
+    <article class="highlight"><img src="https://picsum.photos/seed/af-illusionist/300/300" alt="The Illusionist cover art"><div><span class="eyebrow">SNCR-001 // Aug 6 2026</span><h3>The Illusionist</h3><p>First single from debut LP <em>Survived By</em>.</p></div></article>
+    <article class="highlight"><img src="https://picsum.photos/seed/af-gettoyou/300/300" alt="Get to You cover art"><div><span class="eyebrow">Standout track</span><h3>Get to You</h3><p><b>~14.5k streams</b> and climbing.</p></div></article>
+    <article class="highlight"><img src="https://picsum.photos/seed/af-survivedby/300/300" alt="Survived By cover art"><div><span class="eyebrow">Debut LP // Mar 2027</span><h3>Survived By</h3><p>The first full-length statement.</p></div></article>
+  </div></div></section>
+  <aside class="pullquote"><strong>Fury of the forgotten.</strong><span>Indie rock → grungy pop → old-school punk → Radiohead-esque atmosphere.</span></aside>
+</article>
+<article class="page page-three" data-page="03" aria-label="Live dates, listening links, gallery, and press contact">
+  <div class="register"><span>WHERE / WHEN / HOW LOUD</span><strong>LIVE + LISTEN + IMAGE BANK</strong><span>PRINT / KEEP</span></div>
+  <section><h2 class="section-heading">Live dates</h2><div class="live-list">
+    <div class="date"><time datetime="2026-09-12">Sep 12 2026</time><strong>The Mishawaka</strong><span class="city">Bellvue, CO</span><a href="https://www.bandsintown.com/">Tickets ↗</a></div>
+    <div class="date"><time datetime="2026-10-03">Oct 03 2026</time><strong>Aggie Theatre</strong><span class="city">Fort Collins, CO</span><a href="https://www.bandsintown.com/">Tickets ↗</a></div>
+    <div class="date"><time datetime="2026-10-24">Oct 24 2026</time><strong>Hi-Dive</strong><span class="city">Denver, CO</span><a href="https://www.bandsintown.com/">Tickets ↗</a></div>
+    <div class="date"><time datetime="2026-11-14">Nov 14 2026</time><strong>The Black Sheep</strong><span class="city">Colorado Springs, CO</span><a href="https://www.bandsintown.com/">Tickets ↗</a></div>
+  </div></section>
+  <section class="listen-block" aria-labelledby="listen-3"><div class="qr-wrap"><svg class="qr" viewBox="0 0 21 21" role="img" aria-label="Mock QR code for Animal Future listening links"><rect width="21" height="21" fill="#fff"/><path fill="#000" d="M1 1h7v7H1zm2 2v3h3V3zM13 1h7v7h-7zm2 2v3h3V3zM1 13h7v7H1zm2 2v3h3v-3zM10 1h2v2h-2zM9 4h3v2H9zM10 7h2v3h-2zM13 9h2v2h-2zM16 9h4v2h-4zM9 12h3v2H9zM13 12h2v3h-2zM16 12h2v2h-2zM19 12h1v4h-1zM9 15h2v5H9zM12 16h2v2h-2zM15 16h2v4h-2zM18 18h2v2h-2z"/></svg><b>Scan to listen</b></div><div class="listen-copy"><h2 id="listen-3">The ink still links.</h2><p>Scan the block or type the literal destination from the printed sheet.</p><nav class="urls" aria-label="Printable streaming URLs"><a href="https://open.spotify.com/artist/animal-future">Spotify → open.spotify.com/artist/animal-future</a><a href="https://music.apple.com/us/artist/animal-future">Apple → music.apple.com/us/artist/animal-future</a><a href="https://music.amazon.com/artists/animal-future">Amazon → music.amazon.com/artists/animal-future</a><a href="https://www.youtube.com/@animalfutureband">YouTube → youtube.com/@animalfutureband</a><a href="https://animalfuture.bandcamp.com/">Bandcamp → animalfuture.bandcamp.com</a></nav></div></section>
+  <section><h2 class="section-heading">Gallery / six press cuts</h2><div class="gallery">
+    <figure><img src="https://picsum.photos/seed/af-gallery-1/700/500" alt="Animal Future press gallery photo 1"><figcaption>01</figcaption></figure><figure><img src="https://picsum.photos/seed/af-gallery-2/700/500" alt="Animal Future press gallery photo 2"><figcaption>02</figcaption></figure><figure><img src="https://picsum.photos/seed/af-gallery-3/700/500" alt="Animal Future press gallery photo 3"><figcaption>03</figcaption></figure><figure><img src="https://picsum.photos/seed/af-gallery-4/700/500" alt="Animal Future press gallery photo 4"><figcaption>04</figcaption></figure><figure><img src="https://picsum.photos/seed/af-gallery-5/700/500" alt="Animal Future press gallery photo 5"><figcaption>05</figcaption></figure><figure><img src="https://picsum.photos/seed/af-gallery-6/700/500" alt="Animal Future press gallery photo 6"><figcaption>06</figcaption></figure>
+  </div></section>
+  <footer class="contact-bar"><span>S/NC Records // hi-res images + interviews available</span><span>Press → <a href="mailto:press@s-nc.org">press@s-nc.org</a></span></footer>
+</article>
+</main></div>
+</body>
+</html>

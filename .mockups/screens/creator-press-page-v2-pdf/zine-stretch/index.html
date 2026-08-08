@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>creator-press-page-v2-pdf — pick a zine direction</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html, body { min-width: 0; height: 100%; }
+body { margin: 0; overflow: hidden; background: #0a0a0a; color: #f4f2ec; font-family: var(--font-ui); }
+header { height: 72px; display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 11px 20px; border-bottom: 5px solid #d7ff00; background: #111; }
+header h1 { margin: 0; font: 900 22px/.95 Impact, "Arial Narrow", sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+header p { margin: 3px 0 0; color: #aaa; font: 11px/1.25 ui-monospace, monospace; }
+header .bug { flex: none; padding: 5px 9px; background: #ff2ba6; color: #fff; font: 900 10px/1 ui-monospace, monospace; text-transform: uppercase; transform: rotate(2deg); }
+.grid { height: calc(100vh - 72px); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; }
+.cell { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 2px solid #353535; background: #202020; }
+.cell:hover { border-color: #d7ff00; }
+.cell h2 { flex: none; min-height: 40px; margin: 0; padding: 7px 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #171717; color: #f4f2ec; font-size: 12px; font-weight: 700; }
+.cell h2 > span { min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; }
+.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scheme { flex: none; padding: 3px 6px; border: 1px solid currentColor; font: 800 8px/1 ui-monospace, monospace; text-transform: uppercase; }
+.cell:nth-child(1) .scheme { background: #f1eddf; color: #111; border-color: #ff294d; }
+.cell:nth-child(2) .scheme { background: #050505; color: #d7ff00; border-color: #ff2ba6; }
+.cell:nth-child(3) .scheme { background: #eee9dd; color: #0d6e6e; border-color: #0d6e6e; }
+.cell:nth-child(4) .scheme { background: #c7ad84; color: #111; border-color: #ec2c24; }
+.cell a { flex: none; color: #7ee7e7; text-decoration: none; font: 700 10px/1 ui-monospace, monospace; }
+.preview { min-height: 0; position: relative; flex: 1; overflow: hidden; background: #2a2825; }
+iframe { position: absolute; left: 0; top: 0; width: 816px; height: 1170px; border: 0; transform-origin: top left; background: #fff; }
+@media (max-width: 760px) {
+  body { overflow: auto; }
+  header { height: auto; align-items: flex-start; }
+  header .bug { display: none; }
+  .grid { height: auto; grid-template-columns: 1fr; grid-template-rows: repeat(4, 520px); }
+}
+</style>
+</head>
+<body>
+<header><div><h1>Animal Future Press PDF // pick a zine direction</h1><p>Four layouts · three scheme families · every option is a dense three-page print document</p></div><span class="bug">Rejected: corporate calm</span></header>
+<main class="grid">
+  <section class="cell"><h2><span><span class="scheme">Xerox</span><span class="label">Option 1 — Cut-and-Paste / Fluoro Pink</span></span><a href="option-1.html" target="_blank">open ↗</a></h2><div class="preview"><iframe title="Option 1 — Xerox Cut-and-Paste" src="option-1.html"></iframe></div></section>
+  <section class="cell"><h2><span><span class="scheme">Noir / MTV</span><span class="label">Option 2 — Signal Hijack / Acid + Magenta</span></span><a href="option-2.html" target="_blank">open ↗</a></h2><div class="preview"><iframe title="Option 2 — MTV Signal Hijack" src="option-2.html"></iframe></div></section>
+  <section class="cell"><h2><span><span class="scheme">Creator Teal</span><span class="label">Option 3 — Constructivist Press / Deep Teal</span></span><a href="option-3.html" target="_blank">open ↗</a></h2><div class="preview"><iframe title="Option 3 — Teal Constructivist Press" src="option-3.html"></iframe></div></section>
+  <section class="cell"><h2><span><span class="scheme">Xerox / Red</span><span class="label">Option 4 — Torn Flyer Wall / Kraft</span></span><a href="option-4.html" target="_blank">open ↗</a></h2><div class="preview"><iframe title="Option 4 — Torn Flyer Wall" src="option-4.html"></iframe></div></section>
+</main>
+<script>
+const PAGE_WIDTH = 816;
+const fitPreviews = () => {
+  document.querySelectorAll('.preview').forEach((preview) => {
+    const frame = preview.querySelector('iframe');
+    const scale = preview.clientWidth / PAGE_WIDTH;
+    frame.style.transform = `scale(${scale})`;
+  });
+};
+new ResizeObserver(fitPreviews).observe(document.querySelector('.grid'));
+window.addEventListener('load', fitPreviews);
+</script>
+</body>
+</html>
