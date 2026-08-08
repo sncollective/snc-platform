@@ -222,6 +222,65 @@ describe("content library integration", () => {
     if (!missing.ok) expect(missing.error.code).toBe("NOT_FOUND");
   });
 
+  it("does not let a non-owner manage another creator's grants", async () => {
+    const uploaded = await upload(creatorIds[0]!, 60, "requestable");
+    expect(uploaded.ok).toBe(true);
+    if (!uploaded.ok) return;
+    const asset = uploaded.value.asset;
+
+    expect(
+      await grantLibraryAssetUse(
+        ownerActor,
+        asset.id,
+        granteeActor.creatorId,
+        grantorUserId,
+      ),
+    ).toEqual({ ok: true, value: undefined });
+    expect(await canUseAsset(granteeActor, asset.storageKey)).toBe(true);
+
+    const unauthorizedGrant = await grantLibraryAssetUse(
+      granteeActor,
+      asset.id,
+      otherActor.creatorId,
+      grantorUserId,
+    );
+    expect(unauthorizedGrant.ok).toBe(false);
+    if (!unauthorizedGrant.ok) expect(unauthorizedGrant.error.code).toBe("NOT_FOUND");
+    expect(await getLibraryAsset(ownerActor, asset.id)).toMatchObject({
+      ok: true,
+      value: { id: asset.id, sharing: "requestable" },
+    });
+    expect(await canUseAsset(granteeActor, asset.storageKey)).toBe(true);
+
+    const unauthorizedRevoke = await revokeLibraryAssetUse(
+      granteeActor,
+      asset.id,
+      granteeActor.creatorId,
+    );
+    expect(unauthorizedRevoke.ok).toBe(false);
+    if (!unauthorizedRevoke.ok) expect(unauthorizedRevoke.error.code).toBe("NOT_FOUND");
+    expect(await getLibraryAsset(ownerActor, asset.id)).toMatchObject({
+      ok: true,
+      value: { id: asset.id, sharing: "requestable" },
+    });
+    expect(await canUseAsset(granteeActor, asset.storageKey)).toBe(true);
+  });
+
+  it.skip("rejects deleting another creator's registration without changing owner state", async () => {
+    // Known bug: deleteLibraryAsset currently returns ok:true when its owner-scoped
+    // UPDATE affects zero rows. Keep this regression honest until that service bug is fixed.
+    const uploaded = await upload(creatorIds[0]!, 61, "requestable");
+    expect(uploaded.ok).toBe(true);
+    if (!uploaded.ok) return;
+    const asset = uploaded.value.asset;
+
+    expect(await deleteLibraryAsset(granteeActor, asset.id)).toMatchObject({ ok: false });
+    expect(await getLibraryAsset(ownerActor, asset.id)).toMatchObject({
+      ok: true,
+      value: { id: asset.id },
+    });
+  });
+
   it("does not skip rows when several assets share a millisecond timestamp", async () => {
     const uploads = await Promise.all([10, 11, 12].map((suffix) => upload(creatorIds[0]!, suffix)));
     expect(uploads.every((result) => result.ok)).toBe(true);

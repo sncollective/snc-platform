@@ -149,6 +149,50 @@ describe("library service upload and inventory", () => {
     );
   });
 
+  it("uses one content-addressed key for identical bytes despite declared MIME relabeling", async () => {
+    selectQueue.push([], []);
+    mockStorageHead.mockResolvedValueOnce(err(new NotFoundError("File not found")));
+    const { uploadLibraryAsset } = await setupService();
+    const file = {
+      name: "same-bytes.bin",
+      size: pngBytes.byteLength,
+      bytes: pngBytes,
+    };
+
+    const jpegResult = await uploadLibraryAsset("creator-1", {
+      ...file,
+      declaredType: "image/jpeg",
+    });
+    const pngResult = await uploadLibraryAsset("creator-1", {
+      ...file,
+      declaredType: "image/png",
+    });
+
+    expect(jpegResult.ok).toBe(true);
+    expect(pngResult.ok).toBe(true);
+    if (!jpegResult.ok || !pngResult.ok) return;
+    expect(pngResult.value.asset.storageKey).toBe(jpegResult.value.asset.storageKey);
+    expect(pngResult.value.deduped).toBe(true);
+    expect(mockStorageUpload).toHaveBeenCalledOnce();
+  });
+
+  it("keeps inventory when storage upload fails before registration", async () => {
+    selectQueue.push([]);
+    mockStorageHead.mockResolvedValueOnce(err(new NotFoundError("File not found")));
+    mockStorageUpload.mockResolvedValueOnce(err(new Error("storage upload failed")));
+    const { uploadLibraryAsset } = await setupService();
+
+    const result = await uploadLibraryAsset("creator-1", {
+      declaredType: "image/png",
+      size: pngBytes.byteLength,
+      bytes: pngBytes,
+    });
+
+    expect(result).toMatchObject({ ok: false, error: { message: "storage upload failed" } });
+    expect(mockInsert).toHaveBeenCalledOnce();
+    expect(mockInsert).toHaveBeenCalledWith(contentBlobs);
+  });
+
   it("rejects unparseable bytes before touching storage", async () => {
     const { uploadLibraryAsset } = await setupService();
 
