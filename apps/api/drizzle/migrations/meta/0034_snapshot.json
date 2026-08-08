@@ -1,5 +1,5 @@
 {
-  "id": "247652b5-8c27-4a5f-9470-2e4b70305c44",
+  "id": "87f63b88-30a4-457a-9cd5-82b2143c2d5f",
   "prevId": "1ba21f18-fdab-4bcd-ba93-7b834c9a09e0",
   "version": "7",
   "dialect": "postgresql",
@@ -1792,7 +1792,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"enabled\":false,\"template\":\"A\",\"tagline\":null,\"shortBio\":null,\"longBio\":null,\"forFansOf\":[],\"banner\":null,\"aboutPhoto\":null,\"members\":[],\"streamingLinks\":[],\"liveDatesUrl\":null,\"standoutTrack\":null,\"highlights\":[],\"pressContactEmail\":null,\"location\":null,\"photos\":[],\"gallery\":[],\"releases\":[]}'::jsonb"
+          "default": "'{\"enabled\":false,\"shortBio\":null,\"longBio\":null,\"forFansOf\":[],\"streamingLinks\":[],\"liveDatesUrl\":null,\"standoutTrack\":null,\"pressContactEmail\":null,\"location\":null,\"photos\":[],\"releases\":[]}'::jsonb"
         },
         "updated_at": {
           "name": "updated_at",
@@ -2436,6 +2436,121 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.content_asset_grants": {
+      "name": "content_asset_grants",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grantee_creator_id": {
+          "name": "grantee_creator_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted_by_user_id": {
+          "name": "granted_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted_at": {
+          "name": "granted_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "content_asset_grants_asset_grantee_idx": {
+          "name": "content_asset_grants_asset_grantee_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "grantee_creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "content_asset_grants_grantee_idx": {
+          "name": "content_asset_grants_grantee_idx",
+          "columns": [
+            {
+              "expression": "grantee_creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "content_asset_grants_asset_id_content_assets_id_fk": {
+          "name": "content_asset_grants_asset_id_content_assets_id_fk",
+          "tableFrom": "content_asset_grants",
+          "tableTo": "content_assets",
+          "columnsFrom": [
+            "asset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "content_asset_grants_grantee_creator_id_creator_profiles_id_fk": {
+          "name": "content_asset_grants_grantee_creator_id_creator_profiles_id_fk",
+          "tableFrom": "content_asset_grants",
+          "tableTo": "creator_profiles",
+          "columnsFrom": [
+            "grantee_creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "content_asset_grants_granted_by_user_id_users_id_fk": {
+          "name": "content_asset_grants_granted_by_user_id_users_id_fk",
+          "tableFrom": "content_asset_grants",
+          "tableTo": "users",
+          "columnsFrom": [
+            "granted_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.content_assets": {
       "name": "content_assets",
       "schema": "",
@@ -2446,16 +2561,185 @@
           "primaryKey": true,
           "notNull": true
         },
-        "owner_creator_id": {
-          "name": "owner_creator_id",
+        "blob_sha256": {
+          "name": "blob_sha256",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sharing": {
+          "name": "sharing",
+          "type": "content_asset_sharing",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "original_filename": {
+          "name": "original_filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "content_assets_creator_blob_idx": {
+          "name": "content_assets_creator_blob_idx",
+          "columns": [
+            {
+              "expression": "creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "blob_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"content_assets\".\"creator_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "content_assets_admin_blob_idx": {
+          "name": "content_assets_admin_blob_idx",
+          "columns": [
+            {
+              "expression": "blob_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"content_assets\".\"creator_id\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "content_assets_creator_idx": {
+          "name": "content_assets_creator_idx",
+          "columns": [
+            {
+              "expression": "creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "content_assets_blob_idx": {
+          "name": "content_assets_blob_idx",
+          "columns": [
+            {
+              "expression": "blob_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "content_assets_browse_idx": {
+          "name": "content_assets_browse_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sharing",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "content_assets_blob_sha256_content_blobs_sha256_fk": {
+          "name": "content_assets_blob_sha256_content_blobs_sha256_fk",
+          "tableFrom": "content_assets",
+          "tableTo": "content_blobs",
+          "columnsFrom": [
+            "blob_sha256"
+          ],
+          "columnsTo": [
+            "sha256"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "content_assets_creator_id_creator_profiles_id_fk": {
+          "name": "content_assets_creator_id_creator_profiles_id_fk",
+          "tableFrom": "content_assets",
+          "tableTo": "creator_profiles",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.content_blobs": {
+      "name": "content_blobs",
+      "schema": "",
+      "columns": {
         "sha256": {
           "name": "sha256",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true
         },
         "storage_key": {
@@ -2488,53 +2772,20 @@
           "primaryKey": false,
           "notNull": false
         },
-        "original_filename": {
-          "name": "original_filename",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
-        "content_assets_owner_sha256_idx": {
-          "name": "content_assets_owner_sha256_idx",
+        "content_blobs_created_at_idx": {
+          "name": "content_blobs_created_at_idx",
           "columns": [
             {
-              "expression": "owner_creator_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sha256",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "content_assets_owner_idx": {
-          "name": "content_assets_owner_idx",
-          "columns": [
-            {
-              "expression": "owner_creator_id",
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2546,23 +2797,17 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "content_assets_owner_creator_id_creator_profiles_id_fk": {
-          "name": "content_assets_owner_creator_id_creator_profiles_id_fk",
-          "tableFrom": "content_assets",
-          "tableTo": "creator_profiles",
-          "columnsFrom": [
-            "owner_creator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "content_blobs_storage_key_unique": {
+          "name": "content_blobs_storage_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "storage_key"
+          ]
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -5509,7 +5754,17 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.content_asset_sharing": {
+      "name": "content_asset_sharing",
+      "schema": "public",
+      "values": [
+        "private",
+        "requestable",
+        "open"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

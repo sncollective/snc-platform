@@ -1,91 +1,308 @@
-import { afterAll, describe, expect, it } from "vitest";
-import { randomUUID } from "node:crypto";
-import { inArray } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createHash, randomUUID } from "node:crypto";
+import { eq, inArray } from "drizzle-orm";
 
 import { db } from "../../src/db/connection.js";
-import { contentAssets } from "../../src/db/schema/library.schema.js";
-import { creatorProfiles } from "../../src/db/schema/creator.schema.js";
 import {
+  contentAssets,
+  contentBlobs,
+} from "../../src/db/schema/library.schema.js";
+import { creatorProfiles } from "../../src/db/schema/creator.schema.js";
+import { users } from "../../src/db/schema/user.schema.js";
+import {
+  canUseAsset,
   deleteLibraryAsset,
   getLibraryAsset,
+  grantLibraryAssetUse,
   isRegisteredLibraryAsset,
   listLibraryAssets,
+  revokeLibraryAssetUse,
   uploadLibraryAsset,
 } from "../../src/services/library.js";
 import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 
-const bytes = Uint8Array.from(
+const baseBytes = Uint8Array.from(
   Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
     "base64",
   ),
 );
+const imageBytes = (suffix: number): Uint8Array =>
+  Uint8Array.from([...baseBytes, suffix]);
 
-const creatorIds = [randomUUID(), randomUUID()];
+const creatorIds = [randomUUID(), randomUUID(), randomUUID()];
+const grantorUserId = randomUUID();
 const uploadedKeys = new Set<string>();
+const blobHashes = new Set<string>();
+
+const ownerActor = { creatorId: creatorIds[0]!, isAdmin: false };
+const granteeActor = { creatorId: creatorIds[1]!, isAdmin: false };
+const otherActor = { creatorId: creatorIds[2]!, isAdmin: false };
+const adminActor = { creatorId: creatorIds[2]!, isAdmin: true };
+
+const upload = async (
+  creatorId: string | null,
+  suffix: number,
+  sharing: "private" | "requestable" | "open" = "private",
+) => {
+  const bytes = imageBytes(suffix);
+  const result = await uploadLibraryAsset(
+    creatorId,
+    {
+      name: `image-${suffix}.png`,
+      declaredType: suffix % 2 === 0 ? "image/jpeg" : "image/png",
+      size: bytes.byteLength,
+      bytes,
+    },
+    sharing,
+  );
+  if (result.ok) {
+    uploadedKeys.add(result.value.asset.storageKey);
+    blobHashes.add(result.value.asset.blobSha256);
+  }
+  return result;
+};
+
+beforeAll(async () => {
+  await db.insert(creatorProfiles).values(
+    creatorIds.map((id) => ({ id, displayName: `Library test ${id}` })),
+  );
+  const now = new Date();
+  await db.insert(users).values({
+    id: grantorUserId,
+    name: "Library grantor",
+    email: `library-${grantorUserId}@example.test`,
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+});
 
 afterAll(async () => {
   for (const key of uploadedKeys) await storage.delete(key);
   await db.delete(creatorProfiles).where(inArray(creatorProfiles.id, creatorIds));
+  await db.delete(users).where(eq(users.id, grantorUserId));
+  if (blobHashes.size > 0) {
+    await db.delete(contentBlobs).where(inArray(contentBlobs.sha256, [...blobHashes]));
+  }
 });
 
 describe("content library integration", () => {
-  it("deduplicates relabeled bytes across creators and keeps raw bytes after tombstone", async () => {
-    await db.insert(creatorProfiles).values(
-      creatorIds.map((id) => ({ id, displayName: `Library test ${id}` })),
-    );
+  it("round-trips Garage bytes and enforces private/open/requestable sharing", async () => {
+    const privateUpload = await upload(creatorIds[0]!, 1, "private");
+    expect(privateUpload.ok).toBe(true);
+    if (!privateUpload.ok) return;
 
-    const first = await uploadLibraryAsset(creatorIds[0]!, {
-      name: "first.jpg",
-      declaredType: "image/jpeg",
-      size: bytes.byteLength,
-      bytes,
+    const privateAsset = privateUpload.value.asset;
+    expect(privateAsset.useStatus).toBe("own");
+    expect(await canUseAsset(ownerActor, privateAsset.storageKey)).toBe(true);
+    expect(await canUseAsset(granteeActor, privateAsset.storageKey)).toBe(false);
+    expect(await getLibraryAsset(granteeActor, privateAsset.id)).toMatchObject({ ok: false });
+    const granteeBeforeSharing = await listLibraryAssets(granteeActor);
+    expect(granteeBeforeSharing.ok).toBe(true);
+    if (granteeBeforeSharing.ok) {
+      expect(granteeBeforeSharing.value.items.some((item) => item.id === privateAsset.id)).toBe(false);
+    }
+
+    const repeated = await upload(creatorIds[0]!, 1, "private");
+    expect(repeated).toMatchObject({
+      ok: true,
+      value: { deduped: true, asset: { id: privateAsset.id } },
     });
-    expect(first.ok).toBe(true);
-    if (!first.ok) return;
-    uploadedKeys.add(first.value.asset.storageKey);
 
-    const second = await uploadLibraryAsset(creatorIds[1]!, {
-      name: "second.png",
-      declaredType: "image/png",
-      size: bytes.byteLength,
-      bytes,
+    const openUpload = await upload(creatorIds[0]!, 2, "open");
+    expect(openUpload.ok).toBe(true);
+    if (!openUpload.ok) return;
+    expect(await canUseAsset(otherActor, openUpload.value.asset.storageKey)).toBe(true);
+    const otherBrowse = await listLibraryAssets(otherActor);
+    expect(otherBrowse.ok).toBe(true);
+    if (otherBrowse.ok) {
+      expect(otherBrowse.value.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: openUpload.value.asset.id,
+            canUse: true,
+            useStatus: "open",
+          }),
+        ]),
+      );
+    }
+
+    const requestableUpload = await upload(creatorIds[0]!, 3, "requestable");
+    expect(requestableUpload.ok).toBe(true);
+    if (!requestableUpload.ok) return;
+    const requestableAsset = requestableUpload.value.asset;
+    expect(await canUseAsset(granteeActor, requestableAsset.storageKey)).toBe(false);
+    const beforeGrant = await getLibraryAsset(granteeActor, requestableAsset.id);
+    expect(beforeGrant).toMatchObject({
+      ok: true,
+      value: { canUse: false, useStatus: "requestable-needs-grant" },
     });
-    expect(second.ok).toBe(true);
-    if (!second.ok) return;
-    expect(second.value.asset.storageKey).toBe(first.value.asset.storageKey);
-    expect(second.value.deduped).toBe(true);
 
-    const repeat = await uploadLibraryAsset(creatorIds[0]!, {
-      name: "repeat.png",
-      declaredType: "image/png",
-      size: bytes.byteLength,
-      bytes,
+    expect(
+      await grantLibraryAssetUse(
+        ownerActor,
+        requestableAsset.id,
+        granteeActor.creatorId,
+        grantorUserId,
+      ),
+    ).toEqual({ ok: true, value: undefined });
+    expect(await canUseAsset(granteeActor, requestableAsset.storageKey)).toBe(true);
+    expect(await getLibraryAsset(granteeActor, requestableAsset.id)).toMatchObject({
+      ok: true,
+      value: { canUse: true, useStatus: "granted" },
     });
-    expect(repeat.ok).toBe(true);
-    if (!repeat.ok) return;
-    expect(repeat.value.deduped).toBe(true);
-    expect(repeat.value.asset.id).toBe(first.value.asset.id);
 
-    const listed = await listLibraryAssets(creatorIds[0]!);
-    expect(listed).toMatchObject({ ok: true, value: { items: [first.value.asset] } });
-    expect(await isRegisteredLibraryAsset(creatorIds[0]!, first.value.asset.storageKey)).toBe(true);
-    expect(await isRegisteredLibraryAsset(creatorIds[1]!, first.value.asset.storageKey)).toBe(true);
+    expect(
+      await revokeLibraryAssetUse(ownerActor, requestableAsset.id, granteeActor.creatorId),
+    ).toEqual({ ok: true, value: undefined });
+    expect(await canUseAsset(granteeActor, requestableAsset.storageKey)).toBe(false);
 
-    const deleted = await deleteLibraryAsset(creatorIds[0]!, first.value.asset.id);
+    // Admins can manage grants across creators and use even private registrations.
+    expect(
+      await grantLibraryAssetUse(
+        adminActor,
+        requestableAsset.id,
+        granteeActor.creatorId,
+        grantorUserId,
+      ),
+    ).toEqual({ ok: true, value: undefined });
+    expect(await canUseAsset(granteeActor, requestableAsset.storageKey)).toBe(true);
+    expect(
+      await revokeLibraryAssetUse(adminActor, requestableAsset.id, granteeActor.creatorId),
+    ).toEqual({ ok: true, value: undefined });
+    expect(await canUseAsset(adminActor, privateAsset.storageKey)).toBe(true);
+    const adminBrowse = await listLibraryAssets(adminActor);
+    expect(adminBrowse.ok).toBe(true);
+    if (adminBrowse.ok) {
+      expect(adminBrowse.value.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: privateAsset.id, useStatus: "admin", canUse: true }),
+        ]),
+      );
+    }
+
+    // Cross-creator bytes dedup at the blob layer while keeping registrations distinct.
+    const crossCreator = await upload(creatorIds[1]!, 2, "private");
+    expect(crossCreator).toMatchObject({
+      ok: true,
+      value: {
+        deduped: true,
+        asset: { storageKey: openUpload.value.asset.storageKey },
+      },
+    });
+    if (crossCreator.ok) {
+      expect(crossCreator.value.asset.id).not.toBe(openUpload.value.asset.id);
+    }
+
+    expect(await isRegisteredLibraryAsset(ownerActor.creatorId, privateAsset.storageKey)).toBe(true);
+    const deleted = await deleteLibraryAsset(ownerActor, privateAsset.id);
     expect(deleted).toEqual({ ok: true, value: undefined });
-    expect(await getLibraryAsset(creatorIds[0]!, first.value.asset.id)).toMatchObject({ ok: false });
-    expect(await isRegisteredLibraryAsset(creatorIds[0]!, first.value.asset.storageKey)).toBe(false);
+    expect(await isRegisteredLibraryAsset(ownerActor.creatorId, privateAsset.storageKey)).toBe(false);
 
-    const rawPath = first.value.asset.storageKey.slice("library/".length);
+    const rawPath = privateAsset.storageKey.slice("library/".length);
     const rawResponse = await libraryRawRoutes.request(`/raw/${rawPath}`);
     expect(rawResponse.status).toBe(200);
     expect(rawResponse.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
-    expect(new Uint8Array(await rawResponse.arrayBuffer())).toEqual(bytes);
+    expect(new Uint8Array(await rawResponse.arrayBuffer())).toEqual(imageBytes(1));
 
-    const missing = await storage.head(first.value.asset.storageKey + ".missing");
+    const reuploaded = await upload(creatorIds[0]!, 1, "open");
+    expect(reuploaded).toMatchObject({
+      ok: true,
+      value: {
+        deduped: true,
+        asset: { id: privateAsset.id, sharing: "open" },
+      },
+    });
+    expect(await isRegisteredLibraryAsset(ownerActor.creatorId, privateAsset.storageKey)).toBe(true);
+
+    const missing = await storage.head(`${privateAsset.storageKey}.missing`);
     expect(missing.ok).toBe(false);
     if (!missing.ok) expect(missing.error.code).toBe("NOT_FOUND");
+  });
+
+  it("does not skip rows when several assets share a millisecond timestamp", async () => {
+    const uploads = await Promise.all([10, 11, 12].map((suffix) => upload(creatorIds[0]!, suffix)));
+    expect(uploads.every((result) => result.ok)).toBe(true);
+    const ids = uploads.flatMap((result) => (result.ok ? [result.value.asset.id] : []));
+    expect(ids).toHaveLength(3);
+
+    const boundary = new Date("2099-01-01T00:00:00.789Z");
+    await db
+      .update(contentAssets)
+      .set({ createdAt: boundary })
+      .where(inArray(contentAssets.id, ids));
+
+    const seen: string[] = [];
+    let before: { createdAt: Date; id: string } | undefined;
+    for (let pageIndex = 0; pageIndex < 3; pageIndex += 1) {
+      const page = await listLibraryAssets(ownerActor, {
+        limit: 1,
+        ...(before ? { before } : {}),
+      });
+      expect(page.ok).toBe(true);
+      if (!page.ok) return;
+      expect(page.value.items).toHaveLength(1);
+      const item = page.value.items[0]!;
+      seen.push(item.id);
+      expect(item.createdAt).toBe(boundary.toISOString());
+      expect(page.value.nextCursor).not.toBeNull();
+      const [createdAt, id] = page.value.nextCursor!.split("|");
+      before = { createdAt: new Date(createdAt!), id: id! };
+    }
+
+    expect(new Set(seen)).toEqual(new Set(ids));
+  });
+
+  it("keeps global blob inventory after creator cascade deletion", async () => {
+    const cascadeCreatorId = randomUUID();
+    await db.insert(creatorProfiles).values({
+      id: cascadeCreatorId,
+      displayName: "Library cascade test",
+    });
+    const result = await upload(cascadeCreatorId, 50);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    await db.delete(creatorProfiles).where(eq(creatorProfiles.id, cascadeCreatorId));
+    const [registration] = await db
+      .select({ id: contentAssets.id })
+      .from(contentAssets)
+      .where(eq(contentAssets.id, result.value.asset.id));
+    expect(registration).toBeUndefined();
+    const [inventory] = await db
+      .select({ sha256: contentBlobs.sha256 })
+      .from(contentBlobs)
+      .where(eq(contentBlobs.sha256, result.value.asset.blobSha256));
+    expect(inventory).toEqual({ sha256: result.value.asset.blobSha256 });
+  });
+
+  it("keeps blob inventory when registration insertion fails after upload", async () => {
+    const bytes = imageBytes(99);
+    const result = await uploadLibraryAsset(randomUUID(), {
+      name: "orphan-regression.png",
+      declaredType: "image/png",
+      size: bytes.byteLength,
+      bytes,
+    });
+    expect(result.ok).toBe(false);
+
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const [inventory] = await db
+      .select()
+      .from(contentBlobs)
+      .where(eq(contentBlobs.sha256, sha256));
+    expect(inventory).toBeDefined();
+    if (!inventory) return;
+    uploadedKeys.add(inventory.storageKey);
+    blobHashes.add(inventory.sha256);
+    expect(await storage.head(inventory.storageKey)).toMatchObject({ ok: true });
+
+    const registrations = await db
+      .select({ id: contentAssets.id })
+      .from(contentAssets)
+      .where(eq(contentAssets.blobSha256, inventory.sha256));
+    expect(registrations).toHaveLength(0);
   });
 });
