@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-templates
 kind: feature
-stage: implementing
+stage: review
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-image-management]
@@ -554,11 +554,20 @@ full-bleed template shell.
   print treatment; the v2 PDF feature must settle a truncation, continuation-page,
   or editor-limit policy before claiming every payload is literally one page.
 
-## Product-direction flag
+## Resolved implementation policy
 
-**The operator still needs to choose the overflow policy for an actually
-one-page PDF when creator content exceeds the locked sample.** Recommended
-least-destructive default: let the dedicated PDF feature define explicit editor
-limits or continuation behavior; do not hide content in the web templates. This
-does not block template implementation or browser print styling, but it is a
-real acceptance decision for `creator-press-page-v2-pdf`.
+Web templates render all creator content without truncation. The dedicated v2
+PDF feature owns any one-page overflow policy; browser print may continue onto
+additional letter pages rather than discard content.
+
+## Integrated verification
+- Execution capability: one direct inline owner carried all six ordered child checkpoints; no nested agents or peer review were used.
+- Review weight: standard (project default); implementation stops at `review` per the operator's requested boundary.
+- Child stories: image projection, shared sections/icons, carousel, Template A, Template B, and route replacement are all `stage: done`, each with its own committed evidence.
+- API boundary: every v2 image occurrence is projected server-side through `buildPressImageUrl` with the matching slot/width; editable manage responses remain raw and browser code contains no signer/crop arithmetic.
+- Public rendering: exhaustive A/B selector, locked section order/composition, all streaming services, measured accessible carousel, empty-media collapse, delivered metadata priority, unchanged URL/404/PDF contracts, full-bleed shell, and letter-print continuation are implemented.
+- Automated verification: web suite 182 files / 1,864 tests passed; web typecheck 0 errors; web production build passed; API suite 124 files / 1,978 tests passed; API TypeScript check 0 errors.
+- Visual verification: isolated populated and image-empty A/B fixtures were screenshot and visually inspected at 1440, 760, 480, and 390px; the production-built real Animal Future route (all image slots empty) was visually inspected inside the actual app shell at 1440 and 390px. Centering, viewport breakout, responsive zone/grids, five-icon row, carousel peek/arrows, mobile fixed-action clearance, and absence of broken media/horizontal overflow passed. Firefox BiDi letter PDFs for A and B confirmed letter portrait, preserved credits/colors, hidden fixed/carousel controls, static gallery layout, and multi-page full-content continuation (A three pages, B two) without truncation.
+- Exact-string/source verification: exact `press@s-nc.org` and `mailto:press@s-nc.org`; no `press@snc.org`, no legacy public indexed-photo endpoint, no individual `@tanstack/start-*` resolution; `translate3d`, ArrowLeft/ArrowRight, all eight service registry keys, and 3:1/4:5/1:1/4:3 slots present.
+- Discrepancies from design: delivered public types/schema remain local to the API/web adapters rather than modifying `packages/shared/src/press.ts`, honoring the operator's explicit prohibition against re-touching the completed shared seam.
+- Adjacent issues parked: none.
