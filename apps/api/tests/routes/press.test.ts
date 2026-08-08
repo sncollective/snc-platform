@@ -9,9 +9,13 @@ const mockFindCreatorProfile = vi.fn();
 const mockGetPressConfig = vi.fn();
 const mockUpsertPressConfig = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
+const mockCanUseAsset = vi.fn();
 const mockStorageUpload = vi.fn();
 const mockStorageDownload = vi.fn();
 const mockBuildPressImageUrl = vi.fn();
+
+const libraryKey = `library/aa/${"a".repeat(64)}.jpg`;
+const secondLibraryKey = `library/bb/${"b".repeat(64)}.png`;
 
 const profile = {
   id: "creator_test123",
@@ -92,6 +96,9 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
     }));
+    vi.doMock("../../src/services/library.js", () => ({
+      canUseAsset: mockCanUseAsset,
+    }));
     vi.doMock("../../src/storage/index.js", () => ({
       storage: {
         upload: mockStorageUpload,
@@ -121,6 +128,7 @@ const ctx = setupRouteTest({
       ok({ ...content, shortBio: "Updated bio" }),
     );
     mockRequireCreatorPermission.mockResolvedValue(undefined);
+    mockCanUseAsset.mockResolvedValue(true);
     mockStorageUpload.mockResolvedValue(ok(undefined));
     mockBuildPressImageUrl.mockImplementation((image, slot, width) => ({
       src: `https://images.example/${slot}/${width}/${image.key}`,
@@ -343,6 +351,76 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
     expect(mockUpsertPressConfig).not.toHaveBeenCalled();
   });
 
+  it("authorizes every image-bearing field and de-duplicates library checks", async () => {
+    const ownedLegacyKey = `creators/${profile.id}/press/legacy.jpg`;
+    const patch = {
+      banner: { key: libraryKey, alt: "Banner" },
+      aboutPhoto: { key: secondLibraryKey, alt: "About" },
+      members: [{ name: "Member", photo: { key: libraryKey, alt: "Member" } }],
+      highlights: [{ eyebrow: "Review", title: "Highlight", coverArt: { key: libraryKey, alt: "Cover" } }],
+      gallery: [{ key: libraryKey, alt: "Gallery" }],
+      photos: [libraryKey, ownedLegacyKey],
+      releases: [{ ...release, artKey: secondLibraryKey }],
+    };
+
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", patch);
+
+    expect(res.status).toBe(200);
+    expect(mockCanUseAsset).toHaveBeenCalledTimes(2);
+    expect(mockCanUseAsset).toHaveBeenCalledWith(
+      { creatorId: profile.id, isAdmin: false },
+      libraryKey,
+    );
+    expect(mockCanUseAsset).toHaveBeenCalledWith(
+      { creatorId: profile.id, isAdmin: false },
+      secondLibraryKey,
+    );
+    expect(mockUpsertPressConfig).toHaveBeenCalledWith(profile.id, patch);
+  });
+
+  it.each([
+    ["private foreign", libraryKey],
+    ["requestable without grant", secondLibraryKey],
+  ])("rejects an unavailable %s library key before writing", async (_label, key) => {
+    mockCanUseAsset.mockResolvedValueOnce(false);
+
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+      gallery: [{ key, alt: "Unavailable" }],
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockUpsertPressConfig).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed and arbitrary namespaces without querying the library", async () => {
+    for (const key of [
+      `library/aa/${"A".repeat(64)}.jpg`,
+      "library/not-a-key.jpg",
+      "content/another-creator/photo.jpg",
+    ]) {
+      const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+        gallery: [{ key, alt: "Invalid" }],
+      });
+      expect(res.status).toBe(400);
+    }
+    expect(mockCanUseAsset).not.toHaveBeenCalled();
+    expect(mockUpsertPressConfig).not.toHaveBeenCalled();
+  });
+
+  it("passes the admin actor through the library authorization boundary", async () => {
+    ctx.auth.roles = ["admin"];
+
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+      gallery: [{ key: libraryKey, alt: "Admin image" }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockCanUseAsset).toHaveBeenCalledWith(
+      { creatorId: profile.id, isAdmin: true },
+      libraryKey,
+    );
+  });
+
   it("upserts and returns updated content for a member", async () => {
     const res = await json("PATCH", "/api/creators/test-creator/press-config", {
       shortBio: "Updated bio",
@@ -353,6 +431,77 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
     expect(mockUpsertPressConfig).toHaveBeenCalledWith(profile.id, {
       shortBio: "Updated bio",
     });
+  });
+});
+
+describe("POST /api/creators/:creatorId/press/image-preview", () => {
+  const request = {
+    key: libraryKey,
+    crop: { x: 0.1, y: 0.2, width: 0.6, height: 0.5 },
+    slot: "gallery",
+    width: 960,
+  };
+
+  it("returns the exact signed descriptor for an authorized crop", async () => {
+    const res = await json(
+      "POST",
+      "/api/creators/test-creator/press/image-preview",
+      request,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      src: `https://images.example/gallery/960/${libraryKey}`,
+      srcSet: `https://images.example/gallery/960/${libraryKey} 960w`,
+      sizes: "100vw",
+    });
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
+      { key: libraryKey, alt: "", crop: request.crop },
+      "gallery",
+      960,
+    );
+  });
+
+  it("returns 401 without attempting authorization or signing", async () => {
+    ctx.auth.user = null;
+
+    const res = await json(
+      "POST",
+      "/api/creators/test-creator/press/image-preview",
+      request,
+    );
+
+    expect(res.status).toBe(401);
+    expect(mockCanUseAsset).not.toHaveBeenCalled();
+    expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when the user lacks creator permission", async () => {
+    const { ForbiddenError } = await import("@snc/shared");
+    mockRequireCreatorPermission.mockRejectedValueOnce(new ForbiddenError("Not a member"));
+
+    const res = await json(
+      "POST",
+      "/api/creators/test-creator/press/image-preview",
+      request,
+    );
+
+    expect(res.status).toBe(403);
+    expect(mockCanUseAsset).not.toHaveBeenCalled();
+    expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 without signing an unavailable library asset", async () => {
+    mockCanUseAsset.mockResolvedValueOnce(false);
+
+    const res = await json(
+      "POST",
+      "/api/creators/test-creator/press/image-preview",
+      request,
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
   });
 });
 

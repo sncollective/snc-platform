@@ -140,6 +140,7 @@ export function setupRouteTest(options: RouteTestOptions): RouteTestContext {
           if (!ctx.auth.user) throw new UnauthorizedError();
           c.set("user", ctx.auth.user);
           c.set("session", ctx.auth.session);
+          c.set("roles", ctx.auth.roles);
           await next();
         },
       }));

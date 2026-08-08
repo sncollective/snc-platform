@@ -21,6 +21,7 @@ import {
 } from "../../src/services/library.js";
 import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
+import { validateOwnedPressKeys } from "../../src/services/press-images.js";
 
 const baseBytes = Uint8Array.from(
   Buffer.from(
@@ -89,6 +90,46 @@ afterAll(async () => {
 });
 
 describe("content library integration", () => {
+  it("authorizes press references from live own/open/granted registrations only", async () => {
+    const own = await upload(creatorIds[1]!, 70, "private");
+    const foreignPrivate = await upload(creatorIds[0]!, 71, "private");
+    const open = await upload(creatorIds[0]!, 72, "open");
+    const requestable = await upload(creatorIds[0]!, 73, "requestable");
+    expect([own, foreignPrivate, open, requestable].every((result) => result.ok)).toBe(true);
+    if (!own.ok || !foreignPrivate.ok || !open.ok || !requestable.ok) return;
+
+    await expect(validateOwnedPressKeys({
+      banner: { key: own.value.asset.storageKey, alt: "Own" },
+      aboutPhoto: { key: open.value.asset.storageKey, alt: "Open" },
+      photos: [`creators/${granteeActor.creatorId}/press/legacy.jpg`],
+    }, granteeActor)).resolves.toBeUndefined();
+
+    await expect(validateOwnedPressKeys({
+      gallery: [{ key: foreignPrivate.value.asset.storageKey, alt: "Private" }],
+    }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(validateOwnedPressKeys({
+      gallery: [{ key: requestable.value.asset.storageKey, alt: "Requestable" }],
+    }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+
+    expect(await grantLibraryAssetUse(
+      ownerActor,
+      requestable.value.asset.id,
+      granteeActor.creatorId,
+      grantorUserId,
+    )).toEqual({ ok: true, value: undefined });
+    await expect(validateOwnedPressKeys({
+      gallery: [{ key: requestable.value.asset.storageKey, alt: "Granted" }],
+    }, granteeActor)).resolves.toBeUndefined();
+
+    await db
+      .update(contentAssets)
+      .set({ deletedAt: new Date() })
+      .where(eq(contentAssets.id, own.value.asset.id));
+    await expect(validateOwnedPressKeys({
+      gallery: [{ key: own.value.asset.storageKey, alt: "Tombstoned" }],
+    }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
   it("round-trips Garage bytes and enforces private/open/requestable sharing", async () => {
     const privateUpload = await upload(creatorIds[0]!, 1, "private");
     expect(privateUpload.ok).toBe(true);

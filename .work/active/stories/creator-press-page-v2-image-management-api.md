@@ -1,14 +1,14 @@
 ---
 id: creator-press-page-v2-image-management-api
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-image-management
 depends_on: [creator-press-page-v2-image-management-contract]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-08
 ---
 
 # Press↔library authorization + signed preview API (Unit 2)
@@ -56,3 +56,16 @@ Evolve the press write boundary from namespace-only ownership to the content lib
 ## Ordering
 
 Depends on the shared crop/URL contract. The web crop editor and image controls consume this endpoint.
+
+## Implementation notes
+
+- Added one authorization service that collects every press image reference, de-duplicates storage keys, preserves field paths for validation errors, accepts owned legacy keys, and delegates structural library keys to the live `canUseAsset` policy.
+- PATCH and signed-preview authorization use the resolved creator id plus hydrated admin role. The preview route validates crop, slot, and width before returning the exact `buildPressImageUrl` descriptor.
+- Route coverage exercises every image-bearing field, duplicate lookup suppression, malformed/foreign denial, admin actor propagation, and preview 401/403/no-signing behavior. Real PostgreSQL/Garage integration coverage proves own/open/granted acceptance and private/requestable/tombstoned denial.
+- Repaired the shared route-test auth middleware mock to hydrate roles like production `requireAuth`.
+
+## Verification
+
+- `bun run --filter @snc/api test:unit` — 124 files, 1,978 tests passed.
+- `bun run --filter @snc/api test:integration -- tests/integration/library.test.ts` — 1 file, 7 tests passed.
+- `cd apps/api && npx tsc --noEmit` — passed with zero diagnostics.
