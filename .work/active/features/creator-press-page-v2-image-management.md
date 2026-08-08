@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-image-management
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, content-library-core]
