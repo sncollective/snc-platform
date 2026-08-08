@@ -1,6 +1,10 @@
 import { eq } from "drizzle-orm";
 
-import { ok, DEFAULT_PRESS_CONTENT } from "@snc/shared";
+import {
+  DEFAULT_PRESS_CONTENT,
+  PressContentSchema,
+  ok,
+} from "@snc/shared";
 import type { AppError, PressConfigPatch, PressContent, Result } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -8,15 +12,48 @@ import { creatorPressConfigs } from "../db/schema/creator.schema.js";
 
 // ── Private Helpers ──
 
-/** Read a creator's press config, falling back to defaults when no row exists. */
+/** Lazily normalize a parsed v1 press document toward the v2 surface shape. */
+export const normalizePressContent = (content: PressContent): PressContent => {
+  const gallery = content.gallery.length
+    ? content.gallery
+    : content.photos.map((key) => ({ key, alt: "", credit: null }));
+
+  const highlights = content.highlights.length
+    ? content.highlights
+    : [
+        ...(content.standoutTrack
+          ? [
+              {
+                eyebrow: "Standout track",
+                title: content.standoutTrack.title,
+                metric: content.standoutTrack.streamsLabel,
+                url: content.standoutTrack.url,
+              },
+            ]
+          : []),
+        ...content.releases.map((release) => ({
+          eyebrow: `New release${release.catalogNumber ? ` · ${release.catalogNumber}` : ""}`,
+          title: release.title,
+          coverArt: release.artKey
+            ? { key: release.artKey, alt: "", credit: null }
+            : null,
+        })),
+      ];
+
+  return { ...content, gallery, highlights };
+};
+
+/** Read and parse a creator's press config, then normalize legacy fields on demand. */
 const readPressConfig = async (creatorId: string): Promise<PressContent> => {
   const [row] = await db
     .select()
     .from(creatorPressConfigs)
     .where(eq(creatorPressConfigs.creatorId, creatorId))
     .limit(1);
-  if (!row) return DEFAULT_PRESS_CONTENT;
-  return row.content;
+  const content = row
+    ? PressContentSchema.parse(row.content)
+    : PressContentSchema.parse(DEFAULT_PRESS_CONTENT);
+  return normalizePressContent(content);
 };
 
 // ── Public API ──

@@ -6,12 +6,91 @@ import { z } from "zod";
 export const isOwnedPressKey = (key: string, creatorId: string): boolean =>
   key.startsWith(`creators/${creatorId}/press/`);
 
-/** A labeled public listening destination for a creator. */
-export const PressStreamingLinkSchema = z.object({
-  label: z.string(),
+/** Streaming service identifiers used by press-page templates. */
+export const PressStreamingServiceSchema = z.enum([
+  "spotify",
+  "apple-music",
+  "amazon-music",
+  "youtube",
+  "bandcamp",
+  "soundcloud",
+  "tidal",
+  "website",
+]);
+export type PressStreamingService = z.infer<typeof PressStreamingServiceSchema>;
+
+/** Infer a streaming service from a URL host, falling back to a website link. */
+export const inferService = (url: string): PressStreamingService => {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return "website";
+  }
+
+  const matchesHost = (domain: string): boolean =>
+    hostname === domain || hostname.endsWith(`.${domain}`);
+
+  if (matchesHost("spotify.com")) return "spotify";
+  if (matchesHost("music.apple.com")) return "apple-music";
+  if (matchesHost("music.amazon.com")) return "amazon-music";
+  if (matchesHost("youtube.com") || matchesHost("youtu.be")) return "youtube";
+  if (matchesHost("bandcamp.com")) return "bandcamp";
+  if (matchesHost("soundcloud.com")) return "soundcloud";
+  if (matchesHost("tidal.com")) return "tidal";
+  return "website";
+};
+
+const PressStreamingLinkShapeSchema = z.object({
+  service: PressStreamingServiceSchema,
   url: z.string().url(),
+  label: z.string().nullable().optional(),
 });
+
+/** A listening destination, accepting and normalizing the live v1 link shape. */
+export const PressStreamingLinkSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return value;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    if (!("service" in candidate) && typeof candidate.url === "string") {
+      return { ...candidate, service: inferService(candidate.url) };
+    }
+    return value;
+  },
+  PressStreamingLinkShapeSchema,
+);
 export type PressStreamingLink = z.infer<typeof PressStreamingLinkSchema>;
+
+/** A press image: an opaque storage key with required alternative text. */
+export const PressImageSchema = z.object({
+  key: z.string().min(1),
+  alt: z.string(),
+  credit: z.string().nullable().optional(),
+});
+export type PressImage = z.infer<typeof PressImageSchema>;
+
+/** A named band member shown on the press page. */
+export const PressMemberSchema = z.object({
+  name: z.string().min(1),
+  role: z.string().nullable().optional(),
+  photo: PressImageSchema.nullable().optional(),
+  bio: z.string().nullable().optional(),
+});
+export type PressMember = z.infer<typeof PressMemberSchema>;
+
+/** A flexible, orderable highlight rendered on the press page. */
+export const PressHighlightSchema = z.object({
+  eyebrow: z.string(),
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  metric: z.string().nullable().optional(),
+  url: z.string().url().nullable().optional(),
+  coverArt: PressImageSchema.nullable().optional(),
+});
+export type PressHighlight = z.infer<typeof PressHighlightSchema>;
 
 /** A track whose existing traction anchors the creator's press story. */
 export const PressStandoutTrackSchema = z.object({
@@ -55,15 +134,22 @@ const PressReleasesSchema = z.array(ReleaseOneSheetSchema).refine(
 /** Per-creator press-page configuration (the editable surface). */
 export const PressContentSchema = z.object({
   enabled: z.boolean().default(false),
+  template: z.enum(["A", "B"]).default("A"),
+  tagline: z.string().nullable().optional(),
   shortBio: z.string().nullable().optional(),
   longBio: z.string().nullable().optional(),
   forFansOf: z.array(z.string()).default([]),
+  banner: PressImageSchema.nullable().optional(),
+  aboutPhoto: PressImageSchema.nullable().optional(),
+  members: z.array(PressMemberSchema).default([]),
   streamingLinks: z.array(PressStreamingLinkSchema).default([]),
   liveDatesUrl: z.string().url().nullable().optional(),
-  standoutTrack: PressStandoutTrackSchema.nullable(),
+  standoutTrack: PressStandoutTrackSchema.nullable().optional(),
+  highlights: z.array(PressHighlightSchema).default([]),
   pressContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).default([]),
+  gallery: z.array(PressImageSchema).default([]),
   releases: PressReleasesSchema.default([]),
 });
 export type PressContent = z.infer<typeof PressContentSchema>;
@@ -71,15 +157,22 @@ export type PressContent = z.infer<typeof PressContentSchema>;
 /** Patch shape for updating a creator's press config (all fields optional, no defaults). */
 export const PressConfigPatchSchema = z.object({
   enabled: z.boolean().optional(),
+  template: z.enum(["A", "B"]).optional(),
+  tagline: z.string().nullable().optional(),
   shortBio: z.string().nullable().optional(),
   longBio: z.string().nullable().optional(),
   forFansOf: z.array(z.string()).optional(),
+  banner: PressImageSchema.nullable().optional(),
+  aboutPhoto: PressImageSchema.nullable().optional(),
+  members: z.array(PressMemberSchema).optional(),
   streamingLinks: z.array(PressStreamingLinkSchema).optional(),
   liveDatesUrl: z.string().url().nullable().optional(),
   standoutTrack: PressStandoutTrackSchema.nullable().optional(),
+  highlights: z.array(PressHighlightSchema).optional(),
   pressContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
+  gallery: z.array(PressImageSchema).optional(),
   releases: PressReleasesSchema.optional(),
 });
 export type PressConfigPatch = z.infer<typeof PressConfigPatchSchema>;
@@ -101,14 +194,21 @@ export type PressPagePayload = z.infer<typeof PressPagePayloadSchema>;
 /** Default press config when no row exists. */
 export const DEFAULT_PRESS_CONTENT: PressContent = {
   enabled: false,
+  template: "A",
+  tagline: null,
   shortBio: null,
   longBio: null,
   forFansOf: [],
+  banner: null,
+  aboutPhoto: null,
+  members: [],
   streamingLinks: [],
   liveDatesUrl: null,
   standoutTrack: null,
+  highlights: [],
   pressContactEmail: null,
   location: null,
   photos: [],
+  gallery: [],
   releases: [],
 };
