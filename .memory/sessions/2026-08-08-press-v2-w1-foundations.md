@@ -1,7 +1,7 @@
-# Session: press-page v2 + content-library — W1 foundations built & reviewed
+# Session: press-page v2 + content-library — W1 foundations + W2 press-page pair built & reviewed
 
-**Date:** 2026-08-08
-**Scope:** platform W1 — the two foundation features (`content-library-core`, `creator-press-page-v2-content-model`).
+**Date:** 2026-08-08 (extended)
+**Scope:** platform W1 (foundations) + W2 press-page-v2 pair.
 
 ## What landed (both at `stage: done`, thorough-reviewed over 2 passes, unbound to a release)
 
@@ -29,6 +29,9 @@
 - **Foundations → thorough** (converge to clean). **Standard** for most W2/W3. **Thorough** for templates + editor (size/risk/UI). Orchestrator is NOT multimodal — vision subagent (`gpt-5.6-sol`) mandatory for any UI/mockup verification; pair with a code grep on exact strings (emails/domains).
 
 ## Carry-forwards (updated)
+- **DONE this session (all thorough-reviewed, `stage: done`, unbound to a release):**
+  - W1: `content-library-core` (3-table sharing model), `creator-press-page-v2-content-model` (service-optional + lazy normalization).
+  - W2 press-page pair: `creator-press-page-v2-templates` (Template A+B + selector + streaming icons + carousel, **mockup-fidelity independently verified**), `creator-press-page-v2-image-management` (crop/section picker via the imgproxy seam + credits + the **live photo-editor fix** + the content-library permission integration). Keystone seam (`PressImage.crop` + `PressImageSlot` + `buildPressImageUrl`) committed.
 - **W2 (4 features, all unblocked now):** `content-library-ui` (browse/reuse picker + request-access flow), `content-library-migration` ([refactor] — migrate existing per-surface images onto the library; touches live surfaces), `creator-press-page-v2-image-management` (crop/section picker via the imgproxy seam + credits + the live photo-editor fix; consumes `canUseAsset`), `creator-press-page-v2-templates` (Template A+B+selector+icons+carousel; **mockups LOCKED** at `.mockups/screens/creator-press-page/final-{1,3}.html`).
 - **W3:** `creator-press-page-v2-editor` (the **one unmocked surface** — mock via ux-ui-design:screens when designed), `creator-press-page-v2-pdf` (one template render → web + PDF).
 - **AF shoot photos not delivered** → press page ships empty; slots in via the v2 editor.
