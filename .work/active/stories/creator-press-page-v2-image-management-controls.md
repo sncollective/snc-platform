@@ -1,14 +1,14 @@
 ---
 id: creator-press-page-v2-image-management-controls
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-image-management
 depends_on: [creator-press-page-v2-image-management-crop-editor]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-08
 ---
 
 # Press asset chooser + image controls (Unit 4)
@@ -58,3 +58,17 @@ Reusable press-editor controls for upload, own/shared library reuse, required al
 ## Ordering
 
 Depends on the crop editor. The transitional v1 bridge and later v2 editor consume these controls.
+
+## Implementation notes
+
+- Added typed content-library upload/list clients that preserve credentials, cursor/abort semantics, and private upload sharing while returning immutable `library/...` keys.
+- Added a single press picker flow for Upload new, Your library, and Shared pool. It filters own/shared views from creator/use status, disables requestable assets without grants, exposes a future library access link, de-duplicates pagination, and provides explicit retry/empty/thumbnail-failure states.
+- Selection composes the fixed-ratio crop editor, then requires trimmed alt text and normalizes blank credit to `null`. Slot-specific source-size guidance is non-blocking.
+- Added a controlled image field with immediate replace/remove, immutable-key thumbnail, metadata controls, crop editing, and an explicit empty state for every slot. Exported all three editor-agnostic controls from the press component barrel.
+- Visually verified actual picker and field states at 1280×900 and 390×844: dialogs/fields remain centered, all actions and metadata inputs are legible, selected/empty states compose cleanly, and no horizontal overflow or off-edge media appears. Exact-string grep found neither a correct nor malformed press-email literal in these editor controls.
+
+## Verification
+
+- Focused controls tests — 3 files, 10 tests passed.
+- Combined crop + controls tests — 5 files, 25 tests passed.
+- `bun run --filter @snc/web typecheck` — passed with zero diagnostics.
