@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type React from "react";
 
+import type { DeliveredPressPagePayload } from "../../../../src/components/press/press-types.js";
 import { createRouterMock } from "../../../helpers/router-mock.js";
 import { extractRoute } from "../../../helpers/route-test-utils.js";
 
@@ -35,19 +36,32 @@ const { component: ReleaseOneSheetPage, route: releaseRoute } = extractRoute(
   () => import("../../../../src/routes/creators/$creatorId/press/releases/$releaseSlug.js"),
 );
 
-const payload = {
+const payload: DeliveredPressPagePayload = {
   creator: { id: "c1", handle: "animalfuture", displayName: "Animal Future", location: "Fort Collins, CO" },
   content: {
     enabled: true,
+    template: "A" as const,
+    tagline: "Socially conscious punk / alt-rock",
     shortBio: "Punk songs for the long way home.",
     longBio: null,
     forFansOf: ["The Replacements"],
-    streamingLinks: [{ label: "Spotify", url: "https://open.spotify.com/artist/animal" }],
+    banner: {
+      key: "creators/c1/press/banner.jpg",
+      alt: "Animal Future live",
+      src: "https://images.example/banner.jpg",
+      srcSet: "https://images.example/banner.jpg 1920w",
+      sizes: "100vw",
+    },
+    aboutPhoto: null,
+    members: [],
+    streamingLinks: [{ label: "Spotify", url: "https://open.spotify.com/artist/animal", service: "spotify" as const }],
     liveDatesUrl: "https://animalfuture.example/shows",
-    standoutTrack: { title: "Get to You", url: "https://open.spotify.com/track/get-to-you", streamsLabel: "14.5k streams and climbing" },
+    standoutTrack: null,
+    highlights: [{ eyebrow: "Standout track", title: "Get to You", metric: "14.5k streams and climbing", coverArt: null }],
     pressContactEmail: "press@s-nc.org",
     location: "Fort Collins, CO",
-    photos: ["creators/c1/press/hero.jpg"],
+    photos: [],
+    gallery: [],
     releases: [{ slug: "the-illusionist", title: "The Illusionist", catalogNumber: "SNCR-001", personnel: [], fcc: "clean" as const }],
   },
 };
@@ -59,32 +73,65 @@ beforeEach(() => {
 });
 
 describe("public press page", () => {
-  it("renders seeded press content, photos, and PDF links", () => {
+  it("renders delivered v2 content, exact contact, and PDF links", () => {
     render(<PressPage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Animal Future" })).toBeInTheDocument();
     expect(screen.getByText("Punk songs for the long way home.")).toBeInTheDocument();
     expect(screen.getByText("14.5k streams and climbing")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Animal Future press photo 1" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Animal Future live" })).toHaveAttribute(
       "src",
-      "/api/creators/c1/press/photos/0",
+      "https://images.example/banner.jpg",
     );
-    expect(screen.getByRole("link", { name: "Download one-pager (PDF)" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
+    expect(screen.getAllByRole("link", { name: "Download one-pager (PDF) ↓" })[0]).toHaveAttribute(
       "href",
       "/api/creators/c1/press/one-pager.pdf",
     );
   });
 
-  it("builds OG and Twitter metadata from the server loader", () => {
+  it("builds OG and Twitter metadata from the delivered banner", () => {
     const head = pressRoute.head as ((args: { loaderData: typeof payload }) => { meta?: Array<Record<string, string>> });
     const result = head({ loaderData: payload });
 
     expect(result.meta).toEqual(expect.arrayContaining([
       { property: "og:title", content: "Animal Future — Press kit" },
       { property: "og:description", content: "Punk songs for the long way home." },
-      { property: "og:image", content: "/api/creators/c1/press/photos/0" },
+      { property: "og:image", content: "https://images.example/banner.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
     ]));
+  });
+
+  it("falls back from about media to the first delivered gallery image", () => {
+    const head = pressRoute.head as ((args: { loaderData: typeof payload }) => { meta?: Array<Record<string, string>> });
+    const galleryImage = {
+      key: "gallery.jpg",
+      alt: "Gallery",
+      src: "/images/gallery.jpg",
+      srcSet: "/images/gallery.jpg 960w",
+      sizes: "300px",
+    };
+    const result = head({
+      loaderData: {
+        ...payload,
+        content: { ...payload.content, banner: null, aboutPhoto: null, gallery: [galleryImage] },
+      },
+    });
+
+    expect(result.meta).toEqual(expect.arrayContaining([
+      { property: "og:image", content: "/images/gallery.jpg" },
+      { name: "twitter:image", content: "/images/gallery.jpg" },
+    ]));
+  });
+
+  it("dispatches the delivered Template B selection", () => {
+    mockPageLoader.mockReturnValue({
+      ...payload,
+      content: { ...payload.content, template: "B" },
+    });
+    const { container } = render(<PressPage />);
+    expect(container.querySelector('[data-press-template="B"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-press-template="A"]')).not.toBeInTheDocument();
   });
 
   it("turns a disabled or missing creator API response into a real route 404", async () => {
