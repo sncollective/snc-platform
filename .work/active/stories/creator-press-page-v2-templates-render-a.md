@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-templates-render-a
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-templates
 depends_on: [creator-press-page-v2-templates-shared-sections-and-icons, creator-press-page-v2-templates-carousel]
@@ -35,3 +35,15 @@ at desktop/mobile/print against final-1 and pairs with exact email/URL grep.
 
 Requires shared sections and carousel behavior; can proceed in parallel with
 Template B after both checkpoints are complete.
+
+## Implementation notes
+- Execution capability: direct inline ownership; explicit composition preserved the locked hierarchy without a page DSL.
+- Review weight: standard (project default; review occurs at the feature boundary).
+- Files changed: `apps/web/src/components/press/press-template-a.tsx`, `press-template-a.module.css`, `press-sections.tsx` exact-optional prop seam, and `apps/web/tests/unit/components/press/press-template-a.test.tsx`.
+- Tests added/removed: two render tests for order, bios, two-highlight limit, exact contact/PDF contract, and image-empty collapse; none removed.
+- Simplification: Template A is only composition; shared sections retain all semantics and item rendering.
+- Discrepancies from design: none.
+- Visual verification: populated screenshots at 1440/760/480/390 matched the locked centered 980px editorial measure, 3:1 hero, four/two member grid, two/one highlights, five-service icon row, carousel peek/arrows, and fixed PDF action with no visible horizontal overflow. A 390px all-image-empty screenshot kept the gradient hero and clean text-only cards with no broken image icons. Firefox BiDi letter-print output was visually inspected: letter size, fixed action/arrows hidden, static 4:3 gallery, credits retained, and full content continued across three pages rather than being truncated per the deferred overflow policy.
+- Exact-string verification: `press@s-nc.org`, `mailto:press@s-nc.org`, service registry members, `translate3d`, ArrowLeft/ArrowRight, and slot ratios all matched source; no `press@snc.org` literal.
+- Verification: focused A/B/component/route tests (29 passed) and web typecheck (0 errors).
+- Adjacent issues parked: none.

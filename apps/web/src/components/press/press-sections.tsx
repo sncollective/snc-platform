@@ -162,8 +162,8 @@ export function LiveDatesSection({
   dates,
   liveDatesUrl,
 }: {
-  readonly dates?: readonly PressLiveDate[];
-  readonly liveDatesUrl?: string | null;
+  readonly dates?: readonly PressLiveDate[] | undefined;
+  readonly liveDatesUrl?: string | null | undefined;
 }): React.ReactElement | null {
   if ((!dates || dates.length === 0) && !liveDatesUrl) return null;
 
@@ -216,7 +216,7 @@ export function PressFooter({
   email,
   downloadUrl,
 }: {
-  readonly email?: string | null;
+  readonly email?: string | null | undefined;
   readonly downloadUrl: string;
 }): React.ReactElement {
   return (

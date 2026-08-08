@@ -1,0 +1,29 @@
+.template {
+  min-width: 0;
+  width: 100%;
+  overflow-x: clip;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.editorial {
+  min-width: 0;
+  width: min(calc(100% - 2rem), 980px);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 5rem) 0;
+}
+
+@media print {
+  .template {
+    width: 7.5in;
+    overflow: visible;
+    font-size: 7pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .editorial {
+    width: 7.5in;
+    padding: .08in 0;
+  }
+}
