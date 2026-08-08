@@ -177,7 +177,7 @@ export function buildPressImageUrl(
   image: PressImage,
   slot: keyof PressImageSlot,
   width: number,
-): { src: string; srcSet?: string; sizes?: string };
+): { src: string; srcSet: string; sizes: string };
 ```
 
 **Implementation notes**:

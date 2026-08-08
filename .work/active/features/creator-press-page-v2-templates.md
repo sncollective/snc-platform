@@ -533,7 +533,9 @@ full-bleed template shell.
   templates try to call the signer in browser code, the build can expose secrets
   or fail hydration. The explicit API projection and story dependency prevent
   that. If image-management is late, template units may be built against typed
-  delivered fixtures, but the public route flip waits.
+  delivered fixtures, but the public route flip waits. Both feature bodies and
+  the image-management contract story pin the operator-required
+  `{ src, srcSet, sizes }` return.
 - **Production failure mode — global shell defeats full bleed or pollutes print.**
   The root `.main-content` has max-width/padding and the app adds navigation and
   a global footer. The route story must verify the real assembled route, not only
