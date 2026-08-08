@@ -59,7 +59,9 @@ editor needs it before the full v2).
   picker + credits + photo-editor fix — depends on: `[content-model, content-library-core]`
   (cross-epic: `content-library`)
 - `creator-press-page-v2-templates` — Template A + B + selector + streaming
-  icons + carousel gallery, per the locked design — depends on: `[content-model]`
+  icons + carousel gallery, per the locked design — depends on: `[content-model, image-management]`
+  (the design proceeds in parallel; implementation consumes image-management's
+  crop-aware server-side delivery helper)
 - `creator-press-page-v2-editor` — manage members/highlights/gallery/template/
   credits via the image pipeline — depends on: `[content-model, image-management]`
 - `creator-press-page-v2-pdf` — render the chosen template to letter-size —
@@ -77,8 +79,9 @@ editor needs it before the full v2).
 ### Decomposition risks
 
 - Templates + editor are the larger features (~10–15 units); feature-design may
-  split them further. Templates depends on content-model only, so it can be
-  designed in parallel with image-management.
+  split them further. Templates is designed in parallel with image-management,
+  but its public route integration waits for image-management's crop-aware
+  server-side delivery helper so signing logic never enters the browser.
 - The editor UI is NOT mocked (deferred to its feature-design pass) — it's a
   substantial authoring-form redesign; the press-page mockups cover the public
   surface.
