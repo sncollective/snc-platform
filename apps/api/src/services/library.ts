@@ -416,7 +416,10 @@ export const deleteLibraryAsset = async (
   assetId: string,
 ): Promise<Result<void, AppError>> => {
   try {
-    await db
+    // Owner-scoped (admin scope is admin-owned/creatorId-null registrations).
+    // A zero-row update means the asset doesn't exist for this actor (not theirs,
+    // already deleted, or absent) — return an error rather than a misleading ok.
+    const [updated] = await db
       .update(contentAssets)
       .set({ deletedAt: new Date() })
       .where(
@@ -425,7 +428,11 @@ export const deleteLibraryAsset = async (
           registrationOwnerCondition(actor.isAdmin ? null : actor.creatorId),
           isNull(contentAssets.deletedAt),
         ),
-      );
+      )
+      .returning({ id: contentAssets.id });
+    if (!updated) {
+      return err(new NotFoundError("Library asset not found"));
+    }
     return ok(undefined);
   } catch (cause) {
     return err(asServiceError(cause));

@@ -266,9 +266,9 @@ describe("content library integration", () => {
     expect(await canUseAsset(granteeActor, asset.storageKey)).toBe(true);
   });
 
-  it.skip("rejects deleting another creator's registration without changing owner state", async () => {
-    // Known bug: deleteLibraryAsset currently returns ok:true when its owner-scoped
-    // UPDATE affects zero rows. Keep this regression honest until that service bug is fixed.
+  it("rejects deleting another creator's registration without changing owner state", async () => {
+    // Owner-scoped delete: a non-owner's update affects zero rows → must error,
+    // and the owner's registration must be unchanged.
     const uploaded = await upload(creatorIds[0]!, 61, "requestable");
     expect(uploaded.ok).toBe(true);
     if (!uploaded.ok) return;
