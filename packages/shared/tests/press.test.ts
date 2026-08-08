@@ -84,6 +84,17 @@ describe("PressContentSchema", () => {
     expect(content.photos).toEqual(v1Content.photos);
   });
 
+  it("accepts a v2 link without service while retaining its required label", () => {
+    const content = PressContentSchema.parse({
+      streamingLinks: [{ label: "My site", url: "https://example.com/listen" }],
+    });
+
+    expect(content.streamingLinks).toEqual([
+      { label: "My site", url: "https://example.com/listen", service: "website" },
+    ]);
+    expect(content.streamingLinks[0]?.label).toBe("My site");
+  });
+
   it("round-trips the default content through the evolved schema", () => {
     expect(PressContentSchema.parse(DEFAULT_PRESS_CONTENT)).toEqual(DEFAULT_PRESS_CONTENT);
   });

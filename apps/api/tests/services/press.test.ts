@@ -66,10 +66,11 @@ describe("press config service", () => {
   });
 
   it("normalizes a legacy row on the read path", async () => {
+    const { gallery: _gallery, highlights: _highlights, ...legacyDefaults } = DEFAULT_PRESS_CONTENT;
     mockSelectLimit.mockResolvedValueOnce([
       {
         content: {
-          ...DEFAULT_PRESS_CONTENT,
+          ...legacyDefaults,
           streamingLinks: [
             { label: "Spotify", url: "https://open.spotify.com/track/example" },
           ],
@@ -89,8 +90,6 @@ describe("press config service", () => {
               artKey: "creators/creator-1/press/art.jpg",
             },
           ],
-          gallery: [],
-          highlights: [],
         },
       },
     ]);
@@ -124,6 +123,32 @@ describe("press config service", () => {
     }
   });
 
+  it("preserves explicit empty v2 gallery and highlights", async () => {
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        content: {
+          ...DEFAULT_PRESS_CONTENT,
+          photos: ["creators/creator-1/press/legacy.jpg"],
+          standoutTrack: {
+            title: "Legacy track",
+            url: "https://open.spotify.com/track/example",
+            streamsLabel: "14k streams",
+          },
+          gallery: [],
+          highlights: [],
+        },
+      },
+    ]);
+    const { getPressConfig } = await setupService();
+
+    const result = await getPressConfig("creator-1");
+
+    expect(result).toEqual({
+      ok: true,
+      value: expect.objectContaining({ gallery: [], highlights: [] }),
+    });
+  });
+
   it("preserves explicit v2 gallery and highlights", async () => {
     const explicit = PressContentSchema.parse({
       ...DEFAULT_PRESS_CONTENT,
@@ -152,6 +177,67 @@ describe("press config service", () => {
     expect(normalized.gallery).toHaveLength(1);
   });
 
+  it("round-trips a stored v1 row and infers legacy link services", async () => {
+    const legacy = {
+      ...DEFAULT_PRESS_CONTENT,
+      streamingLinks: [{ label: "Bandcamp", url: "https://artist.bandcamp.com/album/demo" }],
+      photos: ["creators/creator-1/press/photo.jpg"],
+    };
+    mockSelectLimit.mockResolvedValueOnce([{ content: legacy }]);
+    const { getPressConfig, upsertPressConfig } = await setupService();
+
+    const readV1 = await getPressConfig("creator-1");
+
+    expect(readV1.ok).toBe(true);
+    if (readV1.ok) {
+      expect(readV1.value.streamingLinks).toEqual([
+        {
+          label: "Bandcamp",
+          url: "https://artist.bandcamp.com/album/demo",
+          service: "bandcamp",
+        },
+      ]);
+    }
+
+    mockSelectLimit.mockResolvedValueOnce([{ content: legacy }]);
+    await upsertPressConfig("creator-1", PressConfigPatchSchema.parse({
+      streamingLinks: [{ label: "Bandcamp", url: "https://artist.bandcamp.com/album/demo" }],
+    }));
+
+    const stored = mockInsertValues.mock.calls.at(-1)?.[0]?.content;
+    mockSelectLimit.mockResolvedValueOnce([{ content: stored }]);
+    const roundTrip = await getPressConfig("creator-1");
+
+    expect(roundTrip.ok).toBe(true);
+    if (roundTrip.ok) {
+      expect(roundTrip.value.streamingLinks[0]?.label).toBe("Bandcamp");
+      expect(roundTrip.value.streamingLinks[0]?.service).toBe("bandcamp");
+    }
+  });
+
+  it("reads a v2 link without an explicit service while retaining its label", async () => {
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        content: {
+          ...DEFAULT_PRESS_CONTENT,
+          streamingLinks: [{ label: "Custom site", url: "https://example.com/listen" }],
+        },
+      },
+    ]);
+    const { getPressConfig } = await setupService();
+
+    const result = await getPressConfig("creator-1");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.streamingLinks[0]).toEqual({
+        label: "Custom site",
+        url: "https://example.com/listen",
+        service: "website",
+      });
+    }
+  });
+
   it("shallow-merges a partial patch and upserts the complete content document", async () => {
     const current: PressContent = {
       ...DEFAULT_PRESS_CONTENT,
@@ -169,9 +255,7 @@ describe("press config service", () => {
     const expected: PressContent = {
       ...current,
       shortBio: "Updated bio",
-      gallery: [
-        { key: "creators/creator-1/press/photo.jpg", alt: "", credit: null },
-      ],
+      gallery: [],
     };
     expect(result).toEqual({ ok: true, value: expected });
     expect(mockInsertValues).toHaveBeenCalledWith({

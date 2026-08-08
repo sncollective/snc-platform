@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-08
+updated: 2026-08-09
 ---
 
 # Press page v2 — content model
@@ -51,7 +51,7 @@ The v1 press page is **live** (AF single shipped 2026-08-06). `content` is a
 JSONB column; evolving its shape is a Zod-contract change + a one-time data
 backfill, **not** a DDL migration. The v2 schema becomes a superset: new fields
 (`template`, `tagline`, `banner`, `aboutPhoto`, `members[]`, `highlights[]`,
-`gallery[]`, `service` on streaming links) are added with `.default()`/optional;
+`gallery[]`, and optional `service` on streaming links) are added with `.default()`/optional;
 the v1 fields (`photos`, `standoutTrack`, `releases`) remain as **legacy
 optionals** so the live v1 web render + v1 manage editor keep reading/writing
 them unchanged until the v2 templates + editor ship and a later cleanup retires
@@ -89,13 +89,15 @@ v2-ready the moment the templates feature flips the render over.
   The editor (later feature) lets a creator compose highlights, optionally from
   releases + the standout track. Flagged: this keeps more fields than a strict
   "merge" reading would, but preserves the one-sheet capability.
-- **Streaming links gain a `service` enum** so the locked-design icon buttons can
-  render. The icon catalog (spotify / apple-music / amazon-music / youtube /
-  bandcamp, + soundcloud/tidal for headroom) is owned by the **templates** feature
-  (rendering); the content model only carries `service`. `label` stays as an
-  optional override (derived from the service otherwise). Backfill infers
-  `service` from the URL host where unambiguous (spotify.com → spotify, etc.),
-  falling back to a `website` catch-all so no v1 data is lost.
+- **Streaming links carry an optional `service` enum** so the locked-design icon
+  buttons can render without breaking the live v1 web consumers. `label` remains
+  required and primary, matching the shipped editor/public page contract. The
+  icon catalog (spotify / apple-music / amazon-music / youtube / bandcamp, +
+  soundcloud/tidal for headroom) is owned by the **templates** feature
+  (rendering); the content model carries `service` when present. Legacy links
+  infer `service` from the URL host where unambiguous, falling back to a
+  `website` catch-all so no v1 data is lost. A custom website therefore needs no
+  new label semantics and remains valid as `{label,url}`.
 - **`members[]` are display-only** (name/role/photo/bio), stored in the press
   JSONB — **not** the `creator_members` table (that table is team/permissions:
   userId + role). Press "band members" are named people who may have no account.
@@ -203,17 +205,21 @@ to mirror (all optional, no defaults — the patch shape).
 contract)
 
 A **pure read transform** applied after `readPressConfig` parses a row through
-the evolved schema. It fills v2 surface fields from v1 legacy fields **only when
-the v2 field is empty/unset** (so explicit v2 editor writes take precedence):
+the evolved schema. `readPressConfig` passes raw JSONB key presence to the
+transform, which fills v2 surface fields from v1 legacy fields **only when the
+v2 key is absent** (so explicit v2 editor writes, including `[]`, take
+precedence):
 
 ```ts
-/** Lazily normalize a parsed v1-shaped PressContent toward the v2 surface shape. */
-export const normalizePressContent = (c: PressContent): PressContent => {
-  // gallery ← photos (bare keys → PressImage {key, alt:'', credit:null})
-  const gallery = c.gallery.length ? c.gallery
+/** Lazily normalize a parsed row using raw JSONB key presence. */
+export const normalizePressContent = (
+  c: PressContent,
+  presence: { gallery: boolean; highlights: boolean },
+): PressContent => {
+  // An explicit [] is authoritative; derive only when the raw key is absent.
+  const gallery = presence.gallery ? c.gallery
     : c.photos.map((key) => ({ key, alt: "", credit: null }));
-  // highlights ← standoutTrack (lead) then releases (coverArt from artKey)
-  const highlights = c.highlights.length ? c.highlights : [
+  const highlights = presence.highlights ? c.highlights : [
     ...(c.standoutTrack ? [{ eyebrow: "Standout track", title: c.standoutTrack.title,
         metric: c.standoutTrack.streamsLabel, url: c.standoutTrack.url }] : []),
     ...c.releases.map((r) => ({ eyebrow: `New release${r.catalogNumber ? ` · ${r.catalogNumber}` : ""}`,
@@ -241,7 +247,7 @@ contract's parse-time union preprocessor — no duplicate work here.)
   a leading "Standout track" highlight, then release highlights, and inferred
   streaming services.
 - [ ] A row where the editor has already set `gallery`/`highlights` is returned
-  **as-written** (precedence: explicit v2 writes win).
+  **as-written**, including explicit empty arrays (precedence: raw-key v2 writes win).
 - [ ] `normalizePressContent` is idempotent (normalize(normalize(x)) == normalize(x)).
 
 ---
@@ -280,19 +286,41 @@ without changing the JSONB column or routes. Legacy streaming links are parsed
 with inferred service identifiers, v1 fields remain available, and the default
 and patch schemas cover both generations. `apps/api/src/services/press.ts`
 parses stored content and lazily derives gallery/highlights only when their v2
-surfaces are empty; the transform is pure and idempotent.
+raw v2 JSONB keys are absent; the transform is pure and idempotent.
 
 Child stories completed:
 - `creator-press-page-v2-content-model-contract`
 - `creator-press-page-v2-content-model-normalization`
 
-Integrated verification: shared tests passed (23 files, 710 tests), API unit
-tests passed (120 files, 1,930 tests), including all existing press route tests,
-and the focused normalization tests passed. The requested API integration suite
-was run; 8 files/39 tests passed, with 4 unrelated baseline failures in channel
-lifecycle foreign-key setup and test-control-secret gating. No press integration
-tests failed. The shared `build` command is unavailable because
-`@snc/shared` has no `build` script; shared typecheck passed.
+Integrated verification: focused shared press tests passed (17 tests), focused
+API press-service tests passed (9 tests), the existing web public/manage press route
+tests passed (9 tests), and `bun run --filter @snc/web typecheck` passed with zero
+errors. The shared `build` command is unavailable because `@snc/shared` has no
+`build` script. Full API unit/integration suites were also run; press tests passed,
+while unrelated concurrent content-library work currently contributes six unit
+failures, one integration library failure, and three API type errors. Integration
+additionally retains the four confirmed baseline failures (three channel-lifecycle
+FK failures and one test-control-gating failure). These files were left untouched.
+
+## Review (pass 1) findings + resolution
+
+Pass 1 found two blocking compatibility bugs; the operator confirmed these
+resolutions before this implementation pass:
+
+1. **Live v1 streaming-link compatibility.** The first v2 shape required
+   `service` and made `label` optional, breaking the untouched v1 manage editor
+   (`{label,url}` writes and `link.label.trim()`) and public page. The resolved
+   contract keeps `label: string` required/primary and makes `service` optional.
+   The legacy preprocessor still infers `service` from the URL when absent, and
+   the enum retains `website` for custom destinations. This preserves the v1
+   web type contract while allowing v2 templates to use an explicit service or
+   infer one from the URL.
+
+2. **Explicit empty v2 writes.** Defaulted empty `gallery`/`highlights` arrays
+   previously caused legacy `photos`/`standoutTrack`/`releases` to reappear.
+   `readPressConfig` now checks the raw JSONB object's key presence before
+   parsing: derivation occurs only when the v2 key is absent, so an explicit
+   `[]` remains authoritative. The transform remains pure and idempotent.
 
 ## Risks
 - **Read-time normalization correctness** — the transform must be idempotent and

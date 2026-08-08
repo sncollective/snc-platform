@@ -22,14 +22,14 @@ earlier stored-backfill approach — see the feature's `## Design decisions`.)
 A **pure read transform** in `apps/api/src/services/press.ts`, applied after
 `readPressConfig` parses a row through the evolved schema — `normalizePressContent(c)`:
 
-- `gallery` ← `photos` (bare keys → `PressImage {key, alt:"", credit:null}`) **only if `gallery` is empty**.
-- `highlights` ← `standoutTrack` (lead: eyebrow "Standout track", title, metric=streamsLabel, url) then `releases` (eyebrow "New release · "||catalogNumber, title, coverArt from artKey) **only if `highlights` is empty**.
+- `gallery` ← `photos` (bare keys → `PressImage {key, alt:"", credit:null}`) **only when the raw `gallery` key is absent**; an explicit `[]` wins.
+- `highlights` ← `standoutTrack` (lead: eyebrow "Standout track", title, metric=streamsLabel, url) then `releases` (eyebrow "New release · "||catalogNumber, title, coverArt from artKey) **only when the raw `highlights` key is absent**; an explicit `[]` wins.
 - (streaming `service` inference already happens at parse time via the contract's union preprocessor — no duplicate work.)
 - `banner`/`aboutPhoto`/`members`/`tagline` have no v1 analog → stay default; not derived.
 
 Wire it into `readPressConfig` so both the public and manage read paths return the
-normalized shape. Explicit v2 editor writes take precedence (the "only if empty"
-guards). `normalizePressContent` is a pure function.
+normalized shape. Explicit v2 editor writes take precedence by raw JSONB key presence (an
+explicit empty array remains authoritative). `normalizePressContent` is a pure function.
 
 ## Acceptance evidence
 
@@ -57,7 +57,7 @@ guards). `normalizePressContent` is a pure function.
 
 Added pure `normalizePressContent` and wired parsed row reads through it. Legacy
 photos become gallery image objects, standout/release data becomes highlights,
-and explicit non-empty v2 gallery/highlights remain authoritative. Added service
+and explicit v2 gallery/highlights remain authoritative, including empty arrays. Added service
 unit coverage for read-path normalization, precedence, idempotence, and empty
 legacy sources.
 

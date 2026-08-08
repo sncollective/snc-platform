@@ -42,9 +42,9 @@ export const inferService = (url: string): PressStreamingService => {
 };
 
 const PressStreamingLinkShapeSchema = z.object({
-  service: PressStreamingServiceSchema,
+  label: z.string(),
   url: z.string().url(),
-  label: z.string().nullable().optional(),
+  service: PressStreamingServiceSchema.optional(),
 });
 
 /** A listening destination, accepting and normalizing the live v1 link shape. */

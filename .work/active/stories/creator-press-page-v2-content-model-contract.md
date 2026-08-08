@@ -26,16 +26,16 @@ kept as legacy optionals):
   `PressHighlightSchema` `{eyebrow, title, description?, metric?, url?, coverArt?}`,
   `PressStreamingServiceSchema` (enum: spotify, apple-music, amazon-music,
   youtube, bandcamp, soundcloud, tidal, website).
-- `PressStreamingLinkSchema` → `{service, url, label?}` (label optional override).
+- `PressStreamingLinkSchema` → `{label, url, service?}` (`label` remains required for the live v1 web; `service` is an optional icon hint).
 - `PressContentSchema` adds: `template` (`"A"|"B"`, default `"A"`), `tagline?`,
   `banner?` (PressImage), `aboutPhoto?` (PressImage), `members` (default `[]`),
   `highlights` (default `[]`), `gallery` (default `[]`). Keep `photos`,
   `standoutTrack`, `releases` as legacy optionals.
 - `inferService(url)` host→service helper (spotify/apple/bandcamp/youtube/etc →
   `website` fallback); used by the streaming-links read preprocessor.
-- A `z.union`/preprocessor on `streamingLinks` elements mapping legacy
-  `{label,url}` → `{service: inferService(url), url, label}` so legacy
-  v1 rows parse without throwing.
+- A preprocessor on `streamingLinks` elements mapping legacy `{label,url}` →
+  `{service: inferService(url), url, label}` so legacy v1 rows parse without
+  throwing; v2 links may omit `service` and still retain their required label.
 - Update `DEFAULT_PRESS_CONTENT` (new defaults) and `PressConfigPatchSchema`
   (mirror, all optional — still accepts v1 patches: `photos`, `standoutTrack`).
 
@@ -47,6 +47,9 @@ kept as legacy optionals):
       `template:"A"`, streaming links with inferred `service`.
 - [x] `DEFAULT_PRESS_CONTENT` satisfies the evolved schema; round-trips.
 - [x] `PressConfigPatchSchema` accepts a partial v2 patch AND a v1 patch.
+- [x] The live v1 `{label,url}` link shape remains type-safe: `label` is
+      required and `service` is optional; `website` remains the custom-link
+      fallback.
 - [x] `inferService` maps known hosts + falls back to `website`.
 - [x] `bun run --filter @snc/shared test` green (new contract tests).
 

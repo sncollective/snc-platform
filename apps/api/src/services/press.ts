@@ -12,13 +12,28 @@ import { creatorPressConfigs } from "../db/schema/creator.schema.js";
 
 // ── Private Helpers ──
 
+type V2FieldPresence = {
+  gallery: boolean;
+  highlights: boolean;
+};
+
+const hasOwnField = (value: unknown, field: string): boolean =>
+  typeof value === "object" && value !== null && !Array.isArray(value) &&
+  Object.prototype.hasOwnProperty.call(value, field);
+
 /** Lazily normalize a parsed v1 press document toward the v2 surface shape. */
-export const normalizePressContent = (content: PressContent): PressContent => {
-  const gallery = content.gallery.length
+export const normalizePressContent = (
+  content: PressContent,
+  presence: V2FieldPresence = {
+    gallery: content.gallery.length > 0,
+    highlights: content.highlights.length > 0,
+  },
+): PressContent => {
+  const gallery = presence.gallery
     ? content.gallery
     : content.photos.map((key) => ({ key, alt: "", credit: null }));
 
-  const highlights = content.highlights.length
+  const highlights = presence.highlights
     ? content.highlights
     : [
         ...(content.standoutTrack
@@ -53,7 +68,11 @@ const readPressConfig = async (creatorId: string): Promise<PressContent> => {
   const content = row
     ? PressContentSchema.parse(row.content)
     : PressContentSchema.parse(DEFAULT_PRESS_CONTENT);
-  return normalizePressContent(content);
+  const rawContent = row?.content;
+  return normalizePressContent(content, {
+    gallery: hasOwnField(rawContent, "gallery"),
+    highlights: hasOwnField(rawContent, "highlights"),
+  });
 };
 
 // ── Public API ──
