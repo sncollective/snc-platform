@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-content-model
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, ui, schema]
 parent: creator-press-page-v2
 depends_on: []
