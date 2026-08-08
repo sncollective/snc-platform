@@ -8,11 +8,14 @@ import {
   AppError,
   PressConfigPatchSchema,
   PressContentSchema,
+  PressImageCropSchema,
+  PressImageSlotSchema,
   PressPagePayloadSchema,
   ReleaseOneSheetSchema,
   MAX_FILE_SIZES,
   NotFoundError,
   ValidationError,
+  isLibraryAssetKey,
   isOwnedPressKey,
 } from "@snc/shared";
 
@@ -22,13 +25,34 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
 import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
+import { buildPressImageUrl } from "../lib/imgproxy.js";
+import {
+  DeliveredPressContentSchema,
+  resolvePressPageContent,
+} from "../lib/press-url.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { canUseAsset } from "../services/library.js";
+import type { LibraryActor } from "../services/library.js";
 import { renderOnePagerPdf, renderOneSheetPdf } from "../services/press-pdf.js";
 import { getPressConfig, upsertPressConfig } from "../services/press.js";
 import { storage } from "../storage/index.js";
 import { CreatorIdParam } from "./route-params.js";
 
 const PhotoUploadResponseSchema = z.object({ key: z.string() });
+const PressImagePreviewRequestSchema = z.object({
+  key: z.string().min(1),
+  crop: PressImageCropSchema.optional(),
+  slot: PressImageSlotSchema,
+  width: z.number().int().min(160).max(3840),
+});
+const PressImageDescriptorSchema = z.object({
+  src: z.string(),
+  srcSet: z.string(),
+  sizes: z.string(),
+});
+const DeliveredPressPagePayloadSchema = PressPagePayloadSchema.extend({
+  content: DeliveredPressContentSchema,
+});
 
 // ── Private Helpers ──
 
@@ -49,20 +73,46 @@ const getCreatorProfileForManage = async (identifier: string) => {
   return profile;
 };
 
-const validateOwnedPressKeys = (
-  patch: z.infer<typeof PressConfigPatchSchema>,
-  creatorId: string,
-): void => {
-  const hasForeignPhoto = patch.photos?.some(
-    (key) => !isOwnedPressKey(key, creatorId),
-  );
-  const hasForeignArt = patch.releases?.some(
-    (release) => release.artKey && !isOwnedPressKey(release.artKey, creatorId),
-  );
+type PressKeyReference = { readonly path: string; readonly key: string };
 
-  if (hasForeignPhoto || hasForeignArt) {
+const collectPressKeyReferences = (
+  patch: z.infer<typeof PressConfigPatchSchema>,
+): PressKeyReference[] => {
+  const references: PressKeyReference[] = [];
+  const add = (path: string, key: string | null | undefined): void => {
+    if (key) references.push({ path, key });
+  };
+
+  add("banner.key", patch.banner?.key);
+  add("aboutPhoto.key", patch.aboutPhoto?.key);
+  patch.members?.forEach((member, index) =>
+    add(`members[${index}].photo.key`, member.photo?.key));
+  patch.highlights?.forEach((highlight, index) =>
+    add(`highlights[${index}].coverArt.key`, highlight.coverArt?.key));
+  patch.gallery?.forEach((image, index) => add(`gallery[${index}].key`, image.key));
+  patch.photos?.forEach((key, index) => add(`photos[${index}]`, key));
+  patch.releases?.forEach((release, index) =>
+    add(`releases[${index}].artKey`, release.artKey));
+
+  return references;
+};
+
+const validateOwnedPressKeys = async (
+  patch: z.infer<typeof PressConfigPatchSchema>,
+  actor: LibraryActor,
+): Promise<void> => {
+  const byKey = new Map<string, string[]>();
+  for (const reference of collectPressKeyReferences(patch)) {
+    const paths = byKey.get(reference.key) ?? [];
+    paths.push(reference.path);
+    byKey.set(reference.key, paths);
+  }
+
+  for (const [key, paths] of byKey) {
+    if (isOwnedPressKey(key, actor.creatorId)) continue;
+    if (isLibraryAssetKey(key) && await canUseAsset(actor, key)) continue;
     throw new ValidationError(
-      "Press photos and release art must belong to this creator's press namespace",
+      `Press image at ${paths.join(", ")} is not available to this creator`,
     );
   }
 };
@@ -231,7 +281,7 @@ pressRoutes.get(
     responses: {
       200: {
         description: "Press-page payload",
-        content: { "application/json": { schema: resolver(PressPagePayloadSchema) } },
+        content: { "application/json": { schema: resolver(DeliveredPressPagePayloadSchema) } },
       },
       404: ERROR_404,
     },
@@ -247,7 +297,7 @@ pressRoutes.get(
         displayName: profile.displayName,
         location: content.location ?? null,
       },
-      content,
+      content: resolvePressPageContent(content),
     });
   },
 );
@@ -330,14 +380,60 @@ pressRoutes.patch(
   async (c) => {
     const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
     const user = c.get("user");
-    await requireCreatorPermission(user.id, profile.id, "editProfile");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
 
     const patch = c.req.valid("json" as never) as z.infer<typeof PressConfigPatchSchema>;
-    validateOwnedPressKeys(patch, profile.id);
+    await validateOwnedPressKeys(patch, {
+      creatorId: profile.id,
+      isAdmin: roles.includes("admin"),
+    });
 
     const result = await upsertPressConfig(profile.id, patch);
     if (!result.ok) throw result.error;
     return c.json(result.value);
+  },
+);
+
+// POST /:creatorId/press/image-preview — Sign the eventual press image render
+pressRoutes.post(
+  "/:creatorId/press/image-preview",
+  requireAuth,
+  describeRoute({
+    description: "Preview a creator-authorized press image crop",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Signed press image descriptor",
+        content: { "application/json": { schema: resolver(PressImageDescriptorSchema) } },
+      },
+      400: ERROR_400,
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  validator("json", PressImagePreviewRequestSchema),
+  async (c) => {
+    const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
+
+    const body = c.req.valid("json");
+    const actor = {
+      creatorId: profile.id,
+      isAdmin: roles.includes("admin"),
+    } satisfies LibraryActor;
+    const image = {
+      key: body.key,
+      alt: "",
+      ...(body.crop ? { crop: body.crop } : {}),
+    };
+    await validateOwnedPressKeys({ gallery: [image] }, actor);
+
+    return c.json(buildPressImageUrl(image, body.slot, body.width));
   },
 );
 

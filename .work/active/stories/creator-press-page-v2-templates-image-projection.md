@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-templates-image-projection
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-templates
 depends_on: [creator-press-page-v2-image-management]
@@ -40,3 +40,13 @@ responsive images consumed by the public React templates.
 
 Blocked on `creator-press-page-v2-image-management`, which owns optional crop,
 `PressImageSlot`, and `buildPressImageUrl`.
+
+## Implementation notes
+- Execution capability: direct inline ownership; the API projection was a bounded server adapter with a settled seam.
+- Review weight: standard (project default; review occurs at the feature boundary).
+- Files changed: `apps/api/src/lib/press-url.ts`, `apps/api/src/routes/press.routes.ts`, `apps/api/tests/unit/lib/press-url.test.ts`, `apps/api/tests/routes/press.test.ts`.
+- Tests added/removed: added projection unit coverage and extended the public/manage route contract fixture; none removed.
+- Simplification: one projection helper owns all slot/width mapping; no URL or crop logic was duplicated.
+- Discrepancies from design: delivered schemas/types live in the API adapter rather than `packages/shared/src/press.ts`, honoring the operator's explicit no-write boundary for the completed shared seam.
+- Verification: focused API tests (22 passed) and `apps/api` TypeScript check (0 errors).
+- Adjacent issues parked: none.

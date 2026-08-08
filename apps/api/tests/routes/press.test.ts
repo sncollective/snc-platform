@@ -11,6 +11,7 @@ const mockUpsertPressConfig = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
 const mockStorageUpload = vi.fn();
 const mockStorageDownload = vi.fn();
+const mockBuildPressImageUrl = vi.fn();
 
 const profile = {
   id: "creator_test123",
@@ -46,11 +47,23 @@ const release = {
   artKey: null,
 };
 
+const banner = {
+  key: `creators/${profile.id}/press/banner.jpg`,
+  alt: "Test Creator on stage",
+  credit: "Photo: Test Photographer",
+  crop: { x: 0.1, y: 0.2, width: 0.8, height: 0.6 },
+};
+
 const content = {
   enabled: true,
+  template: "A" as const,
+  tagline: "A concise tagline",
   shortBio: "A test creator short bio",
   longBio: null,
   forFansOf: ["Alternative pop"],
+  banner,
+  aboutPhoto: null,
+  members: [],
   streamingLinks: [{ label: "Bandcamp", url: "https://example.com/listen" }],
   liveDatesUrl: null,
   standoutTrack: {
@@ -58,9 +71,11 @@ const content = {
     url: "https://example.com/get-to-you",
     streamsLabel: "14.5k streams",
   },
+  highlights: [],
   pressContactEmail: "press@example.com",
   location: "Philadelphia, PA",
   photos: [],
+  gallery: [],
   releases: [release],
 };
 
@@ -83,6 +98,9 @@ const ctx = setupRouteTest({
         download: mockStorageDownload,
       },
     }));
+    vi.doMock("../../src/lib/imgproxy.js", () => ({
+      buildPressImageUrl: mockBuildPressImageUrl,
+    }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
         c.set("user", ctx.auth.user);
@@ -104,6 +122,11 @@ const ctx = setupRouteTest({
     );
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     mockStorageUpload.mockResolvedValue(ok(undefined));
+    mockBuildPressImageUrl.mockImplementation((image, slot, width) => ({
+      src: `https://images.example/${slot}/${width}/${image.key}`,
+      srcSet: `https://images.example/${slot}/${width}/${image.key} ${width}w`,
+      sizes: "100vw",
+    }));
     mockStorageDownload.mockResolvedValue(
       ok({
         stream: new ReadableStream<Uint8Array>({
@@ -143,7 +166,16 @@ describe("GET /api/creators/:creatorId/press", () => {
       displayName: profile.displayName,
       location: content.location,
     });
-    expect(body.content).toEqual(content);
+    expect(body.content).toEqual({
+      ...content,
+      banner: {
+        ...banner,
+        src: `https://images.example/banner/1920/${banner.key}`,
+        srcSet: `https://images.example/banner/1920/${banner.key} 1920w`,
+        sizes: "100vw",
+      },
+    });
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 1920);
     expect(mockFindCreatorProfile).toHaveBeenCalledWith("test-creator", {
       activeOnly: true,
     });
@@ -251,6 +283,7 @@ describe("GET /api/creators/:creatorId/press-config", () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(content);
+    expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
     expect(mockRequireCreatorPermission).toHaveBeenCalledWith(
       ctx.auth.user!.id,
       profile.id,
