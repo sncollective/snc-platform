@@ -1,14 +1,14 @@
 ---
 id: creator-press-page-v2-image-management-crop-editor
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-image-management
 depends_on: [creator-press-page-v2-image-management-api]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-08
 ---
 
 # Editor-agnostic press crop editor (Unit 3)
@@ -54,3 +54,15 @@ A controlled, dependency-free section picker that produces the normalized crop m
 ## Ordering
 
 Depends on the signed preview endpoint. The press image controls compose this controlled component.
+
+## Implementation notes
+
+- Added canonical source-aware fixed-frame geometry for slot fit, pan/zoom clamping, and persisted-crop restoration. Six-decimal persistence keeps extreme source ratios within a documented `1e-4` pixel-aspect epsilon.
+- Added the controlled Ark dialog crop editor with instantaneous immutable-raw positioning, pointer drag, keyboard nudge/zoom, Reset, intrinsic-dimension fallback, and normalized Apply/side-effect-free Cancel.
+- Signed previews debounce and abort on changes, carry the exact latest key/crop/slot/width, reject stale responses by request id, and preserve editable local state on failure.
+- Visually verified the actual crop component (with only the dialog shell substituted for standalone rendering) at 1280×900 and 390×844: centered, no clipping or horizontal overflow, fixed 3:1 frame intact, controls and recovery state legible at both widths. Exact-string grep found no press-email literal in the new editor surface.
+
+## Verification
+
+- Focused web crop tests — 2 files, 15 tests passed.
+- `bun run --filter @snc/web typecheck` — passed with zero diagnostics.
