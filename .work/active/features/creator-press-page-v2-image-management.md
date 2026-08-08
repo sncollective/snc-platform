@@ -1,14 +1,14 @@
 ---
 id: creator-press-page-v2-image-management
 kind: feature
-stage: implementing
+stage: review
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, content-library-core]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-08
 ---
 
 # Press page v2 — image management & picker
@@ -538,3 +538,30 @@ proves unreliable, keep the pure normalized geometry and replace only the UI
 adapter with a verified crop library; neither storage nor API contracts change.
 The least-certain area is shared-use revocation after a reference is already
 published, because that lifecycle is not specified by the current library model.
+
+## Implementation summary
+
+Execution stayed with one direct host worker, per the explicit no-delegation boundary, and carried all child checkpoints in dependency order:
+
+1. `creator-press-page-v2-image-management-contract` — consumed the completed shared crop/slot and server URL contract from `44cc9e4` without reimplementation.
+2. `creator-press-page-v2-image-management-api` — completed at `6ab6195`: all-field de-duplicated press/library authorization, signed preview route, real own/open/granted/private/requestable/tombstoned integration proof, and hydrated-role test-fixture repair.
+3. `creator-press-page-v2-image-management-crop-editor` — completed at `dca7231`: normalized source-aware crop geometry, fixed-frame pan/zoom editor, pointer/keyboard parity, and stale-safe debounced signed preview.
+4. `creator-press-page-v2-image-management-controls` — completed at `c363589`: private library upload, own/shared reuse picker, access-status gating, pagination/recovery, required alt/normalized credit, non-blocking size guidance, and controlled image field.
+5. `creator-press-page-v2-image-management-legacy-bridge` — completed at `a01533c`: live manage editor moved to controlled `gallery`, transitional `photos` dual-write, remove→same-name changed-byte regression, passive-grandfather indexed library redirect, and retirement of namespace-keyed POST upload.
+
+No stored derivatives, press-specific asset table, client signing secret, grant mutation, active revocation cleanup, or AF seed image was introduced. Every slot supports an explicit empty state. New edits use `canUseAsset`; already-published references remain passive-grandfathered through public immutable raw delivery.
+
+## Integrated verification
+
+- Shared: no build script exists; `bun run --filter @snc/shared test` passed — 23 files, 723 tests.
+- API unit: `bun run --filter @snc/api test:unit` passed — 124 files, 1,976 tests.
+- Web unit: `bun run --filter @snc/web test` passed — 182 files, 1,866 tests.
+- Type safety: `bun run --filter @snc/web typecheck` and `cd apps/api && npx tsc --noEmit` both passed with zero diagnostics.
+- Feature-focused real services: library integration passed — 1 file, 7 tests, including press own/open/granted acceptance and private/requestable/tombstoned denial.
+- Full API integration baseline: 46 passed / the same 4 pre-existing failures identified by the operator (three channel-lifecycle creator-profile FK fixtures; one test-control missing-secret message assertion). No feature-related integration failure appeared.
+- UI: visually checked actual crop, picker, selected field, and empty field states at 1280×900 and 390×844; no horizontal overflow, off-edge media, duplicated content, or unreadable narrow controls. Keyboard/pointer behavior is covered by component tests. Exact grep confirms `press@s-nc.org` in the touched manage regression and no `press@snc.org` typo.
+- `git diff --check` passed. AF photo slots remain empty-capable.
+
+## Review handoff
+
+Review should prioritize authorization completeness across every nested image field, normalized crop math versus `buildPressImageUrl`, stale preview races, Ark dialog focus behavior, and the transitional `gallery`/`photos` single-state derivation. The four full-integration baseline failures are unrelated and intentionally unchanged.
