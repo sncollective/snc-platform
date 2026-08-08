@@ -1,0 +1,81 @@
+.section {
+  min-width: 0;
+  margin: 0 0 clamp(3rem, 7vw, 5rem);
+  scroll-margin-top: var(--space-xl);
+}
+
+.kicker {
+  display: block;
+  margin: 0 0 var(--space-md);
+  color: var(--color-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: .16em;
+  line-height: var(--line-height-normal);
+  text-transform: uppercase;
+}
+
+.shell { position: relative; min-width: 0; }
+.viewport { min-width: 0; overflow: hidden; border-radius: var(--radius-sm); }
+.track {
+  min-width: 0;
+  display: flex;
+  gap: var(--space-md);
+  will-change: transform;
+  transition: transform var(--duration-slow) var(--ease-in-out);
+}
+.slide {
+  min-width: 0;
+  flex: 0 0 calc((100% - var(--space-xl)) / 3.25);
+  overflow: hidden;
+  background: var(--color-bg-elevated);
+}
+.slide img { transition: transform var(--duration-moderate) var(--ease-out); }
+.slide:hover img { transform: scale(1.025); }
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: var(--z-raised);
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-circle);
+  background: color-mix(in srgb, var(--color-media-bg) 82%, transparent);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background var(--duration-normal) var(--ease-out), opacity var(--duration-normal) var(--ease-out);
+}
+.arrow:hover:not(:disabled) { background: var(--color-accent); color: var(--color-media-bg); }
+.arrow:disabled { opacity: .35; cursor: default; }
+.previous { left: var(--space-sm); }
+.next { right: var(--space-sm); }
+.note { margin: var(--space-sm) 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+
+@media (max-width: 760px) {
+  .slide { flex-basis: calc((100% - var(--space-md)) / 2.2); }
+}
+
+@media (max-width: 480px) {
+  .slide { flex-basis: 84%; }
+  .arrow { width: 42px; height: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .slide img { transition: none; }
+}
+
+@media print {
+  .section { margin-bottom: .1in; break-inside: avoid; }
+  .kicker { margin-bottom: .025in; }
+  .viewport { overflow: visible; }
+  .track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .03in; transform: none !important; }
+  .slide { min-width: 0; overflow: visible; }
+  .slide img { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .arrow { display: none; }
+}

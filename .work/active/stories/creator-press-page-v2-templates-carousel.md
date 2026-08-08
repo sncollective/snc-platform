@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-templates-carousel
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-templates
 depends_on: [creator-press-page-v2-templates-shared-sections-and-icons]
@@ -36,3 +36,13 @@ horizontal page overflow; print has no controls or transform.
 ## Ordering
 
 Depends on the shared delivered-image/section contract.
+
+## Implementation notes
+- Execution capability: direct inline ownership; geometry and cleanup were the one interaction-risk unit.
+- Review weight: standard (project default; review occurs at the feature boundary).
+- Files changed: `apps/web/src/components/press/press-carousel.tsx`, `press-carousel.module.css`, and `apps/web/tests/unit/components/press/press-carousel.test.tsx`.
+- Tests added/removed: three geometry-controlled tests for measured stride, partial final clamp, keyboard controls, resize reconciliation, fit state, empty input, and observer cleanup; none removed.
+- Simplification: one `renderPosition` path serves initial layout, navigation, and resize clamping.
+- Discrepancies from design: visual carousel verification is carried with the populated A/B assembled render passes, where page overflow and responsive peeking can be observed accurately.
+- Verification: focused carousel tests (3 passed); integrated typecheck deferred only while the concurrent image-management worker has an uncommitted exact-optional-property error in its separately owned `press-crop-editor.tsx`.
+- Adjacent issues parked: none.
