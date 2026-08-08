@@ -17,7 +17,7 @@ export interface PressPageProps extends PressTemplateProps {}
 
 /** Dispatch a delivered press payload to its exhaustive template shell. */
 export function PressPage(props: PressPageProps): React.ReactElement {
-  const Template = PRESS_TEMPLATES[props.content.template];
+  const Template = PRESS_TEMPLATES[props.content.template] ?? PRESS_TEMPLATES.A;
   return (
     <main className={styles.page}>
       <Template {...props} />

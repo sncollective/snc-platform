@@ -49,6 +49,12 @@ export function PressCarousel({ creatorName, images }: PressCarouselProps): Reac
   }, [index, renderPosition]);
 
   useLayoutEffect(() => {
+    // A gallery/creator transition replaces the track DOM. Reset the logical
+    // position before measuring and bind the observer to the new nodes.
+    indexRef.current = 0;
+    setIndex(0);
+    renderPosition();
+
     const viewport = viewportRef.current;
     const track = trackRef.current;
     if (!viewport || !track) return;
@@ -62,7 +68,7 @@ export function PressCarousel({ creatorName, images }: PressCarouselProps): Reac
 
     window.addEventListener("resize", renderPosition);
     return () => window.removeEventListener("resize", renderPosition);
-  }, [renderPosition]);
+  }, [creatorName, images, renderPosition]);
 
   const move = (delta: number): void => {
     indexRef.current += delta;

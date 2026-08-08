@@ -12,4 +12,16 @@ describe("PressPage template selector", () => {
     expect(container.querySelector(`[data-press-template="${template}"]`)).toBeInTheDocument();
     expect(container.querySelector(`[data-press-template="${template === "A" ? "B" : "A"}"]`)).not.toBeInTheDocument();
   });
+
+  it("falls back to Template A for an unexpected runtime template value", () => {
+    const props = makePressTemplateProps();
+    const malformedProps = {
+      ...props,
+      content: { ...props.content, template: "unexpected" },
+    } as unknown as typeof props;
+    const { container } = render(<PressPage {...malformedProps} />);
+
+    expect(container.querySelector('[data-press-template="A"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-press-template="B"]')).not.toBeInTheDocument();
+  });
 });

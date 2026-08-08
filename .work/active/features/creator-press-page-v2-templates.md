@@ -571,3 +571,28 @@ additional letter pages rather than discard content.
 - Exact-string/source verification: exact `press@s-nc.org` and `mailto:press@s-nc.org`; no `press@snc.org`, no legacy public indexed-photo endpoint, no individual `@tanstack/start-*` resolution; `translate3d`, ArrowLeft/ArrowRight, all eight service registry keys, and 3:1/4:5/1:1/4:3 slots present.
 - Discrepancies from design: delivered public types/schema remain local to the API/web adapters rather than modifying `packages/shared/src/press.ts`, honoring the operator's explicit prohibition against re-touching the completed shared seam.
 - Adjacent issues parked: none.
+
+## Review (pass 1) findings + resolution
+
+The thorough pass found no blocking issues and confirmed visual fidelity. Two
+bounded should-fix findings were resolved while keeping the feature at
+`stage: review` for pass 2:
+
+- **Unexpected template value:** `PressPage` now falls back to Template A when
+the runtime registry lookup is missing. A regression test covers a malformed
+`template` value despite the typed payload contract.
+- **Carousel prop reconciliation:** gallery and creator transitions reset the
+logical index, synchronously re-measure the current track, and cleanly
+rebind `ResizeObserver` to the current viewport/track. Regression tests cover
+empty→populated, populated→empty→populated, and creator-switch transitions.
+
+Verification: the focused press regression suite passed (**6 files / 27
+tests**); web typecheck reported **0 errors**; web production build passed.
+The full web suite was also run (**181 files passed / 1 failed; 4 known
+pre-existing `press-crop-editor` failures** in the concurrently changing
+image-management surface, excluded from this bounded fix). Fresh populated
+Template A and B screenshots at 1440px and 390px were visually checked after
+the fixes: both retain the locked hierarchy, centered measure, responsive
+two-column/stacked composition, carousel peek/arrows, and no horizontal
+overflow. The exact `press@s-nc.org` contact string remains intact. Feature
+remains at `review`, ready for pass 2.

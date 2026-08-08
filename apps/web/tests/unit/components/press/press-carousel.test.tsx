@@ -115,4 +115,69 @@ describe("PressCarousel", () => {
     rerender(<PressCarousel creatorName="Animal Future" images={[]} />);
     expect(screen.queryByRole("heading", { name: "Press photos" })).not.toBeInTheDocument();
   });
+
+  it("measures and enables controls when an empty gallery becomes populated", () => {
+    const { rerender } = render(<PressCarousel creatorName="Animal Future" images={[]} />);
+    rerender(<PressCarousel creatorName="Animal Future" images={images} />);
+
+    const viewport = screen.getByLabelText("Animal Future press photo carousel");
+    const track = viewport.firstElementChild as HTMLElement;
+    const slide = track.firstElementChild as HTMLElement;
+    setGeometry(viewport, track, slide, { viewportWidth: 250, trackWidth: 500, slideWidth: 100 });
+    act(() => callbacks.at(-1)?.([], {} as ResizeObserver));
+
+    expect(screen.getByRole("button", { name: "Previous press photo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next press photo" })).toBeEnabled();
+  });
+
+  it("resets and rebinds across populated, empty, and populated galleries", () => {
+    const { rerender } = render(<PressCarousel creatorName="Animal Future" images={images} />);
+    const viewport = screen.getByLabelText("Animal Future press photo carousel");
+    let track = viewport.firstElementChild as HTMLElement;
+    let slide = track.firstElementChild as HTMLElement;
+    setGeometry(viewport, track, slide, { viewportWidth: 250, trackWidth: 500, slideWidth: 100 });
+    act(() => callbacks[0]!([], {} as ResizeObserver));
+    fireEvent.click(screen.getByRole("button", { name: "Next press photo" }));
+    expect(track.style.transform).toBe("translate3d(-110px, 0, 0)");
+
+    const observerCount = callbacks.length;
+    rerender(<PressCarousel creatorName="Animal Future" images={[]} />);
+    expect(screen.queryByRole("heading", { name: "Press photos" })).not.toBeInTheDocument();
+    expect(disconnect).toHaveBeenCalled();
+
+    rerender(<PressCarousel creatorName="Animal Future" images={images.slice(0, 2)} />);
+    const newObserverCallback = callbacks.at(-1);
+    expect(callbacks.length).toBeGreaterThan(observerCount);
+    const populatedViewport = screen.getByLabelText("Animal Future press photo carousel");
+    track = populatedViewport.firstElementChild as HTMLElement;
+    slide = track.firstElementChild as HTMLElement;
+    setGeometry(populatedViewport, track, slide, { viewportWidth: 250, trackWidth: 500, slideWidth: 100 });
+    act(() => newObserverCallback?.([], {} as ResizeObserver));
+
+    expect(track.style.transform).toBe("translate3d(0px, 0, 0)");
+    expect(screen.getByRole("button", { name: "Previous press photo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next press photo" })).toBeEnabled();
+  });
+
+  it("resets the position and observer when the creator changes", () => {
+    const { rerender } = render(<PressCarousel creatorName="Animal Future" images={images} />);
+    const viewport = screen.getByLabelText("Animal Future press photo carousel");
+    let track = viewport.firstElementChild as HTMLElement;
+    let slide = track.firstElementChild as HTMLElement;
+    setGeometry(viewport, track, slide, { viewportWidth: 250, trackWidth: 500, slideWidth: 100 });
+    act(() => callbacks[0]!([], {} as ResizeObserver));
+    fireEvent.click(screen.getByRole("button", { name: "Next press photo" }));
+    expect(track.style.transform).toBe("translate3d(-110px, 0, 0)");
+
+    rerender(<PressCarousel creatorName="New Creator" images={images} />);
+    const newObserverCallback = callbacks.at(-1);
+    const newViewport = screen.getByLabelText("New Creator press photo carousel");
+    track = newViewport.firstElementChild as HTMLElement;
+    slide = track.firstElementChild as HTMLElement;
+    setGeometry(newViewport, track, slide, { viewportWidth: 250, trackWidth: 500, slideWidth: 100 });
+    act(() => newObserverCallback?.([], {} as ResizeObserver));
+
+    expect(track.style.transform).toBe("translate3d(0px, 0, 0)");
+    expect(screen.getByRole("button", { name: "Previous press photo" })).toBeDisabled();
+  });
 });
