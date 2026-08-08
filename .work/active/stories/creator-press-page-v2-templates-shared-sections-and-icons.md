@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-templates-shared-sections-and-icons
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-templates
 depends_on: [creator-press-page-v2-templates-image-projection]
@@ -42,3 +42,13 @@ current route supplies only `liveDatesUrl`.
 
 Consumes the delivered-image public payload established by
 `creator-press-page-v2-templates-image-projection`.
+
+## Implementation notes
+- Execution capability: direct inline ownership; cohesive React primitives shared by both locked compositions.
+- Review weight: standard (project default; review occurs at the feature boundary).
+- Files changed: `apps/web/src/components/press/press-types.ts`, `press-image.tsx`/CSS, `press-sections.tsx`/CSS, `streaming-icons.tsx`, `streaming-services.tsx`/CSS, and press fixture/section tests.
+- Tests added/removed: five semantic render tests covering populated/sparse content, credits, labels, service inference, link safety, and exact `mailto:press@s-nc.org`; none removed.
+- Simplification: image rendering, optional-section omission, outbound-link policy, and service glyph dispatch are each single-sourced.
+- Discrepancies from design: web-local delivered types mirror the API projection because the operator prohibited edits to the completed shared contract.
+- Verification: focused web tests (5 passed) and web typecheck (0 errors).
+- Adjacent issues parked: none.

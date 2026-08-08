@@ -1,0 +1,35 @@
+.services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.service {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .65rem .85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.service:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.service svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  fill: currentColor;
+}
+
+@media print {
+  .services { gap: .035in; }
+  .service { min-height: 0; padding: .02in .05in; }
+  .service svg { width: 10px; height: 10px; }
+}

@@ -1,0 +1,56 @@
+.figure {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+}
+
+.figure img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.banner img { aspect-ratio: 3 / 1; }
+.about img { aspect-ratio: 4 / 5; }
+.member img,
+.cover img { aspect-ratio: 1; }
+.gallery img { aspect-ratio: 4 / 3; }
+
+.figure figcaption {
+  padding-top: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.overlay {
+  overflow: hidden;
+  background: var(--color-bg-elevated);
+}
+
+.overlay figcaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--space-sm);
+  background: linear-gradient(transparent, var(--color-overlay-dark));
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+@media print {
+  .overlay {
+    overflow: visible;
+  }
+
+  .overlay figcaption {
+    right: .02in;
+    bottom: .02in;
+    left: .02in;
+    padding: .02in;
+    font-size: 5.5pt;
+  }
+}
