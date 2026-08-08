@@ -3,9 +3,15 @@ import { useEffect, useState } from "react";
 import type React from "react";
 import type { FormEvent } from "react";
 
-import type { PressContent, PressStreamingLink, ReleaseOneSheet } from "@snc/shared";
+import type {
+  PressContent,
+  PressImage,
+  PressStreamingLink,
+  ReleaseOneSheet,
+} from "@snc/shared";
 
-import { fetchPressConfig, updatePressConfig, uploadPressPhoto } from "../../../../lib/press.js";
+import { PressImageField } from "../../../../components/press/index.js";
+import { fetchPressConfig, updatePressConfig } from "../../../../lib/press.js";
 import buttonStyles from "../../../../styles/button.module.css";
 import errorStyles from "../../../../styles/error-alert.module.css";
 import formStyles from "../../../../styles/form.module.css";
@@ -50,6 +56,7 @@ function normalizeConfig(input: PressContent): PressContent {
     pressContactEmail: input.pressContactEmail ?? null,
     location: input.location ?? null,
     photos: input.photos ?? [],
+    gallery: input.gallery ?? [],
     releases: (input.releases ?? []).map((release) => ({
       ...release,
       catalogNumber: release.catalogNumber ?? null,
@@ -87,11 +94,10 @@ function ManagePressPage(): React.ReactElement {
   const [streamsLabel, setStreamsLabel] = useState("");
   const [pressContactEmail, setPressContactEmail] = useState("");
   const [location, setLocation] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [gallery, setGallery] = useState<PressImage[]>([]);
   const [releases, setReleases] = useState<ReleaseOneSheet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -113,7 +119,7 @@ function ManagePressPage(): React.ReactElement {
         setStreamsLabel(config.standoutTrack?.streamsLabel ?? "");
         setPressContactEmail(config.pressContactEmail ?? "");
         setLocation(config.location ?? "");
-        setPhotos([...config.photos]);
+        setGallery([...config.gallery]);
         setReleases([...config.releases]);
         setError("");
       })
@@ -147,21 +153,6 @@ function ManagePressPage(): React.ReactElement {
     setReleases((current) => current.map((release, i) => i === index ? { ...release, ...patch } : release));
   };
 
-  const handlePhotoUpload = async (file: File | undefined): Promise<void> => {
-    if (!file) return;
-    setIsUploading(true);
-    setError("");
-    setSaved(false);
-    try {
-      const result = await uploadPressPhoto(creatorId, file);
-      setPhotos((current) => [...current, result.key]);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to upload photo");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const save = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     setIsSaving(true);
@@ -188,12 +179,13 @@ function ManagePressPage(): React.ReactElement {
         standoutTrack,
         pressContactEmail: pressContactEmail.trim() || null,
         location: location.trim() || null,
-        photos,
+        gallery,
+        photos: gallery.map((image) => image.key),
         releases,
       });
       const config = normalizeConfig(next);
       setEnabled(config.enabled);
-      setPhotos([...config.photos]);
+      setGallery([...config.gallery]);
       setReleases([...config.releases]);
       setSaved(true);
     } catch (err: unknown) {
@@ -265,17 +257,28 @@ function ManagePressPage(): React.ReactElement {
 
         <section className={styles.section} aria-labelledby="photos-heading">
           <h2 id="photos-heading" className={styles.subheading}>Press photos</h2>
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Upload press photo" disabled={isUploading} onChange={(event) => { void handlePhotoUpload(event.target.files?.[0]); event.target.value = ""; }} />
-          {photos.length > 0 && (
-            <div className={styles.photoGrid}>
-              {photos.map((photo, index) => (
-                <div key={`${photo}-${index}`} className={styles.photoItem}>
-                  <img src={`/api/creators/${encodeURIComponent(creatorId)}/press/photos/${index}`} alt={`Press photo ${index + 1}`} />
-                  <button type="button" className={styles.removeButton} onClick={() => setPhotos((current) => current.filter((_, i) => i !== index))}>Remove</button>
-                </div>
-              ))}
-            </div>
-          )}
+          <p>Choose reusable library images. Changes appear here immediately and are published when you save.</p>
+          <div className={styles.photoGrid}>
+            {gallery.map((image, index) => (
+              <PressImageField
+                key={`${image.key}-${index}`}
+                creatorId={creatorId}
+                label={`Press photo ${index + 1}`}
+                slot="gallery"
+                value={image}
+                onChange={(next) => setGallery((current) => next
+                  ? current.map((candidate, candidateIndex) => candidateIndex === index ? next : candidate)
+                  : current.filter((_, candidateIndex) => candidateIndex !== index))}
+              />
+            ))}
+            <PressImageField
+              creatorId={creatorId}
+              label="Add press photo"
+              slot="gallery"
+              value={null}
+              onChange={(next) => { if (next) setGallery((current) => [...current, next]); }}
+            />
+          </div>
         </section>
 
         <section className={styles.section} aria-labelledby="releases-heading">

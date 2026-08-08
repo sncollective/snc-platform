@@ -4,18 +4,16 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 
 import {
-  ACCEPTED_MIME_TYPES,
-  AppError,
   PressConfigPatchSchema,
   PressContentSchema,
   PressImageCropSchema,
   PressImageSlotSchema,
   PressPagePayloadSchema,
   ReleaseOneSheetSchema,
-  MAX_FILE_SIZES,
   NotFoundError,
-  ValidationError,
+  isLibraryAssetKey,
   isOwnedPressKey,
+  libraryRawPath,
 } from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -23,7 +21,7 @@ import { optionalAuth } from "../middleware/optional-auth.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
-import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
+import { streamFile } from "../lib/file-utils.js";
 import { buildPressImageUrl } from "../lib/imgproxy.js";
 import {
   DeliveredPressContentSchema,
@@ -37,7 +35,6 @@ import { getPressConfig, upsertPressConfig } from "../services/press.js";
 import { storage } from "../storage/index.js";
 import { CreatorIdParam } from "./route-params.js";
 
-const PhotoUploadResponseSchema = z.object({ key: z.string() });
 const PressImagePreviewRequestSchema = z.object({
   key: z.string().min(1),
   crop: PressImageCropSchema.optional(),
@@ -78,59 +75,16 @@ const handlePressPhotoStream = async (c: Context<AuthEnv>): Promise<Response> =>
     c.req.param("creatorId") ?? "",
   );
   const key = content.photos[Number(c.req.param("index"))];
-  if (!key || !isOwnedPressKey(key, profile.id)) {
-    throw new NotFoundError("Press photo not found");
+  if (!key) throw new NotFoundError("Press photo not found");
+  if (isOwnedPressKey(key, profile.id)) {
+    return streamFile(c, storage, key, "press photo not found");
   }
-  return streamFile(c, storage, key, "press photo not found");
-};
-
-const handlePressPhotoUpload = async (c: Context<AuthEnv>): Promise<Response> => {
-  const identifier = c.req.param("creatorId") ?? ""; // validated-upstream
-  const user = c.get("user");
-
-  // Pre-check Content-Length header before any DB lookup.
-  const contentLengthHeader = c.req.header("content-length");
-  if (contentLengthHeader) {
-    const contentLength = parseInt(contentLengthHeader, 10);
-    if (!Number.isNaN(contentLength) && contentLength > MAX_FILE_SIZES.image) {
-      throw new ValidationError(
-        `File size exceeds the ${MAX_FILE_SIZES.image} byte limit`,
-      );
-    }
+  if (isLibraryAssetKey(key)) {
+    // Persisted references are passively grandfathered after grant revocation.
+    // New references still pass the PATCH authorization boundary.
+    return c.redirect(`/api/library/raw/${libraryRawPath(key)}`, 302);
   }
-
-  const profile = await getCreatorProfileForManage(identifier);
-  await requireCreatorPermission(user.id, profile.id, "editProfile");
-
-  const body = await c.req.parseBody();
-  const file = body["file"];
-  if (!(file instanceof File)) {
-    throw new ValidationError("No file provided in 'file' form field");
-  }
-
-  if (file.size > MAX_FILE_SIZES.image) {
-    throw new ValidationError(
-      `File size ${file.size} exceeds the ${MAX_FILE_SIZES.image} byte limit`,
-    );
-  }
-
-  if (!(ACCEPTED_MIME_TYPES.image as readonly string[]).includes(file.type)) {
-    throw new ValidationError(
-      `Invalid MIME type '${file.type}'. Accepted: ${ACCEPTED_MIME_TYPES.image.join(", ")}`,
-    );
-  }
-
-  const key = `creators/${profile.id}/press/${sanitizeFilename(file.name || "photo")}`;
-  const uploadResult = await storage.upload(key, file.stream(), {
-    contentType: file.type,
-    contentLength: file.size,
-  });
-
-  if (!uploadResult.ok) {
-    throw new AppError("UPLOAD_ERROR", "Failed to upload press photo", 500);
-  }
-
-  return c.json({ key });
+  throw new NotFoundError("Press photo not found");
 };
 
 // ── Public API ──
@@ -391,26 +345,4 @@ pressRoutes.post(
 
     return c.json(buildPressImageUrl(image, body.slot, body.width));
   },
-);
-
-// POST /:creatorId/press/photos — Upload a press photo
-pressRoutes.post(
-  "/:creatorId/press/photos",
-  requireAuth,
-  describeRoute({
-    description: "Upload a press photo for a creator (owner/editor)",
-    tags: ["press"],
-    responses: {
-      200: {
-        description: "Press photo uploaded",
-        content: { "application/json": { schema: resolver(PhotoUploadResponseSchema) } },
-      },
-      400: ERROR_400,
-      401: ERROR_401,
-      403: ERROR_403,
-      404: ERROR_404,
-    },
-  }),
-  validator("param", CreatorIdParam),
-  async (c) => handlePressPhotoUpload(c),
 );

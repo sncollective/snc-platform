@@ -10,7 +10,6 @@ const mockGetPressConfig = vi.fn();
 const mockUpsertPressConfig = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
 const mockCanUseAsset = vi.fn();
-const mockStorageUpload = vi.fn();
 const mockStorageDownload = vi.fn();
 const mockBuildPressImageUrl = vi.fn();
 
@@ -101,7 +100,6 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/storage/index.js", () => ({
       storage: {
-        upload: mockStorageUpload,
         download: mockStorageDownload,
       },
     }));
@@ -129,7 +127,6 @@ const ctx = setupRouteTest({
     );
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     mockCanUseAsset.mockResolvedValue(true);
-    mockStorageUpload.mockResolvedValue(ok(undefined));
     mockBuildPressImageUrl.mockImplementation((image, slot, width) => ({
       src: `https://images.example/${slot}/${width}/${image.key}`,
       srcSet: `https://images.example/${slot}/${width}/${image.key} ${width}w`,
@@ -265,6 +262,19 @@ describe("GET /api/creators/:creatorId/press/photos/:index", () => {
     expect(res.headers.get("Content-Type")).toBe("image/jpeg");
     expect(await res.text()).toBe("image data");
     expect(mockStorageDownload).toHaveBeenCalledWith(key);
+  });
+
+  it("redirects a persisted library reference to immutable raw delivery", async () => {
+    mockGetPressConfig.mockResolvedValueOnce(ok({ ...content, photos: [libraryKey] }));
+
+    const res = await json("GET", "/api/creators/test-creator/press/photos/0");
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      `/api/library/raw/aa/${"a".repeat(64)}.jpg`,
+    );
+    expect(mockCanUseAsset).not.toHaveBeenCalled();
+    expect(mockStorageDownload).not.toHaveBeenCalled();
   });
 
   it("returns 404 without reading storage when the configured key is foreign", async () => {
@@ -502,56 +512,5 @@ describe("POST /api/creators/:creatorId/press/image-preview", () => {
 
     expect(res.status).toBe(400);
     expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
-  });
-});
-
-describe("POST /api/creators/:creatorId/press/photos", () => {
-  it("stores a photo under the creator press prefix and returns its key", async () => {
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File(["image data"], "Shoot Photo 01.JPG", { type: "image/jpeg" }),
-    );
-
-    const res = await ctx.app.request(
-      "/api/creators/test-creator/press/photos",
-      { method: "POST", body: formData },
-    );
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body).toEqual({ key: "creators/creator_test123/press/shoot-photo-01.jpg" });
-    expect(mockStorageUpload).toHaveBeenCalledWith(
-      "creators/creator_test123/press/shoot-photo-01.jpg",
-      expect.anything(),
-      expect.objectContaining({ contentType: "image/jpeg", contentLength: 10 }),
-    );
-  });
-
-  it("returns 403 when the user lacks editProfile permission", async () => {
-    const { ForbiddenError } = await import("@snc/shared");
-    mockRequireCreatorPermission.mockRejectedValueOnce(
-      new ForbiddenError("Not a member"),
-    );
-    const formData = new FormData();
-    formData.append("file", new File(["image data"], "photo.jpg", { type: "image/jpeg" }));
-
-    const res = await ctx.app.request(
-      "/api/creators/test-creator/press/photos",
-      { method: "POST", body: formData },
-    );
-
-    expect(res.status).toBe(403);
-    expect(mockStorageUpload).not.toHaveBeenCalled();
-  });
-
-  it("returns 401 when unauthenticated", async () => {
-    ctx.auth.user = null;
-    const res = await ctx.app.request(
-      "/api/creators/test-creator/press/photos",
-      { method: "POST", body: new FormData() },
-    );
-
-    expect(res.status).toBe(401);
   });
 });

@@ -5,7 +5,7 @@ import type {
   PressContent,
 } from "@snc/shared";
 
-import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
+import { apiGet, apiMutate } from "./fetch-utils.js";
 
 /** Fetch the public press page for a creator. */
 export async function fetchPressPage(creatorId: string): Promise<PressPagePayload> {
@@ -39,18 +39,5 @@ export async function updatePressConfig(
   return apiMutate<PressContent>(
     `/api/creators/${encodeURIComponent(creatorId)}/press-config`,
     { method: "PATCH", body: patch },
-  );
-}
-
-/** Upload a press photo and return its stored Garage object key. */
-export async function uploadPressPhoto(
-  creatorId: string,
-  file: File,
-): Promise<{ key: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-  return apiUpload<{ key: string }>(
-    `/api/creators/${encodeURIComponent(creatorId)}/press/photos`,
-    formData,
   );
 }
