@@ -13,6 +13,7 @@ import {
   fetchContentLibraryImages,
   uploadContentLibraryImage,
 } from "../../lib/content-library.js";
+import { contentLibraryRawUrl } from "../../lib/press-images.js";
 import {
   DialogBackdrop,
   DialogContent,
@@ -102,8 +103,8 @@ export function PressImagePicker({
 
   const visibleAssets = useMemo(
     () => assets.filter((asset) => view === "own"
-      ? asset.creatorId === creatorId || asset.useStatus === "admin"
-      : asset.creatorId !== creatorId && asset.useStatus !== "admin"),
+      ? asset.creatorId === creatorId
+      : asset.creatorId !== creatorId),
     [assets, creatorId, view],
   );
 
@@ -257,7 +258,7 @@ export function PressImagePicker({
           </>
         ) : (
           <div className={styles.details}>
-            {selectedKey && <img src={contentLibraryThumbnailUrl(selectedKey)} alt="" />}
+            {selectedKey && <img src={contentLibraryRawUrl(selectedKey, creatorId)} alt="" />}
             {isSoft && (
               <p className={styles.guidance}>
                 This source is below the suggested {minimum.width} × {minimum.height} px for this slot. You can still use it.

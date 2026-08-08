@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 
@@ -7,8 +7,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PressImageField } from "../../../../src/components/press/press-image-field.js";
 
-vi.mock("../../../../src/lib/content-library.js", () => ({
-  contentLibraryThumbnailUrl: (key: string) => `/raw/${key}`,
+vi.mock("../../../../src/lib/press-images.js", () => ({
+  contentLibraryRawUrl: (key: string, creatorId?: string) =>
+    key.startsWith("library/")
+      ? `/raw/${key}`
+      : `/api/creators/${creatorId}/press/image-source?key=${encodeURIComponent(key)}`,
 }));
 
 vi.mock("../../../../src/components/press/press-image-picker.js", () => ({
@@ -67,7 +70,7 @@ describe("PressImageField", () => {
     }));
   });
 
-  it("updates alt and normalized credit on the controlled reference", async () => {
+  it("preserves spaces while editing credit and normalizes on blur", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     function Harness() {
@@ -91,8 +94,13 @@ describe("PressImageField", () => {
     await user.type(screen.getByLabelText(/Alternative text/), "New alt");
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ alt: "New alt" }));
 
-    await user.clear(screen.getByLabelText("Photo credit (optional)"));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ credit: null }));
+    const credit = screen.getByLabelText("Photo credit (optional)");
+    fireEvent.change(credit, { target: { value: "  Alex Photo  " } });
+    expect(credit).toHaveValue("  Alex Photo  ");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ credit: "  Alex Photo  " }));
+
+    fireEvent.blur(credit);
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ credit: "Alex Photo" }));
   });
 
   it("preserves metadata while editing crop and removes immediately", async () => {
@@ -111,6 +119,21 @@ describe("PressImageField", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove" }));
     expect(onChange).toHaveBeenLastCalledWith(null);
+  });
+
+  it("uses the legacy source adapter for existing press-namespace images", () => {
+    const legacy = {
+      ...image,
+      key: "creators/creator-1/press/live hero.jpg",
+    };
+    render(
+      <PressImageField creatorId="creator-1" label="Gallery image" slot="gallery" value={legacy} onChange={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("img", { name: "Original image" })).toHaveAttribute(
+      "src",
+      `/api/creators/creator-1/press/image-source?key=${encodeURIComponent(legacy.key)}`,
+    );
   });
 
   it("shows a recoverable fallback when the thumbnail fails", async () => {

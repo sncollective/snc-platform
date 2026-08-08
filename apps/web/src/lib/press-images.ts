@@ -1,4 +1,8 @@
-import { libraryRawPath } from "@snc/shared";
+import {
+  isLibraryAssetKey,
+  isOwnedPressKey,
+  libraryRawPath,
+} from "@snc/shared";
 import type {
   PressImageCrop,
   PressImageSlotName,
@@ -12,9 +16,14 @@ export type PressImageDescriptor = {
   sizes: string;
 };
 
-/** Immutable public raw URL for a structurally valid content-library key. */
-export const contentLibraryRawUrl = (key: string): string =>
-  `/api/library/raw/${libraryRawPath(key)}`;
+/** Resolve a library or owned legacy press key to its editable raw source. */
+export const contentLibraryRawUrl = (key: string, creatorId?: string): string => {
+  if (isLibraryAssetKey(key)) return `/api/library/raw/${libraryRawPath(key)}`;
+  if (creatorId && isOwnedPressKey(key, creatorId)) {
+    return `/api/creators/${encodeURIComponent(creatorId)}/press/image-source?key=${encodeURIComponent(key)}`;
+  }
+  return "";
+};
 
 /** Request the server-signed descriptor used by eventual press delivery. */
 export const requestPressImagePreview = async (input: {

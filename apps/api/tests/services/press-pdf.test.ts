@@ -126,6 +126,37 @@ describe("press PDF rendering", () => {
     );
   });
 
+  it("resolves a library-backed photo to the live one-pager hero", async () => {
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    );
+    const libraryKey = `library/aa/${"a".repeat(64)}.jpg`;
+    mockStorageDownload.mockResolvedValueOnce(
+      ok({
+        stream: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(png);
+            controller.close();
+          },
+        }),
+        size: png.length,
+      }),
+    );
+
+    const buffer = await renderOnePagerPdf({
+      creator: {
+        id: "creator_animalfuture",
+        displayName: "Animal Future",
+        handle: "animalfuture",
+      },
+      content: { ...contentFixture, photos: [libraryKey] },
+    });
+
+    expectPdfBuffer(buffer);
+    expect(mockStorageDownload).toHaveBeenCalledWith(libraryKey);
+  });
+
   it("omits a foreign hero key without reading the object", async () => {
     const buffer = await renderOnePagerPdf({
       creator: {

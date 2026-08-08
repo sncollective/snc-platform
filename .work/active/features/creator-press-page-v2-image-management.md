@@ -565,3 +565,28 @@ No stored derivatives, press-specific asset table, client signing secret, grant 
 ## Review handoff
 
 Review should prioritize authorization completeness across every nested image field, normalized crop math versus `buildPressImageUrl`, stale preview races, Ark dialog focus behavior, and the transitional `gallery`/`photos` single-state derivation. The four full-integration baseline failures are unrelated and intentionally unchanged.
+
+## Review (pass 1) findings + resolution
+
+The permission-model integration was affirmed correct. Pass 1 requested changes on crop confirmation, live-data compatibility, responsive composition, and metadata/PDF regressions; the feature remains at `review` for pass 2.
+
+- **Current signed-preview gate**: Apply now requires a successful descriptor whose identity matches the current key, slot, delivery width, and crop. A crop change immediately invalidates the old descriptor; pending and failed requests keep Apply disabled, stale imagery is hidden, and a current failure is visible.
+- **Exact slot preview**: one shared `PRESS_IMAGE_SLOT_WIDTHS` registry now drives both public delivery and editor preview: banner 1920, about 720, member/cover 480, gallery 960.
+- **Legacy live-photo editing**: structurally owned `creators/{id}/press/…` keys resolve through a new authenticated, `editProfile`-gated raw migration adapter. Library keys continue using immutable `/api/library/raw/…` delivery. Existing legacy thumbnails and crop sources now load even when the public press page is disabled.
+- **Manage composition**: press-image fields are full-width rows, with shrink-safe metadata columns, border-box controls, wrapping actions/headings, and a single-column mobile layout.
+- **Credit editing**: controlled input retains raw spaces while typing and trims only on blur/save.
+- **New-image alt validation**: the owning form rejects blank alt on newly selected images before PATCH, while grandfathering already-persisted blank legacy references; save normalizes accepted alt/credit values.
+- **Live v1 PDF hero**: the one-pager accepts structurally valid library keys as well as creator-owned legacy keys and reads either from Garage. Unit coverage and a real-Garage integration case protect both paths.
+- **Admin picker nit**: own/shared grouping now follows registration ownership, so foreign admin-visible assets appear in Shared pool rather than Your library.
+
+### Pass-1 verification
+
+- Shared: 23 files / 723 tests passed.
+- API unit: 124 files / 1,979 tests passed.
+- Web unit: 182 files / 1,880 tests passed.
+- Type safety: web typecheck and `apps/api` `npx tsc --noEmit` passed with zero diagnostics.
+- Focused real services: `tests/integration/library.test.ts` passed — 1 file / 8 tests, including real Garage legacy + library-backed PDF heroes.
+- Full API integration baseline: 47 passed / the same 4 pre-existing parked failures (three channel-lifecycle creator-profile FK fixtures; one test-control missing-secret message assertion). No image-management integration failure appeared.
+- Visual re-check: rendered the actual `PressImageField`, picker, crop editor, and manage-page grid CSS at 1280×900 and 390×844. Desktop fields remain full-width with separated image/metadata columns; mobile fields stack without overlap or horizontal clipping. Picker and scrollable crop dialog fit both viewports; the signed 4:3 rendered preview matches the gallery frame, and Apply was observed disabled while pending and enabled only after the current preview resolved. Document width equaled viewport width at both sizes (1280/1280 and 390/390).
+- Exact-string check: source/tests retain `press@s-nc.org`; no incorrect `press@snc.org` application literal was introduced.
+- `git diff --check` passed. No new bug was parked.

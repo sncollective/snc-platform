@@ -3,6 +3,7 @@ import {
   PressHighlightSchema,
   PressImageSchema,
   PressMemberSchema,
+  PRESS_IMAGE_SLOT_WIDTHS,
   type PressContent,
   type PressHighlight,
   type PressImage,
@@ -66,15 +67,16 @@ export const resolvePressPageContent = (
   content: PressContent,
 ): DeliveredPressContent => ({
   ...content,
-  banner: deliver(content.banner, "banner", 1920),
-  aboutPhoto: deliver(content.aboutPhoto, "about", 720),
+  banner: deliver(content.banner, "banner", PRESS_IMAGE_SLOT_WIDTHS.banner),
+  aboutPhoto: deliver(content.aboutPhoto, "about", PRESS_IMAGE_SLOT_WIDTHS.about),
   members: content.members.map((member) => ({
     ...member,
-    photo: deliver(member.photo, "member", 480),
+    photo: deliver(member.photo, "member", PRESS_IMAGE_SLOT_WIDTHS.member),
   })),
   highlights: content.highlights.map((highlight) => ({
     ...highlight,
-    coverArt: deliver(highlight.coverArt, "cover", 480),
+    coverArt: deliver(highlight.coverArt, "cover", PRESS_IMAGE_SLOT_WIDTHS.cover),
   })),
-  gallery: content.gallery.map((image) => deliver(image, "gallery", 960)!),
+  gallery: content.gallery.map((image) =>
+    deliver(image, "gallery", PRESS_IMAGE_SLOT_WIDTHS.gallery)!),
 });

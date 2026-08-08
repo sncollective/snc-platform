@@ -1,4 +1,5 @@
 .field {
+  min-width: 0;
   padding: var(--space-md);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -35,7 +36,7 @@
 
 .selected {
   display: grid;
-  grid-template-columns: minmax(140px, 240px) 1fr;
+  grid-template-columns: minmax(140px, 240px) minmax(0, 1fr);
   gap: var(--space-md);
   margin-top: var(--space-md);
 }
@@ -59,12 +60,14 @@
 
 .metadata {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: var(--space-xs);
 }
 
 .metadata textarea,
 .metadata input {
+  box-sizing: border-box;
   width: 100%;
   padding: var(--space-sm);
   color: var(--color-text);
@@ -81,6 +84,7 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
 }
@@ -91,6 +95,11 @@
 }
 
 @media (max-width: 600px) {
+  .headingRow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
   .selected {
     grid-template-columns: 1fr;
   }

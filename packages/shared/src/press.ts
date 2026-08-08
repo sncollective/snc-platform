@@ -120,6 +120,15 @@ export const PRESS_IMAGE_SLOT_RATIOS = {
   cover: "1/1",
 } as const satisfies PressImageSlot;
 
+/** Maximum delivery width used to preview and render each fixed press-image slot. */
+export const PRESS_IMAGE_SLOT_WIDTHS = {
+  banner: 1920,
+  about: 720,
+  member: 480,
+  gallery: 960,
+  cover: 480,
+} as const satisfies Record<keyof PressImageSlot, number>;
+
 export const PressImageSlotSchema = z.enum([
   "banner",
   "about",

@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 
+import { DEFAULT_PRESS_CONTENT } from "@snc/shared";
+
 import { db } from "../../src/db/connection.js";
 import {
   contentAssets,
@@ -22,6 +24,7 @@ import {
 import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 import { validateOwnedPressKeys } from "../../src/services/press-images.js";
+import { renderOnePagerPdf } from "../../src/services/press-pdf.js";
 
 const baseBytes = Uint8Array.from(
   Buffer.from(
@@ -128,6 +131,39 @@ describe("content library integration", () => {
     await expect(validateOwnedPressKeys({
       gallery: [{ key: own.value.asset.storageKey, alt: "Tombstoned" }],
     }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("embeds real Garage legacy and library photos in the live one-pager PDF", async () => {
+    const libraryUpload = await upload(creatorIds[0]!, 74, "private");
+    expect(libraryUpload.ok).toBe(true);
+    if (!libraryUpload.ok) return;
+
+    const legacyKey = `creators/${creatorIds[0]}/press/integration-hero.png`;
+    const legacyUpload = await storage.upload(
+      legacyKey,
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(baseBytes);
+          controller.close();
+        },
+      }),
+      { contentType: "image/png", contentLength: baseBytes.byteLength },
+    );
+    expect(legacyUpload.ok).toBe(true);
+    uploadedKeys.add(legacyKey);
+
+    for (const key of [legacyKey, libraryUpload.value.asset.storageKey]) {
+      const buffer = await renderOnePagerPdf({
+        creator: {
+          id: creatorIds[0]!,
+          displayName: "Library integration creator",
+          handle: null,
+        },
+        content: { ...DEFAULT_PRESS_CONTENT, enabled: true, photos: [key] },
+      });
+      expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
+      expect(buffer.length).toBeGreaterThan(100);
+    }
   });
 
   it("round-trips Garage bytes and enforces private/open/requestable sharing", async () => {

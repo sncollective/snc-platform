@@ -305,6 +305,41 @@ pressRoutes.patch(
   },
 );
 
+// GET /:creatorId/press/image-source — Stream an owned legacy image to the manage editor
+pressRoutes.get(
+  "/:creatorId/press/image-source",
+  requireAuth,
+  describeRoute({
+    description: "Stream an owned legacy press image for editing",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Legacy press image stream",
+        content: {
+          "application/octet-stream": {
+            schema: { type: "string", format: "binary" },
+          },
+        },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  validator("query", z.object({ key: z.string().min(1) })),
+  async (c) => {
+    const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
+
+    const { key } = c.req.valid("query");
+    if (!isOwnedPressKey(key, profile.id)) throw new NotFoundError("Press image not found");
+    return streamFile(c, storage, key, "press image not found");
+  },
+);
+
 // POST /:creatorId/press/image-preview — Sign the eventual press image render
 pressRoutes.post(
   "/:creatorId/press/image-preview",

@@ -95,6 +95,7 @@ function ManagePressPage(): React.ReactElement {
   const [pressContactEmail, setPressContactEmail] = useState("");
   const [location, setLocation] = useState("");
   const [gallery, setGallery] = useState<PressImage[]>([]);
+  const [legacyBlankAltKeys, setLegacyBlankAltKeys] = useState<Set<string>>(() => new Set());
   const [releases, setReleases] = useState<ReleaseOneSheet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -120,6 +121,11 @@ function ManagePressPage(): React.ReactElement {
         setPressContactEmail(config.pressContactEmail ?? "");
         setLocation(config.location ?? "");
         setGallery([...config.gallery]);
+        setLegacyBlankAltKeys(new Set(
+          config.gallery
+            .filter((image) => !image.alt.trim())
+            .map((image) => image.key),
+        ));
         setReleases([...config.releases]);
         setError("");
       })
@@ -155,6 +161,20 @@ function ManagePressPage(): React.ReactElement {
 
   const save = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
+    const newImageWithoutAlt = gallery.find(
+      (image) => !image.alt.trim() && !legacyBlankAltKeys.has(image.key),
+    );
+    if (newImageWithoutAlt) {
+      setSaved(false);
+      setError("Alternative text is required for newly selected press photos.");
+      return;
+    }
+
+    const normalizedGallery = gallery.map((image) => ({
+      ...image,
+      alt: image.alt.trim(),
+      credit: image.credit?.trim() || null,
+    }));
     setIsSaving(true);
     setSaved(false);
     setError("");
@@ -179,8 +199,8 @@ function ManagePressPage(): React.ReactElement {
         standoutTrack,
         pressContactEmail: pressContactEmail.trim() || null,
         location: location.trim() || null,
-        gallery,
-        photos: gallery.map((image) => image.key),
+        gallery: normalizedGallery,
+        photos: normalizedGallery.map((image) => image.key),
         releases,
       });
       const config = normalizeConfig(next);

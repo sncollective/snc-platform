@@ -5,7 +5,7 @@ import type {
   PressImageSlotName,
 } from "@snc/shared";
 
-import { contentLibraryThumbnailUrl } from "../../lib/content-library.js";
+import { contentLibraryRawUrl } from "../../lib/press-images.js";
 import { PressCropEditor } from "./press-crop-editor.js";
 import { PressImagePicker } from "./press-image-picker.js";
 import styles from "./press-image-field.module.css";
@@ -83,7 +83,7 @@ export function PressImageField({
             <div className={styles.thumbnailFallback}>Preview unavailable</div>
           ) : (
             <img
-              src={contentLibraryThumbnailUrl(value.key)}
+              src={contentLibraryRawUrl(value.key, creatorId)}
               alt={value.alt}
               onError={() => setThumbnailFailed(true)}
             />
@@ -101,6 +101,10 @@ export function PressImageField({
               id={creditId}
               value={value.credit ?? ""}
               onChange={(event) => onChange({
+                ...value,
+                credit: event.target.value,
+              })}
+              onBlur={(event) => onChange({
                 ...value,
                 credit: event.target.value.trim() || null,
               })}

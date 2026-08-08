@@ -119,6 +119,30 @@ describe("PressImagePicker", () => {
     );
   });
 
+  it("places foreign admin-visible assets in the shared pool", async () => {
+    const user = userEvent.setup();
+    mockFetchImages.mockResolvedValue({
+      items: [
+        asset(),
+        asset({
+          id: "00000000-0000-4000-a000-000000000006",
+          creatorId: "creator-2",
+          originalFilename: "admin-visible.jpg",
+          useStatus: "admin",
+        }),
+      ],
+      nextCursor: null,
+    });
+    render(
+      <PressImagePicker creatorId="creator-1" slot="gallery" onApply={vi.fn()} onCancel={vi.fn()} />,
+    );
+
+    expect(await screen.findByRole("button", { name: "Use own.jpg" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Use admin-visible.jpg" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Shared pool" }));
+    expect(screen.getByRole("button", { name: "Use admin-visible.jpg" })).toBeEnabled();
+  });
+
   it("uploads to the library and uses the returned storage key", async () => {
     const user = userEvent.setup();
     const uploaded = asset({

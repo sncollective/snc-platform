@@ -36,14 +36,21 @@ beforeEach(() => {
 });
 
 describe("PressCropEditor", () => {
+  const waitForCurrentPreview = async (): Promise<void> => {
+    await waitFor(() => expect(screen.getByRole("button", { name: "Apply crop" })).toBeEnabled());
+  };
+
   it("supports keyboard nudge, zoom, reset, and normalized Apply", async () => {
     const user = userEvent.setup();
     const onApply = vi.fn();
     render(<PressCropEditor {...baseProps} onApply={onApply} />);
 
+    await waitForCurrentPreview();
     const viewport = screen.getByRole("application", { name: "Gallery image crop viewport" });
     viewport.focus();
     await user.keyboard("{ArrowRight}+");
+    expect(screen.getByRole("button", { name: "Apply crop" })).toBeDisabled();
+    await waitForCurrentPreview();
     await user.click(screen.getByRole("button", { name: "Apply crop" }));
 
     expect(onApply).toHaveBeenCalledTimes(1);
@@ -52,6 +59,7 @@ describe("PressCropEditor", () => {
     expect(moved.x + moved.width).toBeLessThanOrEqual(1);
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
+    await waitForCurrentPreview();
     await user.click(screen.getByRole("button", { name: "Apply crop" }));
     expect(onApply.mock.calls[1]![0]).toEqual(
       fitSlotCrop({ width: 2400, height: 1600 }, "gallery"),
@@ -78,11 +86,25 @@ describe("PressCropEditor", () => {
       />,
     );
 
+    await waitForCurrentPreview();
     await user.click(screen.getByRole("button", { name: "Apply crop" }));
     expect(onApply).toHaveBeenCalledWith(initialCrop);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onApply).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["banner", 1920],
+    ["about", 720],
+    ["member", 480],
+    ["gallery", 960],
+    ["cover", 480],
+  ] as const)("requests the %s slot's eventual delivery width", async (slot, width) => {
+    render(<PressCropEditor {...baseProps} slot={slot} />);
+
+    await waitFor(() => expect(mockRequestPreview).toHaveBeenCalled());
+    expect(mockRequestPreview).toHaveBeenLastCalledWith(expect.objectContaining({ slot, width }));
   });
 
   it("sends the exact latest crop to the signed-preview endpoint", async () => {
@@ -160,6 +182,7 @@ describe("PressCropEditor", () => {
     pointerEvent("pointerdown", 300, 225);
     pointerEvent("pointermove", 180, 120);
     pointerEvent("pointerup", 180, 120);
+    await waitForCurrentPreview();
     await user.click(screen.getByRole("button", { name: "Apply crop" }));
 
     const crop = onApply.mock.calls[0]![0];
@@ -169,12 +192,38 @@ describe("PressCropEditor", () => {
     expect(crop.y + crop.height).toBeLessThanOrEqual(1);
   });
 
-  it("keeps editing available after a signed-preview failure", async () => {
-    mockRequestPreview.mockRejectedValueOnce(new Error("imgproxy unavailable"));
+  it("clears stale output and blocks Apply until the current preview succeeds", async () => {
+    mockRequestPreview
+      .mockResolvedValueOnce(descriptor("https://images.example/initial"))
+      .mockRejectedValueOnce(new Error("imgproxy unavailable"));
+    const user = userEvent.setup();
     render(<PressCropEditor {...baseProps} />);
 
-    expect(await screen.findByText("Preview unavailable. Your crop is still editable.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Apply crop" })).toBeEnabled();
-    expect(within(screen.getByLabelText("Gallery image rendered preview")).getByText(/still editable/)).toBeVisible();
+    await waitForCurrentPreview();
+    expect(screen.getByLabelText("Gallery image rendered preview").querySelector("img"))
+      .toHaveAttribute("src", "https://images.example/initial");
+
+    const viewport = screen.getByRole("application", { name: "Gallery image crop viewport" });
+    viewport.focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("button", { name: "Apply crop" })).toBeDisabled();
+    expect(screen.getByLabelText("Gallery image rendered preview").querySelector("img"))
+      .not.toBeInTheDocument();
+    expect(await screen.findByText("Preview unavailable. Adjust the crop or try again.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Apply crop" })).toBeDisabled();
+    expect(within(screen.getByLabelText("Gallery image rendered preview")).getByText(/try again/)).toBeVisible();
+  });
+
+  it("uses the authenticated legacy source adapter for owned press keys", () => {
+    const legacyKey = "creators/creator-1/press/hero photo.jpg";
+    render(
+      <PressCropEditor {...baseProps} imageKey={legacyKey} sourceWidth={null} sourceHeight={null} />,
+    );
+
+    expect(document.querySelector('[role="application"] img')).toHaveAttribute(
+      "src",
+      `/api/creators/creator-1/press/image-source?key=${encodeURIComponent(legacyKey)}`,
+    );
   });
 });

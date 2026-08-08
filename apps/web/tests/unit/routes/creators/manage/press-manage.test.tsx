@@ -32,11 +32,17 @@ vi.mock("../../../../../src/lib/press.js", () => ({
 vi.mock("../../../../../src/components/press/index.js", () => ({
   PressImageField: ({ label, value, onChange }: {
     label: string;
-    value: { key: string; alt: string } | null;
-    onChange: (value: { key: string; alt: string; credit: null; crop: { x: number; y: number; width: number; height: number } } | null) => void;
+    value: { key: string; alt: string; credit?: string | null; crop?: { x: number; y: number; width: number; height: number } } | null;
+    onChange: (value: { key: string; alt: string; credit: string | null; crop: { x: number; y: number; width: number; height: number } } | null) => void;
   }) => value ? (
     <div>
       <img src={`/api/library/raw/${value.key.slice("library/".length)}`} alt={value.alt} />
+      <button type="button" onClick={() => onChange({
+        ...value,
+        alt: "",
+        credit: value.credit ?? null,
+        crop: value.crop ?? { x: 0, y: 0, width: 1, height: 1 },
+      })}>Clear alt {label}</button>
       <button type="button" onClick={() => onChange(null)}>Remove {label}</button>
     </div>
   ) : (
@@ -161,6 +167,45 @@ describe("manage press editor", () => {
     await waitFor(() => expect(mockUpdateConfig).toHaveBeenCalledWith(
       "c1",
       expect.objectContaining({ gallery: [], photos: [] }),
+    ));
+  });
+
+  it("blocks saving a newly selected image after its alt is cleared", async () => {
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+    await screen.findByLabelText("Short bio");
+
+    await user.upload(
+      screen.getByLabelText("Upload Add press photo"),
+      new File(["changed bytes"], "press-photo.jpg", { type: "image/jpeg" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Clear alt Press photo 1" }));
+    await user.click(screen.getByRole("button", { name: "Save press page" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Alternative text is required for newly selected press photos.",
+    );
+    expect(mockUpdateConfig).not.toHaveBeenCalled();
+  });
+
+  it("allows an unchanged legacy blank alt to round-trip", async () => {
+    const legacyKey = "creators/c1/press/legacy.jpg";
+    mockFetchConfig.mockResolvedValueOnce({
+      ...config,
+      gallery: [{ key: legacyKey, alt: "", credit: null }],
+      photos: [legacyKey],
+    });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Save press page" }));
+
+    await waitFor(() => expect(mockUpdateConfig).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({
+        gallery: [{ key: legacyKey, alt: "", credit: null }],
+        photos: [legacyKey],
+      }),
     ));
   });
 

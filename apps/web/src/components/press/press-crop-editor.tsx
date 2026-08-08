@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 
-import { PRESS_IMAGE_SLOT_RATIOS } from "@snc/shared";
+import {
+  PRESS_IMAGE_SLOT_RATIOS,
+  PRESS_IMAGE_SLOT_WIDTHS,
+} from "@snc/shared";
 import type {
   PressImageCrop,
   PressImageSlotName,
@@ -80,7 +83,10 @@ export function PressCropEditor({
     suppliedSource(sourceWidth, sourceHeight));
   const [center, setCenter] = useState<CropCenter>({ x: 0.5, y: 0.5 });
   const [zoom, setZoom] = useState(1);
-  const [signedPreview, setSignedPreview] = useState<string | null>(null);
+  const [signedPreview, setSignedPreview] = useState<{
+    key: string;
+    src: string;
+  } | null>(null);
   const [previewState, setPreviewState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const dragStart = useRef<DragStart | null>(null);
   const previewRequest = useRef(0);
@@ -116,28 +122,39 @@ export function PressCropEditor({
     [center, slot, source, zoom],
   );
 
+  const previewWidth = PRESS_IMAGE_SLOT_WIDTHS[slot];
+  const previewKey = crop
+    ? `${imageKey}:${slot}:${previewWidth}:${crop.x}:${crop.y}:${crop.width}:${crop.height}`
+    : null;
+  const currentPreview = previewKey && signedPreview?.key === previewKey
+    ? signedPreview.src
+    : null;
+  const canApply = crop !== null && currentPreview !== null && previewState === "ready";
+
   useEffect(() => {
-    if (!crop) return;
+    if (!crop || !previewKey) return;
     const requestId = ++previewRequest.current;
     const controller = new AbortController();
+    setSignedPreview(null);
+    setPreviewState("loading");
     const timer = window.setTimeout(() => {
-      setPreviewState("loading");
       void requestPressImagePreview({
         creatorId,
         key: imageKey,
         crop,
         slot,
-        width: 960,
+        width: previewWidth,
         signal: controller.signal,
       })
         .then((descriptor) => {
           if (requestId !== previewRequest.current) return;
-          setSignedPreview(descriptor.src);
+          setSignedPreview({ key: previewKey, src: descriptor.src });
           setPreviewState("ready");
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted || requestId !== previewRequest.current) return;
           void error;
+          setSignedPreview(null);
           setPreviewState("error");
         });
     }, 250);
@@ -146,7 +163,7 @@ export function PressCropEditor({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [creatorId, crop, imageKey, slot]);
+  }, [creatorId, crop, imageKey, previewKey, previewWidth, slot]);
 
   const updateCenter = (next: CropCenter): void => {
     if (!source) return;
@@ -234,7 +251,7 @@ export function PressCropEditor({
           <img
             className={crop ? styles.sourceImage : styles.uncroppedImage}
             style={cropStyle(crop)}
-            src={contentLibraryRawUrl(imageKey)}
+            src={contentLibraryRawUrl(imageKey, creatorId)}
             alt=""
             draggable={false}
             onLoad={(event) => {
@@ -267,15 +284,15 @@ export function PressCropEditor({
 
         <section className={styles.preview} aria-label={`${slotLabel} rendered preview`}>
           <h3>Rendered preview</h3>
-          {signedPreview
-            ? <img src={signedPreview} alt="" />
-            : <p>{previewState === "error" ? "Preview unavailable. Your crop is still editable." : "Preparing preview…"}</p>}
+          {currentPreview
+            ? <img src={currentPreview} alt="" />
+            : <p>{previewState === "error" ? "Preview unavailable. Adjust the crop or try again." : "Preparing preview…"}</p>}
           {previewState === "loading" && <p role="status">Updating preview…</p>}
         </section>
 
         <div className={styles.actions}>
           <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="button" disabled={!crop} onClick={() => { if (crop) onApply(crop); }}>
+          <button type="button" disabled={!canApply} onClick={() => { if (crop && canApply) onApply(crop); }}>
             Apply crop
           </button>
         </div>

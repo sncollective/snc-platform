@@ -295,6 +295,39 @@ describe("GET /api/creators/:creatorId/press/photos/:index", () => {
   });
 });
 
+describe("GET /api/creators/:creatorId/press/image-source", () => {
+  it("streams an owned legacy photo for an authorized editor", async () => {
+    const key = `creators/${profile.id}/press/legacy hero.jpg`;
+
+    const res = await json(
+      "GET",
+      `/api/creators/test-creator/press/image-source?key=${encodeURIComponent(key)}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("image data");
+    expect(mockRequireCreatorPermission).toHaveBeenCalledWith(
+      expect.any(String),
+      profile.id,
+      "editProfile",
+      [],
+    );
+    expect(mockStorageDownload).toHaveBeenCalledWith(key);
+  });
+
+  it("does not stream a foreign legacy key", async () => {
+    const key = "creators/another-creator/press/private.jpg";
+
+    const res = await json(
+      "GET",
+      `/api/creators/test-creator/press/image-source?key=${encodeURIComponent(key)}`,
+    );
+
+    expect(res.status).toBe(404);
+    expect(mockStorageDownload).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/creators/:creatorId/press-config", () => {
   it("returns the full config for a creator member", async () => {
     const res = await json("GET", "/api/creators/test-creator/press-config");

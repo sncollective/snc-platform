@@ -9,7 +9,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
-import { isOwnedPressKey } from "@snc/shared";
+import { isLibraryAssetKey, isOwnedPressKey } from "@snc/shared";
 import type { PressContent, ReleaseOneSheet } from "@snc/shared";
 
 import { rootLogger } from "../logging/logger.js";
@@ -177,7 +177,7 @@ const readPressImageBuffer = async (
   key: string,
   creatorId: string,
 ): Promise<Buffer | null> => {
-  if (!isOwnedPressKey(key, creatorId)) return null;
+  if (!isOwnedPressKey(key, creatorId) && !isLibraryAssetKey(key)) return null;
 
   try {
     const result = await storage.download(key);
