@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-image-management-contract
 kind: story
-stage: implementing
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2-image-management
 depends_on: []
@@ -39,20 +39,29 @@ The shared checkpoint for every press image consumer: normalized per-reference c
 
 ## Acceptance evidence
 
-- [ ] Shared schema accepts valid normalized crop rectangles and rejects negative,
+- [x] Shared schema accepts valid normalized crop rectangles and rejects negative,
       zero-sized, non-finite, or out-of-source rectangles.
-- [ ] No-crop banner at width 1500 contains
+- [x] No-crop banner at width 1500 contains
       `rs:fill:1500:500:0/g:ce` in the signed processing path.
-- [ ] Crop `{x:.1,y:.2,width:.6,height:.4}` emits
+- [x] Crop `{x:.1,y:.2,width:.6,height:.4}` emits
       `c:0.6:0.4:fp:0.4:0.4` before the slot resize.
-- [ ] A crop whose width or height is exactly `1` uses `0` for that imgproxy crop
+- [x] A crop whose width or height is exactly `1` uses `0` for that imgproxy crop
       dimension rather than accidentally requesting one source pixel.
-- [ ] Changing crop, slot, or width changes the HMAC signature; unchanged input is
+- [x] Changing crop, slot, or width changes the HMAC signature; unchanged input is
       deterministic. Responsive candidates preserve the crop and returned slot
       `sizes` match the locked CSS.
-- [ ] Existing `buildImgproxyUrl` / `buildSrcSet` behavior remains green.
-- [ ] Shared and API unit/typecheck commands pass.
+- [x] Existing `buildImgproxyUrl` / `buildSrcSet` behavior remains green.
+- [x] Shared and API unit/typecheck commands pass.
 
 ## Ordering
 
 Foundation checkpoint; the authorization/preview route and web crop editor consume it.
+
+## Implementation
+
+- Execution capability: inline direct-read implementation; the shared schema and one API utility formed a bounded contract.
+- Review: not applicable — child-story checkpoint; effective review weight `standard` (project default) remains at feature scope.
+- Files changed: `packages/shared/src/press.ts`, `packages/shared/tests/press.test.ts`, `apps/api/src/lib/imgproxy.ts`, `apps/api/tests/lib/imgproxy.test.ts`.
+- Added focused schema and URL-builder tests for bounds, canonicalization, ratios, crop/focal-point encoding, full-axis sentinels, responsive descriptors, deterministic HMAC coverage, and existing builders.
+- Verification: shared `23` files / `723` tests passed; API `123` files / `1967` tests passed; `apps/api` `npx tsc --noEmit` passed with zero errors.
+- Simplification/discrepancies/adjacent issues: one shared slot registry and one signer path; none.

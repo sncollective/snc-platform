@@ -64,11 +64,77 @@ export const PressStreamingLinkSchema = z.preprocess(
 );
 export type PressStreamingLink = z.infer<typeof PressStreamingLinkSchema>;
 
+const canonicalizeNormalizedValue = (value: number): number =>
+  Math.round(value * 1_000_000) / 1_000_000;
+
+const NormalizedCoordinateSchema = z.number().finite().min(0).max(1);
+const NormalizedDimensionSchema = z.number().finite().positive().max(1);
+
+const PressImageCropInputSchema = z
+  .object({
+    x: NormalizedCoordinateSchema,
+    y: NormalizedCoordinateSchema,
+    width: NormalizedDimensionSchema,
+    height: NormalizedDimensionSchema,
+  })
+  .refine((crop) => crop.x + crop.width <= 1, {
+    path: ["width"],
+    message: "Crop width must remain within the source image",
+  })
+  .refine((crop) => crop.y + crop.height <= 1, {
+    path: ["height"],
+    message: "Crop height must remain within the source image",
+  });
+
+/** A normalized source-image crop rectangle, canonicalized for stable persistence. */
+export const PressImageCropSchema = PressImageCropInputSchema.transform((crop) => ({
+  x: canonicalizeNormalizedValue(crop.x),
+  y: canonicalizeNormalizedValue(crop.y),
+  width: canonicalizeNormalizedValue(crop.width),
+  height: canonicalizeNormalizedValue(crop.height),
+}))
+  .refine((crop) => crop.width > 0 && crop.x + crop.width <= 1, {
+    path: ["width"],
+    message: "Canonical crop width must be positive and remain within the source image",
+  })
+  .refine((crop) => crop.height > 0 && crop.y + crop.height <= 1, {
+    path: ["height"],
+    message: "Canonical crop height must be positive and remain within the source image",
+  });
+export type PressImageCrop = z.infer<typeof PressImageCropSchema>;
+
+/** Fixed press-image slots and their output aspect ratios. */
+export type PressImageSlot = {
+  banner: "3/1";
+  about: "4/5";
+  member: "1/1";
+  gallery: "4/3";
+  cover: "1/1";
+};
+
+export const PRESS_IMAGE_SLOT_RATIOS = {
+  banner: "3/1",
+  about: "4/5",
+  member: "1/1",
+  gallery: "4/3",
+  cover: "1/1",
+} as const satisfies PressImageSlot;
+
+export const PressImageSlotSchema = z.enum([
+  "banner",
+  "about",
+  "member",
+  "gallery",
+  "cover",
+]);
+export type PressImageSlotName = keyof PressImageSlot;
+
 /** A press image: an opaque storage key with required alternative text. */
 export const PressImageSchema = z.object({
   key: z.string().min(1),
   alt: z.string(),
   credit: z.string().nullable().optional(),
+  crop: PressImageCropSchema.optional(),
 });
 export type PressImage = z.infer<typeof PressImageSchema>;
 

@@ -1,5 +1,13 @@
 import { createHmac } from "node:crypto";
 
+import {
+  PRESS_IMAGE_SLOT_RATIOS,
+  type PressImage,
+  type PressImageSlot,
+} from "@snc/shared";
+
+import { config } from "../config.js";
+
 // ── Public Types ──
 
 /** Resize strategy for imgproxy processing. */
@@ -38,6 +46,14 @@ export const BANNER_WIDTHS = [640, 960, 1280, 1920] as const;
 /** Standard DPR multipliers for fixed-size images. */
 export const AVATAR_DPRS = [1, 2, 3] as const;
 
+const PRESS_IMAGE_SIZES = {
+  banner: "100vw",
+  about: "(max-width: 760px) 100vw, 360px",
+  member: "(max-width: 760px) 50vw, 240px",
+  gallery: "(max-width: 480px) 84vw, (max-width: 760px) 45vw, 300px",
+  cover: "(max-width: 480px) 92px, 145px",
+} as const satisfies Record<keyof PressImageSlot, string>;
+
 // ── Private Helpers ──
 
 const hexDecode = (hex: string): Buffer => Buffer.from(hex, "hex");
@@ -49,9 +65,20 @@ const signPath = (key: string, salt: string, path: string): string => {
   return hmac.digest("base64url");
 };
 
-// ── Module-level Config Access ──
+const formatNormalized = (value: number, fullAxis = false): string => {
+  const canonical = Math.round(value * 1_000_000) / 1_000_000;
+  return fullAxis && canonical === 1 ? "0" : String(canonical);
+};
 
-import { config } from "../config.js";
+const pressImageCandidateWidths = (width: number): number[] => {
+  const candidates = [Math.round(width / 4), Math.round(width / 2), width]
+    .map((candidate) => Math.max(160, candidate))
+    .filter((candidate) => candidate <= width);
+
+  return candidates.length > 0 ? [...new Set(candidates)] : [width];
+};
+
+// ── Module-level Config Access ──
 
 const getConfig = (): ImgproxyConfig => ({
   baseUrl: config.IMGPROXY_URL ?? "",
@@ -96,6 +123,58 @@ export function buildImgproxyUrl(
     : "unsafe";
 
   return `${cfg.baseUrl}/${signature}${path}`;
+}
+
+/**
+ * Build signed fixed-aspect delivery URLs for a press image slot.
+ *
+ * Persisted normalized crops are applied before the slot resize. Responsive
+ * candidates share the crop and vary only their output dimensions.
+ */
+export function buildPressImageUrl(
+  image: PressImage,
+  slot: keyof PressImageSlot,
+  width: number,
+): { src: string; srcSet: string; sizes: string } {
+  if (!Number.isInteger(width) || width <= 0) {
+    throw new RangeError("Press image width must be a positive integer");
+  }
+
+  const cfg = getConfig();
+  const [ratioWidth, ratioHeight] = PRESS_IMAGE_SLOT_RATIOS[slot]
+    .split("/")
+    .map(Number) as [number, number];
+  const sourceUrl = `s3://${cfg.bucket}/${image.key}`;
+
+  const buildCandidate = (candidateWidth: number): string => {
+    const outputHeight = Math.round(candidateWidth * ratioHeight / ratioWidth);
+    const parts: string[] = [];
+
+    if (image.crop) {
+      const centerX = image.crop.x + image.crop.width / 2;
+      const centerY = image.crop.y + image.crop.height / 2;
+      parts.push(
+        `c:${formatNormalized(image.crop.width, true)}:${formatNormalized(image.crop.height, true)}`
+          + `:fp:${formatNormalized(centerX)}:${formatNormalized(centerY)}`,
+      );
+    }
+
+    parts.push(`rs:fill:${candidateWidth}:${outputHeight}:0`, "g:ce");
+    const path = `/${parts.join("/")}/plain/${sourceUrl}`;
+    const signature = cfg.signingEnabled
+      ? signPath(cfg.key, cfg.salt, path)
+      : "unsafe";
+
+    return `${cfg.baseUrl}/${signature}${path}`;
+  };
+
+  return {
+    src: buildCandidate(width),
+    srcSet: pressImageCandidateWidths(width)
+      .map((candidateWidth) => `${buildCandidate(candidateWidth)} ${candidateWidth}w`)
+      .join(", "),
+    sizes: PRESS_IMAGE_SIZES[slot],
+  };
 }
 
 /**

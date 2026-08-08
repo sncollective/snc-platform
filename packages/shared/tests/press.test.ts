@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_PRESS_CONTENT,
+  PRESS_IMAGE_SLOT_RATIOS,
   PressConfigPatchSchema,
   PressContentSchema,
+  PressImageSchema,
+  PressImageSlotSchema,
   inferService,
 } from "../src/index.js";
 
@@ -119,6 +122,69 @@ describe("PressContentSchema", () => {
         gallery: [{ key: "creators/creator-1/press/gallery.jpg", alt: "Live performance" }],
       }),
     ).toMatchObject({ template: "B", members: [{ name: "Alex" }] });
+  });
+});
+
+describe("PressImageSchema", () => {
+  it("round-trips a valid crop and canonicalizes normalized values to six decimals", () => {
+    expect(
+      PressImageSchema.parse({
+        key: "library/sha256/example.jpg",
+        alt: "The band on stage",
+        credit: "Photo: Example",
+        crop: {
+          x: 0.12345649,
+          y: 0.2,
+          width: 0.6000001,
+          height: 0.4,
+        },
+      }),
+    ).toEqual({
+      key: "library/sha256/example.jpg",
+      alt: "The band on stage",
+      credit: "Photo: Example",
+      crop: { x: 0.123456, y: 0.2, width: 0.6, height: 0.4 },
+    });
+  });
+
+  it("keeps crop additive and continues accepting legacy empty alt text", () => {
+    expect(
+      PressImageSchema.parse({ key: "creators/creator-1/press/legacy.jpg", alt: "" }),
+    ).toEqual({ key: "creators/creator-1/press/legacy.jpg", alt: "" });
+  });
+
+  it.each([
+    ["negative coordinate", { x: -0.1, y: 0, width: 0.5, height: 0.5 }],
+    ["zero width", { x: 0, y: 0, width: 0, height: 0.5 }],
+    ["zero height", { x: 0, y: 0, width: 0.5, height: 0 }],
+    ["dimension canonicalized to zero", { x: 0, y: 0, width: 0.0000001, height: 0.5 }],
+    ["non-finite coordinate", { x: Number.POSITIVE_INFINITY, y: 0, width: 0.5, height: 0.5 }],
+    ["non-finite dimension", { x: 0, y: 0, width: Number.NaN, height: 0.5 }],
+    ["horizontal overflow", { x: 0.6, y: 0, width: 0.5, height: 0.5 }],
+    ["sub-precision horizontal overflow", { x: 0.5000004, y: 0, width: 0.5000004, height: 0.5 }],
+    ["vertical overflow", { x: 0, y: 0.7, width: 0.5, height: 0.4 }],
+  ])("rejects %s", (_label, crop) => {
+    expect(
+      PressImageSchema.safeParse({ key: "library/sha256/example.jpg", alt: "Image", crop })
+        .success,
+    ).toBe(false);
+  });
+
+  it("exports the fixed slot registry and matching slot-name schema", () => {
+    expect(PRESS_IMAGE_SLOT_RATIOS).toEqual({
+      banner: "3/1",
+      about: "4/5",
+      member: "1/1",
+      gallery: "4/3",
+      cover: "1/1",
+    });
+    expect(PressImageSlotSchema.options).toEqual([
+      "banner",
+      "about",
+      "member",
+      "gallery",
+      "cover",
+    ]);
   });
 });
 
