@@ -1,7 +1,7 @@
 ---
 id: content-library-core
 kind: feature
-stage: review
+stage: implementing
 tags: [media, content]
 parent: content-library
 depends_on: []
