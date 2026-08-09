@@ -62,6 +62,7 @@ export const toProfileResponse = (
     handle: profile.handle ?? null,
     avatarUrl: urls.avatarUrl,
     bannerUrl: urls.bannerUrl,
+    brandColor: profile.brandColor ?? null,
     avatar: urls.avatar,
     banner: urls.banner,
     socialLinks: profile.socialLinks ?? [],

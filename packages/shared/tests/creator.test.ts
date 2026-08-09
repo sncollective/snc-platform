@@ -28,6 +28,7 @@ const VALID_CREATOR_PROFILE = {
   handle: null,
   avatarUrl: "/api/creators/user_creator1/avatar",
   bannerUrl: null,
+  brandColor: null,
   avatar: null,
   banner: null,
   socialLinks: [],

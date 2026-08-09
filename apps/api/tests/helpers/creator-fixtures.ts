@@ -9,6 +9,7 @@ type DbCreatorProfileRow = {
   handle: string | null;
   avatarKey: string | null;
   bannerKey: string | null;
+  brandColor: string | null;
   socialLinks: SocialLink[];
   status: "active" | "inactive" | "archived";
   createdAt: Date;
@@ -33,6 +34,7 @@ export const makeMockDbCreatorProfile = (
   handle: null,
   avatarKey: null,
   bannerKey: null,
+  brandColor: null,
   socialLinks: [],
   status: "active" as const,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),

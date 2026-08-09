@@ -1,6 +1,12 @@
 import { pgTable, text, timestamp, jsonb, boolean, index, primaryKey } from "drizzle-orm/pg-core";
 
-import type { SocialLink, CreatorMemberRole, CreatorStatus, PressContent } from "@snc/shared";
+import type {
+  SocialLink,
+  CreatorBrandColor,
+  CreatorMemberRole,
+  CreatorStatus,
+  PressContent,
+} from "@snc/shared";
 
 import { DEFAULT_PRESS_CONTENT } from "../../../../../packages/shared/src/press.js";
 import { users } from "./user.schema.js";
@@ -15,6 +21,7 @@ export const creatorProfiles = pgTable(
     bio: text("bio"),
     avatarKey: text("avatar_key"),
     bannerKey: text("banner_key"),
+    brandColor: text("brand_color").$type<CreatorBrandColor>(),
     socialLinks: jsonb("social_links")
       .$type<SocialLink[]>()
       .notNull()
@@ -83,5 +90,6 @@ export const creatorPressConfigs = pgTable("creator_press_configs", {
     .$type<PressContent>()
     .notNull()
     .default(DEFAULT_PRESS_CONTENT),
+  draftContent: jsonb("draft_content").$type<PressContent>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

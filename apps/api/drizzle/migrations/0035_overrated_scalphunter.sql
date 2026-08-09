@@ -1,0 +1,3 @@
+ALTER TABLE "creator_press_configs" ALTER COLUMN "content" SET DEFAULT '{"enabled":false,"template":"A","tagline":null,"shortBio":null,"longBio":null,"forFansOf":[],"banner":null,"aboutPhoto":null,"members":[],"streamingLinks":[],"liveDatesUrl":null,"standoutTrack":null,"highlights":[],"pressContactEmail":null,"location":null,"photos":[],"gallery":[],"releases":[]}'::jsonb;--> statement-breakpoint
+ALTER TABLE "creator_press_configs" ADD COLUMN "draft_content" jsonb;--> statement-breakpoint
+ALTER TABLE "creator_profiles" ADD COLUMN "brand_color" text;

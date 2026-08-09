@@ -871,6 +871,56 @@ describe("creator routes", () => {
       expect(res.status).toBe(400);
     });
 
+    it("updates a curated brand color for an authorized creator member", async () => {
+      const dbProfile = makeMockDbCreatorProfile({ brandColor: null });
+      const updatedProfile = makeMockDbCreatorProfile({ brandColor: "#f4a261" });
+
+      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
+      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
+      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
+
+      const res = await ctx.app.request("/api/creators/user_test123", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandColor: "#f4a261" }),
+      });
+
+      expect(res.status).toBe(200);
+      expect((await res.json()).brandColor).toBe("#f4a261");
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ brandColor: "#f4a261" }),
+      );
+    });
+
+    it("rejects arbitrary brand colors outside the curated palette", async () => {
+      const res = await ctx.app.request("/api/creators/user_test123", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandColor: "#123456" }),
+      });
+
+      expect(res.status).toBe(400);
+      expect(mockUpdateReturning).not.toHaveBeenCalled();
+    });
+
+    it("clears a creator brand color with null", async () => {
+      const dbProfile = makeMockDbCreatorProfile({ brandColor: "#f4a261" });
+      const updatedProfile = makeMockDbCreatorProfile({ brandColor: null });
+
+      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
+      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
+      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
+
+      const res = await ctx.app.request("/api/creators/user_test123", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandColor: null }),
+      });
+
+      expect(res.status).toBe(200);
+      expect((await res.json()).brandColor).toBeNull();
+    });
+
     it("updates socialLinks with valid entries", async () => {
       const socialLinks = [
         { platform: "bandcamp" as const, url: "https://myband.bandcamp.com" },

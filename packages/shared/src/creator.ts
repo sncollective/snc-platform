@@ -112,6 +112,20 @@ export type CreatorPermission = keyof (typeof CREATOR_ROLE_PERMISSIONS)["owner"]
 /** Validation pattern for creator handles: 3-30 lowercase alphanumeric, underscore, or hyphen. */
 export const HANDLE_REGEX = /^[a-z0-9_-]{3,30}$/;
 
+/** Curated brand accents with at least 4.5:1 contrast against #1a1a2e. */
+export const CREATOR_BRAND_COLORS = [
+  "#f4a261",
+  "#e9c46a",
+  "#a8dadc",
+  "#90be6d",
+  "#f28482",
+  "#cdb4db",
+  "#ffd166",
+  "#8ecae6",
+] as const;
+export const CreatorBrandColorSchema = z.enum(CREATOR_BRAND_COLORS);
+export type CreatorBrandColor = z.infer<typeof CreatorBrandColorSchema>;
+
 export const UpdateCreatorProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   bio: z.string().max(2000).optional(),
@@ -120,6 +134,7 @@ export const UpdateCreatorProfileSchema = z.object({
     .regex(HANDLE_REGEX, "Handle must be 3–30 characters: lowercase letters, digits, _ or -")
     .optional()
     .nullable(),
+  brandColor: CreatorBrandColorSchema.nullable().optional(),
   socialLinks: z
     .array(SocialLinkSchema)
     .max(MAX_SOCIAL_LINKS, `Maximum ${MAX_SOCIAL_LINKS} links allowed`)
@@ -154,6 +169,7 @@ export const CreatorProfileResponseSchema = z.object({
   handle: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   bannerUrl: z.string().nullable(),
+  brandColor: CreatorBrandColorSchema.nullable(),
   avatar: DprImageSchema.nullable(),
   banner: ResponsiveImageSchema.nullable(),
   socialLinks: z.array(SocialLinkSchema),
