@@ -34,18 +34,41 @@
 
 @media print {
   .template {
+    --print-baseline: 4px;
+    --print-inset: 48px;
+    --print-gutter: 12px;
+    --print-space-1: 4px;
+    --print-space-2: 8px;
+    --print-space-3: 12px;
+    --print-space-4: 16px;
+    --print-space-6: 24px;
+    --print-space-8: 32px;
+    --font-size-xs: 8.67px;
+    --font-size-sm: 10px;
     width: 7.5in;
     overflow: visible;
-    font-size: 7pt;
+    font-size: 10px;
+    line-height: 12px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  .editorial { width: 7.5in; padding: .08in 0; }
-  .midZone {
-    grid-template-columns: .95fr 1.05fr;
-    gap: .08in;
-    margin-bottom: .1in;
-    padding: .05in;
+  .editorial {
+    width: 7.5in;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--print-gutter);
+    padding: var(--print-space-4) 0;
   }
+
+  .editorial > * { grid-column: 1 / -1; }
+  .midZone {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--print-gutter);
+    align-items: start;
+    margin-bottom: var(--print-space-6);
+    padding: var(--print-space-3);
+  }
+  .midZone > :first-child { grid-column: 1 / span 6; }
+  .midZone > :last-child { grid-column: 7 / -1; }
 }

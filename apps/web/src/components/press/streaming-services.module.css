@@ -29,7 +29,7 @@
 }
 
 @media print {
-  .services { gap: .035in; }
-  .service { min-height: 0; padding: .02in .05in; }
-  .service svg { width: 10px; height: 10px; }
+  .services { gap: 4px; }
+  .service { min-height: 0; gap: 4px; padding: 4px 8px; font-size: 8.67px; line-height: 12px; }
+  .service svg { width: 12px; height: 12px; }
 }

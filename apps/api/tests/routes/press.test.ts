@@ -199,12 +199,12 @@ describe("GET /api/creators/:creatorId/press", () => {
       ...content,
       banner: {
         ...banner,
-        src: `https://images.example/banner/1920/${banner.key}`,
-        srcSet: `https://images.example/banner/1920/${banner.key} 1920w`,
+        src: `https://images.example/banner/2250/${banner.key}`,
+        srcSet: `https://images.example/banner/2250/${banner.key} 2250w`,
         sizes: "100vw",
       },
     });
-    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 1920);
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 2250);
     expect(mockFindCreatorProfile).toHaveBeenCalledWith("test-creator", {
       activeOnly: true,
     });

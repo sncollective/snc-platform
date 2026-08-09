@@ -15,15 +15,32 @@
 
 @media print {
   .template {
+    --print-baseline: 4px;
+    --print-inset: 48px;
+    --print-gutter: 12px;
+    --print-space-1: 4px;
+    --print-space-2: 8px;
+    --print-space-3: 12px;
+    --print-space-4: 16px;
+    --print-space-6: 24px;
+    --print-space-8: 32px;
+    --font-size-xs: 8.67px;
+    --font-size-sm: 10px;
     width: 7.5in;
     overflow: visible;
-    font-size: 7pt;
+    font-size: 10px;
+    line-height: 12px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .editorial {
     width: 7.5in;
-    padding: .08in 0;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--print-gutter);
+    padding: var(--print-space-4) 0;
   }
+
+  .editorial > * { grid-column: 1 / -1; }
 }

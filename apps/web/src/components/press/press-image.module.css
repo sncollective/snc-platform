@@ -46,11 +46,19 @@
     overflow: visible;
   }
 
+  .figure figcaption {
+    padding-top: 4px;
+    font-size: 8.67px;
+    line-height: 12px;
+  }
+
   .overlay figcaption {
-    right: .02in;
-    bottom: .02in;
-    left: .02in;
-    padding: .02in;
-    font-size: 5.5pt;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    padding: 8px;
+    color: #fff;
+    font-size: 8.67px;
+    line-height: 12px;
   }
 }

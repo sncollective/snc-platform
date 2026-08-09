@@ -19,7 +19,7 @@
 
 .unavailable p { color: var(--color-text-muted); }
 
-@page { size: letter portrait; margin: .35in .5in; }
+@page { size: letter portrait; margin: .5in; }
 @media print {
   :global(body:has([data-press-template]) nav),
   :global(body:has([data-press-template]) #main-content ~ footer) {

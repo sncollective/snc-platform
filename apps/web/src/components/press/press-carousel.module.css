@@ -71,11 +71,12 @@
 }
 
 @media print {
-  .section { margin-bottom: .1in; break-inside: avoid; }
-  .kicker { margin-bottom: .025in; }
+  .section { margin-bottom: 24px; break-inside: auto; }
+  .kicker { margin-bottom: 4px; font-size: 8.67px; line-height: 12px; }
   .viewport { overflow: visible; }
-  .track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .03in; transform: none !important; }
-  .slide { min-width: 0; overflow: visible; }
+  .track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; transform: none !important; }
+  .slide { min-width: 0; overflow: visible; break-inside: avoid; }
   .slide img { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .note { margin-top: 8px; font-size: 8.67px; line-height: 12px; }
   .arrow { display: none; }
 }

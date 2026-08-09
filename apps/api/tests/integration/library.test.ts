@@ -165,7 +165,8 @@ describe("content library integration", () => {
           enabled: true,
           banner: { key, alt: "Integration hero" },
         },
-        pressPageUrl: "https://s-nc.org/creators/integration/press",
+        // Direct HTML rendering needs an absolute base for the crop-aware imgproxy paths.
+        pressPageUrl: "http://localhost:8081/creators/integration/press",
         theme: "dark",
         brandColor: null,
         orientation: "horizontal",

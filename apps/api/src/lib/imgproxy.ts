@@ -135,9 +135,13 @@ export function buildPressImageUrl(
   image: PressImage,
   slot: keyof PressImageSlot,
   width: number,
+  height?: number,
 ): { src: string; srcSet: string; sizes: string } {
   if (!Number.isInteger(width) || width <= 0) {
     throw new RangeError("Press image width must be a positive integer");
+  }
+  if (height !== undefined && (!Number.isInteger(height) || height <= 0)) {
+    throw new RangeError("Press image height must be a positive integer");
   }
 
   const cfg = getConfig();
@@ -147,7 +151,9 @@ export function buildPressImageUrl(
   const sourceUrl = `s3://${cfg.bucket}/${image.key}`;
 
   const buildCandidate = (candidateWidth: number): string => {
-    const outputHeight = Math.round(candidateWidth * ratioHeight / ratioWidth);
+    const outputHeight = height === undefined
+      ? Math.round(candidateWidth * ratioHeight / ratioWidth)
+      : Math.round(candidateWidth * height / width);
     const parts: string[] = [];
 
     if (image.crop) {

@@ -67,7 +67,8 @@ export const resolvePressPageContent = (
   content: PressContent,
 ): DeliveredPressContent => ({
   ...content,
-  banner: deliver(content.banner, "banner", PRESS_IMAGE_SLOT_WIDTHS.banner),
+  // The full PDF hero occupies 7.5in × 2.5in and therefore needs 2250 × 750px at 300ppi.
+  banner: deliver(content.banner, "banner", 2250),
   aboutPhoto: deliver(content.aboutPhoto, "about", PRESS_IMAGE_SLOT_WIDTHS.about),
   members: content.members.map((member) => ({
     ...member,

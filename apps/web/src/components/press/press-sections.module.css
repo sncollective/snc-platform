@@ -230,26 +230,41 @@
   .date a { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
 }
 
-@page { size: letter portrait; margin: .35in .5in; }
+@page { size: letter portrait; margin: .5in; }
 @media print {
   .downloadPin { display: none; }
-  .hero { width: 7.5in; height: 2.5in; min-height: 0; }
-  .wordmark { width: 7.5in; bottom: .16in; }
-  .wordmark h1 { font-size: 54pt; }
-  .section { margin-bottom: .1in; break-inside: avoid; }
-  .kicker { margin-bottom: .025in; }
-  .deck { margin-bottom: .04in; font-size: 8.7pt; line-height: 1.18; }
-  .bio p { margin: 0 0 .03in; }
-  .aboutPhoto { width: 1.35in; margin: 0 0 .06in .1in; }
-  .aboutPhoto img { height: 1.15in; }
-  .members { gap: .07in; }
-  .member img { height: .75in; }
-  .highlights { gap: .08in; }
-  .highlight { grid-template-columns: .72in 1fr; gap: .06in; padding: .05in; }
+  .hero { width: 7.5in; height: 240px; min-height: 0; }
+  .wordmark { width: 7.5in; bottom: 16px; gap: 24px; }
+  .wordmark h1 { font-size: 54pt; line-height: 72px; }
+  .heroFacts { color: #fff; font-size: 10px; line-height: 12px; }
+  .heroFacts span:last-child { color: #fff; }
+  .section { margin-bottom: 24px; break-inside: auto; }
+  .kicker { margin-bottom: 4px; font-size: 8.67px; line-height: 12px; }
+  .deck { margin-bottom: 8px; font-size: 12pt; line-height: 20px; }
+  .bio { font-size: 10px; line-height: 16px; }
+  .bio p { margin: 0 0 8px; }
+  .aboutPhoto { width: 132px; margin: 0 0 8px 12px; }
+  .aboutPhoto img { height: 112px; }
+  .fansCluster { margin-top: 12px; }
+  .fans { gap: 4px; }
+  .pill { padding: 4px 8px; font-size: 8.67px; line-height: 12px; }
+  .members { gap: 8px; }
+  .member { break-inside: avoid; padding-bottom: 8px; }
+  .member img { height: 72px; }
+  .member h3 { margin-top: 4px; font-size: 10pt; line-height: 16px; }
+  .role, .memberBio { margin-top: 4px; font-size: 8.67px; line-height: 12px; }
+  .highlights { gap: 8px; grid-auto-rows: auto; }
+  .highlight { grid-template-columns: 72px 1fr; gap: 8px; padding: 8px; break-inside: avoid; }
   .highlightNoMedia { grid-template-columns: 1fr; }
-  .highlight h3 { font-size: 12pt; }
-  .fans { gap: .035in; }
-  .pill { padding: .005in .05in; }
-  .date { padding: .018in 0; line-height: 1.1; }
-  .footer { width: 7.5in; padding: .04in 0 0; font-size: 7pt; }
+  .highlight h3 { margin: 4px 0; font-size: 12pt; line-height: 16px; }
+  .highlight p, .eyebrow { font-size: 8.67px; line-height: 12px; }
+  .metric { font-size: 12pt; line-height: 16px; }
+  .zoneSection { height: auto; }
+  .zoneMembers, .zoneHighlights { flex: none; grid-auto-rows: auto; grid-template-rows: none; }
+  .zoneMember, .zoneHighlight { padding: 8px; }
+  .date { gap: 12px; padding: 8px 0; font-size: 10px; line-height: 12px; break-inside: avoid; }
+  .date a, .more { font-size: 8.67px; line-height: 12px; }
+  .more { margin-top: 8px; }
+  .footer { width: 7.5in; padding: 8px 0 0; gap: 16px; font-size: 8.67px; line-height: 12px; }
+  .pdf { padding: 8px 12px; }
 }

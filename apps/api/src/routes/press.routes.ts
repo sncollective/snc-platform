@@ -18,6 +18,7 @@ import {
 
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { optionalAuth } from "../middleware/optional-auth.js";
+import { rateLimiter } from "../middleware/rate-limit.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
@@ -67,11 +68,12 @@ const PressPdfThemeQuerySchema = z.object({
 });
 const PressOneSheetQuerySchema = PressPdfThemeQuerySchema.extend({
   orientation: z.enum(ONE_SHEET_ORIENTATIONS).default("auto"),
-  url: z.string().url().refine(
+  url: z.string().url().max(512).refine(
     (value) => ["http:", "https:"].includes(new URL(value).protocol),
     "QR destination must use HTTP or HTTPS",
   ).optional(),
 });
+const pressPdfRateLimiter = rateLimiter({ windowMs: 60_000, max: 6 });
 
 // ── Private Helpers ──
 
@@ -134,6 +136,7 @@ pressRoutes.get(
       404: ERROR_404,
     },
   }),
+  pressPdfRateLimiter,
   optionalAuth,
   validator("param", CreatorIdParam),
   validator("query", PressPdfThemeQuerySchema),
@@ -169,6 +172,7 @@ pressRoutes.get(
       404: ERROR_404,
     },
   }),
+  pressPdfRateLimiter,
   optionalAuth,
   validator("param", CreatorIdParam),
   validator("query", PressOneSheetQuerySchema),

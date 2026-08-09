@@ -1,73 +1,311 @@
+import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
 
 const LETTER_WIDTH_IN = 8.5;
 const LETTER_HEIGHT_IN = 11;
-const RENDER_TIMEOUT_MS = 30_000;
+const DEFAULT_RENDER_TIMEOUT_MS = 30_000;
+const ASSET_WAIT_CAP_MS = 8_000;
+const MAX_CONCURRENT_PAGES = 2;
+
+type ReleaseSlot = () => void;
+type SlotWaiter = {
+  readonly resolve: (release: ReleaseSlot) => void;
+  readonly reject: (error: Error) => void;
+  readonly timer: ReturnType<typeof setTimeout>;
+};
+
+let browserPromise: Promise<Browser> | null = null;
+let activePages = 0;
+const slotWaiters: SlotWaiter[] = [];
 
 export interface BrowserPdfOptions {
   readonly html?: string;
   readonly url?: string;
   readonly style?: string;
   readonly singlePage?: boolean;
+  readonly timeoutMs?: number;
 }
 
-/** Render browser-native HTML/CSS to US Letter using the same print engine as the web surface. */
-export const renderBrowserPdf = async ({
-  html,
-  url,
-  style,
-  singlePage = false,
-}: BrowserPdfOptions): Promise<Buffer> => {
-  if ((html == null) === (url == null)) {
-    throw new TypeError("Browser PDF rendering requires exactly one of html or url");
+export interface BrowserPdfHealth {
+  readonly status: "ok" | "unavailable";
+  readonly browserVersion?: string;
+  readonly activePages: number;
+  readonly queuedPages: number;
+  readonly error?: string;
+}
+
+export class BrowserPdfTimeoutError extends Error {
+  constructor() {
+    super("Press PDF rendering exceeded its hard deadline");
+    this.name = "BrowserPdfTimeoutError";
+  }
+}
+
+export class BrowserPdfPreflightError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrowserPdfPreflightError";
+  }
+}
+
+const remainingMs = (deadline: number): number => Math.max(0, deadline - Date.now());
+
+const withinDeadline = async <T>(
+  operation: Promise<T>,
+  deadline: number,
+  onTimeout?: () => void,
+): Promise<T> => {
+  const remaining = remainingMs(deadline);
+  if (remaining === 0) {
+    onTimeout?.();
+    throw new BrowserPdfTimeoutError();
   }
 
-  const browser = await chromium.launch({ headless: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const page = await browser.newPage({
-      viewport: { width: 816, height: 1056 },
-      deviceScaleFactor: 1,
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          onTimeout?.();
+          reject(new BrowserPdfTimeoutError());
+        }, remaining);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
+const releasePageSlot = (): void => {
+  const waiter = slotWaiters.shift();
+  if (waiter) {
+    clearTimeout(waiter.timer);
+    waiter.resolve(releasePageSlot);
+    return;
+  }
+  activePages--;
+};
+
+const acquirePageSlot = async (deadline: number): Promise<ReleaseSlot> => {
+  if (activePages < MAX_CONCURRENT_PAGES) {
+    activePages++;
+    return releasePageSlot;
+  }
+
+  return new Promise<ReleaseSlot>((resolve, reject) => {
+    const waiter: SlotWaiter = {
+      resolve,
+      reject,
+      timer: setTimeout(() => {
+        const index = slotWaiters.indexOf(waiter);
+        if (index >= 0) slotWaiters.splice(index, 1);
+        reject(new BrowserPdfTimeoutError());
+      }, remainingMs(deadline)),
+    };
+    slotWaiters.push(waiter);
+  });
+};
+
+const launchBrowser = async (): Promise<Browser> => {
+  const browser = await chromium.launch({ headless: true });
+  browser.on("disconnected", () => {
+    browserPromise = null;
+  });
+  return browser;
+};
+
+const getBrowser = async (): Promise<Browser> => {
+  if (!browserPromise) {
+    browserPromise = launchBrowser().catch((error) => {
+      browserPromise = null;
+      throw error;
     });
-    page.setDefaultTimeout(RENDER_TIMEOUT_MS);
-    page.setDefaultNavigationTimeout(RENDER_TIMEOUT_MS);
+  }
 
-    if (url) {
-      const response = await page.goto(url, { waitUntil: "networkidle" });
-      if (!response?.ok()) {
-        throw new Error(`Press page render failed with HTTP ${response?.status() ?? "unknown"}`);
-      }
-    } else {
-      await page.setContent(html!, { waitUntil: "networkidle" });
-    }
+  const browser = await browserPromise;
+  if (browser.isConnected()) return browser;
+  browserPromise = launchBrowser();
+  return browserPromise;
+};
 
-    await page.evaluate(async () => {
-      await document.fonts.ready;
-      await Promise.all(
-        [...document.images].map(async (image) => {
-          if (image.complete) return;
+const createPage = async (browser: Browser, deadline: number): Promise<Page> => {
+  const pagePromise = browser.newPage({
+    viewport: { width: 816, height: 1056 },
+    deviceScaleFactor: 1,
+  });
+  void pagePromise.then(async (page) => {
+    if (remainingMs(deadline) === 0) await page.close().catch(() => undefined);
+  }).catch(() => undefined);
+  return withinDeadline(pagePromise, deadline);
+};
+
+const waitForAssets = async (page: Page, deadline: number): Promise<void> => {
+  const cap = Math.min(ASSET_WAIT_CAP_MS, remainingMs(deadline));
+  const failures = await withinDeadline(page.evaluate(async (assetTimeoutMs) => {
+    const timeout = new Promise<"timeout">((resolve) => {
+      window.setTimeout(() => resolve("timeout"), assetTimeoutMs);
+    });
+    const loaded = Promise.all([
+      document.fonts.ready.then(() => "fonts" as const),
+      ...[...document.images].map(async (image) => {
+        if (!image.complete) {
           await new Promise<void>((resolve) => {
             image.addEventListener("load", () => resolve(), { once: true });
             image.addEventListener("error", () => resolve(), { once: true });
           });
-        }),
-      );
+        }
+        return image.naturalWidth > 0 ? null : image.currentSrc || image.src || "unknown image";
+      }),
+    ]);
+    const result = await Promise.race([loaded, timeout]);
+    if (result === "timeout") return ["asset readiness timed out"];
+    return result.filter((value): value is string => value !== null && value !== "fonts");
+  }, cap), deadline, () => { void page.close().catch(() => undefined); });
+
+  if (failures.length > 0) {
+    throw new BrowserPdfPreflightError(
+      `Press PDF assets failed to load: ${failures.slice(0, 3).join(", ")}`,
+    );
+  }
+};
+
+const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
+  const issues = await withinDeadline(page.evaluate(() => {
+    const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
+    if (!sheet) return ["single-page sheet root is missing"];
+
+    const epsilon = 1;
+    const bounds = sheet.getBoundingClientRect();
+    const problems: string[] = [];
+    if (sheet.scrollWidth > sheet.clientWidth + epsilon) problems.push("horizontal content overflow");
+    if (sheet.scrollHeight > sheet.clientHeight + epsilon) problems.push("vertical content overflow");
+
+    const outside = [...sheet.querySelectorAll<HTMLElement>("*")].find((element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = element.getBoundingClientRect();
+      return rect.left < bounds.left - epsilon
+        || rect.top < bounds.top - epsilon
+        || rect.right > bounds.right + epsilon
+        || rect.bottom > bounds.bottom + epsilon;
     });
+    if (outside) {
+      const label = outside.className || outside.tagName.toLowerCase();
+      problems.push(`element outside Letter sheet: ${String(label)}`);
+    }
+    return problems;
+  }), deadline, () => { void page.close().catch(() => undefined); });
 
-    if (style) await page.addStyleTag({ content: style });
-    await page.emulateMedia({ media: "print" });
+  if (issues.length > 0) {
+    throw new BrowserPdfPreflightError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
+  }
+};
 
-    const pdf = await page.pdf({
+const renderOnPage = async (
+  browser: Browser,
+  options: BrowserPdfOptions,
+  deadline: number,
+): Promise<Buffer> => {
+  let page: Page | null = null;
+  try {
+    page = await createPage(browser, deadline);
+    page.setDefaultTimeout(Math.max(1, remainingMs(deadline)));
+    page.setDefaultNavigationTimeout(Math.max(1, remainingMs(deadline)));
+
+    if (options.url) {
+      const response = await withinDeadline(
+        page.goto(options.url, { waitUntil: "domcontentloaded" }),
+        deadline,
+        () => { void page?.close().catch(() => undefined); },
+      );
+      if (!response?.ok()) {
+        throw new BrowserPdfPreflightError(
+          `Press page render failed with HTTP ${response?.status() ?? "unknown"}`,
+        );
+      }
+    } else {
+      await withinDeadline(
+        page.setContent(options.html!, { waitUntil: "domcontentloaded" }),
+        deadline,
+        () => { void page?.close().catch(() => undefined); },
+      );
+    }
+
+    if (options.style) {
+      await withinDeadline(page.addStyleTag({ content: options.style }), deadline);
+    }
+    await waitForAssets(page, deadline);
+    await withinDeadline(page.emulateMedia({ media: "print" }), deadline);
+    if (options.singlePage) await assertSinglePageFit(page, deadline);
+
+    const pdf = await withinDeadline(page.pdf({
       width: `${LETTER_WIDTH_IN}in`,
       height: `${LETTER_HEIGHT_IN}in`,
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,
-      ...(singlePage
+      ...(options.singlePage
         ? { margin: { top: "0", right: "0", bottom: "0", left: "0" } }
         : {}),
-    });
+    }), deadline, () => { void page?.close().catch(() => undefined); });
     return Buffer.from(pdf);
   } finally {
-    await browser.close();
+    if (page && !page.isClosed()) await page.close().catch(() => undefined);
   }
+};
+
+/** Render browser-native HTML/CSS to US Letter using one bounded shared Chromium process. */
+export const renderBrowserPdf = async (options: BrowserPdfOptions): Promise<Buffer> => {
+  if ((options.html == null) === (options.url == null)) {
+    throw new TypeError("Browser PDF rendering requires exactly one of html or url");
+  }
+
+  const timeoutMs = options.timeoutMs ?? DEFAULT_RENDER_TIMEOUT_MS;
+  const deadline = Date.now() + timeoutMs;
+  const releaseSlot = await acquirePageSlot(deadline);
+  try {
+    let browser = await withinDeadline(getBrowser(), deadline);
+    try {
+      return await renderOnPage(browser, options, deadline);
+    } catch (error) {
+      if (browser.isConnected() || error instanceof BrowserPdfPreflightError || error instanceof BrowserPdfTimeoutError) {
+        throw error;
+      }
+      browserPromise = null;
+      browser = await withinDeadline(getBrowser(), deadline);
+      return renderOnPage(browser, options, deadline);
+    }
+  } finally {
+    releaseSlot();
+  }
+};
+
+/** Probe whether the shared Chromium renderer can launch and report bounded-load state. */
+export const getBrowserPdfHealth = async (): Promise<BrowserPdfHealth> => {
+  try {
+    const browser = await withinDeadline(getBrowser(), Date.now() + 5_000);
+    return {
+      status: "ok",
+      browserVersion: browser.version(),
+      activePages,
+      queuedPages: slotWaiters.length,
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      activePages,
+      queuedPages: slotWaiters.length,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
+
+/** Close the singleton browser during graceful process shutdown or isolated tests. */
+export const closeBrowserPdf = async (): Promise<void> => {
+  const pending = browserPromise;
+  browserPromise = null;
+  if (!pending) return;
+  const browser = await pending.catch(() => null);
+  if (browser?.isConnected()) await browser.close();
 };

@@ -10,6 +10,7 @@ import { config } from "./config.js";
 import { sql } from "./db/connection.js";
 import { rootLogger } from "./logging/logger.js";
 import { eventBus } from "./services/event-bus.js";
+import { closeBrowserPdf } from "./services/browser-pdf.js";
 
 // ── Server ──
 
@@ -81,6 +82,13 @@ const shutdown = async () => {
     await stopBoss();
   } catch (e) {
     rootLogger.error({ err: e }, "Error stopping job queue");
+  }
+
+  try {
+    rootLogger.info("Closing PDF renderer...");
+    await closeBrowserPdf();
+  } catch (e) {
+    rootLogger.error({ err: e }, "Error closing PDF renderer");
   }
 
   try {

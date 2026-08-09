@@ -57,14 +57,14 @@ describe("resolvePressPageContent", () => {
     const result = resolvePressPageContent(content);
 
     expect(mockBuildPressImageUrl.mock.calls.map(([source, slot, width]) => [source.key, slot, width])).toEqual([
-      ["banner", "banner", 1920],
+      ["banner", "banner", 2250],
       ["member-one", "member", 480],
       ["cover", "cover", 480],
       ["gallery-one", "gallery", 960],
       ["gallery-two", "gallery", 960],
     ]);
     expect(result.banner).toMatchObject(content.banner!);
-    expect(result.banner).toMatchObject({ src: "/banner/1920/banner", sizes: "banner-sizes" });
+    expect(result.banner).toMatchObject({ src: "/banner/2250/banner", sizes: "banner-sizes" });
     expect(result.gallery.map((item) => item.key)).toEqual(["gallery-one", "gallery-two"]);
   });
 

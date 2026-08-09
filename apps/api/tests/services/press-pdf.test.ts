@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ok } from "@snc/shared";
 import type { PressContent, ReleaseOneSheet } from "@snc/shared";
 
-const { mockRenderBrowserPdf, mockStorageDownload } = vi.hoisted(() => ({
+const { mockBuildPressImageUrl, mockRenderBrowserPdf, mockStorageDownload } = vi.hoisted(() => ({
+  mockBuildPressImageUrl: vi.fn(),
   mockRenderBrowserPdf: vi.fn(),
   mockStorageDownload: vi.fn(),
 }));
@@ -13,6 +14,9 @@ vi.mock("../../src/services/browser-pdf.js", () => ({
 }));
 vi.mock("../../src/storage/index.js", () => ({
   storage: { download: mockStorageDownload },
+}));
+vi.mock("../../src/lib/imgproxy.js", () => ({
+  buildPressImageUrl: mockBuildPressImageUrl,
 }));
 
 import {
@@ -56,7 +60,7 @@ const contentFixture: PressContent = {
   highlights: [{ eyebrow: "Standout track", title: "Get to You", metric: "14.5k streams", coverArt: null }],
   gallery: [],
   streamingLinks: [{ service: "bandcamp", label: "Bandcamp", url: "https://example.com/listen" }],
-  liveDatesUrl: null,
+  liveDatesUrl: "https://www.bandsintown.com/a/animal-future",
   standoutTrack: null,
   pressContactEmail: "press@s-nc.org",
   location: "Fort Collins, Colorado",
@@ -90,6 +94,11 @@ describe("press PDF rendering", () => {
   beforeEach(() => {
     mockRenderBrowserPdf.mockReset().mockResolvedValue(pdf);
     mockStorageDownload.mockReset().mockResolvedValue(downloadResult());
+    mockBuildPressImageUrl.mockReset().mockImplementation((image, slot, width, height) => ({
+      src: `https://img.test/${slot}/${width}x${height}/${image.key}`,
+      srcSet: "",
+      sizes: "",
+    }));
   });
 
   it("renders the release route contract as a US Letter PDF", async () => {
@@ -128,7 +137,17 @@ describe("press PDF rendering", () => {
     expect(call.html).toContain("linktr.ee/animalfutureofficial");
     expect(call.html).toContain("font-size:10px;line-height:16px");
     expect(call.html).toContain("width:80px;height:80px");
+    expect(call.html).toContain("Live dates");
+    expect(call.html).toContain("bandsintown.com/a/animal-future");
+    expect(call.html).toContain("class=\"metric\">14.5k streams");
+    expect(call.html).toContain("font-family:\"SNC Inter\"");
     expect(mockStorageDownload).toHaveBeenCalledWith(contentFixture.banner?.key);
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
+      contentFixture.banner,
+      "banner",
+      2250,
+      750,
+    );
   });
 
   it("renders the locked vertical one-sheet with one-paragraph bio and creator URL", async () => {
@@ -148,7 +167,28 @@ describe("press PDF rendering", () => {
     expect(html).toContain("sheet vertical");
     expect(html).toContain("linktr.ee/custom-artist");
     expect(html).toContain("--color-bg:#f7f3eb");
+    expect(html).toContain("First full biography paragraph.");
+    expect(html.match(/Punk-leaning rock that hits where it hurts\./g)).toHaveLength(1);
     expect(html).not.toContain("Second full biography paragraph");
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "creators/creator_animalfuture/press/vertical.png" }),
+      "about",
+      725,
+      3000,
+    );
+  });
+
+  it("rejects a QR destination that cannot retain 0.4mm modules within the layout", async () => {
+    await expect(renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      destinationUrl: `https://example.com/${"a".repeat(480)}`,
+      theme: "dark",
+      brandColor: null,
+      orientation: "horizontal",
+    })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(mockRenderBrowserPdf).not.toHaveBeenCalled();
   });
 
   it("omits a foreign image key without reading storage", async () => {

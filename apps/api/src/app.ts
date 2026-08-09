@@ -52,6 +52,7 @@ import { inviteRoutes } from "./routes/invite.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
 import { tusdHookRoutes } from "./routes/tusd-hooks.routes.js";
 import { testControlRoutes } from "./routes/test-control.routes.js";
+import { getBrowserPdfHealth } from "./services/browser-pdf.js";
 import { initWebSocket } from "./ws.js";
 // federation.routes uses @fedify/fedify which may not be installed;
 // imported dynamically below so the server boots even without it.
@@ -60,6 +61,13 @@ import { initWebSocket } from "./ws.js";
 
 const HealthResponse = z.object({
   status: z.literal("ok"),
+});
+const PdfHealthResponse = z.object({
+  status: z.enum(["ok", "unavailable"]),
+  browserVersion: z.string().optional(),
+  activePages: z.number().int().nonnegative(),
+  queuedPages: z.number().int().nonnegative(),
+  error: z.string().optional(),
 });
 
 // ── App ──
@@ -128,6 +136,28 @@ app.get(
     },
   }),
   (c) => c.json({ status: "ok" as const }),
+);
+
+app.get(
+  "/health/pdf",
+  describeRoute({
+    description: "Chromium PDF renderer readiness check",
+    tags: ["system"],
+    responses: {
+      200: {
+        description: "PDF renderer is ready",
+        content: { "application/json": { schema: resolver(PdfHealthResponse) } },
+      },
+      503: {
+        description: "PDF renderer is unavailable",
+        content: { "application/json": { schema: resolver(PdfHealthResponse) } },
+      },
+    },
+  }),
+  async (c) => {
+    const health = await getBrowserPdfHealth();
+    return c.json(health, health.status === "ok" ? 200 : 503);
+  },
 );
 
 // Always-on routes (auth, me, uploads)
