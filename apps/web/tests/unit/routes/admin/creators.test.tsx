@@ -23,6 +23,7 @@ function makeMockCreator(
     handle: "alice",
     avatarUrl: null,
     bannerUrl: null,
+    brandColor: null,
     avatar: null,
     banner: null,
     socialLinks: [],

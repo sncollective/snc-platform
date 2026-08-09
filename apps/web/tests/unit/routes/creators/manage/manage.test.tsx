@@ -64,7 +64,7 @@ beforeEach(() => {
 
 // ── Tests ──
 
-describe("ManageLayout — Programming nav visibility", () => {
+describe("ManageLayout — permission-aware nav visibility", () => {
   it("shows the Programming nav item for an owner (manageStreaming = true)", () => {
     mockUseLoaderData.mockReturnValue({
       creator: CREATOR,
@@ -77,6 +77,7 @@ describe("ManageLayout — Programming nav visibility", () => {
 
     // Dual-rendered (sidebar + mobile chip bar), so at least one link exists.
     expect(screen.getAllByRole("link", { name: "Programming" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Library" }).length).toBeGreaterThan(0);
   });
 
   it("shows the Programming nav item for a platform admin", () => {
@@ -103,6 +104,7 @@ describe("ManageLayout — Programming nav visibility", () => {
     render(<ManageLayout />);
 
     expect(screen.queryByRole("link", { name: "Programming" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Library" })).toBeNull();
   });
 
   it("hides the Programming nav item for an editor-role member (manageStreaming = false)", () => {

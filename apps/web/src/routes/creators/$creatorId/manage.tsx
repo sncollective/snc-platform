@@ -26,6 +26,7 @@ export interface ManageLoaderData {
 const MANAGE_ITEMS: readonly ContextNavItem[] = [
   { to: "", label: "Overview" },
   { to: "/content", label: "Content", creatorPermission: "manageContent" },
+  { to: "/library", label: "Library", creatorPermission: "editProfile" },
   { to: "/calendar", label: "Calendar", creatorPermission: "manageScheduling" },
   { to: "/projects", label: "Projects", creatorPermission: "manageScheduling" },
   { to: "/streaming", label: "Streaming" },
