@@ -1,7 +1,7 @@
 ---
 id: content-media-picker
 kind: feature
-stage: drafting
+stage: review
 tags: [media, content, ui]
 parent: content-library
 depends_on: [content-library-core]
@@ -42,3 +42,18 @@ review). Round-1 alternatives alongside for reference.
 
 ## Notes
 - Shares the library API with `content-library-page`. Splits the old `content-library-ui` (superseded) into this + the library page.
+
+## Implementation notes
+- Execution capability: direct inline implementation; the picker, integrated crop workflow, upload transport, and tests form one cohesive web-component boundary, and the caller prohibited nested subagents.
+- Review weight: standard (project default); caller explicitly requested the stop-at-review boundary.
+- Files changed: `apps/web/src/components/media-picker/media-picker.tsx`, `media-picker-crop.tsx`, `media-picker-upload.ts`, `media-picker.module.css`, plus focused component/crop tests under `apps/web/tests/unit/components/media-picker/`.
+- Tests added: six behavioral tests protecting Ark modal/tab semantics, atomic asset state, blocked-permission posture, source empty/pagination states, upload validation/selection, and operable crop pan/zoom/reset/server-preview readiness.
+- Simplification: reused the established content-library client, normalized press crop math, raw-source adapter, and server-signed press preview seam rather than adding a second library or crop contract.
+- Discrepancies from design: shared library responses expose creator IDs but not creator display names, so foreign cards use the truthful generic label “Shared creator”; all locked interaction and layout behavior is preserved.
+- Adjacent issues parked: none.
+
+## Verification
+- `bun run --filter @snc/web test` — green: 185 files, 1,891 tests.
+- `bun run --filter @snc/web typecheck` — green.
+- Firefox 140 headless visual verification used a fresh profile per capture for idle, selected/crop-ready, upload, empty-library, mobile-staged, and blocked-permission states at 1440×1000, 1024×900, and 390×844. Compared directly with fresh Firefox captures of the locked mock. Confirmed full-chrome scrim, two-pane desktop/tablet workbench, staged mobile edit/Back flow, sticky mobile actions, atomic disabled/ready insertion states, slot-aspect crop and rendered output, ≥44 px controls, distinct own/shared/upload and blocked states, and no horizontal overflow or clipped controls.
+- Exact-string review confirmed image-only “Choose image” / format-limit / permission wording in source alongside the visual pass.
