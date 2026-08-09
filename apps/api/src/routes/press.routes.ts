@@ -31,7 +31,13 @@ import { requireCreatorPermission } from "../services/creator-team.js";
 import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
 import { renderOnePagerPdf, renderOneSheetPdf } from "../services/press-pdf.js";
-import { getPressConfig, upsertPressConfig } from "../services/press.js";
+import {
+  discardPressDraft,
+  getPressConfig,
+  getPressDraftConfig,
+  publishPressConfig,
+  upsertPressConfig,
+} from "../services/press.js";
 import { storage } from "../storage/index.js";
 import { CreatorIdParam } from "./route-params.js";
 
@@ -261,13 +267,13 @@ pressRoutes.get(
     const user = c.get("user");
     await requireCreatorPermission(user.id, profile.id, "editProfile");
 
-    const result = await getPressConfig(profile.id);
+    const result = await getPressDraftConfig(profile.id);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },
 );
 
-// PATCH /:creatorId/press-config — Update config for an editor
+// PATCH /:creatorId/press-config — Save a draft config for an editor
 pressRoutes.patch(
   "/:creatorId/press-config",
   requireAuth,
@@ -300,6 +306,66 @@ pressRoutes.patch(
     });
 
     const result = await upsertPressConfig(profile.id, patch);
+    if (!result.ok) throw result.error;
+    return c.json(result.value);
+  },
+);
+
+// POST /:creatorId/press-config/publish — Publish the pending draft
+pressRoutes.post(
+  "/:creatorId/press-config/publish",
+  requireAuth,
+  describeRoute({
+    description: "Publish a creator's pending press-page draft",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Published press config",
+        content: { "application/json": { schema: resolver(PressContentSchema) } },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  async (c) => {
+    const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
+
+    const result = await publishPressConfig(profile.id);
+    if (!result.ok) throw result.error;
+    return c.json(result.value);
+  },
+);
+
+// POST /:creatorId/press-config/discard-draft — Discard a pending draft
+pressRoutes.post(
+  "/:creatorId/press-config/discard-draft",
+  requireAuth,
+  describeRoute({
+    description: "Discard a creator's pending press-page draft",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Published press config",
+        content: { "application/json": { schema: resolver(PressContentSchema) } },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  async (c) => {
+    const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
+
+    const result = await discardPressDraft(profile.id);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },

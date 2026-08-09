@@ -6,7 +6,7 @@ import type { PressContent } from "@snc/shared";
 
 import { db, sql } from "../db/connection.js";
 import { creatorProfiles } from "../db/schema/creator.schema.js";
-import { upsertPressConfig } from "../services/press.js";
+import { publishPressConfig, upsertPressConfig } from "../services/press.js";
 
 if (process.env.ALLOW_DEMO_SEED !== "true") {
   console.error("Error: set ALLOW_DEMO_SEED=true to run the press seed.");
@@ -118,14 +118,20 @@ try {
   }
 
   if (creatorId) {
-    const result = await upsertPressConfig(creatorId, ANIMAL_FUTURE_PRESS_CONTENT);
-    if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
+    const draftResult = await upsertPressConfig(creatorId, ANIMAL_FUTURE_PRESS_CONTENT);
+    if (!draftResult.ok) {
+      console.error(`Error: ${draftResult.error.message}`);
       process.exitCode = 1;
     } else {
-      console.log(
-        `${createdLocalProfile ? "Created local Animal Future profile and seeded" : "Seeded"} press config for animalfuture (${creatorId}).`,
-      );
+      const result = await publishPressConfig(creatorId);
+      if (!result.ok) {
+        console.error(`Error: ${result.error.message}`);
+        process.exitCode = 1;
+      } else {
+        console.log(
+          `${createdLocalProfile ? "Created local Animal Future profile and seeded" : "Seeded"} press config for animalfuture (${creatorId}).`,
+        );
+      }
     }
   }
 } catch (error) {

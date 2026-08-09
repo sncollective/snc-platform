@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import {
   DEFAULT_PRESS_CONTENT,
@@ -15,6 +15,11 @@ import { creatorPressConfigs } from "../db/schema/creator.schema.js";
 type V2FieldPresence = {
   gallery: boolean;
   highlights: boolean;
+};
+
+type StoredPressConfig = {
+  content: PressContent;
+  draftContent: PressContent | null;
 };
 
 const hasOwnField = (value: unknown, field: string): boolean =>
@@ -58,45 +63,108 @@ export const normalizePressContent = (
   return { ...content, gallery, highlights };
 };
 
-/** Read and parse a creator's press config, then normalize legacy fields on demand. */
-const readPressConfig = async (creatorId: string): Promise<PressContent> => {
-  const [row] = await db
-    .select()
-    .from(creatorPressConfigs)
-    .where(eq(creatorPressConfigs.creatorId, creatorId))
-    .limit(1);
-  const content = row
-    ? PressContentSchema.parse(row.content)
-    : PressContentSchema.parse(DEFAULT_PRESS_CONTENT);
-  const rawContent = row?.content;
+const parseAndNormalize = (rawContent: unknown): PressContent => {
+  const content = PressContentSchema.parse(rawContent ?? DEFAULT_PRESS_CONTENT);
   return normalizePressContent(content, {
     gallery: hasOwnField(rawContent, "gallery"),
     highlights: hasOwnField(rawContent, "highlights"),
   });
 };
 
+/** Read the published and optional draft documents without exposing storage details. */
+const readStoredPressConfig = async (creatorId: string): Promise<StoredPressConfig> => {
+  const [row] = await db
+    .select()
+    .from(creatorPressConfigs)
+    .where(eq(creatorPressConfigs.creatorId, creatorId))
+    .limit(1);
+
+  return {
+    content: parseAndNormalize(row?.content),
+    draftContent: row?.draftContent == null ? null : parseAndNormalize(row.draftContent),
+  };
+};
+
 // ── Public API ──
 
-/** Read a creator's press config (defaults when unset). */
+/** Read a creator's published press config (defaults when unset). */
 export const getPressConfig = async (
   creatorId: string,
-): Promise<Result<PressContent, AppError>> => ok(await readPressConfig(creatorId));
+): Promise<Result<PressContent, AppError>> => {
+  const stored = await readStoredPressConfig(creatorId);
+  return ok(stored.content);
+};
 
-/** Upsert a creator's press config with a partial patch. */
+/** Read the editor's effective config: draft when present, otherwise published content. */
+export const getPressDraftConfig = async (
+  creatorId: string,
+): Promise<Result<PressContent, AppError>> => {
+  const stored = await readStoredPressConfig(creatorId);
+  return ok(stored.draftContent ?? stored.content);
+};
+
+/** Save a partial editor patch into the draft document without changing published content. */
 export const upsertPressConfig = async (
   creatorId: string,
   patch: PressConfigPatch,
 ): Promise<Result<PressContent, AppError>> => {
-  const current = await readPressConfig(creatorId);
-  const next = { ...current, ...patch } as PressContent;
+  const current = await getPressDraftConfig(creatorId);
+  if (!current.ok) return current;
+  const next = { ...current.value, ...patch } as PressContent;
 
   await db
     .insert(creatorPressConfigs)
-    .values({ creatorId, content: next, updatedAt: new Date() })
+    .values({
+      creatorId,
+      content: DEFAULT_PRESS_CONTENT,
+      draftContent: next,
+      updatedAt: new Date(),
+    })
     .onConflictDoUpdate({
       target: creatorPressConfigs.creatorId,
-      set: { content: next, updatedAt: new Date() },
+      set: { draftContent: next, updatedAt: new Date() },
     });
 
   return ok(next);
+};
+
+/** Atomically publish the current draft and clear it. */
+export const publishPressConfig = async (
+  creatorId: string,
+): Promise<Result<PressContent, AppError>> => {
+  let published: PressContent | undefined;
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(creatorPressConfigs)
+      .set({
+        content: sql`${creatorPressConfigs.draftContent}`,
+        draftContent: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(creatorPressConfigs.creatorId, creatorId),
+          isNotNull(creatorPressConfigs.draftContent),
+        ),
+      )
+      .returning({ content: creatorPressConfigs.content });
+
+    if (row) published = parseAndNormalize(row.content);
+  });
+
+  // Publishing with no pending draft is intentionally idempotent.
+  if (published) return ok(published);
+  return getPressConfig(creatorId);
+};
+
+/** Discard a pending draft and leave the published document unchanged. */
+export const discardPressDraft = async (
+  creatorId: string,
+): Promise<Result<PressContent, AppError>> => {
+  await db
+    .update(creatorPressConfigs)
+    .set({ draftContent: null, updatedAt: new Date() })
+    .where(eq(creatorPressConfigs.creatorId, creatorId));
+
+  return getPressConfig(creatorId);
 };

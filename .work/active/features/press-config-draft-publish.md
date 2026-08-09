@@ -1,7 +1,7 @@
 ---
 id: press-config-draft-publish
 kind: feature
-stage: drafting
+stage: review
 tags: [creators, content, schema]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model]
@@ -33,12 +33,29 @@ copy; saves go live immediately — no staging.)
 - Permission: owner/editor (`editProfile`) for draft save + publish.
 
 ## Acceptance
-- [ ] `draftContent` column added (nullable JSONB) via a generated migration; existing rows have null draft (published == live, no behavior change).
-- [ ] Public press page + PDF read `content` (published) — unaffected by draft edits.
-- [ ] Editor reads `draftContent ?? content`; draft saves write `draftContent`; publish copies draft→content + clears draft.
-- [ ] Discard-draft clears `draftContent`.
+- [x] `draftContent` column added (nullable JSONB) via a generated migration; existing rows have null draft (published == live, no behavior change).
+- [x] Public press page + PDF read `content` (published) — unaffected by draft edits.
+- [x] Editor reads `draftContent ?? content`; draft saves write `draftContent`; publish copies draft→content + clears draft.
+- [x] Discard-draft clears `draftContent`.
 
 ## Notes
 - Backward-compatible: existing content + the live page keep working; `draftContent` starts null.
 - The editor's cross-tab error summary + Review/Publish surface (locked mock) consume this.
 - Land before/with the editor.
+
+## Implementation discovery
+- `GET /api/creators/:creatorId/press` and both public PDF paths continue to
+  use `getPressConfig`, which reads only published `content`.
+- The manage GET and PATCH now use the effective draft (`draftContent ??
+  content`) and write only `draftContent`; `POST .../publish` copies the draft
+  to `content` and clears it in one transaction, while `POST .../discard-draft`
+  clears it without changing published content.
+- Existing rows remain backward-compatible because a null draft falls back to
+  the published document. The demo seed now saves then publishes its content.
+
+## Verification
+- `bun run --filter @snc/shared test` — 23 files, 723 tests passed.
+- `bun run --filter @snc/api test:unit` — 124 files, 1,988 tests passed.
+- `bun run --filter @snc/api typecheck` — passed.
+- `bun run --filter @snc/api test:integration` — 47 passed; 4 pre-existing
+  unrelated failures remain (channel-lifecycle FK and test-control gating).

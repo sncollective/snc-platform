@@ -14,8 +14,18 @@ const mockSelect = vi.fn();
 const mockOnConflictDoUpdate = vi.fn();
 const mockInsertValues = vi.fn();
 const mockInsert = vi.fn();
+const mockUpdateReturning = vi.fn();
+const mockUpdateWhere = vi.fn();
+const mockUpdateSet = vi.fn();
+const mockUpdate = vi.fn();
+const mockTransaction = vi.fn();
 
-const mockDb = { select: mockSelect, insert: mockInsert };
+const mockDb = {
+  select: mockSelect,
+  insert: mockInsert,
+  update: mockUpdate,
+  transaction: mockTransaction,
+};
 const mockCreatorPressConfigs = { creatorId: "creatorId" };
 
 const setupService = async () => {
@@ -37,6 +47,11 @@ beforeEach(() => {
   mockInsert.mockReturnValue({ values: mockInsertValues });
   mockInsertValues.mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate });
   mockOnConflictDoUpdate.mockResolvedValue(undefined);
+  mockUpdate.mockReturnValue({ set: mockUpdateSet });
+  mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+  mockUpdateWhere.mockReturnValue({ returning: mockUpdateReturning });
+  mockUpdateReturning.mockResolvedValue([]);
+  mockTransaction.mockImplementation(async (callback) => callback({ update: mockUpdate }));
 });
 
 afterEach(() => {
@@ -204,8 +219,8 @@ describe("press config service", () => {
       streamingLinks: [{ label: "Bandcamp", url: "https://artist.bandcamp.com/album/demo" }],
     }));
 
-    const stored = mockInsertValues.mock.calls.at(-1)?.[0]?.content;
-    mockSelectLimit.mockResolvedValueOnce([{ content: stored }]);
+    const stored = mockInsertValues.mock.calls.at(-1)?.[0]?.draftContent;
+    mockSelectLimit.mockResolvedValueOnce([{ content: legacy, draftContent: stored }]);
     const roundTrip = await getPressConfig("creator-1");
 
     expect(roundTrip.ok).toBe(true);
@@ -238,7 +253,18 @@ describe("press config service", () => {
     }
   });
 
-  it("shallow-merges a partial patch and upserts the complete content document", async () => {
+  it("reads a pending draft instead of published content for the editor", async () => {
+    const published = { ...DEFAULT_PRESS_CONTENT, shortBio: "Live" };
+    const draft = { ...DEFAULT_PRESS_CONTENT, shortBio: "Staged" };
+    mockSelectLimit.mockResolvedValueOnce([{ content: published, draftContent: draft }]);
+    mockSelectLimit.mockResolvedValueOnce([{ content: published, draftContent: draft }]);
+    const { getPressConfig, getPressDraftConfig } = await setupService();
+
+    expect(await getPressConfig("creator-1")).toEqual({ ok: true, value: published });
+    expect(await getPressDraftConfig("creator-1")).toEqual({ ok: true, value: draft });
+  });
+
+  it("shallow-merges a partial patch and upserts the complete draft document", async () => {
     const current: PressContent = {
       ...DEFAULT_PRESS_CONTENT,
       enabled: true,
@@ -260,12 +286,38 @@ describe("press config service", () => {
     expect(result).toEqual({ ok: true, value: expected });
     expect(mockInsertValues).toHaveBeenCalledWith({
       creatorId: "creator-1",
-      content: expected,
+      content: DEFAULT_PRESS_CONTENT,
+      draftContent: expected,
       updatedAt: expect.any(Date),
     });
     expect(mockOnConflictDoUpdate).toHaveBeenCalledWith({
       target: mockCreatorPressConfigs.creatorId,
-      set: { content: expected, updatedAt: expect.any(Date) },
+      set: { draftContent: expected, updatedAt: expect.any(Date) },
     });
+  });
+
+  it("publishes a draft atomically and returns the new published content", async () => {
+    const draft = { ...DEFAULT_PRESS_CONTENT, shortBio: "Staged" };
+    mockUpdateReturning.mockResolvedValueOnce([{ content: draft }]);
+    const { publishPressConfig } = await setupService();
+
+    const result = await publishPressConfig("creator-1");
+
+    expect(result).toEqual({ ok: true, value: draft });
+    expect(mockTransaction).toHaveBeenCalledOnce();
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ draftContent: null, updatedAt: expect.any(Date) }),
+    );
+  });
+
+  it("discards a draft and preserves published content", async () => {
+    const published = { ...DEFAULT_PRESS_CONTENT, shortBio: "Live" };
+    mockSelectLimit.mockResolvedValueOnce([{ content: published, draftContent: { ...published, shortBio: "Staged" } }]);
+    const { discardPressDraft } = await setupService();
+
+    const result = await discardPressDraft("creator-1");
+
+    expect(result).toEqual({ ok: true, value: published });
+    expect(mockUpdateSet).toHaveBeenCalledWith({ draftContent: null, updatedAt: expect.any(Date) });
   });
 });

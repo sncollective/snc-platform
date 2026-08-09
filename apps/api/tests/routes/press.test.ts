@@ -7,7 +7,10 @@ import { makeMockUser } from "../helpers/auth-fixtures.js";
 
 const mockFindCreatorProfile = vi.fn();
 const mockGetPressConfig = vi.fn();
+const mockGetPressDraftConfig = vi.fn();
 const mockUpsertPressConfig = vi.fn();
+const mockPublishPressConfig = vi.fn();
+const mockDiscardPressDraft = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
 const mockCanUseAsset = vi.fn();
 const mockStorageDownload = vi.fn();
@@ -90,7 +93,10 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/services/press.js", () => ({
       getPressConfig: mockGetPressConfig,
+      getPressDraftConfig: mockGetPressDraftConfig,
       upsertPressConfig: mockUpsertPressConfig,
+      publishPressConfig: mockPublishPressConfig,
+      discardPressDraft: mockDiscardPressDraft,
     }));
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
@@ -122,9 +128,12 @@ const ctx = setupRouteTest({
   beforeEach: () => {
     mockFindCreatorProfile.mockResolvedValue(profile);
     mockGetPressConfig.mockResolvedValue(ok(content));
+    mockGetPressDraftConfig.mockResolvedValue(ok(content));
     mockUpsertPressConfig.mockResolvedValue(
       ok({ ...content, shortBio: "Updated bio" }),
     );
+    mockPublishPressConfig.mockResolvedValue(ok(content));
+    mockDiscardPressDraft.mockResolvedValue(ok(content));
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     mockCanUseAsset.mockResolvedValue(true);
     mockBuildPressImageUrl.mockImplementation((image, slot, width) => ({
@@ -474,6 +483,36 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
     expect(mockUpsertPressConfig).toHaveBeenCalledWith(profile.id, {
       shortBio: "Updated bio",
     });
+  });
+});
+
+describe("POST /api/creators/:creatorId/press-config/publish", () => {
+  it("publishes the pending draft for an authorized editor", async () => {
+    const res = await json("POST", "/api/creators/test-creator/press-config/publish");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(content);
+    expect(mockPublishPressConfig).toHaveBeenCalledWith(profile.id);
+  });
+
+  it("enforces edit permission before publishing", async () => {
+    const { ForbiddenError } = await import("@snc/shared");
+    mockRequireCreatorPermission.mockRejectedValueOnce(new ForbiddenError("Not a member"));
+
+    const res = await json("POST", "/api/creators/test-creator/press-config/publish");
+
+    expect(res.status).toBe(403);
+    expect(mockPublishPressConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/creators/:creatorId/press-config/discard-draft", () => {
+  it("discards the pending draft for an authorized editor", async () => {
+    const res = await json("POST", "/api/creators/test-creator/press-config/discard-draft");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(content);
+    expect(mockDiscardPressDraft).toHaveBeenCalledWith(profile.id);
   });
 });
 
