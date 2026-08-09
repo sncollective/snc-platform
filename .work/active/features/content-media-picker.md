@@ -47,7 +47,7 @@ review). Round-1 alternatives alongside for reference.
 - Execution capability: direct inline implementation; the picker, integrated crop workflow, upload transport, and tests form one cohesive web-component boundary, and the caller prohibited nested subagents.
 - Review weight: standard (project default); caller explicitly requested the stop-at-review boundary.
 - Files changed: `apps/web/src/components/media-picker/media-picker.tsx`, `media-picker-crop.tsx`, `media-picker-upload.ts`, `media-picker.module.css`, plus focused component/crop tests under `apps/web/tests/unit/components/media-picker/`.
-- Tests added: six behavioral tests protecting Ark modal/tab semantics, atomic asset state, blocked-permission posture, source empty/pagination states, upload validation/selection, and operable crop pan/zoom/reset/server-preview readiness.
+- Tests added: focused behavioral coverage protecting Ark modal/tab semantics, atomic asset state, blocked-permission posture, source empty/pagination states, upload validation/selection, operable crop pan/zoom/reset/server-preview readiness, lifecycle reinitialization, readiness preservation, edit-stage focus, unique tab panels, and stale pagination responses.
 - Simplification: reused the established content-library client, normalized press crop math, raw-source adapter, and server-signed press preview seam rather than adding a second library or crop contract.
 - Discrepancies from design: shared library responses expose creator IDs but not creator display names, so foreign cards use the truthful generic label “Shared creator”; all locked interaction and layout behavior is preserved.
 - Adjacent issues parked: none.
@@ -55,9 +55,10 @@ review). Round-1 alternatives alongside for reference.
 ## Review follow-up
 - Fixed review blockers in `media-picker.tsx`: open/creator reset now clears idle/selection/upload/pagination state; target and `initialValue` changes reset and re-initialize from any subsequently loaded page; mixed-cursor source states remain honest until pagination is exhausted; same-asset selection is a no-op; mobile selection focuses the edit region; every tab `aria-controls` target remains mounted.
 - Updated the pagination fixture assertion to cover a source with zero loaded assets and a remaining global cursor.
+- Re-review blocker fixed: every library request, including Load more, now has an AbortSignal and generation fence; close/reopen and creator changes abort requests and discard late pages. Added regressions for reset/reinitialization, readiness preservation, edit-stage focus, unique tab panels, and the deferred Load more race.
 - Implementation discovery: no API extension was needed; the client-side mitigation uses the existing mixed cursor as requested. The item remains at `stage: review` for re-review.
 
 ## Verification
-- `bun run --filter @snc/web test` — green: 185 files, 1,893 tests (the suite still emits pre-existing jsdom navigation and SSR network log noise).
+- `bun run --filter @snc/web test` — green: 185 files, 1,899 tests (the suite still emits pre-existing jsdom navigation and SSR network log noise).
 - `bun run --filter @snc/web typecheck` — green.
 - Visual re-verification was not completed in this pass. Fresh Firefox captures still need a vision check for: reopening after a ready selection shows idle with disabled Insert; reselecting the current asset does not strand crop readiness/Insert; selecting on a 390px viewport focuses the edit-stage region; a zero-loaded source with a remaining cursor shows “more may exist” plus Load more (not an empty claim); all three tab `aria-controls` IDs resolve without duplicate/unmounted targets. Use a fresh profile and remove `/tmp/mpf-* /tmp/ffp-*` afterward as requested.

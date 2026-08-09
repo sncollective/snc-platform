@@ -155,10 +155,21 @@ export function MediaPicker({
   const [upload, setUpload] = useState<UploadState>({ status: "idle" });
   const [announcement, setAnnouncement] = useState("");
   const initialized = useRef(false);
+  const interactionSignatureRef = useRef<string | null>(null);
+  const libraryAssetsCreatorRef = useRef<string | null>(null);
+  const libraryControllers = useRef(new Set<AbortController>());
+  const libraryGeneration = useRef(0);
   const uploadController = useRef<AbortController | null>(null);
   const editStageRef = useRef<HTMLDivElement>(null);
 
+  const abortLibraryRequests = useCallback((): void => {
+    libraryGeneration.current += 1;
+    for (const controller of libraryControllers.current) controller.abort();
+    libraryControllers.current.clear();
+  }, []);
+
   const resetInteractionState = useCallback((): void => {
+    abortLibraryRequests();
     uploadController.current?.abort();
     uploadController.current = null;
     setView("own");
@@ -169,32 +180,40 @@ export function MediaPicker({
     setSelection(null);
     setUpload({ status: "idle" });
     setAnnouncement("");
+    setIsLoading(false);
     initialized.current = false;
-  }, []);
+  }, [abortLibraryRequests]);
 
   const announce = useCallback((message: string): void => {
     setAnnouncement("");
     window.requestAnimationFrame(() => setAnnouncement(message));
   }, []);
 
-  const load = useCallback(async (before?: string, signal?: AbortSignal): Promise<void> => {
+  const load = useCallback(async (before?: string): Promise<void> => {
+    const generation = libraryGeneration.current;
+    const controller = new AbortController();
+    libraryControllers.current.add(controller);
     setIsLoading(true);
     setLoadError("");
     try {
-      const page = await fetchContentLibraryImages(creatorId, before, signal);
+      const page = await fetchContentLibraryImages(creatorId, before, controller.signal);
+      if (controller.signal.aborted || generation !== libraryGeneration.current) return;
+      if (!before) libraryAssetsCreatorRef.current = creatorId;
       setAssets((current) => before ? uniqueAssets(current, page.items) : page.items);
       setNextCursor(page.nextCursor);
     } catch (cause) {
-      if (signal?.aborted) return;
+      if (controller.signal.aborted || generation !== libraryGeneration.current) return;
       setLoadError(cause instanceof Error ? cause.message : "Could not load the image library");
     } finally {
-      if (!signal?.aborted) setIsLoading(false);
+      libraryControllers.current.delete(controller);
+      if (!controller.signal.aborted && generation === libraryGeneration.current) setIsLoading(false);
     }
   }, [creatorId]);
 
   useEffect(() => {
     resetInteractionState();
     if (!open) {
+      libraryAssetsCreatorRef.current = null;
       setAssets([]);
       setNextCursor(null);
       setLoadError("");
@@ -203,14 +222,14 @@ export function MediaPicker({
       return;
     }
 
+    libraryAssetsCreatorRef.current = null;
     setAssets([]);
     setNextCursor(null);
     setLoadError("");
     setFailedImages(new Set());
-    const controller = new AbortController();
-    void load(undefined, controller.signal);
-    return () => controller.abort();
-  }, [creatorId, load, open, resetInteractionState]);
+    void load();
+    return abortLibraryRequests;
+  }, [abortLibraryRequests, creatorId, load, open, resetInteractionState]);
 
   const targetSignature = JSON.stringify([
     target.mediaType,
@@ -222,12 +241,23 @@ export function MediaPicker({
   ]);
   const initialValueSignature = JSON.stringify(initialValue ?? null);
 
-  useEffect(() => {
-    if (!open) return;
-    resetInteractionState();
-  }, [initialValueSignature, open, resetInteractionState, targetSignature]);
+  const interactionSignature = JSON.stringify([targetSignature, initialValueSignature]);
 
-  useEffect(() => () => uploadController.current?.abort(), []);
+  useEffect(() => {
+    if (!open) {
+      interactionSignatureRef.current = null;
+      return;
+    }
+    if (interactionSignatureRef.current !== null && interactionSignatureRef.current !== interactionSignature) {
+      resetInteractionState();
+    }
+    interactionSignatureRef.current = interactionSignature;
+  }, [interactionSignature, open, resetInteractionState]);
+
+  useEffect(() => () => {
+    abortLibraryRequests();
+    uploadController.current?.abort();
+  }, [abortLibraryRequests]);
 
   const selectAsset = useCallback((asset: ContentAsset, value?: PressImage): void => {
     if (!value && selection?.asset.id === asset.id) return;
@@ -248,7 +278,7 @@ export function MediaPicker({
   }, [announce, selection?.asset.id]);
 
   useEffect(() => {
-    if (initialized.current || !initialValue || assets.length === 0) return;
+    if (initialized.current || !initialValue || assets.length === 0 || libraryAssetsCreatorRef.current !== creatorId) return;
     const asset = assets.find((candidate) => candidate.storageKey === initialValue.key);
     if (!asset) return;
     initialized.current = true;

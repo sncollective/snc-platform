@@ -74,21 +74,25 @@ const target = {
   slotLabel: "Banner",
 };
 
+const basePickerProps: Omit<React.ComponentProps<typeof MediaPicker>, "onInsert" | "onClose"> = {
+  open: true,
+  creatorId: "creator-1",
+  creatorName: "Animal Future",
+  target,
+};
+
 const renderPicker = (props: Partial<React.ComponentProps<typeof MediaPicker>> = {}) => {
   const onInsert = vi.fn();
   const onClose = vi.fn();
-  render(
+  const rendered = render(
     <MediaPicker
-      open
-      creatorId="creator-1"
-      creatorName="Animal Future"
-      target={target}
+      {...basePickerProps}
       onInsert={onInsert}
       onClose={onClose}
       {...props}
     />,
   );
-  return { onInsert, onClose };
+  return { ...rendered, onInsert, onClose };
 };
 
 beforeEach(() => {
@@ -195,7 +199,124 @@ describe("MediaPicker", () => {
     const panel = screen.getByRole("tabpanel", { name: /Shared pool/ });
     expect(within(panel).getByRole("button", { name: "Choose shared.jpg" })).toBeVisible();
     await user.click(within(panel).getByRole("button", { name: "Load more" }));
-    await waitFor(() => expect(mockFetchImages).toHaveBeenLastCalledWith("creator-1", "next-page", undefined));
+    await waitFor(() => expect(mockFetchImages).toHaveBeenLastCalledWith("creator-1", "next-page", expect.any(AbortSignal)));
+  });
+
+  it("returns to an idle selection state after close and reopen", async () => {
+    const user = userEvent.setup();
+    const rendered = renderPicker();
+
+    await user.click(await screen.findByRole("button", { name: "Choose own.jpg" }));
+    await user.click(screen.getByRole("button", { name: "Complete crop" }));
+    await user.type(screen.getByLabelText(/Alternative text/), "Ready before close");
+    expect(screen.getByRole("button", { name: "Insert into banner" })).toBeEnabled();
+
+    rendered.rerender(<MediaPicker {...basePickerProps} open={false} onInsert={rendered.onInsert} onClose={rendered.onClose} />);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Choose image" })).not.toBeInTheDocument());
+    rendered.rerender(<MediaPicker {...basePickerProps} onInsert={rendered.onInsert} onClose={rendered.onClose} />);
+
+    expect(await screen.findByRole("dialog", { name: "Choose image" })).toBeVisible();
+    expect(screen.getByText("Select an image to begin")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert into banner" })).toBeDisabled();
+  });
+
+  it("reinitializes selection when creator, target, or initial value changes", async () => {
+    const user = userEvent.setup();
+    const rendered = renderPicker();
+    const initialImage = {
+      key: key("a"),
+      crop: { x: 0.1, y: 0.2, width: 0.8, height: 0.6 },
+      alt: "Initial image",
+      credit: null,
+    };
+
+    await user.click(await screen.findByRole("button", { name: "Choose own.jpg" }));
+    await user.click(screen.getByRole("button", { name: "Complete crop" }));
+    await user.type(screen.getByLabelText(/Alternative text/), "Before reinitialization");
+    expect(screen.getByRole("button", { name: "Insert into banner" })).toBeEnabled();
+
+    rendered.rerender(
+      <MediaPicker
+        {...basePickerProps}
+        target={{ ...target, slot: "cover", slotLabel: "Cover" }}
+        initialValue={initialImage}
+        onInsert={rendered.onInsert}
+        onClose={rendered.onClose}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Insert into cover" })).toBeDisabled();
+    expect(screen.getByLabelText(/Alternative text/)).toHaveValue("Initial image");
+
+    rendered.rerender(
+      <MediaPicker
+        {...basePickerProps}
+        creatorId="creator-2"
+        target={{ ...target, slot: "cover", slotLabel: "Cover" }}
+        onInsert={rendered.onInsert}
+        onClose={rendered.onClose}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText("Select an image to begin")).toBeVisible());
+    expect(screen.getByRole("button", { name: "Insert into cover" })).toBeDisabled();
+  });
+
+  it("preserves readiness when the current asset is selected again", async () => {
+    const user = userEvent.setup();
+    renderPicker();
+
+    const asset = await screen.findByRole("button", { name: "Choose own.jpg" });
+    await user.click(asset);
+    await user.click(screen.getByRole("button", { name: "Complete crop" }));
+    await user.type(screen.getByLabelText(/Alternative text/), "A ready image");
+    expect(screen.getByRole("button", { name: "Insert into banner" })).toBeEnabled();
+
+    await user.click(asset);
+    expect(screen.getByLabelText(/Alternative text/)).toHaveValue("A ready image");
+    expect(screen.getByRole("button", { name: "Insert into banner" })).toBeEnabled();
+  });
+
+  it("focuses the edit region when an asset moves the picker to the edit stage", async () => {
+    const user = userEvent.setup();
+    renderPicker();
+
+    await user.click(await screen.findByRole("button", { name: "Choose own.jpg" }));
+    expect(screen.getByRole("region", { name: "Edit selected image" })).toHaveFocus();
+  });
+
+  it("keeps exactly one mounted panel for every tab aria-controls target", async () => {
+    renderPicker();
+    await screen.findByRole("dialog", { name: "Choose image" });
+
+    for (const tab of screen.getAllByRole("tab")) {
+      const panelId = tab.getAttribute("aria-controls");
+      expect(panelId).not.toBeNull();
+      expect(document.querySelectorAll(`[id="${panelId}"]`)).toHaveLength(1);
+    }
+  });
+
+  it("discards a deferred Load more page after a creator change", async () => {
+    let resolveDeferred!: (value: { items: ContentAsset[]; nextCursor: string | null }) => void;
+    const deferred = new Promise<{ items: ContentAsset[]; nextCursor: string | null }>((resolve) => {
+      resolveDeferred = resolve;
+    });
+    const stale = makeAsset({
+      id: "00000000-0000-4000-a000-000000000006",
+      storageKey: key("f"),
+      originalFilename: "stale-page.jpg",
+    });
+    mockFetchImages.mockImplementation((_creatorId: string, before?: string) =>
+      before ? deferred : Promise.resolve({ items: [makeAsset()], nextCursor: "next-page" }));
+    const rendered = renderPicker();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Load more" }));
+    expect(mockFetchImages).toHaveBeenLastCalledWith("creator-1", "next-page", expect.any(AbortSignal));
+    rendered.rerender(<MediaPicker {...basePickerProps} creatorId="creator-2" onInsert={rendered.onInsert} onClose={rendered.onClose} />);
+    await screen.findByRole("dialog", { name: "Choose image" });
+
+    resolveDeferred({ items: [stale], nextCursor: null });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Choose stale-page.jpg" })).not.toBeInTheDocument());
   });
 
   it("validates uploads, reports progress, and opens a successful upload in crop", async () => {
