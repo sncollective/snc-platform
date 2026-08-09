@@ -1,7 +1,7 @@
 ---
 id: creator-profile-brand-color
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, schema]
 parent: null
 depends_on: []

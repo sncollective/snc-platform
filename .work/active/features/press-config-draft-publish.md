@@ -1,7 +1,7 @@
 ---
 id: press-config-draft-publish
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, schema]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model]
