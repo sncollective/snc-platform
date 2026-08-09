@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>creator-press-page-v2-editor — Option 1: Anchored long form</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { color-scheme: dark; scroll-behavior: smooth; overflow-x: hidden; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+main, section, div, form, fieldset, nav, aside { min-width: 0; }
+button, input, textarea, select { max-width: 100%; font: inherit; }
+button { min-height: 40px; cursor: pointer; }
+input, textarea, select { width: 100%; padding: .62rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+textarea { resize: vertical; }
+label { display: block; margin-bottom: var(--space-xs); color: var(--color-text); font-weight: var(--font-weight-medium); }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui, sans-serif; }
+.mock-meta strong { font-weight: 600; }
+.mock-meta span { color: #8b949e; }
+.platform-bar { height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+.platform-brand { color: var(--color-text); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); letter-spacing: .03em; }
+.platform-brand b { color: var(--color-accent); }
+.platform-links { display: flex; gap: var(--space-lg); color: var(--color-text-muted); }
+.platform-links span:first-child { color: var(--color-text); }
+.user-pill { margin-left: auto; padding: .35rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+.manage-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: calc(100vh - 94px); }
+.manage-nav { padding: var(--space-md) var(--space-sm); border-right: 1px solid var(--color-border); }
+.manage-title { padding: 0 var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+.manage-title a { color: var(--color-text-muted); text-decoration: none; font-size: var(--font-size-xs); }
+.manage-title strong { display: block; margin-top: var(--space-xs); font-size: var(--font-size-lg); }
+.creator-select { margin: var(--space-md) var(--space-sm); padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); }
+.manage-nav ul { margin: 0; padding: 0; list-style: none; }
+.manage-nav li { padding: .48rem .75rem; border-radius: var(--radius-sm); color: var(--color-text-muted); }
+.manage-nav li.active { background: var(--color-accent-bg); color: var(--color-accent); }
+.mobile-context { display: none; padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); }
+.workspace { min-width: 0; }
+.page-head { padding: var(--space-lg) clamp(1rem, 3vw, 2rem) var(--space-md); display: flex; align-items: start; justify-content: space-between; gap: var(--space-lg); }
+h1 { margin: 0; font-size: var(--font-size-2xl); }
+.lead { margin: .25rem 0 0; color: var(--color-text-muted); }
+.head-actions { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.saved { color: var(--color-success); font-size: var(--font-size-xs); }
+.btn { padding: .58rem .9rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); color: var(--color-text); white-space: nowrap; }
+.btn.primary { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-bg); font-weight: var(--font-weight-semibold); }
+.btn.danger { color: var(--color-error); }
+.jump-nav { position: sticky; top: 0; z-index: var(--z-sticky); padding: .6rem clamp(1rem, 3vw, 2rem); display: flex; gap: var(--space-xs); overflow-x: auto; border-block: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 94%, transparent); backdrop-filter: blur(10px); scrollbar-width: none; }
+.jump-nav a { flex: 0 0 auto; padding: .38rem .65rem; border-radius: var(--radius-pill); color: var(--color-text-muted); text-decoration: none; font-size: var(--font-size-xs); }
+.jump-nav a:first-child { background: var(--color-accent-bg); color: var(--color-accent); }
+.form { width: min(100%, 980px); padding: var(--space-xl) clamp(1rem, 3vw, 2rem) 5rem; display: grid; gap: var(--space-xl); }
+.form-section { scroll-margin-top: 64px; padding-top: var(--space-lg); border-top: 1px solid var(--color-border); }
+.form-section:first-child { padding-top: 0; border-top: 0; }
+.section-head { margin-bottom: var(--space-md); display: flex; justify-content: space-between; align-items: start; gap: var(--space-md); }
+.section-head h2 { margin: 0; font-size: var(--font-size-lg); }
+.section-head p { margin: .2rem 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.section-number { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
+.presentation-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: var(--space-md); align-items: start; }
+.card { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.card h3 { margin: 0 0 var(--space-sm); font-size: var(--font-size-base); }
+.field { margin-top: var(--space-md); }
+.field:first-child { margin-top: 0; }
+.hint { margin: var(--space-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+.choice { position: relative; padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); cursor: pointer; }
+.choice.selected { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice strong { display: block; margin-top: var(--space-sm); }
+.choice small { color: var(--color-text-muted); }
+.template-mini { height: 66px; padding: 7px; display: grid; gap: 4px; border-radius: var(--radius-sm); background: #f4f0e8; }
+.template-mini span { display: block; border-radius: 2px; background: #2d3040; opacity: .85; }
+.template-a { grid-template-columns: 1fr; grid-template-rows: 16px 9px 1fr; }
+.template-b { grid-template-columns: .8fr 1.2fr; grid-template-rows: 16px 1fr; }
+.template-b span:first-child { grid-column: 1 / -1; }
+.style-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md); }
+.swatches { display: flex; flex-wrap: wrap; gap: .45rem; }
+.swatch { width: 30px; height: 30px; min-height: 30px; padding: 0; border: 2px solid transparent; border-radius: var(--radius-circle); }
+.swatch.selected { border-color: var(--color-text); box-shadow: 0 0 0 2px var(--color-accent); }
+.pdf-options { display: grid; gap: var(--space-xs); }
+.pdf-choice { padding: .5rem .6rem; display: flex; align-items: center; gap: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); cursor: pointer; }
+.pdf-choice.selected { border-color: var(--color-accent); }
+.pdf-chip { width: 32px; height: 22px; border: 1px solid var(--color-border); border-radius: 2px; background: #f4f0e8; }
+.pdf-chip.dark { background: #171725; }
+.pdf-chip.brand { background: linear-gradient(90deg, var(--color-accent) 0 26%, #f4f0e8 26%); }
+.image-field { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.image-field-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
+.image-field-head h3 { margin: 0; font-size: var(--font-size-base); }
+.pipeline { margin: var(--space-sm) 0; display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.pipeline b { color: var(--color-success); }
+.image-selected { display: grid; grid-template-columns: 1fr; gap: var(--space-md); }
+.thumb { position: relative; width: 100%; aspect-ratio: 3 / 1; overflow: hidden; border-radius: var(--radius-sm); background: linear-gradient(135deg, #41384f, #11121e 42%, #8f5a33); }
+.thumb::before { content: "ANIMAL FUTURE"; position: absolute; left: 10%; bottom: 18%; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.crop-frame { position: absolute; inset: 7px; border: 1px solid rgba(255,255,255,.7); box-shadow: 0 0 0 999px rgba(0,0,0,.2); }
+.image-fields { display: grid; gap: var(--space-sm); }
+.image-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.compact-btn { min-height: 36px; padding: .42rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); }
+.pill-editor { min-height: 44px; padding: .45rem; display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); }
+.pill { padding: .3rem .55rem; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: var(--font-size-xs); }
+.pill button { min-height: 0; padding: 0 0 0 .3rem; border: 0; background: none; color: inherit; }
+.pill-add { color: var(--color-text-muted); }
+.list { display: grid; gap: var(--space-sm); }
+.item { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.item-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-sm); }
+.drag { color: var(--color-text-muted); letter-spacing: -.18em; }
+.item-title { flex: 1; font-weight: var(--font-weight-semibold); }
+.item-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+.item-fields .wide { grid-column: 1 / -1; }
+.photo-inline { display: flex; gap: var(--space-sm); align-items: center; }
+.avatar { flex: 0 0 52px; width: 52px; height: 52px; border-radius: var(--radius-sm); background: linear-gradient(145deg, #5e4d66, #252542 48%, #b06f3a); }
+.link-row { display: grid; grid-template-columns: minmax(130px, .4fr) minmax(220px, 1fr) auto; gap: var(--space-sm); align-items: end; }
+.media-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm); }
+.media-card { padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.media-preview { aspect-ratio: 4 / 3; margin-bottom: var(--space-sm); border-radius: var(--radius-sm); background: linear-gradient(145deg, #202433, #6b536b 45%, #b8773f); }
+.media-card strong, .media-card small { display: block; }
+.media-card small { color: var(--color-text-muted); }
+.bottom-save { position: sticky; bottom: 0; z-index: var(--z-raised); margin-inline: calc(-1 * clamp(1rem, 3vw, 2rem)); padding: var(--space-md) clamp(1rem, 3vw, 2rem); display: flex; justify-content: flex-end; align-items: center; gap: var(--space-md); border-top: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 94%, transparent); backdrop-filter: blur(10px); }
+@media (max-width: 1040px) {
+  .presentation-grid { grid-template-columns: 1fr; }
+  .image-selected { grid-template-columns: 160px minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .platform-links { display: none; }
+  .manage-shell { display: block; }
+  .manage-nav { display: none; }
+  .mobile-context { display: flex; justify-content: space-between; }
+  .form { width: 100%; }
+}
+@media (max-width: 620px) {
+  .mock-meta { gap: 2px; flex-direction: column; }
+  .page-head { flex-direction: column; }
+  .head-actions { justify-content: flex-start; }
+  .style-row, .grid-2, .item-fields { grid-template-columns: 1fr; }
+  .item-fields .wide { grid-column: auto; }
+  .image-selected { grid-template-columns: 1fr; }
+  .link-row { grid-template-columns: 1fr; }
+  .media-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 1 — Anchored long form</strong><span>Everything stays visible in one scroll, with a jump rail for experienced editors.</span></header>
+<header class="platform-bar"><div class="platform-brand"><b>S/NC</b> Platform</div><div class="platform-links"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></div><div class="user-pill">LW</div></header>
+<div class="manage-shell">
+  <aside class="manage-nav" aria-label="Animal Future management"><div class="manage-title"><a href="#">← View public page</a><strong>Animal Future</strong></div><div class="creator-select">Animal Future ▾</div><ul><li>Overview</li><li>Content</li><li>Calendar</li><li>Projects</li><li>Streaming</li><li>Programming</li><li>Join page</li><li class="active">Press page</li><li>Settings</li><li>Members</li></ul></aside>
+  <div class="workspace">
+    <div class="mobile-context"><strong>Animal Future · Press page</strong><span>Sections ▾</span></div>
+    <header class="page-head"><div><h1>Press page</h1><p class="lead">Shape the story press, radio, and bookers see.</p></div><div class="head-actions"><span class="saved">Saved 2 min ago</span><button class="btn">Preview page ↗</button><button class="btn primary">Save changes</button></div></header>
+    <nav class="jump-nav" aria-label="Press form sections"><a href="#presentation">Presentation</a><a href="#story">Story</a><a href="#members">Members</a><a href="#highlights">Highlights</a><a href="#links">Links</a><a href="#images">Images</a><a href="#contact">Contact</a></nav>
+    <form class="form">
+      <section class="form-section" id="presentation">
+        <div class="section-head"><div><span class="section-number">01 · PRESENTATION</span><h2>How Animal Future appears</h2><p>Page layout, site-wide brand color, PDF scheme, and the banner image.</p></div><label><input type="checkbox" checked style="width:auto"> Published</label></div>
+        <div class="presentation-grid">
+          <div class="card">
+            <h3>Public page template</h3>
+            <div class="template-grid" data-choice-group><label class="choice selected"><input type="radio" name="template-1" checked><span class="template-mini template-a"><span></span><span></span><span></span></span><strong>Template A</strong><small>Clean editorial</small></label><label class="choice"><input type="radio" name="template-1"><span class="template-mini template-b"><span></span><span></span><span></span></span><strong>Template B</strong><small>Two-column zone</small></label></div>
+            <div class="style-row">
+              <div><label>Creator brand color <span class="hint">(site-wide)</span></label><div class="swatches" data-swatches><button type="button" class="swatch selected" title="Warm amber" aria-label="Warm amber" style="background:#d9892b"></button><button type="button" class="swatch" title="Sea glass" aria-label="Sea glass" style="background:#4ca6a6"></button><button type="button" class="swatch" title="Signal blue" aria-label="Signal blue" style="background:#4f78cc"></button><button type="button" class="swatch" title="Brick" aria-label="Brick" style="background:#b75448"></button><button type="button" class="swatch" title="Berry" aria-label="Berry" style="background:#a44d78"></button><button type="button" class="swatch" title="Violet" aria-label="Violet" style="background:#7656b5"></button></div><p class="hint">Used on the creator page, cards, and press accents.</p></div>
+              <div><label>PDF color scheme</label><div class="pdf-options" data-choice-group><button type="button" class="pdf-choice selected"><span class="pdf-chip"></span>Editorial Light</button><button type="button" class="pdf-choice"><span class="pdf-chip dark"></span>Dark</button><button type="button" class="pdf-choice"><span class="pdf-chip brand"></span>Creator Brand Accent</button></div></div>
+            </div>
+          </div>
+          <section class="image-field" aria-label="Integrated banner image field">
+            <div class="image-field-head"><h3>Banner image <span class="hint">3:1</span></h3><button type="button" class="compact-btn">Replace</button></div>
+            <div class="pipeline"><b>✓ Your library</b><span>→</span><b>✓ Crop 3:1</b><span>→</span><b>✓ Alt + credit</b></div>
+            <div class="image-selected"><div class="thumb" role="img" aria-label="Animal Future on stage beneath purple lights"><span class="crop-frame"></span></div><div class="image-fields"><div><label for="banner-alt-1">Alternative text *</label><textarea id="banner-alt-1" rows="2">Animal Future performing under purple stage lights</textarea></div><div><label for="banner-credit-1">Photo credit</label><input id="banner-credit-1" value="Photo: Jamie Ortega"></div><div class="image-actions"><button type="button" class="compact-btn">Choose: library + shared pool</button><button type="button" class="compact-btn">Edit crop</button></div></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="form-section" id="story"><div class="section-head"><div><span class="section-number">02 · STORY</span><h2>Core story</h2><p>The copy carried by both public templates and the PDF.</p></div></div><div class="grid-2"><div class="field"><label for="tagline-1">Tagline</label><input id="tagline-1" value="Socially conscious punk-leaning rock that hits where it hurts."></div><div class="field"><label for="location-1">Location</label><input id="location-1" value="Fort Collins, CO"></div><div class="field"><label for="short-bio-1">Short bio</label><textarea id="short-bio-1" rows="4">Raw, funny, and unpredictable, Animal Future confronts mental health, addiction, and life under a corporate-run world.</textarea><p class="hint">Used as the public-page standfirst.</p></div><div class="field"><label for="long-bio-1">Long bio</label><textarea id="long-bio-1" rows="6">Fueled by the fury of the forgotten, Animal Future moves from indie rock to grungy pop and old-school punk, with atmospheric turns that keep every song unpredictable. Their shows make space for connection, individuality, and compassion — for people and the planet.</textarea></div></div><div class="field"><label>For fans of</label><div class="pill-editor"><span class="pill">IDLES <button type="button">×</button></span><span class="pill">Radiohead <button type="button">×</button></span><span class="pill">Modest Mouse <button type="button">×</button></span><span class="pill">Pixies <button type="button">×</button></span><span class="pill">Yeah Yeah Yeahs <button type="button">×</button></span><span class="pill-add">+ Add artist</span></div></div></section>
+
+      <section class="form-section" id="members"><div class="section-head"><div><span class="section-number">03 · MEMBERS</span><h2>Members <span class="hint">4</span></h2><p>Drag to set public order. Member photos open the same picker → crop → details flow.</p></div><button type="button" class="btn">+ Add member</button></div><div class="list">
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar"></span><span class="item-title">LeAnna Warren</span><button type="button" class="compact-btn">Edit photo · 1:1</button><button type="button" class="compact-btn danger">Remove</button></div><div class="item-fields"><div><label>Name</label><input value="LeAnna Warren"></div><div><label>Role</label><input value="Vocals, electric guitar"></div><div class="wide"><label>One-line bio</label><textarea rows="2">Sharp-eyed storytelling carried from a hush to a full-throated roar.</textarea></div></div></article>
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="background:linear-gradient(145deg,#3f5161,#252542 55%,#7b513e)"></span><span class="item-title">Charles Tyrie · Drums</span><button type="button" class="compact-btn">Edit</button></div></article>
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="background:linear-gradient(145deg,#6a4e42,#252542 55%,#58697a)"></span><span class="item-title">Jarod Ford · Bass</span><button type="button" class="compact-btn">Edit</button></div></article>
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="background:linear-gradient(145deg,#3d465d,#252542 55%,#7c6043)"></span><span class="item-title">Connor Mandli · Electric guitar</span><button type="button" class="compact-btn">Edit</button></div></article>
+      </div></section>
+
+      <section class="form-section" id="highlights"><div class="section-head"><div><span class="section-number">04 · HIGHLIGHTS</span><h2>Highlights <span class="hint">3</span></h2><p>Releases, standout tracks, milestones, or coverage — in the order shown publicly.</p></div><button type="button" class="btn">+ Add highlight</button></div><div class="list">
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="border-radius:2px;background:linear-gradient(135deg,#e29835,#633849 55%,#1d2130)"></span><span class="item-title">The Illusionist</span><button type="button" class="compact-btn">Cover art · 1:1</button><button type="button" class="compact-btn danger">Remove</button></div><div class="item-fields"><div><label>Eyebrow</label><input value="New release · SNCR-001"></div><div><label>Title</label><input value="The Illusionist"></div><div><label>Metric</label><input value="Out Aug 6, 2026"></div><div><label>URL</label><input value="https://animalfuture.bandcamp.com/track/the-illusionist"></div><div class="wide"><label>Description</label><textarea rows="2">First single from debut LP Survived By.</textarea></div></div></article>
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="border-radius:2px;background:linear-gradient(135deg,#4e7693,#2d3040 55%,#bf7d3e)"></span><span class="item-title">Get to You · ~14.5k streams</span><button type="button" class="compact-btn">Edit</button></div></article>
+        <article class="item"><div class="item-head"><span class="drag">⠿</span><span class="avatar" style="border-radius:2px;background:linear-gradient(135deg,#80536f,#2d3040 55%,#d2a84e)"></span><span class="item-title">Survived By · Debut LP</span><button type="button" class="compact-btn">Edit</button></div></article>
+      </div></section>
+
+      <section class="form-section" id="links"><div class="section-head"><div><span class="section-number">05 · LINKS</span><h2>Listen and live</h2><p>Service names power the icons in both templates.</p></div><button type="button" class="btn">+ Add streaming link</button></div><div class="list"><div class="link-row"><div><label>Service</label><select><option>Spotify</option><option>Apple Music</option><option>Bandcamp</option></select></div><div><label>URL</label><input value="https://open.spotify.com/artist/animal-future"></div><button type="button" class="btn danger">Remove</button></div><div class="link-row"><div><label>Service</label><select><option>Bandcamp</option></select></div><div><label>URL</label><input value="https://animalfuture.bandcamp.com"></div><button type="button" class="btn danger">Remove</button></div></div><div class="grid-2"><div class="field"><label>Live dates URL</label><input value="https://www.bandsintown.com/a/animal-future"></div><div class="field"><label>Link label</label><input value="More dates on Bandsintown"></div></div></section>
+
+      <section class="form-section" id="images"><div class="section-head"><div><span class="section-number">06 · IMAGES</span><h2>About photo and gallery <span class="hint">6 images</span></h2><p>Every slot reuses the library picker, fixed-ratio crop, and per-use alt/credit fields.</p></div><button type="button" class="btn">+ Add gallery image</button></div><div class="media-grid"><article class="media-card"><div class="media-preview" style="aspect-ratio:4/5"></div><strong>About photo · 4:5</strong><small>Alt + credit complete · Edit crop</small></article><article class="media-card"><div class="media-preview"></div><strong>Gallery 1 · 4:3</strong><small>Photo: Jamie Ortega · Reorder</small></article><article class="media-card"><div class="media-preview" style="background:linear-gradient(145deg,#5d3f55,#222439 45%,#6c7d7c)"></div><strong>Gallery 2 · 4:3</strong><small>Photo: Mira Chen · Reorder</small></article><article class="media-card"><div class="media-preview" style="background:linear-gradient(145deg,#6c4e3a,#252542 45%,#3e6277)"></div><strong>Gallery 3 · 4:3</strong><small>Alt complete · Credit missing</small></article><article class="media-card"><div class="media-preview" style="background:linear-gradient(145deg,#37435b,#745269 45%,#a36c3b)"></div><strong>Gallery 4 · 4:3</strong><small>Alt + credit complete</small></article><button type="button" class="media-card" style="color:var(--color-text-muted)">+ Choose from your library or shared pool</button></div></section>
+
+      <section class="form-section" id="contact"><div class="section-head"><div><span class="section-number">07 · CONTACT</span><h2>Press contact</h2><p>Shown in the public footer and generated PDF.</p></div></div><div class="grid-2"><div><label>Press contact email</label><input type="email" value="press@s-nc.org"></div><div><label>Contact display label</label><input value="S/NC Records press desk"></div></div></section>
+      <div class="bottom-save"><span class="saved">All changes saved</span><button type="button" class="btn">Preview page ↗</button><button type="button" class="btn primary">Save changes</button></div>
+    </form>
+  </div>
+</div>
+<script>
+document.querySelectorAll('[data-choice-group]').forEach((group) => group.addEventListener('click', (event) => {
+  const choice = event.target.closest('.choice, .pdf-choice'); if (!choice) return;
+  group.querySelectorAll('.selected').forEach((node) => node.classList.remove('selected')); choice.classList.add('selected');
+}));
+document.querySelector('[data-swatches]').addEventListener('click', (event) => {
+  const swatch = event.target.closest('.swatch'); if (!swatch) return;
+  document.querySelectorAll('.swatch').forEach((node) => node.classList.remove('selected')); swatch.classList.add('selected');
+});
+</script>
+</body>
+</html>

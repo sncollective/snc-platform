@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>creator-press-page-v2-editor — layout directions</title>
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #111; color: #eee; }
+header { height: 62px; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #333; }
+h1 { margin: 0; font-size: 18px; font-weight: 600; }
+header p { margin: 2px 0 0; color: #999; font-size: 12px; }
+.legend { flex: 0 0 auto; color: #bbb; font-size: 12px; }
+.grid { height: calc(100vh - 62px); padding: 8px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; }
+.cell { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #333; border-radius: 6px; background: #1a1a1a; }
+.cell h2 { min-height: 36px; margin: 0; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #222; color: #eee; font-size: 12px; font-weight: 600; }
+.cell h2 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell a { flex: 0 0 auto; color: #6cf; text-decoration: none; font-weight: 500; }
+.cell iframe { width: 100%; min-width: 0; flex: 1; border: 0; background: #1a1a2e; }
+@media (max-width: 760px) { html, body { overflow: auto; } header { height: auto; align-items: flex-start; } .legend { display: none; } .grid { height: auto; grid-template-columns: 1fr; grid-template-rows: repeat(4, 520px); } }
+</style>
+</head>
+<body>
+<header><div><h1>Press page v2 editor — tabbed workbench selected</h1><p>Option 2 carries the locked IA and now models a draft-first review/publish workflow; the other options remain historical comparisons.</p></div><span class="legend">Open Option 2 at full size for review</span></header>
+<main class="grid">
+  <section class="cell"><h2><span>Option 1 — Anchored long form · everything visible, scroll</span><a href="option-1.html" target="_blank">open ↗</a></h2><iframe src="option-1.html" title="Option 1 anchored long form"></iframe></section>
+  <section class="cell"><h2><span>Option 2 — Draft-first tabbed workbench · selected IA, revised execution</span><a href="option-2.html" target="_blank">open ↗</a></h2><iframe src="option-2.html" title="Option 2 tabbed workbench"></iframe></section>
+  <section class="cell"><h2><span>Option 3 — Section tree dashboard · persistent overview</span><a href="option-3.html" target="_blank">open ↗</a></h2><iframe src="option-3.html" title="Option 3 section tree dashboard"></iframe></section>
+  <section class="cell"><h2><span>Option 4 — Guided setup · linear authoring and review</span><a href="option-4.html" target="_blank">open ↗</a></h2><iframe src="option-4.html" title="Option 4 guided setup"></iframe></section>
+</main>
+</body>
+</html>

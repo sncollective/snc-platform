@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creator press page v2 editor — Option 2: Draft-first tabbed workbench</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { color-scheme: dark; overflow-x: hidden; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+main, section, div, form, fieldset, nav, aside, article { min-width: 0; }
+button, input, textarea, select { max-width: 100%; min-height: 44px; font: inherit; }
+button { cursor: pointer; }
+input, textarea, select { width: 100%; padding: .72rem .78rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+textarea { resize: vertical; }
+label, legend { color: var(--color-text); font-weight: var(--font-weight-semibold); }
+label { display: block; margin-bottom: var(--space-xs); }
+:focus-visible { outline: 3px solid #ffd27a; outline-offset: 3px; }
+a { color: var(--color-accent); }
+h1, h2, h3, p { overflow-wrap: anywhere; }
+.mock-meta { min-height: 40px; padding: 9px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui, sans-serif; }
+.mock-meta strong { font-weight: 700; }
+.mock-meta span { color: #9aa4af; }
+.platform-bar { min-height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+.platform-brand { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); white-space: nowrap; }
+.platform-brand b { color: var(--color-accent); }
+.platform-links { display: flex; gap: var(--space-lg); color: var(--color-text-muted); }
+.platform-links span:first-child { color: var(--color-text); }
+.user-pill { margin-left: auto; min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+.manage-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: calc(100vh - 96px); }
+.manage-nav { padding: var(--space-md) var(--space-sm); border-right: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 82%, black); }
+.manage-title { padding: 0 var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+.manage-title a { min-height: 44px; display: flex; align-items: center; color: var(--color-text-muted); text-decoration: none; }
+.manage-title strong { display: block; margin-top: var(--space-xs); font-size: var(--font-size-lg); }
+.creator-select { min-height: 44px; margin: var(--space-md) var(--space-sm); padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); }
+.manage-nav ul { margin: 0; padding: 0; list-style: none; }
+.manage-nav li { min-height: 44px; padding: .7rem .75rem; border-radius: var(--radius-sm); color: var(--color-text-muted); }
+.manage-nav li.active { background: var(--color-accent-bg); color: var(--color-accent); }
+.mobile-context { display: none; min-height: 48px; padding: var(--space-sm) var(--space-md); align-items: center; border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); }
+.workspace { min-width: 0; }
+.page-head { padding: var(--space-lg) clamp(1rem, 3vw, 2rem) var(--space-md); display: flex; align-items: start; justify-content: space-between; gap: var(--space-lg); }
+h1 { margin: 0; font-family: var(--font-heading); font-size: var(--font-size-2xl); }
+.lead { margin: .3rem 0 0; color: var(--color-text-muted); }
+.head-actions { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.btn, .icon-btn, .menu-button { min-height: 44px; padding: .68rem .9rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); color: var(--color-text); white-space: nowrap; }
+.btn.primary { border-color: var(--color-accent); background: var(--color-accent); color: #1a1a2e; font-weight: var(--font-weight-bold); }
+.btn.primary[disabled] { border-color: var(--color-border); background: #3a3a4c; color: #9a9aaa; cursor: not-allowed; }
+.btn.danger, .danger-text { color: #ff8c89; }
+.btn.quiet { background: transparent; }
+.workflow-strip { position: sticky; top: 0; z-index: 20; padding: .72rem clamp(1rem, 3vw, 2rem); display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); border-block: 1px solid var(--color-border); background: rgba(26,26,46,.97); box-shadow: var(--shadow-sm); }
+.save-state { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.status-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: var(--color-error); box-shadow: 0 0 0 4px var(--color-error-bg); }
+.state-copy strong { display: block; }
+.state-copy small { color: var(--color-text-muted); }
+.state-lifecycle { display: flex; gap: .3rem; flex-wrap: wrap; }
+.state-chip { min-height: 28px; padding: .25rem .45rem; display: inline-flex; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: 11px; }
+.state-chip.current { border-color: var(--color-accent); background: var(--color-accent-bg); color: #ffd27a; }
+.state-chip:nth-child(3).current { border-color: var(--color-success); background: var(--color-success-bg); color: #a9e9ac; }
+.state-chip:last-child.current { border-color: var(--color-error); background: var(--color-error-bg); color: #ffaaa8; }
+.workflow-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.tabs { padding: 0 clamp(1rem, 3vw, 2rem); display: flex; gap: .15rem; overflow-x: auto; border-bottom: 1px solid var(--color-border); scrollbar-width: thin; }
+.tab { min-height: 52px; flex: 0 0 auto; padding: .72rem .75rem; display: inline-flex; align-items: center; gap: .45rem; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--color-text-muted); }
+.tab[aria-selected="true"] { border-color: var(--color-accent); color: var(--color-text); }
+.tab-state { padding: .18rem .45rem; border-radius: var(--radius-pill); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 11px; }
+.tab-state.dirty { background: var(--color-accent-bg); color: #ffc45b; }
+.tab-state.issue { background: var(--color-error-bg); color: #ff9d9a; }
+.panel-wrap { width: min(100%, 1120px); padding: var(--space-lg) clamp(1rem, 3vw, 2rem) 6rem; }
+.tab-panel[hidden] { display: none; }
+.error-summary { margin-bottom: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-error); border-radius: var(--radius-md); background: var(--color-error-bg); }
+.error-summary h2 { margin: 0 0 .35rem; font-size: var(--font-size-base); }
+.error-summary p { margin: 0 0 .5rem; color: #ffd0ce; }
+.error-summary ul { margin: 0; padding-left: 1.2rem; }
+.error-link { min-height: 44px; padding: .45rem .2rem; border: 0; background: transparent; color: #ffb4b1; text-align: left; text-decoration: underline; }
+.review-publish { margin-bottom: var(--space-lg); padding: var(--space-md); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); gap: var(--space-lg); align-items: center; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: linear-gradient(120deg, var(--color-accent-bg), var(--color-bg-elevated)); }
+.review-publish h2 { margin: 0 0 .3rem; font-size: var(--font-size-lg); }
+.review-publish p { margin: 0; color: var(--color-text-muted); }
+.review-steps { margin-top: .7rem; display: flex; gap: .45rem; flex-wrap: wrap; }
+.review-step { padding: .3rem .55rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.review-step.done { border-color: var(--color-success); color: #92dd96; }
+.publish-side { display: grid; gap: .5rem; justify-items: stretch; }
+.publish-side .btn { width: 100%; }
+.publish-side small { color: #ffb4b1; text-align: center; }
+.panel-head { margin-bottom: var(--space-md); display: flex; justify-content: space-between; gap: var(--space-md); align-items: start; }
+.panel-head h2 { margin: 0; font-size: var(--font-size-xl); }
+.panel-head p { margin: .2rem 0 0; max-width: 68ch; color: var(--color-text-muted); }
+.section-status { padding: .3rem .55rem; border-radius: var(--radius-pill); background: var(--color-success-bg); color: #98df9b; white-space: nowrap; }
+.stack { display: grid; gap: var(--space-md); }
+.card { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.card h3 { margin: 0 0 .3rem; font-size: var(--font-size-base); }
+.card-intro { margin: 0 0 var(--space-md); color: var(--color-text-muted); }
+.appearance-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr); gap: var(--space-md); align-items: start; }
+.appearance-grid > .stack { display: contents; }
+.appearance-grid > .stack > article:first-child { grid-column: 1; grid-row: 1; }
+.appearance-grid > .stack > article:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+.appearance-grid > article { grid-column: 2; grid-row: 1; }
+.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+.choice { position: relative; min-height: 190px; padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); cursor: pointer; }
+.choice[aria-checked="true"] { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice strong, .choice small { display: block; }
+.choice strong { margin-top: var(--space-sm); }
+.choice small { margin-top: .2rem; color: var(--color-text-muted); }
+.template-preview { height: 108px; padding: 9px; display: grid; gap: 6px; border-radius: var(--radius-sm); background: #f2ede4; }
+.template-preview i { display: block; min-height: 5px; border-radius: 2px; background: #303044; }
+.template-editorial { grid-template-columns: 1.35fr .65fr; grid-template-rows: 32px 10px 1fr; }
+.template-editorial i:first-child { grid-column: 1 / -1; background: linear-gradient(90deg,#30273a,#d48b37); }
+.template-editorial i:nth-child(2) { grid-column: 1 / -1; width: 65%; }
+.template-split { grid-template-columns: .85fr 1.15fr; grid-template-rows: 32px 1fr 1fr; }
+.template-split i:first-child { grid-column: 1 / -1; background: linear-gradient(90deg,#2c3048,#784e62); }
+.template-split i:nth-child(2) { grid-row: 2 / 4; }
+.brand-warning { margin: .65rem 0; padding: .65rem .75rem; border-left: 3px solid var(--color-accent); background: var(--color-accent-bg); color: #ffe0a4; }
+.swatches { display: flex; gap: .55rem; flex-wrap: wrap; }
+.swatch { width: 44px; height: 44px; min-height: 44px; padding: 0; border: 3px solid transparent; border-radius: 50%; }
+.swatch[aria-pressed="true"] { border-color: var(--color-text); box-shadow: 0 0 0 3px var(--color-accent); }
+.brand-surfaces { margin-top: var(--space-md); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+.surface-preview { min-height: 104px; padding: .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.surface-preview.dark { background: #1a1a2e; }
+.surface-preview.light { background: #f6f0e7; color: #1a1a2e; }
+.surface-preview strong, .surface-preview small { display: block; }
+.surface-preview small { margin-top: .2rem; color: inherit; opacity: .74; }
+.accent-link { margin-top: .65rem; min-height: 44px; padding: .55rem .65rem; display: flex; align-items: center; border-radius: var(--radius-sm); background: #d9892b; color: #1a1a2e; font-weight: 750; }
+.contrast-pass { color: #a8e6aa; font-size: var(--font-size-xs); }
+.pdf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); }
+.pdf { min-height: 154px; padding: .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); text-align: left; }
+.pdf[aria-pressed="true"] { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); color: var(--color-text); }
+.pdf strong, .pdf small { display: block; }
+.pdf small { margin-top: .15rem; }
+.pdf-preview { height: 82px; margin-bottom: .45rem; padding: 8px; display: grid; grid-template-columns: .65fr 1.35fr; gap: 5px; border-radius: 2px; background: #f2ede4; }
+.pdf-preview i { display: block; border-radius: 1px; background: #333344; }
+.pdf.dark .pdf-preview { background: #171725; }
+.pdf.dark .pdf-preview i { background: #ddd8ce; }
+.pdf.accent .pdf-preview { background: linear-gradient(90deg,#d9892b 0 27%,#f2ede4 27%); }
+.pdf-actions { margin-top: var(--space-sm); display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); flex-wrap: wrap; }
+.crop-card { margin-top: var(--space-md); }
+.pipeline { margin: .5rem 0 .9rem; display: flex; gap: .35rem; flex-wrap: wrap; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.pipeline b { color: #9ce39f; }
+.crop-workspace { display: grid; grid-template-columns: minmax(230px, .9fr) minmax(280px, 1.1fr); gap: var(--space-md); align-items: start; }
+.source-stage { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-sm); background: linear-gradient(135deg,#573b60,#1b1c2c 48%,#b36e35); }
+.source-stage::before { content: "ANIMAL FUTURE"; position: absolute; inset: auto 12px 16px; color: white; font-weight: 800; letter-spacing: .08em; }
+.crop-overlay { position: absolute; left: 4%; right: 4%; top: 34%; aspect-ratio: 3 / 1; border: 3px solid white; box-shadow: 0 0 0 999px rgba(0,0,0,.48); }
+.crop-overlay::after { content: "3:1 crop"; position: absolute; right: 4px; bottom: 4px; padding: 2px 5px; background: rgba(0,0,0,.72); color: white; font-size: 11px; }
+.final-crop { width: 100%; aspect-ratio: 3 / 1; position: relative; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: linear-gradient(105deg,#2d1d37,#663c5a 42%,#b36e35 75%,#252842); }
+.final-crop::before { content: "ANIMAL FUTURE"; position: absolute; left: 16px; bottom: 13px; color: white; font-weight: 800; letter-spacing: .08em; }
+.final-crop-label { margin: 0 0 .35rem; display: block; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.crop-fields { display: grid; gap: var(--space-sm); }
+.help { margin: .25rem 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.field-error { margin: .25rem 0 0; color: #ffaaa8; font-size: var(--font-size-xs); }
+.image-actions { margin-top: var(--space-sm); display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.asset-overview { margin-top: var(--space-md); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-sm); }
+.asset { min-height: 178px; padding: var(--space-sm); display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.asset-art { aspect-ratio: 1; margin-bottom: .55rem; border-radius: var(--radius-sm); background: linear-gradient(145deg,#2d3348,#6f4c64 48%,#a66d3a); }
+.asset-art.gallery-ratio { aspect-ratio: 4 / 3; }
+.asset-art.empty { display: grid; place-items: center; border: 1px dashed #6b6b89; background: var(--color-bg); color: var(--color-text-muted); text-align: center; }
+.asset strong, .asset small { display: block; }
+.asset small { color: var(--color-text-muted); }
+.asset-link { min-height: 44px; margin-top: auto; padding-top: .55rem; display: flex; align-items: center; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-md); }
+.field.wide { grid-column: 1 / -1; }
+.pills { min-height: 48px; padding: .45rem; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); }
+.pill { min-height: 32px; padding: .35rem .6rem; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: var(--font-size-xs); }
+.list { display: grid; gap: var(--space-sm); }
+.row-card { padding: var(--space-sm); display: grid; grid-template-columns: 44px 56px minmax(0,1fr) auto; gap: var(--space-sm); align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.drag-handle { width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); font-size: 20px; cursor: grab; }
+.avatar { width: 56px; aspect-ratio: 1; border-radius: var(--radius-sm); background: linear-gradient(145deg,#5e4d66,#252542 50%,#b06f3a); }
+.avatar.empty { display: grid; place-items: center; border: 1px dashed #6b6b89; background: var(--color-bg); color: var(--color-text-muted); font-size: 10px; text-align: center; }
+.row-card strong, .row-card small { display: block; }
+.row-card small { color: var(--color-text-muted); }
+.row-actions { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.icon-btn { width: 44px; padding: 0; }
+.more-menu { position: relative; }
+.more-popover { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 190px; padding: .4rem; display: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); box-shadow: var(--shadow-md); }
+.more-menu.open .more-popover { display: grid; }
+.more-popover button { min-height: 44px; padding: .6rem; border: 0; background: transparent; color: #ffaaa8; text-align: left; }
+.reorder-feedback { min-height: 44px; margin-bottom: var(--space-sm); padding: .65rem .8rem; display: flex; align-items: center; border-left: 3px solid var(--color-success); background: var(--color-success-bg); color: #b6eeb8; }
+.long-list-note { min-height: 44px; margin-top: var(--space-sm); display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); }
+.link-list { display: grid; gap: var(--space-sm); }
+.link-row { padding: var(--space-sm); display: grid; grid-template-columns: minmax(145px,.35fr) minmax(220px,1fr) auto; gap: var(--space-sm); align-items: end; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.invalid { border-color: var(--color-error); }
+.gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--space-sm); }
+.gallery-empty { min-height: 190px; padding: var(--space-lg); display: grid; place-items: center; border: 1px dashed #6b6b89; border-radius: var(--radius-md); background: var(--color-bg-elevated); text-align: center; }
+.gallery-empty p { margin: .35rem 0; color: var(--color-text-muted); }
+.gallery-item { padding: var(--space-sm); border: 1px solid var(--color-error); border-radius: var(--radius-md); background: var(--color-error-bg); }
+.gallery-photo { aspect-ratio: 4 / 3; border-radius: var(--radius-sm); background: linear-gradient(135deg,#31495d,#60435e,#a46d3e); }
+.confirm-box { margin-top: var(--space-sm); padding: var(--space-md); display: none; border: 1px solid var(--color-error); border-radius: var(--radius-md); background: var(--color-error-bg); }
+.confirm-box.show { display: block; }
+.confirm-actions { margin-top: .6rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+@media (max-width: 1180px) {
+  .tabs { flex-wrap: wrap; overflow-x: visible; }
+  .tab { flex: 1 1 auto; justify-content: center; }
+  .appearance-grid { grid-template-columns: 1fr; }
+  .appearance-grid > .stack { display: grid; }
+  .appearance-grid > .stack > article:first-child,
+  .appearance-grid > .stack > article:nth-child(2),
+  .appearance-grid > article { grid-column: auto; grid-row: auto; }
+  .asset-overview { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 900px) {
+  .platform-links { display: none; }
+  .manage-shell { grid-template-columns: 176px minmax(0,1fr); }
+  .review-publish { grid-template-columns: 1fr; }
+  .crop-workspace { grid-template-columns: 1fr; }
+  .pdf-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .manage-shell { display: block; }
+  .manage-nav { display: none; }
+  .mobile-context { display: flex; justify-content: space-between; }
+  .workflow-strip { position: static; align-items: flex-start; flex-direction: column; }
+  .workflow-actions { width: 100%; }
+  .workflow-actions .btn { flex: 1; }
+  .panel-wrap { width: 100%; }
+  .fields, .template-grid { grid-template-columns: 1fr; }
+  .field.wide { grid-column: auto; }
+  .row-card { grid-template-columns: 44px 52px minmax(0,1fr); }
+  .row-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .link-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .mock-meta { flex-direction: column; gap: 2px; }
+  .page-head { flex-direction: column; }
+  .head-actions { justify-content: flex-start; }
+  .state-lifecycle { display: none; }
+  .asset-overview, .brand-surfaces, .gallery-grid, .pdf-grid { grid-template-columns: 1fr; }
+  .crop-overlay { top: 32%; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 2 — Draft-first tabbed workbench</strong><span>Locked IA, revised execution: one domain at a time with a persistent draft state and a global review-to-publish gate.</span></header>
+<header class="platform-bar"><div class="platform-brand"><b>S/NC</b> Platform</div><div class="platform-links"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></div><div class="user-pill" aria-label="Account: LeAnna Warren">LW</div></header>
+<div class="manage-shell">
+  <aside class="manage-nav">
+    <div class="manage-title"><a href="#">← View public creator page</a><strong>Animal Future</strong></div>
+    <div class="creator-select">Animal Future ▾</div>
+    <ul><li>Overview</li><li>Content</li><li>Calendar</li><li>Projects</li><li>Streaming</li><li>Programming</li><li>Join page</li><li class="active">Press page</li><li>Settings</li><li>Members</li></ul>
+  </aside>
+  <main class="workspace">
+    <div class="mobile-context"><strong>Animal Future · Press page</strong><span>Manage ▾</span></div>
+    <header class="page-head">
+      <div><h1>Press page</h1><p class="lead">Build the draft here. The live page and PDF stay on the published version until you publish.</p></div>
+      <div class="head-actions"><button type="button" class="btn">Preview draft</button><button type="button" class="btn quiet" aria-label="View live press page, opens in a new tab">View live <span aria-hidden="true">↗</span></button></div>
+    </header>
+
+    <section class="workflow-strip" aria-label="Draft save status and actions">
+      <div class="save-state" role="status" aria-live="polite">
+        <span class="status-dot" id="save-dot"></span>
+        <span class="state-copy"><strong id="save-label">Error · draft not saved</strong><small id="save-detail">Connection lost at 2:14 PM · 3 changes remain in this browser</small></span>
+        <span class="state-lifecycle" aria-label="Possible draft states"><span class="state-chip">Unsaved</span><span class="state-chip">Saving</span><span class="state-chip">Saved (draft)</span><span class="state-chip current">Error</span></span>
+      </div>
+      <div class="workflow-actions"><button type="button" class="btn" id="save-draft">Retry save draft</button><button type="button" class="btn primary" id="review-jump">Review / Publish</button></div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="Press page editor sections">
+      <button id="tab-appearance" class="tab" role="tab" aria-selected="true" aria-controls="panel-appearance" tabindex="0" data-tab="appearance"><span>Appearance &amp; media</span><span class="tab-state">Complete</span></button>
+      <button id="tab-about" class="tab" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1" data-tab="about"><span>About</span><span class="tab-state dirty">Unsaved</span></button>
+      <button id="tab-members" class="tab" role="tab" aria-selected="false" aria-controls="panel-members" tabindex="-1" data-tab="members"><span>Members</span><span class="tab-state">Complete</span></button>
+      <button id="tab-highlights" class="tab" role="tab" aria-selected="false" aria-controls="panel-highlights" tabindex="-1" data-tab="highlights"><span>Highlights</span><span class="tab-state dirty">Unsaved</span></button>
+      <button id="tab-gallery" class="tab" role="tab" aria-selected="false" aria-controls="panel-gallery" tabindex="-1" data-tab="gallery"><span>Gallery</span><span class="tab-state issue">1 issue</span></button>
+      <button id="tab-links" class="tab" role="tab" aria-selected="false" aria-controls="panel-links" tabindex="-1" data-tab="links"><span>Links &amp; contact</span><span class="tab-state issue">1 issue</span></button>
+    </nav>
+
+    <form class="panel-wrap" novalidate>
+      <aside class="error-summary" id="error-summary" role="alert" aria-labelledby="error-title">
+        <h2 id="error-title">2 issues across this draft</h2>
+        <p>Publishing is blocked. Select an issue to open its tab and focus the field.</p>
+        <ul>
+          <li><button type="button" class="error-link" data-error-tab="gallery" data-error-field="gallery-alt-1">Gallery — alternative text is required for “Backstage at the Aggie”</button></li>
+          <li><button type="button" class="error-link" data-error-tab="links" data-error-field="spotify-url">Links &amp; contact — Spotify URL is not a valid URL</button></li>
+        </ul>
+      </aside>
+
+      <section class="review-publish" id="review-publish" aria-labelledby="review-title">
+        <div>
+          <h2 id="review-title">Review draft, then publish to live</h2>
+          <p><strong>Save draft</strong> only persists your workspace. <strong>Publish</strong> copies the reviewed draft to the live press page and replaces the PDF source.</p>
+          <div class="review-steps"><span class="review-step done">1 · Draft saved before error</span><span class="review-step">2 · Resolve 2 issues</span><span class="review-step">3 · Preview draft</span><span class="review-step">4 · Publish</span></div>
+        </div>
+        <div class="publish-side"><button type="button" class="btn">Open full draft review</button><button type="button" class="btn primary" disabled aria-describedby="publish-blocked">Publish draft to live</button><small id="publish-blocked">Resolve 2 validation issues to publish</small></div>
+      </section>
+
+      <section class="tab-panel" id="panel-appearance" role="tabpanel" aria-labelledby="tab-appearance" tabindex="0" data-panel="appearance">
+        <div class="panel-head"><div><h2>Appearance &amp; media</h2><p>Choose presentation settings and see every press asset at a glance. Entity images stay with the content they describe; use the links below to edit member photos, cover art, and gallery images in context.</p></div><span class="section-status">Complete</span></div>
+        <div class="appearance-grid">
+          <div class="stack">
+            <article class="card" aria-labelledby="template-heading">
+              <h3 id="template-heading">Public-page template</h3><p class="card-intro">Templates change the public page’s content rhythm only. PDF layout is selected separately below.</p>
+              <div class="template-grid" role="radiogroup" aria-labelledby="template-heading">
+                <label class="choice" for="template-editorial" role="radio" aria-checked="true" tabindex="0"><input id="template-editorial" type="radio" name="template" value="A" checked><span class="template-preview template-editorial" aria-hidden="true"><i></i><i></i><i></i><i></i></span><strong>Editorial</strong><small>Full-width banner, story-led reading order, and compact highlights rail.</small></label>
+                <label class="choice" for="template-split" role="radio" aria-checked="false" tabindex="-1"><input id="template-split" type="radio" name="template" value="B"><span class="template-preview template-split" aria-hidden="true"><i></i><i></i><i></i></span><strong>Split profile</strong><small>Persistent identity column with highlights and links in a denser second column.</small></label>
+              </div>
+            </article>
+
+            <article class="card" aria-labelledby="brand-heading">
+              <h3 id="brand-heading">Creator brand color · site-wide profile setting</h3>
+              <div class="brand-warning"><strong>This changes more than the press page.</strong> It updates creator-page links, creator cards, press accents, and the Creator Accent PDF scheme.</div>
+              <div class="swatches" aria-label="Accessible brand color presets"><button type="button" class="swatch" aria-label="Warm amber selected, passes contrast" aria-pressed="true" style="background:#d9892b"></button><button type="button" class="swatch" aria-label="Light sea glass, passes contrast" aria-pressed="false" style="background:#79caca"></button><button type="button" class="swatch" aria-label="Sky blue, passes contrast" aria-pressed="false" style="background:#7aa8ff"></button><button type="button" class="swatch" aria-label="Soft coral, passes contrast" aria-pressed="false" style="background:#ef8278"></button></div>
+              <p class="help">Only presets that meet 4.5:1 on #1a1a2e are offered. Foreground ink is derived automatically.</p>
+              <div class="brand-surfaces">
+                <div class="surface-preview dark"><strong>Creator page link</strong><span class="accent-link">Listen to Animal Future →</span><small class="contrast-pass">Amber on dark · 7.4:1 · Pass</small></div>
+                <div class="surface-preview light"><strong>Creator card / light PDF</strong><span class="accent-link">Animal Future · Press kit</span><small>Derived dark ink on amber · 7.1:1 · Pass</small></div>
+                <div class="surface-preview dark"><strong>Dark PDF accent</strong><span class="accent-link">PRESS CONTACT</span><small class="contrast-pass">Accessible foreground derived</small></div>
+                <div class="surface-preview light"><strong>Creator Accent PDF</strong><span class="accent-link">THE ILLUSIONIST · AUG 2026</span><small>Accent band + dark body copy</small></div>
+              </div>
+            </article>
+          </div>
+
+          <article class="card" aria-labelledby="pdf-heading">
+            <h3 id="pdf-heading">PDF color scheme</h3><p class="card-intro">PDF structure does not depend on the public-page template. This choice changes color treatment only.</p>
+            <div class="pdf-grid" aria-label="PDF color scheme choices">
+              <button type="button" class="pdf" aria-pressed="true"><span class="pdf-preview"><i></i><i></i><i></i><i></i></span><strong>Light</strong><small>Warm paper, dark type</small></button>
+              <button type="button" class="pdf dark" aria-pressed="false"><span class="pdf-preview"><i></i><i></i><i></i><i></i></span><strong>Dark</strong><small>Ink field, light type</small></button>
+              <button type="button" class="pdf accent" aria-pressed="false"><span class="pdf-preview"><i></i><i></i><i></i><i></i></span><strong>Creator Accent</strong><small>Brand band, light body</small></button>
+            </div>
+            <div class="pdf-actions"><span class="help">Selected: Light · uses published content</span><button type="button" class="btn">Preview PDF</button></div>
+          </article>
+        </div>
+
+        <article class="card crop-card" aria-labelledby="banner-heading">
+          <h3 id="banner-heading">Banner image · appearance-owned · 3:1 final slot</h3><p class="card-intro">One flow: choose an asset, set the fixed crop, then describe and credit it.</p>
+          <div class="pipeline"><b>1 · Picked from library</b><span>→</span><b>2 · 3:1 crop set</b><span>→</span><b>3 · Alt + credit complete</b></div>
+          <div class="crop-workspace">
+            <div><span class="final-crop-label">Source image · crop overlay is locked to 3:1</span><div class="source-stage" role="img" aria-label="Source photo with a three-to-one crop region"><span class="crop-overlay"></span></div></div>
+            <div class="crop-fields"><div><span class="final-crop-label">Final output preview · exact 3:1</span><div class="final-crop" role="img" aria-label="Final banner crop of Animal Future performing"></div></div><div><label for="banner-alt">Alternative text *</label><textarea id="banner-alt" rows="2" aria-describedby="banner-alt-help">Animal Future performing under purple stage lights</textarea><p class="help" id="banner-alt-help">Describe what matters; don’t start with “image of.”</p></div><div><label for="banner-credit">Photo credit</label><input id="banner-credit" value="Photo: Jamie Ortega"></div></div>
+          </div>
+          <div class="image-actions"><button type="button" class="btn">Choose image / edit crop</button><button type="button" class="btn quiet">Edit alt &amp; credit</button><button type="button" class="btn danger" data-confirm="banner-confirm">Remove image…</button></div>
+          <div class="confirm-box" id="banner-confirm"><strong>Remove the banner from the draft?</strong><p class="help">The published banner remains live until this draft is published.</p><div class="confirm-actions"><button type="button" class="btn danger">Remove from draft</button><button type="button" class="btn" data-cancel-confirm>Cancel</button></div></div>
+        </article>
+
+        <section aria-labelledby="asset-overview-heading"><h3 id="asset-overview-heading">Asset overview</h3><div class="asset-overview">
+          <article class="asset"><div class="asset-art" style="aspect-ratio:4/5"></div><strong>About photo</strong><small>4:5 · alt and credit complete</small><a class="asset-link" href="#" data-deep-tab="about">Edit in About →</a></article>
+          <article class="asset"><div class="asset-art"></div><strong>Member photos</strong><small>4 complete · 1 awaiting delivery</small><a class="asset-link" href="#" data-deep-tab="members">Edit in Members →</a></article>
+          <article class="asset"><div class="asset-art" style="background:linear-gradient(145deg,#72553d,#2c3045 48%,#9f516d)"></div><strong>Highlight cover art</strong><small>3 square crops · complete</small><a class="asset-link" href="#" data-deep-tab="highlights">Edit in Highlights →</a></article>
+          <article class="asset"><div class="asset-art empty gallery-ratio"><span>No gallery delivery yet<br><small>Upload pending from AF</small></span></div><strong>Gallery</strong><small>1 selected image has missing alt</small><a class="asset-link" href="#" data-deep-tab="gallery">Edit in Gallery →</a></article>
+        </div></section>
+      </section>
+
+      <section class="tab-panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" data-panel="about" hidden>
+        <div class="panel-head"><div><h2>About</h2><p>Core story and creator identity shared by both public templates and the PDF.</p></div><span class="tab-state dirty">Unsaved</span></div>
+        <div class="fields">
+          <div><label for="tagline">Tagline</label><input id="tagline" value="Socially conscious punk-leaning rock that hits where it hurts."></div>
+          <div><label for="location">Location</label><input id="location" value="Fort Collins, CO"></div>
+          <div><label for="short-bio">Short bio</label><textarea id="short-bio" rows="5" aria-describedby="short-bio-help">Raw, funny, and unpredictable, Animal Future confronts mental health, addiction, and life under a corporate-run world.</textarea><p class="help" id="short-bio-help">Used on cards and at the top of the PDF.</p></div>
+          <div><label for="long-bio">Long bio</label><textarea id="long-bio" rows="7">Fueled by the fury of the forgotten, Animal Future moves from indie rock to grungy pop and old-school punk, with atmospheric turns that keep every song unpredictable.</textarea></div>
+          <div class="field wide"><span id="fans-label" style="display:block;margin-bottom:var(--space-xs);font-weight:var(--font-weight-semibold)">For fans of</span><div class="pills" role="group" aria-labelledby="fans-label"><span class="pill">IDLES ×</span><span class="pill">Radiohead ×</span><span class="pill">Modest Mouse ×</span><button type="button" class="btn">+ Add artist</button></div></div>
+        </div>
+        <article class="card" style="margin-top:var(--space-md)"><h3>About photo · 4:5</h3><p class="card-intro">This image belongs with the About story. Picker → fixed 4:5 crop → alt/credit.</p><div class="image-actions"><button type="button" class="btn">Choose image / edit crop</button><button type="button" class="btn quiet">Edit alt &amp; credit</button></div></article>
+      </section>
+
+      <section class="tab-panel" id="panel-members" role="tabpanel" aria-labelledby="tab-members" tabindex="0" data-panel="members" hidden>
+        <div class="panel-head"><div><h2>Members</h2><p>Photos live inside each member editor. Drag by the dedicated handle or use Move up / Move down; changes are announced.</p></div><button type="button" class="btn">+ Add member</button></div>
+        <div class="reorder-feedback" role="status" aria-live="polite" id="reorder-status">LeAnna Warren moved to position 1 of 8.</div>
+        <div class="list">
+          <article class="row-card"><button type="button" class="drag-handle" aria-label="Drag LeAnna Warren to reorder">⠿</button><span class="avatar" role="img" aria-label="LeAnna Warren portrait, square crop"></span><div><strong>LeAnna Warren</strong><small>Vocals, electric guitar · Bio complete · 1:1 photo complete</small></div><div class="row-actions"><button type="button" class="btn">Edit</button><button type="button" class="icon-btn move-up" aria-label="Move LeAnna Warren up">↑</button><button type="button" class="icon-btn move-down" aria-label="Move LeAnna Warren down">↓</button><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for LeAnna Warren" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="member-confirm">Remove member…</button></div></div></div></article>
+          <article class="row-card"><button type="button" class="drag-handle" aria-label="Drag Charles Tyrie to reorder">⠿</button><span class="avatar" style="background:linear-gradient(145deg,#3f5161,#252542 55%,#7b513e)" role="img" aria-label="Charles Tyrie portrait, square crop"></span><div><strong>Charles Tyrie</strong><small>Drums · Bio complete · 1:1 photo complete</small></div><div class="row-actions"><button type="button" class="btn">Edit</button><button type="button" class="icon-btn move-up" aria-label="Move Charles Tyrie up">↑</button><button type="button" class="icon-btn move-down" aria-label="Move Charles Tyrie down">↓</button><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for Charles Tyrie" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="member-confirm">Remove member…</button></div></div></div></article>
+          <article class="row-card"><button type="button" class="drag-handle" aria-label="Drag touring member to reorder">⠿</button><span class="avatar empty">Photo<br>pending</span><div><strong>Touring member</strong><small>Keys · Photo delivery pending · clear empty state</small></div><div class="row-actions"><button type="button" class="btn">Edit / add photo</button><button type="button" class="icon-btn move-up" aria-label="Move touring member up">↑</button><button type="button" class="icon-btn move-down" aria-label="Move touring member down">↓</button><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for touring member" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="member-confirm">Remove member…</button></div></div></div></article>
+        </div>
+        <button type="button" class="btn long-list-note">Show 5 more members</button>
+        <div class="confirm-box" id="member-confirm"><strong>Remove this member from the draft?</strong><p class="help">This does not affect the live page until publish.</p><div class="confirm-actions"><button type="button" class="btn danger">Remove member</button><button type="button" class="btn" data-cancel-confirm>Cancel</button></div></div>
+      </section>
+
+      <section class="tab-panel" id="panel-highlights" role="tabpanel" aria-labelledby="tab-highlights" tabindex="0" data-panel="highlights" hidden>
+        <div class="panel-head"><div><h2>Highlights</h2><p>Orderable releases, tracks, milestones, and coverage. Cover art stays inside each highlight editor.</p></div><button type="button" class="btn">+ Add highlight</button></div>
+        <div class="reorder-feedback" role="status" aria-live="polite">“The Illusionist” is position 1 of 3. Use Move up or Move down for keyboard reordering.</div>
+        <div class="list">
+          <article class="row-card"><button type="button" class="drag-handle" aria-label="Drag The Illusionist to reorder">⠿</button><span class="avatar" style="background:linear-gradient(135deg,#e29835,#633849 55%,#1d2130)" role="img" aria-label="The Illusionist square cover art"></span><div><strong>The Illusionist</strong><small>New release · SNCR-001 · Out Aug 6, 2026 · URL and 1:1 cover complete</small></div><div class="row-actions"><button type="button" class="btn">Edit</button><button type="button" class="icon-btn" aria-label="Move The Illusionist up">↑</button><button type="button" class="icon-btn" aria-label="Move The Illusionist down">↓</button><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for The Illusionist" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="highlight-confirm">Remove highlight…</button></div></div></div></article>
+          <article class="row-card"><button type="button" class="drag-handle" aria-label="Drag Get to You to reorder">⠿</button><span class="avatar" style="background:linear-gradient(135deg,#4e7693,#2d3040 55%,#bf7d3e)" role="img" aria-label="Get to You square cover art"></span><div><strong>Get to You</strong><small>Standout track · ~14.5k streams · URL and 1:1 cover complete</small></div><div class="row-actions"><button type="button" class="btn">Edit</button><button type="button" class="icon-btn" aria-label="Move Get to You up">↑</button><button type="button" class="icon-btn" aria-label="Move Get to You down">↓</button><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for Get to You" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="highlight-confirm">Remove highlight…</button></div></div></div></article>
+        </div>
+        <div class="confirm-box" id="highlight-confirm"><strong>Remove this highlight from the draft?</strong><p class="help">Cover art stays in the asset library.</p><div class="confirm-actions"><button type="button" class="btn danger">Remove highlight</button><button type="button" class="btn" data-cancel-confirm>Cancel</button></div></div>
+      </section>
+
+      <section class="tab-panel" id="panel-gallery" role="tabpanel" aria-labelledby="tab-gallery" tabindex="0" data-panel="gallery" hidden>
+        <div class="panel-head"><div><h2>Gallery</h2><p>Press photos are edited here: picker → fixed 4:3 crop → required alt text and optional credit.</p></div><button type="button" class="btn">+ Add gallery image</button></div>
+        <div class="gallery-grid">
+          <article class="gallery-item"><div class="gallery-photo" role="img" aria-label="Backstage photo awaiting alternative text"></div><label for="gallery-alt-1" style="margin-top:.6rem">Alternative text *</label><textarea id="gallery-alt-1" class="invalid" rows="2" aria-invalid="true" aria-describedby="gallery-alt-error"></textarea><p class="field-error" id="gallery-alt-error">Alternative text is required before publishing.</p><div class="image-actions"><button type="button" class="btn">Edit crop</button><button type="button" class="btn danger" data-confirm="gallery-confirm">Remove…</button></div></article>
+          <article class="gallery-empty"><div><strong>Empty gallery slot</strong><p>Animal Future has not delivered the remaining press photos.</p><button type="button" class="btn">Mark upload pending</button></div></article>
+          <article class="gallery-empty"><div><strong>No image selected</strong><p>Choose from the creator library or shared pool when assets arrive.</p><button type="button" class="btn">Choose image</button></div></article>
+        </div>
+        <div class="confirm-box" id="gallery-confirm"><strong>Remove this gallery image from the draft?</strong><div class="confirm-actions"><button type="button" class="btn danger">Remove image</button><button type="button" class="btn" data-cancel-confirm>Cancel</button></div></div>
+      </section>
+
+      <section class="tab-panel" id="panel-links" role="tabpanel" aria-labelledby="tab-links" tabindex="0" data-panel="links" hidden>
+        <div class="panel-head"><div><h2>Links &amp; contact</h2><p>Listening destinations, live dates, and the public press contact. Publishing is controlled globally above, not in this tab.</p></div><button type="button" class="btn">+ Add link</button></div>
+        <div class="link-list">
+          <article class="link-row"><div><label for="spotify-service">Service</label><select id="spotify-service"><option>Spotify</option></select></div><div><label for="spotify-url">URL</label><input id="spotify-url" class="invalid" value="open.spotify/animal-future" aria-invalid="true" aria-describedby="spotify-error"><p class="field-error" id="spotify-error">Enter a full URL beginning with https://</p></div><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for Spotify" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="link-confirm">Remove link…</button></div></div></article>
+          <article class="link-row"><div><label for="bandcamp-service">Service</label><select id="bandcamp-service"><option>Bandcamp</option></select></div><div><label for="bandcamp-url">URL</label><input id="bandcamp-url" type="url" value="https://animalfuture.bandcamp.com"></div><div class="more-menu"><button type="button" class="menu-button" aria-label="More actions for Bandcamp" aria-expanded="false">•••</button><div class="more-popover"><button type="button" data-confirm="link-confirm">Remove link…</button></div></div></article>
+        </div>
+        <div class="fields" style="margin-top:var(--space-lg)">
+          <div><label for="live-dates">Live dates URL</label><input id="live-dates" type="url" value="https://www.bandsintown.com/a/animal-future"></div>
+          <div><label for="contact-name">Contact name</label><input id="contact-name" value="S/NC Records press desk" aria-describedby="contact-name-help"><p class="help" id="contact-name-help">Name shown beside the contact details.</p></div>
+          <div><label for="press-email">Press contact email</label><input id="press-email" type="email" value="press@s-nc.org"></div>
+          <div><label for="email-link-text">Email link text</label><input id="email-link-text" value="Email the press desk" aria-describedby="email-link-help"><p class="help" id="email-link-help">Action text for the email link, not the contact’s name.</p></div>
+        </div>
+        <div class="confirm-box" id="link-confirm"><strong>Remove this listening link from the draft?</strong><div class="confirm-actions"><button type="button" class="btn danger">Remove link</button><button type="button" class="btn" data-cancel-confirm>Cancel</button></div></div>
+      </section>
+    </form>
+  </main>
+</div>
+<script>
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+function activateTab(tab, focus = true) {
+  tabs.forEach((candidate) => {
+    const active = candidate === tab;
+    candidate.setAttribute('aria-selected', String(active));
+    candidate.tabIndex = active ? 0 : -1;
+  });
+  panels.forEach((panel) => { panel.hidden = panel.id !== tab.getAttribute('aria-controls'); });
+  if (focus) tab.focus();
+}
+tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateTab(tab, false));
+  tab.addEventListener('keydown', (event) => {
+    let nextIndex = null;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex !== null) { event.preventDefault(); activateTab(tabs[nextIndex]); }
+  });
+});
+document.querySelectorAll('[data-error-tab], [data-deep-tab]').forEach((control) => control.addEventListener('click', (event) => {
+  event.preventDefault();
+  const name = control.dataset.errorTab || control.dataset.deepTab;
+  const tab = tabs.find((candidate) => candidate.dataset.tab === name);
+  if (!tab) return;
+  activateTab(tab, false);
+  const field = control.dataset.errorField ? document.getElementById(control.dataset.errorField) : null;
+  requestAnimationFrame(() => (field || tab).focus());
+}));
+document.querySelectorAll('.choice').forEach((choice) => {
+  const select = () => { document.querySelectorAll('.choice').forEach((node) => { node.setAttribute('aria-checked', String(node === choice)); node.tabIndex = node === choice ? 0 : -1; node.querySelector('input').checked = node === choice; }); };
+  choice.addEventListener('click', select);
+  choice.addEventListener('keydown', (event) => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); select(); } });
+});
+document.querySelectorAll('.swatch').forEach((swatch) => swatch.addEventListener('click', () => document.querySelectorAll('.swatch').forEach((node) => node.setAttribute('aria-pressed', String(node === swatch)))));
+document.querySelectorAll('.pdf').forEach((pdf) => pdf.addEventListener('click', () => document.querySelectorAll('.pdf').forEach((node) => node.setAttribute('aria-pressed', String(node === pdf)))));
+document.querySelectorAll('.more-menu > .menu-button').forEach((button) => button.addEventListener('click', () => { const menu = button.parentElement; const open = !menu.classList.contains('open'); document.querySelectorAll('.more-menu').forEach((node) => node.classList.remove('open')); menu.classList.toggle('open', open); button.setAttribute('aria-expanded', String(open)); }));
+document.querySelectorAll('[data-confirm]').forEach((button) => button.addEventListener('click', () => { const box = document.getElementById(button.dataset.confirm); if (box) { box.classList.add('show'); box.scrollIntoView({ block: 'nearest' }); } }));
+document.querySelectorAll('[data-cancel-confirm]').forEach((button) => button.addEventListener('click', () => button.closest('.confirm-box').classList.remove('show')));
+document.querySelectorAll('.move-up, .move-down').forEach((button) => button.addEventListener('click', () => { document.getElementById('reorder-status').textContent = 'Order updated in draft. Position change announced for screen readers.'; }));
+document.getElementById('save-draft').addEventListener('click', () => {
+  const label = document.getElementById('save-label'); const detail = document.getElementById('save-detail'); const dot = document.getElementById('save-dot');
+  label.textContent = 'Saving draft…'; detail.textContent = 'The live page remains unchanged'; dot.style.background = 'var(--color-accent)';
+  document.querySelectorAll('.state-chip').forEach((node) => node.classList.toggle('current', node.textContent === 'Saving'));
+  setTimeout(() => { label.textContent = 'Saved (draft)'; detail.textContent = 'Saved just now · not live until published'; dot.style.background = 'var(--color-success)'; document.querySelectorAll('.state-chip').forEach((node) => node.classList.toggle('current', node.textContent === 'Saved (draft)')); }, 850);
+});
+document.getElementById('review-jump').addEventListener('click', () => { document.getElementById('review-publish').scrollIntoView({ behavior: 'smooth', block: 'center' }); document.querySelector('#review-publish .btn').focus(); });
+</script>
+</body>
+</html>

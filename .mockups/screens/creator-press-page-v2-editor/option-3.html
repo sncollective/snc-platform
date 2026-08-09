@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>creator-press-page-v2-editor — Option 3: Section tree dashboard</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { color-scheme: dark; overflow-x: hidden; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+main, section, div, form, fieldset, nav, aside { min-width: 0; }
+button, input, textarea, select { max-width: 100%; font: inherit; }
+button { min-height: 40px; cursor: pointer; }
+input, textarea, select { width: 100%; padding: .6rem .72rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+textarea { resize: vertical; }
+label { display: block; margin-bottom: var(--space-xs); font-weight: var(--font-weight-medium); }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui, sans-serif; }
+.mock-meta strong { font-weight: 600; }
+.mock-meta span { color: #8b949e; }
+.platform-bar { height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+.platform-brand { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); }
+.platform-brand b { color: var(--color-accent); }
+.platform-links { display: flex; gap: var(--space-lg); color: var(--color-text-muted); }
+.platform-links span:first-child { color: var(--color-text); }
+.user-pill { margin-left: auto; padding: .35rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+.manage-shell { display: grid; grid-template-columns: 210px minmax(0,1fr); min-height: calc(100vh - 94px); }
+.manage-nav { padding: var(--space-md) var(--space-sm); border-right: 1px solid var(--color-border); }
+.manage-title { padding: 0 var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+.manage-title a { color: var(--color-text-muted); text-decoration:none; font-size:var(--font-size-xs); }
+.manage-title strong { display:block; margin-top:var(--space-xs); font-size:var(--font-size-lg); }
+.creator-select { margin:var(--space-md) var(--space-sm); padding-bottom:var(--space-md); border-bottom:1px solid var(--color-border); color:var(--color-text-muted); }
+.manage-nav ul { margin:0; padding:0; list-style:none; }
+.manage-nav li { padding:.48rem .75rem; border-radius:var(--radius-sm); color:var(--color-text-muted); }
+.manage-nav li.active { background:var(--color-accent-bg); color:var(--color-accent); }
+.mobile-context { display:none; padding:var(--space-sm) var(--space-md); border-bottom:1px solid var(--color-border); color:var(--color-text-muted); }
+.workspace { min-width:0; }
+.page-head { padding:var(--space-lg) clamp(1rem,3vw,2rem) var(--space-md); display:flex; justify-content:space-between; gap:var(--space-lg); align-items:start; border-bottom:1px solid var(--color-border); }
+h1 { margin:0; font-size:var(--font-size-2xl); }
+.lead { margin:.25rem 0 0; color:var(--color-text-muted); }
+.head-actions { display:flex; gap:var(--space-sm); align-items:center; justify-content:flex-end; flex-wrap:wrap; }
+.btn { padding:.56rem .85rem; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg-elevated); color:var(--color-text); white-space:nowrap; }
+.btn.primary { border-color:var(--color-accent); background:var(--color-accent); color:var(--color-bg); font-weight:var(--font-weight-semibold); }
+.btn.danger { color:var(--color-error); }
+.workbench { display:grid; grid-template-columns:190px minmax(0,1fr) 190px; min-height:calc(100vh - 198px); }
+.section-tree { padding:var(--space-md) var(--space-sm); border-right:1px solid var(--color-border); background:color-mix(in srgb,var(--color-bg-elevated) 45%,var(--color-bg)); }
+.tree-label { padding:0 .65rem var(--space-sm); color:var(--color-text-muted); font-size:10px; font-weight:var(--font-weight-bold); letter-spacing:.12em; text-transform:uppercase; }
+.tree-item { width:100%; padding:.58rem .65rem; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-xs); border:0; border-left:3px solid transparent; border-radius:var(--radius-sm); background:transparent; color:var(--color-text-muted); text-align:left; }
+.tree-item small { color:var(--color-success); }
+.tree-item.active { border-left-color:var(--color-accent); background:var(--color-accent-bg); color:var(--color-text); }
+.tree-item.active small { color:var(--color-accent); }
+.tree-rule { margin:var(--space-sm); border:0; border-top:1px solid var(--color-border); }
+.editor-pane { padding:var(--space-lg); min-width:0; }
+.editor-panel[hidden] { display:none; }
+.panel-head { margin-bottom:var(--space-md); display:flex; justify-content:space-between; gap:var(--space-md); align-items:start; }
+.panel-head h2 { margin:0; font-size:var(--font-size-lg); }
+.panel-head p { margin:.2rem 0 0; color:var(--color-text-muted); font-size:var(--font-size-xs); }
+.card { padding:var(--space-md); border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg-elevated); }
+.card + .card { margin-top:var(--space-md); }
+.card h3 { margin:0 0 var(--space-sm); font-size:var(--font-size-base); }
+.template-line { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm); }
+.template-choice { padding:var(--space-sm); display:grid; grid-template-columns:62px minmax(0,1fr); gap:var(--space-sm); align-items:center; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg); cursor:pointer; }
+.template-choice.selected { border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent); }
+.template-choice strong, .template-choice small { display:block; }
+.template-choice small { color:var(--color-text-muted); }
+.template-mini { height:45px; padding:5px; display:grid; gap:3px; border-radius:2px; background:#f3eee4; }
+.template-mini span { background:#2d3040; border-radius:1px; }
+.template-a { grid-template-rows:10px 6px 1fr; }
+.template-b { grid-template-columns:.8fr 1.2fr; grid-template-rows:10px 1fr; }
+.template-b span:first-child { grid-column:1/-1; }
+.settings-line { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); margin-top:var(--space-md); }
+.swatches { display:flex; flex-wrap:wrap; gap:.45rem; }
+.swatch { width:29px; height:29px; min-height:29px; padding:0; border:2px solid transparent; border-radius:50%; }
+.swatch.selected { border-color:var(--color-text); box-shadow:0 0 0 2px var(--color-accent); }
+.pdf-selects { display:flex; gap:.4rem; flex-wrap:wrap; }
+.pdf-choice { min-height:34px; padding:.38rem .52rem; border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-bg); color:var(--color-text-muted); }
+.pdf-choice.selected { border-color:var(--color-accent); color:var(--color-text); }
+.hint { margin:var(--space-xs) 0 0; color:var(--color-text-muted); font-size:var(--font-size-xs); }
+.image-field { margin-top:var(--space-md); padding:var(--space-md); border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg-elevated); }
+.image-head { display:flex; justify-content:space-between; gap:var(--space-md); align-items:center; }
+.image-head h3 { margin:0; font-size:var(--font-size-base); }
+.pipeline { margin:.5rem 0 .7rem; display:flex; gap:.3rem; flex-wrap:wrap; color:var(--color-text-muted); font-size:var(--font-size-xs); }
+.pipeline b { color:var(--color-success); }
+.image-row { display:grid; grid-template-columns:minmax(130px,180px) minmax(0,1fr); gap:var(--space-md); }
+.thumb { position:relative; width:100%; aspect-ratio:3/1; min-height:105px; overflow:hidden; border-radius:var(--radius-sm); background:linear-gradient(135deg,#573b60,#1b1c2c 48%,#b36e35); }
+.thumb::before { content:"ANIMAL FUTURE"; position:absolute; left:8%; bottom:15%; color:white; font-size:10px; font-weight:800; letter-spacing:.08em; }
+.crop { position:absolute; inset:9px; border:1px solid rgba(255,255,255,.8); box-shadow:0 0 0 999px rgba(0,0,0,.25); }
+.image-fields { display:grid; gap:var(--space-sm); }
+.actions { display:flex; gap:var(--space-sm); flex-wrap:wrap; }
+.small-btn { min-height:34px; padding:.38rem .58rem; border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-bg); color:var(--color-text); }
+.slot-grid { margin-top:var(--space-md); display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-sm); }
+.slot { padding:var(--space-sm); border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-bg); }
+.slot-preview { aspect-ratio:1; margin-bottom:.35rem; border-radius:var(--radius-sm); background:linear-gradient(145deg,#2d3348,#6f4c64 48%,#a66d3a); }
+.slot strong, .slot small { display:block; }
+.slot small { color:var(--color-text-muted); }
+.outline { padding:var(--space-md); border-left:1px solid var(--color-border); background:color-mix(in srgb,var(--color-bg-elevated) 35%,var(--color-bg)); }
+.outline h3 { margin:0 0 var(--space-md); font-size:var(--font-size-sm); }
+.score { width:82px; height:82px; margin:0 auto var(--space-md); display:grid; place-items:center; border:6px solid var(--color-success); border-radius:50%; color:var(--color-success); font-weight:var(--font-weight-bold); }
+.checklist { margin:0; padding:0; list-style:none; }
+.checklist li { padding:.42rem 0; border-bottom:1px solid var(--color-border); color:var(--color-text-muted); font-size:var(--font-size-xs); }
+.checklist b { color:var(--color-success); }
+.preview-card { margin-top:var(--space-lg); padding:var(--space-sm); border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-bg-elevated); }
+.preview-banner { aspect-ratio:3/1; margin-bottom:.4rem; border-radius:2px; background:linear-gradient(135deg,#573b60,#1b1c2c 48%,#b36e35); }
+.fields { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); }
+.field.wide { grid-column:1/-1; }
+.pills { min-height:44px; padding:.4rem; display:flex; gap:.35rem; flex-wrap:wrap; border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-bg-input); }
+.pill { padding:.28rem .5rem; border-radius:var(--radius-pill); background:var(--color-secondary-bg); color:var(--color-secondary); font-size:var(--font-size-xs); }
+.list { display:grid; gap:var(--space-sm); }
+.row { padding:var(--space-sm); display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:var(--space-sm); align-items:center; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg-elevated); }
+.avatar { width:46px; height:46px; border-radius:var(--radius-sm); background:linear-gradient(145deg,#5e4d66,#252542 50%,#b06f3a); }
+.row strong, .row small { display:block; }
+.row small { color:var(--color-text-muted); }
+.link-row { display:grid; grid-template-columns:minmax(110px,.35fr) minmax(180px,1fr) auto; gap:var(--space-sm); align-items:end; }
+@media (max-width:1120px) { .workbench { grid-template-columns:180px minmax(0,1fr); } .outline { display:none; } }
+@media (max-width:900px) { .platform-links { display:none; } .manage-shell { display:block; } .manage-nav { display:none; } .mobile-context { display:flex; justify-content:space-between; } }
+@media (max-width:620px) { .mock-meta { flex-direction:column; gap:2px; } .page-head { flex-direction:column; } .workbench { display:block; } .section-tree { display:flex; gap:.25rem; overflow-x:auto; border-right:0; border-bottom:1px solid var(--color-border); } .tree-label,.tree-rule { display:none; } .tree-item { flex:0 0 auto; width:auto; display:block; border-left:0; border-bottom:3px solid transparent; } .tree-item.active { border-bottom-color:var(--color-accent); } .editor-pane { padding:var(--space-md); } .template-line,.settings-line,.image-row,.fields { grid-template-columns:1fr; } .field.wide { grid-column:auto; } .slot-grid { grid-template-columns:1fr 1fr; } .link-row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 3 — Section tree dashboard</strong><span>A persistent completion tree keeps the whole press kit legible while the center pane edits one area.</span></header>
+<header class="platform-bar"><div class="platform-brand"><b>S/NC</b> Platform</div><div class="platform-links"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></div><div class="user-pill">LW</div></header>
+<div class="manage-shell">
+  <aside class="manage-nav"><div class="manage-title"><a href="#">← View public page</a><strong>Animal Future</strong></div><div class="creator-select">Animal Future ▾</div><ul><li>Overview</li><li>Content</li><li>Calendar</li><li>Projects</li><li>Streaming</li><li>Programming</li><li>Join page</li><li class="active">Press page</li><li>Settings</li><li>Members</li></ul></aside>
+  <main class="workspace"><div class="mobile-context"><strong>Animal Future · Press page</strong><span>Manage ▾</span></div><header class="page-head"><div><h1>Press page</h1><p class="lead">Editor dashboard · 92% complete</p></div><div class="head-actions"><button class="btn">Preview page ↗</button><button class="btn primary">Save changes</button></div></header>
+    <div class="workbench">
+      <nav class="section-tree" aria-label="Press content tree"><div class="tree-label">Press kit sections</div><button type="button" class="tree-item active" data-section="presentation"><span>Presentation</span><small>✓</small></button><button type="button" class="tree-item" data-section="story"><span>Story</span><small>✓</small></button><button type="button" class="tree-item" data-section="members"><span>Members</span><small>4</small></button><button type="button" class="tree-item" data-section="highlights"><span>Highlights</span><small>3</small></button><button type="button" class="tree-item" data-section="gallery"><span>Gallery</span><small>4</small></button><button type="button" class="tree-item" data-section="links"><span>Listen &amp; live</span><small>2</small></button><button type="button" class="tree-item" data-section="contact"><span>Contact</span><small>✓</small></button><hr class="tree-rule"><button type="button" class="tree-item" data-section="review"><span>Review &amp; publish</span><small>1</small></button></nav>
+      <form class="editor-pane">
+        <section class="editor-panel" data-panel="presentation"><div class="panel-head"><div><h2>Presentation &amp; media</h2><p>Choose the public layout, site-wide creator color, PDF scheme, and image treatment.</p></div><span class="hint">Complete</span></div>
+          <article class="card"><h3>Page and PDF appearance</h3><div class="template-line" data-choice-group><button type="button" class="template-choice selected"><span class="template-mini template-a"><span></span><span></span><span></span></span><span><strong>Template A</strong><small>Clean editorial</small></span></button><button type="button" class="template-choice"><span class="template-mini template-b"><span></span><span></span><span></span></span><span><strong>Template B</strong><small>Two-column zone</small></span></button></div><div class="settings-line"><div><label>Creator brand color <span class="hint">· site-wide</span></label><div class="swatches" data-swatches><button type="button" class="swatch selected" aria-label="Warm amber" style="background:#d9892b"></button><button type="button" class="swatch" aria-label="Sea glass" style="background:#4ca6a6"></button><button type="button" class="swatch" aria-label="Signal blue" style="background:#4f78cc"></button><button type="button" class="swatch" aria-label="Brick" style="background:#b75448"></button><button type="button" class="swatch" aria-label="Berry" style="background:#a44d78"></button><button type="button" class="swatch" aria-label="Violet" style="background:#7656b5"></button></div><p class="hint">Warm amber selected</p></div><div><label>PDF color scheme</label><div class="pdf-selects" data-choice-group><button type="button" class="pdf-choice selected">Editorial Light</button><button type="button" class="pdf-choice">Dark</button><button type="button" class="pdf-choice">Creator Brand Accent</button></div></div></div></article>
+          <section class="image-field" aria-label="Integrated banner image field"><div class="image-head"><h3>Banner image <span class="hint">· 3:1</span></h3><button type="button" class="small-btn">Replace</button></div><div class="pipeline"><b>✓ Your library</b><span>→</span><b>✓ Crop 3:1</b><span>→</span><b>✓ Alt + credit</b></div><div class="image-row"><div class="thumb" role="img" aria-label="Animal Future performing beneath purple stage lights"><span class="crop"></span></div><div class="image-fields"><div><label>Alternative text *</label><textarea rows="2">Animal Future performing under purple stage lights</textarea></div><div><label>Photo credit</label><input value="Photo: Jamie Ortega"></div><div class="actions"><button type="button" class="small-btn">Choose: library + shared pool</button><button type="button" class="small-btn">Edit crop</button></div></div></div><div class="slot-grid"><article class="slot"><div class="slot-preview" style="aspect-ratio:4/5"></div><strong>About photo</strong><small>4:5 · ready</small></article><article class="slot"><div class="slot-preview"></div><strong>Member photos</strong><small>4 · ready</small></article><article class="slot"><div class="slot-preview" style="background:linear-gradient(145deg,#72553d,#2c3045 48%,#9f516d)"></div><strong>Cover art</strong><small>3 · ready</small></article><article class="slot"><div class="slot-preview" style="aspect-ratio:4/3;background:linear-gradient(145deg,#3c5264,#65455f 48%,#a46d3e)"></div><strong>Gallery</strong><small>4 · ready</small></article></div></section>
+        </section>
+
+        <section class="editor-panel" data-panel="story" hidden><div class="panel-head"><div><h2>Story</h2><p>The biography and positioning copy carried by page and PDF.</p></div></div><div class="fields"><div><label>Tagline</label><input value="Socially conscious punk-leaning rock that hits where it hurts."></div><div><label>Location</label><input value="Fort Collins, CO"></div><div><label>Short bio</label><textarea rows="5">Raw, funny, and unpredictable, Animal Future confronts mental health, addiction, and life under a corporate-run world.</textarea></div><div><label>Long bio</label><textarea rows="7">Fueled by the fury of the forgotten, Animal Future moves from indie rock to grungy pop and old-school punk, with atmospheric turns that keep every song unpredictable. Their shows make space for connection and compassion — for people and the planet.</textarea></div><div class="field wide"><label>For fans of</label><div class="pills"><span class="pill">IDLES ×</span><span class="pill">Radiohead ×</span><span class="pill">Modest Mouse ×</span><span class="pill">Pixies ×</span><span class="hint">+ Add artist</span></div></div></div></section>
+
+        <section class="editor-panel" data-panel="members" hidden><div class="panel-head"><div><h2>Members</h2><p>Drag to reorder; photo fields reuse picker → 1:1 crop → alt/credit.</p></div><button type="button" class="btn">+ Add member</button></div><div class="list"><article class="row"><span class="avatar"></span><div><strong>⠿ LeAnna Warren</strong><small>Vocals, electric guitar · Bio and photo complete</small></div><button type="button" class="btn">Edit / remove</button></article><article class="row"><span class="avatar" style="background:linear-gradient(145deg,#3f5161,#252542 55%,#7b513e)"></span><div><strong>⠿ Charles Tyrie</strong><small>Drums · Bio and photo complete</small></div><button type="button" class="btn">Edit / remove</button></article><article class="row"><span class="avatar" style="background:linear-gradient(145deg,#6a4e42,#252542 55%,#58697a)"></span><div><strong>⠿ Jarod Ford</strong><small>Bass · Bio and photo complete</small></div><button type="button" class="btn">Edit / remove</button></article><article class="row"><span class="avatar" style="background:linear-gradient(145deg,#3d465d,#252542 55%,#7c6043)"></span><div><strong>⠿ Connor Mandli</strong><small>Electric guitar · Bio and photo complete</small></div><button type="button" class="btn">Edit / remove</button></article></div></section>
+
+        <section class="editor-panel" data-panel="highlights" hidden><div class="panel-head"><div><h2>Highlights</h2><p>Orderable eyebrow, title, description, metric, URL, and cover-art records.</p></div><button type="button" class="btn">+ Add highlight</button></div><div class="list"><article class="row"><span class="avatar" style="background:linear-gradient(135deg,#e29835,#633849 55%,#1d2130)"></span><div><strong>⠿ The Illusionist</strong><small>New release · SNCR-001 · Out Aug 6, 2026 · Cover art ready</small></div><button type="button" class="btn">Edit / remove</button></article><article class="row"><span class="avatar" style="background:linear-gradient(135deg,#4e7693,#2d3040 55%,#bf7d3e)"></span><div><strong>⠿ Get to You</strong><small>Standout track · ~14.5k streams · URL and art ready</small></div><button type="button" class="btn">Edit / remove</button></article><article class="row"><span class="avatar" style="background:linear-gradient(135deg,#80536f,#2d3040 55%,#d2a84e)"></span><div><strong>⠿ Survived By</strong><small>Coming · debut album · Description and art ready</small></div><button type="button" class="btn">Edit / remove</button></article></div></section>
+
+        <section class="editor-panel" data-panel="gallery" hidden><div class="panel-head"><div><h2>Gallery</h2><p>Choose from your library or shared pool, then crop every image to 4:3 and add alt/credit.</p></div><button type="button" class="btn">+ Add image</button></div><div class="slot-grid"><article class="slot"><div class="slot-preview" style="aspect-ratio:4/3"></div><strong>Live at the Aggie</strong><small>Photo: Jamie Ortega · Edit crop</small></article><article class="slot"><div class="slot-preview" style="aspect-ratio:4/3;background:linear-gradient(145deg,#5d3f55,#222439 45%,#6c7d7c)"></div><strong>Studio portrait</strong><small>Photo: Mira Chen · Edit crop</small></article><article class="slot"><div class="slot-preview" style="aspect-ratio:4/3;background:linear-gradient(145deg,#6c4e3a,#252542 45%,#3e6277)"></div><strong>Rehearsal room</strong><small>Alt complete · credit missing</small></article><button type="button" class="slot" style="color:var(--color-text-muted)">+ Library / shared pool</button></div></section>
+
+        <section class="editor-panel" data-panel="links" hidden><div class="panel-head"><div><h2>Listen &amp; live</h2><p>Service and URL records power public streaming icons.</p></div><button type="button" class="btn">+ Add link</button></div><div class="list"><div class="link-row"><div><label>Service</label><select><option>Spotify</option></select></div><div><label>URL</label><input value="https://open.spotify.com/artist/animal-future"></div><button type="button" class="btn danger">Remove</button></div><div class="link-row"><div><label>Service</label><select><option>Bandcamp</option></select></div><div><label>URL</label><input value="https://animalfuture.bandcamp.com"></div><button type="button" class="btn danger">Remove</button></div><div><label>Live dates URL</label><input value="https://www.bandsintown.com/a/animal-future"></div></div></section>
+
+        <section class="editor-panel" data-panel="contact" hidden><div class="panel-head"><div><h2>Contact</h2><p>Public footer and PDF contact details.</p></div></div><div class="fields"><div><label>Press contact email</label><input type="email" value="press@s-nc.org"></div><div><label>Contact display label</label><input value="S/NC Records press desk"></div></div></section>
+
+        <section class="editor-panel" data-panel="review" hidden><div class="panel-head"><div><h2>Review &amp; publish</h2><p>Inspect missing data before making saved changes public.</p></div></div><article class="card"><h3>Ready to publish</h3><p>Template A · Warm amber brand · Editorial Light PDF · 4 members · 3 highlights · 4 gallery images.</p><label><input type="checkbox" checked style="width:auto"> Publish the public press page</label><div class="actions" style="margin-top:var(--space-md)"><button type="button" class="btn">Preview web</button><button type="button" class="btn">Preview PDF</button><button type="button" class="btn primary">Save &amp; publish</button></div></article></section>
+      </form>
+      <aside class="outline"><h3>Press kit health</h3><div class="score">92%</div><ul class="checklist"><li><b>✓</b> Template selected</li><li><b>✓</b> Brand + PDF schemes</li><li><b>✓</b> Story complete</li><li><b>✓</b> 4 members</li><li><b>✓</b> 3 highlights</li><li><b>✓</b> Alt text complete</li><li>○ 1 photo credit missing</li></ul><div class="preview-card"><div class="preview-banner"></div><strong>Template A preview</strong><p class="hint">Warm amber accent · Editorial Light PDF</p><button type="button" class="small-btn">Open preview ↗</button></div></aside>
+    </div>
+  </main>
+</div>
+<script>
+const navItems=[...document.querySelectorAll('[data-section]')]; const panels=[...document.querySelectorAll('[data-panel]')];
+navItems.forEach((item)=>item.addEventListener('click',()=>{navItems.forEach((node)=>node.classList.toggle('active',node===item));panels.forEach((panel)=>{panel.hidden=panel.dataset.panel!==item.dataset.section;});}));
+document.querySelectorAll('[data-choice-group]').forEach((group)=>group.addEventListener('click',(event)=>{const choice=event.target.closest('.template-choice,.pdf-choice');if(!choice)return;group.querySelectorAll('.selected').forEach((node)=>node.classList.remove('selected'));choice.classList.add('selected');}));
+document.querySelector('[data-swatches]').addEventListener('click',(event)=>{const swatch=event.target.closest('.swatch');if(!swatch)return;document.querySelectorAll('.swatch').forEach((node)=>node.classList.remove('selected'));swatch.classList.add('selected');});
+</script>
+</body>
+</html>
