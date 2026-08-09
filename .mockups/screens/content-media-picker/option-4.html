@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content media picker — Option 4: Contact sheet with slot dock</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: 13px/1.45 var(--font-ui); }
+    button, input, textarea, select { max-width: 100%; font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { height: 38px; min-width: 0; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: nowrap; overflow: hidden; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { flex: 0 0 auto; font-weight: 600; }
+    .mock-meta span { min-width: 0; overflow: hidden; color: #8b949e; text-overflow: ellipsis; white-space: nowrap; }
+    .app { position: relative; min-height: calc(100vh - 38px); overflow: hidden; }
+    .host-bar { height: 58px; padding: 0 24px; display: flex; align-items: center; gap: 28px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: 18px; font-weight: 800; }
+    .brand b { color: var(--color-accent); }
+    .host-bar nav { display: flex; gap: 22px; color: var(--color-text-muted); }
+    .account { margin-left: auto; padding: 6px 10px; border: 1px solid var(--color-border); border-radius: 99px; color: var(--color-text-muted); }
+    .host { min-height: calc(100vh - 96px); padding: 28px clamp(24px,5vw,72px); opacity: .43; filter: saturate(.48); }
+    .host h1 { margin: 0 0 7px; font: 30px var(--font-heading); }
+    .host p { color: var(--color-text-muted); }
+    .composer { width: min(920px,100%); margin-top: 22px; padding: 22px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+    .content-row { display: grid; grid-template-columns: 190px 1fr; gap: 18px; }
+    .image-slot { aspect-ratio: 4/3; display: grid; place-items: center; border: 1px dashed var(--color-secondary); border-radius: var(--radius-md); background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .ghost { height: 10px; margin: 14px 0; border-radius: 99px; background: var(--color-border); }
+    .ghost.short { width: 46%; }
+    .veil { position: absolute; inset: 58px 0 0; z-index: 4; padding: 12px; display: grid; place-items: center; background: rgba(4,5,13,.8); backdrop-filter: blur(4px); }
+    .dialog { width: min(1240px,100%); height: min(680px,calc(100vh - 118px)); min-width: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #4b4b70; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-xl); }
+    .head { padding: 11px 15px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .head h2 { margin: 0; font-size: 18px; }
+    .context { color: var(--color-text-muted); font-size: 10px; }
+    .slot-pill { margin-left: auto; padding: 6px 9px; display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-secondary); border-radius: 99px; background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .shape { width: 31px; aspect-ratio: 3/1; border: 1px solid currentColor; border-radius: 2px; }
+    .close { width: 32px; height: 32px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 21px; }
+    .browser-head { padding: 8px 14px; display: grid; grid-template-columns: auto minmax(190px,1fr) auto; gap: 9px; align-items: center; border-bottom: 1px solid var(--color-border); }
+    .sources { display: flex; gap: 4px; }
+    .source { min-height: 34px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--radius-pill); background: transparent; color: var(--color-text-muted); font-size: 10px; }
+    .source.active { border-color: var(--color-accent); background: var(--color-accent-bg); color: var(--color-accent); font-weight: 800; }
+    .search { min-height: 36px; padding: 6px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .upload { min-height: 36px; padding: 0 11px; border: 1px dashed var(--color-secondary); border-radius: var(--radius-sm); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 10px; font-weight: 800; }
+    .gallery { min-height: 0; flex: 1; padding: 11px 14px; overflow-y: auto; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); align-content: start; gap: 8px; background: #151527; }
+    .card { min-width: 0; padding: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); text-align: left; }
+    .card.selected { border-color: var(--color-accent); box-shadow: inset 0 0 0 2px var(--color-accent); }
+    .art { position: relative; display: block; width: 100%; aspect-ratio: 4/3; overflow: hidden; }
+    .stage { background: radial-gradient(circle at 27% 20%,#f5a623 0 3%,transparent 4%),radial-gradient(circle at 72% 17%,#ad61eb 0 2%,transparent 3%),linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .stage::after { content: ""; position: absolute; width: 32%; height: 68%; left: 35%; bottom: -18%; border-radius: 48% 48% 12% 12%; background: #12131c; box-shadow: -39px 9px 0 -11px #242034,41px 5px 0 -13px #181c27; }
+    .portrait { background: radial-gradient(circle at 52% 32%,#d09a74 0 14%,transparent 15%),linear-gradient(135deg,#596d70,#22263a 52%,#9e6244); }
+    .portrait::after { content: ""; position: absolute; width: 43%; height: 54%; left: 31%; bottom: -10%; border-radius: 48% 48% 10% 10%; background: #242336; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 20%,#f5a623 21% 23%,transparent 24%),conic-gradient(from 25deg,#292c42,#99505f,#dc9638,#2f6773,#292c42); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.18) 49% 51%,transparent 52%),linear-gradient(135deg,#273b59,#714e65 50%,#bd8148); }
+    .studio::after { content: ""; position: absolute; width: 54%; height: 42%; left: 22%; top: 30%; border: 4px solid #171822; transform: rotate(-7deg); }
+    .desert { background: linear-gradient(8deg,#483027 0 25%,transparent 26%),linear-gradient(#d9905c 0 45%,#6d506d 46% 62%,#1c2334 63%); }
+    .mono { background: linear-gradient(135deg,#656b75,#171923 57%,#a8acb1); filter: grayscale(1); }
+    .river { background: radial-gradient(ellipse at 40% 62%,#668d8c 0 18%,transparent 19%),linear-gradient(160deg,#26334d 0 47%,#b47b49 48% 63%,#27293a 64%); }
+    .lights { background: radial-gradient(circle at 22% 22%,#f5a623 0 4%,transparent 5%),radial-gradient(circle at 50% 18%,#6ac9c9 0 3%,transparent 4%),radial-gradient(circle at 78% 28%,#d35b9d 0 4%,transparent 5%),linear-gradient(#201c37,#56355c); }
+    .permission { position: absolute; left: 6px; bottom: 6px; z-index: 2; padding: 3px 6px; border-radius: 99px; background: rgba(8,9,17,.9); font-size: 8px; font-weight: 800; }
+    .permission.good { color: #8dde91; }
+    .permission.ask { color: #ffd06f; }
+    .copy { display: block; padding: 6px 7px 7px; }
+    .copy strong, .copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy strong { font-size: 9px; }
+    .copy small { color: var(--color-text-muted); font-size: 8px; }
+    .dock { min-width: 0; padding: 10px 12px; display: grid; grid-template-columns: 168px minmax(240px,1.15fr) minmax(250px,.95fr) 165px; gap: 10px; border-top: 1px solid #55557b; background: var(--color-bg-elevated); box-shadow: 0 -10px 25px rgba(0,0,0,.32); }
+    .dock-cell { min-width: 0; padding-right: 10px; border-right: 1px solid var(--color-border); }
+    .dock-cell:last-child { padding-right: 0; border-right: 0; }
+    .kicker { margin-bottom: 5px; color: var(--color-text-muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .picked { display: grid; grid-template-columns: 50px minmax(0,1fr); gap: 7px; align-items: center; }
+    .picked .art { width: 50px; border-radius: 3px; }
+    .picked strong, .picked small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .picked strong { font-size: 9px; }
+    .picked small { color: var(--color-text-muted); font-size: 8px; }
+    .use-check { margin-top: 5px; color: #8dde91; font-size: 8px; font-weight: 800; }
+    .crop-row { display: grid; grid-template-columns: minmax(120px,1fr) 74px; gap: 8px; align-items: center; }
+    .crop-frame { position: relative; width: 100%; aspect-ratio: 3/1; overflow: hidden; border: 2px solid var(--color-secondary); border-radius: 3px; background: linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .crop-frame::before { content: ""; position: absolute; width: 24%; height: 150%; left: 38%; bottom: -60%; border-radius: 48% 48% 12% 12%; background: #11131c; box-shadow: -64px 9px 0 -16px #242034,65px 5px 0 -17px #181c27; }
+    .crop-frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 33%,rgba(255,255,255,.24) 33.5%,transparent 34%,transparent 66%,rgba(255,255,255,.24) 66.5%,transparent 67%); }
+    .crop-tools { color: var(--color-text-muted); font-size: 8px; }
+    .crop-tools b { display: block; margin-bottom: 4px; color: var(--color-secondary); font-size: 9px; }
+    .crop-tools input { width: 100%; accent-color: var(--color-accent); }
+    .fields { display: grid; grid-template-columns: 1.2fr .8fr; gap: 6px; }
+    .field label { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8px; font-weight: 800; }
+    .field label span { color: var(--color-text-muted); font-weight: 400; }
+    .field input { width: 100%; min-height: 32px; padding: 5px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); font-size: 9px; }
+    .alt-value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ready { color: var(--color-text-muted); font-size: 8px; }
+    .ready b { display: block; margin-bottom: 4px; color: var(--color-text); font-size: 10px; }
+    .insert { width: 100%; min-height: 39px; margin-top: 7px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent); color: #251805; font-size: 10px; font-weight: 800; }
+    .cancel { width: 100%; min-height: 26px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 9px; }
+    @media (max-width: 1080px) {
+      .gallery { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      .dock { grid-template-columns: 145px minmax(220px,1fr) minmax(220px,.9fr) 145px; gap: 7px; }
+      .dialog { height: min(680px,calc(100vh - 118px)); }
+    }
+    @media (max-width: 760px) {
+      .host-bar nav, .context, .slot-pill { display: none; }
+      .veil { padding: 5px; align-items: start; }
+      .dialog { height: calc(100vh - 48px); overflow-y: auto; }
+      .browser-head { grid-template-columns: 1fr auto; }
+      .sources { grid-column: 1/-1; }
+      .gallery { overflow: visible; grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .dock { grid-template-columns: 1fr; }
+      .dock-cell { padding: 0 0 8px; border-right: 0; border-bottom: 1px solid var(--color-border); }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 4 — Contact sheet + slot dock</strong><span>The library stays a broad visual canvas while a persistent bottom dock compresses crop, metadata, and insertion into one fixed slot ticket.</span></header>
+  <main class="app">
+    <header class="host-bar"><div class="brand"><b>S/NC</b> Platform</div><nav><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="account">Animal Future</div></header>
+    <section class="host" aria-hidden="true"><h1>Edit release story</h1><p>Add editorial media to “The Illusionist.”</p><div class="composer"><strong>Feature image</strong><div class="content-row"><div class="image-slot">Choose media · 4:3</div><div><div class="ghost short"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost short"></div></div></div></div></section>
+    <div class="veil">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <header class="head"><h2 id="picker-title">Pick media for this slot</h2><span class="context">Opened from Animal Future / Profile / Banner</span><div class="slot-pill"><span class="shape"></span>Profile banner · 3:1</div><button class="close" type="button" aria-label="Close">×</button></header>
+        <div class="browser-head"><nav class="sources" aria-label="Library source"><button class="source active" type="button">Animal Future · 18</button><button class="source" type="button">Shared pool · 34</button><button class="source" type="button">Usable now</button><button class="source" type="button">Requestable</button></nav><input class="search" type="search" placeholder="Search filename, owner, project"><button class="upload" type="button">＋ Upload to library</button></div>
+        <section class="gallery" aria-label="Image contact sheet">
+          <button class="card selected" type="button"><span class="art stage"><span class="permission good">✓ Usable now · Own</span></span><span class="copy"><strong>aggie-backstage-wide.webp</strong><small>Animal Future · 2400 × 1600</small></span></button>
+          <button class="card" type="button"><span class="art portrait"><span class="permission good">✓ Usable now · Own</span></span><span class="copy"><strong>leanna-brick-wall.jpg</strong><small>Animal Future · 1800 × 2400</small></span></button>
+          <button class="card" type="button"><span class="art cover"><span class="permission good">✓ Usable now · Own</span></span><span class="copy"><strong>illusionist-cover.png</strong><small>Animal Future · 3000 × 3000</small></span></button>
+          <button class="card" type="button"><span class="art studio"><span class="permission good">✓ Usable now · Granted</span></span><span class="copy"><strong>north-room-session.webp</strong><small>Mira Chen · 1920 × 1280</small></span></button>
+          <button class="card" type="button"><span class="art desert"><span class="permission ask">! Request access</span></span><span class="copy"><strong>high-desert-tour.jpg</strong><small>Ramble Atlas · 2048 × 1365</small></span></button>
+          <button class="card" type="button"><span class="art mono"><span class="permission good">✓ Usable now · Open</span></span><span class="copy"><strong>load-in-contact.jpg</strong><small>Goodnight Provider · 2200 × 1467</small></span></button>
+          <button class="card" type="button"><span class="art river"><span class="permission ask">! Request access</span></span><span class="copy"><strong>river-motel-exterior.webp</strong><small>North Forty Visuals · 1800 × 1200</small></span></button>
+          <button class="card" type="button"><span class="art lights"><span class="permission good">✓ Usable now · Open</span></span><span class="copy"><strong>club-lights-test.jpg</strong><small>S/NC Video · 2400 × 1600</small></span></button>
+        </section>
+        <section class="dock" aria-label="Selected media slot ticket"><div class="dock-cell"><div class="kicker">1 · Source</div><div class="picked"><span class="art stage"></span><span><strong>Backstage at the Aggie</strong><small>Animal Future</small></span></div><div class="use-check">● Usable now · Own</div></div><div class="dock-cell"><div class="kicker">2 · Crop to target slot</div><div class="crop-row"><div class="crop-frame" role="img" aria-label="Aspect-correct three to one crop preview"></div><label class="crop-tools"><b>3:1 fixed</b>Zoom<input type="range" min="1" max="8" step=".1" value="1.8"></label></div></div><div class="dock-cell"><div class="kicker">3 · Metadata for this use</div><div class="fields"><div class="field"><label for="alt">Alternative text <span>Required</span></label><input class="alt-value" id="alt" value="Three musicians silhouetted backstage under amber and violet lights."></div><div class="field"><label for="credit">Credit <span>Optional</span></label><input id="credit" value="Marisol Vega"></div></div></div><div class="dock-cell"><div class="kicker">4 · Insert</div><div class="ready"><b>Ready for profile banner</b>Permission, crop, and alt text complete.</div><button class="insert" type="button">Insert image</button><button class="cancel" type="button">Cancel</button></div></section>
+      </section>
+    </div>
+  </main>
+  <script>
+    document.querySelectorAll('.source').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.source').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    document.querySelectorAll('.card').forEach((card) => card.addEventListener('click', () => {
+      document.querySelectorAll('.card').forEach((item) => item.classList.remove('selected'));
+      card.classList.add('selected');
+    }));
+  </script>
+</body>
+</html>

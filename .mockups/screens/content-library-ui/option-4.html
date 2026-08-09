@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>content-library-ui — Option 4: Permission-first tabs and lanes</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+    main, section, aside, article, div, nav { min-width: 0; }
+    button, input, select { max-width: 100%; font: inherit; }
+    button { min-height: 42px; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .platform-bar { height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-xl); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); letter-spacing: .03em; }
+    .brand b { color: var(--color-accent); }
+    .crumbs { color: var(--color-text-muted); }
+    .account { margin-left: auto; padding: .35rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+    .page { width: min(1380px,100%); margin: 0 auto; padding: var(--space-lg) clamp(1rem,2.5vw,2rem) 96px; }
+    .page-head { display: flex; justify-content: space-between; align-items: start; gap: var(--space-lg); }
+    .eyebrow { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: .15rem 0; font-family: var(--font-heading); font-size: var(--font-size-2xl); }
+    .lead { margin: 0; color: var(--color-text-muted); }
+    .target-card { flex: 0 0 320px; padding: .7rem; display: grid; grid-template-columns: 54px minmax(0,1fr) auto; gap: .65rem; align-items: center; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent-bg); }
+    .target-shape { width: 54px; height: 34px; display: grid; place-items: center; border: 1px dashed var(--color-accent); border-radius: var(--radius-sm); color: var(--color-accent); font-size: 10px; }
+    .target-card strong, .target-card small { display: block; }
+    .target-card small { color: var(--color-text-muted); font-size: 11px; }
+    .target-card button { min-height: 32px; padding: .3rem .5rem; border: 0; background: transparent; color: var(--color-accent); font-size: 11px; }
+    .tabs { margin-top: var(--space-lg); display: flex; gap: var(--space-xs); overflow-x: auto; border-bottom: 1px solid var(--color-border); scrollbar-width: none; }
+    .tabs button { flex: 0 0 auto; min-height: 48px; padding: .7rem .9rem; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--color-text-muted); }
+    .tabs button.active { border-bottom-color: var(--color-accent); color: var(--color-text); }
+    .tabs .count { margin-left: .35rem; padding: .1rem .4rem; border-radius: var(--radius-pill); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 10px; }
+    .tabs button.attention .count { background: var(--color-accent-bg); color: var(--color-accent); }
+    .toolbar { padding: var(--space-md) 0; display: grid; grid-template-columns: minmax(220px,1fr) auto auto; gap: var(--space-sm); }
+    input, select { width: 100%; min-height: 42px; padding: .55rem .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: var(--space-lg); align-items: start; }
+    .tab-panel[hidden] { display: none; }
+    .lane { margin-bottom: var(--space-lg); }
+    .lane-head { margin-bottom: var(--space-sm); display: flex; justify-content: space-between; align-items: end; gap: var(--space-md); }
+    .lane-head h2 { margin: 0; font-size: var(--font-size-base); }
+    .lane-head p { margin: .15rem 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .lane-head > span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .asset-list { display: grid; gap: var(--space-xs); }
+    .asset-row { min-width: 0; padding: .55rem; display: grid; grid-template-columns: 72px minmax(150px,1fr) 120px 150px auto; gap: var(--space-sm); align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .asset-row.selected { border-color: var(--color-accent); box-shadow: inset 3px 0 0 var(--color-accent); }
+    .thumb { position: relative; width: 72px; aspect-ratio: 4/3; overflow: hidden; border-radius: var(--radius-sm); background: #171724; }
+    .thumb::before, .thumb::after { content: ""; position: absolute; }
+    .stage { background: radial-gradient(circle at 24% 18%,#d486ef 0 3%,transparent 4%),radial-gradient(circle at 75% 17%,#f5a623 0 2%,transparent 3%),linear-gradient(151deg,#49315b,#121421 52%,#895036); }
+    .stage::before { width: 29%; height: 67%; left: 36%; bottom: -15%; border-radius: 48% 48% 16% 16%; background: #15131e; box-shadow: -22px 7px 0 -6px #211723,24px 6px 0 -7px #171a25; }
+    .portrait { background: radial-gradient(circle at 51% 28%,#cb926d 0 12%,transparent 13%),linear-gradient(135deg,#647a7b,#24293c 49%,#a76547); }
+    .portrait::before { width: 43%; height: 57%; left: 30%; bottom: -9%; border-radius: 45% 45% 10% 10%; background: #232336; }
+    .desert { background: linear-gradient(8deg,#4c3028 0 24%,transparent 25%),linear-gradient(#d98f58 0 47%,#6c4b68 48% 61%,#1c2334 62%); }
+    .desert::before { width: 29%; height: 56%; right: 18%; bottom: 18%; clip-path: polygon(40% 0,100% 100%,0 100%); background: #291f28; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 19%,#eda33a 20% 22%,transparent 23%),conic-gradient(from 18deg,#25293a,#984d5e,#e09a35,#2b6272,#25293a); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.14) 49% 51%,transparent 52%),linear-gradient(135deg,#273957,#704d62 48%,#b47a43); }
+    .studio::before { width: 54%; height: 42%; left: 22%; top: 30%; border: 3px solid #191a27; transform: rotate(-7deg); }
+    .mono { background: linear-gradient(135deg,#59606d,#151821 55%,#9da2aa); filter: grayscale(1); }
+    .mono::before { width: 60%; height: 12%; left: 20%; top: 45%; background: #151821; box-shadow: 0 -14px 0 -2px #262936,0 14px 0 -2px #313541; }
+    .asset-name strong, .asset-name small, .owner strong, .owner small { display: block; }
+    .asset-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
+    .asset-name small, .owner small { color: var(--color-text-muted); font-size: 10px; }
+    .owner strong { font-size: 11px; }
+    .status { justify-self: start; padding: .25rem .5rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-bg); font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+    .status.open, .status.granted, .status.own { color: #8dde93; }
+    .status.requestable { color: #ffcb72; }
+    .status.pending { color: #87d5d5; }
+    .row-action { min-height: 34px; padding: .35rem .6rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: 11px; white-space: nowrap; }
+    .row-action.use { border-color: var(--color-accent); color: var(--color-accent); }
+    .row-action.request { color: #ffcb72; }
+    .access-desk { position: sticky; top: var(--space-md); display: grid; gap: var(--space-md); }
+    .panel { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); }
+    .panel h2, .panel h3 { margin: 0; font-size: var(--font-size-base); }
+    .panel-head span { padding: .18rem .42rem; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: var(--color-accent); font-size: 10px; }
+    .panel > p { margin: .3rem 0 var(--space-sm); color: var(--color-text-muted); font-size: 11px; }
+    .request { padding: .65rem 0; border-top: 1px solid var(--color-border); }
+    .request:first-of-type { border-top: 0; }
+    .request strong, .request small { display: block; font-size: 11px; }
+    .request small { color: var(--color-text-muted); }
+    .request-actions { margin-top: .45rem; display: flex; gap: .35rem; }
+    .request-actions button { flex: 1; min-height: 31px; padding: .24rem .4rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: 10px; }
+    .request-actions .approve { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .share-quick { margin-top: .6rem; display: grid; grid-template-columns: 42px minmax(0,1fr); gap: .55rem; align-items: center; }
+    .share-quick .thumb { width: 42px; height: 42px; aspect-ratio: 1; }
+    .share-quick strong { display: block; margin-bottom: .2rem; font-size: 11px; }
+    .share-quick select { min-height: 34px; padding: .3rem .4rem; font-size: 10px; }
+    .selected-tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky); padding: var(--space-sm) clamp(1rem,4vw,3rem); display: flex; justify-content: center; background: color-mix(in srgb,var(--color-bg) 94%,transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(10px); box-shadow: var(--shadow-lg); }
+    .tray-inner { width: min(1316px,100%); display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+    .tray-copy { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+    .tray-copy .thumb { flex: 0 0 52px; width: 52px; height: 42px; aspect-ratio: auto; }
+    .tray-copy strong, .tray-copy small { display: block; }
+    .tray-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tray-copy small { color: #8dde93; }
+    .tray-actions { display: flex; gap: var(--space-sm); }
+    .btn { padding: .55rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text); font-weight: 600; white-space: nowrap; }
+    .btn.primary { border-color: var(--color-accent); background: var(--color-accent); color: #20170a; }
+    .empty-panel { padding: var(--space-xl); border: 1px dashed var(--color-border); border-radius: var(--radius-md); color: var(--color-text-muted); text-align: center; }
+    @media (max-width: 1120px) {
+      .asset-row { grid-template-columns: 66px minmax(140px,1fr) 112px auto; }
+      .asset-row .owner { display: none; }
+      .layout { grid-template-columns: minmax(0,1fr) 270px; gap: var(--space-md); }
+      .target-card { flex-basis: 290px; }
+    }
+    @media (max-width: 820px) {
+      .crumbs { display: none; }
+      .page-head { flex-direction: column; }
+      .target-card { width: 100%; flex-basis: auto; }
+      .layout { grid-template-columns: 1fr; }
+      .access-desk { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .asset-row { grid-template-columns: 62px minmax(130px,1fr) 110px auto; }
+    }
+    @media (max-width: 600px) {
+      .toolbar { grid-template-columns: 1fr; }
+      .asset-row { grid-template-columns: 58px minmax(0,1fr) auto; }
+      .asset-row .status { grid-column: 2; }
+      .row-action { grid-column: 3; grid-row: 1 / span 2; }
+      .access-desk { grid-template-columns: 1fr; }
+      .tray-inner { align-items: stretch; flex-direction: column; }
+      .tray-actions .btn { flex: 1; }
+      .page { padding-bottom: 145px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 4 — Permission-first tabs + lanes</strong><span>Organize by what the creator can do next—use now, request, share, or decide—rather than by storage ownership alone.</span></header>
+  <header class="platform-bar"><div class="brand"><b>S/NC</b> Platform</div><div class="crumbs">Animal Future / Manage / Media library</div><div class="account">LeAnna Warren</div></header>
+  <main class="page">
+    <header class="page-head"><div><span class="eyebrow">Cross-surface media</span><h1>Choose from the library</h1><p class="lead">Originals are shared once; every avatar, banner, content, or press use keeps its own crop, alt text, and credit.</p></div><div class="target-card"><div class="target-shape">3:1</div><div><strong>Press banner</strong><small>Animal Future · crop follows selection</small></div><button type="button">Change</button></div></header>
+    <nav class="tabs" role="tablist" aria-label="Library permission views"><button class="active" type="button" role="tab" aria-selected="true" data-panel="available">Available now <span class="count">18</span></button><button type="button" role="tab" aria-selected="false" data-panel="requestable">Request access <span class="count">9</span></button><button type="button" role="tab" aria-selected="false" data-panel="uploads">My uploads <span class="count">12</span></button><button class="attention" type="button" role="tab" aria-selected="false" data-panel="inbox">Access inbox <span class="count">3</span></button></nav>
+    <section class="toolbar" aria-label="Filters"><input type="search" placeholder="Search filename, owner, or project" aria-label="Search library"><select aria-label="Owner"><option>Any owner</option><option>Animal Future</option><option>S/NC Records</option><option>Mira Chen</option></select><select aria-label="Format"><option>All formats</option><option>JPEG</option><option>PNG</option><option>WebP</option></select></section>
+    <div class="layout">
+      <section>
+        <div class="tab-panel" id="available" role="tabpanel">
+          <section class="lane"><header class="lane-head"><div><h2>Open to every creator</h2><p>No approval step. These originals pass the use check immediately.</p></div><span>11 assets</span></header><div class="asset-list">
+            <article class="asset-row selected"><div class="thumb stage"></div><div class="asset-name"><strong>aggie-backstage-wide.webp</strong><small>2400 × 1600 · WebP</small></div><div class="owner"><strong>S/NC Records</strong><small>Uploaded Aug 7</small></div><span class="status open">Open</span><button class="row-action use" type="button">Selected</button></article>
+            <article class="asset-row"><div class="thumb cover"></div><div class="asset-name"><strong>co-op-compilation-cover.png</strong><small>3000 × 3000 · PNG</small></div><div class="owner"><strong>S/NC Records</strong><small>Uploaded Jul 29</small></div><span class="status open">Open</span><button class="row-action use" type="button">Use now</button></article>
+          </div></section>
+          <section class="lane"><header class="lane-head"><div><h2>Granted to Animal Future</h2><p>Requestable originals whose owners approved this creator.</p></div><span>7 assets</span></header><div class="asset-list"><article class="asset-row"><div class="thumb studio"></div><div class="asset-name"><strong>north-room-session.webp</strong><small>1920 × 1280 · WebP</small></div><div class="owner"><strong>Mira Chen</strong><small>Granted Aug 5</small></div><span class="status granted">Granted</span><button class="row-action use" type="button">Use now</button></article><article class="asset-row"><div class="thumb portrait"></div><div class="asset-name"><strong>green-room-portrait.jpg</strong><small>1800 × 2400 · JPEG</small></div><div class="owner"><strong>North Forty Visuals</strong><small>Granted Aug 2</small></div><span class="status granted">Granted</span><button class="row-action use" type="button">Use now</button></article></div></section>
+          <section class="lane"><header class="lane-head"><div><h2>Needs permission</h2><p>Still browseable. Ask the owner once, then reuse anywhere after approval.</p></div><span>9 assets</span></header><div class="asset-list"><article class="asset-row"><div class="thumb desert"></div><div class="asset-name"><strong>high-desert-tour.jpg</strong><small>2048 × 1365 · JPEG</small></div><div class="owner"><strong>Ramble Atlas</strong><small>Requestable</small></div><span class="status requestable">Requestable</span><button class="row-action request" type="button">Request access</button></article><article class="asset-row"><div class="thumb mono"></div><div class="asset-name"><strong>load-in-contact.jpg</strong><small>2200 × 1467 · JPEG</small></div><div class="owner"><strong>Goodnight Provider</strong><small>Requested Aug 6</small></div><span class="status pending">Pending</span><button class="row-action" type="button" disabled>Waiting</button></article></div></section>
+        </div>
+        <div class="tab-panel" id="requestable" role="tabpanel" hidden><div class="empty-panel"><strong>9 browseable originals need access.</strong><p>Use the Request access actions in this view. Owners can grant access to Animal Future once for reuse across all supported surfaces.</p></div></div>
+        <div class="tab-panel" id="uploads" role="tabpanel" hidden><div class="empty-panel"><strong>Your 12 originals.</strong><p>Manage each asset as Private, Requestable, or Open. Private stays owner-only; Requestable requires grants; Open is usable by everyone.</p></div></div>
+        <div class="tab-panel" id="inbox" role="tabpanel" hidden><div class="empty-panel"><strong>3 creator requests need a decision.</strong><p>Grant or decline each request. Existing grants remain manageable from the owning asset.</p></div></div>
+      </section>
+      <aside class="access-desk" aria-label="Access desk">
+        <section class="panel"><div class="panel-head"><h2>Access inbox</h2><span>3 new</span></div><p>You are an owner too. Decide who may use your requestable originals.</p><div class="request"><strong>North Forty Visuals</strong><small>LeAnna portrait · requested for avatar</small><div class="request-actions"><button class="approve" type="button">Grant</button><button type="button">Decline</button></div></div><div class="request"><strong>Goodnight Provider</strong><small>Aggie soundcheck · requested for content</small><div class="request-actions"><button class="approve" type="button">Grant</button><button type="button">Decline</button></div></div></section>
+        <section class="panel"><div class="panel-head"><h3>Your sharing</h3><span>Quick edit</span></div><p>Scope applies to discovery and use of the original, not to per-surface crops or alt text.</p><div class="share-quick"><div class="thumb portrait"></div><div><strong>LeAnna portrait</strong><select aria-label="Sharing for LeAnna portrait"><option>Requestable</option><option>Private</option><option>Open</option></select></div></div><div class="share-quick"><div class="thumb cover"></div><div><strong>The Illusionist cover</strong><select aria-label="Sharing for cover"><option>Private</option><option>Requestable</option><option>Open</option></select></div></div></section>
+      </aside>
+    </div>
+  </main>
+  <footer class="selected-tray"><div class="tray-inner"><div class="tray-copy"><div class="thumb stage"></div><div><strong>aggie-backstage-wide.webp</strong><small>Use check passed · Open · ready for Press banner</small></div></div><div class="tray-actions"><button class="btn" type="button">Clear</button><button class="btn primary" type="button">Use image and crop</button></div></div></footer>
+  <script>
+    const tabs = document.querySelectorAll('.tabs button');
+    tabs.forEach((tab) => tab.addEventListener('click', () => {
+      tabs.forEach((item) => { item.classList.remove('active'); item.setAttribute('aria-selected','false'); });
+      document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = true; });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected','true');
+      document.querySelector(`#${tab.dataset.panel}`).hidden = false;
+    }));
+    document.querySelectorAll('.row-action').forEach((button) => button.addEventListener('click', () => {
+      if (button.textContent.includes('Request access')) {
+        button.textContent = 'Request sent';
+        button.disabled = true;
+        button.previousElementSibling.textContent = 'Pending';
+        button.previousElementSibling.className = 'status pending';
+      } else if (button.textContent.includes('Use now')) {
+        document.querySelectorAll('.asset-row').forEach((row) => row.classList.remove('selected'));
+        button.closest('.asset-row').classList.add('selected');
+        button.textContent = 'Selected';
+      }
+    }));
+    document.querySelectorAll('.approve').forEach((button) => button.addEventListener('click', () => {
+      button.textContent = 'Granted';
+      button.disabled = true;
+      button.nextElementSibling.hidden = true;
+    }));
+  </script>
+</body>
+</html>

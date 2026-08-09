@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content media picker — Option 3: Media desk</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: 13px/1.45 var(--font-ui); }
+    button, input, textarea { max-width: 100%; font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { height: 38px; min-width: 0; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: nowrap; overflow: hidden; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { flex: 0 0 auto; font-weight: 600; }
+    .mock-meta span { min-width: 0; overflow: hidden; color: #8b949e; text-overflow: ellipsis; white-space: nowrap; }
+    .app { position: relative; min-height: calc(100vh - 38px); overflow: hidden; }
+    .host-bar { height: 58px; padding: 0 24px; display: flex; align-items: center; gap: 28px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: 18px; font-weight: 800; }
+    .brand b { color: var(--color-accent); }
+    .host-bar nav { display: flex; gap: 22px; color: var(--color-text-muted); }
+    .account { margin-left: auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--color-bg-input); color: var(--color-text-muted); }
+    .host { min-height: calc(100vh - 96px); padding: 28px clamp(24px,5vw,72px); opacity: .42; filter: saturate(.45); }
+    .host h1 { margin: 0 0 24px; font: 30px var(--font-heading); }
+    .profile { width: min(950px,100%); display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+    .nav, .form { padding: 21px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+    .nav div { padding: 9px; color: var(--color-text-muted); }
+    .nav .active { background: var(--color-accent-bg); color: var(--color-accent); border-radius: var(--radius-sm); }
+    .avatar-slot { width: 130px; aspect-ratio: 1; display: grid; place-items: center; border: 1px dashed var(--color-secondary); border-radius: 50%; color: var(--color-secondary); background: var(--color-secondary-bg); }
+    .ghost { height: 10px; margin-top: 16px; border-radius: 99px; background: var(--color-border); }
+    .ghost.short { width: 42%; }
+    .veil { position: absolute; inset: 58px 0 0; z-index: 4; padding: 14px; display: grid; place-items: center; background: rgba(4,5,13,.79); backdrop-filter: blur(4px); }
+    .dialog { width: min(1220px,100%); height: min(670px,calc(100vh - 118px)); min-width: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #4b4b70; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-xl); }
+    .head { height: 58px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .head h2 { margin: 0; font-size: 18px; }
+    .slot-pill { padding: 6px 9px; display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-secondary); border-radius: 99px; background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 10px; font-weight: 800; }
+    .shape { width: 28px; aspect-ratio: 3/1; border: 1px solid currentColor; border-radius: 2px; }
+    .head-note { margin-left: auto; color: var(--color-text-muted); font-size: 10px; }
+    .close { width: 32px; height: 32px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 21px; }
+    .desk { min-height: 0; flex: 1; display: grid; grid-template-columns: 155px minmax(270px,.85fr) minmax(390px,1.15fr); overflow: hidden; }
+    .sources { min-width: 0; padding: 12px 9px; border-right: 1px solid var(--color-border); background: #17172a; }
+    .sources h3 { margin: 2px 8px 9px; color: var(--color-text-muted); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; }
+    .source { width: 100%; min-height: 38px; padding: 7px 8px; display: flex; justify-content: space-between; gap: 6px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); text-align: left; font-size: 10px; }
+    .source span:last-child { color: var(--color-text-muted); }
+    .source.active { background: var(--color-accent-bg); color: var(--color-accent); font-weight: 800; }
+    .source.active span:last-child { color: var(--color-accent); }
+    .upload { width: 100%; min-height: 44px; margin: 10px 0 14px; border: 1px dashed var(--color-secondary); border-radius: var(--radius-sm); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 10px; font-weight: 800; }
+    .upload small { display: block; color: var(--color-text-muted); font-size: 8px; font-weight: 400; }
+    .legend { margin: 10px 7px; padding-top: 10px; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 9px; }
+    .legend p { margin: 5px 0; }
+    .green { color: #8dde91; }
+    .amber { color: #ffd06f; }
+    .browser { min-width: 0; overflow: hidden; display: flex; flex-direction: column; border-right: 1px solid var(--color-border); }
+    .searchbar { padding: 9px; display: grid; grid-template-columns: 1fr auto; gap: 6px; border-bottom: 1px solid var(--color-border); }
+    .searchbar input { min-height: 34px; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .filter { min-height: 34px; padding: 0 9px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 10px; }
+    .browse-label { padding: 7px 10px; display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 9px; }
+    .rows { min-height: 0; overflow-y: auto; }
+    .row { width: 100%; min-width: 0; padding: 7px 9px; display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 8px; align-items: center; border: 0; border-top: 1px solid var(--color-border); background: transparent; text-align: left; }
+    .row.selected { background: var(--color-accent-bg); box-shadow: inset 3px 0 var(--color-accent); }
+    .thumb { position: relative; width: 64px; aspect-ratio: 4/3; overflow: hidden; border-radius: 4px; }
+    .stage-art { background: radial-gradient(circle at 27% 20%,#f5a623 0 3%,transparent 4%),linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .stage-art::after { content: ""; position: absolute; width: 32%; height: 68%; left: 35%; bottom: -18%; border-radius: 48% 48% 12% 12%; background: #12131c; }
+    .portrait { background: radial-gradient(circle at 52% 32%,#d09a74 0 14%,transparent 15%),linear-gradient(135deg,#596d70,#22263a 52%,#9e6244); }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 20%,#f5a623 21% 23%,transparent 24%),conic-gradient(from 25deg,#292c42,#99505f,#dc9638,#2f6773,#292c42); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.18) 49% 51%,transparent 52%),linear-gradient(135deg,#273b59,#714e65 50%,#bd8148); }
+    .desert { background: linear-gradient(8deg,#483027 0 25%,transparent 26%),linear-gradient(#d9905c 0 45%,#6d506d 46% 62%,#1c2334 63%); }
+    .mono { background: linear-gradient(135deg,#656b75,#171923 57%,#a8acb1); filter: grayscale(1); }
+    .row strong, .row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row strong { font-size: 10px; }
+    .row small { color: var(--color-text-muted); font-size: 9px; }
+    .use-status { margin-top: 3px; font-weight: 800; }
+    .row .use-status.green { color: #8dde91; }
+    .row .use-status.amber { color: #ffd06f; }
+    .work { min-width: 0; min-height: 0; overflow-y: auto; padding: 12px 14px; }
+    .work-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .work-top h3 { margin: 0; font-size: 13px; }
+    .work-top p { margin: 2px 0 0; color: var(--color-text-muted); font-size: 9px; }
+    .rights { padding: 6px 8px; display: flex; gap: 6px; border: 1px solid color-mix(in srgb,var(--color-success) 55%,var(--color-border)); border-radius: var(--radius-sm); background: var(--color-success-bg); white-space: nowrap; font-size: 9px; }
+    .rights b { color: #8dde91; }
+    .crop-shell { margin-top: 10px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #131321; }
+    .crop-toolbar { margin-bottom: 6px; display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 9px; }
+    .crop-toolbar b { color: var(--color-secondary); }
+    .crop-frame { position: relative; width: 100%; aspect-ratio: 3/1; overflow: hidden; border: 2px solid var(--color-secondary); border-radius: 4px; background: radial-gradient(circle at 27% 18%,#f5a623 0 2%,transparent 3%),radial-gradient(circle at 72% 17%,#ad61eb 0 2%,transparent 3%),linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .crop-frame::before { content: ""; position: absolute; width: 24%; height: 150%; left: 38%; bottom: -60%; border-radius: 48% 48% 12% 12%; background: #11131c; box-shadow: -91px 13px 0 -22px #242034,93px 7px 0 -24px #181c27; }
+    .crop-frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 33%,rgba(255,255,255,.25) 33.4%,transparent 34%,transparent 66%,rgba(255,255,255,.25) 66.4%,transparent 67%); }
+    .crop-controls { margin-top: 7px; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 7px; color: var(--color-text-muted); font-size: 9px; }
+    .crop-controls input { width: 100%; accent-color: var(--color-accent); }
+    .reset { min-height: 28px; padding: 0 7px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 9px; }
+    .form { margin-top: 10px; padding: 0; display: grid; grid-template-columns: 1.25fr .75fr; gap: 8px; border: 0; background: transparent; }
+    .field label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 9px; font-weight: 800; }
+    .field label span { color: var(--color-text-muted); font-weight: 400; }
+    .field textarea, .field input { width: 100%; min-height: 36px; padding: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); font-size: 10px; }
+    .field textarea { height: 58px; resize: none; }
+    .summary { margin-top: 9px; padding-top: 9px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--color-border); }
+    .preview { width: 90px; flex: 0 0 90px; aspect-ratio: 3/1; border: 1px solid var(--color-secondary); border-radius: 3px; background: linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .summary-copy { min-width: 0; }
+    .summary-copy b, .summary-copy small { display: block; }
+    .summary-copy b { font-size: 10px; }
+    .summary-copy small { color: var(--color-text-muted); font-size: 8px; }
+    .insert { margin-left: auto; min-height: 38px; padding: 0 13px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent); color: #251805; font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .footer { padding: 8px 14px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 9px; }
+    @media (max-width: 1080px) {
+      .desk { grid-template-columns: 145px minmax(240px,.78fr) minmax(365px,1.22fr); }
+      .sources { padding: 10px 6px; }
+      .dialog { height: min(670px,calc(100vh - 118px)); }
+    }
+    @media (max-width: 780px) {
+      .host-bar nav, .head-note { display: none; }
+      .veil { padding: 6px; align-items: start; }
+      .dialog { height: calc(100vh - 50px); }
+      .desk { display: block; overflow-y: auto; }
+      .sources { border-right: 0; border-bottom: 1px solid var(--color-border); }
+      .source { display: inline-flex; width: auto; margin-right: 3px; }
+      .upload { width: auto; padding: 0 12px; }
+      .legend { display: none; }
+      .browser, .work { overflow: visible; }
+      .browser { border-right: 0; }
+      .rows { max-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 3 — Media desk</strong><span>A source rail and dense asset list feed a large live-fit inspector, optimized for repeat use by creator power users.</span></header>
+  <main class="app">
+    <header class="host-bar"><div class="brand"><b>S/NC</b> Platform</div><nav><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="account">AF</div></header>
+    <section class="host" aria-hidden="true"><h1>Profile images</h1><div class="profile"><aside class="nav"><div>Identity</div><div class="active">Images</div><div>Links</div><div>Members</div></aside><div class="form"><strong>Creator avatar</strong><p>Shown throughout the platform.</p><div class="avatar-slot">Choose image</div><div class="ghost short"></div><div class="ghost"></div></div></div></section>
+    <div class="veil">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <header class="head"><h2 id="picker-title">Media desk</h2><div class="slot-pill"><span class="shape"></span>Profile banner · 3:1</div><span class="head-note">Browse → crop → describe → insert</span><button class="close" type="button" aria-label="Close">×</button></header>
+        <div class="desk">
+          <aside class="sources" aria-label="Library sources"><h3>Sources</h3><button class="source active" type="button"><span>Animal Future</span><span>18</span></button><button class="source" type="button"><span>Shared pool</span><span>34</span></button><button class="source" type="button"><span>Recently used</span><span>8</span></button><button class="upload" type="button">＋ Upload new<small>saved to library</small></button><h3>Use key</h3><div class="legend"><p><span class="green">● Usable now</span><br>Own, open, or granted</p><p><span class="amber">● Request access</span><br>Visible, not yet usable</p></div></aside>
+          <section class="browser" aria-label="Current creator assets"><div class="searchbar"><input type="search" placeholder="Search Animal Future’s assets"><button class="filter" type="button">Filter ▾</button></div><div class="browse-label"><span>Current creator by default</span><span>18 assets</span></div><div class="rows">
+            <button class="row selected" type="button"><span class="thumb stage-art"></span><span><strong>aggie-backstage-wide.webp</strong><small>2400 × 1600 · Animal Future</small><small class="use-status green">● Usable now · Own</small></span></button>
+            <button class="row" type="button"><span class="thumb portrait"></span><span><strong>leanna-brick-wall.jpg</strong><small>1800 × 2400 · Animal Future</small><small class="use-status green">● Usable now · Own</small></span></button>
+            <button class="row" type="button"><span class="thumb cover"></span><span><strong>illusionist-cover.png</strong><small>3000 × 3000 · Animal Future</small><small class="use-status green">● Usable now · Own</small></span></button>
+            <button class="row" type="button"><span class="thumb studio"></span><span><strong>north-room-session.webp</strong><small>1920 × 1280 · Mira Chen</small><small class="use-status green">● Usable now · Granted</small></span></button>
+            <button class="row" type="button"><span class="thumb desert"></span><span><strong>high-desert-tour.jpg</strong><small>2048 × 1365 · Ramble Atlas</small><small class="use-status amber">● Request access</small></span></button>
+            <button class="row" type="button"><span class="thumb mono"></span><span><strong>load-in-contact.jpg</strong><small>2200 × 1467 · Goodnight Provider</small><small class="use-status green">● Usable now · Open</small></span></button>
+          </div></section>
+          <section class="work" aria-label="Selection fit and metadata"><div class="work-top"><div><h3>Backstage at the Aggie</h3><p>aggie-backstage-wide.webp · Animal Future</p></div><div class="rights"><span class="green">●</span><span><b>Usable now · Own</b><br>Permission passes</span></div></div><div class="crop-shell"><div class="crop-toolbar"><span>Drag image to reframe</span><b>Locked output · 3:1</b></div><div class="crop-frame" role="img" aria-label="Aspect-correct three to one crop preview"></div><label class="crop-controls"><span>Zoom</span><input type="range" min="1" max="8" step=".1" value="1.6"><output>1.6×</output><button class="reset" type="button">Reset</button></label></div><div class="form"><div class="field"><label for="alt">Alternative text <span>Required</span></label><textarea id="alt">Three musicians silhouetted backstage under amber and violet lights.</textarea></div><div class="field"><label for="credit">Photo credit <span>Optional</span></label><input id="credit" value="Marisol Vega"></div></div><div class="summary"><span class="preview"></span><span class="summary-copy"><b>Ready for profile banner</b><small>Usable · 3:1 crop · alt complete</small></span><button class="insert" type="button">Insert image</button></div></section>
+        </div>
+        <footer class="footer"><span>Original stored once; crop and metadata are saved on this slot reference.</span><span>Esc to cancel</span></footer>
+      </section>
+    </div>
+  </main>
+  <script>
+    document.querySelectorAll('.source').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.source').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    document.querySelectorAll('.row').forEach((row) => row.addEventListener('click', () => {
+      document.querySelectorAll('.row').forEach((item) => item.classList.remove('selected'));
+      row.classList.add('selected');
+    }));
+  </script>
+</body>
+</html>

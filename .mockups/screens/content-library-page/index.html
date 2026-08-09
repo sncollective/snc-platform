@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator asset library — selected direction</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-width: 0; margin: 0; overflow-x: hidden; }
+    body { min-height: 100vh; background: #0d0e18; color: #eee; font: 13px/1.45 system-ui, sans-serif; }
+    header { min-height: 70px; padding: 13px clamp(16px, 3vw, 34px); display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #303044; }
+    h1 { margin: 0; font-size: 19px; font-weight: 680; }
+    header p { margin: 3px 0 0; color: #9999aa; }
+    .decision { max-width: 570px; color: #d7b66f; text-align: right; }
+    main { width: 100%; max-width: 1500px; margin: 0 auto; padding: 12px clamp(10px, 2vw, 24px) 28px; }
+    .chosen { overflow: hidden; border: 1px solid #a97822; border-radius: 8px; background: #171725; box-shadow: 0 12px 34px rgba(0,0,0,.35); }
+    .chosen-head { min-height: 44px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #4b402c; }
+    .status { padding: 3px 7px; border-radius: 999px; background: #f5a623; color: #251a08; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+    .chosen-head strong { font-size: 12px; }
+    .chosen-head span:last-of-type { color: #9999aa; }
+    .chosen-head a { margin-left: auto; color: #72c6c6; text-decoration: none; white-space: nowrap; }
+    iframe { display: block; width: 100%; height: min(860px, calc(100vh - 155px)); min-height: 650px; border: 0; background: #141526; }
+    .references { margin-top: 12px; padding: 11px 13px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid #303044; border-radius: 6px; background: #141520; }
+    .references strong { color: #aaaabd; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+    .references a { padding: 5px 8px; border: 1px solid #34344c; border-radius: 4px; color: #8fbfc4; text-decoration: none; }
+    .references small { margin-left: auto; color: #77778a; }
+    @media (max-width: 760px) {
+      header { align-items: start; flex-direction: column; }
+      .decision { text-align: left; }
+      .chosen-head { align-items: start; flex-wrap: wrap; }
+      .chosen-head a { margin-left: 0; }
+      iframe { height: 720px; min-height: 0; }
+      .references small { width: 100%; margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header><div><h1>Creator asset library — selected direction</h1><p>Option 4 simplified · clean, dark, image-only management surface</p></div><div class="decision">Locked direction: ad-hoc dropdown filters, current creator by default, sortable property rows, grid/table modes, and direct sharing-scope controls.</div></header>
+  <main>
+    <section class="chosen">
+      <div class="chosen-head"><span class="status">Selected</span><strong>Option 4 — Simplified library</strong><span>Compact table, optional thumbnail grid, session filters only.</span><a href="option-4.html" target="_blank">Open full size ↗</a></div>
+      <iframe src="option-4.html" title="Selected Option 4 simplified asset library"></iframe>
+    </section>
+    <nav class="references" aria-label="Round one references"><strong>Round 1 references</strong><a href="option-1.html">Option 1</a><a href="option-2.html">Option 2</a><a href="option-3.html">Option 3</a><small>Kept for comparison only; Option 4 is the implementation direction.</small></nav>
+  </main>
+</body>
+</html>

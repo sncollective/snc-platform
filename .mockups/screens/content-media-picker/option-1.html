@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content image picker — Option 1: Tabbed workbench</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/1.45 var(--font-ui); }
+    main, section, aside, div, nav { min-width: 0; }
+    button, input, textarea, select { max-width: 100%; min-height: 44px; font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+    [hidden] { display: none !important; }
+
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 650; }
+    .mock-meta span { color: #8b949e; }
+    .app { position: relative; min-height: calc(100vh - 38px); overflow: hidden; }
+    .host-top { height: 58px; padding: 0 24px; display: flex; align-items: center; gap: 28px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: .03em; }
+    .brand b { color: var(--color-accent); }
+    .host-top nav { display: flex; gap: 22px; color: var(--color-text-muted); }
+    .avatar { margin-left: auto; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg-input); font-size: 11px; }
+    .host { min-height: calc(100vh - 96px); padding: 28px clamp(24px,5vw,72px); opacity: .42; filter: saturate(.45); }
+    .crumb { color: var(--color-text-muted); font-size: 12px; }
+    .host h1 { margin: 9px 0 24px; font: 30px/1.2 var(--font-heading); }
+    .host-grid { display: grid; grid-template-columns: 220px minmax(0,720px); gap: 24px; }
+    .host-nav, .host-card { padding: 20px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+    .host-nav div { padding: 9px; color: var(--color-text-muted); }
+    .host-nav .on { border-radius: var(--radius-sm); background: var(--color-accent-bg); color: var(--color-accent); }
+    .slot-placeholder { width: 100%; height: 150px; display: grid; place-items: center; border: 1px dashed var(--color-secondary); border-radius: var(--radius-md); background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .line { height: 10px; margin: 16px 0; border-radius: 99px; background: var(--color-border); }
+    .line.short { width: 42%; }
+
+    /* The scrim covers the complete application chrome. The mock-only strip remains outside it. */
+    .veil { position: absolute; inset: 0; z-index: var(--z-modal); padding: 24px; display: grid; place-items: center; background: rgba(4,5,13,.86); backdrop-filter: blur(4px); }
+    .dialog { width: min(1260px,100%); height: min(1040px,calc(100vh - 86px)); min-width: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #505078; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-xl); }
+    .dialog-head { min-height: 76px; padding: 12px 18px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--color-border); background: color-mix(in srgb,var(--color-bg-elevated) 66%,var(--color-bg)); }
+    .slot-icon { width: 54px; aspect-ratio: 3/1; flex: 0 0 auto; border: 2px solid var(--color-secondary); border-radius: 3px; background: var(--color-secondary-bg); }
+    .title { min-width: 0; }
+    .eyebrow { color: var(--color-secondary); font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    h2 { margin: 2px 0 0; font-size: 21px; line-height: 1.2; }
+    .dialog-description { margin: 3px 0 0; color: var(--color-text-muted); font-size: 12px; }
+    .head-note { margin-left: auto; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: 11px; white-space: nowrap; }
+    .close { width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); font-size: 24px; }
+    .close:hover { border-color: var(--color-border); background: var(--color-bg-hover); color: var(--color-text); }
+    .body { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0,1fr) 420px; overflow: hidden; }
+
+    .library { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--color-border); }
+    .tabs { padding: 0 16px; display: flex; gap: 2px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .tab { min-height: 50px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--color-text-muted); font-weight: 700; }
+    .tab[aria-selected="true"] { border-color: var(--color-accent); color: var(--color-text); }
+    .count { margin-left: 4px; color: var(--color-text-muted); font-size: 11px; }
+    .tab-upload { margin-left: auto; color: var(--color-secondary); }
+    .source-panel { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+    .tools { padding: 10px 16px; display: grid; grid-template-columns: minmax(0,1fr) 148px; gap: 8px; border-bottom: 1px solid var(--color-border); }
+    .search, select, .field input, .field textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .source-note { padding: 9px 16px 4px; display: flex; justify-content: space-between; gap: 12px; color: var(--color-text-muted); font-size: 11px; }
+    .source-note b { color: var(--color-text); }
+    .asset-grid { min-height: 0; padding: 8px 16px 12px; overflow-y: auto; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: start; gap: 10px; }
+    .asset { position: relative; min-width: 0; min-height: 44px; padding: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); text-align: left; }
+    .asset:hover:not(:disabled) { border-color: color-mix(in srgb,var(--color-accent) 55%,var(--color-border)); }
+    .asset[aria-pressed="true"] { border-color: var(--color-accent); box-shadow: inset 0 0 0 2px var(--color-accent); }
+    .asset:disabled { opacity: .74; }
+    .art { position: relative; display: block; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: #171723; }
+    .art::before, .art::after { content: ""; position: absolute; }
+    .stage { background: radial-gradient(circle at 28% 20%,#f5a623 0 2%,transparent 3%),radial-gradient(circle at 70% 18%,#b260e9 0 2%,transparent 3%),linear-gradient(145deg,#5a315d,#17192b 55%,#98522f); }
+    .stage::before { width: 32%; height: 68%; left: 35%; bottom: -18%; border-radius: 48% 48% 12% 12%; background: #12131c; box-shadow: -48px 12px 0 -12px #242034,48px 7px 0 -15px #181c27; }
+    .portrait { background: radial-gradient(circle at 52% 32%,#d09a74 0 14%,transparent 15%),linear-gradient(135deg,#596d70,#22263a 52%,#9e6244); }
+    .portrait::before { width: 43%; height: 54%; left: 31%; bottom: -10%; border-radius: 48% 48% 10% 10%; background: #242336; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 20%,#f5a623 21% 23%,transparent 24%),conic-gradient(from 25deg,#292c42,#99505f,#dc9638,#2f6773,#292c42); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.18) 49% 51%,transparent 52%),linear-gradient(135deg,#273b59,#714e65 50%,#bd8148); }
+    .studio::before { width: 54%; height: 42%; left: 22%; top: 30%; border: 4px solid #171822; transform: rotate(-7deg); }
+    .desert { background: linear-gradient(8deg,#483027 0 25%,transparent 26%),linear-gradient(#d9905c 0 45%,#6d506d 46% 62%,#1c2334 63%); }
+    .desert::before { width: 26%; height: 58%; right: 18%; bottom: 17%; clip-path: polygon(40% 0,100% 100%,0 100%); background: #2a2029; }
+    .mono { background: linear-gradient(135deg,#656b75,#171923 57%,#a8acb1); filter: grayscale(1); }
+    .badge { position: absolute; top: 7px; left: 7px; padding: 4px 7px; border: 1px solid rgba(255,255,255,.15); border-radius: var(--radius-pill); background: rgba(8,9,17,.9); font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .badge.good { color: #93e69a; }
+    .badge.ask { color: #ffd276; }
+    .asset-copy { display: block; padding: 8px 9px 10px; }
+    .asset-copy strong, .asset-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asset-copy strong { font-size: 11px; }
+    .asset-copy small { margin-top: 2px; color: var(--color-text-muted); font-size: 10px; }
+    .pagination { min-height: 54px; padding: 6px 16px 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 11px; }
+    .load-more, .secondary-button, .primary-button, .text-button { min-height: 44px; padding: 8px 13px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text); font-weight: 700; }
+    .primary-button { border-color: var(--color-accent); background: var(--color-accent); color: #231805; }
+    .text-button { border-color: transparent; background: transparent; color: var(--color-text-muted); }
+
+    .empty-state { min-height: 0; flex: 1; padding: 40px 24px; display: none; place-items: center; text-align: center; }
+    .empty-state .empty-inner { max-width: 390px; }
+    .empty-icon { width: 70px; height: 56px; margin: 0 auto 18px; display: grid; place-items: center; border: 1px dashed var(--color-secondary); border-radius: var(--radius-md); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 24px; }
+    .empty-state h3 { margin: 0 0 7px; font-size: 18px; }
+    .empty-state p { margin: 0 auto 18px; color: var(--color-text-muted); }
+    .empty-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .demo-empty #panel-own .asset-grid, .demo-empty #panel-own .pagination, .demo-empty #panel-own .source-note { display: none; }
+    .demo-empty #panel-own .empty-state { display: grid; }
+
+    .upload-panel { min-height: 0; flex: 1; overflow-y: auto; padding: 22px; }
+    .upload-wrap { max-width: 650px; margin: 0 auto; }
+    .upload-wrap h3 { margin: 0 0 5px; font-size: 18px; }
+    .upload-wrap > p { margin: 0 0 16px; color: var(--color-text-muted); }
+    .dropzone { min-height: 220px; padding: 24px; display: grid; place-items: center; border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); background: var(--color-secondary-bg); text-align: center; }
+    .dropzone.dragging { border-color: var(--color-accent); background: var(--color-accent-bg); }
+    .dropzone strong, .dropzone span { display: block; }
+    .dropzone strong { margin: 8px 0 3px; font-size: 16px; }
+    .dropzone span { color: var(--color-text-muted); font-size: 12px; }
+    .file-label { min-height: 44px; margin: 14px auto 0; padding: 9px 14px; display: inline-flex; align-items: center; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #231805; cursor: pointer; font-weight: 800; }
+    .file-label input { position: absolute; width: 1px; height: 1px; min-height: 1px; opacity: 0; }
+    .upload-status { margin-top: 14px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .upload-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .upload-row strong, .upload-row small { display: block; }
+    .upload-row small { color: var(--color-text-muted); }
+    progress { width: 100%; height: 12px; margin-top: 10px; accent-color: var(--color-accent); }
+    .upload-error { border-color: color-mix(in srgb,var(--color-error) 60%,var(--color-border)); background: var(--color-error-bg); }
+    .upload-error strong { color: #ff8b88; }
+
+    .workflow { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--color-bg-elevated); }
+    .workflow-scroll { padding: 17px 18px 12px; }
+    .idle { position: relative; min-height: 100%; padding: 34px 28px 92px; display: grid; place-items: center; text-align: center; }
+    .idle .workflow-actions { position: absolute; left: 0; right: 0; text-align: left; }
+    .idle-mark { width: 92px; aspect-ratio: 3/1; margin: 0 auto 20px; display: grid; place-items: center; border: 2px dashed var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: 20px; }
+    .idle h3 { margin: 0 0 6px; font-size: 17px; }
+    .idle p { max-width: 290px; margin: 0; color: var(--color-text-muted); }
+    .selection-head { display: flex; align-items: start; gap: 10px; }
+    .selection-thumb { width: 72px; aspect-ratio: 4/3; flex: 0 0 72px; border-radius: var(--radius-sm); }
+    .selection-copy { min-width: 0; flex: 1; }
+    .selection-kicker { color: var(--color-secondary); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .selection-copy strong, .selection-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .selection-copy strong { margin-top: 2px; }
+    .selection-copy small { color: var(--color-text-muted); }
+    .clear-selection { min-height: 44px; padding: 7px 9px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 11px; }
+    .permission { margin-top: 12px; padding: 10px 11px; display: flex; gap: 9px; align-items: start; border: 1px solid color-mix(in srgb,var(--color-success) 55%,var(--color-border)); border-radius: var(--radius-md); background: var(--color-success-bg); }
+    .permission.blocked { border-color: color-mix(in srgb,var(--color-warning) 65%,var(--color-border)); background: color-mix(in srgb,var(--color-warning) 10%,transparent); }
+    .status-dot { width: 9px; height: 9px; flex: 0 0 9px; margin-top: 5px; border-radius: 50%; background: var(--color-success); }
+    .permission.blocked .status-dot { background: var(--color-warning); }
+    .permission b, .permission small { display: block; }
+    .permission b { color: #93e69a; font-size: 11px; }
+    .permission.blocked b { color: #ffd276; }
+    .permission small { margin-top: 1px; color: var(--color-text-muted); font-size: 10px; }
+    .crop-section { margin-top: 16px; }
+    .section-label { margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; color: var(--color-text-muted); font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .section-label b { color: var(--color-secondary); }
+    .crop-viewport, .rendered-preview { position: relative; width: 100%; aspect-ratio: 3/1; overflow: hidden; border-radius: var(--radius-sm); background: #0c0c14; touch-action: none; user-select: none; }
+    .crop-viewport { border: 2px solid var(--color-secondary); cursor: grab; }
+    .crop-viewport.dragging { cursor: grabbing; }
+    .crop-viewport img, .rendered-preview img { position: absolute; left: 50%; top: 50%; width: 100%; max-width: none; height: auto; pointer-events: none; transform-origin: center; }
+    .crop-grid { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg,transparent 33%,rgba(255,255,255,.24) 33.4%,transparent 33.8%,transparent 66%,rgba(255,255,255,.24) 66.4%,transparent 66.8%),linear-gradient(transparent 49%,rgba(255,255,255,.2) 49.5%,transparent 50%); }
+    .crop-instructions { margin: 7px 0; color: var(--color-text-muted); font-size: 10px; }
+    .crop-controls { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px 58px; gap: 7px; align-items: center; }
+    .crop-controls button { width: 44px; height: 44px; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); font-size: 18px; }
+    .crop-controls .reset { width: 58px; font-size: 10px; }
+    .crop-controls input { width: 100%; height: 44px; min-height: 44px; accent-color: var(--color-accent); }
+    .zoom-output { margin: 2px 0 10px; display: block; color: var(--color-text-muted); font-size: 10px; text-align: center; }
+    .rendered-wrap { margin-top: 12px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
+    .rendered-preview { border: 1px solid var(--color-border); }
+    .preview-loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(9,9,17,.72); color: var(--color-text-muted); font-size: 11px; }
+    .field { margin-top: 12px; }
+    .field label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; font-size: 11px; font-weight: 700; }
+    .field label span { color: var(--color-text-muted); font-size: 10px; font-weight: 400; }
+    .field textarea { min-height: 74px; resize: vertical; }
+    .field-help { margin: 4px 0 0; color: var(--color-text-muted); font-size: 10px; }
+    .workflow-actions { position: sticky; bottom: 0; margin-top: auto; padding: 12px 18px; border-top: 1px solid var(--color-border); background: color-mix(in srgb,var(--color-bg-elevated) 94%,transparent); backdrop-filter: blur(8px); }
+    .readiness { min-height: 18px; margin: 0 0 7px; color: var(--color-text-muted); font-size: 10px; }
+    .readiness.ready { color: #93e69a; }
+    .insert { width: 100%; min-height: 48px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent); color: #231805; font-weight: 850; }
+    .back-mobile, .mobile-footer { display: none; }
+
+    @media (max-width: 1120px) {
+      .body { grid-template-columns: minmax(0,1fr) 370px; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .head-note { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .mock-meta { min-height: 42px; padding: 6px 10px; gap: 5px; display: block; }
+      .mock-meta strong, .mock-meta span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .app { min-height: calc(100vh - 42px); }
+      .host-top nav { display: none; }
+      .veil { padding: 0; place-items: stretch; }
+      .dialog { width: 100%; height: calc(100vh - 42px); max-height: none; border: 0; border-radius: 0; }
+      .dialog-head { min-height: 68px; padding: 8px 12px; }
+      .slot-icon, .dialog-description { display: none; }
+      .eyebrow { font-size: 9px; }
+      h2 { font-size: 18px; }
+      .body { display: block; overflow: hidden; }
+      .library, .workflow { height: 100%; border-right: 0; }
+      .dialog[data-mobile-stage="browse"] .library { display: flex; }
+      .dialog[data-mobile-stage="browse"] .workflow { display: none; }
+      .dialog[data-mobile-stage="edit"] .library { display: none; }
+      .dialog[data-mobile-stage="edit"] .workflow { display: flex; padding-bottom: 82px; }
+      .tabs { padding: 0 8px; overflow-x: auto; }
+      .tab { min-width: max-content; padding: 0 10px; }
+      .tools { padding: 8px 10px; grid-template-columns: minmax(0,1fr) 118px; }
+      .source-note { padding-inline: 10px; }
+      .asset-grid { padding: 8px 10px 94px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .pagination { margin-bottom: 80px; padding-inline: 10px; }
+      .upload-panel { padding: 16px 12px 96px; }
+      .dropzone { min-height: 245px; }
+      .workflow-scroll { padding: 13px 12px 24px; }
+      .workflow-actions { display: none; }
+      .back-mobile { min-height: 44px; margin-bottom: 9px; padding: 7px 10px; display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--color-secondary); font-weight: 750; }
+      .mobile-footer { position: absolute; z-index: var(--z-sticky); left: 0; right: 0; bottom: 0; min-height: 82px; padding: 9px 10px; display: grid; grid-template-columns: minmax(0,1fr) 118px; gap: 10px; align-items: center; border-top: 1px solid var(--color-border); background: color-mix(in srgb,var(--color-bg) 96%,transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-lg); }
+      .mobile-summary strong, .mobile-summary span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .mobile-summary strong { font-size: 11px; }
+      .mobile-summary span { color: var(--color-text-muted); font-size: 10px; }
+      .mobile-insert { min-height: 52px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent); color: #231805; font-weight: 850; }
+      .crop-viewport, .rendered-preview { max-height: 150px; }
+      .empty-state { padding: 28px 16px 110px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 1 — Tabbed image workbench, corrected</strong><span>Idle by default · atomic asset state · real upload · own/shared source truth · operable 3:1 crop · staged mobile flow.</span></header>
+  <main class="app">
+    <header class="host-top"><div class="brand"><b>S/NC</b> Platform</div><nav aria-label="Platform"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="avatar">AF</div></header>
+    <section class="host" id="host-content"><div class="crumb">Animal Future / Manage / Profile</div><h1>Edit creator profile</h1><div class="host-grid"><aside class="host-nav"><div>Identity</div><div class="on">Images</div><div>Links</div><div>Members</div></aside><div class="host-card"><strong>Profile banner</strong><p>A wide image at the top of your creator profile.</p><button class="slot-placeholder" id="choose-slot" type="button">Choose image · 3:1</button><div class="line short"></div><div class="line"></div></div></div></section>
+
+    <div class="veil" id="dialog-backdrop" data-scope="dialog" data-part="backdrop">
+      <section class="dialog" id="picker-dialog" data-scope="dialog" data-part="content" data-mobile-stage="browse" role="dialog" aria-modal="true" aria-labelledby="picker-title" aria-describedby="picker-description">
+        <header class="dialog-head">
+          <span class="slot-icon" aria-hidden="true"></span>
+          <div class="title"><div class="eyebrow">Profile · Banner slot · fixed 3:1</div><h2 id="picker-title">Choose image</h2><p class="dialog-description" id="picker-description">Originals stay reusable. This crop and description belong only to the profile banner.</p></div>
+          <span class="head-note">Slot output · 1800 × 600 px</span>
+          <button class="close" id="close-dialog" type="button" aria-label="Close image picker">×</button>
+        </header>
+
+        <div class="body">
+          <section class="library" aria-label="Browse image sources">
+            <div class="tabs" role="tablist" aria-label="Image sources">
+              <button class="tab" id="tab-own" type="button" role="tab" aria-selected="true" aria-controls="panel-own" tabindex="0" data-tab="own">My library <span class="count" id="own-count">18</span></button>
+              <button class="tab" id="tab-shared" type="button" role="tab" aria-selected="false" aria-controls="panel-shared" tabindex="-1" data-tab="shared">Shared pool <span class="count">34</span></button>
+              <button class="tab tab-upload" id="tab-upload" type="button" role="tab" aria-selected="false" aria-controls="panel-upload" tabindex="-1" data-tab="upload">＋ Upload new</button>
+            </div>
+
+            <section class="source-panel" id="panel-own" role="tabpanel" aria-labelledby="tab-own">
+              <div class="tools"><input class="search" type="search" placeholder="Search Animal Future’s images" aria-label="Search my library"><select aria-label="Image shape"><option>Any shape</option><option>Wide</option><option>Square</option><option>Portrait</option></select></div>
+              <div class="source-note"><span><b>Animal Future only</b> · your originals</span><span>Newest first</span></div>
+              <div class="asset-grid" role="group" aria-label="My library images">
+                <button class="asset" type="button" aria-pressed="false" data-id="aggie" data-kind="stage" data-name="aggie-backstage-wide.webp" data-label="Backstage at the Aggie" data-owner="Animal Future" data-dims="2400 × 1600" data-status="Own" data-usable="true" data-alt="Three musicians silhouetted backstage under amber and violet lights." data-credit="Marisol Vega"><span class="art stage"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>aggie-backstage-wide.webp</strong><small>2400 × 1600 · Animal Future</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="leanna" data-kind="portrait" data-name="leanna-brick-wall.jpg" data-label="LeAnna, brick wall" data-owner="Animal Future" data-dims="1800 × 2400" data-status="Own" data-usable="true"><span class="art portrait"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>leanna-brick-wall.jpg</strong><small>1800 × 2400 · Animal Future</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="illusionist" data-kind="cover" data-name="illusionist-cover.png" data-label="The Illusionist cover" data-owner="Animal Future" data-dims="3000 × 3000" data-status="Own" data-usable="true"><span class="art cover"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>illusionist-cover.png</strong><small>3000 × 3000 · Animal Future</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="rehearsal" data-kind="studio" data-name="rehearsal-room-02.webp" data-label="Rehearsal room" data-owner="Animal Future" data-dims="2200 × 1467" data-status="Own" data-usable="true"><span class="art studio"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>rehearsal-room-02.webp</strong><small>2200 × 1467 · Animal Future</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="contact" data-kind="mono" data-name="contact-sheet-a.jpg" data-label="Contact sheet A" data-owner="Animal Future" data-dims="2048 × 1365" data-status="Own" data-usable="true"><span class="art mono"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>contact-sheet-a.jpg</strong><small>2048 × 1365 · Animal Future</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="soundcheck" data-kind="stage" data-name="aggie-soundcheck.jpg" data-label="Aggie soundcheck" data-owner="Animal Future" data-dims="2600 × 1733" data-status="Own" data-usable="true"><span class="art stage"><span class="badge good">Own · usable</span></span><span class="asset-copy"><strong>aggie-soundcheck.jpg</strong><small>2600 × 1733 · Animal Future</small></span></button>
+              </div>
+              <div class="empty-state"><div class="empty-inner"><div class="empty-icon">＋</div><h3>Your library is empty</h3><p>Upload an original to reuse it here and in other image slots, or browse images others have shared.</p><div class="empty-actions"><button class="primary-button" type="button" data-open-tab="upload">Upload an image</button><button class="secondary-button" type="button" data-open-tab="shared">Browse shared pool</button></div></div></div>
+              <footer class="pagination"><span>Showing 6 of 18 own images</span><button class="load-more" type="button">Load more</button></footer>
+            </section>
+
+            <section class="source-panel" id="panel-shared" role="tabpanel" aria-labelledby="tab-shared" hidden>
+              <div class="tools"><input class="search" type="search" placeholder="Search other creators’ shared images" aria-label="Search shared pool"><select aria-label="Use status"><option>All shared</option><option>Usable now</option><option>Not available</option></select></div>
+              <div class="source-note"><span><b>Other creators only</b> · open, granted, or requestable</span><span>Newest first</span></div>
+              <div class="asset-grid" role="group" aria-label="Shared pool images">
+                <button class="asset" type="button" aria-pressed="false" data-id="north-room" data-kind="studio" data-name="north-room-session.webp" data-label="North room session" data-owner="Mira Chen" data-dims="1920 × 1280" data-status="Granted" data-usable="true"><span class="art studio"><span class="badge good">Granted · usable</span></span><span class="asset-copy"><strong>north-room-session.webp</strong><small>1920 × 1280 · Mira Chen</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="desert" data-kind="desert" data-name="high-desert-tour.jpg" data-label="High desert tour" data-owner="Ramble Atlas" data-dims="2048 × 1365" data-status="Needs permission" data-usable="false"><span class="art desert"><span class="badge ask">Not available</span></span><span class="asset-copy"><strong>high-desert-tour.jpg</strong><small>2048 × 1365 · Ramble Atlas</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="load-in" data-kind="mono" data-name="load-in-contact.jpg" data-label="Load-in contact sheet" data-owner="Goodnight Provider" data-dims="2200 × 1467" data-status="Open" data-usable="true"><span class="art mono"><span class="badge good">Open · usable</span></span><span class="asset-copy"><strong>load-in-contact.jpg</strong><small>2200 × 1467 · Goodnight Provider</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="mira-live" data-kind="stage" data-name="mira-live-wide.webp" data-label="Mira live at Hi-Dive" data-owner="Mira Chen" data-dims="2400 × 1600" data-status="Open" data-usable="true"><span class="art stage"><span class="badge good">Open · usable</span></span><span class="asset-copy"><strong>mira-live-wide.webp</strong><small>2400 × 1600 · Mira Chen</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="atlas-cover" data-kind="cover" data-name="atlas-tour-poster.png" data-label="Atlas tour poster" data-owner="Ramble Atlas" data-dims="3000 × 3000" data-status="Needs permission" data-usable="false"><span class="art cover"><span class="badge ask">Not available</span></span><span class="asset-copy"><strong>atlas-tour-poster.png</strong><small>3000 × 3000 · Ramble Atlas</small></span></button>
+                <button class="asset" type="button" aria-pressed="false" data-id="provider" data-kind="portrait" data-name="provider-portrait.jpg" data-label="Provider portrait" data-owner="Goodnight Provider" data-dims="1800 × 2400" data-status="Granted" data-usable="true"><span class="art portrait"><span class="badge good">Granted · usable</span></span><span class="asset-copy"><strong>provider-portrait.jpg</strong><small>1800 × 2400 · Goodnight Provider</small></span></button>
+              </div>
+              <footer class="pagination"><span>Showing 6 of 34 shared images</span><button class="load-more" type="button">Load more</button></footer>
+            </section>
+
+            <section class="source-panel" id="panel-upload" role="tabpanel" aria-labelledby="tab-upload" hidden>
+              <div class="upload-panel"><div class="upload-wrap"><h3>Upload a new image</h3><p>It will be added to Animal Future’s library, then opened here for crop and description.</p>
+                <div class="dropzone" id="dropzone"><div><div aria-hidden="true" style="font-size:28px;color:var(--color-secondary)">⇧</div><strong>Drop an image here</strong><span>JPEG, PNG, or WebP · maximum 10 MB</span><label class="file-label">Choose file<input id="file-input" type="file" accept="image/jpeg,image/png,image/webp"></label></div></div>
+                <div class="upload-status" id="upload-progress" hidden><div class="upload-row"><div><strong id="upload-name">backstage-new.jpg</strong><small id="upload-copy">Uploading to Animal Future’s library…</small></div><button class="secondary-button" id="cancel-upload" type="button">Cancel</button></div><progress id="progress" max="100" value="0">0%</progress></div>
+                <div class="upload-status upload-error" id="upload-error" role="alert" hidden><div class="upload-row"><div><strong>Upload failed</strong><small id="upload-error-copy">The connection was interrupted. Your library was not changed.</small></div><button class="secondary-button" id="retry-upload" type="button">Retry</button></div></div>
+              </div></div>
+            </section>
+          </section>
+
+          <aside class="workflow" aria-label="Selected image crop and description">
+            <div class="idle" id="idle-state"><div><div class="idle-mark" aria-hidden="true">3:1</div><h3>Select an image to begin</h3><p>Choose an available image from your library or the shared pool. Crop and description will appear here for that image only.</p></div><footer class="workflow-actions"><p class="readiness">No image selected</p><button class="insert" type="button" disabled>Insert into profile banner</button></footer></div>
+
+            <div id="selected-state" hidden>
+              <div class="workflow-scroll">
+                <button class="back-mobile" id="back-to-browse" type="button">← Back to images</button>
+                <div class="selection-head"><div class="selection-thumb art stage" id="selection-thumb" aria-hidden="true"></div><div class="selection-copy"><span class="selection-kicker" id="selection-kicker">Selected image</span><strong id="selected-name">aggie-backstage-wide.webp</strong><small id="selected-meta">2400 × 1600 · Animal Future</small></div><button class="clear-selection" id="clear-selection" type="button">Clear</button></div>
+                <div class="permission" id="permission"><span class="status-dot" aria-hidden="true"></span><span><b id="permission-title">Usable now · Own</b><small id="permission-copy">This image belongs to Animal Future.</small></span></div>
+
+                <section class="crop-section" id="crop-section">
+                  <div class="section-label"><span>Crop source for this slot</span><b>Banner · 3:1</b></div>
+                  <div class="crop-viewport" id="crop-viewport" role="application" aria-label="Banner crop viewport. Drag to pan, use arrow keys to nudge, plus and minus to zoom." tabindex="0"><img id="crop-image" alt="" draggable="false"><span class="crop-grid" aria-hidden="true"></span></div>
+                  <p class="crop-instructions">Drag to pan. Arrow keys nudge; hold Shift for a larger nudge. Use +/− or the controls to zoom.</p>
+                  <div class="crop-controls"><button id="zoom-out" type="button" aria-label="Zoom out">−</button><input id="zoom" type="range" min="1" max="8" step="0.01" value="1" aria-label="Crop zoom"><button id="zoom-in" type="button" aria-label="Zoom in">＋</button><button class="reset" id="reset-crop" type="button">Reset</button></div>
+                  <output class="zoom-output" id="zoom-output" for="zoom">1.00× · centered</output>
+                  <div class="rendered-wrap"><div class="section-label"><span>Rendered output preview</span><b>1800 × 600</b></div><div class="rendered-preview" aria-label="Banner rendered output preview"><img id="preview-image" alt=""><span class="preview-loading" id="preview-loading" role="status">Preparing current crop…</span></div></div>
+                </section>
+
+                <div id="metadata-fields"><div class="field"><label for="alt">Alternative text <span>Required</span></label><textarea id="alt" aria-required="true" placeholder="Describe what matters in the image"></textarea><p class="field-help">Describe the subject and useful context; don’t start with “image of.”</p></div><div class="field"><label for="credit">Photo credit <span>Optional</span></label><input id="credit" type="text" placeholder="Photographer or source"></div></div>
+              </div>
+              <footer class="workflow-actions"><p class="readiness" id="readiness">Crop output is preparing · Alt text required</p><button class="insert" id="insert-desktop" type="button" disabled>Insert into profile banner</button></footer>
+            </div>
+          </aside>
+        </div>
+
+        <footer class="mobile-footer" aria-label="Selection and insert actions"><div class="mobile-summary"><strong id="mobile-summary-name">No image selected</strong><span id="mobile-summary-status">Choose an available image to continue</span></div><button class="mobile-insert" id="insert-mobile" type="button" disabled>Insert</button></footer>
+        <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const dialog = document.querySelector('#picker-dialog');
+    const backdrop = document.querySelector('#dialog-backdrop');
+    const host = document.querySelector('#host-content');
+    const chooseSlot = document.querySelector('#choose-slot');
+    const closeDialog = document.querySelector('#close-dialog');
+    const announcer = document.querySelector('#announcer');
+    const idleState = document.querySelector('#idle-state');
+    const selectedState = document.querySelector('#selected-state');
+    const permission = document.querySelector('#permission');
+    const cropSection = document.querySelector('#crop-section');
+    const metadataFields = document.querySelector('#metadata-fields');
+    const selectedName = document.querySelector('#selected-name');
+    const selectedMeta = document.querySelector('#selected-meta');
+    const selectionKicker = document.querySelector('#selection-kicker');
+    const selectionThumb = document.querySelector('#selection-thumb');
+    const cropImage = document.querySelector('#crop-image');
+    const previewImage = document.querySelector('#preview-image');
+    const cropViewport = document.querySelector('#crop-viewport');
+    const previewLoading = document.querySelector('#preview-loading');
+    const zoomInput = document.querySelector('#zoom');
+    const zoomOutput = document.querySelector('#zoom-output');
+    const altInput = document.querySelector('#alt');
+    const creditInput = document.querySelector('#credit');
+    const readiness = document.querySelector('#readiness');
+    const insertDesktop = document.querySelector('#insert-desktop');
+    const insertMobile = document.querySelector('#insert-mobile');
+    const mobileName = document.querySelector('#mobile-summary-name');
+    const mobileStatus = document.querySelector('#mobile-summary-status');
+    const params = new URLSearchParams(location.search);
+
+    let selected = null;
+    let cropReady = false;
+    let previewTimer = null;
+    let zoom = 1;
+    let pan = { x: 0, y: 0 };
+    let drag = null;
+    let uploadTimer = null;
+    let lastFocus = chooseSlot;
+
+    const artSvgs = {
+      stage: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#6e3d72"/><stop offset=".55" stop-color="#17192b"/><stop offset="1" stop-color="#a65d35"/></linearGradient><radialGradient id="l"><stop stop-color="#f5a623"/><stop offset="1" stop-color="#f5a623" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="1200" fill="url(#g)"/><circle cx="420" cy="250" r="220" fill="url(#l)" opacity=".8"/><circle cx="1200" cy="220" r="180" fill="#b260e9" opacity=".18"/><path d="M620 1200V690q0-190 180-190t180 190v510" fill="#10111b"/><path d="M200 1200V860q0-130 150-130t150 130v340M1100 1200V820q0-130 150-130t150 130v380" fill="#222032"/></svg>`,
+      portrait: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#62777a"/><stop offset=".52" stop-color="#252a3d"/><stop offset="1" stop-color="#a56448"/></linearGradient></defs><rect width="1600" height="1200" fill="url(#g)"/><circle cx="820" cy="380" r="170" fill="#d09a74"/><path d="M470 1200q20-510 350-510t360 510" fill="#25243a"/><path d="M0 960L550 410M1120 1200l480-520" stroke="#e1c7a8" stroke-opacity=".15" stroke-width="28"/></svg>`,
+      cover: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><rect width="1600" height="1200" fill="#2b2e43"/><path d="M800 80L1500 600 800 1120 100 600Z" fill="#99505f"/><circle cx="800" cy="600" r="360" fill="#2f6773"/><circle cx="800" cy="600" r="230" fill="#e49a36"/><circle cx="800" cy="600" r="140" fill="#272a3d"/></svg>`,
+      studio: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#273b59"/><stop offset=".5" stop-color="#714e65"/><stop offset="1" stop-color="#bd8148"/></linearGradient></defs><rect width="1600" height="1200" fill="url(#g)"/><rect x="420" y="300" width="760" height="520" rx="18" fill="#171822" transform="rotate(-5 800 560)"/><rect x="470" y="350" width="660" height="410" fill="#8c6c72" transform="rotate(-5 800 560)"/><path d="M800 0v1200" stroke="#fff" stroke-opacity=".16" stroke-width="22"/></svg>`,
+      desert: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><rect width="1600" height="520" fill="#d9905c"/><rect y="520" width="1600" height="230" fill="#6d506d"/><rect y="750" width="1600" height="450" fill="#1c2334"/><path d="M0 1200V760l620 160 370-90 610 230v140" fill="#493027"/><path d="M1080 890l220-570 260 570z" fill="#29202a"/></svg>`,
+      mono: `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#727782"/><stop offset=".55" stop-color="#181a24"/><stop offset="1" stop-color="#aaaeb6"/></linearGradient></defs><rect width="1600" height="1200" fill="url(#g)"/><g fill="#171923"><rect x="260" y="250" width="1080" height="180"/><rect x="340" y="510" width="920" height="180"/><rect x="220" y="780" width="1160" height="170"/></g></svg>`
+    };
+    const svgUrl = (kind) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(artSvgs[kind] || artSvgs.stage)}`;
+    const isMobile = () => matchMedia('(max-width: 768px)').matches;
+    const announce = (message) => { announcer.textContent = ''; requestAnimationFrame(() => { announcer.textContent = message; }); };
+
+    function setDialogOpen(open) {
+      backdrop.hidden = !open;
+      host.inert = open;
+      host.setAttribute('aria-hidden', open ? 'true' : 'false');
+      if (open) {
+        lastFocus = document.activeElement === document.body ? chooseSlot : document.activeElement;
+        requestAnimationFrame(() => document.querySelector('[role="tab"][aria-selected="true"]')?.focus());
+      } else if (lastFocus instanceof HTMLElement) lastFocus.focus();
+    }
+    chooseSlot.addEventListener('click', () => setDialogOpen(true));
+    closeDialog.addEventListener('click', () => setDialogOpen(false));
+    backdrop.addEventListener('click', (event) => { if (event.target === backdrop) setDialogOpen(false); });
+    document.addEventListener('keydown', (event) => {
+      if (backdrop.hidden) return;
+      if (event.key === 'Escape') { event.preventDefault(); setDialogOpen(false); return; }
+      if (event.key !== 'Tab') return;
+      const focusables = [...dialog.querySelectorAll('button:not([disabled]):not([hidden]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex="0"]')].filter((node) => node.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0]; const last = focusables.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+
+    function openTab(name, focus = false) {
+      document.querySelectorAll('[role="tab"]').forEach((tab) => {
+        const active = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focus) tab.focus();
+      });
+      document.querySelectorAll('[role="tabpanel"]').forEach((panel) => { panel.hidden = panel.id !== `panel-${name}`; });
+    }
+    document.querySelectorAll('[role="tab"]').forEach((tab) => {
+      tab.addEventListener('click', () => openTab(tab.dataset.tab));
+      tab.addEventListener('keydown', (event) => {
+        const tabs = [...document.querySelectorAll('[role="tab"]')];
+        const index = tabs.indexOf(tab);
+        if (event.key === 'ArrowRight') { event.preventDefault(); openTab(tabs[(index + 1) % tabs.length].dataset.tab, true); }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); openTab(tabs[(index - 1 + tabs.length) % tabs.length].dataset.tab, true); }
+      });
+    });
+    document.querySelectorAll('[data-open-tab]').forEach((button) => button.addEventListener('click', () => openTab(button.dataset.openTab, true)));
+
+    function updateImageTransform() {
+      const transform = `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})`;
+      cropImage.style.transform = transform;
+      previewImage.style.transform = transform;
+      zoomInput.value = String(zoom);
+      const position = Math.abs(pan.x) < 1 && Math.abs(pan.y) < 1 ? 'centered' : 'custom position';
+      zoomOutput.textContent = `${zoom.toFixed(2)}× · ${position}`;
+    }
+    function schedulePreview(immediate = false) {
+      cropReady = false;
+      previewLoading.hidden = false;
+      previewLoading.textContent = 'Preparing current crop…';
+      updateReadiness();
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => { cropReady = true; previewLoading.hidden = true; updateReadiness(); announce('Rendered crop preview ready for the current image.'); }, immediate ? 0 : 350);
+    }
+    function updateReadiness() {
+      const usable = Boolean(selected?.usable);
+      const hasAlt = altInput.value.trim().length > 0;
+      const ready = usable && cropReady && hasAlt;
+      insertDesktop.disabled = !ready;
+      insertMobile.disabled = !ready;
+      readiness.classList.toggle('ready', ready);
+      if (!selected) readiness.textContent = 'Select an image to begin';
+      else if (!usable) readiness.textContent = 'This image is not available';
+      else if (!cropReady && !hasAlt) readiness.textContent = 'Crop output is preparing · Alt text required';
+      else if (!cropReady) readiness.textContent = 'Crop output is preparing';
+      else if (!hasAlt) readiness.textContent = 'Crop ready · Add alt text to insert';
+      else readiness.textContent = '✓ Current crop ready · ✓ Alt text added';
+      mobileStatus.textContent = !selected ? 'Choose an available image to continue' : !usable ? 'Not available · owner’s permission needed' : ready ? 'Ready to insert into profile banner' : cropReady ? 'Add alt text to finish' : 'Preparing crop output…';
+    }
+    function clearSelection() {
+      clearTimeout(previewTimer);
+      selected = null; cropReady = false; zoom = 1; pan = { x: 0, y: 0 };
+      document.querySelectorAll('.asset').forEach((asset) => asset.setAttribute('aria-pressed','false'));
+      idleState.hidden = false; selectedState.hidden = true;
+      altInput.value = ''; creditInput.value = '';
+      mobileName.textContent = 'No image selected';
+      dialog.dataset.mobileStage = 'browse';
+      updateReadiness();
+      announce('Selection cleared. Select an image to begin.');
+    }
+    function selectAsset(asset, options = {}) {
+      clearTimeout(previewTimer);
+      document.querySelectorAll('.asset').forEach((item) => item.setAttribute('aria-pressed', String(item === asset)));
+      selected = {
+        id: asset.dataset.id,
+        kind: asset.dataset.kind,
+        name: asset.dataset.name,
+        label: asset.dataset.label,
+        owner: asset.dataset.owner,
+        dims: asset.dataset.dims,
+        status: asset.dataset.status,
+        usable: asset.dataset.usable === 'true'
+      };
+      /* Atomic reset: crop, metadata, preview readiness, and insert all belong to this asset. */
+      cropReady = false; zoom = 1; pan = { x: 0, y: 0 };
+      altInput.value = ''; creditInput.value = '';
+      insertDesktop.disabled = true; insertMobile.disabled = true;
+      idleState.hidden = true; selectedState.hidden = false;
+      selectedName.textContent = selected.name;
+      selectedMeta.textContent = `${selected.dims} · ${selected.owner}`;
+      selectionKicker.textContent = options.current ? 'Current image' : 'Selected image';
+      selectionThumb.className = `selection-thumb art ${selected.kind}`;
+      mobileName.textContent = selected.name;
+      permission.classList.toggle('blocked', !selected.usable);
+      document.querySelector('#permission-title').textContent = selected.usable ? `Usable now · ${selected.status}` : 'Not available';
+      document.querySelector('#permission-copy').textContent = selected.usable ? (selected.status === 'Own' ? `This image belongs to Animal Future.` : `${selected.owner} has made this image usable now.`) : `This image needs the owner’s permission — it is not available for this slot.`;
+      cropSection.hidden = !selected.usable;
+      metadataFields.hidden = !selected.usable;
+      if (selected.usable) {
+        cropImage.src = svgUrl(selected.kind); previewImage.src = svgUrl(selected.kind); updateImageTransform();
+        if (options.current) {
+          zoom = 1.42; pan = { x: -18, y: 5 };
+          altInput.value = asset.dataset.alt || '';
+          creditInput.value = asset.dataset.credit || '';
+          updateImageTransform(); schedulePreview(true);
+        } else if (options.demoReady) {
+          zoom = 1.55; pan = { x: -22, y: 7 };
+          altInput.value = asset.dataset.alt || 'Musicians performing under warm stage lights.';
+          creditInput.value = asset.dataset.credit || '';
+          updateImageTransform(); cropReady = true; previewLoading.hidden = true; updateReadiness();
+        } else schedulePreview();
+      } else { previewLoading.hidden = true; updateReadiness(); }
+      if (isMobile()) dialog.dataset.mobileStage = 'edit';
+      announce(selected.usable ? `${selected.label} selected. Crop and description reset for this image. Insert remains disabled until crop output and alt text are ready.` : `${selected.label} needs the owner’s permission and is not available.`);
+    }
+    document.querySelectorAll('.asset').forEach((asset) => asset.addEventListener('click', () => selectAsset(asset)));
+    document.querySelector('#clear-selection').addEventListener('click', clearSelection);
+    document.querySelector('#back-to-browse').addEventListener('click', () => { dialog.dataset.mobileStage = 'browse'; document.querySelector('[role="tab"][aria-selected="true"]')?.focus(); });
+    altInput.addEventListener('input', updateReadiness);
+
+    function setZoom(next) { zoom = Math.max(1, Math.min(8, next)); updateImageTransform(); schedulePreview(); }
+    zoomInput.addEventListener('input', () => setZoom(Number(zoomInput.value)));
+    document.querySelector('#zoom-in').addEventListener('click', () => setZoom(zoom + .1));
+    document.querySelector('#zoom-out').addEventListener('click', () => setZoom(zoom - .1));
+    document.querySelector('#reset-crop').addEventListener('click', () => { zoom = 1; pan = { x: 0, y: 0 }; updateImageTransform(); schedulePreview(); announce('Crop reset to centered.'); });
+    cropViewport.addEventListener('pointerdown', (event) => { cropViewport.setPointerCapture?.(event.pointerId); drag = { x: event.clientX, y: event.clientY, pan: { ...pan } }; cropViewport.classList.add('dragging'); });
+    cropViewport.addEventListener('pointermove', (event) => { if (!drag) return; pan.x = Math.max(-220, Math.min(220, drag.pan.x + event.clientX - drag.x)); pan.y = Math.max(-180, Math.min(180, drag.pan.y + event.clientY - drag.y)); updateImageTransform(); });
+    const finishDrag = () => { if (!drag) return; drag = null; cropViewport.classList.remove('dragging'); schedulePreview(); };
+    cropViewport.addEventListener('pointerup', finishDrag); cropViewport.addEventListener('pointercancel', finishDrag);
+    cropViewport.addEventListener('keydown', (event) => {
+      const amount = event.shiftKey ? 20 : 4;
+      const actions = { ArrowLeft: () => pan.x -= amount, ArrowRight: () => pan.x += amount, ArrowUp: () => pan.y -= amount, ArrowDown: () => pan.y += amount, '+': () => setZoom(zoom + .1), '=': () => setZoom(zoom + .1), '-': () => setZoom(zoom - .1) };
+      if (!actions[event.key]) return;
+      event.preventDefault(); actions[event.key](); pan.x = Math.max(-220, Math.min(220, pan.x)); pan.y = Math.max(-180, Math.min(180, pan.y)); updateImageTransform(); schedulePreview();
+    });
+
+    const dropzone = document.querySelector('#dropzone');
+    const fileInput = document.querySelector('#file-input');
+    const uploadProgress = document.querySelector('#upload-progress');
+    const uploadError = document.querySelector('#upload-error');
+    const progress = document.querySelector('#progress');
+    let pendingFile = null;
+    function validateAndUpload(file) {
+      if (!file) return;
+      pendingFile = file;
+      const validType = ['image/jpeg','image/png','image/webp'].includes(file.type);
+      if (!validType || file.size > 10 * 1024 * 1024) {
+        uploadProgress.hidden = true; uploadError.hidden = false;
+        document.querySelector('#upload-error-copy').textContent = !validType ? 'Choose a JPEG, PNG, or WebP image.' : 'This image is larger than the 10 MB limit.';
+        announce('Upload failed. Check the file format and size.'); return;
+      }
+      uploadError.hidden = true; uploadProgress.hidden = false; progress.value = 6;
+      document.querySelector('#upload-name').textContent = file.name;
+      document.querySelector('#upload-copy').textContent = 'Uploading to Animal Future’s library…';
+      clearInterval(uploadTimer);
+      uploadTimer = setInterval(() => {
+        progress.value = Math.min(100, Number(progress.value) + 14);
+        if (progress.value < 100) return;
+        clearInterval(uploadTimer);
+        document.querySelector('#upload-copy').textContent = 'Upload complete · opening crop';
+        const virtualAsset = document.createElement('button');
+        virtualAsset.dataset.id = 'uploaded'; virtualAsset.dataset.kind = 'stage'; virtualAsset.dataset.name = file.name; virtualAsset.dataset.label = file.name; virtualAsset.dataset.owner = 'Animal Future'; virtualAsset.dataset.dims = '2400 × 1600'; virtualAsset.dataset.status = 'Own'; virtualAsset.dataset.usable = 'true';
+        setTimeout(() => { uploadProgress.hidden = true; selectAsset(virtualAsset); }, 250);
+      }, 160);
+    }
+    fileInput.addEventListener('change', () => { validateAndUpload(fileInput.files?.[0]); fileInput.value = ''; });
+    ['dragenter','dragover'].forEach((type) => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('dragging'); }));
+    ['dragleave','drop'].forEach((type) => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
+    dropzone.addEventListener('drop', (event) => validateAndUpload(event.dataTransfer?.files?.[0]));
+    document.querySelector('#cancel-upload').addEventListener('click', () => { clearInterval(uploadTimer); uploadProgress.hidden = true; progress.value = 0; announce('Upload canceled.'); });
+    document.querySelector('#retry-upload').addEventListener('click', () => { if (pendingFile) validateAndUpload(pendingFile); else { uploadError.hidden = true; fileInput.click(); } });
+
+    [insertDesktop, insertMobile].forEach((button) => button.addEventListener('click', () => { if (!button.disabled) announce(`${selected.name} inserted into profile banner. Focus will return to the image slot.`); }));
+
+    /* Deterministic review URLs: idle (default), selected/current, empty, shared/blocked, and upload/progress/error. */
+    const demoState = params.get('state');
+    if (demoState === 'empty') { document.body.classList.add('demo-empty'); document.querySelector('#own-count').textContent = '0'; }
+    if (demoState === 'shared') openTab('shared');
+    if (demoState === 'upload' || demoState === 'upload-progress' || demoState === 'upload-error') openTab('upload');
+    if (demoState === 'upload-progress') { uploadProgress.hidden = false; progress.value = 46; document.querySelector('#upload-name').textContent = 'new-tour-banner.webp'; }
+    if (demoState === 'upload-error') uploadError.hidden = false;
+    if (demoState === 'selected' || demoState === 'current') {
+      const asset = document.querySelector('[data-id="aggie"]');
+      selectAsset(asset, { demoReady: demoState === 'selected', current: demoState === 'current' });
+    } else if (demoState === 'blocked') {
+      openTab('shared');
+      selectAsset(document.querySelector('[data-id="desert"]'));
+    } else updateReadiness();
+    setDialogOpen(true);
+  </script>
+</body>
+</html>

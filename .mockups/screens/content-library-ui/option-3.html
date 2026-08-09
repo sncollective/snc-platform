@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>content-library-ui — Option 3: Media canvas and permission inspector</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: #121320; color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+    main, section, aside, article, div, nav { min-width: 0; }
+    button, input, select { max-width: 100%; font: inherit; }
+    button { min-height: 42px; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .tool-head { height: 64px; padding: 0 var(--space-md); display: grid; grid-template-columns: 210px minmax(240px,1fr) auto; gap: var(--space-md); align-items: center; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { display: flex; align-items: center; gap: var(--space-sm); font-weight: var(--font-weight-bold); }
+    .brand b { color: var(--color-accent); }
+    .back { color: var(--color-text-muted); font-size: var(--font-size-xs); font-weight: 400; }
+    .search { width: min(620px,100%); min-height: 42px; padding: .55rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-input); color: var(--color-text); }
+    .target { display: flex; align-items: center; gap: var(--space-sm); }
+    .target-copy { text-align: right; }
+    .target-copy strong, .target-copy small { display: block; }
+    .target-copy small { color: var(--color-text-muted); }
+    .target button { padding: .5rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
+    .dam { height: calc(100vh - 102px); min-height: 720px; display: grid; grid-template-columns: 210px minmax(0,1fr) 340px; }
+    .collection-rail { padding: var(--space-md) var(--space-sm); overflow-y: auto; border-right: 1px solid var(--color-border); background: #171827; }
+    .rail-label { padding: .45rem .7rem; color: var(--color-text-muted); font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .collection-rail button { width: 100%; min-height: 38px; padding: .42rem .7rem; display: flex; justify-content: space-between; gap: var(--space-sm); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); text-align: left; }
+    .collection-rail button.active { background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .collection-rail button span { color: var(--color-text-muted); font-size: 11px; }
+    .rail-rule { height: 1px; margin: var(--space-md) var(--space-sm); background: var(--color-border); }
+    .legend { margin: var(--space-md) .7rem; display: grid; gap: .45rem; color: var(--color-text-muted); font-size: 11px; }
+    .legend span { display: flex; align-items: center; gap: .45rem; }
+    .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); }
+    .legend .amber { background: var(--color-warning); }
+    .legend .teal { background: var(--color-secondary); }
+    .canvas { min-width: 0; padding: var(--space-md); overflow-y: auto; background: #11121d; }
+    .canvas-head { margin-bottom: var(--space-md); display: flex; justify-content: space-between; align-items: end; gap: var(--space-md); }
+    .canvas-head h1 { margin: 0; font-size: var(--font-size-xl); }
+    .canvas-head p { margin: .15rem 0 0; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .view-actions { display: flex; gap: var(--space-xs); }
+    .view-actions button { min-height: 34px; padding: .3rem .55rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 11px; }
+    .view-actions button.active { color: var(--color-text); border-color: var(--color-secondary); }
+    .asset-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-sm); align-items: start; }
+    .asset { position: relative; min-width: 0; overflow: hidden; border: 1px solid transparent; border-radius: var(--radius-sm); background: #1d1e2d; color: var(--color-text); text-align: left; }
+    .asset:hover { border-color: var(--color-border); }
+    .asset.selected { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-bg); }
+    .thumb { position: relative; display: block; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: #171723; }
+    .asset.tall .thumb { aspect-ratio: 4/5; }
+    .thumb::before, .thumb::after { content: ""; position: absolute; }
+    .stage { background: radial-gradient(circle at 24% 17%,#d484f0 0 3%,transparent 4%),radial-gradient(circle at 74% 18%,#f5a623 0 2%,transparent 3%),linear-gradient(151deg,#49315b,#121421 52%,#895036); }
+    .stage::before { width: 30%; height: 68%; left: 35%; bottom: -15%; border-radius: 48% 48% 16% 16%; background: #15131e; box-shadow: -39px 12px 0 -11px #211723,42px 9px 0 -13px #171a25; }
+    .portrait { background: radial-gradient(circle at 51% 27%,#cb926d 0 12%,transparent 13%),linear-gradient(135deg,#647a7b,#24293c 49%,#a76547); }
+    .portrait::before { width: 43%; height: 57%; left: 30%; bottom: -9%; border-radius: 45% 45% 10% 10%; background: #232336; }
+    .desert { background: linear-gradient(8deg,#4c3028 0 24%,transparent 25%),linear-gradient(#d98f58 0 47%,#6c4b68 48% 61%,#1c2334 62%); }
+    .desert::before { width: 29%; height: 56%; right: 18%; bottom: 18%; clip-path: polygon(40% 0,100% 100%,0 100%); background: #291f28; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 19%,#eda33a 20% 22%,transparent 23%),conic-gradient(from 18deg,#25293a,#984d5e,#e09a35,#2b6272,#25293a); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.14) 49% 51%,transparent 52%),linear-gradient(135deg,#273957,#704d62 48%,#b47a43); }
+    .studio::before { width: 54%; height: 42%; left: 22%; top: 30%; border: 4px solid #191a27; transform: rotate(-7deg); }
+    .mono { background: linear-gradient(135deg,#59606d,#151821 55%,#9da2aa); filter: grayscale(1); }
+    .mono::before { width: 60%; height: 12%; left: 20%; top: 45%; background: #151821; box-shadow: 0 -27px 0 -3px #262936,0 27px 0 -4px #313541; }
+    .badge { position: absolute; top: 7px; left: 7px; padding: .18rem .42rem; border: 1px solid rgba(255,255,255,.18); border-radius: var(--radius-pill); background: rgba(9,10,18,.87); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .badge.open, .badge.own, .badge.granted { color: #8fdf94; }
+    .badge.requestable { color: #ffcb71; }
+    .badge.pending { color: #89d5d5; }
+    .asset-info { padding: .48rem .55rem .58rem; }
+    .asset-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .asset-info small { display: block; color: var(--color-text-muted); font-size: 10px; }
+    .inspector { min-width: 0; overflow-y: auto; border-left: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .inspector-head { padding: var(--space-md); border-bottom: 1px solid var(--color-border); }
+    .inspector-head span { color: var(--color-secondary); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .inspector-head h2 { margin: .25rem 0 0; font-size: var(--font-size-lg); }
+    .hero-preview { width: 100%; aspect-ratio: 16/10; }
+    .detail { padding: var(--space-md); }
+    .detail h3 { margin: 0; font-size: var(--font-size-sm); }
+    .detail-meta { margin: .3rem 0 var(--space-sm); display: grid; grid-template-columns: 1fr 1fr; gap: .35rem var(--space-md); color: var(--color-text-muted); font-size: 11px; }
+    .detail-meta b { color: var(--color-text); font-weight: 500; }
+    .use-check { padding: .7rem; display: flex; gap: .55rem; border: 1px solid color-mix(in srgb,var(--color-warning) 55%,var(--color-border)); border-radius: var(--radius-md); background: color-mix(in srgb,var(--color-warning) 10%,transparent); }
+    .use-check i { flex: 0 0 9px; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--color-warning); }
+    .use-check strong, .use-check small { display: block; }
+    .use-check strong { color: #ffcb71; }
+    .use-check small { color: var(--color-text-muted); }
+    .primary { width: 100%; margin-top: var(--space-sm); padding: .58rem .8rem; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #20170a; font-weight: 700; }
+    .owner-tools { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); }
+    .owner-tools > p { margin: .25rem 0 var(--space-sm); color: var(--color-text-muted); font-size: 11px; }
+    .quick-asset { padding: .6rem; display: grid; grid-template-columns: 42px minmax(0,1fr); gap: .55rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .quick-asset .thumb { width: 42px; height: 42px; aspect-ratio: 1; border-radius: 3px; }
+    .quick-asset strong { display: block; font-size: 11px; }
+    .scope-control { grid-column: 2; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 3px; }
+    .scope-control button { min-height: 29px; padding: .2rem; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); font-size: 9px; }
+    .scope-control button.active { border-color: var(--color-secondary); background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .incoming { margin-top: var(--space-sm); padding: .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .incoming strong, .incoming small { display: block; font-size: 11px; }
+    .incoming small { color: var(--color-text-muted); }
+    .incoming-actions { margin-top: .5rem; display: flex; gap: .4rem; }
+    .incoming-actions button { flex: 1; min-height: 32px; padding: .25rem .45rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text); font-size: 11px; }
+    .incoming-actions .approve { border-color: var(--color-secondary); color: var(--color-secondary); }
+    @media (max-width: 1120px) {
+      .dam { grid-template-columns: 170px minmax(0,1fr) 300px; }
+      .tool-head { grid-template-columns: 170px minmax(220px,1fr) auto; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .target-copy { display: none; }
+    }
+    @media (max-width: 860px) {
+      .dam { grid-template-columns: minmax(0,1fr) 300px; }
+      .collection-rail { display: none; }
+      .tool-head { grid-template-columns: auto minmax(180px,1fr) auto; }
+    }
+    @media (max-width: 650px) {
+      .dam { height: auto; min-height: 0; grid-template-columns: 1fr; }
+      .canvas, .inspector { overflow: visible; }
+      .inspector { border-left: 0; border-top: 1px solid var(--color-border); }
+      .tool-head { height: auto; padding: var(--space-sm); grid-template-columns: 1fr auto; }
+      .search { grid-column: 1 / -1; grid-row: 2; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 3 — Media canvas + permission inspector</strong><span>A digital-asset-manager layout keeps the collection scannable while one persistent inspector explains use rights and owner controls.</span></header>
+  <header class="tool-head"><div class="brand"><b>S/NC</b> Media <span class="back">Back to manage</span></div><input class="search" type="search" placeholder="Search 64 visible assets" aria-label="Search media"><div class="target"><div class="target-copy"><strong>Picking for banner</strong><small>Animal Future · 3:1 crop next</small></div><button type="button">Exit picker</button></div></header>
+  <main class="dam">
+    <aside class="collection-rail" aria-label="Collections"><div class="rail-label">Browse</div><button class="active" type="button">All visible <span>64</span></button><button type="button">Usable now <span>18</span></button><button type="button">Needs access <span>9</span></button><button type="button">Your originals <span>12</span></button><button type="button">Shared pool <span>52</span></button><div class="rail-rule"></div><div class="rail-label">Saved views</div><button type="button">Press-ready <span>8</span></button><button type="button">Square artwork <span>14</span></button><button type="button">Recent uploads <span>6</span></button><div class="rail-rule"></div><div class="rail-label">Access</div><button type="button">Incoming requests <span>3</span></button><button type="button">Your pending asks <span>1</span></button><div class="legend" aria-label="Permission legend"><span><i></i> Usable: own, open, granted</span><span><i class="amber"></i> Requestable</span><span><i class="teal"></i> Pending decision</span></div></aside>
+    <section class="canvas" aria-labelledby="canvas-title"><header class="canvas-head"><div><h1 id="canvas-title">All visible media</h1><p>Own library plus open and requestable originals from other creators.</p></div><div class="view-actions"><button class="active" type="button">Grid</button><button type="button">Compact</button><button type="button">Newest</button></div></header>
+      <div class="asset-grid">
+        <button class="asset selected" type="button" data-title="High desert tour still" data-owner="Ramble Atlas" data-status="requestable"><span class="thumb desert"><span class="badge requestable">Requestable</span></span><span class="asset-info"><strong>high-desert-tour.jpg</strong><small>Ramble Atlas · 2048 × 1365</small></span></button>
+        <button class="asset tall" type="button" data-title="LeAnna portrait, brick wall" data-owner="Animal Future" data-status="own"><span class="thumb portrait"><span class="badge own">Own</span></span><span class="asset-info"><strong>leanna-brick-wall.jpg</strong><small>Animal Future · 1800 × 2400</small></span></button>
+        <button class="asset" type="button" data-title="Backstage at the Aggie" data-owner="S/NC Records" data-status="open"><span class="thumb stage"><span class="badge open">Open</span></span><span class="asset-info"><strong>aggie-backstage-wide.webp</strong><small>S/NC Records · 2400 × 1600</small></span></button>
+        <button class="asset" type="button" data-title="North room session" data-owner="Mira Chen" data-status="granted"><span class="thumb studio"><span class="badge granted">Granted</span></span><span class="asset-info"><strong>north-room-session.webp</strong><small>Mira Chen · 1920 × 1280</small></span></button>
+        <button class="asset" type="button" data-title="The Illusionist cover" data-owner="Animal Future" data-status="own"><span class="thumb cover"><span class="badge own">Own · Private</span></span><span class="asset-info"><strong>illusionist-cover.png</strong><small>Animal Future · 3000 × 3000</small></span></button>
+        <button class="asset" type="button" data-title="Load-in contact sheet" data-owner="Goodnight Provider" data-status="pending"><span class="thumb mono"><span class="badge pending">Pending</span></span><span class="asset-info"><strong>load-in-contact.jpg</strong><small>Goodnight Provider · 2200 × 1467</small></span></button>
+      </div>
+    </section>
+    <aside class="inspector" aria-label="Asset inspector"><header class="inspector-head"><span>Selected asset</span><h2 id="asset-title">High desert tour still</h2></header><div class="hero-preview thumb desert" id="hero-preview" role="img" aria-label="Selected high desert tour image"></div><section class="detail"><h3 id="asset-owner">Ramble Atlas</h3><div class="detail-meta"><span>Format <b>JPEG</b></span><span>Size <b>3.8 MB</b></span><span>Dimensions <b>2048 × 1365</b></span><span>Uploaded <b>Aug 4</b></span></div><div class="use-check" id="use-check"><i></i><div><strong id="use-title">Permission required</strong><small id="use-copy">Browseable because the owner marked it requestable. Animal Future needs a creator-specific grant before use.</small></div></div><button class="primary" id="permission-action" type="button">Request access from Ramble Atlas</button>
+        <section class="owner-tools"><h3>Owner tools</h3><p>You also approve requests and set sharing on your own originals without leaving the picker.</p><div class="quick-asset"><div class="thumb portrait"></div><div><strong>LeAnna portrait · yours</strong><small style="color:var(--color-text-muted)">Current scope: Requestable</small></div><div class="scope-control" role="group" aria-label="Sharing scope"><button type="button">Private</button><button class="active" type="button">Requestable</button><button type="button">Open</button></div></div><div class="incoming"><strong>North Forty Visuals requests this portrait</strong><small>For avatar · requested 2 hours ago</small><div class="incoming-actions"><button class="approve" type="button">Grant access</button><button type="button">Decline</button></div></div></section>
+      </section></aside>
+  </main>
+  <script>
+    const assets = document.querySelectorAll('.asset');
+    const title = document.querySelector('#asset-title');
+    const owner = document.querySelector('#asset-owner');
+    const useTitle = document.querySelector('#use-title');
+    const useCopy = document.querySelector('#use-copy');
+    const action = document.querySelector('#permission-action');
+    assets.forEach((asset) => asset.addEventListener('click', () => {
+      assets.forEach((item) => item.classList.remove('selected'));
+      asset.classList.add('selected');
+      title.textContent = asset.dataset.title;
+      owner.textContent = asset.dataset.owner;
+      const status = asset.dataset.status;
+      const usable = ['own','open','granted'].includes(status);
+      useTitle.textContent = usable ? `Usable now · ${status}` : (status === 'pending' ? 'Request pending' : 'Permission required');
+      useCopy.textContent = usable ? 'The use check passes for Animal Future and this target slot.' : 'This asset is visible, but a creator-specific grant is required before use.';
+      action.textContent = usable ? 'Use for banner' : (status === 'pending' ? 'Request pending' : `Request access from ${asset.dataset.owner}`);
+      action.disabled = status === 'pending';
+    }));
+    document.querySelector('#permission-action').addEventListener('click', (event) => {
+      if (!event.currentTarget.textContent.startsWith('Request access')) return;
+      event.currentTarget.textContent = 'Request sent · Pending';
+      event.currentTarget.disabled = true;
+      useTitle.textContent = 'Request pending';
+      useCopy.textContent = 'The owner has been notified. This asset remains unavailable until they grant access.';
+    });
+    document.querySelectorAll('.scope-control button').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.scope-control button').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    document.querySelector('.approve').addEventListener('click', (event) => {
+      event.currentTarget.textContent = 'Access granted';
+      event.currentTarget.disabled = true;
+      event.currentTarget.nextElementSibling.hidden = true;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>content-library-ui — Option 2: Full-page library workspace</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+    main, section, aside, div, article, nav { min-width: 0; }
+    button, input, select { max-width: 100%; font: inherit; }
+    button { min-height: 42px; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .platform-bar { height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-xl); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); letter-spacing: .03em; }
+    .brand b { color: var(--color-accent); }
+    .platform-links { display: flex; gap: var(--space-lg); color: var(--color-text-muted); }
+    .account { margin-left: auto; padding: .35rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+    .manage-shell { display: grid; grid-template-columns: 212px minmax(0,1fr); min-height: calc(100vh - 94px); }
+    .manage-nav { padding: var(--space-md) var(--space-sm); border-right: 1px solid var(--color-border); }
+    .manage-title { padding: 0 var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+    .manage-title a { color: var(--color-text-muted); text-decoration: none; font-size: var(--font-size-xs); }
+    .manage-title strong { display: block; margin-top: var(--space-xs); font-size: var(--font-size-lg); }
+    .creator-select { margin: var(--space-md) var(--space-sm); padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); }
+    .manage-nav ul { margin: 0; padding: 0; list-style: none; }
+    .manage-nav li { padding: .48rem .75rem; border-radius: var(--radius-sm); color: var(--color-text-muted); }
+    .manage-nav li.active { background: var(--color-accent-bg); color: var(--color-accent); }
+    .workspace { min-width: 0; padding-bottom: 78px; }
+    .page-head { padding: var(--space-lg) clamp(1rem,3vw,2rem) var(--space-md); display: flex; align-items: start; justify-content: space-between; gap: var(--space-lg); }
+    h1 { margin: 0; font-family: var(--font-heading); font-size: var(--font-size-2xl); }
+    .lead { margin: .2rem 0 0; color: var(--color-text-muted); }
+    .head-actions { display: flex; gap: var(--space-sm); }
+    .btn { padding: .55rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text); font-weight: 600; white-space: nowrap; }
+    .btn.primary { border-color: var(--color-accent); background: var(--color-accent); color: #20170a; }
+    .stats { padding: 0 clamp(1rem,3vw,2rem) var(--space-md); display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: var(--space-sm); }
+    .stat { padding: .75rem var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .stat strong { display: block; font-size: var(--font-size-lg); }
+    .stat span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .stat.attention strong { color: var(--color-accent); }
+    .toolbar { margin: 0 clamp(1rem,3vw,2rem); padding: var(--space-sm); display: grid; grid-template-columns: minmax(220px,1fr) repeat(3,minmax(120px,auto)); gap: var(--space-sm); align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    input, select { width: 100%; min-height: 42px; padding: .55rem .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .body-grid { padding: var(--space-md) clamp(1rem,3vw,2rem) var(--space-xl); display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: var(--space-lg); align-items: start; }
+    .library-head { margin-bottom: var(--space-sm); display: flex; justify-content: space-between; align-items: end; gap: var(--space-md); }
+    .library-head h2 { margin: 0; font-size: var(--font-size-lg); }
+    .library-head span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .asset-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-sm); }
+    .asset { position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .asset.selected { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+    .thumb { position: relative; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: #161624; }
+    .thumb::before, .thumb::after { content: ""; position: absolute; }
+    .stage { background: radial-gradient(circle at 23% 16%,#d685f4 0 3%,transparent 4%),radial-gradient(circle at 75% 19%,#f5a623 0 2%,transparent 3%),linear-gradient(150deg,#4a315a,#131525 52%,#8a5036); }
+    .stage::before { width: 30%; height: 67%; left: 35%; bottom: -16%; border-radius: 48% 48% 18% 18%; background: #15131e; box-shadow: -40px 13px 0 -12px #201723,42px 10px 0 -12px #171a25; }
+    .portrait { background: radial-gradient(circle at 52% 29%,#cc916d 0 13%,transparent 14%),linear-gradient(135deg,#637779,#252a3d 50%,#a66247); }
+    .portrait::before { width: 43%; height: 55%; left: 31%; bottom: -10%; border-radius: 45% 45% 10% 10%; background: #242337; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 19%,#f1a83b 20% 22%,transparent 23%),conic-gradient(from 18deg,#24283a,#9a4d5e,#e19a35,#2d6572,#24283a); }
+    .desert { background: linear-gradient(8deg,#4b3028 0 24%,transparent 25%),linear-gradient(#d68f59 0 47%,#6d4c69 48% 61%,#1d2334 62%); }
+    .desert::before { width: 28%; height: 56%; right: 18%; bottom: 18%; clip-path: polygon(40% 0,100% 100%,0 100%); background: #291f28; }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.14) 49% 51%,transparent 52%),linear-gradient(135deg,#253958,#714d62 48%,#b27a42); }
+    .studio::before { width: 54%; height: 42%; left: 22%; top: 30%; border: 4px solid #191a27; transform: rotate(-7deg); }
+    .mono { background: linear-gradient(135deg,#59606d,#151821 55%,#9da2aa); filter: grayscale(1); }
+    .mono::before { width: 60%; height: 12%; left: 20%; top: 45%; background: #151821; box-shadow: 0 -27px 0 -3px #262936,0 27px 0 -4px #313541; }
+    .badges { position: absolute; top: 7px; left: 7px; right: 7px; display: flex; gap: 4px; flex-wrap: wrap; }
+    .badge { padding: .18rem .42rem; border: 1px solid rgba(255,255,255,.17); border-radius: var(--radius-pill); background: rgba(10,11,20,.86); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .badge.own, .badge.open, .badge.granted { color: #91e497; }
+    .badge.requestable { color: #ffcb72; }
+    .badge.pending { color: #87d8d8; }
+    .asset-copy { padding: .62rem; }
+    .asset-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
+    .asset-copy small { display: block; color: var(--color-text-muted); font-size: 11px; }
+    .card-actions { padding: 0 .62rem .62rem; display: flex; gap: .4rem; }
+    .card-actions button { flex: 1; min-height: 34px; padding: .35rem .4rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: 11px; }
+    .card-actions .use { border-color: var(--color-accent); color: var(--color-accent); }
+    .card-actions .request { color: #ffcb72; }
+    .side { display: grid; gap: var(--space-md); }
+    .panel { padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); }
+    .panel h2, .panel h3 { margin: 0; font-size: var(--font-size-base); }
+    .panel-head span { padding: .2rem .45rem; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: var(--color-accent); font-size: 11px; }
+    .panel > p { margin: .3rem 0 var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .request-row { padding: .65rem 0; display: grid; grid-template-columns: 44px minmax(0,1fr); gap: .6rem; border-top: 1px solid var(--color-border); }
+    .request-row:first-of-type { border-top: 0; }
+    .request-row .thumb { width: 44px; height: 44px; aspect-ratio: 1; border-radius: var(--radius-sm); }
+    .request-row strong, .request-row small { display: block; font-size: 11px; }
+    .request-row small { color: var(--color-text-muted); }
+    .request-actions { grid-column: 2; display: flex; gap: .35rem; }
+    .request-actions button { min-height: 30px; padding: .25rem .5rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); font-size: 11px; }
+    .request-actions .approve { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .share-row { padding: .65rem 0; display: grid; grid-template-columns: 44px minmax(0,1fr); gap: .6rem; align-items: center; border-top: 1px solid var(--color-border); }
+    .share-row .thumb { width: 44px; height: 44px; aspect-ratio: 1; border-radius: var(--radius-sm); }
+    .share-row strong { display: block; margin-bottom: .25rem; font-size: 11px; }
+    .share-row select { min-height: 34px; padding: .3rem .45rem; font-size: 11px; }
+    .selected-tray { position: fixed; left: 212px; right: 0; bottom: 0; z-index: var(--z-sticky); min-width: 0; padding: var(--space-sm) clamp(1rem,3vw,2rem); display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); border-top: 1px solid var(--color-border); background: color-mix(in srgb,var(--color-bg) 94%,transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-lg); }
+    .tray-copy { min-width: 0; display: flex; align-items: center; gap: var(--space-sm); }
+    .tray-copy .thumb { flex: 0 0 48px; width: 48px; height: 42px; aspect-ratio: auto; border-radius: var(--radius-sm); }
+    .tray-copy strong, .tray-copy small { display: block; }
+    .tray-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tray-copy small { color: #8cdd91; }
+    .tray-actions { display: flex; gap: var(--space-sm); }
+    .mobile-context { display: none; padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+    @media (max-width: 1180px) {
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .body-grid { grid-template-columns: minmax(0,1fr) 290px; }
+      .toolbar { grid-template-columns: minmax(180px,1fr) repeat(2,minmax(120px,auto)); }
+      .toolbar select:last-child { display: none; }
+    }
+    @media (max-width: 1024px) {
+      .platform-links { display: none; }
+      .manage-shell { grid-template-columns: 1fr; }
+      .manage-nav { display: none; }
+      .mobile-context { display: flex; justify-content: space-between; }
+      .selected-tray { left: 0; }
+      .stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      .body-grid { grid-template-columns: minmax(0,1fr) 280px; gap: var(--space-md); }
+    }
+    @media (max-width: 760px) {
+      .page-head, .selected-tray { align-items: stretch; flex-direction: column; }
+      .head-actions, .tray-actions { width: 100%; }
+      .head-actions .btn, .tray-actions .btn { flex: 1; }
+      .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .toolbar { grid-template-columns: 1fr; }
+      .body-grid { grid-template-columns: 1fr; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .workspace { padding-bottom: 138px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 2 — Full-page library workspace</strong><span>Treat media as a first-class manage area: browse, upload, share, approve, and pick from one operational home.</span></header>
+  <header class="platform-bar"><div class="brand"><b>S/NC</b> Platform</div><nav class="platform-links" aria-label="Platform"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="account">LeAnna Warren</div></header>
+  <div class="manage-shell">
+    <aside class="manage-nav"><div class="manage-title"><a href="#">View public page</a><strong>Animal Future</strong></div><div class="creator-select">Animal Future</div><ul><li>Overview</li><li>Content</li><li>Calendar</li><li>Projects</li><li>Streaming</li><li>Programming</li><li>Join page</li><li>Press page</li><li class="active">Media library</li><li>Settings</li><li>Members</li></ul></aside>
+    <main class="workspace">
+      <div class="mobile-context"><strong>Animal Future · Media library</strong><span>Manage</span></div>
+      <header class="page-head"><div><h1>Media library</h1><p class="lead">Reuse originals across avatar, banner, content, and press. You can also share selected assets with other creators.</p></div><div class="head-actions"><button class="btn">Manage uploads</button><button class="btn primary">Upload image</button></div></header>
+      <section class="stats" aria-label="Library summary"><div class="stat"><strong>12</strong><span>Your originals</span></div><div class="stat"><strong>52</strong><span>Shared pool visible</span></div><div class="stat"><strong>18</strong><span>Usable right now</span></div><div class="stat attention"><strong>3</strong><span>Access requests to review</span></div></section>
+      <section class="toolbar" aria-label="Library filters"><input type="search" placeholder="Search filename, owner, or project" aria-label="Search library"><select aria-label="Owner"><option>Any owner</option><option>Animal Future</option><option>S/NC Records</option><option>Mira Chen</option></select><select aria-label="Sharing"><option>Own + shared</option><option>Own only</option><option>Shared pool only</option></select><select aria-label="Format"><option>JPEG, PNG, WebP</option><option>JPEG</option><option>PNG</option><option>WebP</option></select></section>
+      <div class="body-grid">
+        <section aria-labelledby="browse-heading"><div class="library-head"><div><h2 id="browse-heading">Own + shared pool</h2><span>Newest first · showing 6 of 64</span></div><span>Target: Press banner · 3:1</span></div>
+          <div class="asset-grid">
+            <article class="asset selected"><div class="thumb stage"><div class="badges"><span class="badge open">Open</span></div></div><div class="asset-copy"><strong>aggie-backstage-wide.webp</strong><small>S/NC Records · 2400 × 1600</small></div><div class="card-actions"><button class="use" type="button">Selected · usable</button></div></article>
+            <article class="asset"><div class="thumb portrait"><div class="badges"><span class="badge own">Own</span><span class="badge requestable">Requestable</span></div></div><div class="asset-copy"><strong>leanna-brick-wall.jpg</strong><small>Animal Future · 1800 × 2400</small></div><div class="card-actions"><button class="use" type="button">Use now</button><button type="button">Sharing</button></div></article>
+            <article class="asset"><div class="thumb desert"><div class="badges"><span class="badge requestable">Requestable</span></div></div><div class="asset-copy"><strong>high-desert-tour.jpg</strong><small>Ramble Atlas · 2048 × 1365</small></div><div class="card-actions"><button class="request" type="button">Request access</button></div></article>
+            <article class="asset"><div class="thumb cover"><div class="badges"><span class="badge own">Own</span><span class="badge">Private</span></div></div><div class="asset-copy"><strong>illusionist-cover.png</strong><small>Animal Future · 3000 × 3000</small></div><div class="card-actions"><button class="use" type="button">Use now</button><button type="button">Sharing</button></div></article>
+            <article class="asset"><div class="thumb studio"><div class="badges"><span class="badge granted">Granted</span><span class="badge requestable">Requestable</span></div></div><div class="asset-copy"><strong>north-room-session.webp</strong><small>Mira Chen · 1920 × 1280</small></div><div class="card-actions"><button class="use" type="button">Use now</button></div></article>
+            <article class="asset"><div class="thumb mono"><div class="badges"><span class="badge pending">Pending</span></div></div><div class="asset-copy"><strong>load-in-contact.jpg</strong><small>Goodnight Provider · 2200 × 1467</small></div><div class="card-actions"><button type="button" disabled>Request pending</button></div></article>
+          </div>
+        </section>
+        <aside class="side" aria-label="Access and sharing management">
+          <section class="panel"><div class="panel-head"><h2>Incoming requests</h2><span>3 new</span></div><p>Creators asking to use your requestable originals.</p><div class="request-row"><div class="thumb portrait"></div><div><strong>North Forty Visuals</strong><small>LeAnna portrait · Avatar</small></div><div class="request-actions"><button class="approve" type="button">Approve</button><button type="button">Decline</button></div></div><div class="request-row"><div class="thumb stage"></div><div><strong>Goodnight Provider</strong><small>Aggie backstage · Content</small></div><div class="request-actions"><button class="approve" type="button">Approve</button><button type="button">Decline</button></div></div></section>
+          <section class="panel"><div class="panel-head"><h2>Your sharing</h2><span>Quick edit</span></div><p>Private is owner-only. Requestable needs a grant. Open is usable by everyone.</p><div class="share-row"><div class="thumb portrait"></div><div><strong>LeAnna portrait</strong><select aria-label="Sharing for LeAnna portrait"><option>Requestable</option><option>Private</option><option>Open</option></select></div></div><div class="share-row"><div class="thumb cover"></div><div><strong>The Illusionist cover</strong><select aria-label="Sharing for cover"><option>Private</option><option>Requestable</option><option>Open</option></select></div></div></section>
+          <section class="panel"><div class="panel-head"><h3>Outgoing</h3><span>1 pending</span></div><p>Load-in contact sheet · requested from Goodnight Provider on Aug 6.</p><button class="btn" style="width:100%" type="button">Cancel request</button></section>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <footer class="selected-tray" aria-label="Selected asset"><div class="tray-copy"><div class="thumb stage"></div><div><strong>aggie-backstage-wide.webp</strong><small>Use check passed · Open to all creators</small></div></div><div class="tray-actions"><button class="btn" type="button">Clear selection</button><button class="btn primary" type="button">Use for press banner</button></div></footer>
+  <script>
+    document.querySelectorAll('.card-actions button').forEach((button) => button.addEventListener('click', () => {
+      if (button.textContent.includes('Request access')) {
+        button.textContent = 'Request sent';
+        button.disabled = true;
+      } else if (button.textContent.includes('Use now')) {
+        document.querySelectorAll('.asset').forEach((asset) => asset.classList.remove('selected'));
+        button.closest('.asset').classList.add('selected');
+        button.textContent = 'Selected · usable';
+      }
+    }));
+    document.querySelectorAll('.approve').forEach((button) => button.addEventListener('click', () => {
+      button.textContent = 'Granted';
+      button.disabled = true;
+      const sibling = button.nextElementSibling;
+      if (sibling) sibling.hidden = true;
+    }));
+  </script>
+</body>
+</html>

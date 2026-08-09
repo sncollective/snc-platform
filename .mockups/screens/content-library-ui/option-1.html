@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>content-library-ui — Option 1: Contextual picker modal</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+    button, input, select { max-width: 100%; font: inherit; }
+    button { min-height: 42px; cursor: pointer; }
+    img, svg { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui, sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .app { position: relative; min-height: calc(100vh - 38px); overflow: hidden; }
+    .platform-bar { height: 56px; padding: 0 var(--space-lg); display: flex; align-items: center; gap: var(--space-xl); border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); letter-spacing: .03em; }
+    .brand b { color: var(--color-accent); }
+    .platform-links { display: flex; gap: var(--space-lg); color: var(--color-text-muted); }
+    .user-pill { margin-left: auto; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-circle); color: var(--color-text-muted); }
+    .underlay { display: grid; grid-template-columns: 210px minmax(0,1fr); min-height: calc(100vh - 94px); }
+    .manage-nav { padding: var(--space-md); border-right: 1px solid var(--color-border); color: var(--color-text-muted); }
+    .manage-nav strong { display: block; margin: var(--space-sm) 0 var(--space-lg); color: var(--color-text); font-size: var(--font-size-lg); }
+    .manage-nav div { padding: .48rem .7rem; border-radius: var(--radius-sm); }
+    .manage-nav .active { background: var(--color-accent-bg); color: var(--color-accent); }
+    .press-form { padding: var(--space-xl); opacity: .45; filter: saturate(.6); }
+    .press-form h1 { margin: 0; font-family: var(--font-heading); font-size: var(--font-size-2xl); }
+    .ghost-grid { width: min(900px,100%); margin-top: var(--space-xl); display: grid; grid-template-columns: 1.2fr .8fr; gap: var(--space-lg); }
+    .ghost-card { min-height: 220px; padding: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .ghost-line { height: 12px; margin-bottom: var(--space-md); border-radius: var(--radius-sm); background: var(--color-border); }
+    .ghost-line.short { width: 45%; }
+    .overlay { position: absolute; inset: 56px 0 0; z-index: 3; padding: clamp(12px,2.5vw,32px); display: grid; place-items: center; background: rgba(6,7,16,.76); backdrop-filter: blur(3px); }
+    .dialog { width: min(1180px,100%); max-height: calc(100vh - 116px); min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #4a4a6f; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-xl); }
+    .dialog-head { padding: var(--space-lg); display: flex; align-items: start; justify-content: space-between; gap: var(--space-lg); border-bottom: 1px solid var(--color-border); }
+    .eyebrow { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: .2rem 0; font-size: var(--font-size-2xl); }
+    .lead { margin: 0; color: var(--color-text-muted); }
+    .steps { display: flex; gap: var(--space-xs); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .step { padding: .35rem .58rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); white-space: nowrap; }
+    .step.active { border-color: var(--color-accent); background: var(--color-accent-bg); color: var(--color-accent); }
+    .toolbar { padding: var(--space-sm) var(--space-lg); display: grid; grid-template-columns: minmax(180px,1fr) auto auto auto; gap: var(--space-sm); align-items: center; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .search, select { width: 100%; min-height: 42px; padding: .55rem .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .source-switch { display: flex; padding: 3px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
+    .source-switch button { min-height: 34px; padding: .35rem .65rem; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); }
+    .source-switch button.active { background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .dialog-body { min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) 310px; overflow: hidden; }
+    .browser { min-width: 0; padding: var(--space-md) var(--space-lg) var(--space-lg); overflow-y: auto; }
+    .result-head { margin-bottom: var(--space-md); display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .asset-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-sm); }
+    .asset { position: relative; min-width: 0; padding: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); color: var(--color-text); text-align: left; }
+    .asset.selected { border-color: var(--color-accent); box-shadow: inset 0 0 0 2px var(--color-accent); }
+    .thumb { position: relative; display: block; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: #151522; }
+    .thumb::before, .thumb::after { content: ""; position: absolute; }
+    .stage { background: radial-gradient(circle at 28% 20%,#d984ff 0 3%,transparent 4%), radial-gradient(circle at 72% 17%,#f5a623 0 2%,transparent 3%), linear-gradient(155deg,#3d2b55,#111323 52%,#8a4b32); }
+    .stage::before { width: 32%; height: 70%; left: 34%; bottom: -15%; border-radius: 45% 45% 20% 20%; background: #15111d; box-shadow: -44px 14px 0 -12px #201522, 48px 9px 0 -15px #151822; }
+    .portrait { background: radial-gradient(circle at 52% 30%,#cf956c 0 13%,transparent 14%), linear-gradient(135deg,#637a7c,#22283b 50%,#a56345); }
+    .portrait::before { width: 42%; height: 54%; left: 31%; bottom: -10%; border-radius: 48% 48% 12% 12%; background: #242337; }
+    .desert { background: linear-gradient(8deg,#4a3027 0 24%,transparent 25%), linear-gradient(#d78f5a 0 47%,#6a4b68 48% 61%,#1c2334 62%); }
+    .desert::before { width: 28%; height: 56%; right: 18%; bottom: 18%; clip-path: polygon(40% 0,100% 100%,0 100%); background: #291f28; }
+    .cover { background: radial-gradient(circle at 50% 50%,transparent 0 20%,#e29b35 21% 23%,transparent 24%), conic-gradient(from 25deg,#262a3c,#9a4c5b,#e19a35,#2c6071,#262a3c); }
+    .studio { background: linear-gradient(90deg,transparent 48%,rgba(255,255,255,.15) 49% 51%,transparent 52%), linear-gradient(135deg,#263957,#6e4b61 48%,#b77c43); }
+    .studio::before { width: 54%; height: 42%; left: 22%; top: 30%; border: 4px solid #1a1a28; transform: rotate(-7deg); }
+    .mono { background: linear-gradient(135deg,#59606d,#151821 55%,#9da2aa); filter: grayscale(1); }
+    .mono::before { width: 60%; height: 12%; left: 20%; top: 45%; background: #151821; box-shadow: 0 -28px 0 -3px #262936,0 28px 0 -4px #313541; }
+    .badges { position: absolute; top: 7px; left: 7px; right: 7px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .badge { padding: .2rem .42rem; border: 1px solid rgba(255,255,255,.18); border-radius: var(--radius-pill); background: rgba(12,13,24,.86); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .badge.open, .badge.granted, .badge.own { color: #8ee392; }
+    .badge.requestable { color: #ffc767; }
+    .badge.pending { color: #87d4d4; }
+    .asset-copy { padding: .58rem .65rem .7rem; }
+    .asset-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
+    .asset-copy span { display: block; margin-top: 2px; color: var(--color-text-muted); font-size: 11px; }
+    .inspector { min-width: 0; padding: var(--space-md); overflow-y: auto; border-left: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .selected-preview { aspect-ratio: 3/1; border-radius: var(--radius-md); }
+    .inspector h2 { margin: var(--space-sm) 0 0; font-size: var(--font-size-base); }
+    .meta { margin: .15rem 0 var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .use-check { padding: var(--space-sm); display: flex; gap: var(--space-sm); align-items: start; border: 1px solid color-mix(in srgb,var(--color-success) 50%,var(--color-border)); border-radius: var(--radius-md); background: var(--color-success-bg); }
+    .use-check b { display: block; color: #86dd8a; }
+    .use-check small { color: var(--color-text-muted); }
+    .dot { flex: 0 0 9px; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 0 4px var(--color-success-bg); }
+    .primary, .secondary, .approve { width: 100%; padding: .58rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font-weight: 600; }
+    .primary { margin-top: var(--space-sm); border-color: var(--color-accent); background: var(--color-accent); color: #20170a; }
+    .access-card { margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--color-border); }
+    .access-card h3 { margin: 0 0 var(--space-xs); font-size: var(--font-size-sm); }
+    .access-card p { margin: 0 0 var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .mini-row { margin-top: var(--space-sm); padding: .55rem; display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: .5rem; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .mini-thumb { width: 38px; height: 38px; border-radius: 3px; }
+    .mini-row strong, .mini-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .mini-row small { color: var(--color-text-muted); }
+    .approve { width: auto; min-height: 32px; padding: .28rem .5rem; color: var(--color-secondary); }
+    .compact-request { display: block; }
+    .compact-request .secondary { width: 100%; min-height: 36px; margin-top: .4rem; padding: .4rem .6rem; font-size: 11px; }
+    .sharing { margin-top: var(--space-sm); display: grid; grid-template-columns: 42px minmax(0,1fr); gap: .5rem; align-items: center; }
+    .sharing select { min-height: 36px; padding: .35rem .5rem; font-size: 11px; }
+    .dialog-foot { padding: var(--space-sm) var(--space-lg); display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); border-top: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .dialog-foot span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .foot-actions { display: flex; gap: var(--space-sm); }
+    .foot-actions button { padding: .5rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
+    .foot-actions .continue { border-color: var(--color-accent); background: var(--color-accent); color: #20170a; font-weight: 700; }
+    @media (max-width: 1100px) {
+      .underlay { grid-template-columns: 1fr; }
+      .manage-nav { display: none; }
+      .dialog { max-height: calc(100vh - 104px); }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .dialog-body { grid-template-columns: minmax(0,1fr) 285px; }
+      .toolbar { grid-template-columns: minmax(160px,1fr) auto auto; }
+      .toolbar select:last-child { display: none; }
+    }
+    @media (max-width: 760px) {
+      .platform-links, .steps { display: none; }
+      .overlay { inset: 56px 0 0; padding: 8px; align-items: start; }
+      .dialog { max-height: calc(100vh - 68px); }
+      .dialog-body { display: block; overflow-y: auto; }
+      .browser, .inspector { overflow: visible; }
+      .inspector { border-left: 0; border-top: 1px solid var(--color-border); }
+      .toolbar { grid-template-columns: 1fr; }
+      .source-switch { display: none; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 1 — Contextual picker modal</strong><span>Keep creators inside the image slot: browse, verify permission, then continue to crop without losing editor context.</span></header>
+  <main class="app">
+    <header class="platform-bar"><div class="brand"><b>S/NC</b> Platform</div><nav class="platform-links" aria-label="Platform"><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="user-pill" aria-label="LeAnna Warren account">LW</div></header>
+    <div class="underlay" aria-hidden="true">
+      <aside class="manage-nav"><span>View public page</span><strong>Animal Future</strong><div>Overview</div><div>Content</div><div>Calendar</div><div class="active">Press page</div><div>Settings</div><div>Members</div></aside>
+      <section class="press-form"><h1>Press page</h1><p>Shape the story press, radio, and bookers see.</p><div class="ghost-grid"><div class="ghost-card"><div class="ghost-line short"></div><div class="ghost-line"></div><div class="ghost-line"></div></div><div class="ghost-card"><div class="ghost-line short"></div><div class="thumb stage"></div></div></div></section>
+    </div>
+    <div class="overlay">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <header class="dialog-head"><div><span class="eyebrow">Press page · Banner slot · 3:1</span><h1 id="dialog-title">Choose an image</h1><p class="lead">Reuse an original from your library or the shared pool.</p></div><div class="steps" aria-label="Image workflow"><span class="step active">1 Source</span><span class="step">2 Crop</span><span class="step">3 Alt + credit</span></div></header>
+        <div class="toolbar">
+          <input class="search" type="search" value="" placeholder="Search filename, owner, or project" aria-label="Search library">
+          <div class="source-switch" role="group" aria-label="Library source"><button type="button" class="active">All visible</button><button type="button">Mine</button><button type="button">Shared</button></div>
+          <select aria-label="Format"><option>All formats</option><option>JPEG</option><option>PNG</option><option>WebP</option></select>
+          <select aria-label="Permission"><option>Any permission</option><option>Usable now</option><option>Needs access</option></select>
+        </div>
+        <div class="dialog-body">
+          <section class="browser" aria-label="Visible image assets">
+            <div class="result-head"><span>52 visible assets</span><span>Newest first</span></div>
+            <div class="asset-grid">
+              <button class="asset selected" type="button" data-title="Backstage at the Aggie" data-owner="S/NC Records" data-status="Open to every creator" data-usable="true"><span class="thumb stage"><span class="badges"><span class="badge open">Open</span></span></span><span class="asset-copy"><strong>aggie-backstage-wide.webp</strong><span>S/NC Records · 2400 × 1600</span></span></button>
+              <button class="asset" type="button" data-title="LeAnna portrait, brick wall" data-owner="Animal Future" data-status="Owned by you" data-usable="true"><span class="thumb portrait"><span class="badges"><span class="badge own">Own</span><span class="badge requestable">Requestable</span></span></span><span class="asset-copy"><strong>leanna-brick-wall.jpg</strong><span>Animal Future · 1800 × 2400</span></span></button>
+              <button class="asset" type="button" data-title="High desert tour still" data-owner="Ramble Atlas" data-status="Request access before use" data-usable="false"><span class="thumb desert"><span class="badges"><span class="badge requestable">Requestable</span></span></span><span class="asset-copy"><strong>high-desert-tour.jpg</strong><span>Ramble Atlas · 2048 × 1365</span></span></button>
+              <button class="asset" type="button" data-title="The Illusionist cover" data-owner="Animal Future" data-status="Owned by you" data-usable="true"><span class="thumb cover"><span class="badges"><span class="badge own">Own</span><span class="badge private">Private</span></span></span><span class="asset-copy"><strong>illusionist-cover.png</strong><span>Animal Future · 3000 × 3000</span></span></button>
+              <button class="asset" type="button" data-title="North room session" data-owner="Mira Chen" data-status="Granted to Animal Future" data-usable="true"><span class="thumb studio"><span class="badges"><span class="badge granted">Granted</span><span class="badge requestable">Requestable</span></span></span><span class="asset-copy"><strong>north-room-session.webp</strong><span>Mira Chen · 1920 × 1280</span></span></button>
+              <button class="asset" type="button" data-title="Load-in contact sheet" data-owner="Goodnight Provider" data-status="Request pending" data-usable="false"><span class="thumb mono"><span class="badges"><span class="badge pending">Pending</span></span></span><span class="asset-copy"><strong>load-in-contact.jpg</strong><span>Goodnight Provider · 2200 × 1467</span></span></button>
+            </div>
+          </section>
+          <aside class="inspector" aria-label="Selection and access details">
+            <div id="selected-preview" class="thumb selected-preview stage" role="img" aria-label="Selected backstage performance image"></div>
+            <h2 id="selected-title">Backstage at the Aggie</h2><p class="meta" id="selected-owner">S/NC Records · 2400 × 1600 · WebP</p>
+            <div class="use-check" id="use-check"><span class="dot"></span><div><b id="use-title">Usable now · Open</b><small id="use-copy">The owner allows every creator to reuse this original.</small></div></div>
+            <button class="primary" id="primary-action" type="button">Use image for banner</button>
+            <section class="access-card compact-request"><h3>Requestable example</h3><button class="secondary" id="request-example" type="button">Request “High desert tour still”</button></section>
+            <section class="access-card"><h3>Your sharing + requests</h3><p>Set visibility on your own originals or decide an incoming ask.</p><div class="sharing"><span class="mini-thumb thumb cover"></span><select aria-label="Sharing for The Illusionist cover"><option>Private</option><option>Requestable</option><option>Open</option></select></div><div class="mini-row"><span class="mini-thumb thumb portrait"></span><span><strong>LeAnna portrait</strong><small>North Forty Visuals requested access</small></span><button class="approve" type="button">Approve</button></div></section>
+          </aside>
+        </div>
+        <footer class="dialog-foot"><span>Originals remain reusable. Crop, alt text, and credit belong to this banner use.</span><div class="foot-actions"><button type="button">Cancel</button><button class="continue" type="button">Continue to crop</button></div></footer>
+      </section>
+    </div>
+  </main>
+  <script>
+    const assets = document.querySelectorAll('.asset');
+    const title = document.querySelector('#selected-title');
+    const owner = document.querySelector('#selected-owner');
+    const useTitle = document.querySelector('#use-title');
+    const useCopy = document.querySelector('#use-copy');
+    const action = document.querySelector('#primary-action');
+    const check = document.querySelector('#use-check');
+    assets.forEach((asset) => asset.addEventListener('click', () => {
+      assets.forEach((item) => item.classList.remove('selected'));
+      asset.classList.add('selected');
+      title.textContent = asset.dataset.title;
+      owner.textContent = `${asset.dataset.owner} · Original asset`;
+      const usable = asset.dataset.usable === 'true';
+      useTitle.textContent = usable ? `Usable now · ${asset.dataset.status}` : asset.dataset.status;
+      useCopy.textContent = usable ? 'This permission passes the use check for Animal Future.' : 'You can browse this asset, but cannot use it until the owner grants access.';
+      action.textContent = usable ? 'Use image for banner' : (asset.dataset.status === 'Request pending' ? 'Request pending' : 'Request access');
+      action.disabled = asset.dataset.status === 'Request pending';
+      check.style.borderColor = usable ? 'color-mix(in srgb,var(--color-success) 50%,var(--color-border))' : 'color-mix(in srgb,var(--color-warning) 55%,var(--color-border))';
+    }));
+    document.querySelectorAll('.source-switch button').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.source-switch button').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    document.querySelector('#request-example').addEventListener('click', (event) => {
+      event.currentTarget.textContent = 'Request sent · Pending';
+      event.currentTarget.disabled = true;
+    });
+    document.querySelector('.approve').addEventListener('click', (event) => {
+      event.currentTarget.textContent = 'Granted';
+      event.currentTarget.disabled = true;
+    });
+  </script>
+</body>
+</html>

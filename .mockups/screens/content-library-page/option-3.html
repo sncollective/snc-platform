@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator asset library — Option 3: Hybrid database inspector</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: #11121f; color: var(--color-text); font: 12px/1.4 var(--font-ui); }
+    main, section, aside, header, article, div, nav { min-width: 0; }
+    button, input, select { max-width: 100%; font: inherit; }
+    button, select { cursor: pointer; }
+    img { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .topbar { min-height: 54px; padding: 0 clamp(13px,2.2vw,26px); display: grid; grid-template-columns: auto minmax(190px,1fr) auto; align-items: center; gap: 18px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-weight: 900; letter-spacing: .04em; }
+    .brand b { color: var(--color-accent); }
+    .search { width: min(620px,100%); min-height: 35px; padding: 6px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .top-actions { display: flex; align-items: center; gap: 7px; }
+    .creator-chip { padding: 5px 8px; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); background: var(--color-accent-bg); color: #ffd486; white-space: nowrap; }
+    .upload { min-height: 35px; padding: 6px 10px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #251a08; font-weight: 800; }
+    .page-head { padding: 14px clamp(13px,2.2vw,26px) 9px; display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+    .eyebrow { color: var(--color-secondary); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 2px 0; font: 700 23px/1.15 var(--font-heading); }
+    .page-head p { margin: 0; color: var(--color-text-muted); }
+    .saved-view { color: var(--color-text-muted); }
+    .saved-view strong { color: var(--color-text); }
+    .filter-deck { position: relative; z-index: 20; margin: 0 clamp(13px,2.2vw,26px); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); box-shadow: var(--shadow-sm); }
+    .source-line { padding: 7px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid var(--color-border); background: linear-gradient(90deg,var(--color-accent-bg),transparent); }
+    .source-tab { min-height: 34px; padding: 6px 10px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); }
+    .source-tab.active { border-color: var(--color-accent); background: #302619; color: var(--color-accent); }
+    .source-line .default { margin-left: auto; color: #ffd486; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+    .filter-line { padding: 7px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .filter { position: relative; }
+    .filter-button, .sort-button { min-height: 34px; padding: 6px 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); white-space: nowrap; }
+    .filter-button b { color: var(--color-text); }
+    .filter-button.active { border-color: var(--color-secondary); background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .filter-menu { position: absolute; top: calc(100% + 5px); left: 0; z-index: 50; width: 276px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #2a2a46; box-shadow: var(--shadow-xl); }
+    .filter-menu[hidden] { display: none; }
+    .filter-menu h3 { margin: 2px 4px 7px; color: var(--color-text-muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .property-option { min-height: 31px; padding: 5px 6px; display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 7px; align-items: center; border-radius: 3px; color: var(--color-text); }
+    .property-option:hover { background: var(--color-bg-hover); }
+    .box { width: 16px; height: 16px; display: grid; place-items: center; border: 1px solid var(--color-secondary); border-radius: 3px; background: var(--color-secondary); color: #102324; font-size: 9px; font-weight: 900; }
+    .box.empty { background: transparent; border-color: var(--color-border); color: transparent; }
+    .future { padding: 2px 5px; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: var(--color-accent); font-size: 7px; font-weight: 800; text-transform: uppercase; }
+    .menu-callout { margin-top: 6px; padding: 7px; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 9px; }
+    .view-toggle { margin-left: auto; padding: 3px; display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: #171726; }
+    .view-toggle button { min-height: 27px; padding: 4px 7px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text-muted); }
+    .view-toggle button.active { background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .active-rule { padding: 6px 9px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 9px; }
+    .rule-chip { padding: 3px 6px; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: #ffd486; }
+    .workspace { padding: 11px clamp(13px,2.2vw,26px) 28px; display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 11px; align-items: start; }
+    .browser { min-width: 0; }
+    .browser-head { margin-bottom: 7px; display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+    .browser-head h2 { margin: 0; font-size: 13px; }
+    .browser-head p { margin: 1px 0 0; color: var(--color-text-muted); font-size: 9px; }
+    .browser-head span { color: var(--color-text-muted); font-size: 9px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+    .asset { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text); text-align: left; }
+    .asset.selected { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .thumb { position: relative; width: 100%; height: 112px; display: block; overflow: hidden; background: var(--color-media-bg); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .image-type { position: absolute; top: 6px; left: 6px; padding: 2px 6px; border-radius: var(--radius-pill); background: rgba(10,11,20,.85); color: #b9dafa; font-size: 8px; font-weight: 800; text-transform: uppercase; }
+    .scope-badge { position: absolute; top: 6px; right: 6px; padding: 2px 6px; border-radius: var(--radius-pill); background: rgba(10,11,20,.85); font-size: 8px; font-weight: 800; }
+    .scope-badge.private { color: #c3c3ce; }
+    .scope-badge.requestable { color: #ffd078; }
+    .scope-badge.open { color: #8ee097; }
+    .asset-info { padding: 7px; }
+    .asset-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+    .property-line { margin-top: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 7px; color: var(--color-text-muted); font-size: 8px; }
+    .property-line b { color: var(--color-text); font-weight: 550; }
+    .tag-line { margin-top: 5px; display: flex; gap: 3px; overflow: hidden; }
+    .tag { padding: 2px 5px; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: #8fd1d1; font-size: 7px; }
+    .asset-grid.list-mode { grid-template-columns: 1fr; }
+    .list-mode .asset { display: grid; grid-template-columns: 92px minmax(140px,1fr) minmax(190px,1.2fr); align-items: center; }
+    .list-mode .thumb { height: 62px; }
+    .list-mode .asset-info { display: grid; grid-template-columns: minmax(120px,1fr) minmax(170px,1.4fr); gap: 8px; align-items: center; }
+    .list-mode .tag-line { margin: 0; }
+    .inspector { position: sticky; top: 10px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); box-shadow: var(--shadow-sm); }
+    .inspector-head { padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--color-border); }
+    .inspector-head h2 { margin: 0; font-size: 13px; }
+    .own { padding: 2px 6px; border-radius: var(--radius-pill); background: var(--color-success-bg); color: #8ee097; font-size: 8px; font-weight: 800; text-transform: uppercase; }
+    .selected-preview { height: 135px; }
+    .selected-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .detail { padding: 10px; border-bottom: 1px solid var(--color-border); }
+    .detail > strong { display: block; font-size: 11px; }
+    .detail > small { color: var(--color-text-muted); font-size: 9px; }
+    .detail-grid { margin-top: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .detail-grid span { color: var(--color-text-muted); font-size: 8px; }
+    .detail-grid b { display: block; color: var(--color-text); font-size: 9px; }
+    .future-props { grid-column: 1 / -1; padding: 5px 6px; border: 1px dashed var(--color-secondary); border-radius: var(--radius-sm); background: var(--color-secondary-bg); color: var(--color-secondary) !important; }
+    .sharing { padding: 10px; border-bottom: 1px solid var(--color-border); }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .section-title strong { font-size: 10px; }
+    .section-title small { color: var(--color-text-muted); font-size: 8px; }
+    .scope-control { margin-top: 6px; padding: 3px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .scope-control button { min-height: 28px; padding: 3px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text-muted); font-size: 8px; }
+    .scope-control button.active { background: var(--color-accent-bg); color: var(--color-accent); }
+    .grantee-row { margin-top: 7px; color: var(--color-text-muted); font-size: 9px; }
+    .grantee-row b { color: var(--color-text); }
+    .access { padding: 10px; }
+    .request-card { margin-top: 6px; padding: 7px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 5px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .request-card strong, .request-card small { display: block; font-size: 8px; }
+    .request-card small { color: var(--color-text-muted); }
+    .request-card button { min-height: 26px; padding: 3px 6px; border: 1px solid var(--color-secondary); border-radius: 3px; background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 8px; }
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: minmax(0,1fr) 278px; }
+      .thumb { height: 100px; }
+      .asset-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .property-line { grid-template-columns: 1fr; }
+      .property-line span:nth-child(n+3) { display: none; }
+      .filter-menu { left: auto; right: 0; }
+    }
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; }
+      .inspector { position: static; display: grid; grid-template-columns: 180px minmax(0,1fr) minmax(260px,.9fr); }
+      .inspector-head { grid-column: 1 / -1; }
+      .selected-preview { height: 100%; min-height: 160px; }
+      .detail, .sharing { border-bottom: 0; border-right: 1px solid var(--color-border); }
+      .access { grid-column: 3; grid-row: 2; }
+    }
+    @media (max-width: 720px) {
+      .topbar { grid-template-columns: auto 1fr; padding-block: 7px; }
+      .search { grid-column: 1 / -1; grid-row: 2; }
+      .creator-chip { display: none; }
+      .page-head { align-items: start; flex-direction: column; }
+      .source-line { flex-wrap: wrap; }
+      .source-line .default { width: 100%; margin-left: 0; }
+      .view-toggle { margin-left: 0; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .inspector { display: block; }
+      .selected-preview { height: 180px; }
+      .detail, .sharing { border-right: 0; border-bottom: 1px solid var(--color-border); }
+      .filter-menu { left: 0; right: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 3 — Hybrid grid + property inspector</strong><span>A compact database filter bar drives a media grid while a persistent inspector handles properties, sharing, grants, and requests.</span></header>
+  <header class="topbar"><div class="brand"><b>S/NC</b> ASSET DESK</div><input class="search" type="search" placeholder="Search filename, tag, owner, or property…" aria-label="Search media database"><div class="top-actions"><span class="creator-chip">My library: Animal Future</span><button class="upload" type="button">+ Upload</button></div></header>
+  <header class="page-head"><div><div class="eyebrow">Creator media database</div><h1>Asset library</h1><p>Browse your originals first; switch source only when you want the shared pool.</p></div><div class="saved-view"><strong>View:</strong> My media · autosaved</div></header>
+  <section class="filter-deck" aria-label="Database view filters">
+    <div class="source-line"><button class="source-tab active" type="button"><b>My library</b> · 11</button><button class="source-tab" type="button">Shared with me · 17</button><button class="source-tab" type="button">All visible · 28</button><span class="default">Default = current creator</span></div>
+    <div class="filter-line">
+      <div class="filter"><button class="filter-button active" type="button" data-menu="type-3"><b>Type</b> · Image ▾</button><div class="filter-menu" id="type-3" hidden><h3>Type</h3><div class="property-option"><span class="box">✓</span><span>Image</span><small>11</small></div><div class="property-option"><span class="box empty">✓</span><span>Video</span><span class="future">coming</span></div><div class="property-option"><span class="box empty">✓</span><span>Audio</span><span class="future">coming</span></div></div></div>
+      <div class="filter"><button class="filter-button" type="button" data-menu="tags-3"><b>Tags</b> ▾</button><div class="filter-menu" id="tags-3" hidden><h3>Tags contain</h3><div class="property-option"><span class="box empty">✓</span><span>Press</span><small>6</small></div><div class="property-option"><span class="box empty">✓</span><span>Live</span><small>4</small></div><div class="property-option"><span class="box empty">✓</span><span>Portrait</span><small>3</small></div></div></div>
+      <div class="filter"><button class="filter-button active" type="button" data-menu="props-3" aria-expanded="true"><b>Properties</b> · 7 shown ▾</button><div class="filter-menu" id="props-3"><h3>Visible and filterable properties</h3><div class="property-option"><span class="box">✓</span><span>Dimensions / Resolution</span></div><div class="property-option"><span class="box">✓</span><span>Owner</span></div><div class="property-option"><span class="box">✓</span><span>Sharing scope</span></div><div class="property-option"><span class="box">✓</span><span>Uploaded / Size</span></div><div class="property-option"><span class="box empty">✓</span><span>Duration</span><span class="future">video + audio</span></div><div class="property-option"><span class="box empty">✓</span><span>Codec / Channels</span><span class="future">future</span></div><div class="menu-callout">Properties are media-type aware: images show dimensions; future video/audio rows populate duration and codec in this same schema.</div></div></div>
+      <div class="filter"><button class="filter-button" type="button" data-menu="owner-3"><b>Owner</b> · Animal Future ▾</button><div class="filter-menu" id="owner-3" hidden><h3>Owner</h3><div class="property-option"><span class="box">✓</span><span>Animal Future</span></div><div class="property-option"><span class="box empty">✓</span><span>Any visible creator</span></div></div></div>
+      <div class="filter"><button class="filter-button" type="button" data-menu="sharing-3"><b>Sharing</b> · Any ▾</button><div class="filter-menu" id="sharing-3" hidden><h3>Sharing scope</h3><div class="property-option"><span class="box empty">✓</span><span>Private</span></div><div class="property-option"><span class="box empty">✓</span><span>Requestable</span></div><div class="property-option"><span class="box empty">✓</span><span>Open</span></div></div></div>
+      <button class="sort-button" type="button">↕ Sort: Uploaded ↓</button>
+      <div class="view-toggle" role="group" aria-label="View mode"><button class="active" type="button" data-view="grid">▦ Grid</button><button type="button" data-view="list">☷ List</button></div>
+    </div>
+    <div class="active-rule"><b>Filter:</b><span class="rule-chip">Source is My library</span><span>AND</span><span class="rule-chip">Type is Image</span><span>· 11 results from Animal Future</span></div>
+  </section>
+  <main class="workspace">
+    <section class="browser"><header class="browser-head"><div><h2>Animal Future originals</h2><p>8 of 11 shown · click an image to inspect its full property record</p></div><span>Cards show Type · Dimensions · Scope · Tags</span></header>
+      <div class="asset-grid" id="grid-3">
+        <button class="asset selected" type="button" data-name="leanna-brick-portrait.jpg" data-seed="snc-inspect-01" data-dim="1800 × 2400" data-size="4.8 MB" data-scope="Requestable"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-01/520/350" alt="Artist portrait"><span class="image-type">Image</span><span class="scope-badge requestable">Requestable</span></span><span class="asset-info"><strong>leanna-brick-portrait.jpg</strong><span class="property-line"><span>Dimensions <b>1800 × 2400</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Aug 12</b></span><span>Size <b>4.8 MB</b></span></span><span class="tag-line"><span class="tag">portrait</span><span class="tag">press</span></span></span></button>
+        <button class="asset" type="button" data-name="aggie-stage-wide.webp" data-seed="snc-inspect-02" data-dim="2400 × 1600" data-size="2.8 MB" data-scope="Open"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-02/520/350" alt="Concert performance"><span class="image-type">Image</span><span class="scope-badge open">Open</span></span><span class="asset-info"><strong>aggie-stage-wide.webp</strong><span class="property-line"><span>Dimensions <b>2400 × 1600</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Aug 11</b></span><span>Size <b>2.8 MB</b></span></span><span class="tag-line"><span class="tag">live</span><span class="tag">hero</span></span></span></button>
+        <button class="asset" type="button" data-name="illusionist-cover.png" data-seed="snc-inspect-03" data-dim="3000 × 3000" data-size="8.1 MB" data-scope="Private"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-03/520/350" alt="Abstract cover art"><span class="image-type">Image</span><span class="scope-badge private">Private</span></span><span class="asset-info"><strong>illusionist-cover.png</strong><span class="property-line"><span>Dimensions <b>3000 × 3000</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Aug 9</b></span><span>Size <b>8.1 MB</b></span></span><span class="tag-line"><span class="tag">artwork</span><span class="tag">square</span></span></span></button>
+        <button class="asset" type="button" data-name="studio-rehearsal.webp" data-seed="snc-inspect-04" data-dim="1920 × 1280" data-size="2.2 MB" data-scope="Requestable"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-04/520/350" alt="Recording studio rehearsal"><span class="image-type">Image</span><span class="scope-badge requestable">Requestable</span></span><span class="asset-info"><strong>studio-rehearsal.webp</strong><span class="property-line"><span>Dimensions <b>1920 × 1280</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Aug 7</b></span><span>Size <b>2.2 MB</b></span></span><span class="tag-line"><span class="tag">studio</span><span class="tag">bts</span></span></span></button>
+        <button class="asset" type="button" data-name="high-desert-tour.jpg" data-seed="snc-inspect-05" data-dim="2048 × 1365" data-size="3.8 MB" data-scope="Private"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-05/520/350" alt="Desert tour road"><span class="image-type">Image</span><span class="scope-badge private">Private</span></span><span class="asset-info"><strong>high-desert-tour.jpg</strong><span class="property-line"><span>Dimensions <b>2048 × 1365</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Aug 3</b></span><span>Size <b>3.8 MB</b></span></span><span class="tag-line"><span class="tag">tour</span><span class="tag">landscape</span></span></span></button>
+        <button class="asset" type="button" data-name="backstage-hallway.jpg" data-seed="snc-inspect-06" data-dim="2200 × 1467" data-size="4.1 MB" data-scope="Open"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-06/520/350" alt="Backstage venue hallway"><span class="image-type">Image</span><span class="scope-badge open">Open</span></span><span class="asset-info"><strong>backstage-hallway.jpg</strong><span class="property-line"><span>Dimensions <b>2200 × 1467</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Jul 29</b></span><span>Size <b>4.1 MB</b></span></span><span class="tag-line"><span class="tag">venue</span><span class="tag">bts</span></span></span></button>
+        <button class="asset" type="button" data-name="pedalboard-detail.webp" data-seed="snc-inspect-07" data-dim="1600 × 1067" data-size="1.6 MB" data-scope="Requestable"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-07/520/350" alt="Guitar pedalboard"><span class="image-type">Image</span><span class="scope-badge requestable">Requestable</span></span><span class="asset-info"><strong>pedalboard-detail.webp</strong><span class="property-line"><span>Dimensions <b>1600 × 1067</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Jul 27</b></span><span>Size <b>1.6 MB</b></span></span><span class="tag-line"><span class="tag">gear</span><span class="tag">detail</span></span></span></button>
+        <button class="asset" type="button" data-name="crowd-from-stage.jpg" data-seed="snc-inspect-08" data-dim="2400 × 1600" data-size="4.9 MB" data-scope="Private"><span class="thumb"><img src="https://picsum.photos/seed/snc-inspect-08/520/350" alt="Crowd from concert stage"><span class="image-type">Image</span><span class="scope-badge private">Private</span></span><span class="asset-info"><strong>crowd-from-stage.jpg</strong><span class="property-line"><span>Dimensions <b>2400 × 1600</b></span><span>Owner <b>Animal Future</b></span><span>Uploaded <b>Jul 22</b></span><span>Size <b>4.9 MB</b></span></span><span class="tag-line"><span class="tag">live</span><span class="tag">crowd</span></span></span></button>
+      </div>
+    </section>
+    <aside class="inspector" aria-label="Selected asset properties and sharing"><header class="inspector-head"><h2>Selected record</h2><span class="own">Own asset</span></header><div class="selected-preview"><img id="selected-image" src="https://picsum.photos/seed/snc-inspect-01/700/430" alt="Selected artist portrait"></div><section class="detail"><strong id="selected-name">leanna-brick-portrait.jpg</strong><small>Type: Image · Owner: Animal Future</small><div class="detail-grid"><span>Dimensions<b id="selected-dim">1800 × 2400</b></span><span>Size<b id="selected-size">4.8 MB</b></span><span>Uploaded<b>Aug 12, 2026</b></span><span>Format / Codec<b>JPEG</b></span><span class="future-props">Future type properties: Duration — · Codec — · Channels —</span></div></section><section class="sharing"><div class="section-title"><strong>Sharing scope</strong><small id="selected-scope">Requestable</small></div><div class="scope-control" role="group" aria-label="Sharing scope"><button type="button">Private</button><button class="active" type="button">Requestable</button><button type="button">Open</button></div><div class="grantee-row"><b>Granted to 3 creators</b><br>Mira Chen · S/NC Records · North Forty Visuals</div></section><section class="access"><div class="section-title"><strong>Incoming requests</strong><small>2 pending</small></div><article class="request-card"><span><strong>North Forty Visuals</strong><small>For press kit</small></span><button class="approve" type="button">Approve</button></article><article class="request-card"><span><strong>Mira Chen</strong><small>For show listing</small></span><button class="approve" type="button">Approve</button></article></section></aside>
+  </main>
+  <script>
+    document.querySelectorAll('[data-menu]').forEach((button) => button.addEventListener('click', () => {
+      const menu = document.getElementById(button.dataset.menu);
+      document.querySelectorAll('.filter-menu').forEach((item) => { if (item !== menu) item.hidden = true; });
+      menu.hidden = !menu.hidden;
+      button.setAttribute('aria-expanded', String(!menu.hidden));
+    }));
+    const grid = document.querySelector('#grid-3');
+    const viewButtons = document.querySelectorAll('.view-toggle button');
+    const applyView = (view) => {
+      grid.classList.toggle('list-mode', view === 'list');
+      viewButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === view));
+      try { localStorage.setItem('snc-library-option-3-view', view); } catch {}
+    };
+    viewButtons.forEach((button) => button.addEventListener('click', () => applyView(button.dataset.view)));
+    let savedView = 'grid'; try { savedView = localStorage.getItem('snc-library-option-3-view') || 'grid'; } catch {}
+    applyView(savedView);
+    document.querySelectorAll('.asset').forEach((asset) => asset.addEventListener('click', () => {
+      document.querySelectorAll('.asset').forEach((item) => item.classList.remove('selected'));
+      asset.classList.add('selected');
+      document.querySelector('#selected-name').textContent = asset.dataset.name;
+      document.querySelector('#selected-dim').textContent = asset.dataset.dim;
+      document.querySelector('#selected-size').textContent = asset.dataset.size;
+      document.querySelector('#selected-scope').textContent = asset.dataset.scope;
+      document.querySelector('#selected-image').src = `https://picsum.photos/seed/${asset.dataset.seed}/700/430`;
+    }));
+    document.querySelectorAll('.scope-control button').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.scope-control button').forEach((item) => item.classList.remove('active')); button.classList.add('active'); document.querySelector('#selected-scope').textContent = button.textContent; }));
+    document.querySelectorAll('.approve').forEach((button) => button.addEventListener('click', () => { button.textContent = 'Granted'; button.disabled = true; }));
+  </script>
+</body>
+</html>

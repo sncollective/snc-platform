@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator asset library — Option 4 simplified</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: #131424; color: var(--color-text); font: 12px/1.45 var(--font-ui); }
+    main, section, header, article, div, nav { min-width: 0; }
+    button, input, select { max-width: 100%; font: inherit; }
+    button, select { cursor: pointer; }
+    img { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui, sans-serif; }
+    .mock-meta strong { font-weight: 650; }
+    .mock-meta span { color: #8b949e; }
+    .appbar { min-height: 54px; padding: 0 clamp(16px, 3vw, 34px); display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-weight: 900; letter-spacing: .045em; }
+    .brand b { color: var(--color-accent); }
+    .crumb { color: var(--color-text-muted); }
+    .account { margin-left: auto; color: var(--color-text-muted); }
+
+    .page { width: 100%; max-width: 1380px; margin: 0 auto; padding: 22px clamp(16px, 3vw, 34px) 42px; }
+    .title-row { display: flex; align-items: start; justify-content: space-between; gap: 22px; }
+    .eyebrow { color: var(--color-secondary); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 3px 0 4px; font: 700 27px/1.1 var(--font-heading); }
+    .lead { max-width: 640px; margin: 0; color: var(--color-text-muted); }
+    .upload { min-height: 38px; padding: 8px 13px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #251a08; font-weight: 800; white-space: nowrap; }
+
+    .library { margin-top: 18px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); box-shadow: var(--shadow-sm); }
+    .library-head { min-height: 48px; padding: 9px 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border); }
+    .library-title { margin-right: 4px; }
+    .library-title strong { display: block; font-size: 13px; }
+    .library-title small { display: block; color: var(--color-text-muted); font-size: 9px; }
+    .default-pill { padding: 3px 7px; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: #ffd486; font-size: 8px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+    .library-count { margin-left: auto; color: var(--color-text-muted); font-size: 10px; }
+
+    .filters { position: relative; z-index: 20; padding: 10px 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border); background: #1b1c30; }
+    .filter { position: relative; }
+    .filter-button { min-height: 32px; padding: 5px 8px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); white-space: nowrap; }
+    .filter-button b { color: var(--color-text); font-weight: 650; }
+    .filter-button.active { border-color: rgba(245,166,35,.55); background: var(--color-accent-bg); color: #ffd486; }
+    .filter-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; width: 236px; padding: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #2a2a46; box-shadow: var(--shadow-xl); }
+    .filter-menu[hidden] { display: none; }
+    .filter-menu strong { display: block; padding: 4px 6px 6px; color: var(--color-text-muted); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+    .menu-note { padding: 0 6px 6px; color: var(--color-text-muted); font-size: 8px; }
+    .menu-item { width: 100%; min-height: 31px; padding: 5px 6px; display: flex; align-items: center; gap: 7px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text); text-align: left; }
+    .menu-item:hover { background: var(--color-bg-hover); }
+    .check { width: 15px; height: 15px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--color-accent); border-radius: 3px; background: var(--color-accent); color: #251a08; font-size: 8px; font-weight: 900; }
+    .check.unchecked { background: transparent; border-color: var(--color-border); color: transparent; }
+    .current { margin-left: auto; color: var(--color-secondary); font-size: 8px; }
+
+    .tools { min-height: 48px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border); }
+    .sort { min-height: 32px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
+    .search { width: min(260px, 100%); min-height: 32px; padding: 5px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .tools-spacer { flex: 1 1 auto; }
+    .view-toggle { padding: 3px; display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .view-toggle button { min-height: 26px; padding: 3px 8px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text-muted); }
+    .view-toggle button.active { background: var(--color-secondary-bg); color: #8fd1d1; }
+
+    .result-summary { padding: 7px 12px; display: flex; justify-content: space-between; gap: 12px; color: var(--color-text-muted); font-size: 9px; }
+    .result-summary strong { color: var(--color-text); }
+    .scope-help { color: var(--color-secondary); }
+
+    .table-head, .asset-row { display: grid; grid-template-columns: minmax(210px, 2fr) 62px 92px minmax(92px, .8fr) 104px minmax(105px, 1fr) 82px; gap: 8px; align-items: center; }
+    .table-head { min-height: 34px; padding: 0 12px; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: #17182a; color: var(--color-text-muted); font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .asset-row { min-height: 54px; padding: 5px 12px; border-bottom: 1px solid rgba(58,58,92,.72); }
+    .asset-row:last-child { border-bottom: 0; }
+    .asset-row:hover { background: var(--color-bg-hover); }
+    .file { display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 9px; align-items: center; }
+    .thumb { width: 54px; height: 40px; overflow: hidden; border-radius: 3px; background: var(--color-media-bg); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .file strong, .file small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file strong { font-size: 10px; }
+    .file small { color: var(--color-text-muted); font-size: 8px; }
+    .type { color: #b9dafa; font-size: 9px; }
+    .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: 9px; }
+    .owner { color: var(--color-text); }
+    .tags { display: flex; gap: 3px; overflow: hidden; }
+    .tag { padding: 2px 5px; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: #8fd1d1; font-size: 7px; white-space: nowrap; }
+    .scope-select { min-height: 29px; padding: 3px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); font-size: 8px; }
+
+    .grid-mode .table-head { display: none; }
+    .grid-mode .rows { padding: 12px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; border-top: 1px solid var(--color-border); }
+    .grid-mode .asset-row { min-height: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .grid-mode .file { grid-column: 1 / -1; display: block; }
+    .grid-mode .thumb { width: 100%; height: 128px; border-radius: 0; }
+    .grid-mode .file > span { display: block; padding: 7px 8px 5px; }
+    .grid-mode .type, .grid-mode .cell, .grid-mode .tags { padding: 2px 8px; }
+    .grid-mode .type { grid-column: 1; }
+    .grid-mode .dimensions { grid-column: 2; text-align: right; }
+    .grid-mode .owner { grid-column: 1 / -1; }
+    .grid-mode .tags { grid-column: 1 / -1; min-height: 23px; }
+    .grid-mode .date { display: none; }
+    .grid-mode .scope-select { grid-column: 1 / -1; margin: 5px 8px 8px; width: calc(100% - 16px); }
+
+    @media (max-width: 1120px) {
+      .table-head, .asset-row { grid-template-columns: minmax(190px, 1.8fr) 54px 84px 88px 98px minmax(96px, .8fr) 76px; gap: 6px; }
+      .grid-mode .rows { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .filter-menu { left: auto; right: 0; }
+    }
+    @media (max-width: 780px) {
+      .title-row { flex-direction: column; }
+      .upload { align-self: stretch; }
+      .account { display: none; }
+      .table-head { display: none; }
+      .asset-row { grid-template-columns: minmax(0,1fr) 104px; }
+      .asset-row .type, .asset-row .dimensions, .asset-row .owner, .asset-row .tags, .asset-row .date { display: none; }
+      .grid-mode .rows { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 520px) {
+      .crumb { display: none; }
+      .page { padding-inline: 10px; }
+      .library-count { width: 100%; margin-left: 0; }
+      .filter, .filter-button { width: 100%; }
+      .filter-button { justify-content: space-between; }
+      .filter-menu { width: min(280px, calc(100vw - 44px)); }
+      .search { order: 4; width: 100%; }
+      .grid-mode .rows { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Selected direction — Option 4 simplified</strong><span>A compact, image-only library with ad-hoc dropdown filters and grid/table property views.</span></header>
+  <header class="appbar"><div class="brand"><b>S/NC</b> MANAGE</div><div class="crumb">Animal Future / Library</div><div class="account">LeAnna Warren</div></header>
+  <main class="page">
+    <header class="title-row">
+      <div><div class="eyebrow">Media library</div><h1>Animal Future library</h1><p class="lead">Upload, find, and share campaign images. This page opens to your own assets; adjust the filters for this session whenever you need a wider view.</p></div>
+      <button class="upload" type="button">+ Upload images</button>
+    </header>
+
+    <section class="library" aria-label="Image library">
+      <header class="library-head"><div class="library-title"><strong>My library</strong><small>Animal Future · current creator</small></div><span class="default-pill">Default source</span><span class="library-count"><b>10</b> images</span></header>
+
+      <nav class="filters" aria-label="Library filters">
+        <div class="filter"><button class="filter-button active" type="button" data-menu="source-menu"><b>Source:</b> My library ▾</button><div class="filter-menu" id="source-menu" hidden><strong>Source</strong><div class="menu-note">Opens to the current creator.</div><button class="menu-item" type="button"><span class="check">✓</span>My library<span class="current">Animal Future · default</span></button><button class="menu-item" type="button"><span class="check unchecked">✓</span>Shared with me</button><button class="menu-item" type="button"><span class="check unchecked">✓</span>All</button></div></div>
+        <div class="filter"><button class="filter-button active" type="button" data-menu="type-menu"><b>Type:</b> Image ▾</button><div class="filter-menu" id="type-menu" hidden><strong>Type</strong><button class="menu-item" type="button"><span class="check">✓</span>Image</button></div></div>
+        <div class="filter"><button class="filter-button" type="button" data-menu="tags-menu"><b>Tags</b> ▾</button><div class="filter-menu" id="tags-menu" hidden><strong>Tags</strong><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Press</button><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Live</button><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Artwork</button><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Behind the scenes</button></div></div>
+        <div class="filter"><button class="filter-button" type="button" data-menu="properties-menu"><b>Properties:</b> Dimensions ▾</button><div class="filter-menu" id="properties-menu" hidden><strong>Visible properties</strong><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Dimensions</button><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Owner</button><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Sharing scope</button><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Tags</button><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Date</button><button class="menu-item toggle-item" type="button"><span class="check">✓</span>Size</button></div></div>
+        <div class="filter"><button class="filter-button active" type="button" data-menu="owner-menu"><b>Owner:</b> Animal Future ▾</button><div class="filter-menu" id="owner-menu" hidden><strong>Owner</strong><button class="menu-item" type="button"><span class="check">✓</span>Animal Future<span class="current">current</span></button><button class="menu-item" type="button"><span class="check unchecked">✓</span>Any owner</button></div></div>
+        <div class="filter"><button class="filter-button" type="button" data-menu="sharing-menu"><b>Sharing scope</b> ▾</button><div class="filter-menu" id="sharing-menu" hidden><strong>Sharing scope</strong><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Private</button><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Requestable</button><button class="menu-item toggle-item" type="button"><span class="check unchecked">✓</span>Open</button></div></div>
+      </nav>
+
+      <div class="tools"><select class="sort" id="sort-assets" aria-label="Sort images"><option value="date">Sort: Date added ↓</option><option value="name">Sort: Name A–Z</option><option value="dimensions">Sort: Dimensions ↓</option><option value="size">Sort: Size ↓</option><option value="scope">Sort: Sharing scope</option></select><input class="search" id="library-search" type="search" placeholder="Search these images…" aria-label="Search images"><span class="tools-spacer"></span><div class="view-toggle" role="group" aria-label="View mode"><button type="button" data-view="grid">▦ Grid</button><button class="active" type="button" data-view="table">☷ Table</button></div></div>
+      <div class="result-summary"><span><strong>10 results</strong> · My library · Image · Owner is Animal Future</span><span class="scope-help">Change sharing scope directly on your images</span></div>
+
+      <section class="asset-table" id="asset-table" aria-label="Library results">
+        <div class="table-head"><span>Name / size</span><span>Type</span><span>Dimensions</span><span>Owner</span><span>Sharing</span><span>Tags</span><span>Date</span></div>
+        <div class="rows">
+          <article class="asset-row" data-name="leanna brick portrait" data-size="4.8" data-pixels="4320000" data-scope="requestable" data-date="2026-08-12"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-01/240/180" alt="Artist portrait against brick"></div><span><strong>leanna-brick-portrait.jpg</strong><small>4.8 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">1800 × 2400</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for leanna brick portrait"><option>Requestable</option><option>Private</option><option>Open</option></select><span class="tags"><span class="tag">portrait</span><span class="tag">press</span></span><span class="cell date">Aug 12</span></article>
+          <article class="asset-row" data-name="aggie stage wide" data-size="2.8" data-pixels="3840000" data-scope="open" data-date="2026-08-11"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-02/240/180" alt="Wide concert performance"></div><span><strong>aggie-stage-wide.webp</strong><small>2.8 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">2400 × 1600</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for aggie stage wide"><option>Open</option><option>Requestable</option><option>Private</option></select><span class="tags"><span class="tag">live</span><span class="tag">hero</span></span><span class="cell date">Aug 11</span></article>
+          <article class="asset-row" data-name="illusionist cover" data-size="8.1" data-pixels="9000000" data-scope="private" data-date="2026-08-09"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-03/240/180" alt="Square album artwork"></div><span><strong>illusionist-cover.png</strong><small>8.1 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">3000 × 3000</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for illusionist cover"><option>Private</option><option>Requestable</option><option>Open</option></select><span class="tags"><span class="tag">artwork</span><span class="tag">square</span></span><span class="cell date">Aug 9</span></article>
+          <article class="asset-row" data-name="studio rehearsal" data-size="2.2" data-pixels="2457600" data-scope="requestable" data-date="2026-08-07"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-04/240/180" alt="Recording studio rehearsal"></div><span><strong>studio-rehearsal.webp</strong><small>2.2 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">1920 × 1280</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for studio rehearsal"><option>Requestable</option><option>Private</option><option>Open</option></select><span class="tags"><span class="tag">studio</span><span class="tag">bts</span></span><span class="cell date">Aug 7</span></article>
+          <article class="asset-row" data-name="high desert tour" data-size="3.8" data-pixels="2795520" data-scope="private" data-date="2026-08-03"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-05/240/180" alt="High desert tour landscape"></div><span><strong>high-desert-tour.jpg</strong><small>3.8 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">2048 × 1365</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for high desert tour"><option>Private</option><option>Requestable</option><option>Open</option></select><span class="tags"><span class="tag">tour</span><span class="tag">landscape</span></span><span class="cell date">Aug 3</span></article>
+          <article class="asset-row" data-name="backstage hallway" data-size="4.1" data-pixels="3227400" data-scope="open" data-date="2026-07-29"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-06/240/180" alt="Backstage venue hallway"></div><span><strong>backstage-hallway.jpg</strong><small>4.1 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">2200 × 1467</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for backstage hallway"><option>Open</option><option>Requestable</option><option>Private</option></select><span class="tags"><span class="tag">venue</span><span class="tag">bts</span></span><span class="cell date">Jul 29</span></article>
+          <article class="asset-row" data-name="pedalboard detail" data-size="1.6" data-pixels="1707200" data-scope="requestable" data-date="2026-07-27"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-07/240/180" alt="Guitar pedalboard detail"></div><span><strong>pedalboard-detail.webp</strong><small>1.6 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">1600 × 1067</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for pedalboard detail"><option>Requestable</option><option>Private</option><option>Open</option></select><span class="tags"><span class="tag">gear</span><span class="tag">detail</span></span><span class="cell date">Jul 27</span></article>
+          <article class="asset-row" data-name="crowd from stage" data-size="4.9" data-pixels="3840000" data-scope="private" data-date="2026-07-22"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-08/240/180" alt="Crowd photographed from stage"></div><span><strong>crowd-from-stage.jpg</strong><small>4.9 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">2400 × 1600</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for crowd from stage"><option>Private</option><option>Requestable</option><option>Open</option></select><span class="tags"><span class="tag">live</span><span class="tag">crowd</span></span><span class="cell date">Jul 22</span></article>
+          <article class="asset-row" data-name="spring tour poster" data-size="5.5" data-pixels="3200000" data-scope="open" data-date="2026-07-18"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-09/240/180" alt="Spring tour poster design"></div><span><strong>spring-tour-poster.png</strong><small>5.5 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">1600 × 2000</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for spring tour poster"><option>Open</option><option>Requestable</option><option>Private</option></select><span class="tags"><span class="tag">poster</span><span class="tag">press</span></span><span class="cell date">Jul 18</span></article>
+          <article class="asset-row" data-name="green room still" data-size="3.2" data-pixels="3110400" data-scope="requestable" data-date="2026-07-15"><div class="file"><div class="thumb"><img src="https://picsum.photos/seed/snc-simple-10/240/180" alt="Quiet green room portrait"></div><span><strong>green-room-still.jpg</strong><small>3.2 MB</small></span></div><span class="type">◆ Image</span><span class="cell dimensions">2160 × 1440</span><span class="cell owner">Animal Future</span><select class="scope-select" aria-label="Sharing for green room still"><option>Requestable</option><option>Private</option><option>Open</option></select><span class="tags"><span class="tag">portrait</span><span class="tag">bts</span></span><span class="cell date">Jul 15</span></article>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script>
+    const menus = document.querySelectorAll('.filter-menu');
+    document.querySelectorAll('[data-menu]').forEach((button) => button.addEventListener('click', () => {
+      const menu = document.getElementById(button.dataset.menu);
+      menus.forEach((item) => { if (item !== menu) item.hidden = true; });
+      menu.hidden = !menu.hidden;
+    }));
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.filter')) menus.forEach((menu) => { menu.hidden = true; });
+    });
+    document.querySelectorAll('.toggle-item').forEach((item) => item.addEventListener('click', () => item.querySelector('.check').classList.toggle('unchecked')));
+
+    const table = document.querySelector('#asset-table');
+    const viewButtons = document.querySelectorAll('.view-toggle button');
+    const applyView = (view) => {
+      table.classList.toggle('grid-mode', view === 'grid');
+      viewButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === view));
+    };
+    viewButtons.forEach((button) => button.addEventListener('click', () => applyView(button.dataset.view)));
+    applyView('table');
+
+    const rows = document.querySelector('.rows');
+    document.querySelector('#sort-assets').addEventListener('change', (event) => {
+      const key = event.target.value;
+      const items = [...rows.children];
+      items.sort((a, b) => {
+        if (key === 'name' || key === 'scope') return a.dataset[key].localeCompare(b.dataset[key]);
+        if (key === 'date') return b.dataset.date.localeCompare(a.dataset.date);
+        return Number(b.dataset[key === 'dimensions' ? 'pixels' : key]) - Number(a.dataset[key === 'dimensions' ? 'pixels' : key]);
+      });
+      items.forEach((item) => rows.appendChild(item));
+    });
+
+    document.querySelector('#library-search').addEventListener('input', (event) => {
+      const query = event.target.value.trim().toLowerCase();
+      document.querySelectorAll('.asset-row').forEach((row) => { row.hidden = query && !row.textContent.toLowerCase().includes(query); });
+    });
+  </script>
+</body>
+</html>

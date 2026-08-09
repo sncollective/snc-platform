@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>content-library-ui — four screen directions</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-width: 0; margin: 0; overflow-x: hidden; }
+    body { min-height: 100vh; background: #0b0c13; color: #eee; font: 14px/1.4 system-ui,sans-serif; }
+    header { min-height: 64px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid #303044; background: #11121d; }
+    h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header p { margin: 3px 0 0; color: #9b9bad; font-size: 12px; }
+    .legend { padding: 5px 9px; border: 1px solid #44445d; border-radius: 999px; color: #f5a623; font-size: 11px; white-space: nowrap; }
+    .grid { height: calc(100vh - 64px); min-height: 720px; padding: 8px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+    .cell { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #303044; border-radius: 6px; background: #1a1a2e; }
+    .cell h2 { min-height: 38px; margin: 0; padding: 7px 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #181925; color: #eee; font-size: 12px; font-weight: 600; }
+    .cell h2 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cell a { color: #6dcaca; text-decoration: none; white-space: nowrap; }
+    .cell iframe { flex: 1; width: 100%; min-height: 0; border: 0; background: #1a1a2e; }
+    @media (max-width: 820px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .grid { height: auto; grid-template-columns: 1fr; grid-template-rows: none; }
+      .cell iframe { height: 620px; flex: none; }
+    }
+  </style>
+</head>
+<body>
+  <header><div><h1>Content library UI — pick an information architecture</h1><p>Cross-surface creator media: own + shared pool, explicit use rights, access requests, grants, and owner sharing controls.</p></div><span class="legend">4 structurally distinct directions</span></header>
+  <main class="grid">
+    <section class="cell"><h2><span>Option 1 — Contextual picker modal</span><a href="option-1.html" target="_blank" rel="noreferrer">open</a></h2><iframe src="option-1.html" title="Option 1 contextual picker modal"></iframe></section>
+    <section class="cell"><h2><span>Option 2 — Full-page library workspace</span><a href="option-2.html" target="_blank" rel="noreferrer">open</a></h2><iframe src="option-2.html" title="Option 2 full-page library workspace"></iframe></section>
+    <section class="cell"><h2><span>Option 3 — Media canvas + inspector</span><a href="option-3.html" target="_blank" rel="noreferrer">open</a></h2><iframe src="option-3.html" title="Option 3 media canvas and permission inspector"></iframe></section>
+    <section class="cell"><h2><span>Option 4 — Permission-first tabs + lanes</span><a href="option-4.html" target="_blank" rel="noreferrer">open</a></h2><iframe src="option-4.html" title="Option 4 permission-first tabs and lanes"></iframe></section>
+  </main>
+</body>
+</html>

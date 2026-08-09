@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator asset library — Option 2: Filter rail grid</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: #121321; color: var(--color-text); font: 12px/1.4 var(--font-ui); }
+    main, section, aside, header, article, div { min-width: 0; }
+    button, input, select, summary { max-width: 100%; font: inherit; }
+    button, select, summary { cursor: pointer; }
+    img { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { min-height: 38px; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .manage-bar { min-height: 54px; padding: 0 18px; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-weight: 900; letter-spacing: .045em; }
+    .brand b { color: var(--color-accent); }
+    .manage-nav { display: flex; gap: 15px; color: var(--color-text-muted); }
+    .manage-nav .active { color: var(--color-text); }
+    .creator { margin-left: auto; padding: 5px 9px; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); background: var(--color-accent-bg); color: #ffd486; }
+    .shell { min-height: calc(100vh - 92px); display: grid; grid-template-columns: 270px minmax(0,1fr); }
+    .rail { padding: 15px 12px 24px; border-right: 1px solid var(--color-border); background: #18192b; }
+    .rail-kicker { color: var(--color-secondary); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .rail h2 { margin: 3px 0 2px; font: 700 18px/1.2 var(--font-heading); }
+    .rail-intro { margin: 0 0 11px; color: var(--color-text-muted); font-size: 10px; }
+    .filter-group { margin-bottom: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); overflow: hidden; }
+    .filter-group[open] { border-color: color-mix(in srgb,var(--color-accent) 48%,var(--color-border)); }
+    .filter-group summary { min-height: 35px; padding: 7px 8px; display: flex; align-items: center; gap: 7px; list-style: none; color: var(--color-text); }
+    .filter-group summary::-webkit-details-marker { display: none; }
+    .filter-icon { width: 18px; color: var(--color-secondary); text-align: center; }
+    .filter-value { margin-left: auto; max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: 9px; }
+    .chev { color: var(--color-text-muted); font-size: 8px; }
+    .drop-body { padding: 4px 7px 7px; border-top: 1px solid var(--color-border); }
+    .option { width: 100%; min-height: 30px; padding: 5px 6px; display: flex; align-items: center; gap: 7px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text-muted); text-align: left; }
+    .option.active { background: var(--color-accent-bg); color: var(--color-accent); }
+    .option .count { margin-left: auto; font-size: 9px; }
+    .option.disabled { opacity: .72; }
+    .coming { margin-left: auto; padding: 1px 5px; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: var(--color-secondary); font-size: 7px; font-weight: 800; text-transform: uppercase; }
+    .schema-note { margin-top: 8px; padding: 8px; border: 1px dashed var(--color-secondary); border-radius: var(--radius-sm); background: var(--color-secondary-bg); color: var(--color-text-muted); font-size: 9px; }
+    .schema-note strong { display: block; color: var(--color-secondary); }
+    .inbox { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--color-border); }
+    .inbox-head { display: flex; justify-content: space-between; align-items: center; }
+    .inbox-head strong { font-size: 11px; }
+    .inbox-count { padding: 2px 6px; border-radius: var(--radius-pill); background: var(--color-accent-bg); color: var(--color-accent); font-size: 8px; }
+    .request { margin-top: 6px; padding: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .request strong, .request small { display: block; font-size: 9px; }
+    .request small { color: var(--color-text-muted); }
+    .request-actions { margin-top: 5px; display: flex; gap: 4px; }
+    .request-actions button { flex: 1; min-height: 25px; padding: 3px; border: 1px solid var(--color-border); border-radius: 3px; background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 8px; }
+    .request-actions .approve { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .grant-summary { margin-top: 7px; color: var(--color-text-muted); font-size: 9px; }
+    .grant-summary b { color: var(--color-text); }
+    .workspace { min-width: 0; padding: 16px clamp(14px,2.4vw,28px) 30px; }
+    .title-row { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+    .eyebrow { color: var(--color-secondary); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 2px 0; font: 700 24px/1.15 var(--font-heading); }
+    .lead { margin: 0; color: var(--color-text-muted); }
+    .upload { min-height: 38px; padding: 7px 11px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #251a08; font-weight: 800; }
+    .view-context { margin-top: 12px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: linear-gradient(90deg,var(--color-accent-bg),transparent); }
+    .view-context strong { color: var(--color-accent); }
+    .view-context span { color: var(--color-text-muted); }
+    .active-chip { padding: 3px 7px; border-radius: var(--radius-pill); background: #2d251c; color: #ffd486 !important; font-size: 9px; }
+    .toolbar { margin-top: 9px; padding: 7px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .search { flex: 1 1 230px; min-width: 170px; min-height: 34px; padding: 6px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .compact-filter, .sort { min-height: 34px; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); }
+    .compact-filter { display: none; }
+    .view-toggle { margin-left: auto; padding: 3px; display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .view-toggle button { min-height: 27px; padding: 4px 7px; border: 0; border-radius: 3px; background: transparent; color: var(--color-text-muted); }
+    .view-toggle button.active { background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .result-head { margin: 11px 0 7px; display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+    .result-head h2 { margin: 0; font-size: 13px; }
+    .result-head p { margin: 1px 0 0; color: var(--color-text-muted); font-size: 9px; }
+    .result-head > span { color: var(--color-text-muted); font-size: 9px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+    .asset { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+    .asset:hover { border-color: color-mix(in srgb,var(--color-accent) 50%,var(--color-border)); }
+    .thumb { position: relative; width: 100%; height: 104px; overflow: hidden; background: var(--color-media-bg); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .type-badge { position: absolute; top: 7px; left: 7px; padding: 2px 6px; border: 1px solid rgba(255,255,255,.16); border-radius: var(--radius-pill); background: rgba(9,10,18,.84); color: #b9dafa; font-size: 8px; font-weight: 800; text-transform: uppercase; }
+    .asset-body { padding: 7px; }
+    .asset-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+    .property-grid { margin-top: 5px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 7px; }
+    .property { min-width: 0; color: var(--color-text-muted); font-size: 8px; }
+    .property b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: 9px; font-weight: 600; }
+    .tags { margin-top: 5px; display: flex; gap: 3px; overflow: hidden; }
+    .tag { padding: 2px 5px; border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: #8fd1d1; font-size: 7px; white-space: nowrap; }
+    .card-tools { padding: 0 7px 7px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 5px; align-items: center; }
+    .scope-select { min-width: 0; min-height: 29px; padding: 3px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); font-size: 8px; }
+    .grantee-button { min-height: 29px; padding: 3px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-secondary); font-size: 8px; }
+    .asset-grid.table-mode { grid-template-columns: 1fr; }
+    .table-mode .asset { display: grid; grid-template-columns: 82px minmax(170px,1.4fr) minmax(190px,1fr) 180px; align-items: center; }
+    .table-mode .thumb { height: 58px; }
+    .table-mode .asset-body { display: grid; grid-template-columns: minmax(120px,1fr) minmax(160px,1.2fr); gap: 8px; align-items: center; }
+    .table-mode .asset-name { font-size: 11px; }
+    .table-mode .tags { margin: 0; }
+    .table-mode .property-grid { margin: 0; grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .table-mode .card-tools { padding: 6px; }
+    @media (max-width: 1240px) {
+      .asset-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    }
+    @media (max-width: 1040px) {
+      .shell { grid-template-columns: 232px minmax(0,1fr); }
+      .rail { padding-inline: 9px; }
+      .asset-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .table-mode .asset { grid-template-columns: 70px minmax(150px,1fr) 150px; }
+      .table-mode .card-tools { grid-column: 3; grid-row: 1; }
+      .table-mode .property-grid { display: none; }
+    }
+    @media (max-width: 820px) {
+      .manage-nav { display: none; }
+      .shell { grid-template-columns: 1fr; }
+      .rail { border-right: 0; border-bottom: 1px solid var(--color-border); }
+      .rail h2, .rail-intro { display: none; }
+      .rail { display: flex; gap: 6px; flex-wrap: wrap; align-items: start; }
+      .rail-kicker { width: 100%; }
+      .filter-group { flex: 1 1 150px; margin: 0; }
+      .filter-group[open] .drop-body { display: none; }
+      .schema-note { flex: 1 1 240px; margin: 0; }
+      .inbox { width: 100%; }
+      .request, .grant-summary { display: none; }
+      .compact-filter { display: inline-flex; }
+      .asset-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    }
+    @media (max-width: 620px) {
+      .creator { display: none; }
+      .title-row { flex-direction: column; }
+      .view-toggle { margin-left: 0; }
+      .asset-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .table-mode .asset { grid-template-columns: 68px minmax(0,1fr); }
+      .table-mode .card-tools { grid-column: 1 / -1; grid-row: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 2 — Filter rail + property grid</strong><span>A visual library keeps rich filtering always visible at left; every thumbnail carries the same database-property vocabulary.</span></header>
+  <header class="manage-bar"><div class="brand"><b>S/NC</b> PLATFORM</div><nav class="manage-nav"><span>Overview</span><span>Content</span><span class="active">Asset library</span><span>Press</span><span>Members</span></nav><div class="creator">Current creator: Animal Future</div></header>
+  <main class="shell">
+    <aside class="rail" aria-label="Database filter rail">
+      <div class="rail-kicker">Filter this database</div><h2>Build a view</h2><p class="rail-intro">Filters combine with AND. Open any property to refine the current grid.</p>
+      <details class="filter-group" open><summary><span class="filter-icon">⌂</span><b>Source</b><span class="filter-value">My library</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option active" type="button">✓ My library <span class="count">11</span></button><button class="option" type="button">Shared with me <span class="count">17</span></button><button class="option" type="button">All visible <span class="count">28</span></button></div></details>
+      <details class="filter-group" open><summary><span class="filter-icon">◆</span><b>Type</b><span class="filter-value">Image</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option active" type="button">✓ Image <span class="count">11</span></button><button class="option disabled" type="button" disabled>Video <span class="coming">coming</span></button><button class="option disabled" type="button" disabled>Audio <span class="coming">coming</span></button></div></details>
+      <details class="filter-group"><summary><span class="filter-icon">●</span><b>Tags</b><span class="filter-value">Any</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option">Press</button><button class="option">Live</button><button class="option">Portrait</button></div></details>
+      <details class="filter-group"><summary><span class="filter-icon">#</span><b>Properties</b><span class="filter-value">Dimensions +</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option active">✓ Dimensions</button><button class="option">Orientation</button><button class="option">Size</button><button class="option disabled" disabled>Duration <span class="coming">future</span></button><button class="option disabled" disabled>Codec <span class="coming">future</span></button></div></details>
+      <details class="filter-group"><summary><span class="filter-icon">☺</span><b>Owner</b><span class="filter-value">Animal Future</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option active">✓ Animal Future</button><button class="option">Any visible creator</button></div></details>
+      <details class="filter-group"><summary><span class="filter-icon">◉</span><b>Sharing scope</b><span class="filter-value">Any</span><span class="chev">▼</span></summary><div class="drop-body"><button class="option">Private</button><button class="option">Requestable</button><button class="option">Open</button></div></details>
+      <div class="schema-note"><strong>One schema, more media later</strong>Images use Dimensions now. Video/audio will populate Duration, Codec, Frame rate, Bitrate, and Channels in the same property slots.</div>
+      <section class="inbox"><div class="inbox-head"><strong>Incoming grant requests</strong><span class="inbox-count">2</span></div><article class="request"><strong>North Forty Visuals</strong><small>Requests leanna-brick-portrait.jpg</small><div class="request-actions"><button class="approve" type="button">Approve</button><button type="button">Decline</button></div></article><article class="request"><strong>Mira Chen</strong><small>Requests studio-rehearsal.webp</small><div class="request-actions"><button class="approve" type="button">Approve</button><button type="button">Decline</button></div></article><div class="grant-summary"><b>7 active grants</b> · Mira Chen, S/NC Records, North Forty +4</div></section>
+    </aside>
+    <section class="workspace">
+      <header class="title-row"><div><div class="eyebrow">Media database / grid view</div><h1>My asset library</h1><p class="lead">Animal Future’s own images are loaded by default — not the shared pool.</p></div><button class="upload" type="button">+ Upload images</button></header>
+      <div class="view-context"><strong>My library · Animal Future</strong><span>11 assets</span><span class="active-chip">Source = current creator</span><span class="active-chip">Type = Image</span></div>
+      <div class="toolbar"><input class="search" type="search" placeholder="Search Animal Future’s 11 assets…" aria-label="Search current creator library"><button class="compact-filter" type="button">☷ Filters (6)</button><select class="sort" aria-label="Sort database"><option>Sort: Uploaded ↓</option><option>Name A–Z</option><option>Size ↓</option><option>Dimensions ↓</option><option>Sharing scope</option></select><div class="view-toggle" role="group" aria-label="View mode"><button class="active" type="button" data-view="grid">▦ Grid</button><button type="button" data-view="table">☷ Table</button></div></div>
+      <header class="result-head"><div><h2>Animal Future originals</h2><p>8 of 11 shown · each card exposes database properties</p></div><span>View preference saves automatically</span></header>
+      <section class="asset-grid" id="grid-2" aria-label="Current creator asset grid">
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-01/500/330" alt="Artist portrait"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">leanna-brick-portrait.jpg</strong><div class="property-grid"><span class="property">Dimensions<b>1800 × 2400</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Aug 12, 2026</b></span><span class="property">Size<b>4.8 MB</b></span></div><div class="tags"><span class="tag">portrait</span><span class="tag">press</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for portrait"><option>Requestable</option><option>Private</option><option>Open</option></select><button class="grantee-button">3 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-02/500/330" alt="Concert performance"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">aggie-stage-wide.webp</strong><div class="property-grid"><span class="property">Dimensions<b>2400 × 1600</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Aug 11, 2026</b></span><span class="property">Size<b>2.8 MB</b></span></div><div class="tags"><span class="tag">live</span><span class="tag">hero</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for stage"><option>Open</option><option>Requestable</option><option>Private</option></select><button class="grantee-button">0 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-03/500/330" alt="Abstract album art"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">illusionist-cover.png</strong><div class="property-grid"><span class="property">Dimensions<b>3000 × 3000</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Aug 9, 2026</b></span><span class="property">Size<b>8.1 MB</b></span></div><div class="tags"><span class="tag">artwork</span><span class="tag">square</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for cover"><option>Private</option><option>Requestable</option><option>Open</option></select><button class="grantee-button">0 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-04/500/330" alt="Recording studio"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">studio-rehearsal.webp</strong><div class="property-grid"><span class="property">Dimensions<b>1920 × 1280</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Aug 7, 2026</b></span><span class="property">Size<b>2.2 MB</b></span></div><div class="tags"><span class="tag">studio</span><span class="tag">bts</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for studio"><option>Requestable</option><option>Private</option><option>Open</option></select><button class="grantee-button">2 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-05/500/330" alt="Desert road"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">high-desert-tour.jpg</strong><div class="property-grid"><span class="property">Dimensions<b>2048 × 1365</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Aug 3, 2026</b></span><span class="property">Size<b>3.8 MB</b></span></div><div class="tags"><span class="tag">tour</span><span class="tag">landscape</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for desert"><option>Private</option><option>Requestable</option><option>Open</option></select><button class="grantee-button">0 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-06/500/330" alt="Backstage corridor"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">backstage-hallway.jpg</strong><div class="property-grid"><span class="property">Dimensions<b>2200 × 1467</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Jul 29, 2026</b></span><span class="property">Size<b>4.1 MB</b></span></div><div class="tags"><span class="tag">venue</span><span class="tag">bts</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for hallway"><option>Open</option><option>Requestable</option><option>Private</option></select><button class="grantee-button">0 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-07/500/330" alt="Guitar effects pedals"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">pedalboard-detail.webp</strong><div class="property-grid"><span class="property">Dimensions<b>1600 × 1067</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Jul 27, 2026</b></span><span class="property">Size<b>1.6 MB</b></span></div><div class="tags"><span class="tag">gear</span><span class="tag">detail</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for pedalboard"><option>Requestable</option><option>Private</option><option>Open</option></select><button class="grantee-button">1 grantee</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-08/500/330" alt="Crowd from stage"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">crowd-from-stage.jpg</strong><div class="property-grid"><span class="property">Dimensions<b>2400 × 1600</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Jul 22, 2026</b></span><span class="property">Size<b>4.9 MB</b></span></div><div class="tags"><span class="tag">live</span><span class="tag">crowd</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for crowd"><option>Private</option><option>Requestable</option><option>Open</option></select><button class="grantee-button">0 grantees</button></div></article>
+        <article class="asset"><div class="thumb"><img src="https://picsum.photos/seed/snc-rail-09/500/330" alt="Concert poster"><span class="type-badge">Image</span></div><div class="asset-body"><strong class="asset-name">spring-tour-poster.png</strong><div class="property-grid"><span class="property">Dimensions<b>1600 × 2000</b></span><span class="property">Owner<b>Animal Future</b></span><span class="property">Uploaded<b>Jul 18, 2026</b></span><span class="property">Size<b>5.5 MB</b></span></div><div class="tags"><span class="tag">poster</span><span class="tag">press</span></div></div><div class="card-tools"><select class="scope-select" aria-label="Sharing for poster"><option>Open</option><option>Requestable</option><option>Private</option></select><button class="grantee-button">0 grantees</button></div></article>
+      </section>
+    </section>
+  </main>
+  <script>
+    const grid = document.querySelector('#grid-2');
+    const viewButtons = document.querySelectorAll('.view-toggle button');
+    const applyView = (view) => {
+      grid.classList.toggle('table-mode', view === 'table');
+      viewButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === view));
+      try { localStorage.setItem('snc-library-option-2-view', view); } catch {}
+    };
+    viewButtons.forEach((button) => button.addEventListener('click', () => applyView(button.dataset.view)));
+    let savedView = 'grid'; try { savedView = localStorage.getItem('snc-library-option-2-view') || 'grid'; } catch {}
+    applyView(savedView);
+    document.querySelectorAll('.approve').forEach((button) => button.addEventListener('click', () => { button.textContent = 'Granted'; button.disabled = true; const decline = button.nextElementSibling; if (decline) decline.hidden = true; }));
+  </script>
+</body>
+</html>

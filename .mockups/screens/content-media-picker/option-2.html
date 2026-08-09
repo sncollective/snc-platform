@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content media picker — Option 2: Guided studio</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; overflow-x: hidden; }
+    body { min-width: 0; margin: 0; overflow-x: hidden; background: var(--color-bg); color: var(--color-text); font: 13px/1.45 var(--font-ui); }
+    button, input, textarea { max-width: 100%; font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .mock-meta { height: 38px; min-width: 0; padding: 8px 16px; display: flex; gap: 16px; align-items: baseline; flex-wrap: nowrap; overflow: hidden; border-bottom: 1px solid #30363d; background: #0d1117; color: #c9d1d9; font: 13px/1.4 system-ui,sans-serif; }
+    .mock-meta strong { flex: 0 0 auto; font-weight: 600; }
+    .mock-meta span { min-width: 0; overflow: hidden; color: #8b949e; text-overflow: ellipsis; white-space: nowrap; }
+    .app { position: relative; min-height: calc(100vh - 38px); overflow: hidden; }
+    .host-bar { height: 58px; padding: 0 24px; display: flex; align-items: center; gap: 28px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-elevated); }
+    .brand { font-size: 18px; font-weight: 800; }
+    .brand b { color: var(--color-accent); }
+    .host-bar nav { display: flex; gap: 21px; color: var(--color-text-muted); }
+    .user { margin-left: auto; padding: 6px 10px; border: 1px solid var(--color-border); border-radius: 99px; color: var(--color-text-muted); }
+    .host { min-height: calc(100vh - 96px); padding: 28px clamp(24px,5vw,72px); opacity: .45; filter: saturate(.5); }
+    .host h1 { margin: 0 0 8px; font: 30px var(--font-heading); }
+    .host p { color: var(--color-text-muted); }
+    .editor { width: min(900px,100%); margin-top: 24px; display: grid; grid-template-columns: 1fr 240px; gap: 20px; }
+    .paper, .side { padding: 22px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+    .banner-slot { aspect-ratio: 3/1; display: grid; place-items: center; border: 1px dashed var(--color-secondary); border-radius: var(--radius-md); background: var(--color-secondary-bg); color: var(--color-secondary); }
+    .ghost { height: 11px; margin-top: 15px; border-radius: 99px; background: var(--color-border); }
+    .ghost.short { width: 45%; }
+    .veil { position: absolute; inset: 58px 0 0; z-index: 5; padding: 14px; display: grid; place-items: center; background: rgba(4,5,13,.8); backdrop-filter: blur(4px); }
+    .dialog { width: min(1180px,100%); height: min(650px,calc(100vh - 118px)); min-width: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #4b4b70; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-xl); }
+    .head { padding: 15px 18px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--color-border); }
+    .head h2 { margin: 0; font-size: 20px; }
+    .head p { margin: 2px 0 0; color: var(--color-text-muted); font-size: 11px; }
+    .slot { margin-left: auto; padding: 7px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-secondary); border-radius: var(--radius-pill); background: var(--color-secondary-bg); color: var(--color-secondary); font-weight: 700; white-space: nowrap; }
+    .slot-shape { width: 36px; aspect-ratio: 3/1; border: 1px solid currentColor; border-radius: 2px; }
+    .close { width: 32px; height: 32px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 21px; }
+    .sequence { min-height: 0; flex: 1; padding: 14px; display: grid; grid-template-columns: minmax(230px,.78fr) 1.35fr minmax(235px,.8fr); gap: 10px; overflow: hidden; background: #151527; }
+    .step { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
+    .step.current { border-color: color-mix(in srgb,var(--color-accent) 70%,var(--color-border)); box-shadow: 0 0 0 1px var(--color-accent-subtle); }
+    .step-head { padding: 11px 12px; display: flex; gap: 9px; align-items: center; border-bottom: 1px solid var(--color-border); }
+    .num { width: 24px; height: 24px; flex: 0 0 24px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; color: var(--color-text-muted); font-size: 11px; font-weight: 800; }
+    .done .num { border-color: var(--color-success); background: var(--color-success-bg); color: #8dde91; }
+    .current .num { border-color: var(--color-accent); background: var(--color-accent-bg); color: var(--color-accent); }
+    .step-head b, .step-head small { display: block; }
+    .step-head b { font-size: 12px; }
+    .step-head small { color: var(--color-text-muted); font-size: 9px; }
+    .step-body { min-height: 0; padding: 11px; overflow-y: auto; }
+    .source-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 3px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
+    .source-tabs button { min-height: 30px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); font-size: 10px; }
+    .source-tabs .active { background: var(--color-accent-bg); color: var(--color-accent); }
+    .default-note { margin: 7px 0 9px; color: var(--color-text-muted); font-size: 10px; }
+    .default-note b { color: var(--color-text); }
+    .mini-assets { display: grid; gap: 6px; }
+    .asset { padding: 5px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 7px; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+    .asset.selected { border-color: var(--color-accent); }
+    .thumb { position: relative; width: 48px; aspect-ratio: 4/3; overflow: hidden; border-radius: 3px; }
+    .stage-art { background: radial-gradient(circle at 27% 20%,#f5a623 0 3%,transparent 4%),linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .stage-art::after { content: ""; position: absolute; width: 32%; height: 68%; left: 35%; bottom: -18%; border-radius: 48% 48% 12% 12%; background: #12131c; }
+    .portrait { background: radial-gradient(circle at 52% 32%,#d09a74 0 14%,transparent 15%),linear-gradient(135deg,#596d70,#22263a 52%,#9e6244); }
+    .desert { background: linear-gradient(8deg,#483027 0 25%,transparent 26%),linear-gradient(#d9905c 0 45%,#6d506d 46% 62%,#1c2334 63%); }
+    .asset strong, .asset small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asset strong { font-size: 10px; }
+    .asset small { color: var(--color-text-muted); font-size: 9px; }
+    .status { margin-top: 3px; color: #8dde91 !important; font-weight: 700; }
+    .status.ask { color: #ffd06f !important; }
+    .upload { width: 100%; min-height: 34px; margin-top: 8px; border: 1px dashed var(--color-secondary); border-radius: var(--radius-sm); background: var(--color-secondary-bg); color: var(--color-secondary); font-weight: 700; font-size: 10px; }
+    .upload small { display: block; color: var(--color-text-muted); font-weight: 400; }
+    .crop-info { margin-bottom: 8px; display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 10px; }
+    .crop-info b { color: var(--color-secondary); }
+    .crop-canvas { position: relative; width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: var(--radius-md); background: radial-gradient(circle at 27% 18%,#f5a623 0 2%,transparent 3%),radial-gradient(circle at 72% 17%,#ad61eb 0 2%,transparent 3%),linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .crop-canvas::before { content: ""; position: absolute; width: 25%; height: 62%; left: 38%; bottom: -13%; border-radius: 48% 48% 12% 12%; background: #11131c; box-shadow: -88px 14px 0 -20px #242034,90px 9px 0 -22px #181c27; }
+    .shade { position: absolute; inset: 0; background: linear-gradient(transparent 25%,rgba(0,0,0,.68) 25% 75%,transparent 75%); pointer-events: none; }
+    .fixed-frame { position: absolute; left: 0; right: 0; top: 25%; aspect-ratio: 3/1; border: 2px solid var(--color-secondary); box-shadow: 0 0 0 999px rgba(0,0,0,.28); }
+    .fixed-frame::after { content: "3:1 fixed crop"; position: absolute; right: 5px; top: 4px; padding: 2px 5px; border-radius: 3px; background: rgba(0,0,0,.72); color: var(--color-secondary); font-size: 9px; font-weight: 700; }
+    .grid-lines { position: absolute; inset: 0; background: linear-gradient(90deg,transparent 33%,rgba(255,255,255,.25) 33.4%,transparent 33.8%,transparent 66%,rgba(255,255,255,.25) 66.4%,transparent 66.8%); }
+    .zoom { margin-top: 9px; display: grid; grid-template-columns: 38px 1fr 32px; align-items: center; gap: 7px; color: var(--color-text-muted); font-size: 9px; }
+    .zoom input { width: 100%; accent-color: var(--color-accent); }
+    .rendered { margin-top: 10px; padding-top: 9px; display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 8px; align-items: center; border-top: 1px solid var(--color-border); }
+    .preview { width: 78px; aspect-ratio: 3/1; border: 1px solid var(--color-secondary); border-radius: 3px; background: linear-gradient(145deg,#61355f,#17192b 55%,#a65a35); }
+    .rendered b, .rendered small { display: block; }
+    .rendered b { font-size: 10px; }
+    .rendered small { color: var(--color-text-muted); font-size: 9px; }
+    .use-check { padding: 7px 8px; display: flex; gap: 7px; border: 1px solid color-mix(in srgb,var(--color-success) 55%,var(--color-border)); border-radius: var(--radius-sm); background: var(--color-success-bg); }
+    .dot { width: 8px; height: 8px; flex: 0 0 8px; margin-top: 4px; border-radius: 50%; background: var(--color-success); }
+    .use-check b, .use-check small { display: block; }
+    .use-check b { color: #8dde91; font-size: 10px; }
+    .use-check small { color: var(--color-text-muted); font-size: 9px; }
+    .field { margin-top: 9px; }
+    .field label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; font-weight: 700; }
+    .field label span { color: var(--color-text-muted); font-size: 9px; font-weight: 400; }
+    .field textarea, .field input { width: 100%; padding: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-input); color: var(--color-text); }
+    .field textarea { min-height: 58px; resize: none; }
+    .checklist { margin: 9px 0; padding: 8px; border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text-muted); font-size: 9px; }
+    .checklist b { color: var(--color-text); }
+    .insert { width: 100%; min-height: 40px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent); color: #251805; font-weight: 800; }
+    .back { width: 100%; min-height: 30px; margin-top: 4px; border: 0; background: transparent; color: var(--color-text-muted); font-size: 10px; }
+    .footer { padding: 8px 16px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); background: var(--color-bg-elevated); color: var(--color-text-muted); font-size: 10px; }
+    .footer b { color: var(--color-text); }
+    @media (max-width: 1050px) {
+      .sequence { grid-template-columns: minmax(205px,.75fr) 1.2fr minmax(215px,.78fr); gap: 7px; padding: 9px; }
+      .step-body { padding: 8px; }
+      .dialog { height: min(650px,calc(100vh - 118px)); }
+    }
+    @media (max-width: 760px) {
+      .host-bar nav, .slot { display: none; }
+      .veil { padding: 6px; align-items: start; }
+      .dialog { height: calc(100vh - 50px); }
+      .sequence { display: block; overflow-y: auto; }
+      .step { margin-bottom: 8px; overflow: visible; }
+      .step-body { overflow: visible; }
+      .crop-canvas { aspect-ratio: 16/9; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 2 — Guided studio</strong><span>Three visible workstations turn the picker into a left-to-right sequence: choose, conform to the slot, then describe and insert.</span></header>
+  <main class="app">
+    <header class="host-bar"><div class="brand"><b>S/NC</b> Platform</div><nav><span>Creators</span><span>Watch</span><span>Listen</span><span>About</span></nav><div class="user">Animal Future</div></header>
+    <section class="host" aria-hidden="true"><h1>Press page editor</h1><p>Build the page that press, radio, and bookers see.</p><div class="editor"><div class="paper"><strong>Hero banner</strong><div class="banner-slot">Choose banner image · 3:1</div><div class="ghost short"></div><div class="ghost"></div><div class="ghost"></div></div><aside class="side"><strong>Page settings</strong><div class="ghost"></div><div class="ghost short"></div></aside></div></section>
+    <div class="veil">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <header class="head"><div><h2 id="picker-title">Fill the hero banner</h2><p>The original is added once to the library; this use keeps its own crop, alt text, and credit.</p></div><div class="slot"><span class="slot-shape"></span> Banner · 3:1</div><button class="close" type="button" aria-label="Close">×</button></header>
+        <div class="sequence">
+          <section class="step done" aria-labelledby="choose-title"><header class="step-head"><span class="num">✓</span><span><b id="choose-title">Choose source</b><small>Browse or upload into the library</small></span></header><div class="step-body"><div class="source-tabs"><button class="active" type="button">Animal Future · 18</button><button type="button">Shared pool · 34</button></div><p class="default-note">Default: <b>current creator’s assets</b></p><div class="mini-assets"><button class="asset selected" type="button"><span class="thumb stage-art"></span><span><strong>aggie-backstage-wide.webp</strong><small>Animal Future · 2400 × 1600</small><small class="status">● Usable now · Own</small></span></button><button class="asset" type="button"><span class="thumb portrait"></span><span><strong>leanna-brick-wall.jpg</strong><small>Animal Future · 1800 × 2400</small><small class="status">● Usable now · Own</small></span></button><button class="asset" type="button"><span class="thumb desert"></span><span><strong>high-desert-tour.jpg</strong><small>Ramble Atlas · Shared pool</small><small class="status ask">● Request access</small></span></button></div><button class="upload" type="button">＋ Upload new image<small>JPEG, PNG, WebP · saved to library</small></button></div></section>
+          <section class="step current" aria-labelledby="crop-title"><header class="step-head"><span class="num">2</span><span><b id="crop-title">Conform crop</b><small>Pan and zoom inside the fixed slot frame</small></span></header><div class="step-body"><div class="crop-info"><span>Selected: Backstage at the Aggie</span><b>Fixed 3:1 output</b></div><div class="crop-canvas" role="img" aria-label="Wide source image with fixed three to one crop frame"><span class="shade"></span><span class="fixed-frame"><span class="grid-lines"></span></span></div><label class="zoom"><span>Zoom</span><input type="range" min="1" max="8" value="2" step=".1"><output>2.0×</output></label><div class="rendered"><span class="preview"></span><span><b>Aspect-correct preview</b><small>1920 × 640 at delivery · no stretched pixels</small></span></div></div></section>
+          <section class="step" aria-labelledby="describe-title"><header class="step-head"><span class="num">3</span><span><b id="describe-title">Describe + insert</b><small>Metadata belongs to this slot use</small></span></header><div class="step-body"><div class="use-check"><span class="dot"></span><span><b>Usable now · Own</b><small>Animal Future owns this registration.</small></span></div><div class="field"><label for="alt">Alternative text <span>Required</span></label><textarea id="alt">Three musicians silhouetted backstage under amber and violet lights.</textarea></div><div class="field"><label for="credit">Photo credit <span>Optional</span></label><input id="credit" type="text" value="Marisol Vega"></div><div class="checklist"><b>Ready to insert</b><br>✓ Use permission &nbsp; ✓ 3:1 crop<br>✓ Alternative text &nbsp; ○ Credit optional</div><button class="insert" type="button">Insert into hero banner</button><button class="back" type="button">Cancel</button></div></section>
+        </div>
+        <footer class="footer"><span><b>Flow:</b> Library or upload → fixed crop → metadata → slot</span><span>Press editor remains open behind this modal</span></footer>
+      </section>
+    </div>
+  </main>
+  <script>
+    document.querySelectorAll('.source-tabs button').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.source-tabs button').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    document.querySelectorAll('.asset').forEach((asset) => asset.addEventListener('click', () => {
+      document.querySelectorAll('.asset').forEach((item) => item.classList.remove('selected'));
+      asset.classList.add('selected');
+    }));
+  </script>
+</body>
+</html>
