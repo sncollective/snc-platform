@@ -24,7 +24,7 @@ import {
 import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 import { validateOwnedPressKeys } from "../../src/services/press-images.js";
-import { renderOnePagerPdf } from "../../src/services/press-pdf.js";
+import { renderCreatorOneSheetPdf } from "../../src/services/press-pdf.js";
 
 const baseBytes = Uint8Array.from(
   Buffer.from(
@@ -133,7 +133,7 @@ describe("content library integration", () => {
     }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 
-  it("embeds real Garage legacy and library photos in the live one-pager PDF", async () => {
+  it("embeds real Garage legacy and library photos in the creator one-sheet PDF", async () => {
     const libraryUpload = await upload(creatorIds[0]!, 74, "private");
     expect(libraryUpload.ok).toBe(true);
     if (!libraryUpload.ok) return;
@@ -153,13 +153,22 @@ describe("content library integration", () => {
     uploadedKeys.add(legacyKey);
 
     for (const key of [legacyKey, libraryUpload.value.asset.storageKey]) {
-      const buffer = await renderOnePagerPdf({
+      const buffer = await renderCreatorOneSheetPdf({
         creator: {
           id: creatorIds[0]!,
           displayName: "Library integration creator",
           handle: null,
+          socialLinks: [],
         },
-        content: { ...DEFAULT_PRESS_CONTENT, enabled: true, photos: [key] },
+        content: {
+          ...DEFAULT_PRESS_CONTENT,
+          enabled: true,
+          banner: { key, alt: "Integration hero" },
+        },
+        pressPageUrl: "https://s-nc.org/creators/integration/press",
+        theme: "dark",
+        brandColor: null,
+        orientation: "horizontal",
       });
       expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
       expect(buffer.length).toBeGreaterThan(100);

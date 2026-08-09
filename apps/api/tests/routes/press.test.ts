@@ -15,6 +15,9 @@ const mockRequireCreatorPermission = vi.fn();
 const mockCanUseAsset = vi.fn();
 const mockStorageDownload = vi.fn();
 const mockBuildPressImageUrl = vi.fn();
+const mockRenderOnePagerPdf = vi.fn();
+const mockRenderCreatorOneSheetPdf = vi.fn();
+const mockRenderOneSheetPdf = vi.fn();
 
 const libraryKey = `library/aa/${"a".repeat(64)}.jpg`;
 const secondLibraryKey = `library/bb/${"b".repeat(64)}.png`;
@@ -26,6 +29,7 @@ const profile = {
   handle: "test-creator",
   avatarKey: null,
   bannerKey: null,
+  brandColor: null,
   socialLinks: [],
   status: "active" as const,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -112,6 +116,13 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/lib/imgproxy.js", () => ({
       buildPressImageUrl: mockBuildPressImageUrl,
     }));
+    vi.doMock("../../src/services/press-pdf.js", () => ({
+      PDF_THEMES: ["light", "dark", "brand"],
+      ONE_SHEET_ORIENTATIONS: ["auto", "horizontal", "vertical"],
+      renderOnePagerPdf: mockRenderOnePagerPdf,
+      renderCreatorOneSheetPdf: mockRenderCreatorOneSheetPdf,
+      renderOneSheetPdf: mockRenderOneSheetPdf,
+    }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
         c.set("user", ctx.auth.user);
@@ -141,6 +152,10 @@ const ctx = setupRouteTest({
       srcSet: `https://images.example/${slot}/${width}/${image.key} ${width}w`,
       sizes: "100vw",
     }));
+    const pdf = Buffer.from("%PDF route fixture");
+    mockRenderOnePagerPdf.mockResolvedValue(pdf);
+    mockRenderCreatorOneSheetPdf.mockResolvedValue(pdf);
+    mockRenderOneSheetPdf.mockResolvedValue(pdf);
     mockStorageDownload.mockResolvedValue(
       ok({
         stream: new ReadableStream<Uint8Array>({
@@ -248,15 +263,50 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
 });
 
 describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
-  it("matches the literal PDF route and returns a PDF response", async () => {
+  it("prints the live template with the requested theme", async () => {
     ctx.auth.user = null;
 
-    const res = await json("GET", "/api/creators/test-creator/press/one-pager.pdf");
+    const res = await json("GET", "/api/creators/test-creator/press/one-pager.pdf?theme=brand");
     const body = Buffer.from(await res.arrayBuffer());
 
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("application/pdf");
     expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(mockRenderOnePagerPdf).toHaveBeenCalledWith({
+      pageUrl: "http://localhost:3080/creators/test-creator/press",
+      theme: "brand",
+      brandColor: null,
+    });
+  });
+});
+
+describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
+  it("passes the creator theme, orientation, and custom QR URL to the curated renderer", async () => {
+    const destinationUrl = "https://linktr.ee/custom-test";
+    const res = await json(
+      "GET",
+      `/api/creators/test-creator/press/one-sheet.pdf?theme=light&orientation=vertical&url=${encodeURIComponent(destinationUrl)}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/pdf");
+    expect(mockRenderCreatorOneSheetPdf).toHaveBeenCalledWith(expect.objectContaining({
+      content,
+      pressPageUrl: "http://localhost:3080/creators/test-creator/press",
+      theme: "light",
+      brandColor: null,
+      destinationUrl,
+      orientation: "vertical",
+    }));
+  });
+
+  it("rejects non-HTTP QR destinations", async () => {
+    const res = await json(
+      "GET",
+      `/api/creators/test-creator/press/one-sheet.pdf?url=${encodeURIComponent("javascript:alert(1)")}`,
+    );
+    expect(res.status).toBe(400);
+    expect(mockRenderCreatorOneSheetPdf).not.toHaveBeenCalled();
   });
 });
 

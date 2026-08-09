@@ -1,14 +1,14 @@
 ---
 id: creator-press-page-v2-pdf
 kind: feature
-stage: drafting
+stage: review
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-templates, creator-profile-brand-color]
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-09
 ---
 
 # Press page v2 — PDF (render template to letter)
@@ -72,3 +72,17 @@ the selected template (A or B), with the burn-in photo credits.
 skill generalize to it.
 - Mechanism (headless print of the template vs. continuing @react-pdf) is a
   feature-design decision; goal remains one source of truth for the render.
+
+## Implementation notes
+- Execution capability: direct inline owner; the PDF render/service/route surface was cohesive and the caller prohibited nested agents.
+- Review weight: standard (project default), with the caller-requested stop boundary at `stage: review`.
+- Render mechanism: Playwright Chromium prints the live public press route for the full PDF, so the selected A/B React template and its existing `@media print` CSS remain the single source of truth. The same browser adapter prints the locked orientation-specific one-sheet HTML at exact Letter geometry; QR SVG generation uses ECC M and a four-module quiet zone.
+- Files changed: `apps/api/src/services/browser-pdf.ts`, `apps/api/src/services/press-pdf.ts`, `apps/api/src/routes/press.routes.ts`, API package/lock dependencies, PDF route/service tests, and stale integration fixtures surfaced by the required full gate.
+- Routes: the existing `/press/one-pager.pdf` now prints the complete live template; `/press/one-sheet.pdf` adds the curated single-page output. Both accept `theme=light|dark|brand`; the one-sheet also accepts `orientation=auto|horizontal|vertical` and an HTTP(S) `url` QR override. Creator Brand Accent consumes `creatorProfiles.brandColor` with the standard accent fallback.
+- Tests added/updated: route contract coverage for themes/orientation/custom QR validation; service coverage for full-template printing, both one-sheet compositions, brand/light colors, photo-credit burn-in, AF Linktree fallback, storage authorization, QR footprint, and one-page output. The library integration now proves real Garage legacy/library media embed in the browser-rendered one-sheet.
+- Test integrity: repaired two stale pre-existing integration fixtures discovered by the mandatory full run: explicit `undefined` was being lost through a default parameter in test-control gating, and channel-lifecycle fixtures no longer created creator/key/session parents required by current foreign keys.
+- Simplification: removed the duplicated creator @react-pdf layout and image-read path from `renderOnePagerPdf`; @react-pdf remains only for the existing release-specific route, which is outside this feature's replacement scope.
+- Discrepancies from design: PDF theme and QR choices are validated route inputs because the completed shared content model exposes no PDF preference fields and the caller explicitly forbade editor/shared-schema/migration writes. The PDF surface is ready for the owning editor feature to persist and emit those query choices without another renderer change. The local dev web process currently returns an unrelated SSR `fetch failed`; full-render visual proof therefore used the locked full-template HTML through the production browser adapter, while the adapter now rejects non-2xx render targets instead of producing an error-overlay PDF.
+- Visual verification: rasterized every generated PDF to PNG and inspected page-by-page. Full template A printed as two Letter pages in dark/light/brand; complete content, credits, static gallery, hidden fixed controls, and web-matching composition survived. Both populated one-sheets printed exactly one Letter page in all three schemes; horizontal kept the 12-column hero/two-paragraph/member/highlight composition, vertical kept the 4-column rail/eight-column condensed copy, and both retained the single intentional pre-footer buffer with no clipped content. Type floors are 10px/7.5pt prose and 9px/6.75pt metadata, all line heights and spacing snap to the 4px baseline, and the 80px (0.833in) vector QR remained crisp with readable fallback URL.
+- Verification: API unit suite **124 files / 1,989 tests passed**; API integration suite **11 files / 51 tests passed**; API `tsc --noEmit` **0 errors**; PDF preflight confirmed **612 × 792pt Letter**, one page for both one-sheets in every scheme, and complete multi-page flow for the full PDF.
+- Adjacent issues parked: none.

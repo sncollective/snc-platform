@@ -22,6 +22,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
 import { streamFile } from "../lib/file-utils.js";
+import { getFrontendBaseUrl } from "../lib/route-utils.js";
 import { buildPressImageUrl } from "../lib/imgproxy.js";
 import {
   DeliveredPressContentSchema,
@@ -30,7 +31,13 @@ import {
 import { requireCreatorPermission } from "../services/creator-team.js";
 import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
-import { renderOnePagerPdf, renderOneSheetPdf } from "../services/press-pdf.js";
+import {
+  ONE_SHEET_ORIENTATIONS,
+  PDF_THEMES,
+  renderCreatorOneSheetPdf,
+  renderOnePagerPdf,
+  renderOneSheetPdf,
+} from "../services/press-pdf.js";
 import {
   discardPressDraft,
   getPressConfig,
@@ -55,8 +62,21 @@ const PressImageDescriptorSchema = z.object({
 const DeliveredPressPagePayloadSchema = PressPagePayloadSchema.extend({
   content: DeliveredPressContentSchema,
 });
+const PressPdfThemeQuerySchema = z.object({
+  theme: z.enum(PDF_THEMES).default("dark"),
+});
+const PressOneSheetQuerySchema = PressPdfThemeQuerySchema.extend({
+  orientation: z.enum(ONE_SHEET_ORIENTATIONS).default("auto"),
+  url: z.string().url().refine(
+    (value) => ["http:", "https:"].includes(new URL(value).protocol),
+    "QR destination must use HTTP or HTTPS",
+  ).optional(),
+});
 
 // ── Private Helpers ──
+
+const pressPageUrl = (creatorPath: string): string =>
+  `${process.env.PRESS_RENDER_BASE_URL ?? getFrontendBaseUrl()}/creators/${creatorPath}/press`;
 
 const getEnabledPressContent = async (identifier: string) => {
   const profile = await findCreatorProfile(identifier, { activeOnly: true });
@@ -116,17 +136,64 @@ pressRoutes.get(
   }),
   optionalAuth,
   validator("param", CreatorIdParam),
+  validator("query", PressPdfThemeQuerySchema),
+  async (c) => {
+    const { profile } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
+    const buffer = await renderOnePagerPdf({
+      pageUrl: pressPageUrl(creatorPath),
+      theme: c.req.valid("query").theme,
+      brandColor: profile.brandColor ?? null,
+    });
+    return c.body(new Uint8Array(buffer), 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${profile.handle ?? profile.id}-press-kit.pdf"`,
+    });
+  },
+);
+
+// GET /:creatorId/press/one-sheet.pdf — Public curated creator one-sheet PDF
+pressRoutes.get(
+  "/:creatorId/press/one-sheet.pdf",
+  describeRoute({
+    description: "Download a creator's curated single-page press sheet as a PDF",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Creator press one-sheet PDF",
+        content: {
+          "application/pdf": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      400: ERROR_400,
+      404: ERROR_404,
+    },
+  }),
+  optionalAuth,
+  validator("param", CreatorIdParam),
+  validator("query", PressOneSheetQuerySchema),
   async (c) => {
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
-    const buffer = await renderOnePagerPdf({
+    const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
+    const query = c.req.valid("query");
+    const buffer = await renderCreatorOneSheetPdf({
       creator: {
         id: profile.id,
         displayName: profile.displayName,
         handle: profile.handle,
+        socialLinks: profile.socialLinks,
       },
       content,
+      pressPageUrl: pressPageUrl(creatorPath),
+      theme: query.theme,
+      brandColor: profile.brandColor ?? null,
+      ...(query.url ? { destinationUrl: query.url } : {}),
+      orientation: query.orientation,
     });
-    return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+    return c.body(new Uint8Array(buffer), 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${profile.handle ?? profile.id}-one-sheet.pdf"`,
+    });
   },
 );
 

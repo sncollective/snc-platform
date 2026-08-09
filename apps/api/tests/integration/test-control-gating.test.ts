@@ -15,8 +15,11 @@ const TEST_CONTROL_HEADERS = { "x-test-control-secret": TEST_CONTROL_SECRET };
 
 const mockConfig = (
   testControlProfile: "disabled" | "e2e",
-  testControlSecret: string | undefined = TEST_CONTROL_SECRET,
+  ...secretOverride: [] | [string | undefined]
 ) => {
+  const testControlSecret = secretOverride.length === 0
+    ? TEST_CONTROL_SECRET
+    : secretOverride[0];
   vi.doMock("../../src/config.js", () => ({
     config: makeTestConfig({
       TEST_CONTROL_PROFILE: testControlProfile,

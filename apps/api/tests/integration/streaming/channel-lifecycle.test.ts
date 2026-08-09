@@ -26,13 +26,28 @@ describe("creator channel lifecycle (persistent row model)", () => {
    */
   it("reuses the same channel row across publish/unpublish/publish cycles", async () => {
     const { db } = await import("../../../src/db/connection.js");
-    const { channels } = await import("../../../src/db/schema/streaming.schema.js");
+    const { channels, streamKeys, streamSessions } = await import("../../../src/db/schema/streaming.schema.js");
+    const { creatorProfiles } = await import("../../../src/db/schema/creator.schema.js");
     const { ensureCreatorChannel, activateLiveChannel, deactivateLiveChannel } =
       await import("../../../src/services/channels.js");
     const { eq, and } = await import("drizzle-orm");
 
     const creatorId = `test-creator-${randomUUID()}`;
     const channelName = "Test Creator";
+    await db.insert(creatorProfiles).values({
+      id: creatorId,
+      displayName: channelName,
+      socialLinks: [],
+      status: "active",
+    });
+    const streamKeyId = `key-${randomUUID()}`;
+    await db.insert(streamKeys).values({
+      id: streamKeyId,
+      creatorId,
+      name: "Integration key",
+      keyHash: `hash-${randomUUID()}`,
+      keyPrefix: "test",
+    });
 
     // Provision a persistent channel (what createStreamKey does)
     const provisionResult = await ensureCreatorChannel(creatorId, channelName);
@@ -43,6 +58,13 @@ describe("creator channel lifecycle (persistent row model)", () => {
     try {
       // First publish
       const session1 = `session-${randomUUID()}`;
+      await db.insert(streamSessions).values({
+        id: session1,
+        creatorId,
+        streamKeyId,
+        srsClientId: `client-${randomUUID()}`,
+        srsStreamName: "creator-livestream",
+      });
       const activate1 = await activateLiveChannel({
         creatorId,
         creatorName: channelName,
@@ -75,6 +97,13 @@ describe("creator channel lifecycle (persistent row model)", () => {
 
       // Second publish (same creator, new session)
       const session2 = `session-${randomUUID()}`;
+      await db.insert(streamSessions).values({
+        id: session2,
+        creatorId,
+        streamKeyId,
+        srsClientId: `client-${randomUUID()}`,
+        srsStreamName: "creator-livestream",
+      });
       const activate2 = await activateLiveChannel({
         creatorId,
         creatorName: channelName,
@@ -110,6 +139,7 @@ describe("creator channel lifecycle (persistent row model)", () => {
     } finally {
       // Clean up test rows
       await db.delete(channels).where(eq(channels.creatorId, creatorId));
+      await db.delete(creatorProfiles).where(eq(creatorProfiles.id, creatorId));
     }
   });
 
@@ -122,12 +152,19 @@ describe("creator channel lifecycle (persistent row model)", () => {
   it("ensureCreatorChannel is idempotent — same row on repeated calls", async () => {
     const { db } = await import("../../../src/db/connection.js");
     const { channels } = await import("../../../src/db/schema/streaming.schema.js");
+    const { creatorProfiles } = await import("../../../src/db/schema/creator.schema.js");
     const { ensureCreatorChannel } = await import("../../../src/services/channels.js");
     const { eq, and } = await import("drizzle-orm");
 
     const creatorId = `test-creator-${randomUUID()}`;
 
     try {
+      await db.insert(creatorProfiles).values({
+        id: creatorId,
+        displayName: "Creator One",
+        socialLinks: [],
+        status: "active",
+      });
       const result1 = await ensureCreatorChannel(creatorId, "Creator One");
       expect(result1.ok).toBe(true);
       const id1 = result1.ok ? result1.value.channelId : null;
@@ -151,6 +188,7 @@ describe("creator channel lifecycle (persistent row model)", () => {
       expect(rows).toHaveLength(1);
     } finally {
       await db.delete(channels).where(eq(channels.creatorId, creatorId));
+      await db.delete(creatorProfiles).where(eq(creatorProfiles.id, creatorId));
     }
   });
 
@@ -163,6 +201,7 @@ describe("creator channel lifecycle (persistent row model)", () => {
   it("dedupes duplicate creator live-ingest rows on ensureCreatorChannel", async () => {
     const { db } = await import("../../../src/db/connection.js");
     const { channels } = await import("../../../src/db/schema/streaming.schema.js");
+    const { creatorProfiles } = await import("../../../src/db/schema/creator.schema.js");
     const { ensureCreatorChannel } = await import("../../../src/services/channels.js");
     const { eq, and } = await import("drizzle-orm");
 
@@ -171,6 +210,12 @@ describe("creator channel lifecycle (persistent row model)", () => {
     const newerChannelId = `ch-${randomUUID()}`;
 
     try {
+      await db.insert(creatorProfiles).values({
+        id: creatorId,
+        displayName: "Creator",
+        socialLinks: [],
+        status: "active",
+      });
       // Directly insert two duplicate rows to simulate the backfill situation
       await db.insert(channels).values({
         id: olderChannelId,
@@ -214,6 +259,7 @@ describe("creator channel lifecycle (persistent row model)", () => {
       expect(rows[0]?.id).toBe(olderChannelId);
     } finally {
       await db.delete(channels).where(eq(channels.creatorId, creatorId));
+      await db.delete(creatorProfiles).where(eq(creatorProfiles.id, creatorId));
     }
   });
 });
