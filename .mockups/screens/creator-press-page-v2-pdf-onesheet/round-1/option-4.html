@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animal Future one-sheet — Option 4: Thesis first</title>
+<link rel="stylesheet" href="../../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { overflow-x: hidden; color-scheme: dark; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: #0d0d16; color: var(--color-text); font-family: var(--font-ui); }
+img { display: block; width: 100%; max-width: 100%; }
+figure, p, h1, h2 { margin: 0; }
+.mock-meta { min-height: 42px; padding: 8px 16px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid #30303d; background: #09090f; color: #d7d7df; font: 13px/1.4 var(--font-ui); }
+.mock-meta > * { min-width: 0; }
+.mock-meta strong { font-weight: 600; }
+.mock-meta span { flex: 1 1 420px; color: #9696a8; overflow-wrap: anywhere; }
+.mock-meta code { flex: none; margin-left: auto; color: #727286; font-size: 11px; white-space: nowrap; }
+.preview { min-width: 0; padding: 24px 0 40px; display: grid; place-items: start center; overflow-x: hidden; }
+.sheet { width: 8.5in; height: 11in; padding: 36px 40px; display: grid; grid-template-rows: 54px 140px 400px minmax(0, 1fr) 56px; gap: 15px; overflow: hidden; background: var(--color-bg); box-shadow: 0 18px 70px rgb(0 0 0 / .55); }
+.mast { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--color-border); }
+.mast h1 { font: 400 31px/1 var(--font-heading); letter-spacing: -.025em; }
+.mast p { color: var(--color-text-muted); text-align: right; font-size: 8.5px; line-height: 1.35; letter-spacing: .06em; text-transform: uppercase; }
+.mast b { display: block; color: var(--color-secondary); }
+.thesis { min-width: 0; display: grid; grid-template-columns: 5px minmax(0, 1fr) 160px; gap: 18px; align-items: center; }
+.rule { align-self: stretch; background: var(--color-accent); }
+.thesis h2 { font: 700 37px/1.07 var(--font-heading); letter-spacing: -.025em; }
+.thesis-note { color: var(--color-text-muted); font-size: 9px; line-height: 1.5; }
+.thesis-note strong { display: block; margin-bottom: 7px; color: var(--color-accent); font-size: 8px; letter-spacing: .16em; text-transform: uppercase; }
+.photo { position: relative; min-width: 0; height: 400px; overflow: hidden; background: var(--color-media-bg); }
+.photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 53%; filter: saturate(.64) contrast(1.08); }
+.photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(26,26,46,.22), transparent 65%); pointer-events: none; }
+.photo figcaption { position: absolute; right: 12px; bottom: 10px; padding: 4px 7px; background: rgba(15,15,25,.82); color: rgba(255,255,255,.76); font-size: 7.5px; }
+.details { min-width: 0; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .76fr) minmax(0, .82fr); gap: 18px; }
+.details > * { min-width: 0; }
+.details > section { display: flex; flex-direction: column; }
+.details > section .fans { margin-top: auto; }
+.kicker { display: block; margin-bottom: 8px; color: var(--color-secondary); font-size: 8px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+.bio { color: var(--color-text-muted); font-size: 11.1px; line-height: 1.5; }
+.fans { margin-top: 14px; }
+.pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.pill { padding: 3px 7px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: #c7c7d1; font-size: 8px; }
+.highlight { padding: 16px 14px; display: flex; flex-direction: column; background: var(--color-secondary); color: var(--color-bg); }
+.highlight .kicker { color: var(--color-bg); opacity: .75; }
+.highlight h2 { font: 400 24px/.98 var(--font-heading); }
+.highlight .metric { margin-top: auto; font: 400 33px/.9 var(--font-heading); letter-spacing: -.035em; }
+.highlight small { margin-top: 6px; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.actions { display: flex; flex-direction: column; }
+.url { margin-top: 2px; color: var(--color-text); font-size: 10px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.service-note { margin-top: 6px; color: var(--color-text-muted); font-size: 8px; line-height: 1.4; }
+.contact { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--color-border); }
+.contact span { display: block; color: var(--color-text-muted); font-size: 8px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.contact strong { display: block; margin-top: 5px; font: 400 15.5px/1.05 var(--font-heading); overflow-wrap: anywhere; }
+.footer { min-width: 0; display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-top: 12px; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 8px; }
+.footer strong { color: var(--color-accent); letter-spacing: .15em; text-transform: uppercase; }
+@media (max-width: 816px) { .sheet { width: 100vw; } }
+@page { size: letter portrait; margin: 0; }
+@media print {
+  html, body { width: 8.5in; height: 11in; background: var(--color-bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .mock-meta { display: none; }
+  .preview { padding: 0; }
+  .sheet { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 4 — Thesis first</strong><span>The band’s point of view, not its photo, is the hero; a wide image and three concise evidence columns complete the argument.</span><code>Accent</code></header>
+<main class="preview">
+<article class="sheet" aria-label="Animal Future press one-sheet">
+<header class="mast"><h1>Animal Future</h1><p><b>Fort Collins, Colorado</b>Socially conscious punk / alt-rock</p></header>
+<section class="thesis" aria-labelledby="thesis-4"><span class="rule" aria-hidden="true"></span><h2 id="thesis-4">Raw, funny, unpredictable rock for people who refuse to tune out.</h2><p class="thesis-note"><strong>S/NC · Press</strong>A curated artist one-sheet: one story, one proof point, one direct route to listen.</p></section>
+<figure class="photo"><img src="https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&amp;fit=crop&amp;w=1600&amp;q=85" alt="Animal Future live press photo placeholder"><figcaption>Photo · Animal Future archive</figcaption></figure>
+<div class="details">
+<section aria-labelledby="about-4"><span class="kicker" id="about-4">About</span><p class="bio">Animal Future confronts mental health, addiction, and life under a corporate-run world. LeAnna Warren’s voice swings from Paramore-power belting to unapologetic screams while the band crosses indie rock, grungy pop, old-school punk, and Radiohead-esque atmosphere. Sharp humor turns that tension into connection.</p><div class="fans"><span class="kicker">For fans of</span><div class="pills"><span class="pill">IDLES</span><span class="pill">Radiohead</span><span class="pill">Modest Mouse</span><span class="pill">Pixies</span><span class="pill">Yeah Yeah Yeahs</span><span class="pill">Paramore</span></div></div></section>
+<aside class="highlight" aria-labelledby="track-4"><span class="kicker">Standout track</span><h2 id="track-4">Get to You</h2><div class="metric">~14.5k</div><small>streams and climbing</small></aside>
+<aside class="actions"><div><span class="kicker">Listen · type this URL</span><p class="url">animalfuture.bandcamp.com</p><p class="service-note">Bandcamp · Spotify · YouTube</p></div><div class="contact"><span>Press contact</span><strong>press@s-nc.org</strong></div></aside>
+</div>
+<footer class="footer"><strong>S/NC · One-sheet 01/01</strong><span>Press photos and interview requests available by email.</span></footer>
+</article>
+</main>
+</body>
+</html>

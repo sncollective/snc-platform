@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animal Future press one-sheet — final polish</title>
+<style>
+* { box-sizing: border-box; }
+html, body { min-width: 0; min-height: 100%; }
+body { margin: 0; overflow-x: hidden; background: #101018; color: #eeeef3; font: 14px/20px system-ui, sans-serif; }
+header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #30303d; background: #0a0a10; }
+header > * { min-width: 0; }
+header h1 { margin: 0; font-size: 20px; line-height: 24px; font-weight: 650; }
+header p { max-width: 760px; margin: 4px 0 0; color: #a0a0b0; font-size: 12px; line-height: 16px; }
+.legend { flex: none; color: #f5a623; font-size: 11px; line-height: 16px; letter-spacing: .08em; text-transform: uppercase; }
+.grid { --preview-scale: .46; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cell { min-width: 0; overflow: hidden; border: 1px solid #30303d; background: #191925; }
+.cell h2 { min-width: 0; margin: 0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #30303d; background: #222231; color: #eeeef3; font-size: 12px; line-height: 16px; font-weight: 600; }
+.cell h2 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell a { flex: none; color: #74caca; text-decoration: none; }
+.summary { margin: 0; padding: 8px 16px; color: #a0a0b0; font-size: 11px; line-height: 16px; border-bottom: 1px solid #30303d; }
+.preview { position: relative; height: 536px; overflow: hidden; background: #0d0d16; }
+.frame { position: absolute; top: 8px; left: 50%; width: calc(816px * var(--preview-scale)); height: calc(1148px * var(--preview-scale)); transform: translateX(-50%); }
+iframe { width: 816px; height: 1148px; border: 0; background: #0d0d16; transform: scale(var(--preview-scale)); transform-origin: top left; }
+@media (max-width: 1120px) {
+  header { align-items: flex-start; }
+  .grid { grid-template-columns: 1fr; --preview-scale: .58; }
+  .preview { height: 680px; }
+}
+@media (max-width: 640px) {
+  header { flex-direction: column; gap: 8px; }
+  .legend { align-self: flex-start; }
+  .grid { padding: 8px; gap: 8px; --preview-scale: .43; }
+  .preview { height: 504px; }
+}
+</style>
+</head>
+<body>
+<header><div><h1>Animal Future · final one-sheet polish</h1><p>Two font-proofed single-page US Letter directions on a declared 12-column / 4px baseline system, with resolved footer grouping, safer hero insets, portrait-led members, and balanced two-up highlights.</p></div><span class="legend">Final polish · pre-flight candidates</span></header>
+<main class="grid">
+<section class="cell"><h2><span>Option 1 · Horizontal lead</span><a href="option-1.html" target="_blank" rel="noopener">open ↗</a></h2><p class="summary">Inset hero copy · separated Members section · expanded live-date rhythm · left contact + cohesive bottom-right Listen / QR unit.</p><div class="preview"><div class="frame"><iframe title="Option 1 horizontal-lead print one-sheet preview" src="option-1.html" scrolling="no"></iframe></div></div></section>
+<section class="cell"><h2><span>Option 2 · Calm vertical lead</span><a href="option-2.html" target="_blank" rel="noopener">open ↗</a></h2><p class="summary">28.4% photo rail · centered name hero · portrait-led members without bios · two horizontal highlights · two dates.</p><div class="preview"><div class="frame"><iframe title="Option 2 vertical-lead print one-sheet preview" src="option-2.html" scrolling="no"></iframe></div></div></section>
+</main>
+</body>
+</html>

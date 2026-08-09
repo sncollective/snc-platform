@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animal Future one-sheet — Option 1: Horizontal lead</title>
+<!-- Mock-only proofing aid; production uses the platform font-loading pipeline. Tinos metrically proofs Georgia where Georgia is unavailable. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Tinos:wght@400;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html { overflow-x: hidden; color-scheme: dark; }
+body { min-width: 0; margin: 0; overflow-x: hidden; background: #0d0d16; color: var(--color-text); font-family: var(--font-ui); }
+main, article, section, header, footer, div, figure { min-width: 0; }
+img { display: block; width: 100%; max-width: 100%; }
+figure, p, h1, h2, h3 { margin: 0; }
+.mock-meta { padding: 8px 16px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid #30303d; background: #09090f; color: #d7d7df; font: 12px/16px var(--font-ui); }
+.mock-meta > * { min-width: 0; }
+.mock-meta strong { font-weight: 600; }
+.mock-meta span { flex: 1 1 420px; color: #9696a8; overflow-wrap: anywhere; }
+.mock-meta code { flex: none; margin-left: auto; color: #9696a8; font: 10px/12px var(--font-ui); white-space: nowrap; }
+.preview { min-width: 0; padding: 24px 0 32px; display: grid; place-items: start center; overflow-x: hidden; }
+.sheet {
+  --baseline: 4px;
+  --page-inset: 48px;
+  --gutter: 12px;
+  --print-space-1: 4px;
+  --print-space-2: 8px;
+  --print-space-3: 12px;
+  --print-space-4: 16px;
+  --print-space-6: 24px;
+  --print-space-8: 32px;
+  --print-space-12: 48px;
+  --font-heading: Georgia, "Tinos", "Times New Roman", serif;
+  width: 8.5in;
+  height: 11in;
+  padding: var(--page-inset);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  box-shadow: 0 16px 48px rgb(0 0 0 / .55);
+}
+.editorial-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); }
+.rule-after { position: relative; }
+.rule-after::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--color-border); }
+.mast { flex: none; padding-bottom: var(--print-space-2); display: flex; align-items: baseline; justify-content: space-between; gap: var(--print-space-4); color: var(--color-text-muted); font-size: 9px; line-height: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.mast strong { color: var(--color-accent); font-size: 10px; letter-spacing: .18em; }
+.hero { position: relative; flex: none; height: 240px; margin-top: var(--print-space-3); overflow: hidden; isolation: isolate; background: var(--color-media-bg); }
+.hero img { position: absolute; inset: 0; z-index: -2; height: 100%; object-fit: cover; object-position: center 54%; filter: saturate(.68) contrast(1.12) brightness(.82); }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgb(8 8 18 / .84), rgb(8 8 18 / .08) 72%), linear-gradient(to top, rgb(8 8 18 / .92), transparent 64%); }
+.hero-copy { position: absolute; right: var(--print-space-3); bottom: var(--print-space-4); left: var(--print-space-3); align-items: end; }
+h1 { grid-column: 1 / span 8; font: 400 52px/56px var(--font-heading); letter-spacing: -.05em; }
+.hero-facts { grid-column: 9 / -1; align-self: end; color: #fff; text-align: right; font-size: 10px; line-height: 16px; }
+.hero-facts b { display: block; color: var(--color-secondary); font-weight: 700; }
+.credit { position: absolute; top: var(--print-space-2); right: var(--print-space-2); color: rgb(255 255 255 / .76); font-size: 9px; line-height: 12px; }
+.story { flex: none; margin-top: var(--print-space-6); }
+.kicker { display: block; margin-bottom: var(--print-space-1); color: var(--color-secondary); font-size: 9px; font-weight: 700; line-height: 12px; letter-spacing: .18em; text-transform: uppercase; }
+.deck { margin-bottom: var(--print-space-2); font: 700 18px/24px var(--font-heading); }
+.bio { color: var(--color-text-muted); font-size: 10.5px; line-height: 16px; }
+.bio p:first-child { grid-column: 1 / span 6; }
+.bio p:last-child { grid-column: 7 / -1; }
+.fans { position: relative; margin-top: var(--print-space-3); padding-top: var(--print-space-2); align-items: center; }
+.fans::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--color-border); }
+.fans .kicker { grid-column: 1 / span 2; margin: 0; }
+.fan-line { grid-column: 3 / -1; color: #c7c7d1; font-size: 9px; line-height: 12px; letter-spacing: .02em; }
+.page-section { flex: none; margin-top: var(--print-space-6); }
+.members-section { position: relative; padding-top: var(--print-space-3); }
+.members-section::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--color-border); }
+.section-label { margin-bottom: var(--print-space-2); }
+.members { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter); }
+.member { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--print-space-2); align-items: start; }
+.member img { width: 72px; height: 72px; aspect-ratio: 1; object-fit: cover; }
+.member h3 { font: 400 13px/16px var(--font-heading); overflow-wrap: anywhere; }
+.role { margin-top: var(--print-space-1); color: var(--color-secondary); font-size: 9px; font-weight: 700; line-height: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.member-bio { margin-top: var(--print-space-1); color: var(--color-text-muted); font-size: 10px; line-height: 12px; overflow-wrap: anywhere; }
+.highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); }
+.highlight { position: relative; padding-top: var(--print-space-2); }
+.highlight::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 2px; background: var(--color-accent); }
+.highlight.alt::before { background: var(--color-secondary); }
+.highlight.coming::before { background: var(--color-text-muted); }
+.highlight-main { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--print-space-2); align-items: start; }
+.highlight img { width: 72px; height: 72px; aspect-ratio: 1; object-fit: cover; }
+.eyebrow { display: block; color: var(--color-text-muted); font-size: 9px; font-weight: 700; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.highlight h2 { margin-top: var(--print-space-1); font: 400 13px/16px var(--font-heading); overflow-wrap: anywhere; }
+.highlight p, .metric { margin-top: var(--print-space-1); color: var(--color-text-muted); font-size: 9px; line-height: 12px; }
+.metric { color: var(--color-accent); font-weight: 700; }
+.live-dates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); }
+.live-date { position: relative; padding: var(--print-space-3) 0 var(--print-space-2); }
+.live-date::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--color-border); }
+.live-date time { display: block; color: var(--color-secondary); font-size: 10px; font-weight: 700; line-height: 16px; text-transform: uppercase; }
+.live-date strong { display: block; margin-top: var(--print-space-1); font: 400 16px/24px var(--font-heading); }
+.live-date span { display: block; color: var(--color-text-muted); font-size: 10px; line-height: 16px; }
+.page-buffer { min-height: 0; flex: 1 1 auto; }
+.actions { position: relative; flex: none; padding-top: var(--print-space-3); align-items: end; }
+.actions::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--color-border); }
+.contact { grid-column: 1 / span 5; align-self: end; }
+.contact span { display: block; color: var(--color-text-muted); font-size: 9px; font-weight: 700; line-height: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.contact strong { display: block; margin-top: var(--print-space-1); font: 400 15px/20px var(--font-heading); overflow-wrap: anywhere; }
+.contact small { display: block; margin-top: var(--print-space-1); color: var(--color-text-muted); font-size: 9px; line-height: 12px; }
+.listen-group { grid-column: 6 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 80px; column-gap: var(--gutter); align-items: end; }
+.listen { align-self: end; text-align: right; }
+.scan { margin-top: var(--print-space-1); color: var(--color-text-muted); font-size: 9px; font-weight: 700; line-height: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.url { margin-top: var(--print-space-1); color: var(--color-text); font-size: 10px; font-weight: 700; line-height: 16px; overflow-wrap: anywhere; }
+.destinations { margin-top: var(--print-space-1); color: var(--color-text-muted); font-size: 9px; line-height: 12px; }
+.qr { width: 80px; height: 80px; align-self: end; justify-self: end; background: #fff; }
+.qr svg { display: block; width: 100%; height: 100%; }
+@media screen and (max-width: 816px) { .sheet { width: 100vw; } }
+@page { size: letter portrait; margin: 0; }
+@media print {
+  html, body { width: 8.5in; height: 11in; background: var(--color-bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .mock-meta { display: none; }
+  .preview { padding: 0; }
+  .sheet { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 1 — Horizontal-lead print grid</strong><span>12 columns · 4px baseline · content-height editorial sections · one flexible footer buffer.</span><code>Letter · 300ppi-gated placeholders · 01/01</code></header>
+<main class="preview">
+<article class="sheet" aria-label="Animal Future press one-sheet">
+<header class="mast rule-after"><strong>S/NC · Press</strong><span>Animal Future · 2026</span><span>One-sheet 01/01</span></header>
+<!-- Hero requests 2400×800 source pixels for a 7.5×2.5in print crop (>=300ppi). -->
+<figure class="hero"><img src="https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&amp;fit=crop&amp;w=2400&amp;h=800&amp;q=90" alt="Animal Future live press photo placeholder"><figcaption class="credit">Photo · Animal Future archive</figcaption><div class="hero-copy editorial-grid"><h1>Animal Future</h1><p class="hero-facts"><b>Fort Collins, Colorado</b>Socially conscious punk / alt-rock</p></div></figure>
+<section class="story" aria-labelledby="about-1"><span class="kicker" id="about-1">About</span><p class="deck">Punk-leaning rock that hits where it hurts.</p><div class="bio editorial-grid"><p>Raw, funny, and unpredictable, the Fort Collins band confronts mental health, addiction, and life under a corporate-run world. LeAnna Warren swings from Paramore-power belting to unapologetic screams, carrying sharp humor into songs built to hit where it hurts.</p><p>Fueled by the fury of the forgotten, Animal Future veers from indie rock and grungy pop to old-school punk, with Radiohead-esque soundscapes keeping every turn unstable. Their electric live energy creates a space for connection — an urgent rallying cry for individuality, compassion, people, and the planet.</p></div><div class="fans editorial-grid" aria-labelledby="fans-1"><span class="kicker" id="fans-1">For fans of</span><p class="fan-line">IDLES · Radiohead · Modest Mouse · Pixies · Yeah Yeah Yeahs · Paramore</p></div></section>
+<section class="page-section members-section" aria-labelledby="members-1"><span class="kicker section-label" id="members-1">Members</span><div class="members">
+<article class="member"><img src="https://picsum.photos/seed/af-leanna/800/800" alt="LeAnna Warren portrait placeholder"><div><h3>LeAnna Warren</h3><p class="role">Vocals + guitar</p><p class="member-bio">Hush-to-roar frontwoman.</p></div></article>
+<article class="member"><img src="https://picsum.photos/seed/af-charles/800/800" alt="Charles Tyrie portrait placeholder"><div><h3>Charles Tyrie</h3><p class="role">Drums</p><p class="member-bio">Precise, hard-hitting drums.</p></div></article>
+<article class="member"><img src="https://picsum.photos/seed/af-jarod/800/800" alt="Jarod Ford portrait placeholder"><div><h3>Jarod Ford</h3><p class="role">Bass</p><p class="member-bio">Muscular, restless low end.</p></div></article>
+<article class="member"><img src="https://picsum.photos/seed/af-connor/800/800" alt="Connor Mandli portrait placeholder"><div><h3>Connor Mandli</h3><p class="role">Guitar</p><p class="member-bio">Jagged hooks and noise.</p></div></article>
+</div></section>
+<section class="page-section" aria-labelledby="highlights-1"><span class="kicker section-label" id="highlights-1">Highlights</span><div class="highlights">
+<article class="highlight"><div class="highlight-main"><img src="https://picsum.photos/seed/af-illusionist/600/600" alt="The Illusionist cover art placeholder"><div><span class="eyebrow">New release · SNCR-001</span><h2>The Illusionist</h2><p>Single · Aug 6, 2026</p></div></div></article>
+<article class="highlight alt"><div class="highlight-main"><img src="https://picsum.photos/seed/af-gettoyou/600/600" alt="Get to You cover art placeholder"><div><span class="eyebrow">Standout track</span><h2>Get to You</h2><p class="metric">~14.5k streams</p></div></div></article>
+<article class="highlight coming"><div class="highlight-main"><img src="https://picsum.photos/seed/af-survivedby/600/600" alt="Survived By cover art placeholder"><div><span class="eyebrow">Upcoming · debut LP</span><h2>Survived By</h2><p>Album · Mar 2027</p></div></div></article>
+</div></section>
+<section class="page-section" aria-labelledby="live-1"><span class="kicker section-label" id="live-1">Selected live dates</span><div class="live-dates">
+<div class="live-date"><time datetime="2026-09-12">Sep 12 · 2026</time><strong>The Mishawaka</strong><span>Bellvue, Colorado</span></div>
+<div class="live-date"><time datetime="2026-10-03">Oct 3 · 2026</time><strong>Aggie Theatre</strong><span>Fort Collins, Colorado</span></div>
+<div class="live-date"><time datetime="2026-10-24">Oct 24 · 2026</time><strong>Hi-Dive</strong><span>Denver, Colorado</span></div>
+</div></section>
+<div class="page-buffer" aria-hidden="true"></div>
+<footer class="actions editorial-grid"><div class="contact"><span>Press contact</span><strong>press@s-nc.org</strong><small>High-resolution photos + full EPK available</small></div><div class="listen-group"><div class="listen" aria-labelledby="listen-1"><span class="kicker" id="listen-1">Listen</span><p class="scan">Scan or type</p><p class="url">linktr.ee/animalfutureofficial</p><p class="destinations">Spotify · Apple Music · Amazon Music · YouTube · Bandcamp</p></div><!-- QR destination is customizable; default creator URL: https://linktr.ee/animalfutureofficial (ECC M, four-module quiet zone). --><a class="qr" href="https://linktr.ee/animalfutureofficial" aria-label="Open Animal Future's Linktree"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges" role="img" aria-label="Scan to open Animal Future's Linktree"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#1a1a2e" d="M4 4.5h7m1 0h2m1 0h1m1 0h4m1 0h1m3 0h7M4 5.5h1m5 0h1m6 0h2m1 0h1m1 0h2m2 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m2 0h1m1 0h2m1 0h5m1 0h1m1 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h2m2 0h3m1 0h1m1 0h2m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h5m3 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m1 0h2m1 0h1m2 0h1m2 0h1m2 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h1m7 0h2M4 12.5h1m3 0h1m1 0h5m1 0h3m2 0h1m2 0h6m2 0h1M6 13.5h2m5 0h3m2 0h3m1 0h1m2 0h8M4 14.5h1m2 0h1m1 0h2m1 0h2m1 0h5m2 0h1m3 0h1m1 0h1m3 0h1M6 15.5h3m2 0h3m1 0h1m1 0h1m1 0h3m1 0h7m1 0h2M8 16.5h1m1 0h4m3 0h1m1 0h1m1 0h1m2 0h2m5 0h1M4 17.5h1m1 0h2m1 0h1m1 0h1m2 0h2m1 0h4m4 0h8M5 18.5h1m2 0h1m1 0h2m1 0h4m2 0h4m1 0h7m1 0h1M4 19.5h1m2 0h1m5 0h1m2 0h1m1 0h1m2 0h2m2 0h1m2 0h1m2 0h2M5 20.5h9m3 0h2m2 0h1m1 0h2m6 0h1M4 21.5h1m1 0h4m3 0h1m1 0h2m2 0h2m5 0h4m1 0h2M6 22.5h1m3 0h4m2 0h7m1 0h1m5 0h1m1 0h1M6 23.5h2m1 0h1m2 0h1m3 0h2m3 0h1m1 0h3m1 0h2m2 0h2M4 24.5h5m1 0h1m6 0h1m3 0h1m2 0h6m2 0h1M12 25.5h4m1 0h4m2 0h2m3 0h1m3 0h1M4 26.5h7m1 0h3m1 0h1m2 0h1m1 0h4m1 0h1m1 0h3m1 0h1M4 27.5h1m5 0h1m2 0h4m1 0h1m2 0h2m1 0h1m3 0h1m2 0h1M4 28.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h3m1 0h1m1 0h7m1 0h1M4 29.5h1m1 0h3m1 0h1m4 0h1m1 0h1m1 0h2m3 0h2m6 0h1M4 30.5h1m1 0h3m1 0h1m4 0h2m1 0h2m3 0h1m1 0h1m3 0h4M4 31.5h1m5 0h1m2 0h2m1 0h2m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2M4 32.5h7m1 0h2m1 0h1m5 0h1m2 0h2m1 0h1m1 0h1m1 0h1"/></svg></a></div></footer>
+</article>
+</main>
+</body>
+</html>
