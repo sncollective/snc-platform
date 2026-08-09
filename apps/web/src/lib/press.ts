@@ -1,8 +1,8 @@
 import type {
-  PressConfigPatch,
+  DraftPressConfigPatch,
+  DraftPressContent,
   PressPagePayload,
   ReleaseOneSheet,
-  PressContent,
 } from "@snc/shared";
 
 import { apiGet, apiMutate } from "./fetch-utils.js";
@@ -25,8 +25,8 @@ export async function fetchReleaseOneSheet(
 }
 
 /** Fetch the editable press configuration for a creator. */
-export async function fetchPressConfig(creatorId: string): Promise<PressContent> {
-  return apiGet<PressContent>(
+export async function fetchPressConfig(creatorId: string): Promise<DraftPressContent> {
+  return apiGet<DraftPressContent>(
     `/api/creators/${encodeURIComponent(creatorId)}/press-config`,
   );
 }
@@ -34,9 +34,9 @@ export async function fetchPressConfig(creatorId: string): Promise<PressContent>
 /** Update the editable press configuration for a creator. */
 export async function updatePressConfig(
   creatorId: string,
-  patch: PressConfigPatch,
-): Promise<PressContent> {
-  return apiMutate<PressContent>(
+  patch: DraftPressConfigPatch,
+): Promise<DraftPressContent> {
+  return apiMutate<DraftPressContent>(
     `/api/creators/${encodeURIComponent(creatorId)}/press-config`,
     { method: "PATCH", body: patch },
   );

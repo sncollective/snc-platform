@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PRESS_IMAGE_SLOT_WIDTHS } from "@snc/shared";
+
 import { fitSlotCrop } from "../../../../src/lib/press-image-crop.js";
 import { PressCropEditor } from "../../../../src/components/press/press-crop-editor.js";
 
@@ -95,11 +97,11 @@ describe("PressCropEditor", () => {
   });
 
   it.each([
-    ["banner", 1920],
-    ["about", 720],
-    ["member", 480],
-    ["gallery", 960],
-    ["cover", 480],
+    ["banner", PRESS_IMAGE_SLOT_WIDTHS.banner],
+    ["about", PRESS_IMAGE_SLOT_WIDTHS.about],
+    ["member", PRESS_IMAGE_SLOT_WIDTHS.member],
+    ["gallery", PRESS_IMAGE_SLOT_WIDTHS.gallery],
+    ["cover", PRESS_IMAGE_SLOT_WIDTHS.cover],
   ] as const)("requests the %s slot's eventual delivery width", async (slot, width) => {
     render(<PressCropEditor {...baseProps} slot={slot} />);
 

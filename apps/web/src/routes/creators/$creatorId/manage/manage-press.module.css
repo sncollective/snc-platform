@@ -7,6 +7,7 @@
 .page {
   width: 100%;
   max-width: 1120px;
+  container: press-editor / inline-size;
   color: var(--color-text);
 }
 
@@ -886,6 +887,151 @@
   border-left: 10px solid var(--color-accent);
 }
 
+.previewHero {
+  position: relative;
+  min-height: 180px;
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #343451, #171725);
+}
+
+.previewHero > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.42;
+}
+
+.previewHero > div {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-md);
+  background: linear-gradient(transparent, rgb(16 16 30 / 90%));
+}
+
+.previewComposition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.34fr);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.draftPreview[data-template="B"] .previewComposition {
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+}
+
+.draftPreview[data-template="B"] .previewMain {
+  grid-column: 2;
+}
+
+.draftPreview[data-template="B"] .previewSidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.previewMain,
+.previewSidebar {
+  display: grid;
+  align-content: start;
+  gap: var(--space-md);
+}
+
+.previewAbout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.38fr);
+  gap: var(--space-md);
+}
+
+.previewAbout img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.previewSection,
+.previewSidebar section {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.previewSection h3,
+.previewSidebar h3,
+.previewAbout h3 {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-base);
+}
+
+.previewSection > p,
+.previewSidebar p,
+.previewAbout p {
+  margin: 0.3rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.previewCard {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 3%);
+}
+
+.previewCard img {
+  width: 72px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.previewCard strong,
+.previewCard small {
+  display: block;
+}
+
+.previewCard small,
+.previewCard span {
+  color: var(--color-accent);
+}
+
+.previewCard p {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.previewGallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.previewGallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.previewSidebar ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.previewSidebar a {
+  display: block;
+  min-height: 44px;
+  padding-block: 0.55rem;
+  color: var(--color-accent);
+  overflow-wrap: anywhere;
+}
+
 .previewEyebrow {
   color: var(--color-accent);
   font-size: var(--font-size-xs);
@@ -902,26 +1048,6 @@
 
 .previewTagline {
   color: var(--color-accent);
-}
-
-.draftPreview dl {
-  display: flex;
-  gap: var(--space-lg);
-  flex-wrap: wrap;
-}
-
-.draftPreview dl div {
-  min-width: 90px;
-}
-
-.draftPreview dt {
-  color: var(--color-text-muted);
-}
-
-.draftPreview dd {
-  margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
 }
 
 .previewWarning {
@@ -971,17 +1097,16 @@
   }
 }
 
-@media (max-width: 900px) {
-  .reviewPublish {
-    grid-template-columns: 1fr;
-  }
-
-  .stateLifecycle {
-    display: none;
-  }
-
+@container press-editor (max-width: 900px) {
+  .reviewPublish,
   .galleryGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .stateLifecycle {
+    display: none;
   }
 }
 
@@ -1033,6 +1158,20 @@
 
   .linkRow {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .previewComposition,
+  .draftPreview[data-template="B"] .previewComposition,
+  .previewAbout {
+    grid-template-columns: 1fr;
+  }
+
+  .draftPreview[data-template="B"] .previewMain,
+  .draftPreview[data-template="B"] .previewSidebar {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 

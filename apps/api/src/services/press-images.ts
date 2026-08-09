@@ -1,5 +1,5 @@
 import {
-  PressConfigPatchSchema,
+  DraftPressConfigPatchSchema,
   ValidationError,
   isLibraryAssetKey,
   isOwnedPressKey,
@@ -12,7 +12,7 @@ import type { LibraryActor } from "./library.js";
 type PressKeyReference = { readonly path: string; readonly key: string };
 
 const collectPressKeyReferences = (
-  patch: z.infer<typeof PressConfigPatchSchema>,
+  patch: z.infer<typeof DraftPressConfigPatchSchema>,
 ): PressKeyReference[] => {
   const references: PressKeyReference[] = [];
   const add = (path: string, key: string | null | undefined): void => {
@@ -35,7 +35,7 @@ const collectPressKeyReferences = (
 
 /** Authorize every unique storage key referenced by a press-config mutation. */
 export const validateOwnedPressKeys = async (
-  patch: z.infer<typeof PressConfigPatchSchema>,
+  patch: z.infer<typeof DraftPressConfigPatchSchema>,
   actor: LibraryActor,
 ): Promise<void> => {
   const byKey = new Map<string, string[]>();

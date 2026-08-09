@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PRESS_CONTENT,
+  DraftPressConfigPatchSchema,
   PressConfigPatchSchema,
   PressContentSchema,
 } from "@snc/shared";
@@ -58,7 +59,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("PressConfigPatchSchema", () => {
+describe("press patch contracts", () => {
   it("does not inject complete-document defaults into a partial patch", () => {
     const patch = PressConfigPatchSchema.parse({ shortBio: "Updated bio" });
 
@@ -68,6 +69,18 @@ describe("PressConfigPatchSchema", () => {
     expect(patch).not.toHaveProperty("streamingLinks");
     expect(patch).not.toHaveProperty("photos");
     expect(patch).not.toHaveProperty("releases");
+  });
+
+  it("keeps incomplete entities and malformed URLs in draft patches", () => {
+    expect(DraftPressConfigPatchSchema.parse({
+      members: [{ name: "" }],
+      highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
+      pressContactEmail: "not-an-email",
+    })).toEqual({
+      members: [{ name: "" }],
+      highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
+      pressContactEmail: "not-an-email",
+    });
   });
 });
 
@@ -264,6 +277,20 @@ describe("press config service", () => {
     expect(await getPressDraftConfig("creator-1")).toEqual({ ok: true, value: draft });
   });
 
+  it("round-trips a publish-invalid pending draft through the editor read path", async () => {
+    const draft = {
+      ...DEFAULT_PRESS_CONTENT,
+      members: [{ name: "", role: null, photo: null, bio: null }],
+      highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
+      streamingLinks: [{ label: "Spotify", url: "open.spotify/draft", service: "website" as const }],
+      pressContactEmail: "not-an-email",
+    };
+    mockSelectLimit.mockResolvedValueOnce([{ content: DEFAULT_PRESS_CONTENT, draftContent: draft }]);
+    const { getPressDraftConfig } = await setupService();
+
+    expect(await getPressDraftConfig("creator-1")).toEqual({ ok: true, value: draft });
+  });
+
   it("shallow-merges a partial patch and upserts the complete draft document", async () => {
     const current: PressContent = {
       ...DEFAULT_PRESS_CONTENT,
@@ -308,6 +335,23 @@ describe("press config service", () => {
     expect(mockUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({ draftContent: null, updatedAt: expect.any(Date) }),
     );
+  });
+
+  it("rejects a publish-invalid draft inside the publishing transaction", async () => {
+    mockUpdateReturning.mockResolvedValueOnce([{
+      content: {
+        ...DEFAULT_PRESS_CONTENT,
+        members: [{ name: "" }],
+        highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
+      },
+    }]);
+    const { publishPressConfig } = await setupService();
+
+    await expect(publishPressConfig("creator-1")).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+      statusCode: 400,
+    });
+    expect(mockTransaction).toHaveBeenCalledOnce();
   });
 
   it("discards a draft and preserves published content", async () => {

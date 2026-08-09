@@ -15,6 +15,7 @@ import type {
 } from "@snc/shared";
 
 import { PressImageField } from "../../../../components/press/index.js";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog.js";
 import {
   DialogBackdrop,
   DialogContent,
@@ -25,6 +26,7 @@ import {
 import { fetchCreatorProfile, updateCreatorProfile } from "../../../../lib/creator.js";
 import { apiMutate } from "../../../../lib/fetch-utils.js";
 import { fetchPressConfig, updatePressConfig } from "../../../../lib/press.js";
+import { contentLibraryRawUrl } from "../../../../lib/press-images.js";
 import {
   PRESS_EDITOR_TABS,
   cleanEditorContent,
@@ -67,6 +69,11 @@ const EMPTY_HIGHLIGHT: PressHighlight = {
 };
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "publishing" | "published";
+type PendingDestructiveAction =
+  | { readonly kind: "discard" }
+  | { readonly kind: "member"; readonly index: number; readonly label: string }
+  | { readonly kind: "highlight"; readonly index: number; readonly label: string }
+  | { readonly kind: "link"; readonly index: number; readonly label: string };
 
 interface PressEditorProps {
   readonly creatorId: string;
@@ -112,8 +119,14 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
   const [editingHighlight, setEditingHighlight] = useState<number | null>(null);
   const [memberReorderMessage, setMemberReorderMessage] = useState("");
   const [highlightReorderMessage, setHighlightReorderMessage] = useState("");
+  const [pendingDestructiveAction, setPendingDestructiveAction] = useState<PendingDestructiveAction | null>(null);
   const reviewRef = useRef<HTMLElement>(null);
   const tabRefs = useRef(new Map<PressEditorTab, HTMLButtonElement>());
+  const editRevisionRef = useRef(0);
+  const entityKeyCounterRef = useRef(0);
+  const memberKeysRef = useRef<string[]>([]);
+  const highlightKeysRef = useRef<string[]>([]);
+  const pendingReorderFocusRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +135,9 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
       .then(([press, profile]) => {
         if (cancelled) return;
         setContent(normalizeEditorContent(press));
+        memberKeysRef.current = press.members.map(() => `press-member-row-${entityKeyCounterRef.current++}`);
+        highlightKeysRef.current = press.highlights.map(() => `press-highlight-row-${entityKeyCounterRef.current++}`);
+        editRevisionRef.current = 0;
         setBrandColor(profile.brandColor);
         setSavedBrandColor(profile.brandColor);
         setCreatorName(profile.displayName);
@@ -138,6 +154,13 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     };
   }, [creatorId]);
 
+  useEffect(() => {
+    const focusId = pendingReorderFocusRef.current;
+    if (!focusId) return;
+    pendingReorderFocusRef.current = null;
+    requestAnimationFrame(() => document.getElementById(focusId)?.focus());
+  }, [content]);
+
   const issues = useMemo(() => content ? validatePressDraft(content) : [], [content]);
   const issueCountByTab = useMemo(() => {
     const counts = new Map<PressEditorTab, number>();
@@ -147,6 +170,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
   const isBusy = saveState === "saving" || saveState === "publishing";
 
   const markDirty = (tab: PressEditorTab): void => {
+    editRevisionRef.current += 1;
     setDirtyTabs((current) => new Set(current).add(tab));
     setSaveState("unsaved");
     setSaveDetail("");
@@ -185,10 +209,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     activateTab(issue.tab);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const container = document.getElementById(issue.fieldId);
-        const target = container?.matches("input, textarea, select, button")
-          ? container
-          : container?.querySelector<HTMLElement>("input, textarea, select, button");
+        const target = document.getElementById(issue.fieldId);
         target?.focus();
         target?.scrollIntoView?.({ block: "center" });
       });
@@ -197,16 +218,27 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
 
   const persistDraft = async (publishReady = false): Promise<boolean> => {
     if (!content) return false;
+    const revisionAtStart = editRevisionRef.current;
+    const brandColorAtStart = brandColor;
     const next = cleanEditorContent(publishReady ? { ...content, enabled: true } : content);
     setSaveState("saving");
     setSaveDetail("The live press page remains unchanged");
     try {
       const saved = await updatePressConfig(creatorId, next);
-      if (brandColor !== savedBrandColor) {
-        const profile: CreatorProfileResponse = await updateCreatorProfile(creatorId, { brandColor });
-        setBrandColor(profile.brandColor);
+      if (brandColorAtStart !== savedBrandColor) {
+        const profile: CreatorProfileResponse = await updateCreatorProfile(
+          creatorId,
+          { brandColor: brandColorAtStart },
+        );
         setSavedBrandColor(profile.brandColor);
       }
+
+      if (editRevisionRef.current !== revisionAtStart) {
+        setSaveState("unsaved");
+        setSaveDetail("Earlier changes saved · newer edits still need saving");
+        return false;
+      }
+
       setContent(normalizeEditorContent(saved));
       setDirtyTabs(new Set());
       setSaveState("saved");
@@ -227,6 +259,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
       return;
     }
     if (!await persistDraft(true)) return;
+    const revisionAtPublish = editRevisionRef.current;
     setSaveState("publishing");
     setSaveDetail("");
     try {
@@ -234,6 +267,11 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
         `/api/creators/${encodeURIComponent(creatorId)}/press-config/publish`,
         { method: "POST" },
       );
+      if (editRevisionRef.current !== revisionAtPublish) {
+        setSaveState("unsaved");
+        setSaveDetail("Saved draft published · newer edits remain in this browser");
+        return;
+      }
       setContent(normalizeEditorContent(published));
       setSaveState("published");
       setSaveDetail("");
@@ -252,7 +290,11 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
         `/api/creators/${encodeURIComponent(creatorId)}/press-config/discard-draft`,
         { method: "POST" },
       );
-      setContent(normalizeEditorContent(published));
+      const normalized = normalizeEditorContent(published);
+      setContent(normalized);
+      memberKeysRef.current = normalized.members.map(() => `press-member-row-${entityKeyCounterRef.current++}`);
+      highlightKeysRef.current = normalized.highlights.map(() => `press-highlight-row-${entityKeyCounterRef.current++}`);
+      editRevisionRef.current += 1;
       setBrandColor(savedBrandColor);
       setPdfScheme("light");
       setDirtyTabs(new Set());
@@ -261,13 +303,48 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     } catch (error: unknown) {
       setSaveState("error");
       setSaveDetail(error instanceof Error ? error.message : "Could not discard the draft");
+    } finally {
+      setPendingDestructiveAction(null);
     }
+  };
+
+  const confirmDestructiveAction = (): void => {
+    const action = pendingDestructiveAction;
+    if (!action) return;
+    if (action.kind === "discard") {
+      void discardDraft();
+      return;
+    }
+    if (action.kind === "member") {
+      memberKeysRef.current.splice(action.index, 1);
+      setEditingMember(null);
+      updateContent("members", (current) => ({
+        ...current,
+        members: current.members.filter((_, index) => index !== action.index),
+      }));
+    } else if (action.kind === "highlight") {
+      highlightKeysRef.current.splice(action.index, 1);
+      setEditingHighlight(null);
+      updateContent("highlights", (current) => ({
+        ...current,
+        highlights: current.highlights.filter((_, index) => index !== action.index),
+      }));
+    } else {
+      updateContent("links", (current) => ({
+        ...current,
+        streamingLinks: current.streamingLinks.filter((_, index) => index !== action.index),
+      }));
+    }
+    setPendingDestructiveAction(null);
   };
 
   const moveMember = (index: number, direction: -1 | 1): void => {
     if (!content) return;
     const member = content.members[index];
     if (!member) return;
+    const memberKey = memberKeysRef.current[index];
+    memberKeysRef.current = moveItem(memberKeysRef.current, index, direction);
+    if (memberKey) pendingReorderFocusRef.current = `${memberKey}-edit`;
     updateContent("members", (current) => ({
       ...current,
       members: moveItem(current.members, index, direction),
@@ -281,6 +358,9 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     if (!content) return;
     const highlight = content.highlights[index];
     if (!highlight) return;
+    const highlightKey = highlightKeysRef.current[index];
+    highlightKeysRef.current = moveItem(highlightKeysRef.current, index, direction);
+    if (highlightKey) pendingReorderFocusRef.current = `${highlightKey}-edit`;
     updateContent("highlights", (current) => ({
       ...current,
       highlights: moveItem(current.highlights, index, direction),
@@ -298,6 +378,12 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
   const liveUrl = `/creators/${encodeURIComponent(creatorId)}/press`;
   const memberPhotos = content.members.filter((member) => member.photo).length;
   const highlightCovers = content.highlights.filter((highlight) => highlight.coverArt).length;
+  const destructiveTitle = pendingDestructiveAction?.kind === "discard"
+    ? "Discard this draft?"
+    : `Remove ${pendingDestructiveAction?.label ?? "this item"}?`;
+  const destructiveConfirmLabel = pendingDestructiveAction?.kind === "discard"
+    ? "Discard draft"
+    : "Remove item";
 
   return (
     <div className={styles.page}>
@@ -419,7 +505,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
               Publish draft to live
             </button>
             {issues.length > 0 && <small id="press-publish-blocked">Resolve {issues.length} validation {issues.length === 1 ? "issue" : "issues"} to publish</small>}
-            <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={isBusy} onClick={() => void discardDraft()}>
+            <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={isBusy} onClick={() => setPendingDestructiveAction({ kind: "discard" })}>
               Discard draft
             </button>
           </div>
@@ -511,7 +597,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           </div>
 
           <div id="press-banner-image" className={styles.imageField} data-slot="banner">
-            <PressImageField creatorId={creatorId} label="Banner image · 3:1" slot="banner" value={content.banner ?? null} onChange={(banner) => updateContent("appearance", (current) => ({ ...current, banner }))} />
+            <PressImageField creatorId={creatorId} id="press-banner-image" label="Banner image · 3:1" slot="banner" value={content.banner ?? null} onChange={(banner) => updateContent("appearance", (current) => ({ ...current, banner }))} />
           </div>
 
           <section aria-labelledby="press-assets-heading">
@@ -535,7 +621,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             <Field id="press-for-fans" label="For fans of" hint="One artist per line or comma-separated." wide><textarea id="press-for-fans" rows={3} value={content.forFansOf.join("\n")} onChange={(event) => updateContent("about", (current) => ({ ...current, forFansOf: event.target.value.split(/[\n,]/).map((value) => value.trim()).filter(Boolean) }))} /></Field>
           </div>
           <div id="press-about-image" className={styles.imageField} data-slot="about">
-            <PressImageField creatorId={creatorId} label="About photo · 4:5" slot="about" value={content.aboutPhoto ?? null} onChange={(aboutPhoto) => updateContent("about", (current) => ({ ...current, aboutPhoto }))} />
+            <PressImageField creatorId={creatorId} id="press-about-image" label="About photo · 4:5" slot="about" value={content.aboutPhoto ?? null} onChange={(aboutPhoto) => updateContent("about", (current) => ({ ...current, aboutPhoto }))} />
           </div>
         </TabPanel>
 
@@ -544,6 +630,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             title="Members"
             description="Photos live inside each member editor. Use Move up / Move down for keyboard reordering; changes are announced."
             action={<button type="button" className={styles.button} onClick={() => {
+              memberKeysRef.current.push(`press-member-row-${entityKeyCounterRef.current++}`);
               setEditingMember(content.members.length);
               updateContent("members", (current) => ({ ...current, members: [...current.members, { ...EMPTY_MEMBER }] }));
             }}>+ Add member</button>}
@@ -552,18 +639,15 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           {content.members.length === 0 ? <EmptyState title="No members added" copy="Add the people who should appear in the press kit. Photos can stay empty until delivery." /> : null}
           <div className={styles.list}>
             {content.members.map((member, index) => (
-              <article key={`member-${index}`} className={styles.rowCard}>
+              <article key={memberKeysRef.current[index] ?? `member-fallback-${index}`} className={styles.rowCard}>
                 <div className={styles.rowSummary}>
                   <span className={`${styles.thumbnailPlaceholder} ${member.photo ? styles.hasAsset : ""}`} aria-hidden="true">{member.photo ? "Photo" : "Photo pending"}</span>
                   <div><strong>{member.name || `Member ${index + 1}`}</strong><small>{member.role || "Role not set"} · {member.bio ? "Bio complete" : "Bio pending"} · {member.photo ? "Photo selected" : "Photo pending"}</small></div>
                   <div className={styles.rowActions}>
-                    <button type="button" className={styles.button} aria-expanded={editingMember === index} onClick={() => setEditingMember((current) => current === index ? null : index)}>Edit</button>
+                    <button id={`${memberKeysRef.current[index] ?? `member-fallback-${index}`}-edit`} type="button" className={styles.button} aria-expanded={editingMember === index} onClick={() => setEditingMember((current) => current === index ? null : index)}>Edit</button>
                     <button type="button" className={styles.iconButton} aria-label={`Move ${member.name || `member ${index + 1}`} up`} disabled={index === 0} onClick={() => moveMember(index, -1)}>↑</button>
                     <button type="button" className={styles.iconButton} aria-label={`Move ${member.name || `member ${index + 1}`} down`} disabled={index === content.members.length - 1} onClick={() => moveMember(index, 1)}>↓</button>
-                    <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${member.name || `member ${index + 1}`}`} onClick={() => {
-                      setEditingMember(null);
-                      updateContent("members", (current) => ({ ...current, members: current.members.filter((_, candidate) => candidate !== index) }));
-                    }}>×</button>
+                    <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${member.name || `member ${index + 1}`}`} onClick={() => setPendingDestructiveAction({ kind: "member", index, label: member.name || `Member ${index + 1}` })}>×</button>
                   </div>
                 </div>
                 {editingMember === index && (
@@ -574,7 +658,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
                       <Field id={`press-member-${index}-bio`} label="Bio" wide><textarea id={`press-member-${index}-bio`} rows={4} value={member.bio ?? ""} onChange={(event) => updateContent("members", (current) => ({ ...current, members: current.members.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, bio: event.target.value } : candidate) }))} /></Field>
                     </div>
                     <div id={`press-member-${index}-photo`} className={styles.imageField} data-slot="member">
-                      <PressImageField creatorId={creatorId} label={`${member.name || `Member ${index + 1}`} photo · 1:1`} slot="member" value={member.photo ?? null} onChange={(photo) => updateContent("members", (current) => ({ ...current, members: current.members.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, photo } : candidate) }))} />
+                      <PressImageField creatorId={creatorId} id={`press-member-${index}-photo`} label={`${member.name || `Member ${index + 1}`} photo · 1:1`} slot="member" value={member.photo ?? null} onChange={(photo) => updateContent("members", (current) => ({ ...current, members: current.members.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, photo } : candidate) }))} />
                     </div>
                   </div>
                 )}
@@ -588,6 +672,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             title="Highlights"
             description="Orderable releases, tracks, milestones, and coverage. Cover art stays inside each highlight editor."
             action={<button type="button" className={styles.button} onClick={() => {
+              highlightKeysRef.current.push(`press-highlight-row-${entityKeyCounterRef.current++}`);
               setEditingHighlight(content.highlights.length);
               updateContent("highlights", (current) => ({ ...current, highlights: [...current.highlights, { ...EMPTY_HIGHLIGHT }] }));
             }}>+ Add highlight</button>}
@@ -596,18 +681,15 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           {content.highlights.length === 0 ? <EmptyState title="No highlights yet" copy="Add a release, standout track, milestone, or piece of coverage." /> : null}
           <div className={styles.list}>
             {content.highlights.map((highlight, index) => (
-              <article key={`highlight-${index}`} className={styles.rowCard}>
+              <article key={highlightKeysRef.current[index] ?? `highlight-fallback-${index}`} className={styles.rowCard}>
                 <div className={styles.rowSummary}>
                   <span className={`${styles.thumbnailPlaceholder} ${highlight.coverArt ? styles.hasAsset : ""}`} aria-hidden="true">{highlight.coverArt ? "Cover" : "Art pending"}</span>
                   <div><strong>{highlight.title || `Highlight ${index + 1}`}</strong><small>{highlight.eyebrow || "Type not set"}{highlight.metric ? ` · ${highlight.metric}` : ""} · {highlight.coverArt ? "Cover selected" : "Cover pending"}</small></div>
                   <div className={styles.rowActions}>
-                    <button type="button" className={styles.button} aria-expanded={editingHighlight === index} onClick={() => setEditingHighlight((current) => current === index ? null : index)}>Edit</button>
+                    <button id={`${highlightKeysRef.current[index] ?? `highlight-fallback-${index}`}-edit`} type="button" className={styles.button} aria-expanded={editingHighlight === index} onClick={() => setEditingHighlight((current) => current === index ? null : index)}>Edit</button>
                     <button type="button" className={styles.iconButton} aria-label={`Move ${highlight.title || `highlight ${index + 1}`} up`} disabled={index === 0} onClick={() => moveHighlight(index, -1)}>↑</button>
                     <button type="button" className={styles.iconButton} aria-label={`Move ${highlight.title || `highlight ${index + 1}`} down`} disabled={index === content.highlights.length - 1} onClick={() => moveHighlight(index, 1)}>↓</button>
-                    <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${highlight.title || `highlight ${index + 1}`}`} onClick={() => {
-                      setEditingHighlight(null);
-                      updateContent("highlights", (current) => ({ ...current, highlights: current.highlights.filter((_, candidate) => candidate !== index) }));
-                    }}>×</button>
+                    <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${highlight.title || `highlight ${index + 1}`}`} onClick={() => setPendingDestructiveAction({ kind: "highlight", index, label: highlight.title || `Highlight ${index + 1}` })}>×</button>
                   </div>
                 </div>
                 {editingHighlight === index && (
@@ -620,7 +702,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
                       <Field id={`press-highlight-${index}-url`} label="URL"><input id={`press-highlight-${index}-url`} type="url" value={highlight.url ?? ""} onChange={(event) => updateContent("highlights", (current) => ({ ...current, highlights: current.highlights.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, url: event.target.value } : candidate) }))} /></Field>
                     </div>
                     <div id={`press-highlight-${index}-cover`} className={styles.imageField} data-slot="cover">
-                      <PressImageField creatorId={creatorId} label={`${highlight.title || `Highlight ${index + 1}`} cover art · 1:1`} slot="cover" value={highlight.coverArt ?? null} onChange={(coverArt) => updateContent("highlights", (current) => ({ ...current, highlights: current.highlights.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, coverArt } : candidate) }))} />
+                      <PressImageField creatorId={creatorId} id={`press-highlight-${index}-cover`} label={`${highlight.title || `Highlight ${index + 1}`} cover art · 1:1`} slot="cover" value={highlight.coverArt ?? null} onChange={(coverArt) => updateContent("highlights", (current) => ({ ...current, highlights: current.highlights.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, coverArt } : candidate) }))} />
                     </div>
                   </div>
                 )}
@@ -635,11 +717,11 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           <div className={styles.galleryGrid}>
             {content.gallery.map((image, index) => (
               <div key={`${image.key}-${index}`} id={`press-gallery-${index}-image`} className={styles.imageField} data-slot="gallery">
-                <PressImageField creatorId={creatorId} label={`Gallery image ${index + 1} · 4:3`} slot="gallery" value={image} onChange={(next) => updateContent("gallery", (current) => ({ ...current, gallery: next ? current.gallery.map((candidate, candidateIndex) => candidateIndex === index ? next : candidate) : current.gallery.filter((_, candidateIndex) => candidateIndex !== index) }))} />
+                <PressImageField creatorId={creatorId} id={`press-gallery-${index}-image`} label={`Gallery image ${index + 1} · 4:3`} slot="gallery" value={image} onChange={(next) => updateContent("gallery", (current) => ({ ...current, gallery: next ? current.gallery.map((candidate, candidateIndex) => candidateIndex === index ? next : candidate) : current.gallery.filter((_, candidateIndex) => candidateIndex !== index) }))} />
               </div>
             ))}
             <div className={`${styles.imageField} ${styles.galleryAdd}`} data-slot="gallery">
-              <PressImageField creatorId={creatorId} label="Add gallery image · 4:3" slot="gallery" value={null} onChange={(image) => { if (image) updateContent("gallery", (current) => ({ ...current, gallery: [...current.gallery, image] })); }} />
+              <PressImageField creatorId={creatorId} id="press-gallery-add-image" label="Add gallery image · 4:3" slot="gallery" value={null} onChange={(image) => { if (image) updateContent("gallery", (current) => ({ ...current, gallery: [...current.gallery, image] })); }} />
             </div>
           </div>
         </TabPanel>
@@ -660,7 +742,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
                 </Field>
                 <Field id={`press-link-${index}-label`} label="Label"><input id={`press-link-${index}-label`} value={link.label} onChange={(event) => updateContent("links", (current) => ({ ...current, streamingLinks: current.streamingLinks.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, label: event.target.value } : candidate) }))} /></Field>
                 <Field id={`press-link-${index}-url`} label="URL"><input id={`press-link-${index}-url`} type="url" value={link.url} onChange={(event) => updateContent("links", (current) => ({ ...current, streamingLinks: current.streamingLinks.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, url: event.target.value } : candidate) }))} /></Field>
-                <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${link.label || `link ${index + 1}`}`} onClick={() => updateContent("links", (current) => ({ ...current, streamingLinks: current.streamingLinks.filter((_, candidateIndex) => candidateIndex !== index) }))}>×</button>
+                <button type="button" className={`${styles.iconButton} ${styles.dangerButton}`} aria-label={`Remove ${link.label || `link ${index + 1}`}`} onClick={() => setPendingDestructiveAction({ kind: "link", index, label: link.label || `Link ${index + 1}` })}>×</button>
               </article>
             ))}
           </div>
@@ -671,6 +753,21 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
         </TabPanel>
       </form>
 
+      <ConfirmDialog
+        open={pendingDestructiveAction !== null}
+        title={destructiveTitle}
+        confirmLabel={destructiveConfirmLabel}
+        isPending={pendingDestructiveAction?.kind === "discard" && isBusy}
+        onConfirm={confirmDestructiveAction}
+        onCancel={() => {
+          if (!isBusy) setPendingDestructiveAction(null);
+        }}
+      >
+        {pendingDestructiveAction?.kind === "discard"
+          ? "This permanently replaces every saved draft change with the currently published press page."
+          : `This removes ${pendingDestructiveAction?.label ?? "the item"} from the draft. You can cancel and keep it.`}
+      </ConfirmDialog>
+
       {previewOpen && (
         <DialogRoot open onOpenChange={(details) => { if (!details.open) setPreviewOpen(false); }}>
           <DialogBackdrop />
@@ -678,15 +775,61 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             <DialogTitle>Draft preview · {creatorName}</DialogTitle>
             <DialogDescription>This is the unsaved editor state. View live opens the currently published page instead.</DialogDescription>
             <div className={styles.draftPreview} data-template={content.template}>
-              <span className={styles.previewEyebrow}>Template {content.template}</span>
-              <h2>{creatorName}</h2>
-              <p className={styles.previewTagline}>{content.tagline || "Add a tagline in About"}</p>
-              <p>{content.shortBio || "Add a short bio to introduce the press kit."}</p>
-              <dl>
-                <div><dt>Members</dt><dd>{content.members.length}</dd></div>
-                <div><dt>Highlights</dt><dd>{content.highlights.length}</dd></div>
-                <div><dt>Gallery</dt><dd>{content.gallery.length}</dd></div>
-              </dl>
+              <header className={styles.previewHero}>
+                {content.banner && (
+                  <img src={contentLibraryRawUrl(content.banner.key, creatorId)} alt={content.banner.alt} />
+                )}
+                <div>
+                  <span className={styles.previewEyebrow}>Template {content.template} · draft</span>
+                  <h2>{creatorName}</h2>
+                  <p className={styles.previewTagline}>{content.tagline || "Add a tagline in About"}</p>
+                  {content.location && <p>{content.location}</p>}
+                </div>
+              </header>
+              <div className={styles.previewComposition}>
+                <main className={styles.previewMain}>
+                  <section className={styles.previewAbout} aria-labelledby="draft-preview-about">
+                    <div>
+                      <h3 id="draft-preview-about">About</h3>
+                      <p>{content.shortBio || "Add a short bio to introduce the press kit."}</p>
+                      {content.longBio && <p>{content.longBio}</p>}
+                    </div>
+                    {content.aboutPhoto && (
+                      <img src={contentLibraryRawUrl(content.aboutPhoto.key, creatorId)} alt={content.aboutPhoto.alt} />
+                    )}
+                  </section>
+
+                  <PreviewCollection title="Members" empty="No members added yet." hasItems={content.members.length > 0}>
+                    {content.members.map((member, index) => (
+                      <article key={memberKeysRef.current[index] ?? `preview-member-${index}`} className={styles.previewCard}>
+                        {member.photo && <img src={contentLibraryRawUrl(member.photo.key, creatorId)} alt={member.photo.alt} />}
+                        <div><strong>{member.name || `Member ${index + 1}`}</strong>{member.role && <small>{member.role}</small>}{member.bio && <p>{member.bio}</p>}</div>
+                      </article>
+                    ))}
+                  </PreviewCollection>
+
+                  <PreviewCollection title="Highlights" empty="No highlights added yet." hasItems={content.highlights.length > 0}>
+                    {content.highlights.map((highlight, index) => (
+                      <article key={highlightKeysRef.current[index] ?? `preview-highlight-${index}`} className={styles.previewCard}>
+                        {highlight.coverArt && <img src={contentLibraryRawUrl(highlight.coverArt.key, creatorId)} alt={highlight.coverArt.alt} />}
+                        <div><small>{highlight.eyebrow || "Highlight"}</small><strong>{highlight.title || `Highlight ${index + 1}`}</strong>{highlight.description && <p>{highlight.description}</p>}{highlight.metric && <span>{highlight.metric}</span>}</div>
+                      </article>
+                    ))}
+                  </PreviewCollection>
+
+                  <PreviewCollection title="Gallery" empty="No gallery images selected." hasItems={content.gallery.length > 0}>
+                    <div className={styles.previewGallery}>
+                      {content.gallery.map((image, index) => <img key={`${image.key}-${index}`} src={contentLibraryRawUrl(image.key, creatorId)} alt={image.alt} />)}
+                    </div>
+                  </PreviewCollection>
+                </main>
+
+                <aside className={styles.previewSidebar}>
+                  <section><h3>For fans of</h3><p>{content.forFansOf.length ? content.forFansOf.join(" · ") : "Not added yet"}</p></section>
+                  <section><h3>Listen</h3>{content.streamingLinks.length ? <ul>{content.streamingLinks.map((link, index) => <li key={`${link.label}-${index}`}><a href={link.url}>{link.label || `Link ${index + 1}`}</a></li>)}</ul> : <p>No listening links yet.</p>}</section>
+                  <section><h3>Contact</h3>{content.pressContactEmail ? <a href={`mailto:${content.pressContactEmail}`}>{content.pressContactEmail}</a> : <p>No press contact yet.</p>}{content.liveDatesUrl && <a href={content.liveDatesUrl}>Live dates</a>}</section>
+                </aside>
+              </div>
               {issues.length > 0 && <p className={styles.previewWarning}>{issues.length} publish {issues.length === 1 ? "issue" : "issues"} remain.</p>}
             </div>
             <div className={styles.previewActions}>
@@ -780,6 +923,25 @@ function AssetCard({
       <small>{detail}</small>
       <button type="button" className={styles.assetLink} onClick={onEdit}>Edit in {title.replace(" photo", "").replace(" cover art", "")} →</button>
     </article>
+  );
+}
+
+function PreviewCollection({
+  title,
+  empty,
+  hasItems,
+  children,
+}: {
+  readonly title: string;
+  readonly empty: string;
+  readonly hasItems: boolean;
+  readonly children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <section className={styles.previewSection}>
+      <h3>{title}</h3>
+      {hasItems ? children : <p>{empty}</p>}
+    </section>
   );
 }
 

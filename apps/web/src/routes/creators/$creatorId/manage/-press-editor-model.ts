@@ -126,8 +126,8 @@ const imageIssue = (
 export function validatePressDraft(content: PressContent): PressEditorIssue[] {
   const issues: PressEditorIssue[] = [];
 
-  imageIssue(issues, content.banner, "appearance", "press-banner-image", "Banner image");
-  imageIssue(issues, content.aboutPhoto, "about", "press-about-image", "About photo");
+  imageIssue(issues, content.banner, "appearance", "press-banner-image-alt", "Banner image");
+  imageIssue(issues, content.aboutPhoto, "about", "press-about-image-alt", "About photo");
 
   content.members.forEach((member, index) => {
     if (!member.name.trim()) {
@@ -141,7 +141,7 @@ export function validatePressDraft(content: PressContent): PressEditorIssue[] {
       issues,
       member.photo,
       "members",
-      `press-member-${index}-photo`,
+      `press-member-${index}-photo-alt`,
       `${member.name.trim() || `Member ${index + 1}`} photo`,
     );
   });
@@ -165,7 +165,7 @@ export function validatePressDraft(content: PressContent): PressEditorIssue[] {
       issues,
       highlight.coverArt,
       "highlights",
-      `press-highlight-${index}-cover`,
+      `press-highlight-${index}-cover-alt`,
       `${highlight.title.trim() || `Highlight ${index + 1}`} cover art`,
     );
   });
@@ -175,7 +175,7 @@ export function validatePressDraft(content: PressContent): PressEditorIssue[] {
       issues,
       image,
       "gallery",
-      `press-gallery-${index}-image`,
+      `press-gallery-${index}-image-alt`,
       `Gallery image ${index + 1}`,
     );
   });

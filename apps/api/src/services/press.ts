@@ -2,10 +2,18 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import {
   DEFAULT_PRESS_CONTENT,
+  DraftPressContentSchema,
   PressContentSchema,
+  ValidationError,
   ok,
 } from "@snc/shared";
-import type { AppError, PressConfigPatch, PressContent, Result } from "@snc/shared";
+import type {
+  AppError,
+  DraftPressConfigPatch,
+  DraftPressContent,
+  PressContent,
+  Result,
+} from "@snc/shared";
 
 import { db } from "../db/connection.js";
 import { creatorPressConfigs } from "../db/schema/creator.schema.js";
@@ -19,7 +27,7 @@ type V2FieldPresence = {
 
 type StoredPressConfig = {
   content: PressContent;
-  draftContent: PressContent | null;
+  draftContent: DraftPressContent | null;
 };
 
 const hasOwnField = (value: unknown, field: string): boolean =>
@@ -63,13 +71,23 @@ export const normalizePressContent = (
   return { ...content, gallery, highlights };
 };
 
-const parseAndNormalize = (rawContent: unknown): PressContent => {
-  const content = PressContentSchema.parse(rawContent ?? DEFAULT_PRESS_CONTENT);
-  return normalizePressContent(content, {
+const normalizeParsedContent = <T extends PressContent>(rawContent: unknown, content: T): T =>
+  normalizePressContent(content, {
     gallery: hasOwnField(rawContent, "gallery"),
     highlights: hasOwnField(rawContent, "highlights"),
-  });
-};
+  }) as T;
+
+const parseAndNormalize = (rawContent: unknown): PressContent =>
+  normalizeParsedContent(
+    rawContent,
+    PressContentSchema.parse(rawContent ?? DEFAULT_PRESS_CONTENT),
+  );
+
+const parseAndNormalizeDraft = (rawContent: unknown): DraftPressContent =>
+  normalizeParsedContent(
+    rawContent,
+    DraftPressContentSchema.parse(rawContent ?? DEFAULT_PRESS_CONTENT),
+  );
 
 /** Read the published and optional draft documents without exposing storage details. */
 const readStoredPressConfig = async (creatorId: string): Promise<StoredPressConfig> => {
@@ -81,7 +99,7 @@ const readStoredPressConfig = async (creatorId: string): Promise<StoredPressConf
 
   return {
     content: parseAndNormalize(row?.content),
-    draftContent: row?.draftContent == null ? null : parseAndNormalize(row.draftContent),
+    draftContent: row?.draftContent == null ? null : parseAndNormalizeDraft(row.draftContent),
   };
 };
 
@@ -98,7 +116,7 @@ export const getPressConfig = async (
 /** Read the editor's effective config: draft when present, otherwise published content. */
 export const getPressDraftConfig = async (
   creatorId: string,
-): Promise<Result<PressContent, AppError>> => {
+): Promise<Result<DraftPressContent, AppError>> => {
   const stored = await readStoredPressConfig(creatorId);
   return ok(stored.draftContent ?? stored.content);
 };
@@ -106,11 +124,11 @@ export const getPressDraftConfig = async (
 /** Save a partial editor patch into the draft document without changing published content. */
 export const upsertPressConfig = async (
   creatorId: string,
-  patch: PressConfigPatch,
-): Promise<Result<PressContent, AppError>> => {
+  patch: DraftPressConfigPatch,
+): Promise<Result<DraftPressContent, AppError>> => {
   const current = await getPressDraftConfig(creatorId);
   if (!current.ok) return current;
-  const next = { ...current.value, ...patch } as PressContent;
+  const next = DraftPressContentSchema.parse({ ...current.value, ...patch });
 
   await db
     .insert(creatorPressConfigs)
@@ -149,7 +167,15 @@ export const publishPressConfig = async (
       )
       .returning({ content: creatorPressConfigs.content });
 
-    if (row) published = parseAndNormalize(row.content);
+    if (row) {
+      const candidate = PressContentSchema.safeParse(row.content);
+      if (!candidate.success) {
+        throw new ValidationError(
+          "Draft contains incomplete or invalid fields and cannot be published",
+        );
+      }
+      published = normalizeParsedContent(row.content, candidate.data);
+    }
   });
 
   // Publishing with no pending draft is intentionally idempotent.

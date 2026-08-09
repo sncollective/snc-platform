@@ -4,7 +4,8 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 
 import {
-  PressConfigPatchSchema,
+  DraftPressConfigPatchSchema,
+  DraftPressContentSchema,
   PressContentSchema,
   PressImageCropSchema,
   PressImageSlotSchema,
@@ -325,7 +326,7 @@ pressRoutes.get(
     responses: {
       200: {
         description: "Press config",
-        content: { "application/json": { schema: resolver(PressContentSchema) } },
+        content: { "application/json": { schema: resolver(DraftPressContentSchema) } },
       },
       401: ERROR_401,
       403: ERROR_403,
@@ -354,7 +355,7 @@ pressRoutes.patch(
     responses: {
       200: {
         description: "Updated press config",
-        content: { "application/json": { schema: resolver(PressContentSchema) } },
+        content: { "application/json": { schema: resolver(DraftPressContentSchema) } },
       },
       400: ERROR_400,
       401: ERROR_401,
@@ -363,14 +364,14 @@ pressRoutes.patch(
     },
   }),
   validator("param", CreatorIdParam),
-  validator("json", PressConfigPatchSchema),
+  validator("json", DraftPressConfigPatchSchema),
   async (c) => {
     const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
     const user = c.get("user");
     const roles = c.get("roles") ?? [];
     await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
 
-    const patch = c.req.valid("json" as never) as z.infer<typeof PressConfigPatchSchema>;
+    const patch = c.req.valid("json" as never) as z.infer<typeof DraftPressConfigPatchSchema>;
     await validateOwnedPressKeys(patch, {
       creatorId: profile.id,
       isAdmin: roles.includes("admin"),

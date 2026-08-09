@@ -426,9 +426,27 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
     expect(mockUpsertPressConfig).not.toHaveBeenCalled();
   });
 
-  it("returns 400 for an invalid patch", async () => {
-    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+  it("accepts publish-invalid fields in a saved draft", async () => {
+    const patch = {
+      members: [{ name: "" }],
+      highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
+      streamingLinks: [{ label: "Spotify", url: "open.spotify/draft" }],
+      liveDatesUrl: "dates pending",
       pressContactEmail: "not-an-email",
+    };
+
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", patch);
+
+    expect(res.status).toBe(200);
+    expect(mockUpsertPressConfig).toHaveBeenCalledWith(profile.id, {
+      ...patch,
+      streamingLinks: [{ ...patch.streamingLinks[0], service: "website" }],
+    });
+  });
+
+  it("returns 400 when a draft violates the structural contract", async () => {
+    const res = await json("PATCH", "/api/creators/test-creator/press-config", {
+      template: "C",
     });
 
     expect(res.status).toBe(400);

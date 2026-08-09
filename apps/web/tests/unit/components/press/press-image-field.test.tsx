@@ -70,6 +70,24 @@ describe("PressImageField", () => {
     }));
   });
 
+  it("gives invalid image metadata a stable, described textarea target", () => {
+    render(
+      <PressImageField
+        creatorId="creator-1"
+        id="press-member-stable-photo"
+        label="Member photo"
+        slot="member"
+        value={{ ...image, alt: "" }}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const alt = screen.getByLabelText(/Alternative text/);
+    expect(alt).toHaveAttribute("id", "press-member-stable-photo-alt");
+    expect(alt).toHaveAttribute("aria-invalid", "true");
+    expect(alt).toHaveAccessibleDescription("Alternative text is required before publishing.");
+  });
+
   it("preserves spaces while editing credit and normalizes on blur", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

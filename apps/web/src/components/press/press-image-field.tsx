@@ -12,6 +12,7 @@ import styles from "./press-image-field.module.css";
 
 export interface PressImageFieldProps {
   readonly creatorId: string;
+  readonly id?: string;
   readonly label: string;
   readonly slot: PressImageSlotName;
   readonly value: PressImage | null;
@@ -21,13 +22,17 @@ export interface PressImageFieldProps {
 /** Controlled press-image reference field; persistence remains the owning form's job. */
 export function PressImageField({
   creatorId,
+  id,
   label,
   slot,
   value,
   onChange,
 }: PressImageFieldProps): React.ReactElement {
-  const altId = useId();
-  const creditId = useId();
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  const altId = `${fieldId}-alt`;
+  const creditId = `${fieldId}-credit`;
+  const altErrorId = `${altId}-error`;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
@@ -67,9 +72,9 @@ export function PressImageField({
   }
 
   return (
-    <section className={styles.field} aria-labelledby={`${altId}-heading`}>
+    <section className={styles.field} aria-labelledby={`${fieldId}-heading`}>
       <div className={styles.headingRow}>
-        <h3 id={`${altId}-heading`}>{label}</h3>
+        <h3 id={`${fieldId}-heading`}>{label}</h3>
         <button type="button" onClick={() => setPickerOpen(true)}>
           {value ? "Replace" : "Choose image"}
         </button>
@@ -94,8 +99,13 @@ export function PressImageField({
               id={altId}
               required
               value={value.alt}
+              aria-invalid={!value.alt.trim()}
+              aria-describedby={!value.alt.trim() ? altErrorId : undefined}
               onChange={(event) => onChange({ ...value, alt: event.target.value })}
             />
+            {!value.alt.trim() && (
+              <p id={altErrorId} className={styles.metadataError}>Alternative text is required before publishing.</p>
+            )}
             <label htmlFor={creditId}>Photo credit (optional)</label>
             <input
               id={creditId}

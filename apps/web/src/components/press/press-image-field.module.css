@@ -20,7 +20,7 @@
 
 .headingRow button,
 .actions button {
-  min-height: 42px;
+  min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   color: var(--color-text);
   background: var(--color-bg-elevated);
@@ -80,6 +80,16 @@
 .metadata textarea {
   min-height: 76px;
   resize: vertical;
+}
+
+.metadata textarea[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.metadataError {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
 }
 
 .actions {

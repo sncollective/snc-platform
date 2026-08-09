@@ -109,7 +109,7 @@
 .assetCard button,
 .loadMore,
 .actions button {
-  min-height: 42px;
+  min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   color: var(--color-text);
   background: var(--color-bg-elevated);

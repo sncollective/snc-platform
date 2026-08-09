@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PRESS_CONTENT,
   PRESS_IMAGE_SLOT_RATIOS,
+  DraftPressConfigPatchSchema,
+  DraftPressContentSchema,
   PressConfigPatchSchema,
   PressContentSchema,
   PressImageSchema,
@@ -122,6 +124,24 @@ describe("PressContentSchema", () => {
         gallery: [{ key: "creators/creator-1/press/gallery.jpg", alt: "Live performance" }],
       }),
     ).toMatchObject({ template: "B", members: [{ name: "Alex" }] });
+  });
+
+  it("keeps publish-invalid editor values in the permissive draft contract", () => {
+    const draft = {
+      members: [{ name: "", role: "Vocals" }],
+      highlights: [{ eyebrow: "Release", title: "", url: "not-yet-a-url" }],
+      streamingLinks: [{ label: "Spotify", url: "open.spotify/draft" }],
+      liveDatesUrl: "shows coming soon",
+      pressContactEmail: "press at example dot com",
+    };
+
+    expect(DraftPressConfigPatchSchema.parse(draft)).toEqual({
+      ...draft,
+      streamingLinks: [{ ...draft.streamingLinks[0], service: "website" }],
+    });
+    expect(DraftPressContentSchema.safeParse({ ...DEFAULT_PRESS_CONTENT, ...draft }).success).toBe(true);
+    expect(PressConfigPatchSchema.safeParse(draft).success).toBe(false);
+    expect(PressContentSchema.safeParse({ ...DEFAULT_PRESS_CONTENT, ...draft }).success).toBe(false);
   });
 });
 

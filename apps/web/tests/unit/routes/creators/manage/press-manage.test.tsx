@@ -60,14 +60,23 @@ const imageB = {
 };
 
 vi.mock("../../../../../src/components/press/index.js", () => ({
-  PressImageField: ({ label, value, onChange }: {
+  PressImageField: ({ id, label, value, onChange }: {
+    id?: string;
     label: string;
     value: typeof imageA | null;
     onChange: (value: typeof imageA | null) => void;
   }) => value ? (
     <section aria-label={label}>
       <img src={`/api/library/raw/${value.key.slice("library/".length)}`} alt={value.alt} />
-      <textarea aria-label={`${label} alternative text`} value={value.alt} onChange={(event) => onChange({ ...value, alt: event.target.value })} />
+      <textarea
+        id={id ? `${id}-alt` : undefined}
+        aria-label={`${label} alternative text`}
+        aria-invalid={!value.alt.trim()}
+        aria-describedby={!value.alt.trim() && id ? `${id}-alt-error` : undefined}
+        value={value.alt}
+        onChange={(event) => onChange({ ...value, alt: event.target.value })}
+      />
+      {!value.alt.trim() && id && <p id={`${id}-alt-error`}>Alternative text is required before publishing.</p>}
       <button type="button" onClick={() => onChange({ ...value, alt: "" })}>Clear alt {label}</button>
       <button type="button" onClick={() => onChange(null)}>Remove {label}</button>
     </section>
@@ -175,6 +184,54 @@ describe("manage press editor", () => {
     expect(within(screen.getByRole("status")).getByText("Saved (draft)", { selector: "strong" })).toBeVisible();
   });
 
+  it("saves publish-invalid blank entities and malformed URLs as a draft", async () => {
+    mockFetchConfig.mockResolvedValueOnce({
+      ...config,
+      members: [{ name: "", role: "Vocals", bio: null, photo: null }],
+      highlights: [{ eyebrow: "Release", title: "", description: null, metric: null, url: "coming-soon", coverArt: null }],
+      streamingLinks: [{ label: "Spotify", url: "open.spotify/draft", service: "spotify" }],
+      liveDatesUrl: "dates pending",
+      pressContactEmail: "press at s-nc dot org",
+    });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Save draft" }));
+
+    await waitFor(() => expect(mockUpdateConfig).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({
+        members: [expect.objectContaining({ name: "" })],
+        highlights: [expect.objectContaining({ title: "", url: "coming-soon" })],
+        streamingLinks: [expect.objectContaining({ url: "open.spotify/draft" })],
+        liveDatesUrl: "dates pending",
+        pressContactEmail: "press at s-nc dot org",
+      }),
+    ));
+    expect(within(screen.getByRole("status")).getByText("Saved (draft)", { selector: "strong" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Publish draft to live" })).toBeDisabled();
+  });
+
+  it("does not overwrite edits made while an older save is in flight", async () => {
+    let resolveSave: ((value: typeof config) => void) | undefined;
+    mockUpdateConfig.mockImplementationOnce((_id: string, patch: object) => new Promise((resolve) => {
+      resolveSave = (value) => resolve(value);
+      expect(patch).toEqual(expect.objectContaining({ tagline: "Socially conscious punk" }));
+    }));
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("tab", { name: /About/ }));
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(mockUpdateConfig).toHaveBeenCalledOnce());
+    await user.type(screen.getByLabelText("Tagline"), " newer");
+    resolveSave?.(config);
+
+    await waitFor(() => expect(screen.getByLabelText("Tagline")).toHaveValue("Socially conscious punk newer"));
+    expect(within(screen.getByRole("status")).getByText("Unsaved changes", { selector: "strong" })).toBeVisible();
+    expect(screen.getByText("Earlier changes saved · newer edits still need saving")).toBeVisible();
+  });
+
   it("shows cross-tab errors, blocks publish, and opens/focuses a hidden invalid field", async () => {
     mockFetchConfig.mockResolvedValueOnce({
       ...config,
@@ -192,6 +249,23 @@ describe("manage press editor", () => {
     expect(mockApiMutate).not.toHaveBeenCalled();
   });
 
+  it("opens a hidden image issue on its stable invalid alt textarea", async () => {
+    mockFetchConfig.mockResolvedValueOnce({
+      ...config,
+      members: [{ ...config.members[0], photo: { ...imageA, alt: "" } }],
+    });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: /Members — LeAnna Warren photo needs alternative text/ }));
+
+    const alt = screen.getByLabelText(/LeAnna Warren photo.*alternative text/i);
+    await waitFor(() => expect(alt).toHaveFocus());
+    expect(alt).toHaveAttribute("id", "press-member-0-photo-alt");
+    expect(alt).toHaveAttribute("aria-invalid", "true");
+    expect(alt).toHaveAccessibleDescription("Alternative text is required before publishing.");
+  });
+
   it("publishes only after saving an enabled, valid draft", async () => {
     const user = userEvent.setup();
     render(<ManagePressPage />);
@@ -207,6 +281,60 @@ describe("manage press editor", () => {
       { method: "POST" },
     );
     expect(within(screen.getByRole("status")).getByText("Published to live", { selector: "strong" })).toBeVisible();
+  });
+
+  it("renders a meaningful full-draft review with composed content", async () => {
+    mockFetchConfig.mockResolvedValueOnce({
+      ...config,
+      banner: imageA,
+      aboutPhoto: imageB,
+      members: [{ ...config.members[0], photo: imageA }],
+      highlights: [{ ...config.highlights[0], coverArt: imageB }],
+      gallery: [imageA, imageB],
+    });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Open full draft review" }));
+    const dialog = screen.getByRole("dialog");
+
+    expect(within(dialog).getByRole("heading", { name: "Draft preview · Animal Future" })).toBeVisible();
+    expect(within(dialog).getByRole("heading", { name: "About" })).toBeVisible();
+    expect(within(dialog).getByRole("heading", { name: "Members" })).toBeVisible();
+    expect(within(dialog).getByRole("heading", { name: "Highlights" })).toBeVisible();
+    expect(within(dialog).getByRole("heading", { name: "Gallery" })).toBeVisible();
+    expect(within(dialog).getByRole("heading", { name: "Listen" })).toBeVisible();
+    expect(within(dialog).getByText("press@s-nc.org")).toBeVisible();
+    expect(within(dialog).getAllByRole("img").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("confirms discard and entity removals before applying them", async () => {
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Discard draft" }));
+    expect(screen.getByRole("alertdialog", { name: "Discard this draft?" })).toBeVisible();
+    expect(mockApiMutate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await user.click(screen.getByRole("tab", { name: /Members/ }));
+    await user.click(screen.getByRole("button", { name: "Remove LeAnna Warren" }));
+    expect(screen.getByRole("alertdialog", { name: "Remove LeAnna Warren?" })).toBeVisible();
+    expect(screen.getByText("LeAnna Warren", { selector: "strong" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove item" }));
+    expect(screen.queryByText("LeAnna Warren", { selector: "strong" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Highlights/ }));
+    await user.click(screen.getByRole("button", { name: "Remove The Illusionist" }));
+    expect(screen.getByRole("alertdialog", { name: "Remove The Illusionist?" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove item" }));
+    expect(screen.queryByRole("button", { name: "Remove The Illusionist" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Links & contact/ }));
+    await user.click(screen.getByRole("button", { name: "Remove Spotify" }));
+    expect(screen.getByRole("alertdialog", { name: "Remove Spotify?" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove item" }));
+    expect(screen.queryByRole("button", { name: "Remove Spotify" })).not.toBeInTheDocument();
   });
 
   it("saves the curated brand color and emits the selected PDF preview scheme", async () => {
@@ -232,6 +360,7 @@ describe("manage press editor", () => {
     await user.click(screen.getByRole("button", { name: "Move Charles Tyrie up" }));
 
     expect(screen.getByText("Charles Tyrie moved to position 1 of 2.")).toHaveAttribute("role", "status");
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Edit" })[0]).toHaveFocus());
     await user.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(mockUpdateConfig).toHaveBeenCalledWith(
       "c1",

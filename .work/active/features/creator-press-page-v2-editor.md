@@ -8,7 +8,7 @@ depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-image-ma
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-09
 ---
 
 # Press page v2 — editor
@@ -72,4 +72,24 @@ photo-editor defects via that pipeline.
 - `bun run --filter @snc/web typecheck` — passed with zero diagnostics.
 - Firefox headless visual verification — 19 fresh browser contexts: every tab at 1440, 1024, and 390px, plus the failed-save/error-summary and global publish surface. Visually compared against locked option 2: dark ContextShell alignment, workbench hierarchy, responsive stacking, empty image slots, true gallery/slot proportions, and focus/error affordances match the design. Programmatic checks found exact document width at all three viewports, exactly one selected/tabbable tab, no horizontal page overflow, and no visible control below 44px.
 - Exact-string check retained `press@s-nc.org` and the full `https://open.spotify.com` fixture; no `press@snc.org` typo was introduced.
+- `git diff --check` — passed.
+
+## Review blocker fixes (2026-08-09)
+- Stage remains `review` for the requested re-review. The affirmed draft/publish endpoints, ARIA tabs, cross-tab error summary, crop workflow, and `ContextShell` integration were preserved.
+- Added an additive `DraftPressContentSchema` / `DraftPressConfigPatchSchema` boundary. Editor GET/PATCH and draft persistence accept incomplete entities and malformed draft URLs/email; the published `PressContentSchema` remains strict, and the transactional publish path rejects a draft that fails it.
+- Added an edit-revision fence around save and publish responses, so a stale response never replaces newer browser edits or clears their dirty state.
+- Image metadata now has stable `*-alt` textarea IDs with `aria-invalid`, an associated error message, and exact error-summary focus targeting.
+- Replaced the draft count card with a composed template preview containing hero/about imagery, members, highlights, gallery, listening links, fan references, live dates, and contact details.
+- Added confirmation dialogs for discard and member/highlight/link removal; stable row keys plus post-move focus keep keyboard users on the moved entity.
+- Gallery collapse now uses the editor container width, and picker/crop/field portal buttons have a 44px minimum target.
+- Regression coverage added across shared contracts, API draft/publish boundaries, image metadata, stale-save protection, preview composition, confirmations, and reorder focus. The adjacent banner-width fixtures were repaired to derive from `PRESS_IMAGE_SLOT_WIDTHS` rather than duplicating a stale literal.
+
+### Re-verification
+- `bun run --filter @snc/web test` — 185 files / 1,905 tests passed.
+- `bun run --filter @snc/web typecheck` — passed with zero diagnostics.
+- `bun run --filter @snc/shared test && bun run --filter @snc/shared typecheck` — 23 files / 724 tests passed; typecheck passed.
+- `bun run --filter @snc/api test:unit -- tests/routes/press.test.ts tests/services/press.test.ts` — 2 files / 50 tests passed; the full API unit run also passed 124 files / 1,993 tests.
+- `cd apps/api && npx tsc --noEmit` — passed with zero diagnostics.
+- Fresh-profile Firefox headless proof at 1440, 1024, and 390px covered invalid draft save, edit-during-save preservation, exact alt-textarea focus, full draft preview, discard confirmation, reorder focus, container-responsive gallery, and picker/crop portals. Programmatic overlays confirmed no horizontal overflow, `press-member-0-photo-alt` / stable-row focus, a one-column 736px gallery at the 1024 shell width, and 44px picker/crop portal buttons.
+- Exact-string check confirmed `press@s-nc.org` and `https://open.spotify.com`; no `press@snc.org` typo exists in the touched production/test surface.
 - `git diff --check` — passed.

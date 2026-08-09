@@ -47,19 +47,21 @@ const PressStreamingLinkShapeSchema = z.object({
   service: PressStreamingServiceSchema.optional(),
 });
 
+const normalizeStreamingService = (value: unknown): unknown => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  if (!("service" in candidate) && typeof candidate.url === "string") {
+    return { ...candidate, service: inferService(candidate.url) };
+  }
+  return value;
+};
+
 /** A listening destination, accepting and normalizing the live v1 link shape. */
 export const PressStreamingLinkSchema = z.preprocess(
-  (value) => {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      return value;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    if (!("service" in candidate) && typeof candidate.url === "string") {
-      return { ...candidate, service: inferService(candidate.url) };
-    }
-    return value;
-  },
+  normalizeStreamingService,
   PressStreamingLinkShapeSchema,
 );
 export type PressStreamingLink = z.infer<typeof PressStreamingLinkSchema>;
@@ -229,7 +231,34 @@ export const PressContentSchema = z.object({
 });
 export type PressContent = z.infer<typeof PressContentSchema>;
 
-/** Patch shape for updating a creator's press config (all fields optional, no defaults). */
+const DraftPressStreamingLinkSchema = z.preprocess(
+  normalizeStreamingService,
+  PressStreamingLinkShapeSchema.extend({ url: z.string() }),
+);
+const DraftPressMemberSchema = PressMemberSchema.extend({ name: z.string() });
+const DraftPressHighlightSchema = PressHighlightSchema.extend({
+  title: z.string(),
+  url: z.string().nullable().optional(),
+});
+const DraftPressStandoutTrackSchema = PressStandoutTrackSchema.extend({
+  url: z.string().nullable(),
+});
+
+/**
+ * Complete editor draft contract. Drafts preserve structurally valid but
+ * publish-incomplete values; the strict PressContentSchema remains the live boundary.
+ */
+export const DraftPressContentSchema = PressContentSchema.extend({
+  members: z.array(DraftPressMemberSchema).default([]),
+  streamingLinks: z.array(DraftPressStreamingLinkSchema).default([]),
+  liveDatesUrl: z.string().nullable().optional(),
+  standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
+  highlights: z.array(DraftPressHighlightSchema).default([]),
+  pressContactEmail: z.string().nullable().optional(),
+});
+export type DraftPressContent = z.infer<typeof DraftPressContentSchema>;
+
+/** Patch shape for updating a creator's strict published press config. */
 export const PressConfigPatchSchema = z.object({
   enabled: z.boolean().optional(),
   template: z.enum(["A", "B"]).optional(),
@@ -251,6 +280,32 @@ export const PressConfigPatchSchema = z.object({
   releases: PressReleasesSchema.optional(),
 });
 export type PressConfigPatch = z.infer<typeof PressConfigPatchSchema>;
+
+/**
+ * Permissive patch contract for saving editor drafts. It deliberately allows
+ * blank member/highlight names and malformed URLs/email until publish validation.
+ */
+export const DraftPressConfigPatchSchema = z.object({
+  enabled: z.boolean().optional(),
+  template: z.enum(["A", "B"]).optional(),
+  tagline: z.string().nullable().optional(),
+  shortBio: z.string().nullable().optional(),
+  longBio: z.string().nullable().optional(),
+  forFansOf: z.array(z.string()).optional(),
+  banner: PressImageSchema.nullable().optional(),
+  aboutPhoto: PressImageSchema.nullable().optional(),
+  members: z.array(DraftPressMemberSchema).optional(),
+  streamingLinks: z.array(DraftPressStreamingLinkSchema).optional(),
+  liveDatesUrl: z.string().nullable().optional(),
+  standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
+  highlights: z.array(DraftPressHighlightSchema).optional(),
+  pressContactEmail: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  photos: z.array(z.string()).optional(),
+  gallery: z.array(PressImageSchema).optional(),
+  releases: PressReleasesSchema.optional(),
+});
+export type DraftPressConfigPatch = z.infer<typeof DraftPressConfigPatchSchema>;
 
 // ── Press Page Payload ──
 
