@@ -189,8 +189,9 @@ describe("MediaPicker", () => {
       .mockResolvedValueOnce({ items: [makeAsset()], nextCursor: null });
     renderPicker();
 
-    expect(await screen.findByText("Your library is empty")).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Browse shared pool" }));
+    expect(await screen.findByText("No own images loaded yet")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Load more" })).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: /Shared pool/ }));
     const panel = screen.getByRole("tabpanel", { name: /Shared pool/ });
     expect(within(panel).getByRole("button", { name: "Choose shared.jpg" })).toBeVisible();
     await user.click(within(panel).getByRole("button", { name: "Load more" }));

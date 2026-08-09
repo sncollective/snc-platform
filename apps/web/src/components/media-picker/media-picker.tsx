@@ -81,6 +81,23 @@ const uniqueAssets = (current: ContentAsset[], incoming: ContentAsset[]): Conten
   return [...byId.values()];
 };
 
+const filterSourceAssets = (
+  sourceAssets: ContentAsset[],
+  source: "own" | "shared",
+  search: string,
+  shapeFilter: ShapeFilter,
+  useFilter: UseFilter,
+): ContentAsset[] => {
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  return sourceAssets.filter((asset) => {
+    if (normalizedSearch && !assetName(asset).toLocaleLowerCase().includes(normalizedSearch)) return false;
+    if (source === "own") return matchesShape(asset, shapeFilter);
+    if (useFilter === "usable") return asset.canUse;
+    if (useFilter === "blocked") return !asset.canUse;
+    return true;
+  });
+};
+
 const assetName = (asset: ContentAsset): string => asset.originalFilename ?? "Untitled image";
 
 const matchesShape = (asset: ContentAsset, shape: ShapeFilter): boolean => {
@@ -139,6 +156,21 @@ export function MediaPicker({
   const [announcement, setAnnouncement] = useState("");
   const initialized = useRef(false);
   const uploadController = useRef<AbortController | null>(null);
+  const editStageRef = useRef<HTMLDivElement>(null);
+
+  const resetInteractionState = useCallback((): void => {
+    uploadController.current?.abort();
+    uploadController.current = null;
+    setView("own");
+    setMobileStage("browse");
+    setSearch("");
+    setShapeFilter("any");
+    setUseFilter("all");
+    setSelection(null);
+    setUpload({ status: "idle" });
+    setAnnouncement("");
+    initialized.current = false;
+  }, []);
 
   const announce = useCallback((message: string): void => {
     setAnnouncement("");
@@ -161,15 +193,44 @@ export function MediaPicker({
   }, [creatorId]);
 
   useEffect(() => {
-    if (!open) return;
+    resetInteractionState();
+    if (!open) {
+      setAssets([]);
+      setNextCursor(null);
+      setLoadError("");
+      setFailedImages(new Set());
+      setIsLoading(false);
+      return;
+    }
+
+    setAssets([]);
+    setNextCursor(null);
+    setLoadError("");
+    setFailedImages(new Set());
     const controller = new AbortController();
     void load(undefined, controller.signal);
     return () => controller.abort();
-  }, [load, open]);
+  }, [creatorId, load, open, resetInteractionState]);
+
+  const targetSignature = JSON.stringify([
+    target.mediaType,
+    target.slot,
+    target.surfaceLabel,
+    target.slotLabel,
+    target.description,
+    target.insertLabel,
+  ]);
+  const initialValueSignature = JSON.stringify(initialValue ?? null);
+
+  useEffect(() => {
+    if (!open) return;
+    resetInteractionState();
+  }, [initialValueSignature, open, resetInteractionState, targetSignature]);
 
   useEffect(() => () => uploadController.current?.abort(), []);
 
   const selectAsset = useCallback((asset: ContentAsset, value?: PressImage): void => {
+    if (!value && selection?.asset.id === asset.id) return;
     setSelection({
       asset,
       crop: value?.crop ?? null,
@@ -178,12 +239,13 @@ export function MediaPicker({
       credit: value?.credit ?? "",
     });
     setMobileStage("edit");
+    window.requestAnimationFrame(() => editStageRef.current?.focus());
     announce(
       asset.canUse
         ? `${assetName(asset)} selected. Crop and description reset for this image. Insert remains disabled until crop output and alt text are ready.`
         : `${assetName(asset)} needs the owner's permission and is not available.`,
     );
-  }, [announce]);
+  }, [announce, selection?.asset.id]);
 
   useEffect(() => {
     if (initialized.current || !initialValue || assets.length === 0) return;
@@ -201,17 +263,14 @@ export function MediaPicker({
     () => assets.filter((asset) => asset.creatorId !== creatorId),
     [assets, creatorId],
   );
-  const visibleAssets = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase();
-    const source = view === "own" ? ownAssets : sharedAssets;
-    return source.filter((asset) => {
-      if (normalizedSearch && !assetName(asset).toLocaleLowerCase().includes(normalizedSearch)) return false;
-      if (view === "own") return matchesShape(asset, shapeFilter);
-      if (useFilter === "usable") return asset.canUse;
-      if (useFilter === "blocked") return !asset.canUse;
-      return true;
-    });
-  }, [ownAssets, search, shapeFilter, sharedAssets, useFilter, view]);
+  const visibleOwnAssets = useMemo(
+    () => filterSourceAssets(ownAssets, "own", search, shapeFilter, useFilter),
+    [ownAssets, search, shapeFilter, useFilter],
+  );
+  const visibleSharedAssets = useMemo(
+    () => filterSourceAssets(sharedAssets, "shared", search, shapeFilter, useFilter),
+    [search, shapeFilter, sharedAssets, useFilter],
+  );
 
   const setTab = (next: SourceView, focus = false): void => {
     setView(next);
@@ -404,6 +463,15 @@ export function MediaPicker({
                 </div>
               ) : null}
 
+              {view !== "own" ? (
+                <div id={`${id}-panel-own`} hidden role="tabpanel" aria-labelledby={`${id}-tab-own`} />
+              ) : null}
+              {view !== "shared" ? (
+                <div id={`${id}-panel-shared`} hidden role="tabpanel" aria-labelledby={`${id}-tab-shared`} />
+              ) : null}
+              {view !== "upload" ? (
+                <div id={`${id}-panel-upload`} hidden role="tabpanel" aria-labelledby={`${id}-tab-upload`} />
+              ) : null}
               {view !== "upload" ? (
                 <section
                   id={panelId}
@@ -442,8 +510,16 @@ export function MediaPicker({
                     </div>
                   ) : null}
 
-                  {isLoading && assets.length === 0 ? <p className={styles.loading} role="status">Loading images…</p> : null}
-                  {!isLoading && (view === "own" ? ownAssets : sharedAssets).length === 0 ? (
+                  {isLoading && (view === "own" ? ownAssets : sharedAssets).length === 0 ? <p className={styles.loading} role="status">{assets.length === 0 ? "Loading images…" : "Loading more images…"}</p> : null}
+                  {!isLoading && (view === "own" ? ownAssets : sharedAssets).length === 0 && nextCursor ? (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyInner}>
+                        <div className={styles.emptyIcon} aria-hidden="true">…</div>
+                        <h3>{view === "own" ? "No own images loaded yet" : "No shared images loaded yet"}</h3>
+                        <p>More images may be on later pages. Load more to check before treating this source as empty.</p>
+                      </div>
+                    </div>
+                  ) : !isLoading && (view === "own" ? ownAssets : sharedAssets).length === 0 ? (
                     <div className={styles.emptyState}>
                       <div className={styles.emptyInner}>
                         <div className={styles.emptyIcon} aria-hidden="true">＋</div>
@@ -457,7 +533,7 @@ export function MediaPicker({
                     </div>
                   ) : (
                     <div className={styles.assetGrid} role="group" aria-label={view === "own" ? "My library images" : "Shared pool images"}>
-                      {visibleAssets.map((asset) => {
+                      {(view === "own" ? visibleOwnAssets : visibleSharedAssets).map((asset) => {
                         const selected = currentId === asset.id;
                         const owner = ownerLabel(asset, creatorId, creatorName);
                         return (
@@ -491,9 +567,9 @@ export function MediaPicker({
                     </div>
                   )}
 
-                  {(view === "own" ? ownAssets : sharedAssets).length > 0 ? (
+                  {(view === "own" ? ownAssets : sharedAssets).length > 0 || nextCursor ? (
                     <footer className={styles.pagination}>
-                      <span>Showing {visibleAssets.length} {view === "own" ? "own" : "shared"} image{visibleAssets.length === 1 ? "" : "s"}</span>
+                      <span>Showing {(view === "own" ? visibleOwnAssets : visibleSharedAssets).length} loaded {view === "own" ? "own" : "shared"} image{(view === "own" ? visibleOwnAssets : visibleSharedAssets).length === 1 ? "" : "s"}{nextCursor ? " · more may exist" : ""}</span>
                       {nextCursor ? <button className={styles.loadMore} type="button" disabled={isLoading} onClick={() => void load(nextCursor)}>{isLoading ? "Loading…" : "Load more"}</button> : null}
                     </footer>
                   ) : null}
@@ -565,7 +641,13 @@ export function MediaPicker({
                   </footer>
                 </div>
               ) : (
-                <div className={styles.selectedState}>
+                <div
+                  ref={editStageRef}
+                  className={styles.selectedState}
+                  role="region"
+                  aria-label="Edit selected image"
+                  tabIndex={-1}
+                >
                   <div className={styles.workflowScroll}>
                     <button
                       className={styles.backMobile}

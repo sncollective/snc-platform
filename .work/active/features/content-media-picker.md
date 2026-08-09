@@ -52,8 +52,12 @@ review). Round-1 alternatives alongside for reference.
 - Discrepancies from design: shared library responses expose creator IDs but not creator display names, so foreign cards use the truthful generic label “Shared creator”; all locked interaction and layout behavior is preserved.
 - Adjacent issues parked: none.
 
+## Review follow-up
+- Fixed review blockers in `media-picker.tsx`: open/creator reset now clears idle/selection/upload/pagination state; target and `initialValue` changes reset and re-initialize from any subsequently loaded page; mixed-cursor source states remain honest until pagination is exhausted; same-asset selection is a no-op; mobile selection focuses the edit region; every tab `aria-controls` target remains mounted.
+- Updated the pagination fixture assertion to cover a source with zero loaded assets and a remaining global cursor.
+- Implementation discovery: no API extension was needed; the client-side mitigation uses the existing mixed cursor as requested. The item remains at `stage: review` for re-review.
+
 ## Verification
-- `bun run --filter @snc/web test` — green: 185 files, 1,891 tests.
+- `bun run --filter @snc/web test` — green: 185 files, 1,893 tests (the suite still emits pre-existing jsdom navigation and SSR network log noise).
 - `bun run --filter @snc/web typecheck` — green.
-- Firefox 140 headless visual verification used a fresh profile per capture for idle, selected/crop-ready, upload, empty-library, mobile-staged, and blocked-permission states at 1440×1000, 1024×900, and 390×844. Compared directly with fresh Firefox captures of the locked mock. Confirmed full-chrome scrim, two-pane desktop/tablet workbench, staged mobile edit/Back flow, sticky mobile actions, atomic disabled/ready insertion states, slot-aspect crop and rendered output, ≥44 px controls, distinct own/shared/upload and blocked states, and no horizontal overflow or clipped controls.
-- Exact-string review confirmed image-only “Choose image” / format-limit / permission wording in source alongside the visual pass.
+- Visual re-verification was not completed in this pass. Fresh Firefox captures still need a vision check for: reopening after a ready selection shows idle with disabled Insert; reselecting the current asset does not strand crop readiness/Insert; selecting on a 390px viewport focuses the edit-stage region; a zero-loaded source with a remaining cursor shows “more may exist” plus Load more (not an empty claim); all three tab `aria-controls` IDs resolve without duplicate/unmounted targets. Use a fresh profile and remove `/tmp/mpf-* /tmp/ffp-*` afterward as requested.
