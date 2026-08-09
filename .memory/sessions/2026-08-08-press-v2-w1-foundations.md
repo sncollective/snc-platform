@@ -39,3 +39,35 @@
 - **Demo auto-seed lives in the PARENT SNC repo** (`.forgejo/workflows/platform-deploy-demo.yml`); coordinate cross-repo via the mesh (peer: `/home/agent/projects/SNC@SNC`).
 - **@tanstack/start-* is NOT co-versioned** — never pin individual sub-packages via `resolutions`.
 - **Foundations unbound to a release** — operator picks the version when scoping the next release (0.5.0?).
+
+## Update 2026-08-09 — all W3 mocks locked (design phase complete for press-page-v2)
+
+Both remaining mock surfaces are locked (operator sign-off), so every press-page-v2
+surface is now mocked before implementation:
+- **PDF** (`creator-press-page-v2-pdf`): MVP = clean web-matching **full** PDF
+  (the locked templates' `@media print` output) + a distinctly-designed **1-sheet**
+  in two parallel layouts — horizontal-lead (`option-1`) + vertical-lead (`option-2`,
+  calmer/condensed) — at `.mockups/screens/creator-press-page-v2-pdf-onesheet/`.
+  **Color scheme** is creator-pickable (Editorial Light / Dark default / Creator
+  Brand Accent). **Brand color lives on the profile** (`creatorProfiles.brandColor`)
+  for site-wide reuse. **QR → customizable URL** (default = creator's linktree).
+  **Zine/edgy direction parked** (`.mockups/screens/creator-press-page-v2-pdf/zine-stretch/`)
+  as a stretch goal. **Per-release one-sheet** is a near-term reuse of this template.
+- **Editor** (`creator-press-page-v2-editor`): tabbed workbench (About / Members /
+  Highlights / Links & contact / Appearance & media) with a **draft/publish model**
+  (draft vs published — implies a `draftContent` schema field), cross-tab error
+  summary, image ownership fixed, aspect-correct crop preview, WAI-ARIA tabs.
+
+## New infra/skills this leg
+- **`.claude/skills/print-design/SKILL.md`** — the enforcement layer for print/PDF
+  mocks (Letter geometry, grid/baseline, print type floors, spacing scale, QR sizing).
+  Born from an adversarial review that diagnosed "knows the vocabulary, doesn't
+  enforce it." Generalizes to per-release one-sheets + future print work.
+- **Disk hygiene:** the mock-validation passes pile up firefox profile/screenshot
+  dirs in `/tmp` (~1.5G here → ENOSPC mid-subagent). Periodically
+  `rm -rf /tmp/ffp-* /tmp/ff-* /tmp/<screenshot-prefix>-*`.
+
+## Next (not started): feature-design + implement W3 (pdf + editor) — the editor
+feature-design scopes the draft/publish content-model change + the
+`creatorProfiles.brandColor` field. Then W2 remaining: `content-library-ui`,
+`content-library-migration`. Everything still unbound to a release.
