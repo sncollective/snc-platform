@@ -38,8 +38,21 @@ photo-editor defects via that pipeline.
 - `.mockups/design-system/tokens.css`
 
 ## Mockups
-- **UI alignment DEFERRED to this feature's design pass** (feature-design
-  Phase 4.6 fallback). The public press page is mocked (final-1/3); the editor
-  form is a substantial redesign (members/highlights/gallery/template picker/
-  image-crop) that warrants its own mockup when this feature is designed.
-  Inherits `.mockups/design-system/tokens.css`.
+- **LOCKED (operator sign-off 2026-08-09):** `.mockups/screens/creator-press-page-v2-editor/option-2.html`
+  — tabbed workbench (About / Members / Highlights / Links & contact / Appearance &
+  media), with a **draft/publish model**, cross-tab error summary, image ownership
+  fixed (entity images in their editors; Appearance & media = asset overview with
+  deep-links + empty states), aspect-correct crop preview, and full WAI-ARIA tabs.
+  (The 4-up IA exploration + the round-1 alternatives are alongside it for reference.)
+- Inherits `.mockups/design-system/tokens.css`.
+
+## Design decisions (operator, 2026-08-09)
+- **Draft/publish model (operator chose (b)):** the editor stages changes to a
+  **DRAFT**; the live press page + PDF read **PUBLISHED**; a Publish action copies
+  draft → published. This implies a content-model/schema change — a `draftContent`
+  alongside the live `content` on `creatorPressConfigs` (feature-design scopes this).
+- **Brand-color setter lives here:** the editor is where the creator sets
+  `creatorProfiles.brandColor` (a site-wide profile field; the PDF Creator Accent
+  scheme + future surfaces consume it).
+- **PDF-scheme picker** (Light / Dark / Creator Accent) in the Appearance & media tab.
+- Tabbed IA over a single long form; Members/Highlights especially justify tabs.
