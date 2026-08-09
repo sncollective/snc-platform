@@ -37,5 +37,38 @@ the selected template (A or B), with the burn-in photo credits.
 - `.mockups/design-system/tokens.css`; the `@page letter` CSS in `final-{1,3}.html`
 
 ## Mockups
-- The letter-print layout is the locked template at print size (the `@page letter`
-  + `@media print` rules in `final-1.html` / `final-3.html`).
+- **Full PDF (clean, web-matching):** the locked templates at print size —
+  the `@page letter` + `@media print` rules in `final-1.html` / `final-3.html`
+  (already shipped by the `creator-press-page-v2-templates` feature). This is the
+  **MVP default** for this round.
+- **Press 1-sheet (clean) — LOCKED (operator sign-off 2026-08-09):** two parallel,
+  distinctly-designed single-page one-sheets (pick by lead-photo orientation) at
+  `.mockups/screens/creator-press-page-v2-pdf-onesheet/`:
+  - `option-1.html` — horizontal-lead one-sheet.
+  - `option-2.html` — vertical-lead one-sheet (calmer/condensed: 1-para bio,
+    members = photos + names + roles (no bios), 2 horizontal highlights).
+  Built against `.claude/skills/print-design/SKILL.md` (grid/baseline/type floors);
+  QR links a customizable URL (default = creator's linktree). Round-1 alternatives
+  in `…/round-1/`.
+- **Zine/edgy direction — PARKED (stretch goal):** `.mockups/screens/creator-press-page-v2-pdf/zine-stretch/`
+  — a punkier PDF template, deferred to a later pass (the web templates stay the
+  safe default; a punkier web template is also a future stretch goal).
+
+## Design decisions (operator, 2026-08-08/09)
+- **This round's MVP = the clean, web-matching PDF** (full + 1-sheet). The zine
+  direction is held for another pass.
+- **Two outputs:** a full press PDF (multi-page, the template's print output) AND
+  a distinctly-designed **1-sheet** (curated single page — not a truncated full).
+- **Color scheme** is a creator-pickable option on the clean template:
+  Editorial Light / Dark (web-matching default) / **Creator Brand Accent**.
+- **Brand color lives on the creator profile** (`creatorProfiles.brandColor`, a
+  curated-palette field) so it's reusable site-wide; the Creator Brand Accent PDF
+  scheme + future surfaces read it. The editor delivers the setter; the PDF consumes it.
+- **QR destination** = a customizable URL (default = creator's linktree/link-in-bio,
+  not bandcamp).
+- **Per-release one-sheet** (e.g. AF's next single) is a near-term reuse of this
+  print template system — the v1 already had `renderOneSheetPdf`; the v2 picks it
+  up on the same grid/aesthetic. Not this feature's scope, but the template/
+skill generalize to it.
+- Mechanism (headless print of the template vs. continuing @react-pdf) is a
+  feature-design decision; goal remains one source of truth for the render.
