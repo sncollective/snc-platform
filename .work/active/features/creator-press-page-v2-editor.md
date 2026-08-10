@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-editor
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-image-management, creator-profile-brand-color, press-config-draft-publish]

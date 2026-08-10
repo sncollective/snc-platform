@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2-pdf
 kind: feature
-stage: review
+stage: done
 tags: [creators, content, ui]
 parent: creator-press-page-v2
 depends_on: [creator-press-page-v2-content-model, creator-press-page-v2-templates, creator-profile-brand-color]
