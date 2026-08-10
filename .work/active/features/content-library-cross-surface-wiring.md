@@ -1,7 +1,7 @@
 ---
 id: content-library-cross-surface-wiring
 kind: feature
-stage: review
+stage: done
 tags: [media, content, refactor]
 parent: content-library
 depends_on: [content-library-core, content-library-migration]

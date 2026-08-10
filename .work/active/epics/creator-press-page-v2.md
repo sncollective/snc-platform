@@ -1,7 +1,7 @@
 ---
 id: creator-press-page-v2
 kind: epic
-stage: review
+stage: done
 tags: [creators, content, ui]
 parent: null
 depends_on: []
