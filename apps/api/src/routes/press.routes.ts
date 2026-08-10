@@ -14,7 +14,6 @@ import {
   NotFoundError,
   isLibraryAssetKey,
   isOwnedPressKey,
-  libraryRawPath,
 } from "@snc/shared";
 
 import type { AuthEnv } from "../middleware/auth-env.js";
@@ -105,15 +104,13 @@ const handlePressPhotoStream = async (c: Context<AuthEnv>): Promise<Response> =>
   );
   const key = content.photos[Number(c.req.param("index"))];
   if (!key) throw new NotFoundError("Press photo not found");
-  if (isOwnedPressKey(key, profile.id)) {
-    return streamFile(c, storage, key, "press photo not found");
+  if (!isOwnedPressKey(key, profile.id) && !isLibraryAssetKey(key)) {
+    throw new NotFoundError("Press photo not found");
   }
-  if (isLibraryAssetKey(key)) {
-    // Persisted references are passively grandfathered after grant revocation.
-    // New references still pass the PATCH authorization boundary.
-    return c.redirect(`/api/library/raw/${libraryRawPath(key)}`, 302);
-  }
-  throw new NotFoundError("Press photo not found");
+  // Persisted library references are passively grandfathered after grant
+  // revocation, but the v1 endpoint continues to stream bytes with its original
+  // 200 response contract. New references still pass PATCH authorization.
+  return streamFile(c, storage, key, "press photo not found");
 };
 
 // ── Public API ──

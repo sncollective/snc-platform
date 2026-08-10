@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { eq } from "drizzle-orm";
+import { imageSize } from "image-size";
 import { describe, expect, it } from "vitest";
 
-import { libraryRawPath } from "@snc/shared";
 import type { PressContent } from "@snc/shared";
 
+import { config } from "../../src/config.js";
 import { db } from "../../src/db/connection.js";
 import { content } from "../../src/db/schema/content.schema.js";
 import {
@@ -18,9 +22,11 @@ import {
 } from "../../src/db/schema/library.schema.js";
 import { contentMediaRoutes } from "../../src/routes/content-media.routes.js";
 import { creatorMediaRoutes } from "../../src/routes/creator-media.routes.js";
-import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 import { pressRoutes } from "../../src/routes/press.routes.js";
+import { resolveContentUrls } from "../../src/lib/content-helpers.js";
+import { resolveCreatorUrls } from "../../src/lib/creator-url.js";
 import { migrateContentLibraryImages } from "../../src/services/content-library-migration.js";
+import type { ContentLibraryMigrationManifest } from "../../src/services/content-library-migration.js";
 import { storage } from "../../src/storage/index.js";
 
 const imageBytes = Uint8Array.from(
@@ -47,10 +53,24 @@ const uploadLegacyImage = async (key: string): Promise<void> => {
 const responseBytes = async (response: Response): Promise<Uint8Array> =>
   new Uint8Array(await response.arrayBuffer());
 
+const expectRenderedImage = async (url: string): Promise<void> => {
+  const response = await fetch(url, { headers: { Accept: "image/png" } });
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toMatch(/^image\//);
+  const rendered = new Uint8Array(await response.arrayBuffer());
+  const dimensions = imageSize(rendered);
+  expect(dimensions.width).toBeGreaterThan(0);
+  expect(dimensions.height).toBeGreaterThan(0);
+};
+
 describe("content-library surface migration", () => {
   it("atomically re-points every image surface, preserves delivery, and is idempotent", async () => {
     const creatorId = randomUUID();
     const contentId = randomUUID();
+    const deletedContentId = randomUUID();
+    const tempDir = await mkdtemp(join(tmpdir(), "content-library-migration-"));
+    const firstManifestPath = join(tempDir, "first.json");
+    const secondManifestPath = join(tempDir, "second.json");
     const prefix = `migration-test/${creatorId}`;
     const oldKeys = {
       avatar: `${prefix}/avatar.png`,
@@ -60,6 +80,7 @@ describe("content-library surface migration", () => {
       pressImage: `creators/${creatorId}/press/image.png`,
     };
     const mediaKey = `${prefix}/media.wav`;
+    const previousImgproxyUrl = config.IMGPROXY_URL;
     let libraryKey: string | undefined;
     let blobSha256: string | undefined;
 
@@ -84,21 +105,35 @@ describe("content-library surface migration", () => {
         avatarKey: oldKeys.avatar,
         bannerKey: oldKeys.banner,
       });
-      await db.insert(content).values({
-        id: contentId,
-        creatorId,
-        type: "audio",
-        title: "Migration integration content",
-        mediaKey,
-        thumbnailKey: oldKeys.thumbnail,
-      });
+      await db.insert(content).values([
+        {
+          id: contentId,
+          creatorId,
+          type: "audio",
+          title: "Migration integration content",
+          mediaKey,
+          thumbnailKey: oldKeys.thumbnail,
+          publishedAt: new Date(),
+        },
+        {
+          id: deletedContentId,
+          creatorId,
+          type: "audio",
+          title: "Deleted content with stale thumbnail",
+          thumbnailKey: `${prefix}/removed-thumbnail.png`,
+          deletedAt: new Date(),
+        },
+      ]);
       await db.insert(creatorPressConfigs).values({
         creatorId,
         content: published,
         draftContent: draft,
       });
 
-      const first = await migrateContentLibraryImages({ creatorIds: [creatorId] });
+      const first = await migrateContentLibraryImages({
+        creatorIds: [creatorId],
+        manifestPath: firstManifestPath,
+      });
       expect(first).toMatchObject({
         sourceObjectsRead: 5,
         registrationsProcessed: 5,
@@ -115,6 +150,10 @@ describe("content-library surface migration", () => {
         .select()
         .from(content)
         .where(eq(content.id, contentId));
+      const [deletedContentRow] = await db
+        .select()
+        .from(content)
+        .where(eq(content.id, deletedContentId));
       const [pressRow] = await db
         .select()
         .from(creatorPressConfigs)
@@ -134,6 +173,7 @@ describe("content-library surface migration", () => {
       expect(profile!.bannerKey).toBe(libraryKey);
       expect(contentRow!.thumbnailKey).toBe(libraryKey);
       expect(contentRow!.mediaKey).toBe(mediaKey);
+      expect(deletedContentRow!.thumbnailKey).toBe(`${prefix}/removed-thumbnail.png`);
       expect(pressRow!.content.photos).toEqual([libraryKey]);
       expect(pressRow!.content.banner?.key).toBe(libraryKey);
       expect(pressRow!.draftContent?.aboutPhoto?.key).toBe(libraryKey);
@@ -151,25 +191,68 @@ describe("content-library surface migration", () => {
       const legacyPressResponse = await pressRoutes.request(
         `/${creatorId}/press/photos/0`,
       );
-      expect(legacyPressResponse.status).toBe(302);
-      expect(legacyPressResponse.headers.get("location")).toBe(
-        `/api/library/raw/${libraryRawPath(libraryKey!)}`,
-      );
-      const rawResponse = await libraryRawRoutes.request(
-        `/raw/${libraryRawPath(libraryKey!)}`,
-      );
-      expect(rawResponse.status).toBe(200);
-      expect(await responseBytes(rawResponse)).toEqual(imageBytes);
+      expect(legacyPressResponse.status).toBe(200);
+      expect(legacyPressResponse.headers.get("content-type")).toBe("image/png");
+      expect(legacyPressResponse.headers.get("location")).toBeNull();
+      expect(await responseBytes(legacyPressResponse)).toEqual(imageBytes);
 
+      config.IMGPROXY_URL = "http://localhost:8081";
       const pressPageResponse = await pressRoutes.request(`/${creatorId}/press`);
       expect(pressPageResponse.status).toBe(200);
       const pressPage = await pressPageResponse.json() as {
-        content: { banner: { key: string; src: string } | null };
+        content: { banner: { key: string; src: string; srcSet: string; sizes: string } | null };
       };
-      expect(pressPage.content.banner?.key).toBe(libraryKey);
-      expect(pressPage.content.banner?.src).toContain(libraryKey);
+      expect(pressPage.content.banner).toMatchObject({
+        key: libraryKey,
+        sizes: "100vw",
+      });
 
-      const second = await migrateContentLibraryImages({ creatorIds: [creatorId] });
+      const creatorDelivery = resolveCreatorUrls(profile!);
+      const contentDelivery = resolveContentUrls(contentRow!);
+      expect(creatorDelivery.avatar).not.toBeNull();
+      expect(creatorDelivery.banner).not.toBeNull();
+      expect(contentDelivery.thumbnail).not.toBeNull();
+      expect(pressPage.content.banner).not.toBeNull();
+      await Promise.all([
+        expectRenderedImage(creatorDelivery.avatar!.src),
+        expectRenderedImage(creatorDelivery.banner!.src),
+        expectRenderedImage(contentDelivery.thumbnail!.src),
+        expectRenderedImage(pressPage.content.banner!.src),
+      ]);
+
+      const manifest = JSON.parse(
+        await readFile(firstManifestPath, "utf8"),
+      ) as ContentLibraryMigrationManifest;
+      expect(manifest).toMatchObject({
+        version: 1,
+        creatorIds: [creatorId],
+      });
+      expect(manifest.references).toHaveLength(8);
+      expect(manifest.references).toContainEqual({
+        surface: "content-thumbnail",
+        rowId: contentId,
+        field: "thumbnailKey",
+        oldKey: oldKeys.thumbnail,
+        newKey: libraryKey,
+      });
+      expect(manifest.references).toContainEqual({
+        surface: "press",
+        rowId: creatorId,
+        field: "content.photos[0]",
+        oldKey: oldKeys.pressLegacy,
+        newKey: libraryKey,
+      });
+      await expect(
+        migrateContentLibraryImages({
+          creatorIds: [creatorId],
+          manifestPath: firstManifestPath,
+        }),
+      ).rejects.toMatchObject({ code: "CONTENT_LIBRARY_MIGRATION_ERROR" });
+
+      const second = await migrateContentLibraryImages({
+        creatorIds: [creatorId],
+        manifestPath: secondManifestPath,
+      });
       expect(second).toEqual({
         sourceObjectsRead: 0,
         registrationsProcessed: 0,
@@ -182,12 +265,15 @@ describe("content-library surface migration", () => {
     } finally {
       await db.delete(creatorPressConfigs).where(eq(creatorPressConfigs.creatorId, creatorId));
       await db.delete(content).where(eq(content.id, contentId));
+      await db.delete(content).where(eq(content.id, deletedContentId));
       await db.delete(creatorProfiles).where(eq(creatorProfiles.id, creatorId));
       if (blobSha256) {
         await db.delete(contentBlobs).where(eq(contentBlobs.sha256, blobSha256));
       }
       for (const key of Object.values(oldKeys)) await storage.delete(key);
+      config.IMGPROXY_URL = previousImgproxyUrl;
       if (libraryKey) await storage.delete(libraryKey);
+      await rm(tempDir, { recursive: true, force: true });
     }
   });
 
@@ -195,6 +281,8 @@ describe("content-library surface migration", () => {
     const creatorId = randomUUID();
     const avatarKey = `migration-test/${creatorId}/avatar.png`;
     const missingBannerKey = `migration-test/${creatorId}/missing-banner.png`;
+    const tempDir = await mkdtemp(join(tmpdir(), "content-library-migration-"));
+    const manifestPath = join(tempDir, "atomicity.json");
     let uploadedLibraryKey: string | undefined;
     let blobSha256: string | undefined;
 
@@ -208,7 +296,7 @@ describe("content-library surface migration", () => {
       });
 
       await expect(
-        migrateContentLibraryImages({ creatorIds: [creatorId] }),
+        migrateContentLibraryImages({ creatorIds: [creatorId], manifestPath }),
       ).rejects.toMatchObject({ code: "CONTENT_LIBRARY_MIGRATION_ERROR" });
 
       const [profile] = await db
@@ -237,6 +325,7 @@ describe("content-library surface migration", () => {
       }
       await storage.delete(avatarKey);
       if (uploadedLibraryKey) await storage.delete(uploadedLibraryKey);
+      await rm(tempDir, { recursive: true, force: true });
     }
   });
 });

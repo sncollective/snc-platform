@@ -323,17 +323,20 @@ describe("GET /api/creators/:creatorId/press/photos/:index", () => {
     expect(mockStorageDownload).toHaveBeenCalledWith(key);
   });
 
-  it("redirects a persisted library reference to immutable raw delivery", async () => {
+  it("streams a persisted library reference without changing the v1 HTTP contract", async () => {
     mockGetPressConfig.mockResolvedValueOnce(ok({ ...content, photos: [libraryKey] }));
 
     const res = await json("GET", "/api/creators/test-creator/press/photos/0");
 
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(
-      `/api/library/raw/aa/${"a".repeat(64)}.jpg`,
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/jpeg");
+    expect(res.headers.get("Content-Disposition")).toBe(
+      `inline; filename="${"a".repeat(64)}.jpg"`,
     );
+    expect(res.headers.get("Location")).toBeNull();
+    expect(await res.text()).toBe("image data");
     expect(mockCanUseAsset).not.toHaveBeenCalled();
-    expect(mockStorageDownload).not.toHaveBeenCalled();
+    expect(mockStorageDownload).toHaveBeenCalledWith(libraryKey);
   });
 
   it("returns 404 without reading storage when the configured key is foreign", async () => {

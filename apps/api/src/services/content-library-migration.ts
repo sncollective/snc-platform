@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { mkdir, open } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
@@ -28,9 +30,26 @@ export type ContentLibraryMigrationSummary = {
   libraryObjectsVerified: number;
 };
 
-type MigrationOptions = {
+export type ContentLibraryMigrationReference = {
+  surface: "creator-profile" | "content-thumbnail" | "press";
+  rowId: string;
+  field: string;
+  oldKey: string;
+  newKey: string;
+};
+
+export type ContentLibraryMigrationManifest = {
+  version: 1;
+  createdAt: string;
+  creatorIds: readonly string[] | null;
+  references: readonly ContentLibraryMigrationReference[];
+};
+
+export type ContentLibraryMigrationOptions = {
   /** Restrict a run to named creators; used for isolated verification. */
   creatorIds?: readonly string[];
+  /** New durable file written and fsynced before any live reference changes. */
+  manifestPath: string;
 };
 
 type ProfileUpdate = {
@@ -104,29 +123,74 @@ const readStorageBytes = async (key: string): Promise<Uint8Array> => {
   return bytes;
 };
 
+const persistManifest = async (
+  manifestPath: string,
+  manifest: ContentLibraryMigrationManifest,
+): Promise<void> => {
+  try {
+    await mkdir(dirname(manifestPath), { recursive: true });
+    const file = await open(manifestPath, "wx");
+    try {
+      await file.writeFile(`${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+      await file.sync();
+    } finally {
+      await file.close();
+    }
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    throw migrationError(`Cannot persist rollback manifest '${manifestPath}': ${detail}`);
+  }
+};
+
 const mapPressDocument = async <T extends PressContent>(
   value: T,
   creatorId: string,
+  document: "content" | "draftContent",
   migrateKey: (creatorId: string, key: string) => Promise<string>,
+  manifestReferences: ContentLibraryMigrationReference[],
 ): Promise<T> => {
-  const mapKey = async (key: string): Promise<string> =>
-    isOwnedPressKey(key, creatorId) ? migrateKey(creatorId, key) : key;
+  const mapKey = async (key: string, field: string): Promise<string> => {
+    if (!isOwnedPressKey(key, creatorId)) return key;
+    const newKey = await migrateKey(creatorId, key);
+    if (newKey !== key) {
+      manifestReferences.push({
+        surface: "press",
+        rowId: creatorId,
+        field,
+        oldKey: key,
+        newKey,
+      });
+    }
+    return newKey;
+  };
   const mapImage = async <I extends { key: string } | null | undefined>(
     image: I,
+    field: string,
   ): Promise<I> => image
-    ? { ...image, key: await mapKey(image.key) } as I
+    ? { ...image, key: await mapKey(image.key, field) } as I
     : image;
 
   return {
     ...value,
-    ...(value.banner ? { banner: await mapImage(value.banner) } : {}),
-    ...(value.aboutPhoto ? { aboutPhoto: await mapImage(value.aboutPhoto) } : {}),
+    ...(value.banner
+      ? { banner: await mapImage(value.banner, `${document}.banner.key`) }
+      : {}),
+    ...(value.aboutPhoto
+      ? { aboutPhoto: await mapImage(value.aboutPhoto, `${document}.aboutPhoto.key`) }
+      : {}),
     ...(Array.isArray(value.members)
       ? {
           members: await Promise.all(
-            value.members.map(async (member) => ({
+            value.members.map(async (member, index) => ({
               ...member,
-              ...(member.photo ? { photo: await mapImage(member.photo) } : {}),
+              ...(member.photo
+                ? {
+                    photo: await mapImage(
+                      member.photo,
+                      `${document}.members[${index}].photo.key`,
+                    ),
+                  }
+                : {}),
             })),
           ),
         }
@@ -134,27 +198,51 @@ const mapPressDocument = async <T extends PressContent>(
     ...(Array.isArray(value.highlights)
       ? {
           highlights: await Promise.all(
-            value.highlights.map(async (highlight) => ({
+            value.highlights.map(async (highlight, index) => ({
               ...highlight,
               ...(highlight.coverArt
-                ? { coverArt: await mapImage(highlight.coverArt) }
+                ? {
+                    coverArt: await mapImage(
+                      highlight.coverArt,
+                      `${document}.highlights[${index}].coverArt.key`,
+                    ),
+                  }
                 : {}),
             })),
           ),
         }
       : {}),
     ...(Array.isArray(value.photos)
-      ? { photos: await Promise.all(value.photos.map(mapKey)) }
+      ? {
+          photos: await Promise.all(
+            value.photos.map((key, index) =>
+              mapKey(key, `${document}.photos[${index}]`),
+            ),
+          ),
+        }
       : {}),
     ...(Array.isArray(value.gallery)
-      ? { gallery: await Promise.all(value.gallery.map(mapImage)) }
+      ? {
+          gallery: await Promise.all(
+            value.gallery.map((image, index) =>
+              mapImage(image, `${document}.gallery[${index}].key`),
+            ),
+          ),
+        }
       : {}),
     ...(Array.isArray(value.releases)
       ? {
           releases: await Promise.all(
-            value.releases.map(async (release) => ({
+            value.releases.map(async (release, index) => ({
               ...release,
-              ...(release.artKey ? { artKey: await mapKey(release.artKey) } : {}),
+              ...(release.artKey
+                ? {
+                    artKey: await mapKey(
+                      release.artKey,
+                      `${document}.releases[${index}].artKey`,
+                    ),
+                  }
+                : {}),
             })),
           ),
         }
@@ -171,8 +259,12 @@ const mapPressDocument = async <T extends PressContent>(
  * deduplicated library object.
  */
 export const migrateContentLibraryImages = async (
-  options: MigrationOptions = {},
+  options: ContentLibraryMigrationOptions,
 ): Promise<ContentLibraryMigrationSummary> => {
+  if (!options.manifestPath.trim()) {
+    throw migrationError("A rollback manifest path is required");
+  }
+
   const creatorIds = options.creatorIds ? [...new Set(options.creatorIds)] : undefined;
   if (creatorIds?.length === 0) {
     return {
@@ -212,8 +304,10 @@ export const migrateContentLibraryImages = async (
       ? profileQuery.where(inArray(creatorProfiles.id, creatorIds))
       : profileQuery,
     creatorIds
-      ? contentQuery.where(inArray(content.creatorId, creatorIds))
-      : contentQuery,
+      ? contentQuery.where(
+          and(inArray(content.creatorId, creatorIds), isNull(content.deletedAt)),
+        )
+      : contentQuery.where(isNull(content.deletedAt)),
     creatorIds
       ? pressQuery.where(inArray(creatorPressConfigs.creatorId, creatorIds))
       : pressQuery,
@@ -222,6 +316,7 @@ export const migrateContentLibraryImages = async (
   const sourceBytes = new Map<string, Uint8Array>();
   const resolvedKeys = new Map<string, string>();
   const verifiedLibraryKeys = new Set<string>();
+  const manifestReferences: ContentLibraryMigrationReference[] = [];
   let sourceObjectsRead = 0;
   let registrationsProcessed = 0;
   let deduplicatedUploads = 0;
@@ -277,6 +372,13 @@ export const migrateContentLibraryImages = async (
       if (!oldKey || isLibraryAssetKey(oldKey)) continue;
       const newKey = await migrateKey(profile.id, oldKey);
       profileUpdates.push({ id: profile.id, field, oldKey, newKey });
+      manifestReferences.push({
+        surface: "creator-profile",
+        rowId: profile.id,
+        field,
+        oldKey,
+        newKey,
+      });
     }
   }
 
@@ -285,18 +387,37 @@ export const migrateContentLibraryImages = async (
     if (!row.thumbnailKey || isLibraryAssetKey(row.thumbnailKey)) continue;
     const newKey = await migrateKey(row.creatorId, row.thumbnailKey);
     contentUpdates.push({ id: row.id, oldKey: row.thumbnailKey, newKey });
+    manifestReferences.push({
+      surface: "content-thumbnail",
+      rowId: row.id,
+      field: "thumbnailKey",
+      oldKey: row.thumbnailKey,
+      newKey,
+    });
   }
 
   const pressUpdates: PressUpdate[] = [];
   for (const row of pressRows) {
     const beforeContentReferences = referencesMigrated;
-    const nextContent = await mapPressDocument(row.content, row.creatorId, migrateKey);
+    const nextContent = await mapPressDocument(
+      row.content,
+      row.creatorId,
+      "content",
+      migrateKey,
+      manifestReferences,
+    );
     const contentChanged = referencesMigrated > beforeContentReferences;
 
     const beforeDraftReferences = referencesMigrated;
     const nextDraft = row.draftContent === null
       ? null
-      : await mapPressDocument(row.draftContent, row.creatorId, migrateKey);
+      : await mapPressDocument(
+          row.draftContent,
+          row.creatorId,
+          "draftContent",
+          migrateKey,
+          manifestReferences,
+        );
     const draftChanged = referencesMigrated > beforeDraftReferences;
 
     if (contentChanged || draftChanged) {
@@ -311,6 +432,13 @@ export const migrateContentLibraryImages = async (
       });
     }
   }
+
+  await persistManifest(options.manifestPath, {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    creatorIds: creatorIds ?? null,
+    references: manifestReferences,
+  });
 
   let rowsUpdated = 0;
   await db.transaction(async (tx) => {

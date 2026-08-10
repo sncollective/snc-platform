@@ -571,6 +571,49 @@ describe("upload routes", () => {
       );
     });
 
+    it("does not delete a shared library blob after a presigned thumbnail replacement", async () => {
+      const libraryKey = `library/aa/${"a".repeat(64)}.png`;
+      mockSelectLimit
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "audio" }]);
+
+      const presignResponse = await ctx.app.request("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          purpose: "content-thumbnail",
+          resourceId: "content-test-1",
+          filename: "replacement.png",
+          contentType: "image/png",
+          size: 1024,
+        }),
+      });
+      const presignBody = await presignResponse.json() as { key: string };
+      expect(presignResponse.status).toBe(200);
+
+      mockSelectLimit
+        .mockResolvedValueOnce([{ creatorId: "creator-profile-1", type: "audio" }])
+        .mockResolvedValueOnce([{ mediaKey: null, thumbnailKey: libraryKey }]);
+      mockStorageHead.mockResolvedValueOnce(
+        ok({ size: 1024, contentType: "image/png" }),
+      );
+
+      const completeResponse = await ctx.app.request("/api/uploads/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: presignBody.key,
+          purpose: "content-thumbnail",
+          resourceId: "content-test-1",
+        }),
+      });
+
+      expect(completeResponse.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalledWith(libraryKey);
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ thumbnailKey: presignBody.key }),
+      );
+    });
+
     it("returns 400 for invalid purpose", async () => {
       const res = await ctx.app.request("/api/uploads/complete", {
         method: "POST",

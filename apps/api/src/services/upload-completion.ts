@@ -5,6 +5,7 @@ import {
   ValidationError,
   NotFoundError,
   MAX_FILE_SIZES,
+  isLibraryAssetKey,
 } from "@snc/shared";
 import type { UploadPurpose, StorageProvider, CompleteUploadRequest } from "@snc/shared";
 
@@ -177,7 +178,7 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
       body.purpose === "content-media"
         ? (existing?.mediaKey ?? null)
         : (existing?.thumbnailKey ?? null);
-    if (oldKey && oldKey !== body.key) {
+    if (oldKey && oldKey !== body.key && !isLibraryAssetKey(oldKey)) {
       const deleteResult = await storageProvider.delete(oldKey);
       if (!deleteResult.ok) {
         logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old file");
