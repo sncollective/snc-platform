@@ -71,3 +71,24 @@ surface is now mocked before implementation:
 feature-design scopes the draft/publish content-model change + the
 `creatorProfiles.brandColor` field. Then W2 remaining: `content-library-ui`,
 `content-library-migration`. Everything still unbound to a release.
+
+## Update 2026-08-10 — DRAIN COMPLETE (autopilot)
+
+The full press-page-v2 + content-library build drained via autopilot. All 11 features
+DONE across both epics; both epics at `review` (all children done — ready for the
+operator's aggregate epic review). Final verification: shared ✓, api unit 2006 ✓,
+api typecheck 0, web 1905 ✓, web typecheck 0.
+
+**Shipped this drain:** content-library-page (Notion-like image library), content-media-picker
+(app-wide picker), creator-press-page-v2-editor (tabbed workbench + draft/publish),
+creator-press-page-v2-pdf (Chromium-print full + 1-sheets + color schemes), the
+brand-color + draft-publish foundations, content-library-migration (re-point onto library).
+Plus earlier: content-library-core, content-model, templates, image-management.
+
+**Follow-ups (not blocking):**
+- `pdfTheme` persistence (editor previews but doesn't save — needs a content-model field).
+- Chromium provisioning in prod/devcontainer (deploy follow-up; the e2e-only installer doesn't cover the API PDF path).
+- SSR `fetch failed` (unrelated, pre-existing) blocks the live full-PDF e2e proof.
+- The 4 pre-existing parked integration failures (channel-lifecycle FK + test-control gating).
+- Parked: the unified-media-library vision (video/audio + manage consolidation), per-release one-sheets, the zine/edgy PDF + web template stretch goal, Bandsintown live-dates.
+- Everything unbound to a release.
