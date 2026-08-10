@@ -366,6 +366,25 @@
   text-align: center;
 }
 
+.visibilityAction {
+  padding: var(--space-sm);
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-bg) 58%, transparent);
+}
+
+.visibilityAction strong,
+.visibilityAction small {
+  display: block;
+  text-align: left;
+}
+
+.visibilityAction small {
+  color: var(--color-text-muted);
+}
+
 .panelHead {
   margin-bottom: var(--space-md);
   display: flex;
@@ -458,6 +477,12 @@
 .templateChoice small {
   margin-top: 0.2rem;
   color: var(--color-text-muted);
+}
+
+.templateChoice .templateLimit {
+  margin-top: 0.5rem;
+  color: #ffd27a;
+  font-weight: var(--font-weight-semibold);
 }
 
 .templatePreview {
@@ -821,6 +846,30 @@
   border-left: 3px solid var(--color-success);
   background: var(--color-success-bg);
   color: #b6eeb8;
+}
+
+.highlightVisibility {
+  margin-bottom: var(--space-md);
+  padding: 0.75rem 0.85rem;
+  display: grid;
+  gap: 0.25rem;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-bg);
+  color: #ffe0a4;
+}
+
+.highlightVisibility span,
+.highlightVisibility small {
+  color: var(--color-text-muted);
+}
+
+.highlightVisibilityWarning {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.highlightVisibilityWarning strong {
+  color: #ffb4b1;
 }
 
 .emptyState {

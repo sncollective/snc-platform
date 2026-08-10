@@ -57,7 +57,7 @@ describe("press shared sections", () => {
           dates={[{ id: "1", dateTime: "2026-09-12", dateLabel: "Sep 12, 2026", venue: "The Mishawaka", city: "Bellvue, CO", ticketUrl: "https://tickets.example/1" }]}
           liveDatesUrl="https://www.bandsintown.com/a/animal-future"
         />
-        <PressFooter email="press@s-nc.org" downloadUrl="/press.pdf" />
+        <PressFooter email="press@s-nc.org" fullPressPdfUrl="/press.pdf" oneSheetUrl="/one-sheet.pdf" />
       </>,
     );
 

@@ -16,10 +16,10 @@ import styles from "./press-template-b.module.css";
 
 /** Compose Template B's dense two-column editorial zone. */
 export function PressTemplateB(props: PressTemplateProps): React.ReactElement {
-  const { creator, content, downloadUrl, liveDates } = props;
+  const { creator, content, fullPressPdfUrl, oneSheetUrl, liveDates } = props;
   return (
     <div className={styles.template} data-press-template="B">
-      <PressDownloadAction downloadUrl={downloadUrl} />
+      <PressDownloadAction fullPressPdfUrl={fullPressPdfUrl} />
       <PressHero creator={creator} content={content} />
       <article className={styles.editorial}>
         <AboutSection content={content} />
@@ -33,7 +33,7 @@ export function PressTemplateB(props: PressTemplateProps): React.ReactElement {
         <ListenSection links={content.streamingLinks} />
         <PressCarousel creatorName={creator.displayName} images={content.gallery} />
       </article>
-      <PressFooter email={content.pressContactEmail} downloadUrl={downloadUrl} />
+      <PressFooter email={content.pressContactEmail} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
     </div>
   );
 }

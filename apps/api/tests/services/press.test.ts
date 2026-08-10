@@ -27,7 +27,11 @@ const mockDb = {
   update: mockUpdate,
   transaction: mockTransaction,
 };
-const mockCreatorPressConfigs = { creatorId: "creatorId" };
+const mockCreatorPressConfigs = {
+  creatorId: "creatorId",
+  content: "content",
+  draftContent: "draftContent",
+};
 
 const setupService = async () => {
   vi.doMock("../../src/db/connection.js", () => ({ db: mockDb }));
@@ -352,6 +356,21 @@ describe("press config service", () => {
       statusCode: 400,
     });
     expect(mockTransaction).toHaveBeenCalledOnce();
+  });
+
+  it("unpublishes the live page while retaining a draft document", async () => {
+    const unpublished = { ...DEFAULT_PRESS_CONTENT, enabled: false, shortBio: "Live" };
+    mockUpdateReturning.mockResolvedValueOnce([{ content: unpublished }]);
+    const { unpublishPressConfig } = await setupService();
+
+    const result = await unpublishPressConfig("creator-1");
+
+    expect(result).toEqual({ ok: true, value: unpublished });
+    expect(mockUpdateSet).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.anything(),
+      draftContent: expect.anything(),
+      updatedAt: expect.any(Date),
+    }));
   });
 
   it("discards a draft and preserves published content", async () => {

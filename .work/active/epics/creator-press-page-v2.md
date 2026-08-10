@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-10
 ---
 
 # Creator press page v2 — template system + richer content model
@@ -113,3 +113,47 @@ Phase 4.6 fallback). The public surface is aligned above.
   needed before the full v2.
 - Two templates ship as "Template A / Template B" — the first of future
   selectable templates (the `template` selector is the seam).
+
+## Epic aggregate review fix — 2026-08-10
+
+The epic remains at `stage: review` for a fresh aggregate re-review. This closure
+pass repaired the v1→v2 visibility regression and folded in the accepted
+should-fix findings:
+
+- Restored an explicit, confirmed **Unpublish · take offline** action. The API
+  sets published `enabled: false`, retains (or creates from published content)
+  the editable draft, and keeps republish on the existing Publish path.
+- Exposed both PDF products in the editor and public page with distinct labels:
+  **full press PDF** (`one-pager.pdf`) and **one-sheet PDF** (`one-sheet.pdf`).
+- Added per-template highlight limits (A: 2, B: 3), an excess-content warning,
+  and the one-sheet's orientation-dependent 2/3-item curation note.
+- Clarified that brand color is a site-wide profile setting applied immediately
+  on draft save, including Creator Accent PDFs; it is not draft-isolated.
+
+### Implementation notes
+
+- Execution capability: `openai-codex/gpt-5.6-sol`; cohesive epic-closure fix,
+  implemented inline as requested with no nested subagents.
+- Review boundary: stop at epic `review`; caller requested a fresh aggregate
+  re-review after this fix.
+- Files changed: press editor + styles; public press route, template download
+  contract, templates, shared sections + styles; press API route + service;
+  focused web/API regression tests.
+- Tests added: unpublish route/service/editor behavior; dual PDF link contracts;
+  highlight overflow warning; immediate brand-color copy.
+- Simplification: replaced ambiguous one-pager UI wording with explicit full-PDF
+  vs one-sheet contracts; no compatibility path retained for the internal prop.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+### Verification
+
+- `bun run --filter @snc/web test` — 185 files / 1,910 tests passed.
+- `bun run --filter @snc/web typecheck` — passed.
+- Focused API unit tests — 2 files / 53 tests passed.
+- `cd apps/api && npx tsc --noEmit` — passed with zero diagnostics.
+- Firefox headless visual verification with fresh contexts at 1440, 1024, and
+  390 px confirmed the unpublish control + confirmation semantics, distinct PDF
+  links, highlight overflow warning, immediate brand-color note, and zero
+  document-level horizontal overflow. Temporary profiles/screenshots were
+  removed after inspection.

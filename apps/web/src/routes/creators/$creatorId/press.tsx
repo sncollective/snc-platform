@@ -68,11 +68,17 @@ function PressPageNotFound(): React.ReactElement {
 
 function PressRoutePage(): React.ReactElement {
   const { creator, content } = Route.useLoaderData();
-  const downloadUrl = pressEndpoint(creator.id, "/press/one-pager.pdf");
+  const fullPressPdfUrl = pressEndpoint(creator.id, "/press/one-pager.pdf");
+  const oneSheetUrl = pressEndpoint(creator.id, "/press/one-sheet.pdf");
 
   return (
     <div className={styles.breakout}>
-      <PressPage creator={creator} content={content} downloadUrl={downloadUrl} />
+      <PressPage
+        creator={creator}
+        content={content}
+        fullPressPdfUrl={fullPressPdfUrl}
+        oneSheetUrl={oneSheetUrl}
+      />
     </div>
   );
 }

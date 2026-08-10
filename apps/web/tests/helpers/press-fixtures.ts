@@ -68,5 +68,6 @@ export const makePressTemplateProps = (
     location: "Fort Collins, CO",
   },
   content: makeDeliveredPressContent(contentOverrides),
-  downloadUrl: "/api/creators/creator-1/press/one-pager.pdf",
+  fullPressPdfUrl: "/api/creators/creator-1/press/one-pager.pdf",
+  oneSheetUrl: "/api/creators/creator-1/press/one-sheet.pdf",
 });

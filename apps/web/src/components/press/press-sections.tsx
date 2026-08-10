@@ -206,23 +206,28 @@ export function ListenSection({
   );
 }
 
-/** Render the fixed download action used by both templates. */
-export function PressDownloadAction({ downloadUrl }: Pick<PressTemplateProps, "downloadUrl">): React.ReactElement {
-  return <a className={styles.downloadPin} href={downloadUrl} download>One-pager PDF ↓</a>;
+/** Render the fixed full-kit download action used by both templates. */
+export function PressDownloadAction({ fullPressPdfUrl }: Pick<PressTemplateProps, "fullPressPdfUrl">): React.ReactElement {
+  return <a className={styles.downloadPin} href={fullPressPdfUrl} download>Full press PDF ↓</a>;
 }
 
-/** Render press contact and the reusable one-pager download contract. */
+/** Render press contact and distinct full-kit and one-sheet downloads. */
 export function PressFooter({
   email,
-  downloadUrl,
+  fullPressPdfUrl,
+  oneSheetUrl,
 }: {
   readonly email?: string | null | undefined;
-  readonly downloadUrl: string;
+  readonly fullPressPdfUrl: string;
+  readonly oneSheetUrl: string;
 }): React.ReactElement {
   return (
     <footer className={styles.footer}>
       {email ? <span>Press · <a href={`mailto:${email}`}>{email}</a></span> : <span />}
-      <a className={styles.pdf} href={downloadUrl} download>Download one-pager (PDF) ↓</a>
+      <div className={styles.pdfActions}>
+        <a className={styles.pdf} href={fullPressPdfUrl} download>Download full press PDF ↓</a>
+        <a className={styles.pdf} href={oneSheetUrl} download>Download one-sheet PDF ↓</a>
+      </div>
     </footer>
   );
 }

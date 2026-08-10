@@ -44,6 +44,7 @@ import {
   getPressConfig,
   getPressDraftConfig,
   publishPressConfig,
+  unpublishPressConfig,
   upsertPressConfig,
 } from "../services/press.js";
 import { storage } from "../storage/index.js";
@@ -405,6 +406,36 @@ pressRoutes.post(
     await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
 
     const result = await publishPressConfig(profile.id);
+    if (!result.ok) throw result.error;
+    return c.json(result.value);
+  },
+);
+
+// POST /:creatorId/press-config/unpublish — Hide the live page and retain its draft
+pressRoutes.post(
+  "/:creatorId/press-config/unpublish",
+  requireAuth,
+  describeRoute({
+    description: "Unpublish a creator's press page while retaining its draft",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Unpublished press config",
+        content: { "application/json": { schema: resolver(PressContentSchema) } },
+      },
+      401: ERROR_401,
+      403: ERROR_403,
+      404: ERROR_404,
+    },
+  }),
+  validator("param", CreatorIdParam),
+  async (c) => {
+    const profile = await getCreatorProfileForManage(c.req.param("creatorId") ?? "");
+    const user = c.get("user");
+    const roles = c.get("roles") ?? [];
+    await requireCreatorPermission(user.id, profile.id, "editProfile", roles);
+
+    const result = await unpublishPressConfig(profile.id);
     if (!result.ok) throw result.error;
     return c.json(result.value);
   },

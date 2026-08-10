@@ -183,6 +183,24 @@ export const publishPressConfig = async (
   return getPressConfig(creatorId);
 };
 
+/** Hide the published press page while retaining an editable draft for republishing. */
+export const unpublishPressConfig = async (
+  creatorId: string,
+): Promise<Result<PressContent, AppError>> => {
+  const [row] = await db
+    .update(creatorPressConfigs)
+    .set({
+      content: sql`jsonb_set(${creatorPressConfigs.content}, '{enabled}', 'false'::jsonb)`,
+      draftContent: sql`jsonb_set(COALESCE(${creatorPressConfigs.draftContent}, ${creatorPressConfigs.content}), '{enabled}', 'false'::jsonb)`,
+      updatedAt: new Date(),
+    })
+    .where(eq(creatorPressConfigs.creatorId, creatorId))
+    .returning({ content: creatorPressConfigs.content });
+
+  if (row) return ok(parseAndNormalize(row.content));
+  return getPressConfig(creatorId);
+};
+
 /** Discard a pending draft and leave the published document unchanged. */
 export const discardPressDraft = async (
   creatorId: string,

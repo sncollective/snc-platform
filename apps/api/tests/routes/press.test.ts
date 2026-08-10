@@ -10,6 +10,7 @@ const mockGetPressConfig = vi.fn();
 const mockGetPressDraftConfig = vi.fn();
 const mockUpsertPressConfig = vi.fn();
 const mockPublishPressConfig = vi.fn();
+const mockUnpublishPressConfig = vi.fn();
 const mockDiscardPressDraft = vi.fn();
 const mockRequireCreatorPermission = vi.fn();
 const mockCanUseAsset = vi.fn();
@@ -100,6 +101,7 @@ const ctx = setupRouteTest({
       getPressDraftConfig: mockGetPressDraftConfig,
       upsertPressConfig: mockUpsertPressConfig,
       publishPressConfig: mockPublishPressConfig,
+      unpublishPressConfig: mockUnpublishPressConfig,
       discardPressDraft: mockDiscardPressDraft,
     }));
     vi.doMock("../../src/services/creator-team.js", () => ({
@@ -144,6 +146,7 @@ const ctx = setupRouteTest({
       ok({ ...content, shortBio: "Updated bio" }),
     );
     mockPublishPressConfig.mockResolvedValue(ok(content));
+    mockUnpublishPressConfig.mockResolvedValue(ok({ ...content, enabled: false }));
     mockDiscardPressDraft.mockResolvedValue(ok(content));
     mockRequireCreatorPermission.mockResolvedValue(undefined);
     mockCanUseAsset.mockResolvedValue(true);
@@ -574,6 +577,26 @@ describe("POST /api/creators/:creatorId/press-config/publish", () => {
 
     expect(res.status).toBe(403);
     expect(mockPublishPressConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/creators/:creatorId/press-config/unpublish", () => {
+  it("takes the live press page offline for an authorized editor", async () => {
+    const res = await json("POST", "/api/creators/test-creator/press-config/unpublish");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ...content, enabled: false });
+    expect(mockUnpublishPressConfig).toHaveBeenCalledWith(profile.id);
+  });
+
+  it("enforces edit permission before unpublishing", async () => {
+    const { ForbiddenError } = await import("@snc/shared");
+    mockRequireCreatorPermission.mockRejectedValueOnce(new ForbiddenError("Not a member"));
+
+    const res = await json("POST", "/api/creators/test-creator/press-config/unpublish");
+
+    expect(res.status).toBe(403);
+    expect(mockUnpublishPressConfig).not.toHaveBeenCalled();
   });
 });
 

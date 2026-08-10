@@ -16,10 +16,10 @@ import styles from "./press-template-a.module.css";
 
 /** Compose Template A's clean editorial press page. */
 export function PressTemplateA(props: PressTemplateProps): React.ReactElement {
-  const { creator, content, downloadUrl, liveDates } = props;
+  const { creator, content, fullPressPdfUrl, oneSheetUrl, liveDates } = props;
   return (
     <div className={styles.template} data-press-template="A">
-      <PressDownloadAction downloadUrl={downloadUrl} />
+      <PressDownloadAction fullPressPdfUrl={fullPressPdfUrl} />
       <PressHero creator={creator} content={content} />
       <article className={styles.editorial}>
         <AboutSection content={content} />
@@ -29,7 +29,7 @@ export function PressTemplateA(props: PressTemplateProps): React.ReactElement {
         <ListenSection links={content.streamingLinks} />
         <PressCarousel creatorName={creator.displayName} images={content.gallery} />
       </article>
-      <PressFooter email={content.pressContactEmail} downloadUrl={downloadUrl} />
+      <PressFooter email={content.pressContactEmail} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
     </div>
   );
 }

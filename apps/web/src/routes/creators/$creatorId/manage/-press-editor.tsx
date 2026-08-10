@@ -68,9 +68,10 @@ const EMPTY_HIGHLIGHT: PressHighlight = {
   coverArt: null,
 };
 
-type SaveState = "saved" | "unsaved" | "saving" | "error" | "publishing" | "published";
+type SaveState = "saved" | "unsaved" | "saving" | "error" | "publishing" | "published" | "unpublishing" | "unpublished";
 type PendingDestructiveAction =
   | { readonly kind: "discard" }
+  | { readonly kind: "unpublish" }
   | { readonly kind: "member"; readonly index: number; readonly label: string }
   | { readonly kind: "highlight"; readonly index: number; readonly label: string }
   | { readonly kind: "link"; readonly index: number; readonly label: string };
@@ -90,6 +91,8 @@ const stateLabel = (state: SaveState): string => {
     error: "Error · draft not saved",
     publishing: "Publishing draft…",
     published: "Published to live",
+    unpublishing: "Taking press page offline…",
+    unpublished: "Press page offline",
   };
   return labels[state];
 };
@@ -99,7 +102,9 @@ const stateDetail = (state: SaveState, detail: string): string => {
   if (state === "unsaved") return "Changes remain in this browser until you save";
   if (state === "saving") return "The live press page remains unchanged";
   if (state === "publishing") return "Copying this draft to the public press page";
-  if (state === "published") return "The live press page and PDF now use this version";
+  if (state === "published") return "The live press page and PDFs now use this version";
+  if (state === "unpublishing") return "Hiding the public page and PDFs while retaining the draft";
+  if (state === "unpublished") return "The public page and PDFs are hidden · the draft is retained";
   return "Draft workspace ready · not live until published";
 };
 
@@ -167,7 +172,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     issues.forEach((issue) => counts.set(issue.tab, (counts.get(issue.tab) ?? 0) + 1));
     return counts;
   }, [issues]);
-  const isBusy = saveState === "saving" || saveState === "publishing";
+  const isBusy = saveState === "saving" || saveState === "publishing" || saveState === "unpublishing";
 
   const markDirty = (tab: PressEditorTab): void => {
     editRevisionRef.current += 1;
@@ -282,6 +287,30 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     }
   };
 
+  const unpublishPage = async (): Promise<void> => {
+    setSaveState("unpublishing");
+    setSaveDetail("");
+    try {
+      await apiMutate<PressContent>(
+        `/api/creators/${encodeURIComponent(creatorId)}/press-config/unpublish`,
+        { method: "POST" },
+      );
+      setContent((current) => current ? { ...current, enabled: false } : current);
+      if (dirtyTabs.size > 0) {
+        setSaveState("unsaved");
+        setSaveDetail("Press page is offline · unsaved draft edits still need saving");
+      } else {
+        setSaveState("unpublished");
+        setSaveDetail("");
+      }
+    } catch (error: unknown) {
+      setSaveState("error");
+      setSaveDetail(error instanceof Error ? error.message : "Could not take the press page offline");
+    } finally {
+      setPendingDestructiveAction(null);
+    }
+  };
+
   const discardDraft = async (): Promise<void> => {
     setSaveState("saving");
     setSaveDetail("Restoring the currently published press page");
@@ -313,6 +342,10 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
     if (!action) return;
     if (action.kind === "discard") {
       void discardDraft();
+      return;
+    }
+    if (action.kind === "unpublish") {
+      void unpublishPage();
       return;
     }
     if (action.kind === "member") {
@@ -378,19 +411,25 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
   const liveUrl = `/creators/${encodeURIComponent(creatorId)}/press`;
   const memberPhotos = content.members.filter((member) => member.photo).length;
   const highlightCovers = content.highlights.filter((highlight) => highlight.coverArt).length;
+  const highlightLimit = content.template === "A" ? 2 : 3;
+  const hiddenHighlightCount = Math.max(0, content.highlights.length - highlightLimit);
   const destructiveTitle = pendingDestructiveAction?.kind === "discard"
     ? "Discard this draft?"
-    : `Remove ${pendingDestructiveAction?.label ?? "this item"}?`;
+    : pendingDestructiveAction?.kind === "unpublish"
+      ? "Take the press page offline?"
+      : `Remove ${pendingDestructiveAction?.label ?? "this item"}?`;
   const destructiveConfirmLabel = pendingDestructiveAction?.kind === "discard"
     ? "Discard draft"
-    : "Remove item";
+    : pendingDestructiveAction?.kind === "unpublish"
+      ? "Unpublish press page"
+      : "Remove item";
 
   return (
     <div className={styles.page}>
       <header className={styles.pageHead}>
         <div>
           <h1>Press page</h1>
-          <p>Build the draft here. The live page and PDF stay on the published version until you publish.</p>
+          <p>Build press content here. The live page and PDFs stay on the published version until you publish.</p>
         </div>
         <div className={styles.headActions}>
           <button type="button" className={styles.button} onClick={() => setPreviewOpen(true)}>Preview draft</button>
@@ -485,7 +524,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
         <section ref={reviewRef} className={styles.reviewPublish} aria-labelledby="press-review-title">
           <div>
             <h2 id="press-review-title">Review draft, then publish to live</h2>
-            <p><strong>Save draft</strong> only persists your workspace. <strong>Publish</strong> copies the reviewed draft to the live press page and replaces the PDF source.</p>
+            <p><strong>Save draft</strong> persists press content without publishing it. <strong>Publish</strong> makes the reviewed draft live. <strong>Unpublish</strong> hides the public page and PDFs without deleting the draft.</p>
             <div className={styles.reviewSteps}>
               <span className={styles.reviewStep}>1 · Save draft</span>
               <span className={issues.length === 0 ? `${styles.reviewStep} ${styles.reviewDone}` : styles.reviewStep}>2 · Resolve issues</span>
@@ -505,6 +544,13 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
               Publish draft to live
             </button>
             {issues.length > 0 && <small id="press-publish-blocked">Resolve {issues.length} validation {issues.length === 1 ? "issue" : "issues"} to publish</small>}
+            <div className={styles.visibilityAction}>
+              <strong>Live visibility</strong>
+              <small>Unpublishing takes the press page and PDFs offline. Your saved draft remains here for republishing.</small>
+              <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={isBusy} onClick={() => setPendingDestructiveAction({ kind: "unpublish" })}>
+                Unpublish · take offline
+              </button>
+            </div>
             <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={isBusy} onClick={() => setPendingDestructiveAction({ kind: "discard" })}>
               Discard draft
             </button>
@@ -530,6 +576,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
                     <span className={`${styles.templatePreview} ${template === "B" ? styles.templateSplit : styles.templateEditorial}`} aria-hidden="true"><i /><i /><i /><i /></span>
                     <strong>{template === "A" ? "Editorial" : "Split profile"}</strong>
                     <small>{template === "A" ? "Full-width banner and story-led reading order." : "Persistent identity column with denser highlights and links."}</small>
+                    <small className={styles.templateLimit}>{template === "A" ? "Shows the first 2 authored highlights." : "Shows the first 3 authored highlights."}</small>
                   </label>
                 ))}
               </div>
@@ -555,13 +602,14 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
               </div>
               <div className={styles.pdfActions}>
                 <span>Selected: {pdfScheme === "accent" ? "Creator Accent" : pdfScheme[0]!.toUpperCase() + pdfScheme.slice(1)}</span>
-                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-pager.pdf?theme=${pdfScheme === "accent" ? "brand" : pdfScheme}`} target="_blank" rel="noreferrer">Preview PDF</a>
+                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-pager.pdf?theme=${pdfScheme === "accent" ? "brand" : pdfScheme}`} target="_blank" rel="noreferrer">Preview full press PDF</a>
+                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-sheet.pdf?theme=${pdfScheme === "accent" ? "brand" : pdfScheme}`} target="_blank" rel="noreferrer">Preview one-sheet PDF</a>
               </div>
             </article>
 
             <article className={`${styles.card} ${styles.brandCard}`} aria-labelledby="press-brand-heading">
               <h3 id="press-brand-heading">Creator brand color · site-wide profile setting</h3>
-              <div className={styles.brandWarning}><strong>This changes more than the press page.</strong> It updates creator surfaces and the Creator Accent PDF treatment.</div>
+              <div className={styles.brandWarning}><strong>This setting is not draft-isolated.</strong> Saving the draft updates the site-wide creator profile color immediately—including Creator Accent PDFs—even before press content is published.</div>
               <div className={styles.swatches} aria-label="Accessible brand color presets">
                 {CREATOR_BRAND_COLORS.map((color) => (
                   <button
@@ -678,6 +726,13 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             }}>+ Add highlight</button>}
           />
           <div className={styles.reorderFeedback} role="status" aria-live="polite">{highlightReorderMessage || "Highlight order is shared by both public templates."}</div>
+          <div className={`${styles.highlightVisibility} ${hiddenHighlightCount > 0 ? styles.highlightVisibilityWarning : ""}`} role={hiddenHighlightCount > 0 ? "alert" : "status"}>
+            <strong>Template {content.template} displays the first {highlightLimit} authored highlights.</strong>
+            <span>{hiddenHighlightCount > 0
+              ? `${hiddenHighlightCount} later ${hiddenHighlightCount === 1 ? "highlight is" : "highlights are"} retained in the draft but hidden on the public page and full press PDF. Reorder the list to choose what appears.`
+              : `All ${content.highlights.length} authored ${content.highlights.length === 1 ? "highlight is" : "highlights are"} visible in this template.`}</span>
+            <small>The one-sheet is separately curated to the first 2 or 3 highlights, depending on lead-photo orientation.</small>
+          </div>
           {content.highlights.length === 0 ? <EmptyState title="No highlights yet" copy="Add a release, standout track, milestone, or piece of coverage." /> : null}
           <div className={styles.list}>
             {content.highlights.map((highlight, index) => (
@@ -757,7 +812,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
         open={pendingDestructiveAction !== null}
         title={destructiveTitle}
         confirmLabel={destructiveConfirmLabel}
-        isPending={pendingDestructiveAction?.kind === "discard" && isBusy}
+        isPending={(pendingDestructiveAction?.kind === "discard" || pendingDestructiveAction?.kind === "unpublish") && isBusy}
         onConfirm={confirmDestructiveAction}
         onCancel={() => {
           if (!isBusy) setPendingDestructiveAction(null);
@@ -765,7 +820,9 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
       >
         {pendingDestructiveAction?.kind === "discard"
           ? "This permanently replaces every saved draft change with the currently published press page."
-          : `This removes ${pendingDestructiveAction?.label ?? "the item"} from the draft. You can cancel and keep it.`}
+          : pendingDestructiveAction?.kind === "unpublish"
+            ? "The public press page and its PDFs will return 404, but the draft and all authored content stay in the editor. Publish again whenever it should go live."
+            : `This removes ${pendingDestructiveAction?.label ?? "the item"} from the draft. You can cancel and keep it.`}
       </ConfirmDialog>
 
       {previewOpen && (

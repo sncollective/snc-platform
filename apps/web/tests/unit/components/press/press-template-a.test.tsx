@@ -17,9 +17,13 @@ describe("PressTemplateA", () => {
     expect(screen.getByText("Get to You")).toBeInTheDocument();
     expect(screen.queryByText("Survived By")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
-    expect(screen.getAllByRole("link", { name: "Download one-pager (PDF) ↓" })[0]).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Download full press PDF ↓" })).toHaveAttribute(
       "href",
       "/api/creators/creator-1/press/one-pager.pdf",
+    );
+    expect(screen.getByRole("link", { name: "Download one-sheet PDF ↓" })).toHaveAttribute(
+      "href",
+      "/api/creators/creator-1/press/one-sheet.pdf",
     );
   });
 

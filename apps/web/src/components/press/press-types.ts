@@ -48,7 +48,8 @@ export interface PressLiveDate {
 export interface PressTemplateProps {
   readonly creator: PressPagePayload["creator"];
   readonly content: DeliveredPressContent;
-  readonly downloadUrl: string;
+  readonly fullPressPdfUrl: string;
+  readonly oneSheetUrl: string;
   readonly liveDates?: readonly PressLiveDate[];
 }
 

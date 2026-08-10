@@ -130,7 +130,7 @@ beforeEach(() => {
   mockUpdateProfile.mockImplementation(async (_id: string, patch: object) => ({ ...profile, ...patch }));
   mockApiMutate.mockImplementation(async (endpoint: string) => endpoint.endsWith("/publish")
     ? { ...config, enabled: true }
-    : config);
+    : { ...config, enabled: false });
 });
 
 describe("manage press editor", () => {
@@ -283,6 +283,25 @@ describe("manage press editor", () => {
     expect(within(screen.getByRole("status")).getByText("Published to live", { selector: "strong" })).toBeVisible();
   });
 
+  it("unpublishes the live page without saving over or discarding the draft", async () => {
+    mockFetchConfig.mockResolvedValueOnce({ ...config, enabled: true });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Unpublish · take offline" }));
+    expect(screen.getByRole("alertdialog", { name: "Take the press page offline?" })).toBeVisible();
+    expect(screen.getByText(/draft and all authored content stay in the editor/i)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Unpublish press page" }));
+
+    await waitFor(() => expect(mockApiMutate).toHaveBeenCalledWith(
+      "/api/creators/c1/press-config/unpublish",
+      { method: "POST" },
+    ));
+    expect(mockUpdateConfig).not.toHaveBeenCalled();
+    expect(within(screen.getByRole("status")).getByText("Press page offline", { selector: "strong" })).toBeVisible();
+    expect(screen.getByLabelText("Short bio")).toHaveValue("Short bio");
+  });
+
   it("renders a meaningful full-draft review with composed content", async () => {
     mockFetchConfig.mockResolvedValueOnce({
       ...config,
@@ -337,15 +356,42 @@ describe("manage press editor", () => {
     expect(screen.queryByRole("button", { name: "Remove Spotify" })).not.toBeInTheDocument();
   });
 
-  it("saves the curated brand color and emits the selected PDF preview scheme", async () => {
+  it("warns when the selected template hides later authored highlights", async () => {
+    mockFetchConfig.mockResolvedValueOnce({
+      ...config,
+      template: "A",
+      highlights: [
+        ...config.highlights,
+        { ...config.highlights[0], title: "Second" },
+        { ...config.highlights[0], title: "Third" },
+        { ...config.highlights[0], title: "Fourth" },
+      ],
+    });
+    const user = userEvent.setup();
+    render(<ManagePressPage />);
+
+    await user.click(await screen.findByRole("tab", { name: /Highlights/ }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Template A displays the first 2 authored highlights.");
+    expect(screen.getByRole("alert")).toHaveTextContent("2 later highlights are retained in the draft but hidden");
+    expect(screen.getByRole("alert")).toHaveTextContent("one-sheet is separately curated to the first 2 or 3 highlights");
+  });
+
+  it("saves the curated brand color and emits distinct full-press and one-sheet previews", async () => {
     const user = userEvent.setup();
     render(<ManagePressPage />);
 
     await user.click(await screen.findByRole("button", { name: /#e9c46a brand color/ }));
     await user.click(screen.getByRole("button", { name: /Creator Accent/ }));
-    expect(screen.getByRole("link", { name: "Preview PDF" })).toHaveAttribute(
+    expect(screen.getByText(/not draft-isolated/i)).toBeVisible();
+    expect(screen.getByText(/updates the site-wide creator profile color immediately/i)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Preview full press PDF" })).toHaveAttribute(
       "href",
       "/api/creators/c1/press/one-pager.pdf?theme=brand",
+    );
+    expect(screen.getByRole("link", { name: "Preview one-sheet PDF" })).toHaveAttribute(
+      "href",
+      "/api/creators/c1/press/one-sheet.pdf?theme=brand",
     );
     await user.click(screen.getByRole("button", { name: "Save draft" }));
 
