@@ -1,7 +1,7 @@
 ---
 id: content-library
 kind: epic
-stage: implementing
+stage: review
 tags: [media, content]
 parent: null
 depends_on: []
