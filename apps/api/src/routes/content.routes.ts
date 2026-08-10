@@ -12,6 +12,7 @@ import {
   NotFoundError,
   AppError,
   FeedItemSchema,
+  isLibraryAssetKey,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -256,7 +257,7 @@ contentRoutes.patch(
     const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
 
     if (body.clearThumbnail) {
-      if (existing.thumbnailKey) {
+      if (existing.thumbnailKey && !isLibraryAssetKey(existing.thumbnailKey)) {
         const deleteResult = await storage.delete(existing.thumbnailKey);
         if (!deleteResult.ok) {
           c.var.logger.warn({ error: deleteResult.error.message, key: existing.thumbnailKey }, "Failed to delete thumbnail");
@@ -277,7 +278,7 @@ contentRoutes.patch(
 
       if (existing.type === "video") {
         // Thumbnail is auto-generated from video — orphan it when the video is removed.
-        if (existing.thumbnailKey) {
+        if (existing.thumbnailKey && !isLibraryAssetKey(existing.thumbnailKey)) {
           const thumbResult = await storage.delete(existing.thumbnailKey);
           if (!thumbResult.ok) {
             c.var.logger.warn({ error: thumbResult.error.message, key: existing.thumbnailKey }, "Failed to delete orphaned thumbnail");
@@ -363,7 +364,9 @@ contentRoutes.delete(
     const keysToDelete = [
       existing.thumbnailKey,
       existing.mediaKey,
-    ].filter((key): key is string => key !== null);
+    ].filter(
+      (key): key is string => key !== null && !isLibraryAssetKey(key),
+    );
 
     const deleteResults = await Promise.all(
       keysToDelete.map((key) => storage.delete(key)),

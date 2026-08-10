@@ -1056,6 +1056,28 @@ describe("creator routes", () => {
       expect(mockStorageUpload).toHaveBeenCalledOnce();
     });
 
+    it("does not delete a shared library blob when replacing a migrated avatar", async () => {
+      const libraryKey = `library/aa/${"a".repeat(64)}.png`;
+      const dbProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
+      const updatedProfile = makeMockDbCreatorProfile({
+        avatarKey: "creators/user_test123/avatar/new.jpg",
+      });
+      mockSelectWhere.mockResolvedValueOnce([dbProfile]);
+      mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
+      mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
+
+      const formData = new FormData();
+      formData.append("file", new File(["new image"], "new.jpg", { type: "image/jpeg" }));
+      const res = await ctx.app.request("/api/creators/user_test123/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalled();
+      expect(mockStorageUpload).toHaveBeenCalledOnce();
+    });
+
     it("returns 403 when non-owner uploads", async () => {
       // findCreatorProfile resolves first, then permission check rejects
       mockSelectWhere.mockResolvedValueOnce([makeMockDbCreatorProfile()]);

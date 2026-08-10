@@ -10,6 +10,7 @@ import {
   AppError,
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
+  isLibraryAssetKey,
 } from "@snc/shared";
 
 import { db } from "../db/connection.js";
@@ -79,7 +80,7 @@ const handleImageUpload = async (
 
   // Delete old file if re-uploading
   const oldKey = field === "avatar" ? profile.avatarKey : profile.bannerKey;
-  if (oldKey) {
+  if (oldKey && !isLibraryAssetKey(oldKey)) {
     const deleteResult = await storage.delete(oldKey);
     if (!deleteResult.ok) {
       c.var.logger.warn({ error: deleteResult.error.message, field }, "Failed to delete old file");

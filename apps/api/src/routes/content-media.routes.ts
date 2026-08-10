@@ -13,6 +13,7 @@ import {
   AppError,
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
+  isLibraryAssetKey,
 } from "@snc/shared";
 import type { ContentType } from "@snc/shared";
 
@@ -190,7 +191,7 @@ contentMediaRoutes.post(
     // Delete old file if re-uploading
     const keyColumn = FIELD_KEY_MAP[field];
     const oldKey = existing[keyColumn];
-    if (oldKey) {
+    if (oldKey && !isLibraryAssetKey(oldKey)) {
       const deleteResult = await storage.delete(oldKey);
       if (!deleteResult.ok) {
         c.var.logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old storage file");

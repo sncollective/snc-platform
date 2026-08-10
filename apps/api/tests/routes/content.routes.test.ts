@@ -820,6 +820,24 @@ describe("content routes", () => {
       expect(setArg).not.toHaveProperty("clearThumbnail");
     });
 
+    it("clears a migrated thumbnail reference without deleting the shared library blob", async () => {
+      const libraryKey = `library/bb/${"b".repeat(64)}.png`;
+      const existing = makeMockDbContent({ thumbnailKey: libraryKey });
+      const updated = makeMockDbContent({ thumbnailKey: null });
+      mockSelectWhere.mockResolvedValue([existing]);
+      mockUpdateReturning.mockResolvedValue([updated]);
+
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearThumbnail: true }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalled();
+      expect(mockUpdateSet).toHaveBeenCalledOnce();
+    });
+
     it("does not call storage delete when clearThumbnail is true but thumbnailKey is null", async () => {
       const existing = makeMockDbContent({ thumbnailKey: null });
       const updated = makeMockDbContent({ thumbnailKey: null });
@@ -1012,6 +1030,24 @@ describe("content routes", () => {
       );
     });
 
+    it("does not delete a shared library blob when deleting migrated content", async () => {
+      const libraryKey = `library/cc/${"c".repeat(64)}.png`;
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({
+          mediaKey: "content/00000000-0000-4000-a000-000000000001/media/audio.wav",
+          thumbnailKey: libraryKey,
+        }),
+      ]);
+
+      const res = await ctx.app.request("/api/content/00000000-0000-4000-a000-000000000001", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(204);
+      expect(mockStorageDelete).toHaveBeenCalledOnce();
+      expect(mockStorageDelete).not.toHaveBeenCalledWith(libraryKey);
+    });
+
     it("returns 403 when non-owner tries to delete", async () => {
       mockSelectWhere.mockResolvedValue([makeMockDbContent()]);
       mockRequireCreatorPermission.mockRejectedValueOnce(
@@ -1071,6 +1107,36 @@ describe("content routes", () => {
       expect(mockStorageUpload).toHaveBeenCalledOnce();
       const [uploadKey] = mockStorageUpload.mock.calls[0] as [string, ...unknown[]];
       expect(uploadKey).toBe("content/00000000-0000-4000-a000-000000000001/media/video.mp4");
+    });
+
+    it("does not delete a shared library blob when replacing a migrated thumbnail", async () => {
+      const libraryKey = `library/dd/${"d".repeat(64)}.png`;
+      mockSelectWhere.mockResolvedValue([
+        makeMockDbContent({ type: "audio", thumbnailKey: libraryKey }),
+      ]);
+      mockStorageUpload.mockResolvedValue(
+        ok({
+          key: "content/00000000-0000-4000-a000-000000000001/thumbnail/new.png",
+          size: 10,
+        }),
+      );
+      mockUpdateReturning.mockResolvedValue([
+        makeMockDbContent({
+          type: "audio",
+          thumbnailKey: "content/00000000-0000-4000-a000-000000000001/thumbnail/new.png",
+        }),
+      ]);
+
+      const formData = new FormData();
+      formData.append("file", new File(["image"], "new.png", { type: "image/png" }));
+      const res = await ctx.app.request(
+        "/api/content/00000000-0000-4000-a000-000000000001/upload?field=thumbnail",
+        { method: "POST", body: formData },
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockStorageDelete).not.toHaveBeenCalled();
+      expect(mockStorageUpload).toHaveBeenCalledOnce();
     });
 
     it("returns 403 when non-owner tries to upload", async () => {

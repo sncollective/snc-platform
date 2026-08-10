@@ -1,0 +1,383 @@
+import { createHash } from "node:crypto";
+
+import { and, eq, inArray, isNull } from "drizzle-orm";
+
+import {
+  AppError,
+  MAX_FILE_SIZES,
+  isLibraryAssetKey,
+  isOwnedPressKey,
+} from "@snc/shared";
+import type { DraftPressContent, PressContent } from "@snc/shared";
+
+import { db } from "../db/connection.js";
+import {
+  creatorPressConfigs,
+  creatorProfiles,
+} from "../db/schema/creator.schema.js";
+import { content } from "../db/schema/content.schema.js";
+import { storage } from "../storage/index.js";
+import { uploadLibraryAsset } from "./library.js";
+
+export type ContentLibraryMigrationSummary = {
+  sourceObjectsRead: number;
+  registrationsProcessed: number;
+  deduplicatedUploads: number;
+  referencesMigrated: number;
+  rowsUpdated: number;
+  libraryObjectsVerified: number;
+};
+
+type MigrationOptions = {
+  /** Restrict a run to named creators; used for isolated verification. */
+  creatorIds?: readonly string[];
+};
+
+type ProfileUpdate = {
+  id: string;
+  field: "avatarKey" | "bannerKey";
+  oldKey: string;
+  newKey: string;
+};
+
+type ContentUpdate = {
+  id: string;
+  oldKey: string;
+  newKey: string;
+};
+
+type PressUpdate = {
+  creatorId: string;
+  oldContent: PressContent;
+  oldDraftContent: DraftPressContent | null;
+  content: PressContent;
+  draftContent: DraftPressContent | null;
+  contentChanged: boolean;
+  draftChanged: boolean;
+};
+
+const migrationError = (message: string): AppError =>
+  new AppError("CONTENT_LIBRARY_MIGRATION_ERROR", message, 500);
+
+const readStorageBytes = async (key: string): Promise<Uint8Array> => {
+  const result = await storage.download(key);
+  if (!result.ok) {
+    throw migrationError(`Cannot read image '${key}': ${result.error.message}`);
+  }
+  if (result.value.size > MAX_FILE_SIZES.image) {
+    throw migrationError(
+      `Image '${key}' exceeds the library's ${MAX_FILE_SIZES.image} byte limit`,
+    );
+  }
+
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = result.value.stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_FILE_SIZES.image) {
+        throw migrationError(
+          `Image '${key}' exceeds the library's ${MAX_FILE_SIZES.image} byte limit`,
+        );
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (size !== result.value.size) {
+    throw migrationError(
+      `Image '${key}' changed while being read (${result.value.size} bytes expected, ${size} read)`,
+    );
+  }
+
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+};
+
+const mapPressDocument = async <T extends PressContent>(
+  value: T,
+  creatorId: string,
+  migrateKey: (creatorId: string, key: string) => Promise<string>,
+): Promise<T> => {
+  const mapKey = async (key: string): Promise<string> =>
+    isOwnedPressKey(key, creatorId) ? migrateKey(creatorId, key) : key;
+  const mapImage = async <I extends { key: string } | null | undefined>(
+    image: I,
+  ): Promise<I> => image
+    ? { ...image, key: await mapKey(image.key) } as I
+    : image;
+
+  return {
+    ...value,
+    ...(value.banner ? { banner: await mapImage(value.banner) } : {}),
+    ...(value.aboutPhoto ? { aboutPhoto: await mapImage(value.aboutPhoto) } : {}),
+    ...(Array.isArray(value.members)
+      ? {
+          members: await Promise.all(
+            value.members.map(async (member) => ({
+              ...member,
+              ...(member.photo ? { photo: await mapImage(member.photo) } : {}),
+            })),
+          ),
+        }
+      : {}),
+    ...(Array.isArray(value.highlights)
+      ? {
+          highlights: await Promise.all(
+            value.highlights.map(async (highlight) => ({
+              ...highlight,
+              ...(highlight.coverArt
+                ? { coverArt: await mapImage(highlight.coverArt) }
+                : {}),
+            })),
+          ),
+        }
+      : {}),
+    ...(Array.isArray(value.photos)
+      ? { photos: await Promise.all(value.photos.map(mapKey)) }
+      : {}),
+    ...(Array.isArray(value.gallery)
+      ? { gallery: await Promise.all(value.gallery.map(mapImage)) }
+      : {}),
+    ...(Array.isArray(value.releases)
+      ? {
+          releases: await Promise.all(
+            value.releases.map(async (release) => ({
+              ...release,
+              ...(release.artKey ? { artKey: await mapKey(release.artKey) } : {}),
+            })),
+          ),
+        }
+      : {}),
+  } as T;
+};
+
+/**
+ * Re-point every existing image surface to verified content-addressed bytes.
+ *
+ * Preparation uploads and verifies every destination before one transaction
+ * changes any live reference. Legacy objects are deliberately retained as
+ * rollback copies; once references move, all active surfaces share only the
+ * deduplicated library object.
+ */
+export const migrateContentLibraryImages = async (
+  options: MigrationOptions = {},
+): Promise<ContentLibraryMigrationSummary> => {
+  const creatorIds = options.creatorIds ? [...new Set(options.creatorIds)] : undefined;
+  if (creatorIds?.length === 0) {
+    return {
+      sourceObjectsRead: 0,
+      registrationsProcessed: 0,
+      deduplicatedUploads: 0,
+      referencesMigrated: 0,
+      rowsUpdated: 0,
+      libraryObjectsVerified: 0,
+    };
+  }
+
+  const profileQuery = db
+    .select({
+      id: creatorProfiles.id,
+      avatarKey: creatorProfiles.avatarKey,
+      bannerKey: creatorProfiles.bannerKey,
+    })
+    .from(creatorProfiles);
+  const contentQuery = db
+    .select({
+      id: content.id,
+      creatorId: content.creatorId,
+      thumbnailKey: content.thumbnailKey,
+    })
+    .from(content);
+  const pressQuery = db
+    .select({
+      creatorId: creatorPressConfigs.creatorId,
+      content: creatorPressConfigs.content,
+      draftContent: creatorPressConfigs.draftContent,
+    })
+    .from(creatorPressConfigs);
+
+  const [profiles, contentRows, pressRows] = await Promise.all([
+    creatorIds
+      ? profileQuery.where(inArray(creatorProfiles.id, creatorIds))
+      : profileQuery,
+    creatorIds
+      ? contentQuery.where(inArray(content.creatorId, creatorIds))
+      : contentQuery,
+    creatorIds
+      ? pressQuery.where(inArray(creatorPressConfigs.creatorId, creatorIds))
+      : pressQuery,
+  ]);
+
+  const sourceBytes = new Map<string, Uint8Array>();
+  const resolvedKeys = new Map<string, string>();
+  const verifiedLibraryKeys = new Set<string>();
+  let sourceObjectsRead = 0;
+  let registrationsProcessed = 0;
+  let deduplicatedUploads = 0;
+  let referencesMigrated = 0;
+
+  const migrateKey = async (creatorId: string, key: string): Promise<string> => {
+    if (isLibraryAssetKey(key)) return key;
+
+    const cacheKey = `${creatorId}\0${key}`;
+    const cached = resolvedKeys.get(cacheKey);
+    if (cached) {
+      referencesMigrated += 1;
+      return cached;
+    }
+
+    let bytes = sourceBytes.get(key);
+    if (!bytes) {
+      bytes = await readStorageBytes(key);
+      sourceBytes.set(key, bytes);
+      sourceObjectsRead += 1;
+    }
+
+    const upload = await uploadLibraryAsset(creatorId, {
+      name: key.split("/").at(-1) ?? "migrated-image",
+      declaredType: "application/octet-stream",
+      size: bytes.byteLength,
+      bytes,
+    });
+    if (!upload.ok) {
+      throw migrationError(`Cannot migrate image '${key}': ${upload.error.message}`);
+    }
+    registrationsProcessed += 1;
+    if (upload.value.deduped) deduplicatedUploads += 1;
+
+    const destination = await readStorageBytes(upload.value.asset.storageKey);
+    const destinationHash = createHash("sha256").update(destination).digest("hex");
+    if (destinationHash !== upload.value.asset.blobSha256) {
+      throw migrationError(
+        `Content-addressed verification failed for '${upload.value.asset.storageKey}'`,
+      );
+    }
+
+    resolvedKeys.set(cacheKey, upload.value.asset.storageKey);
+    verifiedLibraryKeys.add(upload.value.asset.storageKey);
+    referencesMigrated += 1;
+    return upload.value.asset.storageKey;
+  };
+
+  const profileUpdates: ProfileUpdate[] = [];
+  for (const profile of profiles) {
+    for (const field of ["avatarKey", "bannerKey"] as const) {
+      const oldKey = profile[field];
+      if (!oldKey || isLibraryAssetKey(oldKey)) continue;
+      const newKey = await migrateKey(profile.id, oldKey);
+      profileUpdates.push({ id: profile.id, field, oldKey, newKey });
+    }
+  }
+
+  const contentUpdates: ContentUpdate[] = [];
+  for (const row of contentRows) {
+    if (!row.thumbnailKey || isLibraryAssetKey(row.thumbnailKey)) continue;
+    const newKey = await migrateKey(row.creatorId, row.thumbnailKey);
+    contentUpdates.push({ id: row.id, oldKey: row.thumbnailKey, newKey });
+  }
+
+  const pressUpdates: PressUpdate[] = [];
+  for (const row of pressRows) {
+    const beforeContentReferences = referencesMigrated;
+    const nextContent = await mapPressDocument(row.content, row.creatorId, migrateKey);
+    const contentChanged = referencesMigrated > beforeContentReferences;
+
+    const beforeDraftReferences = referencesMigrated;
+    const nextDraft = row.draftContent === null
+      ? null
+      : await mapPressDocument(row.draftContent, row.creatorId, migrateKey);
+    const draftChanged = referencesMigrated > beforeDraftReferences;
+
+    if (contentChanged || draftChanged) {
+      pressUpdates.push({
+        creatorId: row.creatorId,
+        oldContent: row.content,
+        oldDraftContent: row.draftContent,
+        content: nextContent,
+        draftContent: nextDraft,
+        contentChanged,
+        draftChanged,
+      });
+    }
+  }
+
+  let rowsUpdated = 0;
+  await db.transaction(async (tx) => {
+    for (const update of profileUpdates) {
+      const changed = await tx
+        .update(creatorProfiles)
+        .set({ [update.field]: update.newKey })
+        .where(
+          and(
+            eq(creatorProfiles.id, update.id),
+            eq(creatorProfiles[update.field], update.oldKey),
+          ),
+        )
+        .returning({ id: creatorProfiles.id });
+      if (changed.length !== 1) {
+        throw migrationError(`Creator image reference changed concurrently for '${update.id}'`);
+      }
+      rowsUpdated += 1;
+    }
+
+    for (const update of contentUpdates) {
+      const changed = await tx
+        .update(content)
+        .set({ thumbnailKey: update.newKey })
+        .where(
+          and(eq(content.id, update.id), eq(content.thumbnailKey, update.oldKey)),
+        )
+        .returning({ id: content.id });
+      if (changed.length !== 1) {
+        throw migrationError(`Content thumbnail reference changed concurrently for '${update.id}'`);
+      }
+      rowsUpdated += 1;
+    }
+
+    for (const update of pressUpdates) {
+      const oldDraftCondition = update.oldDraftContent === null
+        ? isNull(creatorPressConfigs.draftContent)
+        : eq(creatorPressConfigs.draftContent, update.oldDraftContent);
+      const changed = await tx
+        .update(creatorPressConfigs)
+        .set({
+          ...(update.contentChanged ? { content: update.content } : {}),
+          ...(update.draftChanged ? { draftContent: update.draftContent } : {}),
+        })
+        .where(
+          and(
+            eq(creatorPressConfigs.creatorId, update.creatorId),
+            eq(creatorPressConfigs.content, update.oldContent),
+            oldDraftCondition,
+          ),
+        )
+        .returning({ creatorId: creatorPressConfigs.creatorId });
+      if (changed.length !== 1) {
+        throw migrationError(
+          `Press image references changed concurrently for '${update.creatorId}'`,
+        );
+      }
+      rowsUpdated += 1;
+    }
+  });
+
+  return {
+    sourceObjectsRead,
+    registrationsProcessed,
+    deduplicatedUploads,
+    referencesMigrated,
+    rowsUpdated,
+    libraryObjectsVerified: verifiedLibraryKeys.size,
+  };
+};
