@@ -7,7 +7,6 @@ import {
   CreatorProfileResponseSchema,
   NotFoundError,
   ValidationError,
-  AppError,
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZES,
   isLibraryAssetKey,
@@ -19,8 +18,9 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { storage } from "../storage/index.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
-import { sanitizeFilename, streamFile } from "../lib/file-utils.js";
+import { streamFile } from "../lib/file-utils.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { uploadLibraryAsset } from "../services/library.js";
 import { findCreatorProfile, getContentCount, toProfileResponse } from "../lib/creator-helpers.js";
 import { CreatorIdParam } from "./route-params.js";
 
@@ -74,31 +74,27 @@ const handleImageUpload = async (
     );
   }
 
-  // Generate storage key using canonical profile ID
-  const sanitized = sanitizeFilename(file.name || field);
-  const key = `creators/${profile.id}/${field}/${sanitized}`;
+  // Ensure-only registration preserves existing live metadata when the same
+  // bytes are already present. New registrations default to private for MVP.
+  const uploadResult = await uploadLibraryAsset(profile.id, {
+    ...(file.name ? { name: file.name } : {}),
+    declaredType: file.type,
+    size: file.size,
+    bytes: new Uint8Array(await file.arrayBuffer()),
+  });
+  if (!uploadResult.ok) throw uploadResult.error;
+  const key = uploadResult.value.asset.storageKey;
 
-  // Delete old file if re-uploading
+  // Delete a legacy per-surface object after the library copy is durable.
   const oldKey = field === "avatar" ? profile.avatarKey : profile.bannerKey;
-  if (oldKey && !isLibraryAssetKey(oldKey)) {
+  if (oldKey && oldKey !== key && !isLibraryAssetKey(oldKey)) {
     const deleteResult = await storage.delete(oldKey);
     if (!deleteResult.ok) {
       c.var.logger.warn({ error: deleteResult.error.message, field }, "Failed to delete old file");
     }
   }
 
-  // Upload new file
-  const stream = file.stream();
-  const uploadResult = await storage.upload(key, stream, {
-    contentType: file.type,
-    contentLength: file.size,
-  });
-
-  if (!uploadResult.ok) {
-    throw new AppError("UPLOAD_ERROR", `Failed to upload ${field}`, 500);
-  }
-
-  // Update DB with new storage key
+  // Update DB with the content-addressed library key
   const [updated] = await db
     .update(creatorProfiles)
     .set({

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 
 import {
   ACCEPTED_MIME_TYPES,
@@ -12,11 +13,15 @@ import {
   ContentAssetUploadResponseSchema,
   MAX_FILE_SIZES,
   NotFoundError,
+  isLibraryAssetKey,
   ValidationError,
 } from "@snc/shared";
 
+import { db } from "../db/connection.js";
+import { creatorProfiles } from "../db/schema/creator.schema.js";
 import type { AuthEnv } from "../middleware/auth-env.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { storage } from "../storage/index.js";
 import { ERROR_400, ERROR_401, ERROR_403, ERROR_404 } from "../lib/openapi-errors.js";
 import { findCreatorProfile } from "../lib/creator-helpers.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
@@ -44,6 +49,8 @@ const ListQuery = z.object({
   limit: z.coerce.number().int().positive().optional(),
   before: z.string().min(1).optional(),
 });
+
+const LibraryUsageSchema = z.enum(["avatar", "banner"]);
 
 const parseCursor = (cursor: string | undefined): { createdAt: Date; id: string } | undefined => {
   if (!cursor) return undefined;
@@ -102,21 +109,51 @@ const handleUpload = async (c: Context<AuthEnv>): Promise<Response> => {
     );
   }
 
+  const usageResult = LibraryUsageSchema.optional().safeParse(body["usage"]);
+  if (!usageResult.success) throw new ValidationError("Invalid asset usage value");
   const sharingResult = ContentAssetSharingSchema.safeParse(body["sharing"] ?? "private");
   if (!sharingResult.success) throw new ValidationError("Invalid asset sharing value");
 
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const result = await uploadLibraryAsset(
-    actor.isAdmin ? null : profile.id,
-    {
-      ...(file.name ? { name: file.name } : {}),
-      declaredType: file.type,
-      size: file.size,
-      bytes,
-    },
-    sharingResult.data,
-  );
+  const uploadFile = {
+    ...(file.name ? { name: file.name } : {}),
+    declaredType: file.type,
+    size: file.size,
+    bytes,
+  };
+  // Surface uploads are ensure-only: a new registration defaults private, while
+  // dedup keeps an existing registration's sharing and filename intact.
+  const result = usageResult.data
+    ? await uploadLibraryAsset(profile.id, uploadFile)
+    : await uploadLibraryAsset(
+        actor.isAdmin ? null : profile.id,
+        uploadFile,
+        sharingResult.data,
+      );
   if (!result.ok) throw result.error;
+
+  if (usageResult.data) {
+    await db
+      .update(creatorProfiles)
+      .set({
+        [usageResult.data === "avatar" ? "avatarKey" : "bannerKey"]:
+          result.value.asset.storageKey,
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorProfiles.id, profile.id));
+
+    const oldKey = usageResult.data === "avatar" ? profile.avatarKey : profile.bannerKey;
+    if (oldKey && oldKey !== result.value.asset.storageKey && !isLibraryAssetKey(oldKey)) {
+      const deleteResult = await storage.delete(oldKey);
+      if (!deleteResult.ok) {
+        c.var.logger.warn(
+          { error: deleteResult.error.message, key: oldKey },
+          `Failed to delete legacy ${usageResult.data}`,
+        );
+      }
+    }
+  }
+
   return c.json({ ...result.value.asset, deduped: result.value.deduped });
 };
 

@@ -9,7 +9,8 @@ import type {
   CandidatesResponse,
 } from "@snc/shared";
 
-import { apiGet, apiMutate, apiUpload } from "./fetch-utils.js";
+import { uploadContentLibraryImage } from "./content-library.js";
+import { apiGet, apiMutate } from "./fetch-utils.js";
 
 /**
  * Fetch all creators (public listing). Authenticated stakeholder/admin
@@ -44,18 +45,14 @@ export async function updateCreatorProfile(
   );
 }
 
-/** Upload or replace a creator image (avatar or banner). */
+/** Upload or replace a creator image through the content-addressable library. */
 async function uploadCreatorImage(
   creatorId: string,
   file: File,
   field: "avatar" | "banner",
 ): Promise<CreatorProfileResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  return apiUpload<CreatorProfileResponse>(
-    `/api/creators/${encodeURIComponent(creatorId)}/${field}`,
-    formData,
-  );
+  await uploadContentLibraryImage(creatorId, file, field);
+  return fetchCreatorProfile(creatorId);
 }
 
 /**

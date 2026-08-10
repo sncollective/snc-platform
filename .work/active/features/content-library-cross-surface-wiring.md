@@ -1,7 +1,7 @@
 ---
 id: content-library-cross-surface-wiring
 kind: feature
-stage: drafting
+stage: review
 tags: [media, content, refactor]
 parent: content-library
 depends_on: [content-library-core, content-library-migration]
@@ -38,10 +38,20 @@ go into the library (no per-surface duplication recreated). Large-media
 - **Sharing posture hard-coded `private`** for MVP (1 creator; the sharing UI/filters/badges are theoretical until multi-creator). No sharing-control UI in the picker/page uploads. Note in the epic.
 
 ## Acceptance
-- [ ] avatar/banner/content-thumbnail uploads route through the library (hash→dedup→register→library key); same images render (behavior-preserving).
-- [ ] Large-media (video/audio) tus path unchanged.
-- [ ] Migration metadata preserved on dedup; browse canUse aggregates per-blob; dead-end request link replaced.
-- [ ] Tests green; typecheck 0.
+- [x] avatar/banner/content-thumbnail uploads route through the library (hash→dedup→register→library key); same images render (behavior-preserving).
+- [x] Large-media (video/audio) tus path unchanged.
+- [x] Migration metadata preserved on dedup; browse canUse aggregates per-blob; dead-end request link replaced.
+- [x] Tests green; typecheck 0.
 
 ## Notes
 - This is the cross-surface wiring that makes the content-library epic's "reuse across surfaces" promise real (not press-only). Closes the epic review's blocking gap #1. Gap #2 (sharing authoring) accepted as MVP.
+
+## Implementation notes
+- Execution capability: `openai-codex/gpt-5.6-sol`; cohesive cross-surface implementation kept with one owner as requested, with no nested agents.
+- Review weight: stop at `review` per caller transition instruction.
+- Files changed: creator/library routes, library and upload-completion services, web creator upload clients/context, press picker copy, focused API/web tests, and the parent epic MVP note.
+- Tests added/updated: ensure-only metadata preservation; blob-wide browse authorization aggregation; avatar/banner library assignment, rendering, and web endpoint wiring; thumbnail completion dedup/reference wiring; unchanged large-media completion; dead-end-link removal.
+- Simplification: avatar/banner clients now share the existing content-library upload helper instead of maintaining direct per-surface multipart calls.
+- Discrepancies from design: none. The library upload endpoint accepts an internal `usage` marker so web uploads register and assign the avatar/banner key atomically from the caller's perspective; direct creator-media endpoints remain library-backed for API compatibility.
+- Adjacent issues parked: none.
+- Verification: API unit 125 files / 2011 tests; API integration 12 files / 54 tests; web unit 185 files / 1910 tests; API and web typechecks plus explicit `npx tsc --noEmit` both green. Library-key streaming assertions cover avatar/banner; thumbnail completion records the deduped library key and cleans the temporary purpose key; content-media completion asserts the library path is not invoked.

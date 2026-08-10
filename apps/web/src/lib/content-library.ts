@@ -10,10 +10,12 @@ import { contentLibraryRawUrl } from "./press-images.js";
 export const uploadContentLibraryImage = async (
   creatorId: string,
   file: File,
+  usage?: "avatar" | "banner",
 ): Promise<ContentAssetUploadResponse> => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("sharing", "private");
+  if (usage) formData.append("usage", usage);
+  else formData.append("sharing", "private");
   return apiUpload<ContentAssetUploadResponse>(
     `/api/creators/${encodeURIComponent(creatorId)}/library/assets`,
     formData,

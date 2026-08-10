@@ -309,6 +309,36 @@ describe("content library integration", () => {
     if (!missing.ok) expect(missing.error.code).toBe("NOT_FOUND");
   });
 
+  it("aggregates browse use status across every live registration for a blob", async () => {
+    const openRegistration = await upload(creatorIds[0]!, 62, "open");
+    const requestableRegistration = await upload(creatorIds[1]!, 62, "requestable");
+    expect(openRegistration.ok).toBe(true);
+    expect(requestableRegistration.ok).toBe(true);
+    if (!openRegistration.ok || !requestableRegistration.ok) return;
+
+    expect(requestableRegistration.value.asset.storageKey).toBe(
+      openRegistration.value.asset.storageKey,
+    );
+
+    const browsed = await listLibraryAssets(otherActor);
+    expect(browsed.ok).toBe(true);
+    if (!browsed.ok) return;
+    const sharedBlobItems = browsed.value.items.filter(
+      (item) => item.storageKey === openRegistration.value.asset.storageKey,
+    );
+    expect(sharedBlobItems).toHaveLength(2);
+    expect(sharedBlobItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: openRegistration.value.asset.id, canUse: true, useStatus: "open" }),
+        expect.objectContaining({ id: requestableRegistration.value.asset.id, canUse: true, useStatus: "open" }),
+      ]),
+    );
+    expect(await getLibraryAsset(otherActor, requestableRegistration.value.asset.id)).toMatchObject({
+      ok: true,
+      value: { canUse: true, useStatus: "open" },
+    });
+  });
+
   it("does not let a non-owner manage another creator's grants", async () => {
     const uploaded = await upload(creatorIds[0]!, 60, "requestable");
     expect(uploaded.ok).toBe(true);

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import { imageSize } from "image-size";
-import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 
 import {
   AppError,
@@ -58,23 +58,77 @@ type JoinedAssetRow = {
 export const deriveLibraryKey = (sha256: string, type: DetectedType): string =>
   `library/${sha256.slice(0, 2)}/${sha256}.${TYPE_TO_EXT[type]}`;
 
-const useStatusFor = (
+type UseAuthorizationRow = {
+  blobSha256: string;
+  creatorId: string | null;
+  sharing: ContentAssetSharing;
+  grantedAssetId: string | null;
+};
+
+const aggregateUseStatus = (
   actor: LibraryActor,
-  row: Pick<JoinedAssetRow, "asset" | "grantedAssetId">,
+  rows: readonly UseAuthorizationRow[],
 ): ContentAssetUseStatus => {
   if (actor.isAdmin) return "admin";
-  if (row.asset.creatorId === actor.creatorId) return "own";
-  if (row.asset.sharing === "open") return "open";
-  if (row.grantedAssetId) return "granted";
+  if (rows.some((row) => row.creatorId === actor.creatorId)) return "own";
+  if (rows.some((row) => row.sharing === "open")) return "open";
+  if (rows.some((row) => row.sharing === "requestable" && row.grantedAssetId)) return "granted";
   return "requestable-needs-grant";
+};
+
+const loadUseStatuses = async (
+  actor: LibraryActor,
+  blobSha256s: readonly string[],
+): Promise<Map<string, ContentAssetUseStatus>> => {
+  const uniqueHashes = [...new Set(blobSha256s)];
+  if (uniqueHashes.length === 0) return new Map();
+  if (actor.isAdmin) return new Map(uniqueHashes.map((hash) => [hash, "admin"]));
+
+  const rows = await db
+    .select({
+      blobSha256: contentAssets.blobSha256,
+      creatorId: contentAssets.creatorId,
+      sharing: contentAssets.sharing,
+      grantedAssetId: contentAssetGrants.assetId,
+    })
+    .from(contentAssets)
+    .leftJoin(
+      contentAssetGrants,
+      and(
+        eq(contentAssetGrants.assetId, contentAssets.id),
+        eq(contentAssetGrants.granteeCreatorId, actor.creatorId),
+      ),
+    )
+    .where(
+      and(
+        inArray(contentAssets.blobSha256, uniqueHashes),
+        isNull(contentAssets.deletedAt),
+      ),
+    );
+
+  const byBlob = new Map<string, UseAuthorizationRow[]>();
+  for (const row of rows) {
+    const registrations = byBlob.get(row.blobSha256) ?? [];
+    registrations.push(row);
+    byBlob.set(row.blobSha256, registrations);
+  }
+  return new Map(
+    uniqueHashes.map((hash) => [hash, aggregateUseStatus(actor, byBlob.get(hash) ?? [])]),
+  );
 };
 
 /** Convert a joined registration/blob row to the shared API representation. */
 export const toContentAsset = (
   row: JoinedAssetRow,
   actor: LibraryActor,
+  aggregatedUseStatus?: ContentAssetUseStatus,
 ): ContentAsset => {
-  const useStatus = useStatusFor(actor, row);
+  const useStatus = aggregatedUseStatus ?? aggregateUseStatus(actor, [{
+    blobSha256: row.asset.blobSha256,
+    creatorId: row.asset.creatorId,
+    sharing: row.asset.sharing,
+    grantedAssetId: row.grantedAssetId,
+  }]);
   return {
     id: row.asset.id,
     creatorId: row.asset.creatorId,
@@ -182,7 +236,7 @@ export const uploadLibraryAsset = async (
     size: number;
     bytes: Uint8Array;
   },
-  sharing: ContentAssetSharing = "private",
+  sharing?: ContentAssetSharing,
 ): Promise<Result<{ asset: ContentAsset; deduped: boolean }, AppError>> => {
   // The declared MIME is intentionally not used for identity or storage metadata.
   void file.declaredType;
@@ -198,6 +252,7 @@ export const uploadLibraryAsset = async (
   const storageKey = deriveLibraryKey(blobSha256, type);
   const mimeType = TYPE_TO_MIME[type];
   const originalFilename = file.name ?? null;
+  const requestedSharing = sharing ?? "private";
   const actor: LibraryActor = {
     creatorId: creatorId ?? "",
     isAdmin: creatorId === null,
@@ -206,9 +261,14 @@ export const uploadLibraryAsset = async (
   try {
     const existing = await findRegistration(creatorId, blobSha256);
     if (existing && existing.asset.deletedAt === null) {
+      // Ensure-only callers (migration and cross-surface wiring) must not
+      // rewrite the live registration's sharing or original filename on dedup.
+      if (sharing === undefined) {
+        return ok({ asset: toContentAsset(existing, actor), deduped: true });
+      }
       const asset = await updateRegistration(
         existing.asset.id,
-        sharing,
+        requestedSharing,
         originalFilename,
         false,
       );
@@ -266,7 +326,7 @@ export const uploadLibraryAsset = async (
     if (existing) {
       const asset = await updateRegistration(
         existing.asset.id,
-        sharing,
+        requestedSharing,
         originalFilename,
         true,
       );
@@ -282,7 +342,7 @@ export const uploadLibraryAsset = async (
         id: randomUUID(),
         creatorId,
         blobSha256,
-        sharing,
+        sharing: requestedSharing,
         originalFilename,
       })
       .onConflictDoNothing()
@@ -295,7 +355,14 @@ export const uploadLibraryAsset = async (
       if (!winner) {
         throw new AppError("LIBRARY_CONFLICT", "Asset registration is unavailable", 409);
       }
-      asset = await updateRegistration(winner.asset.id, sharing, originalFilename, true);
+      asset = sharing === undefined && winner.asset.deletedAt === null
+        ? winner.asset
+        : await updateRegistration(
+            winner.asset.id,
+            requestedSharing,
+            originalFilename,
+            winner.asset.deletedAt !== null,
+          );
       registrationDeduped = true;
     }
 
@@ -362,7 +429,13 @@ export const listLibraryAssets = async (
       .limit(limit + 1);
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
-    const items = page.map((row) => toContentAsset(row, actor));
+    const useStatuses = await loadUseStatuses(
+      actor,
+      page.map((row) => row.asset.blobSha256),
+    );
+    const items = page.map((row) =>
+      toContentAsset(row, actor, useStatuses.get(row.asset.blobSha256)),
+    );
     const last = items.at(-1);
     return ok({
       items,
@@ -404,7 +477,8 @@ export const getLibraryAsset = async (
       )
       .limit(1);
     if (!row) return err(new NotFoundError("Library asset not found"));
-    return ok(toContentAsset(row, actor));
+    const useStatuses = await loadUseStatuses(actor, [row.asset.blobSha256]);
+    return ok(toContentAsset(row, actor, useStatuses.get(row.asset.blobSha256)));
   } catch (cause) {
     return err(asServiceError(cause));
   }

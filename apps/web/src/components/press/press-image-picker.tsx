@@ -242,9 +242,7 @@ export function PressImagePicker({
                     {asset.canUse ? "Use image" : "Permission required"}
                   </button>
                   {!asset.canUse && (
-                    <a href={`/creators/${encodeURIComponent(creatorId)}/manage/library?asset=${encodeURIComponent(asset.id)}`}>
-                      Request access in library
-                    </a>
+                    <p className={styles.meta}>Access requests are not available yet.</p>
                   )}
                 </li>
               ))}

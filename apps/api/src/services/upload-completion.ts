@@ -16,6 +16,7 @@ import { creatorProfiles } from "../db/schema/creator.schema.js";
 import { getBoss } from "../jobs/boss.js";
 import { JOB_QUEUES } from "../jobs/queue-names.js";
 import { requireCreatorPermission } from "./creator-team.js";
+import { uploadLibraryAsset } from "./library.js";
 
 // ── Constants ──
 
@@ -93,7 +94,7 @@ export const verifyOwnership = async (
   resourceId: string,
   userId: string,
   roles?: string[],
-): Promise<{ contentType?: string }> => {
+): Promise<{ contentType?: string; creatorId?: string }> => {
   if (purpose === "playout-media") {
     if (!roles?.includes("admin")) {
       throw new UnauthorizedError("Admin role required for playout uploads");
@@ -110,7 +111,7 @@ export const verifyOwnership = async (
     if (!row) throw new NotFoundError("Content not found");
 
     await requireCreatorPermission(userId, row.creatorId, "manageContent", roles);
-    return { contentType: row.type };
+    return { contentType: row.type, creatorId: row.creatorId };
   }
 
   if (purpose.startsWith("creator-")) {
@@ -154,7 +155,7 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
     }
   }
 
-  await verifyOwnership(body.purpose, body.resourceId, userId, roles);
+  const ownership = await verifyOwnership(body.purpose, body.resourceId, userId, roles);
 
   const purposeCategory = PURPOSE_CATEGORY[body.purpose];
 
@@ -168,6 +169,34 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
     throw new ValidationError("Uploaded file exceeds size limit");
   }
 
+  let resolvedKey = body.key;
+  if (body.purpose === "content-thumbnail") {
+    if (!ownership.creatorId) {
+      throw new ValidationError("Content creator is unavailable");
+    }
+    const downloadResult = await storageProvider.download(body.key);
+    if (!downloadResult.ok) throw downloadResult.error;
+    const bytes = new Uint8Array(
+      await new Response(downloadResult.value.stream).arrayBuffer(),
+    );
+    const libraryResult = await uploadLibraryAsset(ownership.creatorId, {
+      name: body.key.split("/").at(-1) ?? "thumbnail",
+      declaredType: headResult.value.contentType,
+      size: bytes.byteLength,
+      bytes,
+    });
+    if (!libraryResult.ok) throw libraryResult.error;
+    resolvedKey = libraryResult.value.asset.storageKey;
+
+    const temporaryDelete = await storageProvider.delete(body.key);
+    if (!temporaryDelete.ok) {
+      logger.warn(
+        { error: temporaryDelete.error.message, key: body.key },
+        "Failed to delete temporary thumbnail upload",
+      );
+    }
+  }
+
   if (body.purpose.startsWith("content-")) {
     const [existing] = await db
       .select({ mediaKey: content.mediaKey, thumbnailKey: content.thumbnailKey })
@@ -178,7 +207,14 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
       body.purpose === "content-media"
         ? (existing?.mediaKey ?? null)
         : (existing?.thumbnailKey ?? null);
-    if (oldKey && oldKey !== body.key && !isLibraryAssetKey(oldKey)) {
+    const isTemporaryThumbnailKey =
+      body.purpose === "content-thumbnail" && oldKey === body.key;
+    if (
+      oldKey
+      && oldKey !== resolvedKey
+      && !isTemporaryThumbnailKey
+      && !isLibraryAssetKey(oldKey)
+    ) {
       const deleteResult = await storageProvider.delete(oldKey);
       if (!deleteResult.ok) {
         logger.warn({ error: deleteResult.error.message, key: oldKey }, "Failed to delete old file");
@@ -186,7 +222,7 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
     }
   }
 
-  await recordUpload(body.purpose, body.resourceId, body.key);
+  await recordUpload(body.purpose, body.resourceId, resolvedKey);
 
   if (body.purpose === "content-media") {
     await db
@@ -212,5 +248,5 @@ export async function completeUploadFlow(params: CompleteUploadFlowParams): Prom
     }
   }
 
-  return { key: body.key };
+  return { key: resolvedKey };
 }

@@ -12,10 +12,12 @@ import { chainablePromise } from "../helpers/db-mock-utils.js";
 const mockStorageGetPresignedUploadUrl = vi.fn();
 const mockStorageHead = vi.fn();
 const mockStorageDelete = vi.fn();
+const mockStorageDownload = vi.fn();
+const mockUploadLibraryAsset = vi.fn();
 
 const mockStorage = {
   upload: vi.fn(),
-  download: vi.fn(),
+  download: mockStorageDownload,
   delete: mockStorageDelete,
   getSignedUrl: vi.fn(),
   head: mockStorageHead,
@@ -91,6 +93,10 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
     }));
+
+    vi.doMock("../../src/services/library.js", () => ({
+      uploadLibraryAsset: mockUploadLibraryAsset,
+    }));
   },
   mountRoute: async (app) => {
     const { uploadRoutes } = await import("../../src/routes/upload.routes.js");
@@ -103,6 +109,19 @@ const ctx = setupRouteTest({
     );
     mockStorageHead.mockResolvedValue(ok({ size: 1024, contentType: "video/mp4" }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
+    mockStorageDownload.mockResolvedValue(ok({
+      stream: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3, 4]));
+          controller.close();
+        },
+      }),
+      size: 4,
+    }));
+    mockUploadLibraryAsset.mockResolvedValue(ok({
+      asset: { storageKey: `library/aa/${"a".repeat(64)}.png` },
+      deduped: false,
+    }));
 
     // Reset multipart mocks
     mockCreateMultipartUpload.mockResolvedValue(
@@ -486,6 +505,7 @@ describe("upload routes", () => {
       expect(res.status).toBe(200);
       expect(body.ok).toBe(true);
       expect(body.key).toBe(validBody.key);
+      expect(mockUploadLibraryAsset).not.toHaveBeenCalled();
     });
 
     it("returns 401 without auth", async () => {
@@ -608,9 +628,17 @@ describe("upload routes", () => {
       });
 
       expect(completeResponse.status).toBe(200);
+      expect(mockStorageDelete).toHaveBeenCalledWith(presignBody.key);
       expect(mockStorageDelete).not.toHaveBeenCalledWith(libraryKey);
+      expect(mockUploadLibraryAsset).toHaveBeenCalledWith(
+        "creator-profile-1",
+        expect.objectContaining({
+          name: "replacement.png",
+          declaredType: "image/png",
+        }),
+      );
       expect(mockUpdateSet).toHaveBeenCalledWith(
-        expect.objectContaining({ thumbnailKey: presignBody.key }),
+        expect.objectContaining({ thumbnailKey: libraryKey }),
       );
     });
 

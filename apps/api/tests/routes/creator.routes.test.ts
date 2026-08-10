@@ -23,6 +23,8 @@ let TestForbiddenError: new (msg?: string) => Error;
 const mockStorageUpload = vi.fn();
 const mockStorageDownload = vi.fn();
 const mockStorageDelete = vi.fn();
+const mockUploadLibraryAsset = vi.fn();
+const libraryKey = `library/aa/${"a".repeat(64)}.png`;
 
 const mockStorage = {
   upload: mockStorageUpload,
@@ -96,6 +98,10 @@ const ctx = setupRouteTest({
     vi.doMock("../../src/services/creator-team.js", () => ({
       requireCreatorPermission: mockRequireCreatorPermission,
       getCreatorMemberships: mockGetCreatorMemberships,
+    }));
+
+    vi.doMock("../../src/services/library.js", () => ({
+      uploadLibraryAsset: mockUploadLibraryAsset,
     }));
 
     vi.doMock("../../src/services/channels.js", () => ({
@@ -195,6 +201,10 @@ const ctx = setupRouteTest({
     mockStorageUpload.mockResolvedValue(ok({ key: "test-key", size: 100 }));
     mockStorageDownload.mockResolvedValue(ok({ stream: new ReadableStream(), size: 0 }));
     mockStorageDelete.mockResolvedValue(ok(undefined));
+    mockUploadLibraryAsset.mockResolvedValue(ok({
+      asset: { storageKey: libraryKey },
+      deduped: false,
+    }));
 
     // Default: permission check passes (no throw)
     mockRequireCreatorPermission.mockResolvedValue(undefined);
@@ -1000,9 +1010,7 @@ describe("creator routes", () => {
   describe("POST /api/creators/:creatorId/avatar", () => {
     it("uploads avatar and returns updated profile for owner", async () => {
       const dbProfile = makeMockDbCreatorProfile({ avatarKey: null });
-      const updatedProfile = makeMockDbCreatorProfile({
-        avatarKey: "creators/user_test123/avatar/photo.jpg",
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
 
       // findCreatorProfile → existing profile without avatarKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1022,9 +1030,14 @@ describe("creator routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.avatarUrl).toBe("/api/creators/user_test123/avatar");
-      expect(mockStorageUpload).toHaveBeenCalledOnce();
-      const [uploadKey] = mockStorageUpload.mock.calls[0] as [string, ...unknown[]];
-      expect(uploadKey).toMatch(/^creators\/user_test123\/avatar\//);
+      expect(mockUploadLibraryAsset).toHaveBeenCalledWith(
+        "user_test123",
+        expect.objectContaining({ name: "photo.jpg", declaredType: "image/jpeg" }),
+      );
+      expect(mockStorageUpload).not.toHaveBeenCalled();
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ avatarKey: libraryKey }),
+      );
       expect(mockUpdateReturning).toHaveBeenCalledOnce();
     });
 
@@ -1032,9 +1045,7 @@ describe("creator routes", () => {
       const dbProfile = makeMockDbCreatorProfile({
         avatarKey: "old-key/avatar/old.jpg",
       });
-      const updatedProfile = makeMockDbCreatorProfile({
-        avatarKey: "creators/user_test123/avatar/new.jpg",
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
 
       // findCreatorProfile → profile with existing avatarKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1053,15 +1064,12 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       expect(mockStorageDelete).toHaveBeenCalledWith("old-key/avatar/old.jpg");
-      expect(mockStorageUpload).toHaveBeenCalledOnce();
+      expect(mockUploadLibraryAsset).toHaveBeenCalledOnce();
     });
 
     it("does not delete a shared library blob when replacing a migrated avatar", async () => {
-      const libraryKey = `library/aa/${"a".repeat(64)}.png`;
       const dbProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
-      const updatedProfile = makeMockDbCreatorProfile({
-        avatarKey: "creators/user_test123/avatar/new.jpg",
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
       mockUpdateReturning.mockResolvedValueOnce([updatedProfile]);
       mockSelectWhere.mockResolvedValueOnce([{ count: 0 }]);
@@ -1075,7 +1083,7 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       expect(mockStorageDelete).not.toHaveBeenCalled();
-      expect(mockStorageUpload).toHaveBeenCalledOnce();
+      expect(mockUploadLibraryAsset).toHaveBeenCalledOnce();
     });
 
     it("returns 403 when non-owner uploads", async () => {
@@ -1152,9 +1160,7 @@ describe("creator routes", () => {
   describe("POST /api/creators/:creatorId/banner", () => {
     it("uploads banner and returns updated profile for owner", async () => {
       const dbProfile = makeMockDbCreatorProfile({ bannerKey: null });
-      const updatedProfile = makeMockDbCreatorProfile({
-        bannerKey: "creators/user_test123/banner/header.jpg",
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ bannerKey: libraryKey });
 
       // findCreatorProfile → existing profile without bannerKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1174,9 +1180,14 @@ describe("creator routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.bannerUrl).toBe("/api/creators/user_test123/banner");
-      expect(mockStorageUpload).toHaveBeenCalledOnce();
-      const [uploadKey] = mockStorageUpload.mock.calls[0] as [string, ...unknown[]];
-      expect(uploadKey).toMatch(/^creators\/user_test123\/banner\//);
+      expect(mockUploadLibraryAsset).toHaveBeenCalledWith(
+        "user_test123",
+        expect.objectContaining({ name: "header.jpg", declaredType: "image/jpeg" }),
+      );
+      expect(mockStorageUpload).not.toHaveBeenCalled();
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ bannerKey: libraryKey }),
+      );
       expect(mockUpdateReturning).toHaveBeenCalledOnce();
     });
 
@@ -1184,9 +1195,7 @@ describe("creator routes", () => {
       const dbProfile = makeMockDbCreatorProfile({
         bannerKey: "old-banner-key/banner/old.jpg",
       });
-      const updatedProfile = makeMockDbCreatorProfile({
-        bannerKey: "creators/user_test123/banner/new.jpg",
-      });
+      const updatedProfile = makeMockDbCreatorProfile({ bannerKey: libraryKey });
 
       // findCreatorProfile → profile with existing bannerKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1205,7 +1214,7 @@ describe("creator routes", () => {
 
       expect(res.status).toBe(200);
       expect(mockStorageDelete).toHaveBeenCalledWith("old-banner-key/banner/old.jpg");
-      expect(mockStorageUpload).toHaveBeenCalledOnce();
+      expect(mockUploadLibraryAsset).toHaveBeenCalledOnce();
     });
 
     it("returns 403 when non-owner uploads", async () => {
@@ -1280,10 +1289,8 @@ describe("creator routes", () => {
   // ── GET /api/creators/:creatorId/avatar ──
 
   describe("GET /api/creators/:creatorId/avatar", () => {
-    it("streams avatar image with correct headers", async () => {
-      const dbProfile = makeMockDbCreatorProfile({
-        avatarKey: "creators/user_test123/avatar/photo.jpg",
-      });
+    it("streams a library-backed avatar image with correct headers", async () => {
+      const dbProfile = makeMockDbCreatorProfile({ avatarKey: libraryKey });
 
       // findCreatorProfile → profile with avatarKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1292,8 +1299,9 @@ describe("creator routes", () => {
       const res = await ctx.app.request("/api/creators/user_test123/avatar");
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Type")).toBe("image/jpeg");
+      expect(res.headers.get("Content-Type")).toBe("image/png");
       expect(res.headers.get("Cache-Control")).toBe("public, max-age=86400");
+      expect(mockStorageDownload).toHaveBeenCalledWith(libraryKey);
       expect(res.headers.get("Content-Disposition")).toContain("inline");
       const body = await res.text();
       expect(body).toBe("image data");
@@ -1327,10 +1335,8 @@ describe("creator routes", () => {
   // ── GET /api/creators/:creatorId/banner ──
 
   describe("GET /api/creators/:creatorId/banner", () => {
-    it("streams banner image with correct headers", async () => {
-      const dbProfile = makeMockDbCreatorProfile({
-        bannerKey: "creators/user_test123/banner/header.png",
-      });
+    it("streams a library-backed banner image with correct headers", async () => {
+      const dbProfile = makeMockDbCreatorProfile({ bannerKey: libraryKey });
 
       // findCreatorProfile → profile with bannerKey
       mockSelectWhere.mockResolvedValueOnce([dbProfile]);
@@ -1341,6 +1347,7 @@ describe("creator routes", () => {
       expect(res.status).toBe(200);
       expect(res.headers.get("Content-Type")).toBe("image/png");
       expect(res.headers.get("Cache-Control")).toBe("public, max-age=86400");
+      expect(mockStorageDownload).toHaveBeenCalledWith(libraryKey);
       expect(res.headers.get("Content-Disposition")).toContain("inline");
       const body = await res.text();
       expect(body).toBe("banner data");

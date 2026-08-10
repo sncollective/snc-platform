@@ -113,10 +113,8 @@ describe("PressImagePicker", () => {
     expect(screen.getByRole("button", { name: "Use open.jpg" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Use granted.jpg" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cannot use requestable.jpg" })).toBeDisabled();
-    expect(screen.getByRole("link", { name: "Request access in library" })).toHaveAttribute(
-      "href",
-      "/creators/creator-1/manage/library?asset=00000000-0000-4000-a000-000000000004",
-    );
+    expect(screen.getByText("Access requests are not available yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Request access in library" })).not.toBeInTheDocument();
   });
 
   it("places foreign admin-visible assets in the shared pool", async () => {

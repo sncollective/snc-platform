@@ -3,6 +3,8 @@ import { describe, it, expect } from "vitest";
 import {
   fetchCreatorProfile,
   updateCreatorProfile,
+  uploadCreatorAvatar,
+  uploadCreatorBanner,
 } from "../../../src/lib/creator.js";
 import { makeMockCreatorProfileResponse } from "../../helpers/creator-fixtures.js";
 import { setupFetchMock } from "../../helpers/fetch-mock.js";
@@ -67,6 +69,37 @@ describe("fetchCreatorProfile", () => {
     await expect(fetchCreatorProfile("user_test123")).rejects.toThrow(
       "Server error",
     );
+  });
+});
+
+describe("creator image uploads", () => {
+  it.each([
+    ["avatar", uploadCreatorAvatar],
+    ["banner", uploadCreatorBanner],
+  ] as const)("uploads %s through the library endpoint and refreshes the profile", async (usage, upload) => {
+    const profile = makeMockCreatorProfileResponse();
+    getMockFetch()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        storageKey: `library/aa/${"a".repeat(64)}.png`,
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(profile), { status: 200 }));
+    const file = new File(["bytes"], `${usage}.png`, { type: "image/png" });
+
+    const result = await upload("creator-1", file);
+
+    expect(getMockFetch()).toHaveBeenNthCalledWith(
+      1,
+      "/api/creators/creator-1/library/assets",
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+    const form = getMockFetch().mock.calls[0]![1].body as FormData;
+    expect(form.get("usage")).toBe(usage);
+    expect(getMockFetch()).toHaveBeenNthCalledWith(
+      2,
+      "/api/creators/creator-1",
+      { credentials: "include" },
+    );
+    expect(result).toEqual(profile);
   });
 });
 

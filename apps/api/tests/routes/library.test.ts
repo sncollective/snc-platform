@@ -13,6 +13,10 @@ const mockGetLibraryAsset = vi.fn();
 const mockDeleteLibraryAsset = vi.fn();
 const mockGrantLibraryAssetUse = vi.fn();
 const mockRevokeLibraryAssetUse = vi.fn();
+const mockUpdateWhere = vi.fn();
+const mockUpdateSet = vi.fn(() => ({ where: mockUpdateWhere }));
+const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
+const mockStorageDelete = vi.fn();
 
 const profile = {
   id: "creator_test123",
@@ -44,6 +48,7 @@ const asset = {
 };
 
 const ctx = setupRouteTest({
+  db: { update: mockUpdate },
   defaultAuth: { user: makeMockUser(), roles: [] },
   mocks: ({ UnauthorizedError }) => {
     // The shared route-test helper's auth mock predates role hydration. Override
@@ -71,6 +76,9 @@ const ctx = setupRouteTest({
       grantLibraryAssetUse: mockGrantLibraryAssetUse,
       revokeLibraryAssetUse: mockRevokeLibraryAssetUse,
     }));
+    vi.doMock("../../src/storage/index.js", () => ({
+      storage: { delete: mockStorageDelete },
+    }));
   },
   mountRoute: async (app) => {
     const { libraryRoutes } = await import("../../src/routes/library.routes.js");
@@ -85,6 +93,10 @@ const ctx = setupRouteTest({
     mockDeleteLibraryAsset.mockResolvedValue(ok(undefined));
     mockGrantLibraryAssetUse.mockResolvedValue(ok(undefined));
     mockRevokeLibraryAssetUse.mockResolvedValue(ok(undefined));
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockResolvedValue(undefined);
+    mockStorageDelete.mockResolvedValue(ok(undefined));
   },
 });
 
@@ -111,6 +123,33 @@ describe("content library routes", () => {
       profile.id,
       expect.objectContaining({ declaredType: "image/png", size: 4 }),
       "requestable",
+    );
+  });
+
+  it("assigns a library upload to an avatar without overwriting dedup metadata", async () => {
+    mockFindCreatorProfile.mockResolvedValueOnce({
+      ...profile,
+      avatarKey: "creators/creator_test123/avatar/legacy.png",
+    });
+    const form = new FormData();
+    form.append("file", new File([new Uint8Array([1, 2, 3, 4])], "avatar.png", { type: "image/png" }));
+    form.append("usage", "avatar");
+
+    const response = await ctx.app.request("/api/creators/test-creator/library/assets", {
+      method: "POST",
+      body: form,
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockUploadLibraryAsset).toHaveBeenCalledWith(
+      profile.id,
+      expect.objectContaining({ name: "avatar.png" }),
+    );
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ avatarKey: asset.storageKey }),
+    );
+    expect(mockStorageDelete).toHaveBeenCalledWith(
+      "creators/creator_test123/avatar/legacy.png",
     );
   });
 

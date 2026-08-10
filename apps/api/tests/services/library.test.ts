@@ -245,6 +245,36 @@ describe("library service upload and inventory", () => {
     expect(mockStorageUpload).not.toHaveBeenCalled();
   });
 
+  it("preserves live registration metadata for ensure-only dedup", async () => {
+    const existing = {
+      ...joined,
+      asset: {
+        ...asset,
+        sharing: "open" as const,
+        originalFilename: "curated-name.png",
+      },
+    };
+    selectQueue.push([existing]);
+    const { uploadLibraryAsset } = await setupService();
+
+    const result = await uploadLibraryAsset("creator-1", {
+      name: "migration-source.png",
+      declaredType: "image/png",
+      size: pngBytes.byteLength,
+      bytes: pngBytes,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        deduped: true,
+        asset: { sharing: "open", originalFilename: "curated-name.png" },
+      },
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockStorageHead).not.toHaveBeenCalled();
+  });
+
   it("reactivates a tombstoned registration instead of conflicting", async () => {
     selectQueue.push([{ ...joined, asset: { ...asset, deletedAt: new Date() } }]);
     const { uploadLibraryAsset } = await setupService();

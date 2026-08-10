@@ -30,6 +30,18 @@ describe("content library web client", () => {
     expect(form.get("sharing")).toBe("private");
   });
 
+  it("marks avatar uploads for assignment without sending sharing metadata", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ storageKey: `library/aa/${"a".repeat(64)}.jpg` }));
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["bytes"], "avatar.jpg", { type: "image/jpeg" });
+
+    await uploadContentLibraryImage("creator-1", file, "avatar");
+
+    const form = fetchMock.mock.calls[0]![1].body as FormData;
+    expect(form.get("usage")).toBe("avatar");
+    expect(form.get("sharing")).toBeNull();
+  });
+
   it("passes cursor and abort signal to library browse", async () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ items: [], nextCursor: null }));
     vi.stubGlobal("fetch", fetchMock);

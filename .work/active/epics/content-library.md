@@ -72,3 +72,6 @@ The press-page v2 (`creator-press-page-v2`) consumes this:
 - The asset/reference split: bytes live once on the asset (by hash); per-use
   metadata (crop, alt, credit) lives on the *reference* in each surface's
   content model.
+- MVP sharing posture is hard-coded `private` for new cross-surface uploads. The
+  single-creator launch does not include sharing-control UI; sharing authoring
+  remains a post-MVP concern.

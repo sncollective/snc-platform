@@ -28,8 +28,8 @@ import {
   completeUpload,
   retryWithBackoff,
 } from "../lib/uploads.js";
+import { uploadContentLibraryImage } from "../lib/content-library.js";
 import { uploadContentFile } from "../lib/content.js";
-import { apiUpload } from "../lib/fetch-utils.js";
 
 // ── Public Types ──
 
@@ -185,18 +185,12 @@ async function uploadLegacy(
     case "content-thumbnail":
       await uploadContentFile(resourceId, "thumbnail", file);
       break;
-    case "creator-avatar": {
-      const fd = new FormData();
-      fd.append("file", file);
-      await apiUpload(`/api/creators/${encodeURIComponent(resourceId)}/avatar`, fd);
+    case "creator-avatar":
+      await uploadContentLibraryImage(resourceId, file, "avatar");
       break;
-    }
-    case "creator-banner": {
-      const fd = new FormData();
-      fd.append("file", file);
-      await apiUpload(`/api/creators/${encodeURIComponent(resourceId)}/banner`, fd);
+    case "creator-banner":
+      await uploadContentLibraryImage(resourceId, file, "banner");
       break;
-    }
   }
 }
 
