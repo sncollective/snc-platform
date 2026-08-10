@@ -92,3 +92,24 @@ Plus earlier: content-library-core, content-model, templates, image-management.
 - The 4 pre-existing parked integration failures (channel-lifecycle FK + test-control gating).
 - Parked: the unified-media-library vision (video/audio + manage consolidation), per-release one-sheets, the zine/edgy PDF + web template stretch goal, Bandsintown live-dates.
 - Everything unbound to a release.
+
+## Update 2026-08-10 — BOTH EPICS DONE (epic aggregate review passed)
+
+`content-library` + `creator-press-page-v2` are both `stage: done`. The epic
+aggregate review closed the last gaps:
+- **content-library:** cross-surface wiring (avatar/banner/content now route
+  through the library — closes the press-only gap); sharing hard-coded `private`
+  for MVP (1 creator; accepted). Plus: migration-metadata preservation, per-blob
+  canUse aggregation, dead-end request link replaced.
+- **creator-press-page-v2:** unpublish/visibility restored (the v1→v2 regression
+  where v2 force-published — now an explicit take-offline action retaining the
+  draft); full-PDF vs one-sheet distinguished; highlight-overflow warning;
+  brand-color site-wide/immediate clarified.
+
+Final integrated verification: shared ✓, api unit 2011 ✓, api typecheck 0,
+web 1910 ✓, web typecheck 0.
+
+**The full press-page v2 + content-library build is COMPLETE.** Everything
+unbound to a release. Next: operator picks the version (release-deploy) + prod
+verification (incl. the Chromium-provisioning deploy follow-up + the live full-PDF
+e2e once the unrelated SSR fetch-failed is resolved).
