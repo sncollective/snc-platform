@@ -33,3 +33,23 @@ is unchanged by the build, and the build's tests/typecheck/api are all green.
 
 ## Why parked, not fixed inline
 Pre-existing dev-env issue, unrelated to the verified build; deep vite-SSR triage is its own thread. The build itself is green (api unit 2011, web 1905, typechecks 0; the API serves the press/PDF endpoints 200). Blocks live *web* verification until resolved; *API* surfaces (PDFs, press content) verify fine directly.
+
+## Bisect update (2026-08-10) — audit-gate deps RULED OUT
+Hypothesis (prior session's audit-gate dep bumps broke it) tested by reverting each:
+- **undici ^8.9.0** → reverted (node bundled undici): still failed. Not the culprit.
+- **@hono/node-server ^2.0.5** → reverted to ^1: still failed. Not the culprit.
+- **vite ^7.3.5** → **not revertible**: `@tanstack/react-start` requires `vite >=7.0.0` (peer dep). The prior session's vite-*8* force was already reverted to 7 (commit 11dc43f), so vite-7 is the baseline, not an audit-gate bump.
+
+Deps restored to the committed audit-gate versions after the bisect.
+
+## Where the throw actually originates (key finding)
+The "fetch failed" is **NOT** in the app's explicit fetches — instrumented `fetchApiServer` + `fetchAuthStateServer` (in `apps/web/src/lib/api-server.ts`) with file-write try/catches: **neither fired**. So the throw is in the **TanStack Start / vite-7 dev SSR transport** (the dev-mode server-fn/RPC machinery), not app code. Vite strips `error.cause` from its overlay + pm2 logs, so the exact cause (ECONNREFUSED? a dev-RPC endpoint?) wasn't captured.
+
+## Next triage direction (for whoever picks this up)
+- Capture `error.cause` via a **vite plugin** (`configureServer`/SSR error hook) that writes the full error to a file — bypasses vite's overlay/log stripping.
+- Investigate the TanStack Start dev-mode server-fn transport: does it route SSR server-fn calls through an internal RPC fetch in dev? If so, where does that fetch go + why does it fail?
+- Check if the break correlates with a **docker / devcontainer network change** around Aug 7 23:50 (the dev services are stable now, but the timing is the only lead left after the deps were ruled out). Note: the web-error.log's first entry is Aug 7 23:50, which might be log-start, not the true break time.
+- Interim unblock (not a fix): disable SSR + use the vite proxy (`VITE_API_URL`) for client-side verification.
+
+## Status
+Parked per operator (2026-08-10). The press-page-v2 + content-library build is verified green independently of this (api unit 2011, web 1905, typechecks 0, API serves press/PDF endpoints 200). This blocks live *web* verification only.
