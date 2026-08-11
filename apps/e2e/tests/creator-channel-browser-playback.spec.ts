@@ -8,6 +8,10 @@ import {
 } from "./helpers/playback-probes.js";
 import { resetMayaProgramming, seedMayaProgramming } from "./helpers/test-control.js";
 import { captureVisualTriageArtifact } from "./helpers/visual-triage.js";
+import { PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON } from "./helpers/playout-stack.js";
+
+// Requires the full playout stack (Liquidsoap + SRS), not provisioned in CI test-e2e.
+test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
 
 /**
  * Native media-element snapshot read via `page.evaluate`. The hard CI gate is

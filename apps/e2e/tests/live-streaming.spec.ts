@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 import { isMobile } from "./helpers/nav.js";
+import { PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON } from "./helpers/playout-stack.js";
 
 test.describe("Live streaming page", () => {
   test("live page loads and shows channel selector", async ({ page }) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     await page.goto("/live");
     await expect(page).toHaveURL(/\/live/);
     // Channel selector always present — playout channels are pre-seeded
@@ -13,6 +15,7 @@ test.describe("Live streaming page", () => {
   });
 
   test("live page is accessible without authentication", async ({ page }) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     await page.goto("/live");
     await expect(page).toHaveURL(/\/live/);
     await expect(page.getByRole("combobox", { name: "Select channel" })).toBeVisible();
@@ -28,6 +31,7 @@ test.describe("Live streaming page (authenticated)", () => {
   test.use({ storageState: "auth/stakeholder.json" });
 
   test("theater mode toggle is present", async ({ page }, testInfo) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     // Theater mode is a desktop-only control (CSS-hidden below 768px by
     // design — the mobile layout uses an Info/Chat tab switcher instead).
     test.skip(isMobile(testInfo), "Theater mode is desktop-only by design");
@@ -38,6 +42,7 @@ test.describe("Live streaming page (authenticated)", () => {
   });
 
   test("chat panel input mounts", async ({ page }, testInfo) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     await page.goto("/live");
     // Chat input has aria-label="Chat message" — render-level check only.
     // WebSocket connectivity is out of scope for this test; the input

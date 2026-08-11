@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { contextNav } from "./helpers/nav.js";
+import { PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON } from "./helpers/playout-stack.js";
 
 test.describe("Admin panel", () => {
   test.use({ storageState: "auth/admin.json" });
@@ -30,6 +31,7 @@ test.describe("Admin panel", () => {
   });
 
   test("playout admin page loads", async ({ page }) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     await page.goto("/admin/playout");
     // Should show the playout management heading and "Now Playing" section.
     // "Now Playing" renders once a channel is selected (channels are seeded).

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { mainNav } from "./helpers/nav.js";
+import { PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON } from "./helpers/playout-stack.js";
 
 test.describe("Navigation flow", () => {
   test.use({ storageState: "auth/stakeholder.json" });
@@ -54,6 +55,7 @@ test.describe("Navigation flow", () => {
   });
 
   test("navigates to live page via nav link", async ({ page }, testInfo) => {
+    test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
     await page.goto("/");
     const nav = mainNav(page, testInfo);
     await nav.getByRole("link", { name: "Live" }).click();

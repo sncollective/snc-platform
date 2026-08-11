@@ -7,6 +7,10 @@ import {
   queueCreatorContent,
 } from "./helpers/playback-probes.js";
 import { resetMayaProgramming, seedMayaProgramming } from "./helpers/test-control.js";
+import { PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON } from "./helpers/playout-stack.js";
+
+// Requires the full playout stack (Liquidsoap + SRS), not provisioned in CI test-e2e.
+test.skip(PLAYOUT_SPECS_SKIPPED, PLAYOUT_SKIP_REASON);
 
 const STUDIO_TOUR_TITLE = "Studio Tour 2026";
 const PLAYBACK_PROOF_TIMEOUT_MS = 90_000;
