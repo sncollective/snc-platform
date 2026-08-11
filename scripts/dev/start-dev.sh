@@ -4,6 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# 0. Guard: Node's bundled undici major must match the undici the web SSR worker
+#    resolves, or every SSR route 500s with "fetch failed" (undici 7↔8 changed
+#    the Dispatcher onRequestStart contract). A container rebuild that bumps
+#    Node re-triggers this; fail loud here instead of silently serving 500s.
+#    See .work/active/stories/dev-ssr-fetch-failed.md.
+node "$SCRIPT_DIR/check-undici-alignment.mjs"
+
 # 1. Start Caddy reverse proxy
 caddy start --config "$REPO_ROOT/Caddyfile.dev" 2>/dev/null || true
 

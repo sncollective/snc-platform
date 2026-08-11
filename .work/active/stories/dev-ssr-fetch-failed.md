@@ -80,6 +80,13 @@ Node 24.x bundles undici 7.x → keep the resolution on `^7.x`. When the project
 moves to a Node line that bundles undici 8.x, bump the resolution to match. A
 mismatch resurfaces this exact `onRequestStart` failure.
 
+**Enforced:** `scripts/dev/check-undici-alignment.mjs` compares
+`process.versions.undici`'s major to the undici Nitro's SSR worker resolves, and
+is wired into `start-dev.sh` (step 0) so a container rebuild that bumps Node
+fails loud with the exact fix instead of silently serving 500s. (Not yet wired
+into CI — `.forgejo/workflows/platform-test-and-build.yml` in the parent repo is
+the place to add it.)
+
 ## Status
 `stage: done`, unbound to a release (dev-environment fix). Dev web verification
 is unblocked.
