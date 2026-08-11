@@ -10,7 +10,7 @@ export const isLibraryAssetKey = (key: string): boolean => LIBRARY_KEY_RE.test(k
 export const libraryRawPath = (key: string): string =>
   isLibraryAssetKey(key) ? key.slice("library/".length) : "";
 
-/** Accepted image formats, as detected from magic bytes by image-size. */
+/** Accepted image formats, as detected from the file's allowlisted magic bytes. */
 export const PressImageMimeSchema = z.enum(["image/jpeg", "image/png", "image/webp"]);
 
 /** Discovery and use posture chosen by the asset registrant. */

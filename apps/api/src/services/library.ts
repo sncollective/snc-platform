@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { imageSize } from "image-size";
 import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 
 import {
@@ -27,6 +26,7 @@ import {
   contentAssets,
   contentBlobs,
 } from "../db/schema/library.schema.js";
+import { detectImage, type DetectedImageType } from "../lib/image-detect.js";
 import { toISO } from "../lib/response-helpers.js";
 import { storage } from "../storage/index.js";
 
@@ -36,8 +36,6 @@ const TYPE_TO_MIME = {
   png: "image/png",
   webp: "image/webp",
 } as const;
-type DetectedType = keyof typeof TYPE_TO_EXT;
-
 const PAGE_LIMIT = 50;
 const MAX_LIMIT = 100;
 
@@ -55,7 +53,7 @@ type JoinedAssetRow = {
 };
 
 /** Derive the content-addressable key from sha256 and detected image format. */
-export const deriveLibraryKey = (sha256: string, type: DetectedType): string =>
+export const deriveLibraryKey = (sha256: string, type: DetectedImageType): string =>
   `library/${sha256.slice(0, 2)}/${sha256}.${TYPE_TO_EXT[type]}`;
 
 type UseAuthorizationRow = {
@@ -162,24 +160,6 @@ const isNotFoundStorageError = (cause: unknown): boolean => {
   return candidate.code === "NOT_FOUND" || candidate.name === "NotFoundError";
 };
 
-const detectImage = (
-  bytes: Uint8Array,
-): Result<{ type: DetectedType; width: number | null; height: number | null }, AppError> => {
-  try {
-    const detected = imageSize(bytes);
-    if (detected.type !== "jpg" && detected.type !== "png" && detected.type !== "webp") {
-      return err(new ValidationError("Unsupported or unrecognized image format"));
-    }
-    return ok({
-      type: detected.type,
-      width: detected.width ?? null,
-      height: detected.height ?? null,
-    });
-  } catch {
-    return err(new ValidationError("Unsupported or unrecognized image format"));
-  }
-};
-
 const registrationOwnerCondition = (creatorId: string | null) =>
   creatorId === null
     ? isNull(contentAssets.creatorId)
@@ -245,9 +225,11 @@ export const uploadLibraryAsset = async (
     return err(new ValidationError(`File size exceeds the ${MAX_FILE_SIZES.image} byte limit`));
   }
 
-  const detectedResult = detectImage(file.bytes);
-  if (!detectedResult.ok) return detectedResult;
-  const { type, width, height } = detectedResult.value;
+  const detected = detectImage(file.bytes);
+  if (!detected) {
+    return err(new ValidationError("Unsupported or unrecognized image format"));
+  }
+  const { type, width, height } = detected;
   const blobSha256 = createHash("sha256").update(file.bytes).digest("hex");
   const storageKey = deriveLibraryKey(blobSha256, type);
   const mimeType = TYPE_TO_MIME[type];

@@ -3,14 +3,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ok } from "@snc/shared";
 import type { PressContent, ReleaseOneSheet } from "@snc/shared";
 
-const { mockBuildPressImageUrl, mockRenderBrowserPdf, mockStorageDownload } = vi.hoisted(() => ({
+const {
+  mockBuildPressImageUrl,
+  mockDbSelect,
+  mockRenderBrowserPdf,
+  mockStorageDownload,
+} = vi.hoisted(() => ({
   mockBuildPressImageUrl: vi.fn(),
+  mockDbSelect: vi.fn(),
   mockRenderBrowserPdf: vi.fn(),
   mockStorageDownload: vi.fn(),
 }));
 
 vi.mock("../../src/services/browser-pdf.js", () => ({
   renderBrowserPdf: mockRenderBrowserPdf,
+}));
+vi.mock("../../src/db/connection.js", () => ({
+  db: { select: mockDbSelect },
 }));
 vi.mock("../../src/storage/index.js", () => ({
   storage: { download: mockStorageDownload },
@@ -75,6 +84,8 @@ const creator = {
   socialLinks: [] as const,
 };
 
+const libraryKey = `library/aa/${"a".repeat(64)}.png`;
+
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
@@ -92,6 +103,11 @@ const downloadResult = () => ok({
 
 describe("press PDF rendering", () => {
   beforeEach(() => {
+    mockDbSelect.mockReset().mockReturnValue({
+      from: () => ({
+        where: () => ({ limit: () => Promise.resolve([]) }),
+      }),
+    });
     mockRenderBrowserPdf.mockReset().mockResolvedValue(pdf);
     mockStorageDownload.mockReset().mockResolvedValue(downloadResult());
     mockBuildPressImageUrl.mockReset().mockImplementation((image, slot, width, height) => ({
@@ -142,12 +158,37 @@ describe("press PDF rendering", () => {
     expect(call.html).toContain("class=\"metric\">14.5k streams");
     expect(call.html).toContain("font-family:\"SNC Inter\"");
     expect(mockStorageDownload).toHaveBeenCalledWith(contentFixture.banner?.key);
+    expect(mockDbSelect).not.toHaveBeenCalled();
     expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
       contentFixture.banner,
       "banner",
       2250,
       750,
     );
+  });
+
+  it("uses stored dimensions for a library image without downloading its bytes", async () => {
+    mockDbSelect.mockReturnValueOnce({
+      from: () => ({
+        where: () => ({
+          limit: () => Promise.resolve([{ width: 3000, height: 1000 }]),
+        }),
+      }),
+    });
+    const banner = { key: libraryKey, alt: "Library hero" };
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...contentFixture, banner },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      theme: "dark",
+      brandColor: null,
+      orientation: "horizontal",
+    });
+
+    expect(mockDbSelect).toHaveBeenCalledOnce();
+    expect(mockStorageDownload).not.toHaveBeenCalled();
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 2250, 750);
   });
 
   it("renders the locked vertical one-sheet with one-paragraph bio and creator URL", async () => {

@@ -1,12 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
-import { createElement, type ReactElement } from "react";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { imageSize } from "image-size";
+import { eq } from "drizzle-orm";
+import { createElement, type ReactElement } from "react";
 import QRCode from "qrcode";
 
-import { isLibraryAssetKey, isOwnedPressKey, ValidationError } from "@snc/shared";
+import {
+  isLibraryAssetKey,
+  isOwnedPressKey,
+  MAX_FILE_SIZES,
+  ValidationError,
+} from "@snc/shared";
 import type {
   CreatorBrandColor,
   PressContent,
@@ -15,6 +20,9 @@ import type {
   SocialLink,
 } from "@snc/shared";
 
+import { db } from "../db/connection.js";
+import { contentBlobs } from "../db/schema/library.schema.js";
+import { detectImage } from "../lib/image-detect.js";
 import { buildPressImageUrl } from "../lib/imgproxy.js";
 import { rootLogger } from "../logging/logger.js";
 import { storage } from "../storage/index.js";
@@ -151,17 +159,63 @@ type PrintImageSpec = {
   readonly height: number;
 };
 
+type ImageDimensions = {
+  width: number;
+  height: number;
+};
+
 const readImageBuffer = async (key: string): Promise<Buffer> => {
   const result = await storage.download(key);
   if (!result.ok) throw result.error;
+  if (result.value.size > MAX_FILE_SIZES.image) {
+    await result.value.stream.cancel();
+    throw new ValidationError("Image exceeds the configured size limit");
+  }
+
   const reader = result.value.stream.getReader();
   const chunks: Uint8Array[] = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_FILE_SIZES.image) {
+        await reader.cancel();
+        throw new ValidationError("Image exceeds the configured size limit");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
-  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), size);
+};
+
+const loadPrintImageDimensions = async (key: string): Promise<ImageDimensions> => {
+  if (isLibraryAssetKey(key)) {
+    const [stored] = await db
+      .select({ width: contentBlobs.width, height: contentBlobs.height })
+      .from(contentBlobs)
+      .where(eq(contentBlobs.storageKey, key))
+      .limit(1);
+    if (
+      !stored
+      || stored.width === null
+      || stored.height === null
+      || stored.width <= 0
+      || stored.height <= 0
+    ) {
+      throw new ValidationError("Image dimensions are unavailable");
+    }
+    return { width: stored.width, height: stored.height };
+  }
+
+  const detected = detectImage(await readImageBuffer(key));
+  if (!detected?.width || !detected.height) {
+    throw new ValidationError("Image dimensions are unavailable");
+  }
+  return { width: detected.width, height: detected.height };
 };
 
 const retainedCropDimensions = (
@@ -186,8 +240,7 @@ const resolvePrintImageUrl = async (
 ): Promise<string | null> => {
   if (!image || (!isOwnedPressKey(image.key, creatorId) && !isLibraryAssetKey(image.key))) return null;
   try {
-    const dimensions = imageSize(await readImageBuffer(image.key));
-    if (!dimensions.width || !dimensions.height) throw new Error("Image dimensions are unavailable");
+    const dimensions = await loadPrintImageDimensions(image.key);
     const retained = retainedCropDimensions(dimensions.width, dimensions.height, image, target);
     if (retained.width < target.width || retained.height < target.height) {
       rootLogger.warn({

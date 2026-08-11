@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { eq } from "drizzle-orm";
-import { imageSize } from "image-size";
 import { describe, expect, it } from "vitest";
 
 import type { PressContent } from "@snc/shared";
@@ -20,6 +19,7 @@ import {
   contentAssets,
   contentBlobs,
 } from "../../src/db/schema/library.schema.js";
+import { detectImage } from "../../src/lib/image-detect.js";
 import { contentMediaRoutes } from "../../src/routes/content-media.routes.js";
 import { creatorMediaRoutes } from "../../src/routes/creator-media.routes.js";
 import { pressRoutes } from "../../src/routes/press.routes.js";
@@ -58,9 +58,9 @@ const expectRenderedImage = async (url: string): Promise<void> => {
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toMatch(/^image\//);
   const rendered = new Uint8Array(await response.arrayBuffer());
-  const dimensions = imageSize(rendered);
-  expect(dimensions.width).toBeGreaterThan(0);
-  expect(dimensions.height).toBeGreaterThan(0);
+  const detected = detectImage(rendered);
+  expect(detected?.width).toBeGreaterThan(0);
+  expect(detected?.height).toBeGreaterThan(0);
 };
 
 describe("content-library surface migration", () => {

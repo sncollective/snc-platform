@@ -61,6 +61,7 @@ const asset = {
 
 const joined = { asset, blob, grantedAssetId: null };
 const selectQueue: unknown[][] = [];
+const insertedRows: { table: unknown; values: Record<string, unknown> }[] = [];
 let insertedBlob = blob;
 let insertedAsset = asset;
 let failAssetInsert = false;
@@ -82,6 +83,7 @@ const setupService = async () => {
 beforeEach(() => {
   vi.resetAllMocks();
   selectQueue.length = 0;
+  insertedRows.length = 0;
   insertedBlob = blob;
   insertedAsset = asset;
   failAssetInsert = false;
@@ -99,8 +101,9 @@ beforeEach(() => {
   }));
 
   mockInsert.mockImplementation((table) => ({
-    values: () =>
-      table === contentBlobs
+    values: (values: Record<string, unknown>) => {
+      insertedRows.push({ table, values });
+      return table === contentBlobs
         ? {
             onConflictDoUpdate: () => ({ returning: () => Promise.resolve([insertedBlob]) }),
           }
@@ -111,7 +114,8 @@ beforeEach(() => {
                   ? Promise.reject(new Error("registration insert failed"))
                   : Promise.resolve([insertedAsset]),
             }),
-          },
+          };
+    },
   }));
 
   mockUpdate.mockReturnValue({
@@ -147,6 +151,11 @@ describe("library service upload and inventory", () => {
       expect.any(ReadableStream),
       expect.objectContaining({ contentType: "image/png" }),
     );
+    expect(insertedRows.find((row) => row.table === contentBlobs)?.values).toMatchObject({
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+    });
   });
 
   it("uses one content-addressed key for identical bytes despite declared MIME relabeling", async () => {

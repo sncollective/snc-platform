@@ -182,7 +182,12 @@ describe("content library integration", () => {
     if (!privateUpload.ok) return;
 
     const privateAsset = privateUpload.value.asset;
-    expect(privateAsset.useStatus).toBe("own");
+    expect(privateAsset).toMatchObject({
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+      useStatus: "own",
+    });
     expect(await canUseAsset(ownerActor, privateAsset.storageKey)).toBe(true);
     expect(await canUseAsset(granteeActor, privateAsset.storageKey)).toBe(false);
     expect(await getLibraryAsset(granteeActor, privateAsset.id)).toMatchObject({ ok: false });
