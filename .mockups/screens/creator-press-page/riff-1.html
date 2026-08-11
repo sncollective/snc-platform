@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animal Future Press — Riff 1: Editorial column</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; scroll-behavior: smooth; }
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font: var(--font-size-base)/var(--line-height-relaxed) var(--font-ui); }
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { color: var(--color-accent-hover); }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+    .mock-meta { padding: 8px 16px; background: var(--color-media-bg); display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; font: 13px/1.4 var(--font-ui); border-bottom: 1px solid var(--color-border); }
+    .mock-meta strong { font-weight: var(--font-weight-semibold); }
+    .mock-meta span, .mock-meta code { color: var(--color-text-muted); }
+    .mock-meta code { margin-left: auto; font-size: 11px; }
+    .download-pin { position: fixed; right: var(--space-lg); bottom: var(--space-lg); z-index: var(--z-sticky); min-height: 48px; display: inline-flex; align-items: center; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-media-bg); box-shadow: var(--shadow-xl); font-weight: var(--font-weight-bold); }
+    .download-pin:hover { background: var(--color-accent-hover); color: var(--color-media-bg); transform: translateY(-2px); }
+    .hero { position: relative; aspect-ratio: 3 / 1; min-height: 230px; max-height: 500px; isolation: isolate; overflow: hidden; }
+    .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+    .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, var(--color-overlay-dark), transparent 72%), linear-gradient(to top, var(--color-overlay-dark), transparent 56%); }
+    .wordmark { position: absolute; inset: auto var(--space-layout-fluid) var(--space-xl); display: flex; align-items: end; justify-content: space-between; gap: var(--space-xl); }
+    h1 { margin: 0; font: var(--font-weight-normal) clamp(3.5rem, 10vw, 8.5rem)/.78 var(--font-heading); letter-spacing: -.065em; }
+    .hero-facts { padding-bottom: var(--space-sm); text-align: right; font-size: var(--font-size-sm); }
+    .hero-facts span { display: block; }
+    .hero-facts span:first-child { color: var(--color-secondary); font-weight: var(--font-weight-bold); }
+    .editorial { width: min(100% - 2rem, 860px); margin: 0 auto; padding: clamp(2.5rem, 6vw, 5rem) 0; }
+    .kicker { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .15em; text-transform: uppercase; }
+    .lead { margin: var(--space-md) 0 0; font: var(--font-weight-normal) var(--font-size-xl-fluid)/1.55 var(--font-heading); }
+    .toggle { margin-top: var(--space-lg); padding: .65rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: transparent; color: var(--color-text); cursor: pointer; font: var(--font-weight-semibold) var(--font-size-sm)/1 var(--font-ui); }
+    .toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .long-bio { color: var(--color-text-muted); }
+    .long-bio[hidden] { display: none; }
+    .fans { margin: var(--space-xl) 0 var(--space-2xl); display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-sm); }
+    .fans b { margin-right: var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); letter-spacing: .12em; text-transform: uppercase; }
+    .pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+    .release { margin: 0 0 var(--space-2xl); padding: clamp(1.5rem, 4vw, 2.5rem); display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-xl); background: var(--color-bg-elevated); border-left: 5px solid var(--color-accent); }
+    .release h2 { margin: .35rem 0; font: var(--font-weight-normal) var(--font-size-3xl-fluid)/1 var(--font-heading); }
+    .release p { margin: .35rem 0; color: var(--color-text-muted); }
+    .catalog { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .12em; text-transform: uppercase; }
+    .metric { color: var(--color-accent); font: var(--font-size-2xl-fluid)/1.1 var(--font-heading); }
+    .section-title { margin: 0 0 var(--space-md); color: var(--color-text-muted); font-size: var(--font-size-xs); letter-spacing: .15em; text-transform: uppercase; }
+    .dates { margin: 0 0 var(--space-2xl); border-top: 1px solid var(--color-border); }
+    .date { display: grid; grid-template-columns: 112px 1.2fr 1fr auto; gap: var(--space-md); align-items: center; padding: .9rem 0; border-bottom: 1px solid var(--color-border); }
+    .date time { font-weight: var(--font-weight-bold); color: var(--color-secondary); }
+    .date .city { color: var(--color-text-muted); }
+    .date a { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+    .more { display: inline-block; margin-top: var(--space-sm); font-size: var(--font-size-sm); }
+    .services { margin-bottom: var(--space-2xl); display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .service { min-height: 44px; padding: .65rem .85rem; display: inline-flex; align-items: center; gap: .55rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text); font-size: var(--font-size-sm); }
+    .service:hover { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+    .service svg { width: 19px; height: 19px; fill: currentColor; flex: none; }
+    .photos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); }
+    .photos figure { margin: 0; aspect-ratio: 1; position: relative; overflow: hidden; background: var(--color-bg-elevated); }
+    .photos img { width: 100%; height: 100%; object-fit: cover; }
+    .photos figcaption { position: absolute; inset: auto var(--space-sm) var(--space-sm); width: max-content; padding: .3rem .55rem; background: var(--color-overlay-dark); font-size: var(--font-size-xs); }
+    footer { width: min(100% - 2rem, var(--content-max-width)); margin: 0 auto; padding: var(--space-xl) 0 clamp(6rem, 10vw, 8rem); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-lg); border-top: 1px solid var(--color-border); color: var(--color-text-muted); }
+    footer .pdf { padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); }
+    @media (max-width: 700px) {
+      .mock-meta { flex-direction: column; gap: 2px; } .mock-meta code { margin-left: 0; }
+      .hero { min-height: 260px; } .wordmark { display: block; } h1 { font-size: clamp(3.2rem, 18vw, 6rem); }
+      .hero-facts { margin-top: var(--space-md); text-align: left; } .release { grid-template-columns: 1fr; }
+      .date { grid-template-columns: 90px 1fr auto; } .date .city { grid-column: 2; }
+      .photos { gap: var(--space-sm); } .download-pin { right: var(--space-md); bottom: var(--space-md); }
+    }
+    @page { size: letter portrait; margin: .35in .5in; }
+    @media print {
+      html { color-scheme: dark; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8.5pt; }
+      .mock-meta, .download-pin { display: none; } .hero { width: 7.5in; height: 2.5in; min-height: 0; }
+      .wordmark { bottom: .2in; } h1 { font-size: 60pt; } .editorial { width: 7.5in; padding: .18in 0 0; }
+      .lead { font-size: 11pt; line-height: 1.3; } .toggle, .long-bio { display: none; } .fans { margin: .08in 0 .12in; gap: .05in; }
+      .pill { padding: .02in .08in; } .release { margin-bottom: .12in; padding: .12in; } .release h2 { font-size: 17pt; }
+      .dates { margin-bottom: .1in; } .date { padding: .035in 0; line-height: 1.25; } .services { margin-bottom: .12in; gap: .05in; }
+      .service { min-height: 0; padding: .04in .08in; } .service svg { width: 12px; height: 12px; }
+      .photos { gap: .25in; } .photos figure { width: 3.5in; height: 3.5in; }
+      footer { width: 7.5in; padding: .09in 0 0; font-size: 8pt; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Riff 1 — Editorial column</strong><span>A spacious magazine read moves from story to proof, then lets the approved photography close the pitch.</span><code>/* image min: banner 1500×500 (3:1) · photos 1000×1000 · max banner 3000 / photos 2000 */</code></header>
+  <a class="download-pin" href="#pdf">One-pager PDF ↓</a>
+  <main>
+    <section class="hero" aria-labelledby="band-name"><img src="https://picsum.photos/seed/af-banner/1500/500" alt="Animal Future press banner placeholder"><div class="wordmark"><h1 id="band-name">Animal Future</h1><div class="hero-facts"><span>Fort Collins, CO</span><span>Socially conscious punk / alt-rock</span></div></div></section>
+    <article class="editorial">
+      <section aria-labelledby="about-label"><span class="kicker" id="about-label">The band</span><p class="lead">Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams.</p><button class="toggle" type="button" aria-expanded="false" aria-controls="long-bio-1">Read more +</button><p class="long-bio" id="long-bio-1" hidden>Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. With raw energy and socially conscious grit reminiscent of IDLES, their sound moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability. Think Modest Mouse, Pixies, and Yeah Yeah Yeahs, with a female vocalist who can belt Paramore-level power or let loose raw, unapologetic screams. Known for their sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion—for people and the planet.</p></section>
+      <div class="fans"><b>For fans of</b><span class="pill">IDLES</span><span class="pill">Radiohead</span><span class="pill">Modest Mouse</span><span class="pill">Pixies</span><span class="pill">Yeah Yeah Yeahs</span><span class="pill">Paramore</span></div>
+      <section class="release" aria-label="Current music"><div><span class="catalog">Now · SNCR-001</span><h2>The Illusionist</h2><p>First single · Aug 6, 2026</p><p>Debut LP <em>Survived By</em> arrives March 2027.</p></div><div><span class="catalog">Standout track</span><h2>Get to You</h2><div class="metric">~14.5k streams</div><p>and climbing</p></div></section>
+      <section aria-labelledby="live-heading"><h2 class="section-title" id="live-heading">Live dates · via Bandsintown</h2><div class="dates">
+        <div class="date"><time datetime="2026-09-12">Sep 12, 2026</time><strong>The Mishawaka</strong><span class="city">Bellvue, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div>
+        <div class="date"><time datetime="2026-10-03">Oct 3, 2026</time><strong>Aggie Theatre</strong><span class="city">Fort Collins, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div>
+        <div class="date"><time datetime="2026-10-24">Oct 24, 2026</time><strong>Hi-Dive</strong><span class="city">Denver, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div>
+        <div class="date"><time datetime="2026-11-14">Nov 14, 2026</time><strong>The Black Sheep</strong><span class="city">Colorado Springs, CO</span><a href="https://www.bandsintown.com/" target="_blank" rel="noopener">Tickets ↗</a></div>
+      </div><a class="more" href="https://www.bandsintown.com/" target="_blank" rel="noopener">More on Bandsintown ↗</a></section>
+      <section aria-labelledby="listen-heading"><h2 class="section-title" id="listen-heading">Listen / watch</h2><div class="services">
+        <a class="service" href="https://open.spotify.com/" target="_blank" rel="noopener" aria-label="Listen on Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>Spotify</a>
+        <a class="service" href="https://music.apple.com/" target="_blank" rel="noopener" aria-label="Listen on Apple Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726A10.496 10.496 0 0018.009.002H5.986C5.07.06 4.133.1 3.338.428 1.18 1.284.067 3.13.01 5.796L0 18.112c.07 2.356.78 4.54 3.758 5.598.96.34 1.96.288 2.96.288h11.03c3.18 0 5.08-1.07 5.746-3.117.47-1.07.507-2.27.506-3.36l-.006-11.397zm-6.423 3.99v5.712c0 1.22-.54 2.05-1.632 2.346-1.62.44-2.83-.32-3.013-1.363-.17-.98.4-1.77 1.038-2.022.75-.3 1.9-.3 2.162-.564.39-.39.52-.28.52-1.91V8.07c0-.35-.13-.47-.33-.42L9.81 8.96c-.28.08-.38.2-.39.49v7.805c0 1.25-.53 2.11-1.65 2.46-1.68.5-2.8-.32-2.95-1.25-.14-.81.23-1.69 1.15-2.08.67-.28 1.47-.3 1.97-.49.57-.22.6-.5.6-1.2V6.18c0-.44.2-.65.59-.75l7.62-1.54c.51-.1.82.15.82.7v5.524z"/></svg>Apple Music</a>
+        <a class="service" href="https://music.amazon.com/" target="_blank" rel="noopener" aria-label="Listen on Amazon Music"><svg viewBox="0 0 24 24" aria-hidden="true"><text x="3.2" y="15.4" font-size="17" font-weight="700" font-family="Arial,sans-serif" fill="currentColor">a</text><path d="M4.5 18.1c4.1 2.8 10.4 3.1 14.9.2.7-.45 1.35.43.63.98-4.13 3.22-10.72 3.45-15.91-.1-.72-.5-.35-1.58.38-1.08zm14.45-.85c.62-.07 1.97-.24 2.21.08.24.31-.27 1.65-.5 2.27-.08.19.09.27.27.12 1.18-.99 1.49-3.07 1.25-3.37-.24-.29-2.36-.55-3.62.34-.2.14-.16.35.09.32l.8-.1z"/></svg>Amazon Music</a>
+        <a class="service" href="https://www.youtube.com/" target="_blank" rel="noopener" aria-label="Watch on YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>YouTube</a>
+        <a class="service" href="https://animalfuture.bandcamp.com/" target="_blank" rel="noopener" aria-label="Listen on Bandcamp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M0 18.75l7.437-13.5H24l-7.438 13.5H0z"/></svg>Bandcamp</a>
+      </div></section>
+      <section class="photos" aria-label="Approved press photography"><figure><img src="https://picsum.photos/seed/af-photo1/1000/1000" alt="Animal Future approved press photo one placeholder"><figcaption>01 · approved press photo</figcaption></figure><figure><img src="https://picsum.photos/seed/af-photo2/1000/1000" alt="Animal Future approved press photo two placeholder"><figcaption>02 · approved press photo</figcaption></figure></section>
+    </article>
+  </main>
+  <footer><span>Animal Future · Fort Collins, CO</span><span>Press contact · <a href="mailto:press@s-nc.org">press@s-nc.org</a></span><a class="pdf" id="pdf" href="#pdf">Download one-pager (PDF) ↓</a></footer>
+  <script>const toggle=document.querySelector('.toggle');const bio=document.querySelector('#long-bio-1');toggle.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!open));bio.hidden=open;toggle.textContent=open?'Read more +':'Close bio −';});</script>
+</body>
+</html>

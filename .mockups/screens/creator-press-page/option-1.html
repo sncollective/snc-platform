@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animal Future Press — Option 1: Editorial / magazine</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; scroll-behavior: smooth; }
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font: var(--font-size-base)/var(--line-height-relaxed) var(--font-ui); }
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { color: var(--color-accent-hover); }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+    .mock-meta { padding: 8px 16px; background: var(--color-media-bg); color: var(--color-text); display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 var(--font-ui); border-bottom: 1px solid var(--color-border); }
+    .mock-meta strong { font-weight: var(--font-weight-semibold); }
+    .mock-meta span { color: var(--color-text-muted); }
+    .hero { position: relative; min-height: min(71vw, 680px); display: flex; align-items: end; isolation: isolate; overflow: hidden; }
+    .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+    .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, var(--color-bg) 2%, var(--color-overlay-dark) 50%, transparent 82%); }
+    .hero-copy { width: min(100% - 2 * var(--space-layout-fluid), var(--content-max-width)); margin: 0 auto; padding: var(--space-2xl) 0; }
+    .kicker, .eyebrow { color: var(--color-secondary); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3 { font-family: var(--font-heading); line-height: var(--line-height-tight); }
+    h1 { margin: var(--space-sm) 0 var(--space-md); max-width: 9ch; font-size: clamp(3.8rem, 11vw, 9rem); font-weight: var(--font-weight-normal); letter-spacing: -.055em; }
+    .identity { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); color: var(--color-text-muted); }
+    .shell { max-width: var(--content-max-width); margin: 0 auto; padding: var(--space-section-fluid) var(--space-layout-fluid); }
+    .intro-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(230px, .8fr); gap: clamp(var(--space-xl), 7vw, 6rem); align-items: start; }
+    .lead { margin: 0; font-family: var(--font-heading); font-size: clamp(1.45rem, 2.8vw, 2.35rem); line-height: 1.38; }
+    .bio-more { margin-top: var(--space-lg); color: var(--color-text-muted); max-width: 68ch; }
+    .bio-more[hidden] { display: none; }
+    .toggle { margin-top: var(--space-md); padding: var(--space-sm) 0; background: none; color: var(--color-accent); border: 0; border-bottom: 1px solid var(--color-accent); font: var(--font-weight-semibold) var(--font-size-sm)/1 var(--font-ui); cursor: pointer; }
+    .side-note { padding-top: var(--space-sm); border-top: 1px solid var(--color-border); }
+    .side-note h2 { margin: 0 0 var(--space-md); font: var(--font-weight-semibold) var(--font-size-xs)/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--color-text-muted); }
+    .pills { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .pill { padding: var(--space-xs) var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); font-size: var(--font-size-sm); }
+    .feature { margin: clamp(3rem, 8vw, 7rem) 0; display: grid; grid-template-columns: 1.25fr 1fr; background: var(--color-bg-elevated); border-top: 3px solid var(--color-accent); box-shadow: var(--shadow-lg); }
+    .feature > div { padding: clamp(var(--space-lg), 4vw, var(--space-2xl)); }
+    .feature > div + div { border-left: 1px solid var(--color-border); }
+    .feature h2 { margin: var(--space-sm) 0; font-size: clamp(2.1rem, 5vw, 4.8rem); font-weight: var(--font-weight-normal); }
+    .feature h3 { margin: var(--space-sm) 0; font-size: var(--font-size-2xl-fluid); }
+    .feature p { color: var(--color-text-muted); }
+    .date { color: var(--color-secondary); font-weight: var(--font-weight-semibold); }
+    .stream-count { display: block; margin-top: var(--space-lg); color: var(--color-accent); font-family: var(--font-heading); font-size: var(--font-size-3xl-fluid); }
+    .resources { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(var(--space-xl), 6vw, 5rem); align-items: start; }
+    .resources h2, .photos h2 { margin: 0 0 var(--space-lg); font-size: var(--font-size-2xl-fluid); }
+    .link-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-border); }
+    .link-list a { min-height: 52px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+    .link-list a::after { content: "↗"; color: var(--color-accent); }
+    .live-card { padding: var(--space-xl); background: var(--color-secondary-bg); border-left: 3px solid var(--color-secondary); }
+    .live-card h3 { margin: 0 0 var(--space-sm); font-size: var(--font-size-xl-fluid); }
+    .photos { margin-top: clamp(4rem, 10vw, 9rem); }
+    .photo-grid { display: grid; grid-template-columns: 1.35fr .85fr; gap: var(--space-lg); align-items: end; }
+    figure { margin: 0; }
+    figure img { width: 100%; display: block; object-fit: cover; background: var(--color-bg-elevated); }
+    figure:first-child img { aspect-ratio: 4 / 5; }
+    figure:last-child img { aspect-ratio: 1; }
+    figcaption { margin-top: var(--space-sm); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    footer { margin-top: clamp(4rem, 10vw, 8rem); border-top: 1px solid var(--color-border); }
+    .footer-inner { max-width: var(--content-max-width); margin: auto; padding: var(--space-xl) var(--space-layout-fluid); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-lg); color: var(--color-text-muted); }
+    .footer-actions { display: flex; flex-wrap: wrap; gap: var(--space-lg); }
+    @media (max-width: 767px) {
+      .mock-meta { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .hero { min-height: 72vh; }
+      .intro-grid, .feature, .resources { grid-template-columns: 1fr; }
+      .feature > div + div { border-left: 0; border-top: 1px solid var(--color-border); }
+      .photo-grid { grid-template-columns: 1fr; }
+      .photo-grid figure:last-child { width: 76%; margin-left: auto; margin-top: calc(-1 * var(--space-2xl)); border: var(--space-sm) solid var(--color-bg); }
+    }
+  </style>
+</head>
+<body>
+  <header class="mock-meta"><strong>Option 1 — Editorial / magazine</strong><span>A publication-like lead story with dramatic type, editorial pacing, and one concise information block.</span></header>
+  <main>
+    <section class="hero" aria-labelledby="band-name">
+      <img src="https://picsum.photos/seed/af-banner/1600/600" alt="Animal Future press banner placeholder">
+      <div class="hero-copy">
+        <div class="kicker">Press kit · 2026</div>
+        <h1 id="band-name">Animal Future</h1>
+        <div class="identity"><span>Fort Collins, CO</span><span>Socially conscious punk / alt-rock</span></div>
+      </div>
+    </section>
+
+    <div class="shell">
+      <section class="intro-grid" aria-label="Biography">
+        <div>
+          <p class="lead">Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams. For fans of IDLES, Modest Mouse, and Pixies.</p>
+          <button class="toggle" type="button" aria-expanded="false" aria-controls="long-bio">Read the full story ↓</button>
+          <p class="bio-more" id="long-bio" hidden>Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. With raw energy and socially conscious grit reminiscent of IDLES, their sound moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability. Think Modest Mouse, Pixies, and Yeah Yeah Yeahs, with a female vocalist who can belt Paramore-level power or let loose raw, unapologetic screams. Known for their sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion—for people and the planet.</p>
+        </div>
+        <aside class="side-note">
+          <h2>For fans of</h2>
+          <div class="pills"><span class="pill">IDLES</span><span class="pill">Radiohead</span><span class="pill">Modest Mouse</span><span class="pill">Pixies</span><span class="pill">Yeah Yeah Yeahs</span><span class="pill">Paramore</span></div>
+        </aside>
+      </section>
+
+      <section class="feature" aria-label="Featured music">
+        <div>
+          <span class="eyebrow">Now · first single</span>
+          <h2>The Illusionist</h2>
+          <p>First single from debut LP <em>Survived By</em>.</p>
+          <p class="date">Out Aug 6, 2026 · LP March 2027</p>
+        </div>
+        <div>
+          <span class="eyebrow">Track to know</span>
+          <h3>Get to You</h3>
+          <p>The song already finding its audience.</p>
+          <span class="stream-count">~14.5k <small>streams and climbing</small></span>
+        </div>
+      </section>
+
+      <section class="resources">
+        <div>
+          <h2>Listen / watch</h2>
+          <ul class="link-list">
+            <li><a href="#spotify">Spotify</a></li><li><a href="#apple">Apple Music</a></li><li><a href="#amazon">Amazon Music</a></li><li><a href="#youtube">YouTube</a></li><li><a href="#bandcamp">Bandcamp</a></li>
+          </ul>
+        </div>
+        <aside class="live-card"><span class="eyebrow">On stage</span><h3>Live dates</h3><p>Upcoming shows and ticket links are kept current on Bandsintown.</p><a href="#bandsintown">See Animal Future live ↗</a></aside>
+      </section>
+
+      <section class="photos">
+        <span class="eyebrow">Press photography</span><h2>Animal Future, 2026</h2>
+        <div class="photo-grid">
+          <figure><img src="https://picsum.photos/seed/af-photo1/800/800" alt="Animal Future press photo one placeholder"><figcaption>Press photo 01 · high-resolution download</figcaption></figure>
+          <figure><img src="https://picsum.photos/seed/af-photo2/800/800" alt="Animal Future press photo two placeholder"><figcaption>Press photo 02 · high-resolution download</figcaption></figure>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer><div class="footer-inner"><span>Animal Future · Fort Collins, CO</span><div class="footer-actions"><a href="#pdf">Download one-pager (PDF) ↓</a><a href="mailto:press@s-nc.org">press@s-nc.org</a></div></div></footer>
+  <script>
+    const toggle = document.querySelector('.toggle');
+    const bio = document.querySelector('#long-bio');
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      bio.hidden = open;
+      toggle.textContent = open ? 'Read the full story ↓' : 'Close the full story ↑';
+    });
+  </script>
+</body>
+</html>

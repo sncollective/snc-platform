@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animal Future EPK — Magazine body comparison</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; }
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font: var(--font-size-sm)/var(--line-height-normal) var(--font-ui); }
+    header { min-height: 74px; padding: var(--space-md) var(--space-lg); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm); border-bottom: 1px solid var(--color-border); }
+    h1 { margin: 0; font: var(--font-weight-normal) var(--font-size-xl-fluid)/1.2 var(--font-heading); }
+    header p { margin: 0; color: var(--color-text-muted); }
+    .grid { height: calc(100vh - 75px); padding: var(--space-sm); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm); }
+    .cell { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
+    .cell h2 { margin: 0; min-height: 52px; padding: var(--space-sm) var(--space-md); display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); color: var(--color-text); font: var(--font-weight-semibold) var(--font-size-xs)/1.3 var(--font-ui); letter-spacing: var(--letter-spacing-wide); }
+    .cell h2 span span { display: block; margin-top: 2px; color: var(--color-text-muted); font-weight: var(--font-weight-normal); }
+    .cell a { color: var(--color-accent); text-decoration: none; white-space: nowrap; }
+    .cell a:hover { color: var(--color-accent-hover); }
+    iframe { width: 100%; flex: 1; border: 0; background: var(--color-bg); }
+    @media (max-width: 980px) { header { align-items: flex-start; flex-direction: column; } .grid { height: auto; grid-template-columns: 1fr; } .cell { height: 78vh; } }
+  </style>
+</head>
+<body>
+  <header><h1>Animal Future EPK — magazine directions</h1><p>Locked frame: option-4 banner + footer · compare member treatment, highlights composition, and image threading</p></header>
+  <main class="grid">
+    <section class="cell"><h2><span>Mag 1 — Classic editorial<span>single-column profile · measured image rhythm</span></span><a href="mag-1.html" target="_blank" rel="noopener">open ↗</a></h2><iframe src="mag-1.html" title="Mag 1 — Classic editorial"></iframe></section>
+    <section class="cell"><h2><span>Mag 2 — Feature spread<span>image-forward bands · release as cover story</span></span><a href="mag-2.html" target="_blank" rel="noopener">open ↗</a></h2><iframe src="mag-2.html" title="Mag 2 — Feature spread"></iframe></section>
+    <section class="cell"><h2><span>Mag 3 — Two-column magazine<span>dense print grid · alternating image rail</span></span><a href="mag-3.html" target="_blank" rel="noopener">open ↗</a></h2><iframe src="mag-3.html" title="Mag 3 — Two-column magazine"></iframe></section>
+  </main>
+</body>
+</html>
