@@ -1,4 +1,4 @@
-http://localhost:3080 {
+:3080 {
 	handle /api/* {
 		reverse_proxy localhost:3000
 	}
@@ -19,7 +19,7 @@ http://localhost:3080 {
 	}
 }
 
-http://localhost:3082 {
+:3082 {
 	handle /api/* {
 		reverse_proxy localhost:3000
 	}
@@ -34,6 +34,6 @@ http://localhost:3082 {
 	}
 }
 
-http://localhost:3084 {
+:3084 {
 	reverse_proxy localhost:4321
 }

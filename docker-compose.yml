@@ -162,6 +162,17 @@ services:
       timeout: 5s
       retries: 3
 
+  # Caddy — official current image. (Debian apt pins Caddy at 2.6.2, which
+  # drops the vite dev server's chunked response bodies; the official image
+  # stays current — 2.11.x.) host networking so it reaches the pm2 services +
+  # host-published docker ports via localhost exactly as Caddyfile.dev specifies.
+  caddy:
+    image: caddy:2-alpine
+    network_mode: host
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    restart: unless-stopped
+
 volumes:
   snc-pgdata:
   snc-garage-meta:

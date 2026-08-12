@@ -11,8 +11,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 #    See .work/active/stories/dev-ssr-fetch-failed.md.
 node "$SCRIPT_DIR/check-undici-alignment.mjs"
 
-# 1. Start Caddy reverse proxy
-caddy start --config "$REPO_ROOT/Caddyfile.dev" 2>/dev/null || true
+# 1. Caddy reverse proxy — runs in Docker (official caddy image; see the
+#    `caddy` service in docker-compose.yml). Brought up by `docker compose up`
+#    in step 3. (Was a host apt-caddy 2.6.2 binary; it dropped the vite dev
+#    server's chunked responses, and Caddyfile.dev's host matcher broke LAN
+#    access — both fixed by the docker caddy + the host-matchers-removed
+#    Caddyfile.)
 
 # 2. Wait for Docker daemon (docker-in-docker takes a moment on container rebuild)
 for i in {1..30}; do
