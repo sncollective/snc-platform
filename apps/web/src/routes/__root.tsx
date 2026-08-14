@@ -1,7 +1,6 @@
 import {
   createRootRoute,
   HeadContent,
-  Outlet,
   Scripts,
 } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
@@ -11,6 +10,7 @@ import { useEffect } from "react";
 
 import { logClientError } from "../lib/client-logger.js";
 import { installGlobalErrorHandlers } from "../lib/global-error-handlers.js";
+import { RouteVoiceOutlet } from "../lib/route-voice/route-voice.js";
 import { APPEARANCE_BOOTSTRAP_SCRIPT } from "../lib/appearance/appearance-bootstrap.js";
 import { AppearanceControllerLifecycle } from "../lib/appearance/appearance.js";
 import { useRouteAnnouncer } from "../hooks/use-route-announcer.js";
@@ -120,7 +120,7 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
       >
         <GlobalPlayer />
         <div className={clsx(isLiveLayout && styles.outletColumn)}>
-          <Outlet />
+          <RouteVoiceOutlet />
           {isLiveLayout && !isTheater && <Footer />}
         </div>
         <div

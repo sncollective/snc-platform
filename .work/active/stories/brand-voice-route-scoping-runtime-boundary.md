@@ -1,14 +1,14 @@
 ---
 id: brand-voice-route-scoping-runtime-boundary
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-voice-route-scoping
 depends_on: [brand-token-architecture]
 release_binding: null
 gate_origin: null
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Brand voice — runtime route boundary and resolver
@@ -46,3 +46,15 @@ container and emits the resolved `data-route` identity (`parent`, `studio`, `tv`
 `brand-token-architecture-route-scoping-contract` owns the CSS alias blocks and their
 computed-style assertions. This story owns only runtime plumbing and its resolver/context
 surface; it must not implement CSS alias declarations or raw `--voice-*` usage.
+
+## Implementation notes
+
+- Added a pure trailing-slash-normalizing pathname resolver and typed route-voice context with
+  both `routeDefault` and the reserved `effectiveVoice` field. The portal attribute helper reads
+  context rather than re-solving the route.
+- Added an SSR-renderable transparent scope and a router-aware `RouteVoiceOutlet`; resolution is
+  render-time through `useRouterState`, with no client-only branch or effect.
+- Replaced only the root `Outlet` with `RouteVoiceOutlet`. The player, footer, navigation, bottom
+  bar, and chat portal target remain siblings outside the voiced inheritance boundary.
+- Direct-read implementation by one feature owner; focused resolver and server-render tests plus
+  the full web suite passed (`2004` tests).
