@@ -71,6 +71,16 @@
   color: var(--color-text);
 }
 
+/* Overlay badges sit on the thumbnail: guaranteed-contrast on-media treatment (scrim +
+   on-media ink) replaces the page-surface tint/text pairing — imagery can share a hue
+   with the badge or lack contrast, so mode-aware page ink guarantees nothing there.
+   The per-type border remains the category cue; the label text is the signal. Inline
+   badges (.badgeInline) keep the surface treatment above. */
+.badge:not(.badgeInline) {
+  background: var(--color-overlay-strong);
+  color: var(--color-on-media);
+}
+
 /* ── Lock Overlay ── */
 
 .lockOverlay {
