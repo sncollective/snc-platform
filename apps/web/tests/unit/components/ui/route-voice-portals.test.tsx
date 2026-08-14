@@ -88,6 +88,25 @@ describe("route voice portal primitives", () => {
     }
   });
 
+  it("repeats the identity at each nested portal root", () => {
+    const { container } = render(
+      <RouteVoiceScope routeDefault="records">
+        <PopoverContent>
+          <MenuContent>Nested menu</MenuContent>
+        </PopoverContent>
+      </RouteVoiceScope>,
+    );
+
+    expect(container.querySelector('[data-part="popover-positioner"]')).toHaveAttribute(
+      "data-route",
+      "records",
+    );
+    expect(container.querySelector('[data-part="menu-positioner"]')).toHaveAttribute(
+      "data-route",
+      "records",
+    );
+  });
+
   it("uses the explicit Parent fallback for shell-originated portals", () => {
     const { container } = render(<MenuContent>Shell menu</MenuContent>);
 

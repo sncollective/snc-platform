@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
+import { RouteVoiceScope } from "../../../src/lib/route-voice/route-voice.js";
 
 // ── Hoisted Mocks ──
 
@@ -67,14 +68,18 @@ describe("StudioPage", () => {
     expect(screen.getByRole("heading", { name: "Get in Touch" })).toBeInTheDocument();
   });
 
-  it("shows ComingSoon when booking feature is disabled", () => {
+  it("keeps the Coming Soon render inside the Studio route boundary", () => {
     mockIsFeatureEnabled.mockImplementation((flag: string) => flag !== "booking");
 
-    render(<StudioPage />);
+    render(
+      <RouteVoiceScope routeDefault="studio">
+        <StudioPage />
+      </RouteVoiceScope>,
+    );
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Studio — Coming Soon" }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1, name: "Studio — Coming Soon" });
+    expect(heading).toBeInTheDocument();
+    expect(heading.closest("[data-route]")).toHaveAttribute("data-route", "studio");
     expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
   });
 });

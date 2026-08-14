@@ -24,7 +24,7 @@ vi.mock("../../../src/components/layout/nav-bar.js", () => ({
 }));
 
 vi.mock("../../../src/components/layout/footer.js", () => ({
-  Footer: () => null,
+  Footer: () => <div data-testid="shell-footer">Footer</div>,
 }));
 
 vi.mock("../../../src/components/layout/demo-banner.js", () => ({
@@ -73,11 +73,15 @@ vi.mock("../../../src/components/upload/mini-upload-indicator.js", () => ({
 }));
 
 vi.mock("../../../src/components/media/global-player.js", () => ({
-  GlobalPlayer: () => null,
+  GlobalPlayer: () => <div data-testid="global-player">Player</div>,
 }));
 
 vi.mock("../../../src/routes/__root.module.css", () => ({
-  default: {},
+  default: {
+    outletColumn: "outlet-column",
+    chatPortal: "chat-target",
+    chatPortalHidden: "chat-target",
+  },
 }));
 
 vi.mock("../../../src/lib/config.js", () => ({
@@ -157,6 +161,24 @@ describe("RootLayout", () => {
       render(<RootLayout />);
       const main = screen.getByRole("main");
       expect(main).toHaveTextContent("Page content");
+    });
+
+    it("contains route voice on only the outlet boundary", () => {
+      const { container } = render(<RootLayout />);
+      const boundary = container.querySelector("[data-route]");
+      const player = screen.getByTestId("global-player");
+      const footer = screen.getByTestId("shell-footer");
+      const chatTarget = container.querySelector(".chat-target");
+
+      expect(boundary).toHaveAttribute("data-route", "parent");
+      expect(boundary).toHaveStyle({ display: "contents" });
+      expect(boundary).toContainElement(screen.getByTestId("outlet"));
+      expect(player).not.toHaveAttribute("data-route");
+      expect(footer).not.toHaveAttribute("data-route");
+      expect(chatTarget).not.toHaveAttribute("data-route");
+      expect(boundary).not.toContainElement(player);
+      expect(boundary).not.toContainElement(footer);
+      expect(boundary).not.toContainElement(chatTarget);
     });
   });
 
