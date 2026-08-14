@@ -64,6 +64,12 @@ describe("NavBar", () => {
     expect(logo).toHaveAttribute("href", "/");
   });
 
+  it("renders the permanent showcase signature", () => {
+    render(<NavBar />);
+
+    expect(screen.getByText("We boost the signal")).toBeInTheDocument();
+  });
+
   it("renders primary navigation links", () => {
     render(<NavBar />);
 

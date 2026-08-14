@@ -20,6 +20,12 @@
   padding: 0 var(--space-md);
 }
 
+.tagline {
+  font-family: var(--font-display-showcase);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
 .copyright {
   text-align: center;
   font-size: var(--font-size-xs);

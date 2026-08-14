@@ -47,6 +47,10 @@ const FONT_FILES = {
     fontPackageRoot("@fontsource/fragment-mono"),
     "files/fragment-mono-latin-400-normal.woff2",
   ),
+  frauncesRoman: resolve(
+    fontPackageRoot("@fontsource-variable/fraunces"),
+    "files/fraunces-latin-wght-normal.woff2",
+  ),
 } as const;
 
 const LATIN_EXT_FILES = {
@@ -73,6 +77,10 @@ const LATIN_EXT_FILES = {
   fragmentMono: resolve(
     fontPackageRoot("@fontsource/fragment-mono"),
     "files/fragment-mono-latin-ext-400-normal.woff2",
+  ),
+  fraunces: resolve(
+    fontPackageRoot("@fontsource-variable/fraunces"),
+    "files/fraunces-latin-ext-wght-normal.woff2",
   ),
 } as const;
 
@@ -108,6 +116,7 @@ describe("font loading contract", () => {
     expect(fontCss).toContain('@import "@fontsource-variable/saira/wght.css";');
     expect(fontCss).toContain('@import "@fontsource-variable/saira/wght-italic.css";');
     expect(fontCss).toContain('@import "@fontsource-variable/archivo/wght.css";');
+    expect(fontCss).toContain('@import "@fontsource-variable/fraunces/wght.css";');
     expect(fontCss).toContain('@import "@fontsource/barlow-condensed/400.css";');
     expect(fontCss).toContain('@import "@fontsource/barlow-condensed/700.css";');
     expect(fontCss).toContain('@import "@fontsource/fragment-mono/400.css";');
@@ -127,6 +136,7 @@ describe("font loading contract", () => {
     expect(typography).toContain('--font-display-tv: "Saira Variable", "Arial Narrow", Arial, sans-serif;');
     expect(typography).toContain('--font-body-records: "Archivo Variable", Arial, sans-serif;');
     expect(typography).toContain('--font-display-records: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;');
+    expect(typography).toContain('--font-display-showcase: "Fraunces Variable", Georgia, "Times New Roman", serif;');
     expect(typography).toContain('--font-mono: "Fragment Mono", "Cascadia Mono", "Liberation Mono", "Courier New", monospace;');
   });
 
@@ -148,6 +158,7 @@ describe("font loading contract", () => {
     ["Archivo Roman", FONT_FILES.archivoRoman],
     ["Barlow Condensed Roman", FONT_FILES.barlowRoman],
     ["Fragment Mono Roman", FONT_FILES.fragmentMonoRoman],
+    ["Fraunces Roman", FONT_FILES.frauncesRoman],
   ] as const)("reads real %s WOFF2 cmap for the middle-dot chip glyph", (_name, file) => {
     expect(cmap(file), `${file} should be a real WOFF2 font`).toBeTruthy();
     expect(cmapHas(cmap(file), 0x00b7), `${file} should cover U+00B7 (·)`).toBe(true);
@@ -160,6 +171,18 @@ describe("font loading contract", () => {
     for (const [family, file] of Object.entries(LATIN_EXT_FILES)) {
       expect(cmapHas(cmap(file), 0x010d), `${family} should cover U+010D (č)`).toBe(true);
     }
+  });
+
+  it("verifies the showcase number-sign fixture uses its named serif fallback", () => {
+    const showcaseFixture = "№ 01";
+    expect(showcaseFixture).toContain("№");
+    expect(cmapHas(cmap(FONT_FILES.frauncesRoman), 0x2116)).toBe(false);
+
+    const fallbackFile = execFileSync("fc-match", ["--format=%{file}", "Georgia"], {
+      encoding: "utf8",
+    });
+    expect(fallbackFile).toBeTruthy();
+    expect(cmapHas(cmap(fallbackFile), 0x2116)).toBe(true);
   });
 
   it("verifies the live-dot fixture uses the named fallback rather than an absent primary glyph", () => {

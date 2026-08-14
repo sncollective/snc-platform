@@ -16,6 +16,7 @@
   "dependencies": {
     "@ark-ui/react": "^5.35.0",
     "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/fraunces": "5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/saira": "^5.3.0",
     "@fontsource-variable/source-sans-3": "^5.3.0",

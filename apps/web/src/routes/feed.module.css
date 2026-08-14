@@ -6,3 +6,8 @@
   gap: var(--space-lg);
   animation: fadeIn 0.3s ease-out both;
 }
+
+.feedPage h1 {
+  font-family: var(--font-display-showcase);
+  font-weight: var(--font-weight-medium);
+}

@@ -67,8 +67,9 @@
 /* ── Name + Bio ── */
 
 .displayName {
-  font-family: var(--font-display);
+  font-family: var(--font-display-showcase);
   font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
   margin: var(--space-xs) 0 0 0;
 }
 

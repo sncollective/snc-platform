@@ -13,6 +13,7 @@
 @import "@fontsource-variable/saira/wght.css";
 @import "@fontsource-variable/saira/wght-italic.css";
 @import "@fontsource-variable/archivo/wght.css";
+@import "@fontsource-variable/fraunces/wght.css";
 
 /* Barlow Condensed has no variable Fontsource package; use its static 400–700
  * files until a variable package is published. Each file is Fontsource

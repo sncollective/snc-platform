@@ -7,7 +7,7 @@ export function Footer() {
     <footer className={styles.footer}>
       <hr className={styles.divider} />
       <div className={styles.content}>
-        <span>S/NC — A worker-cooperative platform</span>
+        <span className={styles.tagline}>S/NC — A worker-cooperative platform</span>
       </div>
       <div className={styles.copyright}>
         &copy; 2026 —{" "}

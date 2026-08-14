@@ -32,3 +32,11 @@
   background: var(--voice-records-accent2);
   color: var(--color-on-media);
 }
+
+.showcase {
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  color: var(--voice-parent-accent2);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.025em;
+}

@@ -14,12 +14,15 @@ const VOICE_CLASSES: Record<RouteVoice, string | undefined> = {
 export interface SignatureChipProps {
   readonly voice: RouteVoice;
   readonly children: React.ReactNode;
+  readonly variant?: "voice" | "showcase";
 }
 
 /** Render a voice-owned signature mark using that voice's secondary accent. */
 export function SignatureChip({
   voice,
   children,
+  variant = "voice",
 }: SignatureChipProps): React.ReactElement {
-  return <span className={`${styles.chip} ${VOICE_CLASSES[voice] ?? ""}`}>{children}</span>;
+  const showcaseClass = variant === "showcase" ? styles.showcase : "";
+  return <span className={`${styles.chip} ${VOICE_CLASSES[voice] ?? ""} ${showcaseClass ?? ""}`}>{children}</span>;
 }
