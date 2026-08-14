@@ -7,7 +7,7 @@ created: 2026-04-18
 
 > **Superseded 2026-08-13** — realized by the `brand-voice-system` epic
 > (`.work/active/epics/brand-voice-system.md`). The "designer onboarding" gate was
-> satisfied by org's brand-architecture work; the theme system is now in active design.
+> satisfied by org's brand-architecture work; the theme system is now complete.
 
 # Design System Phase 6 — Theme System (superseded)
 

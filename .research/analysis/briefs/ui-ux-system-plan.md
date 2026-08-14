@@ -17,7 +17,7 @@ Built for: 1 developer + AI agents now, human designer later.
 
 ### What's working
 
-- **Design tokens** — 40+ CSS custom properties in `global.css`. Colors, typography, spacing, radius, layout. Components reference tokens via `var()` consistently.
+- **Design tokens** — the production token layer under `apps/web/src/styles/tokens/` composes mode-aware neutral, status, state, media, data, voice, typography, spacing, elevation, motion, and layout roles. Components reference tokens via `var()` consistently.
 - **Form patterns** — shared `form.module.css` (120 lines), Zod validation with `extractFieldErrors()`, consistent field/label/error structure.
 - **Layout shell** — nav/sidebar/content. 1200px max-width. Sticky nav. Context-aware sidebar.
 - **Color discipline** — almost all colors through tokens. Minimal hardcoded values.
@@ -33,7 +33,6 @@ Built for: 1 developer + AI agents now, human designer later.
 - **Button variants** — only `primaryButton`. No secondary, outline, danger, ghost.
 - **Loading states** — each component invents its own. No shared spinner or skeleton.
 - **Toast notifications** — errors inline only. No transient feedback system.
-- **Light mode** — dark-only. No theme switching infrastructure.
 - **CSS duplication** — `.heading` defined 4 times. Card, section, badge patterns duplicated per feature.
 
 ---
@@ -140,9 +139,12 @@ Install `lucide-react`. Add icons to nav, buttons, status indicators, empty stat
 
 Add Ladle (component playground), `eslint-plugin-jsx-a11y`, `@axe-core/playwright`, Playwright visual regression.
 
-### Phase 6: Theme System (when designer joins)
+### Phase 6: Theme System (realized 2026-08-14)
 
-Light mode. Primitive color scales + semantic tokens. `[data-theme="dark"]` selector. Theme toggle in preferences.
+The `brand-voice-system` epic realized a mode-aware token architecture with light, dark, and
+system appearance control, route-default voice scoping, and voice-themed PDF exports. The
+user-selectable voice override remains deferred per org; token values remain placeholders
+pending stakeholder sign-off.
 
 ---
 
@@ -156,7 +158,7 @@ Light mode. Primitive color scales + semantic tokens. `[data-theme="dark"]` sele
 | 3: Responsive | Large (dedicated release) | Phase 0 |
 | 4: Icons | Small (1 session) | None |
 | 5: Testing | Medium (setup) | Phase 1 (10+ components) |
-| 6: Themes | Large | Designer |
+| 6: Themes | Realized in `brand-voice-system` | Stakeholder sign-off for final token values |
 
 ---
 

@@ -134,10 +134,11 @@ fg/bg + fg/elevated, both modes, base + hover + disabled + tint composites.
 `ui-ux-system-plan.md`), previously gated on designer onboarding — now unblocked by org's
 brand-architecture work. The backlog stub is superseded by this epic.
 
-Child 1 (`brand-token-architecture`) is in active design — categorization complete, gap
-adjudications resolved, token-layer decisions locked; the mapping table + conventions +
-mechanism design are the remaining brief deliverables. Children 2–4 are stubbed at drafting,
-awaiting their design passes once the foundation firms up.
+As of 2026-08-14, final state: all three child features are done and reviewed — token
+architecture (including all 7 stories), route scoping, and export theming. The user-selectable
+voice toggle remains deferred per org and parked as `brand-voice-user-toggle`. The residual
+`accent-bg-consumer-recipe-alignment` remains parked, and values remain placeholders pending
+the stakeholder swap.
 
 ## Child features reviewed and complete (2026-08-14)
 

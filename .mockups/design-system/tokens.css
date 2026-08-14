@@ -1,65 +1,439 @@
-/* S/NC platform design tokens — copied from apps/web/src/styles/tokens/*.css */
+/* S/NC platform design tokens — composed from apps/web/src/styles/tokens/index.css on 2026-08-14. */
+/* Source of truth is the production token tree; re-copy this mirror on drift. */
 
-/* ── Color Tokens ── */
+/* Font faces are production-side; mockups use system fallbacks. */
+
+/* ── Design System Token Composition ── */
+
+/* Canonical one-owner token files. Keep this order dependency-aware. */
+/* ── Shared Neutral Spine ── */
+
+:root,
+[data-theme="light"] {
+  --color-bg: #F5F1EA;
+  --color-bg-elevated: #FAF7F1;
+  --color-surface: #F8F5EF;
+  --color-bg-input: #EFEAE0;
+  --color-text: #1A1714;
+  --color-text-muted: #5E564A;
+  --color-border: #DDD7CC;
+}
+
+[data-theme="dark"] {
+  --color-bg: #121821;
+  --color-bg-elevated: #1C242F;
+  --color-surface: #182030;
+  --color-bg-input: #242E3C;
+  --color-text: #E8ECF2;
+  --color-text-muted: #8A94A6;
+  --color-border: #2C3644;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg: #121821;
+    --color-bg-elevated: #1C242F;
+    --color-surface: #182030;
+    --color-bg-input: #242E3C;
+    --color-text: #E8ECF2;
+    --color-text-muted: #8A94A6;
+    --color-border: #2C3644;
+  }
+}
+
+/* ── Shared Status Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-success: #2A722E;
+  --color-success-bg: #E0EDE0;
+  --color-warning: #8A5A00;
+  --color-warning-bg: #F0E6CC;
+  --color-error: #B71C1C;
+  --color-error-bg: #F8E0E0;
+  --color-info: #1565C0;
+  --color-info-bg: #E0EAF5;
+}
+
+[data-theme="dark"] {
+  --color-success: #66BB6A;
+  --color-success-bg: #1E2F2B;
+  --color-warning: #E6A820;
+  --color-warning-bg: #342F21;
+  --color-error: #FF7A70;
+  --color-error-bg: #312028;
+  --color-info: #6FB3F0;
+  --color-info-bg: #1C2A3A;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-success: #66BB6A;
+    --color-success-bg: #1E2F2B;
+    --color-warning: #E6A820;
+    --color-warning-bg: #342F21;
+    --color-error: #FF7A70;
+    --color-error-bg: #312028;
+    --color-info: #6FB3F0;
+    --color-info-bg: #1C2A3A;
+  }
+}
+
+/* ── Shared UI States ── */
+
+:root,
+[data-theme="light"] {
+  --color-focus: #0A5AB8;
+  --color-selected-bg: rgba(54, 64, 80, 0.1);
+  --color-hover-bg: rgba(0, 0, 0, 0.04);
+  --color-disabled: #9A948A;
+  --color-disabled-bg: #E8E3D9;
+}
+
+[data-theme="dark"] {
+  --color-focus: #5BA0F5;
+  --color-selected-bg: rgba(168, 178, 192, 0.16);
+  --color-hover-bg: rgba(255, 255, 255, 0.06);
+  --color-disabled: #4A4E58;
+  --color-disabled-bg: #1C1F26;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-focus: #5BA0F5;
+    --color-selected-bg: rgba(168, 178, 192, 0.16);
+    --color-hover-bg: rgba(255, 255, 255, 0.06);
+    --color-disabled: #4A4E58;
+    --color-disabled-bg: #1C1F26;
+  }
+}
+
+/* ── Shared Media Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-media-bg: #000000;
+  --color-on-media: #FFFFFF;
+  --color-on-media-muted: rgba(255, 255, 255, 0.82);
+  --color-media-border: rgba(255, 255, 255, 0.15);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay-weak: rgba(0, 0, 0, 0.3);
+  --color-overlay-strong: rgba(0, 0, 0, 0.7);
+  --color-media-guide: rgba(255, 255, 255, 0.24);
+}
+
+[data-theme="dark"] {
+  --color-media-bg: #000000;
+  --color-on-media: #FFFFFF;
+  --color-on-media-muted: rgba(255, 255, 255, 0.82);
+  --color-media-border: rgba(255, 255, 255, 0.15);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay-weak: rgba(0, 0, 0, 0.3);
+  --color-overlay-strong: rgba(0, 0, 0, 0.7);
+  --color-media-guide: rgba(255, 255, 255, 0.24);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-media-bg: #000000;
+    --color-on-media: #FFFFFF;
+    --color-on-media-muted: rgba(255, 255, 255, 0.82);
+    --color-media-border: rgba(255, 255, 255, 0.15);
+    --color-overlay: rgba(0, 0, 0, 0.5);
+    --color-overlay-weak: rgba(0, 0, 0, 0.3);
+    --color-overlay-strong: rgba(0, 0, 0, 0.7);
+    --color-media-guide: rgba(255, 255, 255, 0.24);
+  }
+}
+
+/* ── Shared Content Badge Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-badge-audio: #4A6B7A;
+  --color-badge-video: #5B9BD5;
+  --color-badge-written: #8A94A6;
+}
+
+[data-theme="dark"] {
+  --color-badge-audio: #5B8B9A;
+  --color-badge-video: #6BAFE5;
+  --color-badge-written: #9AA4B6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-badge-audio: #5B8B9A;
+    --color-badge-video: #6BAFE5;
+    --color-badge-written: #9AA4B6;
+  }
+}
+
 :root {
-  /* Primitives */
-  --color-bg: #1a1a2e;
-  --color-bg-elevated: #252542;
-  --color-bg-input: #2a2a4a;
-  --color-bg-hero-gradient: #1e1e36;
-  --color-text: #f0f0f0;
-  --color-text-muted: #a0a0b0;
-  --color-accent: #f5a623;
-  --color-accent-hover: #e09510;
-  --color-secondary: #5bb5b5;
-  --color-error: #ef5350;
-  --color-border: #3a3a5c;
-  --color-media-bg: #000;
-  --color-text-on-color: #fff;
+  /* Text-bearing badges use ordinary text over these low-strength category tints. */
+  --color-badge-audio-tint: color-mix(in srgb, var(--color-badge-audio) 18%, transparent);
+  --color-badge-video-tint: color-mix(in srgb, var(--color-badge-video) 18%, transparent);
+  --color-badge-written-tint: color-mix(in srgb, var(--color-badge-written) 18%, transparent);
+}
 
-  /* Semantic surfaces */
-  --color-surface: var(--color-bg-elevated);
-  --color-surface-hover: rgba(255, 255, 255, 0.05);
-  --color-bg-hover: rgba(255, 255, 255, 0.05);
+/* ── Data-Series Roles ── */
 
-  /* Semantic links */
-  --color-link: var(--color-accent);
-  --color-link-hover: var(--color-accent-hover);
+/*
+ * --color-data-* is platform-owned and admin-only.
+ * --color-chart-* is org-constrained and public-facing (emissions, revenue, member data).
+ * Semantic good/bad chart series may use --color-success/--color-error when the meaning is
+ * genuinely status-like; categorical series use only the chart palette.
+ */
+:root,
+[data-theme="light"] {
+  --color-data-1: #466B8A;
+  --color-data-2: #78608C;
+  --color-data-3: #8A6A44;
+  --color-data-4: #4F7870;
+  --color-data-5: #895D69;
+  --color-data-6: #687340;
 
-  /* Status backgrounds (10% tint) */
-  --color-error-bg: rgba(239, 83, 80, 0.1);
-  --color-success: #4caf50;
-  --color-success-bg: rgba(76, 175, 80, 0.1);
-  --color-accent-bg: rgba(245, 166, 35, 0.1);
-  --color-secondary-bg: rgba(91, 181, 181, 0.1);
+  --color-chart-1: #53439B;
+  --color-chart-2: #A87800;
+  --color-chart-3: #3F5E7E;
+  --color-chart-4: #7E3E78;
+  --color-chart-5: #77701C;
+  --color-chart-6: #A96543;
+  --color-chart-grid: #E5DFD4;
+  --color-chart-tooltip-bg: #FAF7F1;
+  --color-chart-tooltip-text: #1A1714;
+}
 
-  /* Subtle tints (15%) */
-  --color-accent-subtle: color-mix(in srgb, var(--color-accent) 15%, transparent);
-  --color-secondary-subtle: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+[data-theme="dark"] {
+  --color-data-1: #75A4C7;
+  --color-data-2: #A68ABB;
+  --color-data-3: #B99667;
+  --color-data-4: #7BA69D;
+  --color-data-5: #B58693;
+  --color-data-6: #99A56E;
 
-  /* Content type badges */
-  --color-badge-video-bg: rgba(245, 166, 35, 0.85);
-  --color-badge-audio-bg: rgba(91, 181, 181, 0.85);
-  --color-badge-written-bg: rgba(160, 160, 176, 0.6);
+  --color-chart-1: #9D8FE8;
+  --color-chart-2: #E8C24A;
+  --color-chart-3: #7FA3CC;
+  --color-chart-4: #C48EDC;
+  --color-chart-5: #C9C25E;
+  --color-chart-6: #E0A184;
+  --color-chart-grid: #26303F;
+  --color-chart-tooltip-bg: #1C242F;
+  --color-chart-tooltip-text: #E8ECF2;
+}
 
-  /* Overlay */
-  --overlay-lock: rgba(0, 0, 0, 0.6);
-  --color-overlay-dark: rgba(0, 0, 0, 0.7);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-data-1: #75A4C7;
+    --color-data-2: #A68ABB;
+    --color-data-3: #B99667;
+    --color-data-4: #7BA69D;
+    --color-data-5: #B58693;
+    --color-data-6: #99A56E;
 
-  --color-primary: var(--color-accent);
-  --color-primary-text: var(--color-text-on-color);
-  --color-primary-subtle: color-mix(in srgb, var(--color-primary) 15%, transparent);
-  --color-muted: var(--color-text-muted);
-  --color-text-on-accent: var(--color-text-on-color);
-  --color-text-secondary: var(--color-text-muted);
-  --color-bg-alt: var(--color-bg-elevated);
-  --color-warning: hsl(40 90% 55%);
+    --color-chart-1: #9D8FE8;
+    --color-chart-2: #E8C24A;
+    --color-chart-3: #7FA3CC;
+    --color-chart-4: #C48EDC;
+    --color-chart-5: #C9C25E;
+    --color-chart-6: #E0A184;
+    --color-chart-grid: #26303F;
+    --color-chart-tooltip-bg: #1C242F;
+    --color-chart-tooltip-text: #E8ECF2;
+  }
+}
+
+:root {
+  /* Calendar domain aliases derive from the mode-aware series above. */
+  --color-event-recording-bg: color-mix(in srgb, var(--color-data-1) 20%, transparent);
+  --color-event-recording-hover-bg: color-mix(in srgb, var(--color-data-1) 30%, transparent);
+  --color-event-show-bg: color-mix(in srgb, var(--color-data-2) 20%, transparent);
+  --color-event-album-bg: color-mix(in srgb, var(--color-data-3) 20%, transparent);
+  --color-event-project-bg: color-mix(in srgb, var(--color-data-4) 18%, transparent);
+  --color-event-project-border: color-mix(in srgb, var(--color-data-4) 35%, transparent);
+  --color-event-task-bg: color-mix(in srgb, var(--color-data-5) 18%, transparent);
+  --color-event-creator-border: color-mix(in srgb, var(--color-data-6) 35%, transparent);
+  --color-calendar-span-bg: color-mix(in srgb, var(--color-data-2) 25%, transparent);
+  --color-calendar-span-border: color-mix(in srgb, var(--color-data-2) 40%, transparent);
+  --color-calendar-span-hover-bg: color-mix(in srgb, var(--color-data-2) 40%, transparent);
+}
+
+/* ── Fixed Output Preview Roles ── */
+
+/* These describe previewed output, so they intentionally ignore the UI mode. */
+:root {
+  --preview-light-paper: #F6F0E7;
+  --preview-light-ink: #1A1A2E;
+  --preview-dark-paper: #171725;
+  --preview-dark-ink: #DDD8CE;
+}
+
+/* ── Illustration Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+  --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+  --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+  --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+}
+
+[data-theme="dark"] {
+  --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+  --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+  --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+  --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+    --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+    --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+    --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+  }
+}
+
+/* ── Creator-Authored Brand Contract ── */
+
+/*
+ * The fallback is the current route accent and must use its paired on-accent ink.
+ * Consumers apply --color-on-curated-creator-brand only when validated creator data is
+ * present; curated presets are guaranteed against this fixed ink by the shared schema.
+ */
+:root {
+  --color-on-curated-creator-brand: #1A1A2E;
+}
+
+:root,
+[data-theme="light"] {
+  --creator-brand: var(--color-accent);
+  --color-on-creator-brand: var(--color-on-accent);
+}
+
+[data-theme="dark"] {
+  --creator-brand: var(--color-accent);
+  --color-on-creator-brand: var(--color-on-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --creator-brand: var(--color-accent);
+    --color-on-creator-brand: var(--color-on-accent);
+  }
+}
+
+/* ── Voice Color Families ── */
+
+:root,
+[data-theme="light"] {
+  --voice-parent-accent: #364050;
+  --voice-parent-accent-hover: #242D3A;
+  --voice-parent-accent-bg: #DDE0E4;
+  --voice-parent-accent-subtle: rgba(54, 64, 80, 0.14);
+  --voice-parent-on-accent: #FFFFFF;
+  --voice-parent-accent2: #5B6B80;
+
+  --voice-studio-accent: #7E4A2A;
+  --voice-studio-accent-hover: #653A22;
+  --voice-studio-accent-bg: #E6DAD0;
+  --voice-studio-accent-subtle: rgba(126, 74, 42, 0.14);
+  --voice-studio-on-accent: #FFFFFF;
+  --voice-studio-accent2: #B08866;
+
+  --voice-tv-accent: #00786E;
+  --voice-tv-accent-hover: #005F58;
+  --voice-tv-accent-bg: #CCE5E2;
+  --voice-tv-accent-subtle: rgba(0, 120, 110, 0.14);
+  --voice-tv-on-accent: #FFFFFF;
+  --voice-tv-accent2: #FF4081;
+
+  --voice-records-accent: #B5302A;
+  --voice-records-accent-hover: #92261F;
+  --voice-records-accent-bg: #F0D8D6;
+  --voice-records-accent-subtle: rgba(181, 48, 42, 0.14);
+  --voice-records-on-accent: #FFFFFF;
+  --voice-records-accent2: #1A1A1A;
+}
+
+[data-theme="dark"] {
+  --voice-parent-accent: #A8B2C0;
+  --voice-parent-accent-hover: #8E9AAC;
+  --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
+  --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
+  --voice-parent-on-accent: #121821;
+  --voice-parent-accent2: #5B6B80;
+
+  --voice-studio-accent: #D88F5E;
+  --voice-studio-accent-hover: #CC8753;
+  --voice-studio-accent-bg: rgba(216, 143, 94, 0.16);
+  --voice-studio-accent-subtle: rgba(216, 143, 94, 0.2);
+  --voice-studio-on-accent: #1F0F08;
+  --voice-studio-accent2: #B08866;
+
+  --voice-tv-accent: #4FE0D8;
+  --voice-tv-accent-hover: #38D0C7;
+  --voice-tv-accent-bg: rgba(79, 224, 216, 0.16);
+  --voice-tv-accent-subtle: rgba(79, 224, 216, 0.2);
+  --voice-tv-on-accent: #06201D;
+  --voice-tv-accent2: #FF4081;
+
+  --voice-records-accent: #FF6B5E;
+  --voice-records-accent-hover: #EE5648;
+  --voice-records-accent-bg: rgba(255, 107, 94, 0.16);
+  --voice-records-accent-subtle: rgba(255, 107, 94, 0.2);
+  --voice-records-on-accent: #260806;
+  --voice-records-accent2: #1A1A1A;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --voice-parent-accent: #A8B2C0;
+    --voice-parent-accent-hover: #8E9AAC;
+    --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
+    --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
+    --voice-parent-on-accent: #121821;
+    --voice-parent-accent2: #5B6B80;
+
+    --voice-studio-accent: #D88F5E;
+    --voice-studio-accent-hover: #CC8753;
+    --voice-studio-accent-bg: rgba(216, 143, 94, 0.16);
+    --voice-studio-accent-subtle: rgba(216, 143, 94, 0.2);
+    --voice-studio-on-accent: #1F0F08;
+    --voice-studio-accent2: #B08866;
+
+    --voice-tv-accent: #4FE0D8;
+    --voice-tv-accent-hover: #38D0C7;
+    --voice-tv-accent-bg: rgba(79, 224, 216, 0.16);
+    --voice-tv-accent-subtle: rgba(79, 224, 216, 0.2);
+    --voice-tv-on-accent: #06201D;
+    --voice-tv-accent2: #FF4081;
+
+    --voice-records-accent: #FF6B5E;
+    --voice-records-accent-hover: #EE5648;
+    --voice-records-accent-bg: rgba(255, 107, 94, 0.16);
+    --voice-records-accent-subtle: rgba(255, 107, 94, 0.2);
+    --voice-records-on-accent: #260806;
+    --voice-records-accent2: #1A1A1A;
+  }
 }
 
 /* ── Typography Tokens ── */
+
 :root {
-  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
-  --font-heading: Georgia, "Times New Roman", serif;
+  /* Route-resolved aliases live in voices/resolution.css. These are their sources. */
+  --font-body-parent: "Source Sans 3 Variable", Arial, sans-serif;
+  --font-display-parent: "Source Sans 3 Variable", Arial, sans-serif;
+  --font-body-studio: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-display-studio: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-body-tv: "Saira Variable", "Arial Narrow", Arial, sans-serif;
+  --font-display-tv: "Saira Variable", "Arial Narrow", Arial, sans-serif;
+  --font-body-records: "Archivo Variable", Arial, sans-serif;
+  --font-display-records: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-mono: "Fragment Mono", "Cascadia Mono", "Liberation Mono", "Courier New", monospace;
+
+  /* Font sizes — fixed scale */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -67,25 +441,160 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 2rem;
+
+  /* Fluid typography — headings scale with viewport */
   --font-size-3xl-fluid: clamp(1.75rem, 1rem + 2vw, 2.5rem);
   --font-size-2xl-fluid: clamp(1.35rem, 0.9rem + 1.5vw, 1.75rem);
   --font-size-xl-fluid: clamp(1.125rem, 0.85rem + 0.75vw, 1.375rem);
   --font-size-lg-fluid: clamp(1rem, 0.9rem + 0.5vw, 1.175rem);
+
+  /* Font weights */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+
+  /* Line heights */
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
+
+  /* Letter spacing */
   --letter-spacing-tight: -0.01em;
   --letter-spacing-normal: 0;
   --letter-spacing-wide: 0.025em;
-  --font-size-md: var(--font-size-base);
+}
+
+/* ── Per-Voice Radius Families ── */
+
+:root {
+  --voice-parent-radius: 8px;
+  --voice-parent-radius-sm: 4px;
+  --voice-parent-radius-md: var(--voice-parent-radius);
+  --voice-parent-radius-lg: 12px;
+  --voice-parent-radius-xl: 16px;
+
+  --voice-studio-radius: 14px;
+  --voice-studio-radius-sm: 7px;
+  --voice-studio-radius-md: var(--voice-studio-radius);
+  --voice-studio-radius-lg: 21px;
+  --voice-studio-radius-xl: 28px;
+
+  --voice-tv-radius: 2px;
+  --voice-tv-radius-sm: 1px;
+  --voice-tv-radius-md: var(--voice-tv-radius);
+  --voice-tv-radius-lg: 3px;
+  --voice-tv-radius-xl: 4px;
+
+  --voice-records-radius: 0px;
+  --voice-records-radius-sm: 0px;
+  --voice-records-radius-md: var(--voice-records-radius);
+  --voice-records-radius-lg: 0px;
+  --voice-records-radius-xl: 0px;
+}
+
+/* ── Invariant Geometry ── */
+
+:root {
+  --radius-circle: 50%;
+  --radius-pill: 999px;
+}
+
+/* ── Route-Resolved Generic Aliases ── */
+
+:root {
+  --color-accent: var(--voice-parent-accent);
+  --color-accent-hover: var(--voice-parent-accent-hover);
+  --color-accent-bg: var(--voice-parent-accent-bg);
+  --color-accent-subtle: var(--voice-parent-accent-subtle);
+  --color-on-accent: var(--voice-parent-on-accent);
+  --color-accent2: var(--voice-parent-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-parent-radius);
+  --radius-sm: var(--voice-parent-radius-sm);
+  --radius-md: var(--voice-parent-radius-md);
+  --radius-lg: var(--voice-parent-radius-lg);
+  --radius-xl: var(--voice-parent-radius-xl);
+
+  --font-body: var(--font-body-parent);
+  --font-display: var(--font-display-parent);
+}
+
+[data-route="studio"] {
+  --color-accent: var(--voice-studio-accent);
+  --color-accent-hover: var(--voice-studio-accent-hover);
+  --color-accent-bg: var(--voice-studio-accent-bg);
+  --color-accent-subtle: var(--voice-studio-accent-subtle);
+  --color-on-accent: var(--voice-studio-on-accent);
+  --color-accent2: var(--voice-studio-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-studio-radius);
+  --radius-sm: var(--voice-studio-radius-sm);
+  --radius-md: var(--voice-studio-radius-md);
+  --radius-lg: var(--voice-studio-radius-lg);
+  --radius-xl: var(--voice-studio-radius-xl);
+
+  --font-body: var(--font-body-studio);
+  --font-display: var(--font-display-studio);
+}
+
+[data-route="tv"] {
+  --color-accent: var(--voice-tv-accent);
+  --color-accent-hover: var(--voice-tv-accent-hover);
+  --color-accent-bg: var(--voice-tv-accent-bg);
+  --color-accent-subtle: var(--voice-tv-accent-subtle);
+  --color-on-accent: var(--voice-tv-on-accent);
+  --color-accent2: var(--voice-tv-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-tv-radius);
+  --radius-sm: var(--voice-tv-radius-sm);
+  --radius-md: var(--voice-tv-radius-md);
+  --radius-lg: var(--voice-tv-radius-lg);
+  --radius-xl: var(--voice-tv-radius-xl);
+
+  --font-body: var(--font-body-tv);
+  --font-display: var(--font-display-tv);
+}
+
+[data-route="records"] {
+  --color-accent: var(--voice-records-accent);
+  --color-accent-hover: var(--voice-records-accent-hover);
+  --color-accent-bg: var(--voice-records-accent-bg);
+  --color-accent-subtle: var(--voice-records-accent-subtle);
+  --color-on-accent: var(--voice-records-on-accent);
+  --color-accent2: var(--voice-records-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-records-radius);
+  --radius-sm: var(--voice-records-radius-sm);
+  --radius-md: var(--voice-records-radius-md);
+  --radius-lg: var(--voice-records-radius-lg);
+  --radius-xl: var(--voice-records-radius-xl);
+
+  --font-body: var(--font-body-records);
+  --font-display: var(--font-display-records);
+}
+
+/*
+ * Route-container boundary requirement: body resolves its font outside the leaf scope.
+ * Runtime route scoping must put data-route on the leaf content container so ordinary
+ * descendants recompute font-family from that route's --font-body alias.
+ */
+[data-route] {
+  font-family: var(--font-body);
 }
 
 /* ── Spacing Tokens ── */
+
 :root {
+  /* Scale */
   --space-2xs: 0.125rem;
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -93,8 +602,12 @@
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
+
+  /* Fluid layout spacing — scales with viewport */
   --space-section-fluid: clamp(1.5rem, 1rem + 2vw, 3rem);
   --space-layout-fluid: clamp(1rem, 0.5rem + 1.5vw, 2rem);
+
+  /* Layout */
   --content-max-width: 1200px;
   --nav-height: 64px;
   --sidebar-width: 240px;
@@ -104,17 +617,48 @@
   --mini-upload-height: 0px;
   --tab-bar-height: 56px;
 }
+
 @media (min-width: 768px) {
-  :root { --tab-bar-height: 0px; }
+  :root {
+    --tab-bar-height: 0px;
+  }
 }
 
 /* ── Elevation Tokens ── */
-:root {
+
+:root,
+[data-theme="light"] {
+  --shadow-xs: 0 1px 3px rgba(26, 23, 20, 0.1);
+  --shadow-sm: 0 4px 12px rgba(26, 23, 20, 0.12);
+  --shadow-md: 0 4px 16px rgba(26, 23, 20, 0.14);
+  --shadow-lg: 0 8px 24px rgba(26, 23, 20, 0.16);
+  --shadow-xl: 0 12px 32px rgba(26, 23, 20, 0.18);
+}
+
+[data-theme="dark"] {
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root {
+  /* Named z-index layers.
+     NOTE: nav bar (100), demo banner (101), mobile menu overlay (150), and
+     user-menu/notification dropdowns (200) use raw values because their
+     relative stacking doesn't map onto the token semantics cleanly. A future
+     pass should redesign this scale to match actual usage. */
   --z-base: 1;
   --z-raised: 10;
   --z-dropdown: 100;
@@ -127,18 +671,24 @@
 }
 
 /* ── Motion Tokens ── */
+
 :root {
+  /* Durations */
   --duration-instant: 50ms;
   --duration-fast: 100ms;
   --duration-normal: 200ms;
   --duration-moderate: 300ms;
   --duration-slow: 500ms;
+
+  /* Easing curves */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* Reduced motion — reset all durations to near-zero */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-instant: 0ms;
@@ -149,14 +699,18 @@
   }
 }
 
-/* ── Border Radius Tokens ── */
-:root {
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-circle: 50%;
-  --radius-pill: 999px;
-}
-
-/* Breakpoint reference: sm 640px, md 768px, lg 1024px (custom properties cannot be used in media conditions). */
+/*
+ * ── Breakpoint Reference Tokens ──
+ *
+ * CSS custom properties cannot appear in @media conditions.
+ * This file is the single source of truth — all media queries
+ * reference these values by convention.
+ *
+ * Mobile-first: use min-width exclusively.
+ *
+ *   @media (min-width: 640px)  → sm: large phones / small tablets
+ *   @media (min-width: 768px)  → md: tablets / small laptops
+ *   @media (min-width: 1024px) → lg: desktops
+ *
+ * Scan rule `breakpoint-literal` enforces these values.
+ */
