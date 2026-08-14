@@ -569,3 +569,51 @@ Runtime route plumbing remains sibling feature `brand-voice-route-scoping`; the 
 The critical path is token restructure → theming → voice accents → route-scoping contract →
 leak cleanup → alias migration; font loading branches after voice accents and rejoins before
 alias migration.
+
+## Review — adversarial pass (2026-08-14)
+
+Verdict: **needs rework** (architecture affirmed; gaps in implementability/precision). Findings
+adjudicated by operator + orchestrator:
+
+- **B2 (light-mode exposure sequencing) — OVERRULED in severity by operator:** stories ship as
+  one release, not hot-deployed; no user-facing intermediate states; the final matrix in
+  `alias-migration` verifies the shipped end state. Surviving kernel (minor): the new mode
+  contract puts light on `:root`, so importing the new files mid-migration flips dev light —
+  guard = pin `data-theme="dark"` until the activation story (add to `token-restructure`
+  acceptance). Light-touch story trims only; no re-slice.
+- **B4 portal half + GlobalPlayer + override-seam CSS — ALREADY COVERED** by child 2's design
+  (RouteVoiceOutlet, portal Positioner attributes, chat portal, `data-effective-voice`
+  precedence). Surviving kernel: **font-family trap** — `--font-body` on a scope doesn't
+  recompute already-resolved `font-family`; route scope must set
+  `font-family: var(--font-body)` explicitly. Fold into child 1's CSS contract + child 2's
+  boundary.
+- **B3 (placeholder contrast failures) — SPLIT:** dark-Parent hover omission (~1.28:1) is a
+  reference bug → org. Opaque paired status backgrounds + enumerated host surfaces + hover/
+  disabled matrix cases → ours (mapping-table fix).
+- **B1 (public-chart hold vs `--color-secondary` deletion) — ACCEPTED:** make the org
+  public-chart palette a dep of alias deletion, or define an owner+expiry lint-exempt
+  `--legacy-public-chart-*` bridge. Never claim migration complete while it remains.
+- **M1 PDF-preview colors — ACCEPTED:** fixed scoped `--preview-*` roles (output semantics,
+  not mode-aware spine).
+- **M2 HSL literals missed — ACCEPTED:** re-run inventory across all color syntaxes
+  (hex/rgb/hsl/named/color functions); fix the no-leak checker grammar likewise.
+- **M3 bootstrap lifecycle — ACCEPTED:** set-only bootstrap + one hydrated controller, safe
+  storage wrappers, listener teardown, `suppressHydrationWarning`, CSP fallback behavior.
+- **M4 accent links non-color distinction — ACCEPTED + org flag:** underline prose links by
+  default (1.4.1 fails in 7/8 mode/voice combos); part of in-situ link validation.
+- **M5 font manifest mismatches — ACCEPTED:** route-by-route weight/style/glyph manifest
+  (Barlow 400 consumers, Source Sans 800 consumers, italic consumers, `●`/multilingual
+  glyphs); exact fallback faces or defer metric overrides.
+- **M6 token ownership contradictions — ACCEPTED:** one owner per token (`families.css` =
+  voice colors only; `radius.css` = per-voice radii only; `resolution.css` = all
+  route-resolved aliases); home the preview + illustration + creator-brand contracts.
+- **M7 stale override language — ACCEPTED:** clean residual active-toggle wording.
+- **M8 story bundling — PARTIAL:** trim the fattest stories; not the safety-driven re-slice.
+- **m1 archived/needs-grant semantics — ACCEPTED:** archived → neutral; needs-grant →
+  warning; denied/failed → error.
+- **m2 conventions enforceability — ACCEPTED:** recipe table for ambiguous states; early
+  stylelint/scan rule; explicit allowlists; land the platform-patterns/AGENTS update as a
+  named acceptance slice.
+
+Sound per reviewer: attribute split, media/overlay/secondary-split mappings, Fontsource
+direction, refactor-discovery parking.
