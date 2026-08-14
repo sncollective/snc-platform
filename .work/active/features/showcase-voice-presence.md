@@ -125,3 +125,15 @@ composites both modes in `token-contrast.test.ts`.
   accent/hover **7.754:1 / 10.203:1**; dark `#E5A83B` on bg/elevated **8.483:1 / 7.444:1**,
   `#241703` on accent/hover **8.338:1 / 7.107:1**. Warning-separation composite distance:
   light **6.366**, dark **5.788**, named minimum **5.5**.
+
+## Variant D fold (principal ruling, 2026-08-14 — final direction)
+
+The principal judged shipped-C+ against dial-back D: **D wins** ("D looks solid").
+Section + item titles return to spine ink; voice survives ONLY as item punctuation:
+hover card borders, event unit labels, badge borders, hero eyebrow label (a label, not
+a heading), attribution links + creator chips when the data model lands. Amber grammar +
+chrome register unchanged. Applied as the two-line delta: `.showcaseItem .title` accent
+rule + WhatsOn `.voiceHeading` (rule + scope + class) removed; punctuation rules and
+their tests intact; whats-on test updated to assert the neutral heading. Suite + build
+green. Direction now fully adjudicated; remaining opens are stakeholder values, Fraunces
+confirm, attribution data model.

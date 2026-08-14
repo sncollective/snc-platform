@@ -51,8 +51,11 @@ describe("WhatsOn", () => {
 
     expect(screen.getByText("Channel One")).toBeInTheDocument();
     expect(screen.getByText("Channel Two")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "What's On" }).closest("section")?.getAttribute("style"))
-      .toContain("--item-unit-accent: var(--voice-tv-accent)");
+    // Variant D (principal 2026-08-14): section titles return to spine ink — no voice
+    // accent scope on the WhatsOn section; voice survives as item punctuation only.
+    expect(
+      screen.getByRole("heading", { name: "What's On" }).closest("section")?.getAttribute("style"),
+    ).toBeNull();
   });
 
   it("shows empty state for empty channels array", () => {
