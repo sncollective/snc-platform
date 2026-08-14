@@ -1,0 +1,35 @@
+/* ── Internal Data-Series Roles ── */
+
+/*
+ * Platform-owned, internal/admin-only series. Public charts must not consume
+ * this palette; their temporary bridge lands with the leak-cleanup checkpoint.
+ */
+:root,
+[data-theme="light"] {
+  --color-data-1: #466B8A;
+  --color-data-2: #78608C;
+  --color-data-3: #8A6A44;
+  --color-data-4: #4F7870;
+  --color-data-5: #895D69;
+  --color-data-6: #687340;
+}
+
+[data-theme="dark"] {
+  --color-data-1: #75A4C7;
+  --color-data-2: #A68ABB;
+  --color-data-3: #B99667;
+  --color-data-4: #7BA69D;
+  --color-data-5: #B58693;
+  --color-data-6: #99A56E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-data-1: #75A4C7;
+    --color-data-2: #A68ABB;
+    --color-data-3: #B99667;
+    --color-data-4: #7BA69D;
+    --color-data-5: #B58693;
+    --color-data-6: #99A56E;
+  }
+}

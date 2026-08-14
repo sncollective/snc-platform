@@ -1,17 +1,6 @@
 /* ── Design System Tokens ── */
 
-@import "./tokens/color.css";
-@import "./tokens/typography.css";
-@import "./tokens/spacing.css";
-@import "./tokens/elevation.css";
-@import "./tokens/motion.css";
-@import "./tokens/radius.css";
-@import "./tokens/breakpoints.css";
-
-/* Backwards-compat aliases (remove when consumers migrate) */
-:root {
-  --shadow-dropdown: var(--shadow-md);
-}
+@import "./tokens/index.css";
 
 /* ── Base Reset ── */
 

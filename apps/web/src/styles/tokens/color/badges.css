@@ -1,0 +1,22 @@
+/* ── Shared Content Badge Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-badge-audio: #4A6B7A;
+  --color-badge-video: #5B9BD5;
+  --color-badge-written: #8A94A6;
+}
+
+[data-theme="dark"] {
+  --color-badge-audio: #5B8B9A;
+  --color-badge-video: #6BAFE5;
+  --color-badge-written: #9AA4B6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-badge-audio: #5B8B9A;
+    --color-badge-video: #6BAFE5;
+    --color-badge-written: #9AA4B6;
+  }
+}

@@ -1,0 +1,9 @@
+/* ── Fixed Internal Output Preview Roles ── */
+
+/* These describe previewed output, so they intentionally ignore the UI mode. */
+:root {
+  --preview-light-paper: #F6F0E7;
+  --preview-light-ink: #1A1A2E;
+  --preview-dark-paper: #171725;
+  --preview-dark-ink: #DDD8CE;
+}

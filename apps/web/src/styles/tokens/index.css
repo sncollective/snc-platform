@@ -1,0 +1,35 @@
+/* ── Design System Token Composition ── */
+
+/*
+ * Transitional consumer vocabulary. Canonical role files below intentionally
+ * follow this block so their mode-aware values win the cascade. Remove these
+ * imports when alias migration completes.
+ */
+@import "./color.css";
+@import "./legacy/radius.css";
+
+/* Canonical one-owner token files. Keep this order dependency-aware. */
+@import "./fonts.css";
+@import "./color/spine.css";
+@import "./color/status.css";
+@import "./color/state.css";
+@import "./color/media.css";
+@import "./color/badges.css";
+@import "./color/data.css";
+@import "./color/preview.css";
+@import "./color/illustration.css";
+@import "./color/creator.css";
+@import "./voices/families.css";
+@import "./typography.css";
+@import "./radius.css";
+@import "./geometry.css";
+@import "./voices/resolution.css";
+@import "./spacing.css";
+@import "./elevation.css";
+@import "./motion.css";
+@import "./breakpoints.css";
+
+/* Transitional alias; migrate its consumers with the remaining legacy vocabulary. */
+:root {
+  --shadow-dropdown: var(--shadow-md);
+}

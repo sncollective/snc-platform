@@ -139,8 +139,9 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
+  // Migration guard: preserve today's dark default until the theming checkpoint activates mode selection.
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark">
       <head>
         <HeadContent />
       </head>

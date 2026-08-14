@@ -1,0 +1,28 @@
+/* ── Shared Interaction States ── */
+
+:root,
+[data-theme="light"] {
+  --color-focus: #0A5AB8;
+  --color-selected-bg: rgba(54, 64, 80, 0.1);
+  --color-hover-bg: rgba(0, 0, 0, 0.04);
+  --color-disabled: #9A948A;
+  --color-disabled-bg: #E8E3D9;
+}
+
+[data-theme="dark"] {
+  --color-focus: #5BA0F5;
+  --color-selected-bg: rgba(168, 178, 192, 0.16);
+  --color-hover-bg: rgba(255, 255, 255, 0.06);
+  --color-disabled: #4A4E58;
+  --color-disabled-bg: #1C1F26;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-focus: #5BA0F5;
+    --color-selected-bg: rgba(168, 178, 192, 0.16);
+    --color-hover-bg: rgba(255, 255, 255, 0.06);
+    --color-disabled: #4A4E58;
+    --color-disabled-bg: #1C1F26;
+  }
+}

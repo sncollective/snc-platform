@@ -281,7 +281,9 @@ describe("MediaPicker", () => {
     renderPicker();
 
     await user.click(await screen.findByRole("button", { name: "Choose own.jpg" }));
-    expect(screen.getByRole("region", { name: "Edit selected image" })).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Edit selected image" })).toHaveFocus(),
+    );
   });
 
   it("keeps exactly one mounted panel for every tab aria-controls target", async () => {

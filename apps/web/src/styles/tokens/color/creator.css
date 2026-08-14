@@ -1,0 +1,20 @@
+/* ── Creator-Authored Brand Contract ── */
+
+/* Runtime creator data may override --creator-brand only inside authored content. */
+:root,
+[data-theme="light"] {
+  --creator-brand: var(--color-accent);
+  --color-on-creator-brand: #1A1A2E;
+}
+
+[data-theme="dark"] {
+  --creator-brand: var(--color-accent);
+  --color-on-creator-brand: #1A1A2E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --creator-brand: var(--color-accent);
+    --color-on-creator-brand: #1A1A2E;
+  }
+}

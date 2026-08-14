@@ -1,0 +1,25 @@
+/* ── Internal Illustration Roles ── */
+
+:root,
+[data-theme="light"] {
+  --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+  --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+  --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+  --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+}
+
+[data-theme="dark"] {
+  --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+  --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+  --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+  --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+    --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+    --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+    --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+  }
+}

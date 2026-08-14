@@ -1,13 +1,33 @@
 /* ── Elevation Tokens ── */
 
-:root {
-  /* Shadows */
+:root,
+[data-theme="light"] {
+  --shadow-xs: 0 1px 3px rgba(26, 23, 20, 0.1);
+  --shadow-sm: 0 4px 12px rgba(26, 23, 20, 0.12);
+  --shadow-md: 0 4px 16px rgba(26, 23, 20, 0.14);
+  --shadow-lg: 0 8px 24px rgba(26, 23, 20, 0.16);
+  --shadow-xl: 0 12px 32px rgba(26, 23, 20, 0.18);
+}
+
+[data-theme="dark"] {
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root {
   /* Named z-index layers.
      NOTE: nav bar (100), demo banner (101), mobile menu overlay (150), and
      user-menu/notification dropdowns (200) use raw values because their
