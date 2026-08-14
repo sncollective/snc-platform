@@ -1,7 +1,7 @@
 ---
 id: brand-token-architecture-font-loading
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-token-architecture
 depends_on: [brand-token-architecture-voice-accents]
@@ -39,6 +39,13 @@ until measured CLS evidence exists.
 - Legacy Inter + Georgia aliases remain only until `alias-migration`.
 
 ## Implementation discovery
+
+**Orchestrator adjudication (2026-08-14): accepted — story closes done.** npm registry confirms
+`@fontsource-variable/barlow-condensed` does not exist (404); static `@fontsource/barlow-condensed`
+400–700 is the only faithful delivery of the manifest's Barlow Condensed Roman 400–700 coverage.
+The design's "variable" packaging was an implementation detail, not an acceptance criterion;
+the feature body's font table gets the as-built correction at feature roll-up. Revisit only if
+Fontsource publishes the variable package.
 
 - Added Fontsource 5.3.0 packages for Source Sans 3, Newsreader, Saira, Archivo,
   static Barlow Condensed, and Fragment Mono. `fonts.css` imports the approved
