@@ -33,8 +33,6 @@ describe("showcase item voice fallback", () => {
   it("emits exact inline unit chains for mapped voices and no properties for parent", () => {
     expect(itemUnitStyle("tv")).toEqual({
       "--item-unit-accent": "var(--voice-tv-accent)",
-      "--item-unit-bg": "var(--voice-tv-accent-bg)",
-      "--item-unit-on-accent": "var(--voice-tv-on-accent)",
     });
     expect(itemUnitStyle("parent")).toBeUndefined();
   });

@@ -20,7 +20,8 @@ three blocks incl. the no-attribute fallback). Dark: #E5A83B/#D69A2E/#241703 (or
 Light: link-grade amber seed (harness-arbitrated: accent doubles as TEXT color via
 `--color-link` alias → must clear AA on bg + elevated; CTA on-accent picked by computed
 composite — white vs #241703, whichever passes). Steel stays in the neutral ramp +
-`--voice-parent-accent2` (signature chip) untouched.
+`--voice-parent-accent2` (signature chip) untouched. These were provisional design seeds;
+the org tuned family in `f23f54a` is the final value authority.
 
 ## Acceptance
 - Both-mode + fallback blocks re-seeded; every alias consumer (links, nav-active, CTAs,
@@ -35,9 +36,9 @@ composite — white vs #241703, whichever passes). Steel stays in the neutral ra
   assertions or the new values.
 - **Harness additions (token-contrast.test.ts):** (1) re-seeded parent accent pairs +
   composites both modes (text-on-bg/elevated AND on-accent-over-accent); (2) NEW
-  semantic-separation check — parent accent vs the shared warning family (hue angle +
-  lightness distance; flag composites closer than a named threshold) per org's
-  color-system rule (identity hue must not double as status hue).
+  semantic-separation check — initially parent accent vs the shared warning family using
+  hue/lightness distance, then superseded by the org's OKLab ΔE metric and complete warm-anchor
+  set per the color-system rule (identity hue must not double as status hue).
 - Checker green; full suite + build green.
 - Two-grade tension documented in the story body (link-grade vs fill-grade in light) for
   org's value pass.
@@ -50,8 +51,9 @@ composite — white vs #241703, whichever passes). Steel stays in the neutral ra
 - Simplification: retained the existing one-alias voice resolution and changed only the parent accent, hover, and on-accent seeds; parent accent2 and the neutral/steel ramp remain untouched.
 - Discrepancies from design: none. The stale steel-hex sweep found no e2e or unit visual pins, and the ink sweep found no accent-fill consumer bypassing `--color-on-accent`.
 - Adjacent issues parked: none.
-- Light seed decision: `#7C4500` is the link-grade amber. It clears `--color-bg` at **6.887:1** and `--color-bg-elevated` at **7.252:1**; white ink clears the accent at **7.754:1** and hover at **10.203:1**. `#241703` would clear neither light fill, so white is the computed light on-accent.
-- Dark seeded pair: `#E5A83B` clears `--color-bg` at **8.483:1** and `--color-bg-elevated` at **7.444:1**; `#241703` ink clears the accent at **8.338:1** and hover at **7.107:1**.
-- Semantic separation from warning uses Euclidean distance across circular HSL hue degrees and lightness percentage points, with a named floor of **5.5**. Light: hue **5.743°**, lightness **2.745 pp**, composite **6.366**. Dark: hue **2.742°**, lightness **5.098 pp**, composite **5.788**.
-- Two-grade tension: light amber must serve both identity fill and link text. The lighter dark-mode fill seed cannot be reused on the light canvas (only 1.866:1 on `--color-bg`), so light deliberately uses a deeper link-grade amber and white CTA ink while dark uses the brighter fill-grade amber and dark ink. Org can tune the pair later at the same three-token seam.
+- **Superseded checkpoint:** light seed `#7C4500` cleared `--color-bg` at **6.887:1** and `--color-bg-elevated` at **7.252:1**; white ink cleared the accent at **7.754:1** and hover at **10.203:1**. `#241703` cleared neither light fill, so white was the computed light on-accent.
+- **Superseded checkpoint:** dark seed `#E5A83B` cleared `--color-bg` at **8.483:1** and `--color-bg-elevated` at **7.444:1**; `#241703` ink cleared the accent at **8.338:1** and hover at **7.107:1**.
+- **Superseded metric:** warning separation used Euclidean distance across circular HSL hue degrees and lightness percentage points, floor **5.5**. Light: hue **5.743°**, lightness **2.745 pp**, composite **6.366**. Dark: hue **2.742°**, lightness **5.098 pp**, composite **5.788**. Org tune `f23f54a` replaced this with OKLab ΔE across the complete warm-anchor set.
+- Final family: light `#A94900` / `#913E00` / `#EEE2D6` / `rgba(169, 73, 0, 0.16)` / `#FFFFFF`; dark `#BE7F00` / `#B07800` / `rgba(190, 127, 0, 0.12)` / `rgba(190, 127, 0, 0.2)` / `#2A1603`; accent2 `#5B6B80` in both modes.
+- Two-grade tension remains: light amber serves both identity fill and link text, so light uses the deeper link-grade member and white CTA ink while dark uses the brighter fill-grade member and dark ink.
 - Verification: `bun run --filter @snc/web test` — 196 files / 2031 tests passed; token checker and contrast harness green.

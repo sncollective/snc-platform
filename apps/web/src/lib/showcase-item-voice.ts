@@ -4,8 +4,6 @@ export type ShowcaseItemVoice = "parent" | "studio" | "tv" | "records";
 
 export type ItemUnitStyle = CSSProperties & {
   readonly "--item-unit-accent": string;
-  readonly "--item-unit-bg": string;
-  readonly "--item-unit-on-accent": string;
 };
 
 const CONTENT_VOICES: Readonly<Record<string, ShowcaseItemVoice>> = {
@@ -25,18 +23,12 @@ const EVENT_VOICES: Readonly<Record<string, ShowcaseItemVoice>> = {
 const UNIT_STYLES: Readonly<Record<Exclude<ShowcaseItemVoice, "parent">, ItemUnitStyle>> = {
   studio: {
     "--item-unit-accent": "var(--voice-studio-accent)",
-    "--item-unit-bg": "var(--voice-studio-accent-bg)",
-    "--item-unit-on-accent": "var(--voice-studio-on-accent)",
   },
   tv: {
     "--item-unit-accent": "var(--voice-tv-accent)",
-    "--item-unit-bg": "var(--voice-tv-accent-bg)",
-    "--item-unit-on-accent": "var(--voice-tv-on-accent)",
   },
   records: {
     "--item-unit-accent": "var(--voice-records-accent)",
-    "--item-unit-bg": "var(--voice-records-accent-bg)",
-    "--item-unit-on-accent": "var(--voice-records-on-accent)",
   },
 };
 

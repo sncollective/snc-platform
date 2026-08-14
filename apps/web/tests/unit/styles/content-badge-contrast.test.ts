@@ -9,7 +9,9 @@ import { describe, it, expect } from "vitest";
 // (--color-overlay-strong scrim + --color-on-media ink), never the mode-aware
 // page-surface pairing (--color-text over a transparent category tint), which
 // collapses when imagery shares a hue with the badge or lacks contrast.
-// Inline badges on the card body surface keep the surface treatment.
+// Inline badges on the card body surface keep the surface treatment. Showcase
+// overlay borders carry the resolved item voice, with the category hue as the
+// parent-item fallback; non-showcase borders remain category-colored.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cssPath = resolve(here, "../../../src/components/content/content-card.module.css");
@@ -35,7 +37,7 @@ describe("content-card badge contrast contract", () => {
   });
 
   it.each(["Video", "Audio", "Written"])(
-    "per-type rules keep the category border cue and the inline (surface) treatment: %s",
+    "keeps non-showcase and inline %s badges on the category treatment",
     (type) => {
       const r = rule(`.badge${type}`);
 
@@ -43,6 +45,20 @@ describe("content-card badge contrast contract", () => {
       // Surface pairing (inline case): category tint + ordinary text ink.
       expect(r).toContain(`background: var(--color-badge-${type.toLowerCase()}-tint`);
       expect(r).toContain("color: var(--color-text)");
+      expect(r).not.toContain("--item-unit-accent");
+    },
+  );
+
+  it.each(["Video", "Audio", "Written"])(
+    "gives showcase overlay %s badge borders the unit voice with category fallback",
+    (type) => {
+      const category = type.toLowerCase();
+      const r = rule(`.showcaseItem .badge${type}:not(.badgeInline)`);
+
+      expect(r).toContain(
+        `border-color: var(--item-unit-accent, var(--color-badge-${category}))`,
+      );
+      expect(r).not.toMatch(/(?:^|;)\s*(?:background|color)\s*:/);
     },
   );
 

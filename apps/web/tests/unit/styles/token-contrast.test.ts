@@ -1,14 +1,27 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { CREATOR_BRAND_COLORS } from "@snc/shared";
 import { describe, expect, it } from "vitest";
 
-const TOKENS_DIR = resolve(import.meta.dirname, "../../../src/styles/tokens");
+const WEB_SRC_DIR = resolve(import.meta.dirname, "../../../src");
+const TOKENS_DIR = resolve(WEB_SRC_DIR, "styles/tokens");
 const SIGNATURE_CHIP_CSS = readFileSync(
-  resolve(TOKENS_DIR, "../../components/brand/signature-chip.module.css"),
+  resolve(WEB_SRC_DIR, "components/brand/signature-chip.module.css"),
   "utf-8",
 );
+const CONTENT_CARD_CSS_PATH = resolve(
+  WEB_SRC_DIR,
+  "components/content/content-card.module.css",
+);
+const LANDING_CSS_DIR = resolve(WEB_SRC_DIR, "components/landing");
+const VARIANT_D_CSS_FILES = [
+  CONTENT_CARD_CSS_PATH,
+  ...readdirSync(LANDING_CSS_DIR)
+    .filter((file) => file.endsWith(".module.css"))
+    .sort()
+    .map((file) => resolve(LANDING_CSS_DIR, file)),
+] as const;
 
 interface Rgba {
   readonly red: number;
@@ -44,8 +57,19 @@ function rootDeclarations(file: string): Map<string, string> {
   const block = readTokenFile(file).match(/:root\s*\{([^}]*)\}/)?.[1];
   expect(block, `${file} should define root tokens`).toBeDefined();
 
+  return declarations(block ?? "");
+}
+
+function noAttributeDarkDeclarations(file: string): Map<string, string> {
+  const block = readTokenFile(file).match(/:root:not\(\[data-theme\]\)\s*\{([^}]*)\}/)?.[1];
+  expect(block, `${file} should define no-attribute dark fallback tokens`).toBeDefined();
+
+  return declarations(block ?? "");
+}
+
+function declarations(block: string): Map<string, string> {
   return new Map(
-    [...(block ?? "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
+    [...block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
       match[1] as string,
       (match[2] as string).trim(),
     ]),
@@ -62,6 +86,13 @@ function signatureChipDeclarations(voice: string): Map<string, string> {
       (match[2] as string).trim(),
     ]),
   );
+}
+
+function cssRule(css: string, selector: string, file: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const block = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1];
+  expect(block, `${file} should define ${selector}`).toBeDefined();
+  return block ?? "";
 }
 
 function tokensForMode(mode: Mode): Map<string, string> {
@@ -142,32 +173,6 @@ function contrast(foreground: Rgba, background: Rgba): number {
   );
 }
 
-function hueAndLightness(colorValue: Rgba): readonly [hue: number, lightness: number] {
-  const channels = [colorValue.red, colorValue.green, colorValue.blue].map((channel) => channel / 255);
-  const maximum = Math.max(...channels);
-  const minimum = Math.min(...channels);
-  const lightness = ((maximum + minimum) / 2) * 100;
-
-  if (maximum === minimum) return [0, lightness];
-
-  const delta = maximum - minimum;
-  const [red, green, blue] = channels as [number, number, number];
-  let hue: number;
-  if (maximum === red) hue = ((green - blue) / delta) % 6;
-  else if (maximum === green) hue = (blue - red) / delta + 2;
-  else hue = (red - green) / delta + 4;
-
-  return [((hue * 60 + 360) % 360), lightness];
-}
-
-function hueLightnessDistance(left: Rgba, right: Rgba): number {
-  const [leftHue, leftLightness] = hueAndLightness(left);
-  const [rightHue, rightLightness] = hueAndLightness(right);
-  const directHueDistance = Math.abs(leftHue - rightHue);
-  const hueDistance = Math.min(directHueDistance, 360 - directHueDistance);
-  return Math.hypot(hueDistance, leftLightness - rightLightness);
-}
-
 /** OKLab dE (euclidean in Oklab space) — perceptually uniform; org's separation metric. */
 function oklabDeltaE(left: Rgba, right: Rgba): number {
   const to = (c: Rgba): readonly [number, number, number] => {
@@ -220,9 +225,33 @@ const PARENT_ACCENT_SEEDS = {
   // Org amber-value pass (2026-08-14): one link-grade accent per mode, no fill split.
   // Dark keeps the inherited #F5A623 hue deepened one notch (OKLCH H74 / L.645),
   // separating from warning by lightness (.127) — see amber-value-study.html in org.
-  light: { accent: "#A94900", hover: "#913E00", ink: "#FFFFFF" },
-  dark: { accent: "#BE7F00", hover: "#B07800", ink: "#2A1603" },
+  light: {
+    accent: "#A94900",
+    hover: "#913E00",
+    background: "#EEE2D6",
+    subtle: "rgba(169, 73, 0, 0.16)",
+    ink: "#FFFFFF",
+    accent2: "#5B6B80",
+    selectedBackground: "rgba(169, 73, 0, 0.08)",
+  },
+  dark: {
+    accent: "#BE7F00",
+    hover: "#B07800",
+    background: "rgba(190, 127, 0, 0.12)",
+    subtle: "rgba(190, 127, 0, 0.2)",
+    ink: "#2A1603",
+    accent2: "#5B6B80",
+    selectedBackground: "rgba(190, 127, 0, 0.12)",
+  },
 } as const;
+const PARENT_FAMILY_TOKEN_NAMES = [
+  "--voice-parent-accent",
+  "--voice-parent-accent-hover",
+  "--voice-parent-accent-bg",
+  "--voice-parent-accent-subtle",
+  "--voice-parent-on-accent",
+  "--voice-parent-accent2",
+] as const;
 // OKLab dE identity/status separation (org spec): the parent identity hue must not double as a
 // status/warm-anchor hue. Tuned family holds dark >= .085 (copper nearest) and light >= .061
 // (records-red nearest); .05 is the shared fail floor. The light ceiling is structural (paper
@@ -362,7 +391,11 @@ describe("brand token contrast matrix", () => {
 
     expect(tokens.get("--voice-parent-accent")).toBe(seed.accent);
     expect(tokens.get("--voice-parent-accent-hover")).toBe(seed.hover);
+    expect(tokens.get("--voice-parent-accent-bg")).toBe(seed.background);
+    expect(tokens.get("--voice-parent-accent-subtle")).toBe(seed.subtle);
     expect(tokens.get("--voice-parent-on-accent")).toBe(seed.ink);
+    expect(tokens.get("--voice-parent-accent2")).toBe(seed.accent2);
+    expect(tokens.get("--color-selected-bg")).toBe(seed.selectedBackground);
 
     for (const hostName of HOST_SURFACES) {
       expect(
@@ -384,6 +417,7 @@ describe("brand token contrast matrix", () => {
       ["warning", color(tokens, "--color-warning")],
       ["error", color(tokens, "--color-error")],
       ["success", color(tokens, "--color-success")],
+      ["public-chart-gold", color(tokens, "--color-chart-2")],
       ["studio-copper", color(tokens, "--voice-studio-accent")],
       ["tv-cyan", color(tokens, "--voice-tv-accent")],
       ["records-red", color(tokens, "--voice-records-accent")],
@@ -395,6 +429,44 @@ describe("brand token contrast matrix", () => {
         `parent/warm-anchor (${name}) OKLab dE must remain at least ${MIN_OKLAB_DE_IDENTITY_SEPARATION}`,
       ).toBeGreaterThanOrEqual(MIN_OKLAB_DE_IDENTITY_SEPARATION);
     }
+  });
+
+  it("keeps the no-attribute parent family pinned to the explicit dark family", () => {
+    const dark = modeDeclarations("voices/families.css", "dark");
+    const fallback = noAttributeDarkDeclarations("voices/families.css");
+
+    for (const token of PARENT_FAMILY_TOKEN_NAMES) {
+      expect(fallback.get(token), token).toBe(dark.get(token));
+    }
+  });
+
+  it("keeps variant D item voice on punctuation, never titles or headings", () => {
+    const headingSelector = /(?:^|[\s,>+~])\.[\w-]*(?:title|heading)[\w-]*/i;
+    const itemVoiceColor = /(?:^|;)\s*color\s*:\s*[^;]*var\(\s*--item-unit-accent\b/i;
+
+    for (const file of VARIANT_D_CSS_FILES) {
+      const css = readFileSync(file, "utf-8");
+      for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const selector = (match[1] ?? "").trim();
+        const body = match[2] ?? "";
+        if (headingSelector.test(selector)) {
+          expect(body, `${file}: ${selector} must keep heading ink neutral`).not.toMatch(
+            itemVoiceColor,
+          );
+        }
+      }
+    }
+
+    const contentCardCss = readFileSync(CONTENT_CARD_CSS_PATH, "utf-8");
+    expect(cssRule(contentCardCss, ".showcaseItem:hover", CONTENT_CARD_CSS_PATH)).toContain(
+      "border-color: var(--item-unit-accent, var(--color-border))",
+    );
+
+    const eventCardPath = resolve(LANDING_CSS_DIR, "event-card.module.css");
+    const eventCardCss = readFileSync(eventCardPath, "utf-8");
+    expect(cssRule(eventCardCss, ".typeTag", eventCardPath)).toContain(
+      "color: var(--item-unit-accent, var(--color-text-muted))",
+    );
   });
 
   it.each(MODES)("keeps every %s voice signature chip AA-safe", (mode) => {

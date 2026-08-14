@@ -121,10 +121,16 @@ composites both modes in `token-contrast.test.ts`.
   independent review lane.
 - Integrated verification: `bun run --filter @snc/web test` — 197 files / 2052 tests passed;
   `bun run --filter @snc/web build` — passed with existing third-party `use client` warnings only.
-- Parent contrast evidence: light `#7C4500` on bg/elevated **6.887:1 / 7.252:1**, white on
-  accent/hover **7.754:1 / 10.203:1**; dark `#E5A83B` on bg/elevated **8.483:1 / 7.444:1**,
-  `#241703` on accent/hover **8.338:1 / 7.107:1**. Warning-separation composite distance:
-  light **6.366**, dark **5.788**, named minimum **5.5**.
+- **Superseded checkpoint evidence:** light `#7C4500` on bg/elevated **6.887:1 / 7.252:1**,
+  white on accent/hover **7.754:1 / 10.203:1**; dark `#E5A83B` on bg/elevated
+  **8.483:1 / 7.444:1**, `#241703` on accent/hover **8.338:1 / 7.107:1**. The old
+  HSL hue/lightness composite distances (**6.366** light, **5.788** dark, floor **5.5**)
+  were implementation-time evidence and were superseded by the org tuned family in `f23f54a`
+  plus the OKLab ΔE separation harness.
+- Final values: light `#A94900` / `#913E00` / `#EEE2D6` /
+  `rgba(169, 73, 0, 0.16)` / `#FFFFFF`; dark `#BE7F00` / `#B07800` /
+  `rgba(190, 127, 0, 0.12)` / `rgba(190, 127, 0, 0.2)` / `#2A1603`; parent
+  accent2 remains steel `#5B6B80`.
 
 ## Variant D fold (principal ruling, 2026-08-14 — final direction)
 
@@ -137,3 +143,23 @@ rule + WhatsOn `.voiceHeading` (rule + scope + class) removed; punctuation rules
 their tests intact; whats-on test updated to assert the neutral heading. Suite + build
 green. Direction now fully adjudicated; remaining opens are stakeholder values, Fraunces
 confirm, attribution data model.
+
+## Review — standard pass (2026-08-14)
+
+- **Verdict: needs-fixes.** The receiver confirmed one blocker, two important findings, and
+  two nits; this corrective pass stayed bounded to those adjudicated findings and used direct
+  reads only (no additional worker).
+- **Blocker fixed — Variant D badge-border voice:** showcase overlay badge borders now consume
+  `--item-unit-accent` with their category hue as the parent-item fallback. The on-media scrim,
+  on-media ink, inline treatment, and category label signal remain unchanged.
+- **Important fixed — harness completeness:** the contrast harness now pins the complete parent
+  family and selected tint in both modes, includes public chart gold in OKLab separation, pins
+  no-attribute fallback parity, and guards Variant D's neutral headings plus retained hover-border
+  and event-label punctuation.
+- **Important fixed — evidence supersession:** this feature and the parent-accent story retain but
+  explicitly mark the provisional `#7C4500` / `#E5A83B` and HSL evidence as superseded by org tune
+  `f23f54a`, the final family tuple, and OKLab ΔE.
+- **Nits fixed — dead code:** removed the obsolete HSL helpers and reduced the item-unit inline
+  style boundary to its sole production consumer, `--item-unit-accent`.
+- **Final verification:** `bun run --filter @snc/web test` — 197 files / 2057 tests passed;
+  `bun run --filter @snc/web build` — passed with existing third-party `use client` warnings only.
