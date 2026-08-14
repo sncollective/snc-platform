@@ -1,7 +1,7 @@
 ---
 id: brand-token-architecture
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system]
 parent: brand-voice-system
 depends_on: []
@@ -727,3 +727,19 @@ adjudicated by operator + orchestrator:
 
 Sound per reviewer: attribute split, media/overlay/secondary-split mappings, Fontsource
 direction, refactor-discovery parking.
+
+## Implementation summary (autopilot drain, 2026-08-14)
+
+All seven child stories landed as chained waves (one implementer per story, gpt-5.6-sol/luna):
+
+- `token-restructure` (49e7689) — one-owner token shape + shared light/dark roles + dark migration pin + structural contract tests.
+- `theming` (2d31062) — set-only bootstrap + single hydrated appearance controller + `/settings` light/dark/system control + named lifecycle tests + computed contrast harness.
+- `voice-accents` (ae76d67) — four voice color families both modes, per-voice proportional radii, literal-free Parent defaults in `voices/resolution.css`, prose-link underline default.
+- `route-scoping-contract` (32f8aaf) — `[data-route]` alias blocks (studio/tv/records) + font-family scope rule + structural resolution fixtures (jsdom custom-property limitation documented).
+- `font-loading` (1fc7cb4, closed 19a6b0d) — six Fontsource families self-hosted, true italics, exact fallback stacks, WOFF2 cmap glyph tests, Google request removed. Adjudicated deviation: static Barlow Condensed (`@fontsource-variable/barlow-condensed` not on npm — registry 404 verified).
+- `leak-cleanup` (4b64ae2, closed 9faf150) — all authored CSS migrated to semantic roles, `--color-secondary` retired, `--legacy-public-chart-*` bridge installed owner+expiry, all-syntax no-leak checker (CSS face), contrast matrix extended. Boundary fix: two TSX literals migrated by orchestrator per mapping table.
+- `alias-migration` (0555bab) — full vocabulary migration (124 files), legacy aliases + old color.css/legacy dir deleted, org public-chart palette adopted as `--color-chart-*` (org published 2026-08-14 ~10:55; bridge deleted), conventions published to `.claude/rules/platform-patterns.md` + AGENTS.md CSS section, checker extended to CSS-in-TSX face, contrast matrix complete (both modes, all voices, composites).
+
+**Integrated verification:** `bun run --filter @snc/web test` 1,987/1,987 green; `bun run --filter @snc/web build` green; zero legacy-vocabulary hits repo-wide; no-leak checker zero non-exempt violations across both faces.
+
+External-gate outcomes: org public-chart palette DELIVERED (hard gate cleared mid-drain); stakeholder value swap remains the documented follow-up (placeholder-standing values, one-pass swap on sign-off).
