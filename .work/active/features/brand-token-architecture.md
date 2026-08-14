@@ -91,12 +91,13 @@ the navy-shade proliferation (which collapses cleanly to ~3 ramp steps).
 - **Radius = derived variants.** Define `--radius-sm/md/lg` derived from each voice's base
   `--radius` (preserves the 257-ref proportional scale while still breathing per voice);
   `--radius-circle` / `--radius-pill` stay invariant.
-- **Records scoping = leaf-only.** `data-route` set on press/library content leaves; the
-  persistent `/manage` shell (sidebar/header) stays Parent. Principle: voices apply to
-  public-facing content surfaces; internal tooling shells stay Parent.
-  **Nuance to confirm:** the warm Records-ish palette currently lives on the *internal
-  authoring* screens (`/manage/press`, `/manage/library`); the *public* press kit is
-  `/creators/$creatorId/press/`. Confirm Records targets the intended surface.
+- **Records voice = public press kit.** Records targets the public press route
+  `/creators/$creatorId/press/` (operator-confirmed 2026-08-13: voices are for public-facing
+  surfaces). Consequence: the warm Records-ish palette currently on the *internal authoring*
+  screens (`/manage/press`, `/manage/library`) is **misplaced** — those are internal tooling
+  and stay Parent (spine); their warm hexes migrate to neutrals, not Records. Open follow-on:
+  is there a public library surface, or does `/manage/library` stay Parent? (Default Parent
+  until one exists.)
 
 ## Reference gaps → org adjudication (5; message drafted, pending operator send-approval)
 
@@ -123,8 +124,36 @@ on-badge) layers — all acute in light mode:
   mode-aware hero-surface role.
 - **Warning/info promotion** — warning → first-class with spec value; add `--color-info`
   (#1565C0), resolving latent fallbacks in team-section + playout. (Mostly mechanical.)
-- **Records target surface** — see nuance in Resolved decisions (internal authoring vs
-  public press kit).
+## Scope expansion under discussion: voice as user-selectable theme
+
+Operator raised (2026-08-13): voices could be (a) themes for press/pdf outputs, and/or
+(b) a user-selectable platform-wide setting (pick a voice, or "auto/accept" = route
+default) co-located with the light/dark/system toggle in settings.
+
+Reframe: voices become a themable identity layer with three application modes — route-default
+(auto), user-override (explicit pick), and export/output theme. Right instinct (makes voices
+a real product feature, not a rigid route-skin) and does NOT invalidate route-scoping — the
+route mapping becomes the "auto" behavior.
+
+Analysis:
+- Two orthogonal user-controllable dimensions in settings: mode (light/dark/system) + voice
+  (auto/parent/studio/tv/records). Same appearance pane.
+- Precedence: user-explicit voice > route-default (route sets default on its container; user
+  override wins at higher scope).
+- Sequencing: user-toggle DEPENDS on voice tokens + route-scoping existing → later phase.
+- Export/print theming is a distinct medium (no dark mode, fixed palette, page mechanics),
+  likely a separate feature — confirm whether press/pdf export exists today.
+
+Proposed decomposition (likely promotes this to an epic with child features):
+1. Token foundation + light mode + leaks + fonts + aliases (current feature scope).
+2. Route-default voices (route-scoping mechanism — the "auto" behavior).
+3. User-selectable voice toggle + settings appearance pane (depends on 1+2).
+4. Export/print voice theming (separate; depends on 1).
+
+Open questions for the operator:
+- User-override scope: GLOBAL (one voice everywhere, "auto" = route-respecting default) or
+  per-route? Lean: global + auto default (matches the light/dark toggle metaphor).
+- Confirm export/print theming is net-new (no existing press/pdf export)?
 
 ## Brief deliverables (what "done" looks like for this feature's design phase)
 
