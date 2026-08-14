@@ -163,3 +163,29 @@ Three important findings — all documentation/substrate consistency — adjudic
 fixed in `05c27c7`: epic Status section rolled to final state (+ backlog stub), active
 UI/UX reference rolled forward (Phase 6 realized), mockup token mirror re-synced from
 production. `review -> done`.
+
+## Final completion review — closure (2026-08-14)
+
+Phase 8 fresh-context pass (cross-model, GLM-5.2 → GPT-5.6 Sol) returned `blocked`; all five
+findings adjudicated and resolved, completion restored:
+
+- **Mockup visual gate** (blocker): the token-mirror regeneration had skipped the mandatory
+  vision verification. Three vision passes (44 wide + 8 narrow, then focused re-validations)
+  found and fixed two real defects in the mirror — retired alias names still consumed by the
+  historical corpus (compat-alias block) and light-on-`:root` breaking the dark-authored
+  corpus (dark-default pin via `:root:not([data-theme="light"])`). Final verdict: `restored`,
+  no new breakage.
+- **Browser-rendered typography proof** (blocker): real-browser e2e spec
+  (`apps/e2e/tests/brand-voice-typography.spec.ts`) now asserts computed voice families per
+  route + FontFaceSet glyph coverage (`24·96`, `● LIVE`, Latin-ext) — the durable proof the
+  cmap-only check couldn't provide (`e657245`).
+- **Item-body contradictions + stale reference assertions** (important): reconciled +
+  rolled forward (`7e91126`).
+- **API export CSS raw literals** (important): migrated to semantic tokens with a named,
+  tested QR-only exception; checker extended to the export-CSS source (`e657245`).
+- **E2e failures surfaced during verification**: pre-existence established at the pre-run
+  commit (varying failure sets at identical code) — environmental shared-state flake, parked
+  as `e2e-shared-state-flake-2026-08-14` (`cb4e072`), not a brand-voice regression.
+
+Final state: web 2,020 / api 2,037 unit / 55 integration green; typography e2e spec green;
+mockup corpus vision-validated. The epic is complete.
