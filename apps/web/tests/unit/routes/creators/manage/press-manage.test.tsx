@@ -377,25 +377,32 @@ describe("manage press editor", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("one-sheet is separately curated to the first 2 or 3 highlights");
   });
 
-  it("saves the curated brand color and emits distinct full-press and one-sheet previews", async () => {
+  it("saves and clears the curated brand color while exposing query-free PDF previews", async () => {
     const user = userEvent.setup();
     render(<ManagePressPage />);
 
-    await user.click(await screen.findByRole("button", { name: /#e9c46a brand color/ }));
-    await user.click(screen.getByRole("button", { name: /Creator Accent/ }));
+    await screen.findByRole("heading", { name: "PDF previews" });
+    expect(screen.queryByRole("button", { name: "Light" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dark" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Creator Accent/ })).not.toBeInTheDocument();
     expect(screen.getByText(/not draft-isolated/i)).toBeVisible();
-    expect(screen.getByText(/updates the site-wide creator profile color immediately/i)).toBeVisible();
+    expect(screen.getByText(/eligible federated creators automatically receive that color as non-text decoration/i)).toBeVisible();
     expect(screen.getByRole("link", { name: "Preview full press PDF" })).toHaveAttribute(
       "href",
-      "/api/creators/c1/press/one-pager.pdf?theme=brand",
+      "/api/creators/c1/press/one-pager.pdf",
     );
     expect(screen.getByRole("link", { name: "Preview one-sheet PDF" })).toHaveAttribute(
       "href",
-      "/api/creators/c1/press/one-sheet.pdf?theme=brand",
+      "/api/creators/c1/press/one-sheet.pdf",
     );
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
 
+    await user.click(screen.getByRole("button", { name: /#e9c46a brand color/ }));
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledWith("c1", { brandColor: "#e9c46a" }));
+
+    await user.click(screen.getByRole("button", { name: "Use platform default brand color" }));
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledWith("c1", { brandColor: null }));
   });
 
   it("reorders members with keyboard-size controls and announces the new position", async () => {

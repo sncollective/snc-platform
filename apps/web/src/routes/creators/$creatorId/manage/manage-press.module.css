@@ -539,66 +539,6 @@
   grid-row: 2 / 4;
 }
 
-.pdfGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
-}
-
-.pdfChoice {
-  min-height: 154px;
-  padding: 0.65rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  color: var(--color-text-muted);
-  text-align: left;
-  cursor: pointer;
-}
-
-.pdfChoice[aria-pressed="true"] {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
-  color: var(--color-text);
-}
-
-.pdfChoice strong,
-.pdfChoice small {
-  display: block;
-}
-
-.pdfPreview {
-  height: 82px;
-  margin-bottom: 0.45rem;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: 0.65fr 1.35fr;
-  gap: 5px;
-  border-radius: 2px;
-  background: var(--preview-light-paper);
-}
-
-.pdfPreview i {
-  border-radius: 1px;
-  background: var(--preview-light-ink);
-}
-
-.pdfDark .pdfPreview {
-  background: var(--preview-dark-paper);
-}
-
-.pdfDark .pdfPreview i {
-  background: var(--preview-dark-ink);
-}
-
-.pdfAccent .pdfPreview {
-  background: linear-gradient(
-    90deg,
-    var(--creator-brand) 0 27%,
-    var(--preview-light-paper) 27%
-  );
-}
-
 .pdfActions {
   margin-top: var(--space-sm);
   display: flex;
@@ -691,6 +631,16 @@
 .lightSurface {
   background: var(--preview-light-paper);
   color: var(--preview-light-ink);
+}
+
+.lightSurface span {
+  color: var(--preview-light-ink);
+}
+
+.lightSurface i {
+  height: 6px;
+  margin-bottom: 0.55rem;
+  display: block;
 }
 
 .help {
@@ -1269,8 +1219,7 @@
   }
 
   .assetOverview,
-  .brandSurfaces,
-  .pdfGrid {
+  .brandSurfaces {
     grid-template-columns: 1fr;
   }
 

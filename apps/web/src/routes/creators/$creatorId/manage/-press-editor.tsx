@@ -35,7 +35,6 @@ import {
   validatePressDraft,
 } from "./-press-editor-model.js";
 import type {
-  PdfScheme,
   PressEditorIssue,
   PressEditorTab,
 } from "./-press-editor-model.js";
@@ -118,7 +117,6 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [saveDetail, setSaveDetail] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [pdfScheme, setPdfScheme] = useState<PdfScheme>("light");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<number | null>(null);
   const [editingHighlight, setEditingHighlight] = useState<number | null>(null);
@@ -325,7 +323,6 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
       highlightKeysRef.current = normalized.highlights.map(() => `press-highlight-row-${entityKeyCounterRef.current++}`);
       editRevisionRef.current += 1;
       setBrandColor(savedBrandColor);
-      setPdfScheme("light");
       setDirtyTabs(new Set());
       setSaveState("saved");
       setSaveDetail("Draft discarded · published content restored");
@@ -562,7 +559,7 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           <div className={styles.appearanceGrid}>
             <article className={styles.card} aria-labelledby="press-template-heading">
               <h3 id="press-template-heading">Public-page template</h3>
-              <p className={styles.cardIntro}>Templates change the public page’s content rhythm only. PDF layout is selected separately.</p>
+              <p className={styles.cardIntro}>Templates change the public page’s content rhythm and its full press PDF. The curated one-sheet keeps its fixed layout.</p>
               <div className={styles.templateGrid} role="radiogroup" aria-labelledby="press-template-heading">
                 {(["A", "B"] as const).map((template) => (
                   <label key={template} className={`${styles.templateChoice} ${content.template === template ? styles.selectedChoice : ""}`}>
@@ -583,33 +580,17 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
             </article>
 
             <article className={styles.card} aria-labelledby="press-pdf-heading">
-              <h3 id="press-pdf-heading">PDF color scheme</h3>
-              <p className={styles.cardIntro}>Preview the independent PDF color treatment. PDF content continues to use the published version.</p>
-              <div className={styles.pdfGrid} aria-label="PDF color scheme choices">
-                {(["light", "dark", "accent"] as const).map((scheme) => (
-                  <button
-                    key={scheme}
-                    type="button"
-                    className={`${styles.pdfChoice} ${styles[`pdf${scheme[0]!.toUpperCase()}${scheme.slice(1)}`]}`}
-                    aria-pressed={pdfScheme === scheme}
-                    onClick={() => setPdfScheme(scheme)}
-                  >
-                    <span className={styles.pdfPreview} aria-hidden="true"><i /><i /><i /><i /></span>
-                    <strong>{scheme === "accent" ? "Creator Accent" : scheme[0]!.toUpperCase() + scheme.slice(1)}</strong>
-                    <small>{scheme === "light" ? "Warm paper, dark type" : scheme === "dark" ? "Ink field, light type" : "Brand band, light body"}</small>
-                  </button>
-                ))}
-              </div>
+              <h3 id="press-pdf-heading">PDF previews</h3>
+              <p className={styles.cardIntro}>PDFs use the published version, the Records voice, and a fixed light-paper palette.</p>
               <div className={styles.pdfActions}>
-                <span>Selected: {pdfScheme === "accent" ? "Creator Accent" : pdfScheme[0]!.toUpperCase() + pdfScheme.slice(1)}</span>
-                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-pager.pdf?theme=${pdfScheme === "accent" ? "brand" : pdfScheme}`} target="_blank" rel="noreferrer">Preview full press PDF</a>
-                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-sheet.pdf?theme=${pdfScheme === "accent" ? "brand" : pdfScheme}`} target="_blank" rel="noreferrer">Preview one-sheet PDF</a>
+                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-pager.pdf`} target="_blank" rel="noreferrer">Preview full press PDF</a>
+                <a className={styles.button} href={`/api/creators/${encodeURIComponent(creatorId)}/press/one-sheet.pdf`} target="_blank" rel="noreferrer">Preview one-sheet PDF</a>
               </div>
             </article>
 
             <article className={`${styles.card} ${styles.brandCard}`} aria-labelledby="press-brand-heading">
               <h3 id="press-brand-heading">Creator brand color · site-wide profile setting</h3>
-              <div className={styles.brandWarning}><strong>This setting is not draft-isolated.</strong> Saving the draft updates the site-wide creator profile color immediately—including Creator Accent PDFs—even before press content is published.</div>
+              <div className={styles.brandWarning}><strong>This setting is not draft-isolated.</strong> Saving the draft updates the site-wide creator profile color immediately. Eligible federated creators automatically receive that color as non-text decoration in press PDFs.</div>
               <div className={styles.swatches} aria-label="Accessible brand color presets">
                 {CREATOR_BRAND_COLORS.map((color) => (
                   <button
@@ -636,10 +617,10 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
                   }}
                 >×</button>
               </div>
-              <p className={styles.help}>Only curated presets meeting contrast requirements are offered. Foreground ink is derived by each consumer.</p>
+              <p className={styles.help}>Only curated presets are offered. Eligible federated creators use the exact color for PDF rules and bands; PDF text keeps the contrast-verified Records voice.</p>
               <div className={styles.brandSurfaces}>
                 <div className={styles.darkSurface}><strong>Creator-page link</strong><span style={{ backgroundColor: brandColor ?? "var(--color-accent)" }}>Listen to {creatorName} →</span><small>Dark surface preview</small></div>
-                <div className={styles.lightSurface}><strong>Light PDF</strong><span style={{ backgroundColor: brandColor ?? "var(--color-accent)" }}>{creatorName} · Press kit</span><small>Derived dark ink</small></div>
+                <div className={styles.lightSurface}><strong>Fixed-paper PDF</strong><span><i style={{ backgroundColor: brandColor ?? "var(--color-accent)" }} aria-hidden="true" />{creatorName} · Press kit</span><small>Color decorates the rule; text keeps the Records ink.</small></div>
               </div>
             </article>
           </div>

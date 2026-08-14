@@ -1,7 +1,7 @@
 ---
 id: brand-voice-export-theming-authoring-cleanup
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-voice-export-theming
 depends_on: [brand-voice-export-theming-renderer-contract]
@@ -40,11 +40,21 @@ fixed-light automatic renderer is available.
 
 ## Acceptance evidence
 
-- [ ] No PDF mode or voice choice is rendered, and neither preview URL contains `theme=`.
-- [ ] The creator brand color remains settable and clearable through the existing profile update
+- [x] No PDF mode or voice choice is rendered, and neither preview URL contains `theme=`.
+- [x] The creator brand color remains settable and clearable through the existing profile update
   path; its copy does not promise an unqualified text accent on light paper.
-- [ ] Obsolete state, reset logic, CSS selectors, and theme-choice assertions are deleted rather
+- [x] Obsolete state, reset logic, CSS selectors, and theme-choice assertions are deleted rather
   than retained as hidden compatibility behavior.
-- [ ] Web unit tests and typecheck pass.
-- [ ] Rendered PDF inspection confirms this UI simplification did not alter the two endpoint
+- [x] Web unit tests and typecheck pass.
+- [x] Rendered PDF inspection confirms this UI simplification did not alter the two endpoint
   destinations or the renderer checkpoint's fixed-light output.
+
+## Implementation notes
+
+- Execution capability: `gpt-5.6-sol`; selected by the autopilot caller for the cohesive UI-state removal and cross-package contract verification.
+- Review weight: `standard` from the caller; feature review is intentionally deferred to the orchestrator.
+- Files changed: `apps/web/src/routes/creators/$creatorId/manage/-press-editor.tsx`, `manage-press.module.css`, and `apps/web/tests/unit/routes/creators/manage/press-manage.test.tsx`.
+- Tests added/removed: replaced the old theme-query interaction assertion with query-free full/one-sheet links, absence of all three mode choices, automatic federated-decoration copy, and brand-color save plus clear coverage.
+- Simplification: removed the PDF scheme state/reset branch, three choice cards, query construction, five obsolete CSS selector families, and responsive residue; retained one direct preview action row and the site-wide curated color field.
+- Discrepancies from design: the now-unused `PdfScheme` type export remains in `-press-editor-model.ts` because that file is outside this delegated worker's explicit write scope; all runtime state, imports, selectors, and query behavior are removed.
+- Adjacent issues parked: none.
