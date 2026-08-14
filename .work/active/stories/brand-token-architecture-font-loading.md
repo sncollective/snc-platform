@@ -65,3 +65,8 @@ Fontsource publishes the variable package.
   fallback (the primary subsets do not contain it). The `● LIVE` fixture and
   fallback cmap are verified; this is a Linux/CI fontconfig-backed cmap check,
   not a browser pixel-rendering test.
+- Completion-review follow-up adds the browser-rendered proof at
+  `apps/e2e/tests/brand-voice-typography.spec.ts`: real staging route headings/body copy
+  resolve through each voice family, and Chromium's FontFaceSet verifies `24·96`, `● LIVE`
+  (including the named Arial dot fallback), and Source Sans 3 Latin-ext coverage. This
+  closes the acceptance gap left by the cmap-only check.

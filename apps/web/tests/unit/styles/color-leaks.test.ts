@@ -4,7 +4,9 @@ import { relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SOURCE_DIR = resolve(import.meta.dirname, "../../../src");
+const PROJECT_ROOT = resolve(SOURCE_DIR, "../../..");
 const TOKENS_DIR = resolve(SOURCE_DIR, "styles/tokens");
+const API_EXPORT_STYLE_FILE = resolve(PROJECT_ROOT, "apps/api/src/services/press-pdf.ts");
 
 const COLOR_NAMES = new Set(
   `aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue
@@ -56,6 +58,15 @@ const SIMPLE_ICONS_FILE = "components/social-links/platform-icon.tsx";
 const CREATOR_BRAND_FILE = "routes/creators/$creatorId/manage/-press-editor.tsx";
 
 /*
+ * QR modules and their quiet zone are fixed payload colors rather than themeable UI.
+ * No other API export pigment receives an exemption.
+ */
+const FIXED_EXPORT_COLOR_ALLOWLIST = new Map([
+  ["QR_DARK", "#1A1A2E"],
+  ["QR_LIGHT", "#FFFFFF"],
+]);
+
+/*
  * Exact-path, fail-closed exemptions. The reserved signature-chip owner may consume only the
  * exact voice accent2 var() expressions checked below; it receives no raw-pigment exemption.
  */
@@ -76,6 +87,12 @@ interface ColorMatch {
 interface ScanResult {
   readonly violations: readonly ColorMatch[];
   readonly sanctionedKeywords: ReadonlySet<string>;
+}
+
+interface FixedExportColorDeclaration {
+  readonly name: string;
+  readonly value: string;
+  readonly colorOffset: number;
 }
 
 function sourceFiles(directory: string): string[] {
@@ -192,6 +209,42 @@ function findTsxColorMatches(tsx: string): ScanResult {
   return mergeResults(results);
 }
 
+function fixedExportColorDeclarations(source: string): FixedExportColorDeclaration[] {
+  return [...source.matchAll(/const\s+([A-Z][A-Z0-9_]*)\s*=\s*"(#[\da-f]{3,8})";/gi)]
+    .map((match) => ({
+      name: match[1] ?? "",
+      value: match[2] ?? "",
+      colorOffset: match.index + match[0].indexOf(match[2] ?? ""),
+    }));
+}
+
+function isAllowedFixedExportColor(
+  match: ColorMatch,
+  declarations: readonly FixedExportColorDeclaration[],
+): boolean {
+  return declarations.some((declaration) =>
+    declaration.colorOffset === match.offset
+    && FIXED_EXPORT_COLOR_ALLOWLIST.get(declaration.name) === declaration.value
+    && declaration.value === match.value
+  );
+}
+
+function scanApiExportStyleSource(source: string): ScanResult {
+  const cssResult = findCssColorMatches(source);
+  const hexMatches = [...stripComments(source).matchAll(HEX_PATTERN)].map<ColorMatch>((match) => ({
+    syntax: "hex",
+    value: match[0],
+    offset: match.index,
+  }));
+  return {
+    violations: [
+      ...cssResult.violations.filter(({ syntax }) => syntax !== "hex"),
+      ...hexMatches,
+    ],
+    sanctionedKeywords: cssResult.sanctionedKeywords,
+  };
+}
+
 function lineNumberAt(source: string, offset: number): number {
   return source.slice(0, offset).split("\n").length;
 }
@@ -299,6 +352,23 @@ describe("authored color boundary", () => {
         .map((match) => formatViolation(file, source, match));
     });
 
+    expect(violations).toEqual([]);
+  });
+
+  it("governs retained-head export CSS with only the exact fixed QR pigment pair", () => {
+    const source = readFileSync(API_EXPORT_STYLE_FILE, "utf-8");
+    const fixedDeclarations = fixedExportColorDeclarations(source);
+    const violations = scanApiExportStyleSource(source).violations
+      .filter((match) => !isAllowedFixedExportColor(match, fixedDeclarations))
+      .map((match) =>
+        `${relative(PROJECT_ROOT, API_EXPORT_STYLE_FILE)}:${lineNumberAt(source, match.offset)} ${match.syntax} ${match.value}`
+      );
+
+    expect(fixedDeclarations.map(({ name, value }) => [name, value])).toEqual(
+      [...FIXED_EXPORT_COLOR_ALLOWLIST],
+    );
+    expect(source).toContain("background:${QR_LIGHT}");
+    expect(source).toContain("color: { dark: QR_DARK, light: QR_LIGHT }");
     expect(violations).toEqual([]);
   });
 
