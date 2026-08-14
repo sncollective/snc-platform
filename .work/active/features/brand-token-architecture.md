@@ -1,7 +1,7 @@
 ---
 id: brand-token-architecture
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
 parent: brand-voice-system
 depends_on: []
@@ -756,3 +756,10 @@ Verdict: **needs fixes**. Receiver-confirmed findings and dispositions:
 - **I4 / FIX 6 — stale UX guidance:** rolled `docs/ux-decisions.md` forward from deleted `--shadow-dropdown`/global ownership language to the composed token directory and surviving `--shadow-md` elevation vocabulary.
 
 Final verification: `bun run --filter @snc/web test` — 195 files / 2,019 tests passed; `bun run --filter @snc/web build` — passed (dependency `use client` warnings only).
+
+### Closure (orchestrator, 2026-08-14)
+
+- Fixes landed (`a4bb370`): context-shell active-nav re-pairing + owned consumers, media/overlay/accent foreground fixes (FIX 2 set), creator fallback CSS-side pairing, fail-closed CSS-in-TSX grammar with narrowed signature-chip exemption, `--color-media-border` role, ux-decisions roll-forward. Harness extended to consumer-pairing composites.
+- Org delivered the dark Parent accent-bg reference fix (f67db14e, same omission class as the earlier hover bug); platform re-seeded both dark blocks (6.13:1 on bg / 5.30:1 on elevated, style-contract tests green).
+- Residual: text-bearing accent-bg consumers outside the corrective write set (creator/calendar/landing/library/notifications/press-image-picker) — contrast-safe post value fix; parked as `accent-bg-consumer-recipe-alignment` (convention alignment, ride-along).
+- Standard closure: one independent pass, all receiver-confirmed blockers fixed and verified, no re-review. `review -> done`.

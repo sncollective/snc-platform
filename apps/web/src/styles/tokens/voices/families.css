@@ -34,7 +34,7 @@
 [data-theme="dark"] {
   --voice-parent-accent: #A8B2C0;
   --voice-parent-accent-hover: #8E9AAC;
-  --voice-parent-accent-bg: #DDE0E4;
+  --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
   --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
   --voice-parent-on-accent: #121821;
   --voice-parent-accent2: #5B6B80;
@@ -65,7 +65,7 @@
   :root:not([data-theme]) {
     --voice-parent-accent: #A8B2C0;
     --voice-parent-accent-hover: #8E9AAC;
-    --voice-parent-accent-bg: #DDE0E4;
+    --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
     --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
     --voice-parent-on-accent: #121821;
     --voice-parent-accent2: #5B6B80;
