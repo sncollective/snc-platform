@@ -39,8 +39,12 @@ const NAMED_COLOR_PATTERN = new RegExp(
   "gi",
 );
 const DECLARATION_PATTERN = /(?:^|[;{])\s*[-\w]+\s*:\s*([^;{}]+)(?:;|(?=\}))/gm;
-const TSX_COLOR_PROPERTY_PATTERN =
-  /\b(?:accentColor|background|backgroundColor|borderColor|caretColor|color|fill|outlineColor|stroke|textDecorationColor)\s*:\s*([^,}\n]+)/g;
+const COLOR_BEARING_TSX_PROPERTY = String.raw`(?:accentColor|background(?:Color|Image)?|border(?:Block|BlockEnd|BlockStart|Bottom|Inline|InlineEnd|InlineStart|Left|Right|Top)?(?:Color)?|boxShadow|caretColor|color|columnRule(?:Color)?|fill|filter|floodColor|lightingColor|outline(?:Color)?|scrollbarColor|stopColor|stroke|textDecoration(?:Color)?|textEmphasisColor|textShadow|WebkitTextFillColor|WebkitTextStroke(?:Color)?)`;
+const TSX_COLOR_PROPERTY_PATTERN = new RegExp(
+  String.raw`(?<![\w-])(["']?${COLOR_BEARING_TSX_PROPERTY}["']?|["']--[\w-]+["'])\s*:\s*([^,}\n]+)`,
+  "g",
+);
+const INLINE_STYLE_PATTERN = /\bstyle\s*=\s*\{\{([\s\S]*?)\}\}/g;
 const JSX_COLOR_ATTRIBUTE_PATTERN =
   /\b(?:color|fill|stroke)\s*=\s*("[^"]*"|'[^']*'|`[^`]*`|\{[^}\n]*\})/g;
 const SIMPLE_ICONS_HEX_PATTERN = /`#\$\{si[A-Za-z]+\.hex\}`/g;
@@ -52,8 +56,8 @@ const SIMPLE_ICONS_FILE = "components/social-links/platform-icon.tsx";
 const CREATOR_BRAND_FILE = "routes/creators/$creatorId/manage/-press-editor.tsx";
 
 /*
- * Exact-path, fail-closed exemptions. Signature chips do not exist yet; this reserved owner is
- * the only non-token CSS file that may define a literal signature treatment when introduced.
+ * Exact-path, fail-closed exemptions. The reserved signature-chip owner may consume only the
+ * exact voice accent2 var() expressions checked below; it receives no raw-pigment exemption.
  */
 const SANCTIONED_SIGNATURE_CHIP_FILES = new Set([
   "components/brand/signature-chip.module.css",
@@ -130,18 +134,35 @@ function findTsxColorMatches(tsx: string): ScanResult {
   const source = stripComments(tsx);
   const results: ScanResult[] = [];
 
-  for (const property of source.matchAll(TSX_COLOR_PROPERTY_PATTERN)) {
-    const value = property[1] ?? "";
-    const offset = property.index + property[0].indexOf(value);
-    const result = findValueMatches(value, offset);
-    const isTokenReference = /["'`]var\(--[\w-]+\)["'`]/.test(value);
-    if (result.violations.length === 0 && !isTokenReference) {
-      results.push({
-        violations: [{ syntax: "dynamic", value: value.trim(), offset }],
-        sanctionedKeywords: result.sanctionedKeywords,
-      });
-    } else {
-      results.push(result);
+  for (const style of source.matchAll(INLINE_STYLE_PATTERN)) {
+    const declarations = style[1] ?? "";
+    const declarationsOffset = style.index + style[0].indexOf(declarations);
+
+    for (const property of declarations.matchAll(TSX_COLOR_PROPERTY_PATTERN)) {
+      const propertyName = (property[1] ?? "").replace(/["']/g, "");
+      const value = property[2] ?? "";
+      const offset = declarationsOffset + property.index + property[0].indexOf(value);
+      const result = findValueMatches(value, offset);
+      const hasTokenReference = /var\(--[\w-]+\)/.test(value);
+      const hasSanctionedKeyword = result.sanctionedKeywords.size > 0;
+      const isCustomProperty = propertyName.startsWith("--");
+      const isNoPaint = /^["'`](?:none|inherit|initial|unset|revert(?:-layer)?)["'`]$/i.test(
+        value.trim(),
+      );
+      if (
+        result.violations.length === 0 &&
+        !hasTokenReference &&
+        !hasSanctionedKeyword &&
+        !isCustomProperty &&
+        !isNoPaint
+      ) {
+        results.push({
+          violations: [{ syntax: "dynamic", value: value.trim(), offset }],
+          sanctionedKeywords: result.sanctionedKeywords,
+        });
+      } else {
+        results.push(result);
+      }
     }
   }
 
@@ -191,7 +212,14 @@ function isExplicitlyAllowed(file: string, match: ColorMatch): boolean {
   if (path === CREATOR_BRAND_FILE) {
     return match.syntax === "dynamic" && /^(?:brandColor|color)(?:\s*\?\?)?/.test(match.value);
   }
-  return SANCTIONED_SIGNATURE_CHIP_FILES.has(path);
+  return false;
+}
+
+function isSanctionedDirectVoiceConsumer(path: string, token: string): boolean {
+  return (
+    SANCTIONED_SIGNATURE_CHIP_FILES.has(path) &&
+    /^--voice-(?:parent|studio|tv|records)-accent2$/.test(token)
+  );
 }
 
 function scanFile(file: string): ScanResult {
@@ -241,6 +269,27 @@ describe("authored color boundary", () => {
     ]);
   });
 
+  it("rejects every formerly bypassed CSS-in-TSX color shape", () => {
+    const bypassAttempts = new Map([
+      ["border shorthand", `<div style={{ border: "1px solid #fff" }} />`],
+      ["box shadow", `<div style={{ boxShadow: "0 1px 2px #fff" }} />`],
+      ["text shadow", `<div style={{ textShadow: "0 1px #fff" }} />`],
+      ["background image", `<div style={{ backgroundImage: "linear-gradient(#fff, #000)" }} />`],
+      ["filter", `<div style={{ filter: "drop-shadow(0 1px #fff)" }} />`],
+      ["custom property", `<div style={{ "--local-color": "#fff" }} />`],
+    ]);
+
+    for (const [name, fixture] of bypassAttempts) {
+      expect(findTsxColorMatches(fixture).violations, name).not.toHaveLength(0);
+    }
+
+    expect(
+      findTsxColorMatches(
+        `<div style={{ border: "1px solid currentColor", background: "transparent", color: "var(--color-text)" }} />`,
+      ).violations,
+    ).toEqual([]);
+  });
+
   it("keeps raw pigments and derivations inside explicit owners across CSS and TSX", () => {
     const violations = sourceFiles(SOURCE_DIR).flatMap((file) => {
       if (isTokenDefinition(file)) return [];
@@ -275,18 +324,25 @@ describe("authored color boundary", () => {
   });
 
   it("confines direct voice consumption to the route resolver or an exact signature chip", () => {
+    const signaturePath = "components/brand/signature-chip.module.css";
+    expect(isSanctionedDirectVoiceConsumer(signaturePath, "--voice-parent-accent2")).toBe(true);
+    expect(isSanctionedDirectVoiceConsumer(signaturePath, "--voice-parent-accent")).toBe(false);
+    expect(isSanctionedDirectVoiceConsumer("components/other.module.css", "--voice-parent-accent2")).toBe(
+      false,
+    );
+
+    const rawSignatureMatch = findCssColorMatches(".chip { color: #fff; }").violations[0];
+    expect(rawSignatureMatch).toBeDefined();
+    expect(
+      isExplicitlyAllowed(resolve(SOURCE_DIR, signaturePath), rawSignatureMatch as ColorMatch),
+    ).toBe(false);
+
     const violations = sourceFiles(SOURCE_DIR).flatMap((file) => {
       if (isTokenDefinition(file)) return [];
       const path = sourcePath(file);
       const source = readFileSync(file, "utf-8");
       return [...source.matchAll(DIRECT_VOICE_CONSUMER_PATTERN)]
-        .filter((match) => {
-          const token = match[1] ?? "";
-          return !(
-            SANCTIONED_SIGNATURE_CHIP_FILES.has(path) &&
-            /^--voice-(?:parent|studio|tv|records)-accent2$/.test(token)
-          );
-        })
+        .filter((match) => !isSanctionedDirectVoiceConsumer(path, match[1] ?? ""))
         .map((match) => `${path}:${lineNumberAt(source, match.index)} ${match[1]}`);
     });
 

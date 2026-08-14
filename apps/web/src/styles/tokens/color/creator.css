@@ -1,20 +1,28 @@
 /* ── Creator-Authored Brand Contract ── */
 
-/* Runtime creator data may override --creator-brand only inside authored content. */
+/*
+ * The fallback is the current route accent and must use its paired on-accent ink.
+ * Consumers apply --color-on-curated-creator-brand only when validated creator data is
+ * present; curated presets are guaranteed against this fixed ink by the shared schema.
+ */
+:root {
+  --color-on-curated-creator-brand: #1A1A2E;
+}
+
 :root,
 [data-theme="light"] {
   --creator-brand: var(--color-accent);
-  --color-on-creator-brand: #1A1A2E;
+  --color-on-creator-brand: var(--color-on-accent);
 }
 
 [data-theme="dark"] {
   --creator-brand: var(--color-accent);
-  --color-on-creator-brand: #1A1A2E;
+  --color-on-creator-brand: var(--color-on-accent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --creator-brand: var(--color-accent);
-    --color-on-creator-brand: #1A1A2E;
+    --color-on-creator-brand: var(--color-on-accent);
   }
 }

@@ -52,7 +52,7 @@ Evidence to surface during design conversations — not rules to apply.
 
 ### Design Token Reuse
 
-- The platform already has a design token system in `global.css`. Any new nav components should use existing tokens (`--nav-height`, `--color-accent`, `--shadow-dropdown`, etc.) rather than introducing new values.
+- The platform's composed design token system lives under `apps/web/src/styles/tokens/` and is imported once by `global.css`. New navigation components use the surviving semantic vocabulary (`--nav-height`, `--color-accent`, `--shadow-md`, etc.) rather than introducing new values.
 
 ## Decision Lifecycle
 

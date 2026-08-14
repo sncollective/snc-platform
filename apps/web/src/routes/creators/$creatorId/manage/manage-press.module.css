@@ -216,7 +216,7 @@
 
 .currentState {
   border-color: var(--color-accent);
-  background: var(--color-accent-bg);
+  background: var(--color-selected-bg);
   color: var(--color-accent);
 }
 
@@ -671,6 +671,11 @@
   padding: 0.55rem 0.65rem;
   color: var(--color-on-creator-brand);
   font-weight: 750;
+}
+
+/* Existing inline style state distinguishes the route-accent fallback from a validated preset. */
+.brandSurfaces span[style]:not([style*="var(--color-accent)"]) {
+  color: var(--color-on-curated-creator-brand);
 }
 
 .brandSurfaces small {

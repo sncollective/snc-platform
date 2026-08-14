@@ -262,7 +262,7 @@
   top: 7px;
   left: 7px;
   padding: 4px 7px;
-  border: 1px solid var(--color-on-media-muted);
+  border: 1px solid var(--color-media-border);
   border-radius: var(--radius-pill);
   background: var(--color-overlay-strong);
   color: var(--color-on-media);
@@ -389,7 +389,7 @@
   place-items: center;
   border: 1px dashed var(--color-accent);
   border-radius: var(--radius-md);
-  background: var(--color-accent-bg);
+  background: var(--color-selected-bg);
   color: var(--color-accent);
   font-size: 24px;
 }
@@ -440,7 +440,7 @@
   place-items: center;
   border: 2px dashed var(--color-accent);
   border-radius: var(--radius-lg);
-  background: var(--color-accent-bg);
+  background: var(--color-selected-bg);
   text-align: center;
 }
 

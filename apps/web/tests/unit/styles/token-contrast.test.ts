@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { CREATOR_BRAND_COLORS } from "@snc/shared";
 import { describe, expect, it } from "vitest";
 
 const TOKENS_DIR = resolve(import.meta.dirname, "../../../src/styles/tokens");
@@ -52,6 +53,7 @@ function tokensForMode(mode: Mode): Map<string, string> {
     ...modeDeclarations("color/spine.css", mode),
     ...modeDeclarations("color/status.css", mode),
     ...modeDeclarations("color/state.css", mode),
+    ...modeDeclarations("color/media.css", mode),
     ...modeDeclarations("color/badges.css", mode),
     ...rootDeclarations("color/badges.css"),
     ...modeDeclarations("color/data.css", mode),
@@ -127,6 +129,11 @@ function contrast(foreground: Rgba, background: Rgba): number {
 function color(tokens: Map<string, string>, name: string): Rgba {
   const value = tokens.get(name);
   expect(value, `${name} should be declared`).toBeDefined();
+
+  const alias = value?.match(/^var\((--[\w-]+)\)$/);
+  if (alias !== undefined && alias !== null) {
+    return color(tokens, alias[1] as string);
+  }
 
   const tint = value?.match(
     /^color-mix\(in srgb, var\((--[\w-]+)\) (\d+(?:\.\d+)?)%, transparent\)$/,
@@ -237,14 +244,18 @@ describe("brand token contrast matrix", () => {
     }
   });
 
-  it.each(MODES)("keeps every %s voice accent pair AA-safe", (mode) => {
+  it.each(MODES)("keeps every %s voice's actual identity consumer pairs safe", (mode) => {
     const tokens = tokensForMode(mode);
+    const selected = color(tokens, "--color-selected-bg");
 
     for (const voice of VOICE_NAMES) {
       const foreground = color(tokens, `--voice-${voice}-on-accent`);
       for (const role of ["accent", "accent-hover"] as const) {
         const background = color(tokens, `--voice-${voice}-${role}`);
-        expect(contrast(foreground, background), `${voice} ${role}`).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrast(foreground, background),
+          `${voice} on-accent on ${role}`,
+        ).toBeGreaterThanOrEqual(4.5);
       }
 
       const accent = color(tokens, `--voice-${voice}-accent`);
@@ -252,12 +263,57 @@ describe("brand token contrast matrix", () => {
         const host = color(tokens, hostName);
         expect(contrast(accent, host), `${voice} accent on ${hostName}`).toBeGreaterThanOrEqual(4.5);
 
+        const selectedBackground = composite(selected, host);
+        expect(
+          contrast(accent, selectedBackground),
+          `${voice} accent on selected over ${hostName}`,
+        ).toBeGreaterThanOrEqual(3);
+
         const subtle = composite(color(tokens, `--voice-${voice}-accent-subtle`), host);
         expect(
           contrast(accent, subtle),
           `${voice} accent on subtle over ${hostName}`,
         ).toBeGreaterThanOrEqual(3);
       }
+    }
+  });
+
+  it.each(MODES)("keeps %s fixed-media foreground roles safe over media black", (mode) => {
+    const tokens = tokensForMode(mode);
+    const mediaBackground = color(tokens, "--color-media-bg");
+
+    expect(contrast(color(tokens, "--color-on-media"), mediaBackground)).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrast(composite(color(tokens, "--color-on-media-muted"), mediaBackground), mediaBackground),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(color(tokens, "--color-media-border").alpha).toBe(0.15);
+  });
+
+  it.each(MODES)("keeps %s creator-brand presets and route fallback paired", (mode) => {
+    const tokens = tokensForMode(mode);
+    const creator = new Map([
+      ...tokens,
+      ...rootDeclarations("color/creator.css"),
+      ...modeDeclarations("color/creator.css", mode),
+    ]);
+    const curatedInk = color(creator, "--color-on-curated-creator-brand");
+
+    for (const preset of CREATOR_BRAND_COLORS) {
+      expect(contrast(curatedInk, parseColor(preset)), `curated creator preset ${preset}`).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+
+    expect(creator.get("--creator-brand")).toBe("var(--color-accent)");
+    expect(creator.get("--color-on-creator-brand")).toBe("var(--color-on-accent)");
+    for (const voice of VOICE_NAMES) {
+      expect(
+        contrast(
+          color(tokens, `--voice-${voice}-on-accent`),
+          color(tokens, `--voice-${voice}-accent`),
+        ),
+        `${voice} creator fallback`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
