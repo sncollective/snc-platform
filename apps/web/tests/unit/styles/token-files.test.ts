@@ -239,7 +239,9 @@ describe("token ownership boundaries", () => {
 
   it("resolves every Parent generic alias through a declared variable chain", () => {
     const resolution = readTokenFile("voices/resolution.css");
-    const resolvedAliases = declarations(resolution);
+    const rootBlock = resolution.match(/^:root\s*\{([^}]*)\}/m)?.[1];
+    expect(rootBlock, "resolution.css should define the Parent fallback on :root").toBeDefined();
+    const resolvedAliases = declarations(rootBlock ?? "");
     const expectedAliases = new Map([
       ["--color-accent", "var(--voice-parent-accent)"],
       ["--color-accent-hover", "var(--voice-parent-accent-hover)"],
@@ -276,7 +278,8 @@ describe("token ownership boundaries", () => {
     }
     expect(resolution).not.toMatch(/#[\da-f]{3,8}\b|rgba?\(|hsla?\(|\b\d+(?:\.\d+)?(?:px|rem|em|%)\b/i);
     expect(resolution).toContain("[data-route] {\n  font-family: var(--font-body);\n}");
-    expect(resolution).not.toMatch(/\[data-route=["']/);
+    expect(resolution).not.toContain('[data-route="parent"]');
+    expect(resolution).not.toContain("data-effective-voice");
   });
 });
 

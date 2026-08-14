@@ -20,6 +20,71 @@
   --font-display: var(--font-display-parent);
 }
 
+[data-route="studio"] {
+  --color-accent: var(--voice-studio-accent);
+  --color-accent-hover: var(--voice-studio-accent-hover);
+  --color-accent-bg: var(--voice-studio-accent-bg);
+  --color-accent-subtle: var(--voice-studio-accent-subtle);
+  --color-on-accent: var(--voice-studio-on-accent);
+  --color-accent2: var(--voice-studio-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-studio-radius);
+  --radius-sm: var(--voice-studio-radius-sm);
+  --radius-md: var(--voice-studio-radius-md);
+  --radius-lg: var(--voice-studio-radius-lg);
+  --radius-xl: var(--voice-studio-radius-xl);
+
+  --font-body: var(--font-body-studio);
+  --font-display: var(--font-display-studio);
+}
+
+[data-route="tv"] {
+  --color-accent: var(--voice-tv-accent);
+  --color-accent-hover: var(--voice-tv-accent-hover);
+  --color-accent-bg: var(--voice-tv-accent-bg);
+  --color-accent-subtle: var(--voice-tv-accent-subtle);
+  --color-on-accent: var(--voice-tv-on-accent);
+  --color-accent2: var(--voice-tv-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-tv-radius);
+  --radius-sm: var(--voice-tv-radius-sm);
+  --radius-md: var(--voice-tv-radius-md);
+  --radius-lg: var(--voice-tv-radius-lg);
+  --radius-xl: var(--voice-tv-radius-xl);
+
+  --font-body: var(--font-body-tv);
+  --font-display: var(--font-display-tv);
+}
+
+[data-route="records"] {
+  --color-accent: var(--voice-records-accent);
+  --color-accent-hover: var(--voice-records-accent-hover);
+  --color-accent-bg: var(--voice-records-accent-bg);
+  --color-accent-subtle: var(--voice-records-accent-subtle);
+  --color-on-accent: var(--voice-records-on-accent);
+  --color-accent2: var(--voice-records-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-records-radius);
+  --radius-sm: var(--voice-records-radius-sm);
+  --radius-md: var(--voice-records-radius-md);
+  --radius-lg: var(--voice-records-radius-lg);
+  --radius-xl: var(--voice-records-radius-xl);
+
+  --font-body: var(--font-body-records);
+  --font-display: var(--font-display-records);
+}
+
+/*
+ * Route-container boundary requirement: body resolves its font outside the leaf scope.
+ * Runtime route scoping must put data-route on the leaf content container so ordinary
+ * descendants recompute font-family from that route's --font-body alias.
+ */
 [data-route] {
   font-family: var(--font-body);
 }
