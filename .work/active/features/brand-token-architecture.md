@@ -72,26 +72,59 @@ structure is visible/testable now; swapped in one pass when stakeholders sign of
   fallback*, not a vendor color — it resolves to the info token once defined.
 - **Values seeded as placeholders**, swapped on stakeholder sign-off (org-confirmed).
 
-## Open questions the brief must resolve
+## Categorization artifact
 
-- **Teal retirement mapping.** `--color-secondary` does three jobs: (a) selection/active
-  indicator (media-picker, content-lists), (b) calendar event category color, (c)
-  secondary decorative accent (landing/booking/plan-card). Each needs a target. Sub-question:
-  does selection use the active voice's `--color-accent` (breathes per-route) or a spine
-  `--color-selected`? And **calendar category colors are a spec gap** — there is no
-  categorical/data-viz concept in the reference; raise to org.
-- **Route-scoping granularity.** `/creators/$creatorId/manage` is a Parent *shell* holding
-  ~12 subsections; only `press` + `library` leaves are Records. Confirm `data-route` is set
-  per-leaf-route (TanStack file routes make this clean). Decide: does the persistent manage
-  shell (sidebar/header) stay Parent while only the content area breathes?
-- **TV voice target routes.** No `/tv` route exists. Live-broadcast candidates are `/live`,
-  admin/playout, simulcast — confirm which get the TV voice.
-- **Warning re-color + info addition.** Warning promotes from alias to first-class with the
-  spec's value; `--color-info` is new (spec `#1565C0`), resolving two latent fallbacks.
-  Confirm no other ad-hoc info/warning usage escapes the audit.
-- **Per-creator brand color coexistence.** `creator-profile-brand-color` (done) gives
-  creators a brand-color data field. Confirm it is orthogonal to (not in conflict with) the
-  route-scoped voice system.
+Full color-use categorization (96 values, 149 occurrences, 64 token names, ~3,450 `var()`
+refs) with per-use intent + target role + bin triage:
+`.memory/scratchpad/color-categorization.md`. Headline finding: guaranteed-contrast
+foregrounds (on-media/on-status/on-badge) are the biggest unmodeled light-mode risk — not
+the navy-shade proliferation (which collapses cleanly to ~3 ramp steps).
+
+## Resolved design decisions (operator, 2026-08-13)
+
+- **Interaction-state policy = spine-stable.** Selection/focus/hover/disabled are shared
+  functional affordances (per the skill's functional-colors rule), not identity — they stay
+  on spine tokens; voice accent is reserved for CTAs/emphasis. This is also platform's
+  recommendation to org for the P0 interaction-state gap.
+- **TV voice = `/live` only.** Consumer-facing broadcast surface. Playout + simulcast are
+  admin tooling → Parent. (Principle: voices apply to public-facing surfaces.)
+- **Radius = derived variants.** Define `--radius-sm/md/lg` derived from each voice's base
+  `--radius` (preserves the 257-ref proportional scale while still breathing per voice);
+  `--radius-circle` / `--radius-pill` stay invariant.
+- **Records scoping = leaf-only.** `data-route` set on press/library content leaves; the
+  persistent `/manage` shell (sidebar/header) stays Parent. Principle: voices apply to
+  public-facing content surfaces; internal tooling shells stay Parent.
+  **Nuance to confirm:** the warm Records-ish palette currently lives on the *internal
+  authoring* screens (`/manage/press`, `/manage/library`); the *public* press kit is
+  `/creators/$creatorId/press/`. Confirm Records targets the intended surface.
+
+## Reference gaps → org adjudication (5; message drafted, pending operator send-approval)
+
+Five categories the reference has no home for; clustered as the missing **affordance**
+(states, links) + **data** (categorical) + **guaranteed-contrast** (on-media/on-status/
+on-badge) layers — all acute in light mode:
+1. Interaction-state roles (P0) — see resolved decision above for platform's lean.
+2. Categorical/data-viz series (P0) — `--color-data-1…N` + chart-grid/tooltip roles.
+3. Guaranteed-contrast foregrounds (P0, biggest light-mode risk) — `--color-on-media` /
+   `-on-media-muted` + `--color-on-status`/`-on-badge` (or badge redesign to ink-over-`*-bg`).
+4. Link roles (P1) — first-class shared interaction role, or alias to route accent?
+5. accent-subtle wiring (P2, reference oversight) — Parent omitted; generic not exposed.
+
+## Open questions the brief must still resolve
+
+- **Teal decorative per-use mapping** — booking / landing-pricing / subscription /
+  studio-inquiry / press-decoration consumers → assign each to route accent / success /
+  info / neutral (no generic secondary).
+- **Status-semantics labels** — completed / subscribed / open-granted / inactive → assign
+  to success/success-bg, info/info-bg, or neutral.
+- **Creator-brand color coexistence** — confirm orthogonal data (not a fifth voice);
+  pending the org principle on creator-authored colors.
+- **Hero-gradient token** — derive from bg/bg-elevated/surface, or retain a documented
+  mode-aware hero-surface role.
+- **Warning/info promotion** — warning → first-class with spec value; add `--color-info`
+  (#1565C0), resolving latent fallbacks in team-section + playout. (Mostly mechanical.)
+- **Records target surface** — see nuance in Resolved decisions (internal authoring vs
+  public press kit).
 
 ## Brief deliverables (what "done" looks like for this feature's design phase)
 
