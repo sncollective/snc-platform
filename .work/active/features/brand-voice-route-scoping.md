@@ -1,7 +1,7 @@
 ---
 id: brand-voice-route-scoping
 kind: feature
-stage: drafting
+stage: implementing
 tags: [design-system]
 parent: brand-voice-system
 depends_on: [brand-token-architecture]
@@ -175,18 +175,18 @@ shared token spine remains unchanged. This pass does not add the preference, sto
 toggle, or effective-voice attribute; it only keeps the context and portal helper shaped
 so that adding it does not require reworking route components.
 
-**Coordination gap for child 1:** the current CSS brief establishes that an effective-voice
-attribute must be separate and later in the cascade (`brand-token-architecture.md:407-408`),
-but it does not yet lock the attribute name, selector shape, or precedence behavior for
-portal roots. Reserve `data-effective-voice` (or adjudicate another name) and document
-that exact alias layer before the deferred toggle is designed. This is not an MVP blocker:
-child 2 only emits `data-route`, and child 1's Parent `:root` fallback intentionally needs
-no `[data-route="parent"]` CSS block.
+**Coordination gap for child 1:** the current CSS brief reserves `data-effective-voice` as a
+future seam (`brand-token-architecture.md:505-508`), but it does not yet lock the selector
+shape or precedence behavior for portal roots. Document that exact alias layer before the
+deferred toggle is designed. This is not an MVP blocker: child 2 only emits `data-route`,
+and child 1's Parent `:root` fallback intentionally needs no `[data-route="parent"]` CSS
+block.
 
 ## Design — Verification
 
 Child 1's `brand-token-architecture-route-scoping-contract` story owns the CSS selector
-and alias-resolution assertions (`brand-token-architecture.md:367-408,564`). Child 2
+and alias-resolution assertions (`brand-token-architecture.md:455-503`), while the reserved
+future seam is documented at `brand-token-architecture.md:505-508`. Child 2
 supplies the runtime boundary, route table, and portal fixtures that feed that contract.
 The verification slice is:
 
@@ -218,3 +218,23 @@ The verification slice is:
 No child-2 test should assert the raw `--voice-*` declarations themselves; those are
 owned by child 1. The route fixtures should instead prove that the runtime places the
 attributes on the elements whose inherited aliases child 1 tests.
+
+## Implementation Order
+
+1. **Runtime boundary** — after `brand-token-architecture-route-scoping-contract`, implement
+   the pure pathname resolver, route-voice context, and `RouteVoiceOutlet` around only the
+   root `Outlet`. Keep the boundary transparent (`display: contents`), render-time, and
+   Parent-fallback-safe; do not add CSS declarations or a route-specific layout route.
+2. **Portal propagation** — after the boundary exists, add the shared route-attribute helper
+   to the five Ark UI portal primitives and add the resolved route attribute to the live
+   chat panel root. Leave the root chat portal target and persistent shell markers
+   attribute-free; shell-owned portals therefore remain Parent.
+3. **Verification** — run the resolver, SSR, shell-containment, nested-route, portal, and
+   navigation-update fixtures as one runtime contract. Assertions cover placement and
+   inheritance inputs only; child 1 owns CSS alias declarations and computed-style
+   assertions. No new UI surface is introduced, so the mockup phase is intentionally skipped.
+
+The resulting dependency chain is: child-1 completion (including
+`brand-token-architecture-route-scoping-contract`) →
+`brand-voice-route-scoping-runtime-boundary` → `brand-voice-route-scoping-portal-attributes`
+→ `brand-voice-route-scoping-verification`.
