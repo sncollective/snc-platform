@@ -109,15 +109,23 @@ if it's IDENTITY (buttons/links/nav-active) it BREATHES with the voice.
    tokens (both modes, placeholder values): `--color-focus`, `--color-selected-bg`,
    `--color-hover-bg`, `--color-disabled`, `--color-disabled-bg`. Tune for WCAG 2.2 Focus
    Appearance. (Matches platform's lean.)
-2. **Categorical/data-viz → PLATFORM-LOCAL.** Platform owns `--color-data-1…N` + chart roles.
-   Constraint: harmonize with spine temperature/saturation; perceptually-uniform +
-   colorblind-safe.
+2. **Categorical/data-viz → AUDIENCE-SPLIT (refined by org/principal 2026-08-13).**
+   - **Internal/admin charts** (calendar, analytics, governance tools) → **platform-local**:
+     platform owns `--color-data-1…N`, tagged internal-use; colorblind-safe, harmonized with
+     spine temp/saturation, distinct from voice accents + status.
+   - **Public-facing charts** (emissions dashboard, revenue transparency, any member/patron
+     data-viz) → **brand-constrained**: org provides constraints or a concrete palette when
+     the surface gets themed. Rule: if public, check with org before picking chart colors.
+   Concrete mapping: `emissions-chart` + `revenue-chart` = public (wait on org); calendar
+   event colors = internal (ours).
 3. **Guaranteed-contrast foregrounds → SPLIT.** Org extends the reference with
    `--color-on-media` / `--color-on-media-muted` (shared, both modes; pattern = white +
    `--color-overlay` scrim). Platform resolves status-fill + badge contrast — define
    `--color-on-status`/`-on-badge` OR constrain usage to `-bg` tints; constraint is WCAG AA.
-4. **Links → ALIAS to route accent (identity, breathes).** `--color-link: var(--color-accent)`,
-   `--color-link-hover: var(--color-accent-hover)`. Not a separate shared role.
+4. **Links → ALIAS to route accent (identity, breathes) — PROVISIONAL.**
+   `--color-link: var(--color-accent)`, `--color-link-hover: var(--color-accent-hover)`. Not a
+   separate shared role. Principal wants to see it in action and may revisit → implement as
+   alias (cheap revert to a shared token if reversed); flag for in-situ validation.
 5. **accent-subtle → reference oversight, org fixing.** Org adds `--voice-parent-accent-subtle`
    (both modes) + exposes `--color-accent-subtle` in route-scoping. Adopt when published.
 
