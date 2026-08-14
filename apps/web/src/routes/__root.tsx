@@ -30,6 +30,7 @@ import { DEMO_MODE } from "../lib/config.js";
 import { fetchAuthStateServer } from "../lib/api-server.js";
 import { ToastProvider } from "../components/ui/toast.js";
 import globalCss from "../styles/global.css?url";
+import sourceSansRomanUrl from "@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2?url";
 import styles from "./__root.module.css";
 
 export const Route = createRootRoute({
@@ -48,15 +49,12 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
+        rel: "preload",
+        href: sourceSansRomanUrl,
+        as: "font",
+        type: "font/woff2",
         crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: globalCss },
     ],

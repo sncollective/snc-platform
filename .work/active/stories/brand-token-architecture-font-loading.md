@@ -37,3 +37,24 @@ until measured CLS evidence exists.
 - Source Sans 3 Roman alone is preloaded; voice/italic faces load on demand; offline dev has
   no Google or other font-network request.
 - Legacy Inter + Georgia aliases remain only until `alias-migration`.
+
+## Implementation discovery
+
+- Added Fontsource 5.3.0 packages for Source Sans 3, Newsreader, Saira, Archivo,
+  static Barlow Condensed, and Fragment Mono. `fonts.css` imports the approved
+  Roman/italic faces; generated Fontsource unicode ranges retain latin + latin-ext
+  coverage without hand-trimmed ranges. The document contract sets
+  `font-synthesis: none` and all generated faces use `font-display: swap`.
+- The registry does not publish `@fontsource-variable/barlow-condensed`; the
+  implementation uses the generated static 400/500/600/700 files from
+  `@fontsource/barlow-condensed` as the faithful 400–700 fallback. This is a
+  package availability constraint, not a design change, and should be revisited
+  if Fontsource publishes the variable package.
+- The root route preloads only the hashed Source Sans 3 Roman WOFF2 and removes
+  the Google Inter stylesheet/preconnects. Existing Inter and Georgia aliases
+  remain for the alias-migration checkpoint.
+- Font tests inspect actual WOFF2 cmaps through `fc-query`: U+00B7 is present in
+  each manifest face, while U+25CF is intentionally supplied by the named Arial
+  fallback (the primary subsets do not contain it). The `● LIVE` fixture and
+  fallback cmap are verified; this is a Linux/CI fontconfig-backed cmap check,
+  not a browser pixel-rendering test.
