@@ -714,3 +714,118 @@
  *
  * Scan rule `breakpoint-literal` enforces these values.
  */
+
+/* ── Legacy compat aliases (mockup layer ONLY — not production vocabulary) ── */
+/* Pre-migration mockups (authored 2026-06..08 against the retired token set) still
+   consume these names. They map to semantic successors so historical mocks keep
+   rendering; new mockups MUST use the canonical names above. Do NOT copy this
+   block into production — the names are deleted from the production tree and
+   enforced absent by the no-leak checker. */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+  --font-ui: var(--font-body);
+  --font-heading: var(--font-display);
+  --color-secondary: var(--color-info);
+  --color-secondary-bg: var(--color-info-bg);
+  --color-secondary-subtle: var(--color-info-bg);
+  --color-overlay-dark: var(--color-overlay-strong);
+  --color-bg-hover: var(--color-hover-bg);
+}
+
+/* ── Mock-layer default mode: DARK ── */
+/* The historical mock corpus was authored dark-only (the pre-migration mirror's :root
+   was dark). The production contract puts light on :root; pinning dark here (absent an
+   explicit [data-theme]) restores the corpus's rendering. New mocks opt into light with
+   <html data-theme="light">. Same values as the dark blocks above — ordering makes this
+   the default. */
+:root:not([data-theme="light"]) {
+  --color-bg: #121821;
+  --color-bg-elevated: #1C242F;
+  --color-surface: #182030;
+  --color-bg-input: #242E3C;
+  --color-text: #E8ECF2;
+  --color-text-muted: #8A94A6;
+  --color-border: #2C3644;
+  --color-success: #66BB6A;
+  --color-success-bg: #1E2F2B;
+  --color-warning: #E6A820;
+  --color-warning-bg: #342F21;
+  --color-error: #FF7A70;
+  --color-error-bg: #312028;
+  --color-info: #6FB3F0;
+  --color-info-bg: #1C2A3A;
+  --color-focus: #5BA0F5;
+  --color-selected-bg: rgba(168, 178, 192, 0.16);
+  --color-hover-bg: rgba(255, 255, 255, 0.06);
+  --color-disabled: #4A4E58;
+  --color-disabled-bg: #1C1F26;
+  --color-media-bg: #000000;
+  --color-on-media: #FFFFFF;
+  --color-on-media-muted: rgba(255, 255, 255, 0.82);
+  --color-media-border: rgba(255, 255, 255, 0.15);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay-weak: rgba(0, 0, 0, 0.3);
+  --color-overlay-strong: rgba(0, 0, 0, 0.7);
+  --color-media-guide: rgba(255, 255, 255, 0.24);
+  --color-badge-audio: #5B8B9A;
+  --color-badge-video: #6BAFE5;
+  --color-badge-written: #9AA4B6;
+  --color-data-1: #75A4C7;
+  --color-data-2: #A68ABB;
+  --color-data-3: #B99667;
+  --color-data-4: #7BA69D;
+  --color-data-5: #B58693;
+  --color-data-6: #99A56E;
+  --color-chart-1: #9D8FE8;
+  --color-chart-2: #E8C24A;
+  --color-chart-3: #7FA3CC;
+  --color-chart-4: #C48EDC;
+  --color-chart-5: #C9C25E;
+  --color-chart-6: #E0A184;
+  --color-chart-grid: #26303F;
+  --color-chart-tooltip-bg: #1C242F;
+  --color-chart-tooltip-text: #E8ECF2;
+  --color-illustration-neutral: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-text));
+  --color-illustration-surface: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-muted));
+  --color-illustration-accent: color-mix(in srgb, var(--color-accent) 42%, var(--color-surface));
+  --color-illustration-accent-strong: color-mix(in srgb, var(--color-accent) 68%, var(--color-text));
+  --creator-brand: var(--color-accent);
+  --color-on-creator-brand: var(--color-on-accent);
+  --voice-parent-accent: #A8B2C0;
+  --voice-parent-accent-hover: #8E9AAC;
+  --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
+  --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
+  --voice-parent-on-accent: #121821;
+  --voice-parent-accent2: #5B6B80;
+  --voice-studio-accent: #D88F5E;
+  --voice-studio-accent-hover: #CC8753;
+  --voice-studio-accent-bg: rgba(216, 143, 94, 0.16);
+  --voice-studio-accent-subtle: rgba(216, 143, 94, 0.2);
+  --voice-studio-on-accent: #1F0F08;
+  --voice-studio-accent2: #B08866;
+  --voice-tv-accent: #4FE0D8;
+  --voice-tv-accent-hover: #38D0C7;
+  --voice-tv-accent-bg: rgba(79, 224, 216, 0.16);
+  --voice-tv-accent-subtle: rgba(79, 224, 216, 0.2);
+  --voice-tv-on-accent: #06201D;
+  --voice-tv-accent2: #FF4081;
+  --voice-records-accent: #FF6B5E;
+  --voice-records-accent-hover: #EE5648;
+  --voice-records-accent-bg: rgba(255, 107, 94, 0.16);
+  --voice-records-accent-subtle: rgba(255, 107, 94, 0.2);
+  --voice-records-on-accent: #260806;
+  --voice-records-accent2: #1A1A1A;
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --font-ui: var(--font-body);
+  --font-heading: var(--font-display);
+  --color-secondary: var(--color-info);
+  --color-secondary-bg: var(--color-info-bg);
+  --color-secondary-subtle: var(--color-info-bg);
+  --color-overlay-dark: var(--color-overlay-strong);
+  --color-bg-hover: var(--color-hover-bg);
+}
