@@ -1,7 +1,7 @@
 ---
 id: showcase-voice-presence
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system, ui]
 parent: null
 depends_on: [voice-route-qa-fixes]  # done 541f8b8
@@ -105,3 +105,23 @@ Chain: 1 → 2 ∥ 3.
 Standard feature review at weight `standard`; org receives captures + harness composites on
 landing (pattern established this session). Contrast: showcase accent pairs + accent2-style
 composites both modes in `token-contrast.test.ts`.
+
+## Implementation summary
+
+- Parent voice now resolves warm amber everywhere through the existing voice-family seam; steel
+  remains in the neutral ramp and parent accent2 signature role.
+- Showcase chrome is self-hosted Fraunces on the four public showcase surfaces, with permanent
+  nav/footer signatures and the home № eyebrow + amber underline treatment.
+- Home and feed content cards resolve item accents from content-type fallback, while What's On and
+  Coming Up use TV/studio event fallback. Parent/unknown items remain neutral; creator attribution
+  chips and links remain deferred.
+- Execution capability: `gpt-5.6-sol` feature-owning worker, direct-read/implementation across the
+  sequential child checkpoints.
+- Review weight: `standard` from the feature contract/caller; stop at feature review for the caller's
+  independent review lane.
+- Integrated verification: `bun run --filter @snc/web test` — 197 files / 2052 tests passed;
+  `bun run --filter @snc/web build` — passed with existing third-party `use client` warnings only.
+- Parent contrast evidence: light `#7C4500` on bg/elevated **6.887:1 / 7.252:1**, white on
+  accent/hover **7.754:1 / 10.203:1**; dark `#E5A83B` on bg/elevated **8.483:1 / 7.444:1**,
+  `#241703` on accent/hover **8.338:1 / 7.107:1**. Warning-separation composite distance:
+  light **6.366**, dark **5.788**, named minimum **5.5**.
