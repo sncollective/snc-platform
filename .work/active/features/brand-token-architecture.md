@@ -1,14 +1,14 @@
 ---
 id: brand-token-architecture
 kind: feature
-stage: drafting
+stage: implementing
 tags: [design-system]
 parent: brand-voice-system
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 ---
 
 # Brand token architecture: neutral spine + per-voice accents
@@ -353,8 +353,8 @@ mode block. Persist the preference under `snc.appearance.theme`; missing/invalid
 normalize to `system`. A pre-hydration head bootstrap reads the preference, resolves
 `matchMedia('(prefers-color-scheme: dark)')`, and sets both attributes before the token
 stylesheet paints. While preference is system, subscribe to media-query changes; explicit
-light/dark ignores them. Synchronize the `storage` event across tabs. The settings control
-in epic child 3 writes the same contract rather than introducing another store.
+light/dark ignores them. Synchronize the `storage` event across tabs. The mode-toggle settings control (child 1's `theming` story)
+writes the same contract rather than introducing another store.
 
 No-script/system fallback remains valid: `:root` supplies light and a
 `prefers-color-scheme: dark` block targets only a root with no `data-theme`; explicit
@@ -410,11 +410,11 @@ must repeat the same alias set and have explicit cascade precedence over route d
 
 ## Design — Font-loading plan
 
-**Decision: self-host WOFF2 assets.** The six families are open-font families, but
-implementation must retain each upstream license file and verify the exact release license
-before vendoring. Self-hosting removes Google requests and referrer exposure, works in
-local/offline development and controlled deployments, and gives stable caching/versioning.
-It replaces the current Google-hosted Inter request at `routes/__root.tsx:49-59`.
+**Decision: self-host via Fontsource (npm packages).** The six families are all SIL OFL.
+Fontsource bundles the WOFF2 inside `node_modules` and serves them from our own origin — no
+account, no runtime/build-time external fetch, fully offline after install. It is
+privacy-clean, stable, and versioned via `package.json`. It replaces the current Google-hosted
+Inter request at `routes/__root.tsx:49-59`.
 
 | role | family | initial files/weights |
 |---|---|---|
@@ -425,11 +425,15 @@ It replaces the current Google-hosted Inter request at `routes/__root.tsx:49-59`
 | Records display | Barlow Condensed | 600 and 700 (variable if the upstream package is smaller/equivalent) |
 | Shared mono | Fragment Mono | 400 Roman; italic only if consumed |
 
-Add `tokens/fonts.css` with `@font-face`, local WOFF2 URLs, and `font-display: swap`.
-Preload only Parent's Source Sans 3 Roman file because it is above-the-fold on every route;
-allow route-specific faces to fetch when first used. Do not preload all voices. Use measured
-`size-adjust`, `ascent-override`, `descent-override`, and `line-gap-override` fallback metrics
-where available to reduce layout shift. The fallback stack remains explicit per family.
+Install the families as packages (`@fontsource-variable/source-sans-3`, `-newsreader`,
+`-saira`, `-archivo`, `-barlow-condensed`; static `@fontsource/fragment-mono`) and import
+their CSS selectively (latin subset + needed weights) so only referenced WOFF2 ships.
+Fontsource owns the primary `@font-face`; layer our **own fallback `@font-face` blocks** in
+`tokens/fonts.css` with measured `size-adjust`, `ascent-override`, `descent-override`, and
+`line-gap-override` over generic families so fallback metrics match the web font (minimizing
+layout shift on swap). The fallback stack remains explicit per family. Preload only Parent's
+Source Sans 3 Roman file (above-the-fold on every route); let route-specific faces fetch on
+first use. Do not preload all voices.
 
 `swap` is chosen over blocking FOIT; the brief flash of fallback text is preferable to
 invisible navigation/forms. Cache files with content hashes or versioned directories and a
@@ -555,7 +559,7 @@ Runtime route plumbing remains sibling feature `brand-voice-route-scoping`; the 
 | proposed child story | depends_on | acceptance slice |
 |---|---|---|
 | `brand-token-architecture-token-restructure` | — | Create composition/file shape; seed complete shared light/dark roles; no consumer changes yet. |
-| `brand-token-architecture-theming` | token-restructure | Effective light/dark attributes, system resolution, first-paint bootstrap, persistence contract, and both-mode contrast test harness; no settings UI. |
+| `brand-token-architecture-theming` | token-restructure | Effective light/dark attributes, system resolution, first-paint bootstrap, persistence contract, both-mode contrast test harness, **and the mode-toggle settings control (light/dark/system)**. |
 | `brand-token-architecture-voice-accents` | theming | Define complete four-voice accent/type/radius families and Parent generic defaults using placeholder values. |
 | `brand-token-architecture-route-scoping-contract` | voice-accents | Add `[data-route]` alias blocks and route contract tests/fixtures only; child 2 wires real leaf containers. |
 | `brand-token-architecture-leak-cleanup` | route-scoping-contract | Map all 96 literals, eliminate non-exempt raw leaks, split secondary uses, centralize badge contrast, and preserve public-chart hold. |
