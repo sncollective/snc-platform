@@ -27,9 +27,11 @@ new pipeline.
 
 - Apply voice tokens to the print stylesheet (templates A/B already carry `@page letter`
   print CSS; tokens resolve there).
-- Decide voice selection for export: does a press PDF render in the Records voice (press
-  content), the creator's brand color (current behavior), or a creator-chosen voice? (Open
-  question for design.)
+- **Export voice = the producing unit's voice** (org-confirmed 2026-08-13): Records press
+  kit → Records; Studio services doc → Studio; unknown unit → default Records. Creator brand
+  color persists as an override ONLY for federation-entry creators with established brand
+  identity; creator-chosen is off (voices aren't user-pickable). Public-facing →
+  brand-constrained (per the audience-split principle).
 - Confirm print-mode constraints: print is a fixed-palette medium (typically no dark mode);
   verify voice tokens render correctly in the print context.
 

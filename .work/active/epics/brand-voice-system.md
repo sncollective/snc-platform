@@ -28,20 +28,21 @@ Source of truth:
   (held-pending-stakeholder: structure stable, values refine after sign-off).
 - `.agents/skills/brand-architecture/SKILL.md` — generic framework.
 
-Why an epic: the work spans the token layer, a route-scoping mechanism, a settings/UX
-surface, and export theming — four cohesive features with a strict dependency order.
+Why an epic: the work spans the token layer, a route-scoping mechanism, and export
+theming — three cohesive MVP features with a strict dependency order. (A user-selectable
+voice toggle was considered and **deferred** per org — see Product/UX adjudications.)
 
 ## Decomposition
 
 | Child | Scope | Depends on | Size |
 |---|---|---|---|
-| `brand-token-architecture` | restructure tokens to reference model + light/dark + leak cleanup + font-loading + alias migration | — | large |
-| `brand-voice-route-scoping` | `data-route` plumbing + voice accent tokens; route→voice defaults | brand-token-architecture | medium |
-| `brand-voice-user-toggle` | settings appearance pane: mode (light/dark/system) + voice (auto/parent/studio/tv/records), global + auto default | brand-token-architecture, brand-voice-route-scoping | medium |
-| `brand-voice-export-theming` | wire voice tokens into existing Playwright PDF render + print CSS | brand-token-architecture | small |
+| `brand-token-architecture` | restructure tokens to reference model + light/dark (incl. mode toggle) + leak cleanup + font-loading + alias migration | — | large |
+| `brand-voice-route-scoping` | `data-route` plumbing + voice accent tokens; route→voice defaults (Parent = default when no scope) | brand-token-architecture | medium |
+| `brand-voice-export-theming` | wire voice tokens into existing Playwright PDF render + print CSS; export voice = producing unit's voice | brand-token-architecture | small |
+| ~~`brand-voice-user-toggle`~~ | **DEFERRED** (off-table for MVP per org) → parked in backlog | — | — |
 
-Sequencing is strict: 1 → 2 → 3; 4 parallels after 1 (export theming needs voice tokens but
-not the route or toggle mechanisms).
+Sequencing: 1 → 2; 4 parallels after 1. (3 deferred.) The light/dark **mode toggle** lives
+in child 1 (it is polarity, not voice-selection).
 
 ## Cross-cutting locked decisions
 
@@ -52,9 +53,12 @@ not the route or toggle mechanisms).
   tooling shells (e.g. the `/manage` dashboard) stay Parent.
 - **Voice → route map:** `/studio` → Studio; `/live` → TV; public press kit
   (`/creators/$creatorId/press/`) → Records; everything else → Parent (the default spine).
-- **User-override = global + auto default:** one voice platform-wide, "auto" = route-
-  respecting (matches the light/dark toggle metaphor). Per-route override is a possible
-  later power-feature.
+- **User-voice-override = OFF THE TABLE for MVP** (org/principal 2026-08-13: voices are
+  identity-bearing — they tell you which unit you're in — so user-swappable breaks the
+  semantic). Route-scoping (child 2) is the **sole** MVP voice mechanism. Parent-fallback
+  is architecturally supported (route-scoping defaults to Parent when no `[data-route]` is
+  active). A future user-facing "neutral/Parent mode" toggle is documented but **not built**
+  — revisit after the architecture is established (parked: `brand-voice-user-toggle`).
 - **Spine accent = Parent steel;** current amber (`#f5a623`) retires (alpha — no continuity
   constraint).
 - **Values seeded as placeholders,** swapped in one pass on stakeholder sign-off
@@ -74,6 +78,20 @@ not the route or toggle mechanisms).
 5. accent-subtle → org fixing (Parent omitted); adopt when published. [child 1]
 
 Full detail (evidence, proposals) in `brand-token-architecture` (child 1).
+
+## Product/UX decisions → org adjudicated (2026-08-13)
+
+1. **User-selectable voice override → OFF THE TABLE for MVP** (deferred). Voices are
+   identity-bearing; user-swappable breaks the semantic. Parent-fallback is architecturally
+   supported (route-scoping default); a future "neutral mode" toggle is documented, not
+   built. → child 3 parked in backlog.
+2. **Export voice = the producing unit's voice** (confirmed). Records press kit → Records;
+   Studio services doc → Studio; unknown unit → default Records. Creator brand color
+   persists as override ONLY for federation-entry creators with established brand identity;
+   creator-chosen = off. Public-facing → brand-constrained. → child 4 spec.
+3. **WCAG → confirmed** for any-voice-anywhere: all per-voice accent+on-accent pairs pass AA
+   in both modes (neutrals shared; accent+on-accent voice-internal). No new verification;
+   no token-reference change.
 
 ## Status
 
