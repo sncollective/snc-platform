@@ -2,10 +2,10 @@
 
 :root,
 [data-theme="light"] {
-  --voice-parent-accent: #7C4500;
-  --voice-parent-accent-hover: #633600;
-  --voice-parent-accent-bg: #DDE0E4;
-  --voice-parent-accent-subtle: rgba(54, 64, 80, 0.14);
+  --voice-parent-accent: #A94900;
+  --voice-parent-accent-hover: #913E00;
+  --voice-parent-accent-bg: #EEE2D6;
+  --voice-parent-accent-subtle: rgba(169, 73, 0, 0.16);
   --voice-parent-on-accent: #FFFFFF;
   --voice-parent-accent2: #5B6B80;
 
@@ -32,11 +32,11 @@
 }
 
 [data-theme="dark"] {
-  --voice-parent-accent: #E5A83B;
-  --voice-parent-accent-hover: #D69A2E;
-  --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
-  --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
-  --voice-parent-on-accent: #241703;
+  --voice-parent-accent: #BE7F00;
+  --voice-parent-accent-hover: #B07800;
+  --voice-parent-accent-bg: rgba(190, 127, 0, 0.12);
+  --voice-parent-accent-subtle: rgba(190, 127, 0, 0.2);
+  --voice-parent-on-accent: #2A1603;
   --voice-parent-accent2: #5B6B80;
 
   --voice-studio-accent: #D88F5E;
@@ -63,11 +63,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --voice-parent-accent: #E5A83B;
-    --voice-parent-accent-hover: #D69A2E;
-    --voice-parent-accent-bg: rgba(168, 178, 192, 0.16);
-    --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
-    --voice-parent-on-accent: #241703;
+    --voice-parent-accent: #BE7F00;
+    --voice-parent-accent-hover: #B07800;
+    --voice-parent-accent-bg: rgba(190, 127, 0, 0.12);
+    --voice-parent-accent-subtle: rgba(190, 127, 0, 0.2);
+    --voice-parent-on-accent: #2A1603;
     --voice-parent-accent2: #5B6B80;
 
     --voice-studio-accent: #D88F5E;

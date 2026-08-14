@@ -168,6 +168,29 @@ function hueLightnessDistance(left: Rgba, right: Rgba): number {
   return Math.hypot(hueDistance, leftLightness - rightLightness);
 }
 
+/** OKLab dE (euclidean in Oklab space) — perceptually uniform; org's separation metric. */
+function oklabDeltaE(left: Rgba, right: Rgba): number {
+  const to = (c: Rgba): readonly [number, number, number] => {
+    const [r, g, b] = [srgbToLinear(c.red), srgbToLinear(c.green), srgbToLinear(c.blue)];
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [
+      0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    ];
+  };
+  const [l1, a1, b1] = to(left);
+  const [l2, a2, b2] = to(right);
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+}
+
+function srgbToLinear(channel: number): number {
+  const c = channel / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
 function color(tokens: Map<string, string>, name: string): Rgba {
   const value = tokens.get(name);
   expect(value, `${name} should be declared`).toBeDefined();
@@ -194,12 +217,18 @@ const STATUS_NAMES = ["success", "warning", "error", "info"] as const;
 const BADGE_NAMES = ["audio", "video", "written"] as const;
 const VOICE_NAMES = ["parent", "studio", "tv", "records"] as const;
 const PARENT_ACCENT_SEEDS = {
-  light: { accent: "#7C4500", hover: "#633600", ink: "#FFFFFF" },
-  dark: { accent: "#E5A83B", hover: "#D69A2E", ink: "#241703" },
+  // Org amber-value pass (2026-08-14): one link-grade accent per mode, no fill split.
+  // Dark keeps the inherited #F5A623 hue deepened one notch (OKLCH H74 / L.645),
+  // separating from warning by lightness (.127) — see amber-value-study.html in org.
+  light: { accent: "#A94900", hover: "#913E00", ink: "#FFFFFF" },
+  dark: { accent: "#BE7F00", hover: "#B07800", ink: "#2A1603" },
 } as const;
-// Hue degrees and HSL lightness percentage points share this deliberately simple identity/status
-// proximity metric. The floor catches future near-aliasing while retaining the principal-seeded dark amber.
-const MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE = 5.5;
+// OKLab dE identity/status separation (org spec): the parent identity hue must not double as a
+// status/warm-anchor hue. Tuned family holds dark >= .085 (copper nearest) and light >= .061
+// (records-red nearest); .05 is the shared fail floor. The light ceiling is structural (paper
+// AA caps amber-as-text at L~.53, the zone all warm anchors occupy) — context discipline
+// (parent=grammar, copper=Studio content, warning=chip+icon+tint) carries what physics cannot.
+const MIN_OKLAB_DE_IDENTITY_SEPARATION = 0.05;
 
 describe("brand token contrast matrix", () => {
   it.each(MODES)("keeps %s base foregrounds AA-safe on background and elevated", (mode) => {
@@ -349,15 +378,23 @@ describe("brand token contrast matrix", () => {
     }
   });
 
-  it.each(MODES)("keeps the %s parent identity amber separate from warning", (mode) => {
+  it.each(MODES)("keeps the %s parent identity amber OKLab-separate from every warm anchor", (mode) => {
     const tokens = tokensForMode(mode);
-    expect(
-      hueLightnessDistance(
-        color(tokens, "--voice-parent-accent"),
-        color(tokens, "--color-warning"),
-      ),
-      `parent/warning hue-lightness distance must remain at least ${MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE}`,
-    ).toBeGreaterThanOrEqual(MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE);
+    const anchors: readonly [string, Rgba][] = [
+      ["warning", color(tokens, "--color-warning")],
+      ["error", color(tokens, "--color-error")],
+      ["success", color(tokens, "--color-success")],
+      ["studio-copper", color(tokens, "--voice-studio-accent")],
+      ["tv-cyan", color(tokens, "--voice-tv-accent")],
+      ["records-red", color(tokens, "--voice-records-accent")],
+    ];
+
+    for (const [name, anchor] of anchors) {
+      expect(
+        oklabDeltaE(color(tokens, "--voice-parent-accent"), anchor),
+        `parent/warm-anchor (${name}) OKLab dE must remain at least ${MIN_OKLAB_DE_IDENTITY_SEPARATION}`,
+      ).toBeGreaterThanOrEqual(MIN_OKLAB_DE_IDENTITY_SEPARATION);
+    }
   });
 
   it.each(MODES)("keeps every %s voice signature chip AA-safe", (mode) => {
