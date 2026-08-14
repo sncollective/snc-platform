@@ -142,6 +142,32 @@ function contrast(foreground: Rgba, background: Rgba): number {
   );
 }
 
+function hueAndLightness(colorValue: Rgba): readonly [hue: number, lightness: number] {
+  const channels = [colorValue.red, colorValue.green, colorValue.blue].map((channel) => channel / 255);
+  const maximum = Math.max(...channels);
+  const minimum = Math.min(...channels);
+  const lightness = ((maximum + minimum) / 2) * 100;
+
+  if (maximum === minimum) return [0, lightness];
+
+  const delta = maximum - minimum;
+  const [red, green, blue] = channels as [number, number, number];
+  let hue: number;
+  if (maximum === red) hue = ((green - blue) / delta) % 6;
+  else if (maximum === green) hue = (blue - red) / delta + 2;
+  else hue = (red - green) / delta + 4;
+
+  return [((hue * 60 + 360) % 360), lightness];
+}
+
+function hueLightnessDistance(left: Rgba, right: Rgba): number {
+  const [leftHue, leftLightness] = hueAndLightness(left);
+  const [rightHue, rightLightness] = hueAndLightness(right);
+  const directHueDistance = Math.abs(leftHue - rightHue);
+  const hueDistance = Math.min(directHueDistance, 360 - directHueDistance);
+  return Math.hypot(hueDistance, leftLightness - rightLightness);
+}
+
 function color(tokens: Map<string, string>, name: string): Rgba {
   const value = tokens.get(name);
   expect(value, `${name} should be declared`).toBeDefined();
@@ -167,6 +193,13 @@ const HOST_SURFACES = ["--color-bg", "--color-bg-elevated"] as const;
 const STATUS_NAMES = ["success", "warning", "error", "info"] as const;
 const BADGE_NAMES = ["audio", "video", "written"] as const;
 const VOICE_NAMES = ["parent", "studio", "tv", "records"] as const;
+const PARENT_ACCENT_SEEDS = {
+  light: { accent: "#7C4500", hover: "#633600", ink: "#FFFFFF" },
+  dark: { accent: "#E5A83B", hover: "#D69A2E", ink: "#241703" },
+} as const;
+// Hue degrees and HSL lightness percentage points share this deliberately simple identity/status
+// proximity metric. The floor catches future near-aliasing while retaining the principal-seeded dark amber.
+const MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE = 5.5;
 
 describe("brand token contrast matrix", () => {
   it.each(MODES)("keeps %s base foregrounds AA-safe on background and elevated", (mode) => {
@@ -292,6 +325,39 @@ describe("brand token contrast matrix", () => {
         ).toBeGreaterThanOrEqual(3);
       }
     }
+  });
+
+  it.each(MODES)("keeps the %s parent amber seed safe as text and fill", (mode) => {
+    const tokens = tokensForMode(mode);
+    const seed = PARENT_ACCENT_SEEDS[mode];
+
+    expect(tokens.get("--voice-parent-accent")).toBe(seed.accent);
+    expect(tokens.get("--voice-parent-accent-hover")).toBe(seed.hover);
+    expect(tokens.get("--voice-parent-on-accent")).toBe(seed.ink);
+
+    for (const hostName of HOST_SURFACES) {
+      expect(
+        contrast(color(tokens, "--voice-parent-accent"), color(tokens, hostName)),
+        `parent amber text on ${hostName}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    for (const fillName of ["--voice-parent-accent", "--voice-parent-accent-hover"] as const) {
+      expect(
+        contrast(color(tokens, "--voice-parent-on-accent"), color(tokens, fillName)),
+        `parent on-accent on ${fillName}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("keeps the %s parent identity amber separate from warning", (mode) => {
+    const tokens = tokensForMode(mode);
+    expect(
+      hueLightnessDistance(
+        color(tokens, "--voice-parent-accent"),
+        color(tokens, "--color-warning"),
+      ),
+      `parent/warning hue-lightness distance must remain at least ${MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE}`,
+    ).toBeGreaterThanOrEqual(MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE);
   });
 
   it.each(MODES)("keeps every %s voice signature chip AA-safe", (mode) => {

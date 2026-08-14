@@ -1,7 +1,7 @@
 ---
 id: parent-voice-warm-accent
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: showcase-voice-presence
 depends_on: []
@@ -41,3 +41,17 @@ composite — white vs #241703, whichever passes). Steel stays in the neutral ra
 - Checker green; full suite + build green.
 - Two-grade tension documented in the story body (link-grade vs fill-grade in light) for
   org's value pass.
+
+## Implementation notes
+- Execution capability: `gpt-5.6-sol`; feature-owning worker retained the three-story chain because the token, chrome, and item-voice changes share one visual grammar.
+- Review weight: `standard` (feature contract/caller); child checkpoint receives no independent review.
+- Files changed: `apps/web/src/styles/tokens/voices/families.css`, `apps/web/tests/unit/styles/token-contrast.test.ts`.
+- Tests added/removed: added explicit parent amber seed/composite coverage and a named `MIN_PARENT_WARNING_HUE_LIGHTNESS_DISTANCE` semantic-separation guard; none removed.
+- Simplification: retained the existing one-alias voice resolution and changed only the parent accent, hover, and on-accent seeds; parent accent2 and the neutral/steel ramp remain untouched.
+- Discrepancies from design: none. The stale steel-hex sweep found no e2e or unit visual pins, and the ink sweep found no accent-fill consumer bypassing `--color-on-accent`.
+- Adjacent issues parked: none.
+- Light seed decision: `#7C4500` is the link-grade amber. It clears `--color-bg` at **6.887:1** and `--color-bg-elevated` at **7.252:1**; white ink clears the accent at **7.754:1** and hover at **10.203:1**. `#241703` would clear neither light fill, so white is the computed light on-accent.
+- Dark seeded pair: `#E5A83B` clears `--color-bg` at **8.483:1** and `--color-bg-elevated` at **7.444:1**; `#241703` ink clears the accent at **8.338:1** and hover at **7.107:1**.
+- Semantic separation from warning uses Euclidean distance across circular HSL hue degrees and lightness percentage points, with a named floor of **5.5**. Light: hue **5.743°**, lightness **2.745 pp**, composite **6.366**. Dark: hue **2.742°**, lightness **5.098 pp**, composite **5.788**.
+- Two-grade tension: light amber must serve both identity fill and link text. The lighter dark-mode fill seed cannot be reused on the light canvas (only 1.866:1 on `--color-bg`), so light deliberately uses a deeper link-grade amber and white CTA ink while dark uses the brighter fill-grade amber and dark ink. Org can tune the pair later at the same three-token seam.
+- Verification: `bun run --filter @snc/web test` — 196 files / 2031 tests passed; token checker and contrast harness green.
