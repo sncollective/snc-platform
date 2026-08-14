@@ -1,7 +1,7 @@
 ---
 id: brand-voice-route-scoping
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
 parent: brand-voice-system
 depends_on: [brand-token-architecture]
@@ -257,3 +257,14 @@ The resulting dependency chain is: child-1 completion (including
 - `bun run --filter @snc/web test` — passed: 195 files, 2014 tests.
 - `bun run --filter @snc/web build` — passed (known third-party `use client` warnings only).
 - `bun run --filter @snc/web typecheck` — passed after route generation.
+
+## Review — standard pass (2026-08-14)
+
+**Verdict: ready** (cross-model fresh-context: host GLM-5.2 → GPT-5.6 Sol). No blockers, no
+important findings, no nits. Reviewer ran adversarial resolver checks (exact-route
+descendants, near-prefixes like `press-kit`, malformed creator paths, manage trees,
+trailing slashes — all resolved correctly), verified boundary containment, portal
+propagation, CSS-contract integration (no route-name branching, no raw `--voice-*` component
+consumption), and 77/77 focused contract tests. Security/persistence lenses skipped as
+inapplicable (no auth/data/network surface); no new visual surface. Standard closure:
+one pass, approved, `review -> done`.
