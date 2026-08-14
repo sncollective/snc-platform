@@ -8,7 +8,8 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
+stage: implementing
 ---
 
 # Brand voice system: neutral spine + breathing voices + themable identity
