@@ -15,16 +15,31 @@ updated: 2026-08-14
 
 ## Brief
 
-Map all 96 audited literals (per `brand-token-architecture` → `## Design — Mapping table` +
-`.memory/scratchpad/color-categorization.md`) to their target roles; eliminate non-exempt raw
-leaks; retire `--color-secondary` (split its 3 jobs: selection → state tokens, calendar →
-internal `--color-data-N`, decorative → accent/neutral); centralize badge/status contrast (no
-universal `--color-on-status`/`-on-badge` — semantic ink on `-bg` tints, solids for non-text
-dots only). Preserve the public-chart hold (emissions/revenue wait on org).
+Classify all 133 audited color expressions / 338 occurrences (per
+`brand-token-architecture` → `## Design — Mapping table` + the categorization artifact) and
+eliminate non-exempt raw leaks across every syntax. Retire `--color-secondary`; apply the
+settled status and fixed-preview mappings; centralize badge/status contrast using semantic
+ink on the reference's opaque paired backgrounds. Public emissions/revenue remain
+org-constrained through the explicitly temporary, lint-exempt `--legacy-public-chart-*`
+bridge owned by this feature and expiring on org palette delivery.
 
 ## Acceptance
 
-- Zero non-exempt raw color literals outside token files (static no-leak check passes).
-- `--color-secondary` retired; all consumers migrated to semantic roles.
-- Badge/status contrast approach implemented; WCAG AA verified.
-- Public charts (emissions/revenue) on a clear hold, not force-migrated.
+- **Inventory + enforcement:** all 133 expressions are dispositioned; the static no-leak
+  grammar covers hex, rgb(a), hsl(a), named colors, and modern color functions. Outside the
+  explicit allowlists, zero raw colors remain; `transparent`/`currentColor` are classified
+  semantic keywords rather than silently skipped.
+- **Semantic migration:** `--color-secondary` is retired everywhere except the temporary
+  public-chart bridge's carried values. Selection/calendar/decoration consumers reach their
+  state/data/identity roles; archived/inactive are neutral, pending/needs-grant warning,
+  denied/failed error.
+- **Fixed/orthogonal contracts:** manage-press fixed light/dark samples use
+  `--preview-light-paper/ink` and `--preview-dark-paper/ink`; illustration and creator-brand
+  values use their declared token homes rather than mode-aware spine shortcuts.
+- **Contrast recipe:** text-bearing statuses use semantic ink on the republished opaque
+  paired backgrounds; badge/status WCAG checks cover bg and elevated hosts in both modes,
+  including base + hover + disabled + tint-composite cases.
+- **Public-chart dependency:** chart consumers use only the lint-exempt
+  `--legacy-public-chart-*` bridge, annotated with owner `brand-token-architecture` and expiry
+  “org public-chart palette delivery”; they are not mapped to internal data colors. This
+  checkpoint may pass with the bridge, but `alias-migration` may not.

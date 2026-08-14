@@ -25,13 +25,17 @@ of truth for the *target* shape:
   (held-pending-stakeholder: structure/naming stable; values refine after sign-off).
 - `.agents/skills/brand-architecture/SKILL.md` — the generic framework.
 
-**Current state (audited this session):** 96 distinct color values platform-wide —
-only 28 are official tokens; **68 are ad-hoc leaks** outside the token layer. Dark-only
-(`global.css` hardcodes `color-scheme: dark`; no `data-theme`, no toggle, no
-`prefers-color-scheme`). No `data-route` plumbing. Type is Inter + Georgia; the
-reference's per-voice families aren't loaded. The reframe: we are not "condensing 96 →
-42"; we are **classifying 96 raw values onto ~42 disciplined semantic roles** (×2 modes).
-The spec *expands* our semantic surface while *disciplining* the raw layer.
+**Current state (audited this session):** **133 distinct color expressions / 338
+occurrences across all CSS syntaxes**: 67 hex / 108 occurrences, 29 rgb(a) / 41, four
+hsl(a) / 13, 29 `color-mix()` expressions / 35, and four named colors / 141. Thirty-two
+distinct expressions occur in the official token layer; 110 occur outside it (nine overlap).
+`transparent` and `currentColor` are inventoried but sanctioned semantic CSS keywords, not
+leaks. Dark-only (`global.css` hardcodes `color-scheme: dark`; no `data-theme`, no toggle,
+no `prefers-color-scheme`). No `data-route` plumbing. Type is Inter + Georgia; the
+reference's per-voice families aren't loaded. The reframe is **classifying every current
+color expression onto a disciplined semantic role or explicit exemption** (×2 modes), not
+chasing a smaller raw-value count. The spec *expands* our semantic surface while
+*disciplining* the raw layer.
 
 **This feature's immediate deliverable is the design/mapping brief** — it resolves the
 open mapping decisions, writes the spine-vs-voice convention, and produces the
@@ -74,8 +78,8 @@ structure is visible/testable now; swapped in one pass when stakeholders sign of
 
 ## Categorization artifact
 
-Full color-use categorization (96 values, 149 occurrences, 64 token names, ~3,450 `var()`
-refs) with per-use intent + target role + bin triage:
+Full color-use categorization (133 expressions, 338 occurrences, 64 token names, ~3,450
+`var()` refs) with per-use intent + target role + bin triage:
 `.memory/scratchpad/color-categorization.md`. Headline finding: guaranteed-contrast
 foregrounds (on-media/on-status/on-badge) are the biggest unmodeled light-mode risk — not
 the navy-shade proliferation (which collapses cleanly to ~3 ramp steps).
@@ -95,7 +99,8 @@ the navy-shade proliferation (which collapses cleanly to ~3 ramp steps).
   `/creators/$creatorId/press/` (operator-confirmed 2026-08-13: voices are for public-facing
   surfaces). Consequence: the warm Records-ish palette currently on the *internal authoring*
   screens (`/manage/press`, `/manage/library`) is **misplaced** — those are internal tooling
-  and stay Parent (spine); their warm hexes migrate to neutrals, not Records. Open follow-on:
+  and stay Parent (spine); ordinary warm UI hexes migrate to neutrals, while fixed PDF/sample
+  light/dark surfaces use the internal `--preview-*` output roles. Open follow-on:
   is there a public library surface, or does `/manage/library` stay Parent? (Default Parent
   until one exists.)
 
@@ -120,12 +125,14 @@ if it's IDENTITY (buttons/links/nav-active) it BREATHES with the voice.
    event colors = internal (ours).
 3. **Guaranteed-contrast foregrounds → SPLIT.** Org extends the reference with
    `--color-on-media` / `--color-on-media-muted` (shared, both modes; pattern = white +
-   `--color-overlay` scrim). Platform resolves status-fill + badge contrast — define
-   `--color-on-status`/`-on-badge` OR constrain usage to `-bg` tints; constraint is WCAG AA.
+   `--color-overlay` scrim). The republished reference now also delivers opaque paired status
+   backgrounds, host-independent on bg/elevated; platform consumes them and constrains
+   text-bearing badges to semantic ink + paired background rather than inventing
+   `--color-on-status`/`-on-badge`.
 4. **Links → ALIAS to route accent (identity, breathes) — PROVISIONAL.**
    `--color-link: var(--color-accent)`, `--color-link-hover: var(--color-accent-hover)`. Not a
-   separate shared role. Principal wants to see it in action and may revisit → implement as
-   alias (cheap revert to a shared token if reversed); flag for in-situ validation.
+   separate shared role. Validate the reversible alias in situ; org has settled prose/inline
+   links as underline-by-default, with structural nav/chrome exceptions.
 5. **accent-subtle → reference oversight, org fixing.** Org adds `--voice-parent-accent-subtle`
    (both modes) + exposes `--color-accent-subtle` in route-scoping. Adopt when published.
 
@@ -138,8 +145,6 @@ adopt their exact token names verbatim when it lands.
 - **Teal decorative per-use mapping** — booking / landing-pricing / subscription /
   studio-inquiry / press-decoration consumers → assign each to route accent / success /
   info / neutral (no generic secondary).
-- **Status-semantics labels** — completed / subscribed / open-granted / inactive → assign
-  to success/success-bg, info/info-bg, or neutral.
 - **Creator-brand color coexistence** — confirm orthogonal data (not a fifth voice);
   pending the org principle on creator-authored colors.
 - **Hero-gradient token** — derive from bg/bg-elevated/surface, or retain a documented
@@ -148,22 +153,20 @@ adopt their exact token names verbatim when it lands.
   (#1565C0), resolving latent fallbacks in team-section + playout. (Mostly mechanical.)
 ## Epic: brand-voice-system
 
-This feature is **child 1 (token foundation)** of the `brand-voice-system` epic. The
-voice-as-user-selectable-theme + export-theming expansion discussed earlier is decomposed
-into sibling children under that epic:
-- `brand-voice-route-scoping` (child 2) — route-default voice mechanism.
-- `brand-voice-user-toggle` (child 3) — settings appearance pane (mode + voice, global +
-  auto default).
-- `brand-voice-export-theming` (child 4) — wire voice tokens into the existing Playwright
-  PDF render.
+This feature is **child 1 (token foundation)** of the `brand-voice-system` epic. Its active
+siblings are:
+- `brand-voice-route-scoping` (child 2) — the sole MVP route-default voice mechanism.
+- `brand-voice-export-theming` — wire voice tokens into the existing Playwright PDF render.
 
-Cross-cutting locked decisions (STATE/IDENTITY rule, public-facing principle, global+auto
-toggle, voice→route map, org gap adjudications) live in the epic.
+The previously considered `brand-voice-user-toggle` is **deferred and parked**, not an active
+sibling or part of this feature. Cross-cutting locked decisions (STATE/IDENTITY rule,
+public-facing principle, voice→route map, org gap adjudications) live in the epic.
 
 ## Brief deliverables (what "done" looks like for this feature's design phase)
 
-1. **Mapping table** — every one of the 96 current values → target role (neutral ramp /
-   status / badge / voice accent / exempt), with the collapses and retires called out.
+1. **Mapping table** — every one of the 133 current color expressions → target role or
+   explicit exemption (neutral ramp / status / badge / voice accent / intrinsic CSS keyword /
+   sanctioned bridge), with the collapses and retires called out.
 2. **Spine-vs-voice conventions** — written into `platform-patterns.md` (+ the AGENTS.md
    CSS section): mode-awareness rule; generic components consume `--color-accent` /
    `--color-on-accent` / `--radius` / `--font-body` / `--font-display` (route-resolved),
@@ -190,24 +193,30 @@ toggle, voice→route map, org gap adjudications) live in the epic.
 This section is the authoritative migration map. The per-occurrence audit remains in
 `.memory/scratchpad/color-categorization.md`; it records every source line, count, and
 intent inference. The tables below consolidate that evidence into implementation roles.
-A literal appears in more than one row only when identical raw values currently carry
-more than one meaning. The source inventory is reproducible at 96 distinct literals;
-the current token layer starts at `apps/web/src/styles/tokens/color.css:5-17` and the
-ad-hoc uses are enumerated in the scratchpad. Unless a citation is project-rooted, its
+An expression appears in more than one row only when identical current values carry more
+than one meaning. The source inventory is reproducible at 133 distinct expressions / 338
+occurrences across hex, rgb(a), hsl(a), named colors, and modern color functions; the
+current token layer starts at `apps/web/src/styles/tokens/color.css:5-17` and the complete
+per-syntax inventory is in the scratchpad. Unless a citation is project-rooted, its
 path is relative to `apps/web/src/`, matching the categorization artifact.
 
 ### Raw literal → target role
 
 | current literal(s) | target role | migration ruling |
 |---|---|---|
+| four HSL fallbacks / 13 occurrences | success/info/warning roles | Remove consumer fallbacks and use the semantic roles: `hsl(140 50% 15%)` + `hsl(140 60% 45%)` (`styles/form.module.css:82,83,85`, `playout.module.css:223`, `simulcast.module.css:91`, `simulcast-destination-manager.module.css:90`), info `hsl(210 80% 60%)` (`playout.module.css:211`), warning `hsl(40 90% 55%)` (`styles/tokens/color.css:68`; `playout.module.css:217,295,296,306,554`). |
+| named `white` / `green` | `--color-on-media` / `--color-success` | Replace named pigments at `live.module.css:73` and `join-manage.module.css:114`. Standalone `transparent` (133 occurrences) and `currentColor` (six) are inventoried sanctioned semantic CSS keywords, not raw-pigment exemptions. |
+| 29 `color-mix()` expressions / 35 occurrences | semantic role or token-owned derivation | Retire primary/secondary compatibility mixes, map status/state/surface/media recipes to their semantic homes, and permit any surviving derivation only in its owning token-definition file. Full values and `file:line` evidence are in the categorization artifact's “Modern color functions” table. No other modern color function is present. |
 | `#000`, `#0c0c14`, `#171723` | `--color-media-bg` | Mode-invariant media wells. The two near-black picker values collapse into the existing media role (`media-picker.module.css:248,591,706`). |
-| `#1a1a2e`, `#171725`, `#20203a` | `--color-bg` | Dark page/preview bases collapse to one spine step. The two `#1a1a2e` creator-brand foreground uses are the exception described below. |
+| `#171725`; preview-surface uses of `#1a1a2e` | fixed `--preview-dark-paper` | `.pdfDark` and `.darkSurface` are fixed output/sample previews, independent of the UI mode (`manage-press.module.css:577-582,668-674`). |
+| non-output `#20203a` | `--color-bg` | Draft UI preview chrome collapses to the spine background; it is not one of the fixed light/dark output surfaces (`manage-press.module.css:932`). |
 | `#252542`, `#2a2a46`, `#2b2741`, `#343451` | `--color-bg-elevated` / `--color-surface` | Collapse by role: containers/dropdowns → elevated; subordinate cards → surface. The decorative `#252542` occurrence at `manage-press.module.css:825` is illustration, not a surface. |
 | `#2a2a4a` | `--color-bg-input` | Current input primitive keeps its role. |
-| `#f6f0e7`, `#f2ede4` | light `--color-bg` / `--color-bg-elevated` | Preview paper becomes the light spine rather than press-only tokens (`manage-press.module.css:494,569,586,673`). |
+| `#f6f0e7`, `#f2ede4` | fixed `--preview-light-paper` | `.lightSurface`, PDF paper, and split-preview paper describe a fixed light output/sample, not the active UI mode (`manage-press.module.css:494,569,586,672-674`). |
 | `rgb(255 255 255 / 3%)` | `--color-surface` | Replace the literal preview-card veil at `manage-press.module.css:1033` with the mode-aware surface role. |
 | `#1e1e36` | retire `--color-bg-hero-gradient` | Derive each hero gradient from `--color-bg`, `--color-bg-elevated`, and `--color-surface`; do not preserve a fourth navy step. Current consumers are identified in the scratchpad. |
-| `#f0f0f0`, `#ddd8ce`, `#d1d1d9` | `--color-text` | Collapse body/preview ink to the mode-aware primary text role. |
+| `#ddd8ce`; preview-ink use of `#1a1a2e` | fixed `--preview-dark-ink` / `--preview-light-ink` | `.pdfDark` fixed light ink and `.lightSurface` fixed dark ink remain output semantics (`manage-press.module.css:581-582,672-674`). |
+| `#f0f0f0`, `#d1d1d9` | `--color-text` | Collapse ordinary body/admin ink to the mode-aware primary text role. |
 | `#a0a0b0`, `#666`, `#888888`, `#c7c7d1`, `#6b7280` | `--color-text-muted` | Collapse muted copy, generic website icon, and inactive label ink. Inactive badges become neutral tint + muted ink, not a solid status fill. |
 | `#3a3a5c`, `#505078`, `#6b6b89` | `--color-border` | Collapse dialog, placeholder, and spine outlines. |
 | `#1a1a1a`, `#f5a623`, `#e09510`, `#ffd486`, `rgba(245, 166, 35, 0.1)` | route `--color-accent` / `--color-accent-hover` / `--color-accent-bg` | The generic CTA fallbacks remain identity roles, but all amber values retire. The active voice supplies the replacement. |
@@ -216,22 +225,23 @@ path is relative to `apps/web/src/`, matching the categorization artifact.
 | `#8fd1d1`; selected/filter uses of `#9ed8d8`; `rgba(255, 255, 255, 0.05)` | `--color-selected-bg`, `--color-hover-bg`, plus normal `--color-text` | Selection is a shared state, not a teal identity. Selected controls use the state background and ordinary text; the two duplicate hover primitives collapse to `--color-hover-bg`. |
 | focus uses of current accent | `--color-focus` | Global and component focus rules stop consuming identity. `global.css:79` and `button.module.css:24-25` show the current accent coupling. |
 | `#4caf50`, `#16a34a`, `#8bd98f`, `#92dd96`, `#93e69a`, `#b6eeb8` | `--color-success` | Collapse all positive/ready/completed/granted inks. Completed, subscribed, and granted are success semantics. |
-| `#ef5350`, `#c0392b`, `#dc2626`, `#ff8b88`, `#ff9c99`, `#ff9d9a`, `#ffaaa8`, `#ffb4b1`, `#ffd0ce` | `--color-error` | Collapse all danger, failure, archived, permission-required, and error fallback inks. |
-| `#ffc45b`, `#ffd276`, warning use of `#ffd27a`, `#ffe0a4` | `--color-warning` | Dirty, blocked, limit, and visibility warnings become the first-class warning role. |
+| `#ef5350`, `#c0392b`, `#ff8b88`, `#ff9d9a`, `#ffaaa8`, `#ffb4b1`, `#ffd0ce` | `--color-error` | Collapse danger, denied/failed grants, failures, and error fallback inks. |
+| archived use of `#dc2626` | neutral status recipe | Archived is a neutral lifecycle label, not an error. |
+| `#ffc45b`, `#ffd276`, warning use of `#ffd27a`, `#ffe0a4`, needs-grant use of `#ff9c99` | `--color-warning` | Dirty, blocked, limit, visibility, pending, and needs-grant states become the first-class warning role. |
 | `#1a73e8`, `#e8f0fe` | `--color-info`, `--color-info-bg` | Define the missing pair. The blue fallback at `team-section.module.css:114-115` and the separate playout consumer converge. `#1a73e8` is not vendor-exempt. |
 | `rgba(239, 83, 80, 0.1)`, `rgba(76, 175, 80, 0.1)` | `--color-error-bg`, `--color-success-bg` | Existing tint definitions keep their semantic roles but take the reference's mode-specific placeholders. |
 | project-completion use of `rgba(91, 181, 181, 0.2)` | `--color-success-bg` | Completed projects are success; the same literal's calendar use is categorical and maps separately. |
 | `rgba(245, 166, 35, 0.85)`, `rgba(91, 181, 181, 0.85)`, `rgba(160, 160, 176, 0.6)` | `--color-badge-video`, `--color-badge-audio`, `--color-badge-written` | Replace current badge-fill aliases with the reference's category roles and desaturated placeholders. |
 | `rgba(239, 83, 80, 0.2)`, calendar uses of `rgba(245, 166, 35, 0.2)`, `rgba(245, 166, 35, 0.3)`, `rgba(91, 181, 181, 0.2)`, `rgba(91, 181, 181, 0.25)`, `rgba(91, 181, 181, 0.3)`, `rgba(91, 181, 181, 0.4)` | internal `--color-data-1…6` + derived tints | Calendar categories are platform-local data roles. Domain aliases map event types to the series; no voice or status token doubles as a category. |
 | open-sharing use of `#9ed8d8` | `--color-info` / `--color-info-bg` | “Open” is availability/information; “granted” remains success. Both pair text labels with color. |
-| emissions/revenue uses of accent/secondary | **public-chart hold** | Do not map to platform-local data tokens. `emissions-chart.module.css:19-47` and `revenue-chart.module.css:28-43` remain an explicit migration exclusion until org supplies the public brand-constrained palette. |
+| emissions/revenue uses of accent/secondary | temporary `--legacy-public-chart-*` bridge | Public charts remain org-constrained. Until org delivers that palette, `color/data.css` owns lint-exempt `--legacy-public-chart-emissions-*` / `--legacy-public-chart-revenue-*` aliases carrying the current accent/secondary/status chart colors (`emissions-chart.module.css:19-47`; `revenue-chart.module.css:28-43`). Owner: this feature. Expiry: org public-chart palette delivery. Alias migration is incomplete and must fail acceptance while any bridge name exists. |
 | media/hero uses of `#fff`, `rgba(255, 255, 255, 0.7)` | `--color-on-media`, `--color-on-media-muted` | Guaranteed image/video foregrounds adopt org's new shared roles (`brand-tokens-reference.css:54-55,167-168`). |
 | status-badge use of `#fff` | retire via constrained status recipe | Text-bearing statuses use status ink over `*-bg`; the current white-on-solid shortcut at `admin-creators.module.css:149-168` is not preserved. |
 | `rgba(255, 255, 255, 0.15)` | media-border derivation from `--color-on-media` | Keep the thumbnail badge border as a component-local alpha derivation or a media-border role only if a second consumer appears. |
 | `rgba(255, 255, 255, 0.2)`, `rgba(255, 255, 255, 0.24)` | platform-local `--color-media-guide` | The crop guide at `media-picker.module.css:742-743` derives from on-media and remains an editing-tool role. |
 | `rgb(16 16 30 / 90%)`, `rgba(8, 9, 17, 0.9)`, `rgba(9, 9, 17, 0.72)`, media uses of `rgba(0, 0, 0, 0.3)`, `rgba(0, 0, 0, 0.5)`, `rgba(0, 0, 0, 0.6)`, `rgba(0, 0, 0, 0.7)` | `--color-overlay`, `--color-overlay-weak`, `--color-overlay-strong` | Collapse backdrop/hover/loading/media scrims to three named strengths. Do not preserve every alpha. Evidence spans `audio-detail-view.module.css:66-78` and `media-picker.module.css:264-266,814`. |
 | shadow uses of `rgba(0, 0, 0, 0.2)`, `rgba(0, 0, 0, 0.3)`, `rgba(0, 0, 0, 0.4)`, `rgba(0, 0, 0, 0.5)` | existing `--shadow-xs…xl` | Keep elevation orthogonal and make its token values mode-aware. Literal leaks at `playout.module.css:667` and `content-management-list.module.css:214` migrate to named shadows. |
-| creator-foreground uses of `#1a1a2e` | platform-local `--color-on-creator-brand` | Creator-authored color is orthogonal content data, exposed as `--creator-brand`; validate/derive its foreground. It never becomes a fifth voice or overwrites shell accent (`-press-editor.tsx:619,641-642`; `manage-press.module.css:659,674`). |
+| creator-foreground use of `#1a1a2e` | platform-local `--color-on-creator-brand` | Creator-authored color is orthogonal content data, exposed as `--creator-brand`; validate/derive its foreground. It never becomes a fifth voice or overwrites shell accent (`-press-editor.tsx:619,641-642`; `manage-press.module.css:659`). |
 | `#30273a`, `#d48b37`, `#2c3048`, `#784e62`, `#303044`, `#333344`, `#2d3348`, `#6f4c64`, `#a66d3a`, `#5e4d66`, decorative `#252542`, `#b06f3a` | derived illustration palette | Four preview/placeholder treatments derive from neutral + route-accent mixes. They do not create 12 public tokens. |
 | `#5bb5b5`, `rgba(91, 181, 181, 0.1)` | retire by semantic split | The old secondary primitive and tint have no replacement token. Each consumer follows the teal split below. |
 
@@ -255,7 +265,17 @@ exemption” in the categorization artifact.
 | Media-picker selection/chrome (`media-picker.module.css:64-75,169-170,387-461,598-710`) | state uses → focus/selected/hover; CTA/emphasis → route accent; tool guide → media-guide; ordinary labels → text/muted |
 | Library filter/view state and open category (`library.module.css:221-302,348-350,423-426,568-570`) | selected/hover shared state; open → info; loading indicator → route accent |
 | Calendar event/project/task categories (`event-card.module.css:43-65,127,141-142`; `calendar-grid.module.css:104-117`) | internal `--color-data-N` series |
-| Emissions series (`emissions-chart.module.css:34-41,165-166`) | public-chart hold pending org; never platform-local data color |
+| Emissions series (`emissions-chart.module.css:34-41,165-166`) | temporary owner+expiry `--legacy-public-chart-*` bridge pending org; never platform-local data color |
+
+### Status-semantics contract
+
+| product state | semantic treatment |
+|---|---|
+| completed / subscribed / granted | success ink + opaque paired success background |
+| open / informational availability | info ink + opaque paired info background |
+| archived / inactive | neutral text + neutral surface/border |
+| pending / needs grant | warning ink + opaque paired warning background |
+| denied / failed grant / failed operation | error ink + opaque paired error background |
 
 ### Current token consumer → target contract
 
@@ -285,22 +305,34 @@ This consolidation names every currently consumed token.
 
 Platform chooses the **constrained-usage** branch of the org adjudication:
 
-- text-bearing status badges use semantic ink on the paired `*-bg` tint;
+- text-bearing status badges use semantic ink on the paired opaque `*-bg` value;
 - content badges use ordinary `--color-text` over a low-strength category tint, with
   `--color-badge-*` reserved for border/non-text category cue;
 - solid status/category colors are allowed only for dots/swatches with no overlaid text.
 
-This avoids a misleading universal “on any status/badge color” guarantee and keeps the
-reference vocabulary intact. The current solid status + white shortcut at
+Org has now delivered the corrected dark Parent hover (`#8E9AAC` at
+`brand-tokens-reference.css:139`) and host-independent opaque dark status backgrounds
+(`brand-tokens-reference.css:122-130`), permitted on both `--color-bg` and
+`--color-bg-elevated` at 5.9–7.4:1; platform adopts those values rather than tuning local
+composites. The current solid status + white shortcut at
 `admin-creators.module.css:149-168` and content-card foreground shortcut at
-`content-card.module.css:42-68` both migrate to shared badge components. Every resulting
-foreground/background pair is an automated WCAG AA matrix case.
+`content-card.module.css:42-68` both migrate to shared badge components. The platform
+contrast harness mirrors org's verification matrix: foreground/background and
+foreground/elevated pairs, both modes, and base + hover + disabled + tint-composite cases.
 
 ### Platform-owned and deferred roles
 
 - Define both-mode, internal-only `--color-data-1…6`; domain aliases may map calendar
-  event kinds to the series. Public emissions/revenue series wait on org.
-- Keep `--creator-brand` + `--color-on-creator-brand` scoped to authored content.
+  event kinds to the series. Public emissions/revenue use the temporary owner+expiry
+  `--legacy-public-chart-*` bridge until org delivers its palette; the bridge blocks alias
+  migration completion.
+- `color/preview.css` owns fixed, internal, non-mode-aware `--preview-light-paper`,
+  `--preview-light-ink`, `--preview-dark-paper`, and `--preview-dark-ink`.
+- `color/illustration.css` owns the internal decorative palette, derived from shared neutrals
+  plus the route accent; feature styles do not retain the twelve raw illustration literals.
+- `color/creator.css` owns the creator-brand contrast contract: runtime orthogonal
+  `--creator-brand` data is paired with validated/derived `--color-on-creator-brand`, scoped
+  to authored content.
 - Keep `--color-media-guide`, three overlay strengths, and theme-aware elevation local.
 - Links alias to accent. `--color-info`/`--color-warning-bg` are first-class.
 
@@ -331,9 +363,34 @@ foreground/background pair is an automated WCAG AA matrix case.
 5. **Shape and type breathe through aliases.** Ordinary corners use derived
    `--radius-sm/md/lg` from route `--radius`; circles/pills stay invariant. Components use
    `--font-body`/`--font-display`; `--font-mono` and the type-size/weight scale stay shared.
-6. **Color is never the only route/status/category signal.** Preserve text, active-nav,
+6. **Links breathe but stay identifiable.** Prose/inline links use the route-resolved link
+   aliases and are underlined by default; structural nav/chrome links are the documented
+   exception. This org-approved rule is verified during in-situ link validation in every
+   mode/voice combination.
+7. **Color is never the only route/status/category signal.** Preserve text, active-nav,
    icon/shape, or structural cues, and verify required pairings in both modes and all four
    voices.
+
+### STATE vs IDENTITY recipe
+
+| ambiguous control | classification | token recipe |
+|---|---|---|
+| active tab | STATE (shared) | `--color-selected-bg` + ordinary text/border; do not use route accent as the sole selected cue |
+| checked checkbox/radio/switch | STATE (shared) | shared selected/focus/disabled roles; retain the native checked mark or icon |
+| current workflow step | STATE (shared) | shared selected role; completed → success, pending/blocked → warning, failed → error |
+| active navigation item | IDENTITY (breathes) | route `--color-accent` plus structural/current-page cue |
+| destructive action | STATE/functional (shared) | `--color-error` + paired opaque error background; never a voice accent |
+
+### Enforceable boundary
+
+Land an early stylelint/scan rule that rejects raw color literals outside token-definition
+files. Its grammar covers hex, rgb(a), hsl(a), named colors, and modern color functions.
+Explicit allowlists are limited to token-definition files, verified vendor identity colors,
+runtime creator-brand injection, sanctioned signature-chip definitions, and the temporary
+owner+expiry `--legacy-public-chart-*` bridge. `transparent` and `currentColor` are classified
+semantic CSS keywords; named pigments are not. The `alias-migration` acceptance slice named
+**“Publish and enforce the spine-vs-voice convention”** lands this draft in
+`platform-patterns.md` and the AGENTS.md CSS section and turns the scan on.
 
 The current global stylesheet violates these rules by hardcoding dark color scheme
 (`global.css:29`), coupling focus to accent (`global.css:79`), and using the old font alias
@@ -350,19 +407,50 @@ Use two attributes on `<html>` because preference and applied mode are different
 
 `system` is therefore first-class without forcing every token file to duplicate a third
 mode block. Persist the preference under `snc.appearance.theme`; missing/invalid values
-normalize to `system`. A pre-hydration head bootstrap reads the preference, resolves
-`matchMedia('(prefers-color-scheme: dark)')`, and sets both attributes before the token
-stylesheet paints. While preference is system, subscribe to media-query changes; explicit
-light/dark ignores them. Synchronize the `storage` event across tabs. The mode-toggle settings control (child 1's `theming` story)
-writes the same contract rather than introducing another store.
+normalize to `system`.
+
+The lifecycle has exactly two actors:
+
+1. A **set-only inline bootstrap** runs before React and before the token stylesheet. It
+   safely reads storage, resolves `matchMedia('(prefers-color-scheme: dark)')`, and sets the
+   two attributes. It installs no listeners, creates no store, and performs no later work.
+2. Exactly one **hydrated appearance controller** owns all subsequent state. Its
+   `applyPreference(light|dark|system, source)` operation is idempotent, writes attributes
+   only when values differ, persists only local user changes, and never creates a second
+   controller/listener set. Safe storage read/write wrappers catch `localStorage` access and
+   mutation failures under privacy/security settings and fall back to `system` without
+   throwing.
+
+The hydrated controller binds the media-query listener only while preference is `system`;
+every preference transition tears down the prior listener before rebinding. It also handles
+`storage` events for `snc.appearance.theme` (including removal/invalid values → `system`) so
+tabs converge without writing the event back. An explicit valid storage preference wins over
+a queued media change: media callbacks capture a controller generation and re-check that the
+current preference is still `system` before applying. Preference changes therefore cannot be
+overwritten by an already-queued system event.
+
+`<html>` carries `suppressHydrationWarning` (or the framework-equivalent explicit ownership)
+so React preserves bootstrap-owned attributes during hydration; the hydration test asserts
+both attributes survive unchanged. Place the inline bootstrap immediately **before**
+`<HeadContent />` in `RootDocument`; keep the global/token stylesheet emitted by
+`HeadContent`, which guarantees bootstrap-before-stylesheet ordering (`__root.tsx:49-59,143-146`).
+The mode settings control writes through the one controller rather than introducing another
+store.
 
 No-script/system fallback remains valid: `:root` supplies light and a
 `prefers-color-scheme: dark` block targets only a root with no `data-theme`; explicit
-`[data-theme="light"]` and `[data-theme="dark"]` always win. Set CSS `color-scheme` to the
-effective mode and replace the current dark-only meta (`__root.tsx:44`) with a mode-capable
-contract. The root document currently has no appearance attributes (`__root.tsx:143`), and
-Google font links precede the global stylesheet (`__root.tsx:49-59`), so the bootstrap and
-self-hosted font stylesheet must be ordered deliberately to prevent mode/type flash.
+`[data-theme="light"]` and `[data-theme="dark"]` always win. If CSP blocks the inline
+bootstrap, this no-attribute CSS path still paints the system mode and hydration later takes
+ownership. A stored explicit preference may flash as system until hydration in that failure
+case; that degradation is accepted and documented rather than adding a second bootstrap.
+Set CSS `color-scheme` to the effective mode and replace the current dark-only meta
+(`__root.tsx:44`) with a mode-capable contract.
+
+Named lifecycle tests: invalid storage value; blocked storage read/write; cross-tab storage
+events; system change while system-pinned; bootstrap failure/CSP fallback; hydration
+attribute preservation; and the queued-media-versus-explicit-preference tiebreak. The
+contrast harness mirrors org: foreground/background and foreground/elevated pairs, both
+modes, base + hover + disabled + tint composites.
 
 ### Route voice resolution
 
@@ -392,6 +480,7 @@ Route blocks resolve the generic aliases; components never branch on route names
   --color-accent-bg: var(--voice-parent-accent-bg);
   --color-accent-subtle: var(--voice-parent-accent-subtle);
   --color-on-accent: var(--voice-parent-on-accent);
+  --color-accent2: var(--voice-parent-accent2);
   --color-link: var(--color-accent);
   --color-link-hover: var(--color-accent-hover);
   --radius: var(--voice-parent-radius);
@@ -402,44 +491,56 @@ Route blocks resolve the generic aliases; components never branch on route names
 [data-route="studio"] { /* same aliases → --voice-studio-* */ }
 [data-route="tv"] { /* same aliases → --voice-tv-* */ }
 [data-route="records"] { /* same aliases → --voice-records-* */ }
+
+/* Required because body already resolved --font-body outside the route scope. */
+[data-route] { font-family: var(--font-body); }
 ```
 
-The later global voice override should add a separate effective-voice attribute rather than
-mutate `data-route`; route identity must remain inspectable for “auto.” Its override layer
-must repeat the same alias set and have explicit cascade precedence over route defaults.
+Overriding `--font-body` on a subtree does not recompute a `font-family` already resolved on
+`<body>`; `voices/resolution.css` therefore owns `[data-route] { font-family:
+var(--font-body); }`. Headings already resolve `--font-display` on each heading element.
+Child 2's route-container boundary consumes this rule and tests computed `font-family`
+inside each scoped subtree.
+
+`data-effective-voice` is the reserved name for a possible future override seam. It is
+**deferred-not-built** in this epic; no override attribute, cascade layer, auto mode, or
+user voice control ships now. Child 2 owns the runtime note while this feature reserves only
+the name and keeps `data-route` inspectable.
 
 ## Design — Font-loading plan
 
-**Decision: self-host via Fontsource (npm packages).** The six families are all SIL OFL.
-Fontsource bundles the WOFF2 inside `node_modules` and serves them from our own origin — no
-account, no runtime/build-time external fetch, fully offline after install. It is
-privacy-clean, stable, and versioned via `package.json`. It replaces the current Google-hosted
-Inter request at `routes/__root.tsx:49-59`.
+**Decision: self-host via Fontsource (npm packages).** The six families are SIL OFL and ship
+from our own origin. This replaces the Google-hosted Inter request at
+`routes/__root.tsx:49-59`.
 
-| role | family | initial files/weights |
-|---|---|---|
-| Parent body/display | Source Sans 3 | variable Roman 400–700; italic only if a real consumer requires it |
-| Studio body/display | Newsreader | variable Roman 400–700 + italic because editorial copy can use emphasis |
-| TV body/display | Saira | variable Roman 400–700 |
-| Records body | Archivo | variable Roman 400–700 |
-| Records display | Barlow Condensed | 600 and 700 (variable if the upstream package is smaller/equivalent) |
-| Shared mono | Fragment Mono | 400 Roman; italic only if consumed |
+The manifest is consumer-verified rather than aspirational:
 
-Install the families as packages (`@fontsource-variable/source-sans-3`, `-newsreader`,
-`-saira`, `-archivo`, `-barlow-condensed`; static `@fontsource/fragment-mono`) and import
-their CSS selectively (latin subset + needed weights) so only referenced WOFF2 ships.
-Fontsource owns the primary `@font-face`; layer our **own fallback `@font-face` blocks** in
-`tokens/fonts.css` with measured `size-adjust`, `ascent-override`, `descent-override`, and
-`line-gap-override` over generic families so fallback metrics match the web font (minimizing
-layout shift on swap). The fallback stack remains explicit per family. Preload only Parent's
-Source Sans 3 Roman file (above-the-fold on every route); let route-specific faces fetch on
-first use. Do not preload all voices.
+| role / family | loaded weights and styles | consumer evidence | exact fallback stack |
+|---|---|---|---|
+| Parent body/display — Source Sans 3 | variable Roman 400–900; true italic 400–600 | Parent tooling reaches 800/850 (`library.module.css:18,50,104,186,474,674`; `media-picker.module.css:268,476,601,887`). Real italic is required by admin/content consumers: `playout.module.css:72,118,196,617,698`, `simulcast.module.css:216`, `simulcast-destination-manager.module.css:205`, `booking-list.module.css:41`, `subscription-list.module.css:60`, `audio-detail.module.css:54`, `audio-detail-view.module.css:129`, `audio-locked-view.module.css:41,43`, and `emissions.module.css:195`. | `"Source Sans 3", Arial, sans-serif` |
+| Studio body/display — Newsreader | variable Roman 400–700; no italic file until a real Studio consumer exists | Studio body uses normal/600 and display headings require the shared 700 ceiling (`studio-equipment.module.css:6,25,27`; `studio-service-section.module.css:9,50`; `studio-inquiry-form.module.css:6,32`; `studio-hero.module.css:15,22`; heading elements at `studio-hero.tsx:11`, `studio-service-section.tsx:80`, `studio-equipment.tsx:34,38`, `studio-inquiry-form.tsx:84,95`). | `Newsreader, Georgia, "Times New Roman", serif` |
+| TV body/display — Saira | variable Roman 400–700; true italic 400 | `/live` uses 500/600/700 (`live.module.css:71,193,211,318,329,356`) and italic director copy (`live.module.css:447`). | `Saira, "Arial Narrow", Arial, sans-serif` |
+| Records body — Archivo | variable Roman 400–700; no italic file (no public-press italic consumer) | Public press body uses normal, semibold, and bold (`press-sections.module.css:60,72,74,126,158,172,174,190`; `press-carousel.module.css:11,13`). | `Archivo, Arial, sans-serif` |
+| Records display — Barlow Condensed | variable Roman 400–700; no italic file | Weight 400 is load-bearing in display shorthands (`press-sections.module.css:47,119,159`); bold display is consumed at `press-sections.module.css:83`. | `"Barlow Condensed", "Arial Narrow", Arial, sans-serif` |
+| Shared mono — Fragment Mono | static Roman 400; no italic file | Current mono consumers request the shared face without italic (`playout.module.css:605`; `simulcast.module.css:82`; `simulcast-destination-manager.module.css:81`; `join-manage.module.css:39`; `streaming.module.css:77,129,169`). | `"Fragment Mono", "Cascadia Mono", "Liberation Mono", "Courier New", monospace` |
 
-`swap` is chosen over blocking FOIT; the brief flash of fallback text is preferable to
-invisible navigation/forms. Cache files with content hashes or versioned directories and a
-long immutable policy. Subset only after inspecting actual character requirements; preserve
-Latin punctuation used by `24·96`, `● LIVE`, and creator names. Current Inter + Georgia
-aliases at `typography.css:5-6` remain only until the alias-migration checkpoint.
+Install `@fontsource-variable/{source-sans-3,newsreader,saira,archivo,barlow-condensed}` and
+static `@fontsource/fragment-mono`; import only the manifest's Roman/italic faces. **Synthetic
+italics are forbidden** (`font-synthesis: none` at the document contract): load a real italic
+face where the table names a consumer, and do not invent italics for families without one.
+
+Subset baseline is `latin` + `latin-ext` for every family; do not hand-trim Unicode ranges.
+Before acceptance, inspect the shipped WOFF2 cmap and render fixtures for U+00B7 (`24·96`),
+U+25CF (`● LIVE`), and multilingual creator names. Where a primary face lacks a creator's
+script, the named system fallback must cover it; add a Fontsource script subset when the
+family supplies one. Do not claim coverage from package labels alone.
+
+Use `font-display: swap`. Preload only Parent Source Sans 3 Roman; voice-specific and italic
+faces load on demand. Cache content-hashed/versioned assets immutably. **Defer fallback-metric
+`@font-face` overrides** until measured CLS evidence justifies them: no guessed
+`size-adjust`/ascent/descent values. The exact plain stacks above are the initial fallback
+layer. Current Inter + Georgia aliases at `typography.css:5-6` remain only until the
+alias-migration checkpoint.
 
 ## Design — Token file structure
 
@@ -451,17 +552,21 @@ apps/web/src/styles/tokens/
 ├── index.css                 # ordered @imports; sole global entry
 ├── color/
 │   ├── spine.css             # bg/elevated/surface/input/text/border, mode blocks
-│   ├── status.css            # success/warning/error/info + paired backgrounds
+│   ├── status.css            # success/warning/error/info + opaque paired backgrounds
 │   ├── state.css             # focus/selected/hover/disabled
 │   ├── media.css             # media bg, on-media, overlay strengths, media guide
 │   ├── badges.css            # audio/video/written category roles
-│   └── data.css              # platform-local internal --color-data-1…6
+│   ├── data.css              # internal data roles + temporary legacy public-chart bridge
+│   ├── preview.css           # fixed internal --preview-light/dark-paper/ink
+│   ├── illustration.css      # internal neutral + route-accent decorative derivations
+│   └── creator.css           # creator-brand data/validated foreground contract
 ├── voices/
-│   ├── families.css          # Parent/Studio/TV/Records accent families, both modes
-│   └── resolution.css        # Parent defaults + [data-route] generic alias blocks
-├── fonts.css                 # @font-face only
-├── typography.css            # family aliases + existing sizes/weights/line heights
-├── radius.css                # voice bases + generic/derived radius aliases
+│   ├── families.css          # voice COLOR roles only, both modes; no radius/font aliases
+│   └── resolution.css        # EVERY route-resolved generic alias + scoped font-family rule
+├── fonts.css                 # Fontsource face imports/declarations only
+├── typography.css            # per-family source variables + shared size/weight/line-height
+├── radius.css                # per-voice base + sm/md/lg/xl values ONLY
+├── geometry.css              # invariant --radius-circle / --radius-pill
 ├── spacing.css
 ├── elevation.css             # retained, made mode-aware
 ├── motion.css
@@ -492,15 +597,18 @@ Each mode-bearing role file follows one block contract, seeded from org's placeh
 }
 ```
 
-`families.css` must define a complete shape for every voice in every mode: accent, hover,
-bg, subtle, on-accent, accent2, and base radius. Typography family variables may remain
-mode-invariant in `typography.css`. `resolution.css` contains **no literal values**—only
-aliases from generic component roles to the chosen voice family. Link aliases live there so
-reversing the provisional link policy is one edit.
+The ownership rule is strict: **every token has exactly one declaration owner**.
+`families.css` owns only each voice's color roles in both modes: accent, hover, bg, subtle,
+on-accent, and accent2—no radius or font aliases. `radius.css` owns only each voice's base +
+sm/md/lg/xl radius values. `typography.css` owns the mode-invariant per-family source
+variables. `resolution.css` owns **every route-resolved generic alias**: all accent/link
+colors, `--radius` + sm/md/lg/xl, `--font-body`, `--font-display`, and the `[data-route] {
+font-family: var(--font-body); }` scope rule. It contains **no literal values**. Invariant
+circle/pill geometry lives in `geometry.css`, not in either route-resolution owner.
 
 Radius derivation preserves the scale while allowing voice personality. Declare explicit
-per-voice variants next to each base (CSS cannot portably multiply a length-valued custom
-property), then route-resolve the generic scale:
+per-voice variants in `radius.css` (CSS cannot portably multiply a length-valued custom
+property), then declare the generic scale only in `voices/resolution.css`:
 
 ```css
 --voice-parent-radius: 8px;
@@ -509,11 +617,14 @@ property), then route-resolve the generic scale:
 --voice-parent-radius-lg: 12px;
 --voice-parent-radius-xl: 16px;
 
+/* voices/resolution.css — aliases only */
 --radius: var(--voice-parent-radius);
 --radius-sm: var(--voice-parent-radius-sm);
 --radius-md: var(--voice-parent-radius-md);
 --radius-lg: var(--voice-parent-radius-lg);
 --radius-xl: var(--voice-parent-radius-xl);
+
+/* geometry.css — invariant literals */
 --radius-circle: 50%;
 --radius-pill: 999px;
 ```
@@ -532,8 +643,7 @@ The full evidence and candidate list is in
   `playout.module.css` styling bus (745). Do not combine broad splits with blind token
   replacement; park them for component-coverage expansion.
 - Feature modules should consume named semantic `var()` roles. Move repeated alpha recipes
-  out of modules; permit `color-mix()` only in token definitions or one reusable component
-  whose contract is a derived tint. Current inconsistency is visible in
+  out of modules; permit `color-mix()` only in the owning token-definition file. Current inconsistency is visible in
   `library.module.css:124-471`, `event-card.module.css:43-64`, and
   `audio-detail-view.module.css:66-78`.
 - Reuse the global screen-reader utility (`global.css:118`) instead of five module copies;
@@ -558,13 +668,13 @@ Runtime route plumbing remains sibling feature `brand-voice-route-scoping`; the 
 
 | proposed child story | depends_on | acceptance slice |
 |---|---|---|
-| `brand-token-architecture-token-restructure` | — | Create composition/file shape; seed complete shared light/dark roles; no consumer changes yet. |
-| `brand-token-architecture-theming` | token-restructure | Effective light/dark attributes, system resolution, first-paint bootstrap, persistence contract, both-mode contrast test harness, **and the mode-toggle settings control (light/dark/system)**. |
-| `brand-token-architecture-voice-accents` | theming | Define complete four-voice accent/type/radius families and Parent generic defaults using placeholder values. |
-| `brand-token-architecture-route-scoping-contract` | voice-accents | Add `[data-route]` alias blocks and route contract tests/fixtures only; child 2 wires real leaf containers. |
-| `brand-token-architecture-leak-cleanup` | route-scoping-contract | Map all 96 literals, eliminate non-exempt raw leaks, split secondary uses, centralize badge contrast, and preserve public-chart hold. |
-| `brand-token-architecture-font-loading` | voice-accents | Vendor licensed WOFF2 assets, add font faces/fallback metrics, remove Google Inter dependency, verify route-specific loading and offline behavior. May run parallel with leak cleanup. |
-| `brand-token-architecture-alias-migration` | leak-cleanup, font-loading | Migrate all color/font/radius consumers, delete compatibility aliases/old token files, run static no-leak check and full visual/contrast matrix. |
+| `brand-token-architecture-token-restructure` | — | Create the one-owner file shape; seed complete shared light/dark roles; pin `<html data-theme="dark">` when imports land, removing the pin only with theme activation. |
+| `brand-token-architecture-theming` | token-restructure | Set-only bootstrap + one hydrated controller lifecycle; safe storage/listener/sync behavior; mode settings control; org-mirrored contrast harness across bg/elevated, both modes, base/hover/disabled/tint composites. |
+| `brand-token-architecture-voice-accents` | theming | Define complete four-voice color families, per-voice radii in their sole owner, and Parent generic defaults. |
+| `brand-token-architecture-route-scoping-contract` | voice-accents | Add every `[data-route]` alias plus scoped `font-family` recomputation and computed-style fixtures only; child 2 wires real leaf containers. |
+| `brand-token-architecture-leak-cleanup` | route-scoping-contract | Classify all 133 expressions, enforce the all-syntax grammar, split secondary/status/preview uses, centralize badge contrast, and install the temporary public-chart bridge. |
+| `brand-token-architecture-font-loading` | voice-accents | Vendor the consumer-verified Fontsource manifest, real required italics, plain named fallback stacks, glyph/subset checks, and no Google request. May run parallel with leak cleanup. |
+| `brand-token-architecture-alias-migration` | leak-cleanup, font-loading | Migrate all consumers, publish/enforce conventions, delete compatibility aliases/old files, run all-syntax no-leak + org-mirrored visual/contrast matrix, and fail while the public-chart bridge remains. |
 
 The critical path is token restructure → theming → voice accents → route-scoping contract →
 leak cleanup → alias migration; font loading branches after voice accents and rejoins before

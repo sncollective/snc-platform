@@ -17,13 +17,21 @@ updated: 2026-08-14
 
 Add the `[data-route]` alias-resolution blocks (per `brand-token-architecture` →
 `## Design — Theming & route mechanism` → "Route voice resolution"):
-`[data-route="studio|tv|records"]` blocks that re-point the generic aliases
-(`--color-accent`, `--radius`, `--font-body`, etc.) at the matching voice family. **CSS
-contract + tests only** — sibling feature `brand-voice-route-scoping` (epic child 2) wires the
-real leaf-container `data-route` attributes at runtime.
+`[data-route="studio|tv|records"]` blocks re-point every generic color/radius/font/link alias
+at the matching family. Also set `[data-route] { font-family: var(--font-body); }`: changing
+`--font-body` on a subtree does not recompute the `font-family` already resolved on `<body>`;
+headings already resolve `--font-display` per element. **CSS contract + tests only** — sibling
+feature `brand-voice-route-scoping` (epic child 2) consumes this boundary and wires real leaf
+containers.
 
 ## Acceptance
 
-- Route alias blocks exist for studio / tv / records; Parent is the no-attribute default.
-- Route contract tests/fixtures verify each route resolves the correct voice.
-- No runtime plumbing (that's epic child 2).
+- Route blocks for studio / tv / records resolve every generic color, radius, font, and link
+  alias from literal-free `voices/resolution.css`; Parent is the no-attribute default.
+- Fixtures assert computed accent/radius values for each route and computed `font-family` on
+  ordinary body-copy descendants inside each scoped subtree (not only the custom-property
+  value). Heading fixtures assert per-element `--font-display` resolution.
+- The `[data-route] { font-family: var(--font-body); }` rule is documented as a child-2
+  route-container boundary requirement.
+- No runtime plumbing or `data-effective-voice` implementation (that's epic child 2 / the
+  deferred future seam).

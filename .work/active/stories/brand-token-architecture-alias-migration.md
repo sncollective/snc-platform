@@ -15,17 +15,25 @@ updated: 2026-08-14
 
 ## Brief
 
-Migrate all color/font/radius consumers to the new token vocabulary (per
-`brand-token-architecture` → `## Design — Spine-vs-voice conventions` + mapping table);
-delete the backwards-compat alias tokens (`--color-primary`, `--color-muted`,
-`--color-text-on-accent`, `--color-bg-alt`, the `--color-warning` alias, etc. — the
-reference's naming is the target); collapse old `color.css` into the new composition. Promote
-the conventions draft into `platform-patterns.md` + the AGENTS.md CSS section. Run the static
-no-leak check and a full visual/contrast matrix across both modes.
+Migrate all color/font/radius consumers to the one-owner vocabulary; delete compatibility
+aliases and old token files; publish the conventions draft into `platform-patterns.md` + the
+AGENTS.md CSS section. The org-constrained public-chart palette is a hard dependency of
+completion: the temporary `--legacy-public-chart-*` bridge may exist during leak cleanup but
+must be replaced and deleted here. Run the all-syntax no-leak rule and org-mirrored visual /
+contrast matrix.
 
 ## Acceptance
 
-- All consumers use the new vocabulary; no backwards-compat aliases remain.
-- Old `color.css` / shadow aliases removed; `global.css` imports only `tokens/index.css`.
-- Conventions promoted into `platform-patterns.md` + AGENTS.md CSS section.
-- Static no-leak check + visual/contrast matrix pass in both modes.
+- **Vocabulary deletion:** all consumers use the new vocabulary; no compatibility alias or
+  old `color.css`/shadow alias remains; `global.css` imports only `tokens/index.css`.
+- **Public-chart hard gate:** acceptance fails while any `--legacy-public-chart-*` definition,
+  use, or lint exemption exists. Replace it with the org-delivered palette before claiming
+  migration complete.
+- **Publish and enforce the spine-vs-voice convention:** update `platform-patterns.md` and
+  the AGENTS.md CSS section with the STATE/IDENTITY recipe table, one-owner boundary,
+  underline-by-default prose-link rule, and raw-color allowlists; enable the machine rule.
+- **All-syntax no-leak proof:** the static checker covers hex, rgb(a), hsl(a), named colors,
+  and modern color functions and reports zero non-exempt violations.
+- **Visual/contrast proof:** both modes and all voices pass foreground/background and
+  foreground/elevated pairs plus base + hover + disabled + tint-composite cases, mirroring
+  org's matrix; fixed light/dark preview roles remain invariant across UI modes.
