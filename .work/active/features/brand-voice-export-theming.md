@@ -1,7 +1,7 @@
 ---
 id: brand-voice-export-theming
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system]
 parent: brand-voice-system
 depends_on: [brand-token-architecture]
@@ -392,3 +392,23 @@ cleanup depends only on renderer, so it cannot form a cycle.
 - **Concurrent worktree**: child 1 token files and child 2 item design are being edited in the
   shared tree. Implementation must consume the finalized child-1 names after the declared feature
   dependency completes and avoid committing unrelated worktree changes.
+
+## Implementation summary
+
+- Extended the shared Playwright adapter with pre-launch validation, retained-head URL body replacement, and `data-*` document preparation before style/assets/print.
+- Added explicit producing-unit export identity and light voice scopes for Parent, Studio, TV, and Records; creator pigment is eligible only with both federation handle and curated color and is consumed only as `--export-accent-decoration` on non-text rules/bands.
+- Converged full press, creator one-sheet, and release one-sheet output on the browser renderer; removed React-PDF, its API-only fonts/color branches, the theme query contract, and all obsolete package references.
+- Replaced the manage editor's three PDF modes with two direct query-free previews while retaining site-wide creator color save/clear and accurate automatic-decoration copy.
+- Execution capability: `gpt-5.6-sol` from the autopilot caller; direct-read implementation retained one feature owner across both sequential checkpoints. Review weight: `standard` from the caller, with review delegated to the orchestrator.
+- Design discrepancy: the unused `PdfScheme` export remains in `-press-editor-model.ts` because that file was outside this worker's explicit write scope. No import, state, reset, selector, route query, or runtime compatibility behavior remains.
+
+## Integrated verification
+
+- `bun run --filter @snc/api typecheck` — passed.
+- `bun run --filter @snc/api test:unit` — 126 files / 2,036 tests passed.
+- `bun run --filter @snc/api test:integration` — 12 files / 54 tests passed against real PostgreSQL, Garage, imgproxy, live web SSR, and Chromium.
+- `bun run --filter @snc/web typecheck` — passed after route generation.
+- `bun run --filter @snc/web test` — 195 files / 2,019 tests passed.
+- `bun run --filter @snc/web build` — passed; existing third-party `use client` bundle warnings only.
+- Output inspection rendered live full Template A and B PDFs, horizontal and vertical creator sheets with real Garage media, and a long-field release fixture. All documents reported US Letter media boxes; creator/release sheets each reported exactly one PDF page, fixed-light token/font assets loaded after retained-head replacement, and the recorded press-route SSR `fetch failed` did not reproduce.
+- Source/manifest scan found no `@react-pdf/renderer`, `PdfTheme`, `PDF_THEMES`, `DEFAULT_ACCENT`, `DEFAULT_SECONDARY`, API-only Inter/Source Serif dependency, old renderer name, or `theme=` caller reference.
