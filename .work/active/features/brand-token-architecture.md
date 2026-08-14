@@ -177,5 +177,13 @@ toggle, voice→route map, org gap adjudications) live in the epic.
    accents → route-scoping → leak cleanup → font-loading → alias migration) with
    dependency order, scoped *after* the brief is approved.
 
+6. **Scoped refactor-discovery** (folded in while the CSS surface is open) — scan the
+   ~30 migrated CSS modules for structural simplifications that ride along: split
+   oversized modules (`manage-press.module.css` = 114 var-refs), unify the consumption
+   inconsistency (`color-mix` vs `rgba` vs `var`), extract repeated styles, drop dead
+   rules. Also flag component-extraction candidates (feature modules whose styling should
+   become a `components/ui/` component) — these seed the parked
+   `design-system-component-coverage-expansion`.
+
 <!-- Design accumulates here as feature-design runs. Execution spawns as children once
      the brief above is approved by the operator. -->

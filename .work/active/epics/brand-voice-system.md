@@ -77,6 +77,10 @@ Full detail (evidence, proposals) in `brand-token-architecture` (child 1).
 
 ## Status
 
+**Lineage:** realizes the planned `design-system-phase-6-theme-system` (per
+`ui-ux-system-plan.md`), previously gated on designer onboarding — now unblocked by org's
+brand-architecture work. The backlog stub is superseded by this epic.
+
 Child 1 (`brand-token-architecture`) is in active design — categorization complete, gap
 adjudications resolved, token-layer decisions locked; the mapping table + conventions +
 mechanism design are the remaining brief deliverables. Children 2–4 are stubbed at drafting,
