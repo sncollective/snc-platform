@@ -108,6 +108,26 @@ Org fixed the review-flagged value issues in place (reference re-published):
 
 Structure/naming untouched; values remain placeholders pending stakeholder sign-off.
 
+## Autopilot handoff (2026-08-14)
+
+State: drain-ready. `brand-token-architecture` (child 1) at implementing — `token-restructure`
+READY, 6 stories chained; `brand-voice-route-scoping` (child 2) fully designed at drafting;
+`brand-voice-export-theming` (child 4) undesigned. Run the drain on this epic.
+
+**Operator directive:** autopilot (fresh context) may design anything without obvious open
+operator questions. Child 4's design questions are already adjudicated (export voice =
+producing unit's voice; creator-brand override only for federation-entry creators; unknown
+unit → Records; public-facing → brand-constrained) — design it during the drain without
+pausing for input. Anything surfacing a genuine new product/UX decision: park it and
+surface at the end rather than blocking.
+
+External gates (do NOT block early stories): org's public-chart palette gates only the
+`--legacy-public-chart-*` bridge deletion in `alias-migration` (bridge carries current
+chart colors meanwhile, with owner + expiry); stakeholder-final token values land as a
+late one-pass swap. The re-published reference (`org/.mockups/design-system/brand-
+tokens-reference.css`) is the current value source. Contrast harness mirrors org's matrix:
+fg/bg + fg/elevated, both modes, base + hover + disabled + tint composites.
+
 ## Status
 
 **Lineage:** realizes the planned `design-system-phase-6-theme-system` (per
