@@ -400,7 +400,7 @@ cleanup depends only on renderer, so it cannot form a cycle.
 - Converged full press, creator one-sheet, and release one-sheet output on the browser renderer; removed React-PDF, its API-only fonts/color branches, the theme query contract, and all obsolete package references.
 - Replaced the manage editor's three PDF modes with two direct query-free previews while retaining site-wide creator color save/clear and accurate automatic-decoration copy.
 - Execution capability: `gpt-5.6-sol` from the autopilot caller; direct-read implementation retained one feature owner across both sequential checkpoints. Review weight: `standard` from the caller, with review delegated to the orchestrator.
-- Design discrepancy: the unused `PdfScheme` export remains in `-press-editor-model.ts` because that file was outside this worker's explicit write scope. No import, state, reset, selector, route query, or runtime compatibility behavior remains.
+- Design discrepancy resolved: the unused `PdfScheme` export in `-press-editor-model.ts` was deleted in `f335793`, after having been outside this worker's explicit write scope. No import, state, reset, selector, route query, or runtime compatibility behavior remains.
 
 ## Integrated verification
 

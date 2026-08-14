@@ -8,7 +8,7 @@ depends_on: [brand-voice-route-scoping-runtime-boundary]
 release_binding: null
 gate_origin: null
 created: 2026-08-14
-updated: 2026-08-15
+updated: 2026-08-14
 ---
 
 # Brand voice — portal route-attribute propagation

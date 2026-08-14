@@ -110,7 +110,7 @@ Structure/naming untouched; values remain placeholders pending stakeholder sign-
 
 ## Autopilot handoff (2026-08-14)
 
-State: drain-ready. `brand-token-architecture` (child 1) at implementing — `token-restructure`
+State at handoff time (2026-08-14): drain-ready. **[Historical — superseded: the drain completed the same day; see `## Child features reviewed and complete`.]** `brand-token-architecture` (child 1) at implementing — `token-restructure`
 READY, 6 stories chained; `brand-voice-route-scoping` (child 2) fully designed at drafting;
 `brand-voice-export-theming` (child 4) undesigned. Run the drain on this epic.
 

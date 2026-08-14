@@ -100,7 +100,8 @@ exceptions: `apps/web/src/routes/privacy.tsx:31` (`#666`) and
 `apps/web/src/components/social-links/platform-icon.tsx:37` (`#888888`). Both map to
 `--color-text-muted`, but this delegation permits writes only to CSS, token role files, tests,
 and this story. The CSS checker is therefore honestly zero for authored CSS but cannot prove
-“all 133 expressions” across the broader CSS+TSX audit. Completion requires authorizing those
-two TSX substitutions (to `var(--color-text-muted)`) and either extending the checker with a
-CSS-in-TSX face or explicitly narrowing the acceptance grammar to authored CSS. Stage remains
-`implementing`; every permitted migration and required verification is otherwise complete.
+“all 133 expressions” across the broader CSS+TSX audit. At delegation close, completion still required authorizing those two TSX substitutions (to
+`var(--color-text-muted)`) and either extending the checker with a CSS-in-TSX face or explicitly
+narrowing the acceptance grammar to authored CSS; the stage remained `implementing` until the
+orchestrator resolution above. Every permitted migration and required verification was otherwise
+complete.

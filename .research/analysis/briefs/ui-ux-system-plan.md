@@ -25,13 +25,13 @@ Built for: 1 developer + AI agents now, human designer later.
 
 ### What's missing or weak
 
-- **UI component primitives** — only 2 files in `/components/ui/`. No shared modal, dropdown, tooltip, tabs, popover, toast, badge, or card. Every feature re-implements these ad-hoc, creating inconsistency and accessibility gaps.
-- **Responsive design** — desktop-first, only 2 breakpoints (768px, 1024px). No breakpoint tokens. No container queries. Many components have zero responsive rules.
+- **UI component primitives** — the shared set now spans accessible dialog, menu, popover, select, tabs, tooltip, field, checkbox, switch, progress, collapsible, and toast wrappers, plus Button, Heading, Spinner, EmptyState, ConfirmDialog, ResponsiveTable, and supporting utilities. Remaining pattern gaps include a shared Card and Badge.
+- **Responsive design** — desktop-first; breakpoint tokens now define sm/md/lg at 640px, 768px, and 1024px, but there are no container queries and many components have zero responsive rules.
 - **Accessibility** — 57% of components have ARIA attributes. Missing: `aria-expanded` on collapsibles, `aria-describedby` on form fields, `aria-label` on icon buttons, systematic keyboard navigation.
-- **Animation/motion** — 1 keyframe. All transitions hardcoded 0.15s. No duration/easing tokens. No loading spinners.
+- **Animation/motion** — shared duration/easing tokens now live in `styles/tokens/motion.css`, with reduced-motion resets. Loading indicators include the shared Spinner; feature-specific animation coverage remains uneven.
 - **Icons** — only social platform icons. No generic UI icon system.
-- **Button variants** — only `primaryButton`. No secondary, outline, danger, ghost.
-- **Loading states** — each component invents its own. No shared spinner or skeleton.
+- **Button variants** — the shared `Button` supports primary, secondary, outline, ghost, and danger variants; broader pattern migration remains.
+- **Loading states** — the shared Spinner covers generic loading, but there is no shared Skeleton and feature-specific states remain uneven.
 - **Toast notifications** — errors inline only. No transient feedback system.
 - **CSS duplication** — `.heading` defined 4 times. Card, section, badge patterns duplicated per feature.
 
@@ -89,23 +89,17 @@ Three layers: **tokens** (design values) + **headless primitives** (accessible b
 
 ## Phased Roadmap
 
-### Phase 0: Token Foundation
+### Phase 0: Token Foundation (realized 2026-08-14)
 
-Split `global.css` tokens into organized files. Add missing token categories.
+The token split is realized. Production tokens compose from `styles/tokens/index.css` and
+semantic one-owner files under `styles/tokens/`, including the `color/` and `voices/` trees,
+`typography.css`, `spacing.css`, `elevation.css`, `motion.css`, `radius.css`, `geometry.css`,
+`fonts.css`, and `breakpoints.css`. The former monolithic color-token plan is therefore
+complete, with dependency-aware imports in `index.css`.
 
-```
-styles/tokens/
-  color.css        — primitive + semantic colors
-  typography.css   — families, sizes (fluid clamp), weights, line-heights
-  spacing.css      — scale + semantic spacing
-  elevation.css    — shadows + z-index layers
-  motion.css       — durations + easings
-  radius.css       — border radius scale
-```
-
-Add `prefers-reduced-motion` token reset — all `--duration-*` tokens go to 0ms, disabling all animation globally.
-
-**Migration cost:** Zero. Existing components keep working. New tokens are additive.
+`motion.css` provides duration and easing tokens plus a `prefers-reduced-motion` reset that
+sets all `--duration-*` tokens to 0ms, disabling token-driven animation globally. Existing
+component token contracts remain intact while ownership is split by semantic role.
 
 ### Phase 1: Core UI Primitives
 
@@ -152,7 +146,7 @@ pending stakeholder sign-off.
 
 | Phase | Effort | Prerequisite |
 |-------|--------|-------------|
-| 0: Tokens | Small (1 session) | None |
+| 0: Tokens | Realized 2026-08-14 | None |
 | 1: Primitives | Medium (per component) | Phase 0 |
 | 2: Patterns | Ongoing (Boy Scout) | Phase 0 |
 | 3: Responsive | Large (dedicated release) | Phase 0 |

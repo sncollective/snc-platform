@@ -8,7 +8,7 @@ depends_on: [brand-token-architecture]
 release_binding: null
 gate_origin: null
 created: 2026-08-14
-updated: 2026-08-15
+updated: 2026-08-14
 ---
 
 # Brand voice — runtime route boundary and resolver
