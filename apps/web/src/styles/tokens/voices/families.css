@@ -32,10 +32,10 @@
 }
 
 [data-theme="dark"] {
-  --voice-parent-accent: #BE7F00;
-  --voice-parent-accent-hover: #B07800;
-  --voice-parent-accent-bg: rgba(190, 127, 0, 0.12);
-  --voice-parent-accent-subtle: rgba(190, 127, 0, 0.2);
+  --voice-parent-accent: #F5A623;
+  --voice-parent-accent-hover: #DE9012;
+  --voice-parent-accent-bg: rgba(245, 166, 35, 0.14);
+  --voice-parent-accent-subtle: rgba(245, 166, 35, 0.2);
   --voice-parent-on-accent: #2A1603;
   --voice-parent-accent2: #5B6B80;
 
@@ -63,10 +63,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --voice-parent-accent: #BE7F00;
-    --voice-parent-accent-hover: #B07800;
-    --voice-parent-accent-bg: rgba(190, 127, 0, 0.12);
-    --voice-parent-accent-subtle: rgba(190, 127, 0, 0.2);
+    --voice-parent-accent: #F5A623;
+    --voice-parent-accent-hover: #DE9012;
+    --voice-parent-accent-bg: rgba(245, 166, 35, 0.14);
+    --voice-parent-accent-subtle: rgba(245, 166, 35, 0.2);
     --voice-parent-on-accent: #2A1603;
     --voice-parent-accent2: #5B6B80;
 

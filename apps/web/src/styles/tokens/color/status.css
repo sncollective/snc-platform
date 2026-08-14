@@ -4,8 +4,8 @@
 [data-theme="light"] {
   --color-success: #2A722E;
   --color-success-bg: #E0EDE0;
-  --color-warning: #8A5A00;
-  --color-warning-bg: #F0E6CC;
+  --color-warning: #7D6E00;
+  --color-warning-bg: #EFEBD0;
   --color-error: #B71C1C;
   --color-error-bg: #F8E0E0;
   --color-info: #1565C0;
@@ -15,7 +15,7 @@
 [data-theme="dark"] {
   --color-success: #66BB6A;
   --color-success-bg: #1E2F2B;
-  --color-warning: #E6A820;
+  --color-warning: #E3C832;
   --color-warning-bg: #342F21;
   --color-error: #FF7A70;
   --color-error-bg: #312028;
@@ -27,7 +27,7 @@
   :root:not([data-theme]) {
     --color-success: #66BB6A;
     --color-success-bg: #1E2F2B;
-    --color-warning: #E6A820;
+    --color-warning: #E3C832;
     --color-warning-bg: #342F21;
     --color-error: #FF7A70;
     --color-error-bg: #312028;
