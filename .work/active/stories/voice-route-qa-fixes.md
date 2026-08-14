@@ -71,3 +71,13 @@ route resolver, route alias layer, and contrast harness fit without exploratory 
 - `bun run --filter @snc/web test` — passed: 196 files, 2,027 tests.
 - `bun run --filter @snc/web build` — passed (known third-party `use client` warnings only).
 - Focused checker rerun: `bun run --filter @snc/web test -- tests/unit/styles/token-contrast.test.ts tests/unit/styles/color-leaks.test.ts` — passed: 2 files, 29 tests.
+
+## Review — bounded inline pass (2026-08-14, orchestrator)
+
+Approved. Verification: 2,027 tests + build green at 541f8b8; diff inspected — scoped paths
+only, contrast coverage added (chip pairs per voice in the harness), no weakened tests.
+Mechanisms verified sound: signature chips consume exact accent2 via the sanctioned module
+(checker-enforced), NavBar scopes its own link list with the resolved route voice (shell
+boundary intact), /live LIVE chip retired the stock error-red pairing for the TV token,
+two new tv-accent anchors threaded. Post-amber-swap note: all accents now flow org's tuned
+family automatically (f23f54a) — no consumer edits needed, harness re-verified.
