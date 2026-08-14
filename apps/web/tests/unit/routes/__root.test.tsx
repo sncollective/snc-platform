@@ -1,13 +1,22 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import type React from "react";
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
 
 import { createRouterMock } from "../../helpers/router-mock.js";
 
 // ── Hoisted Mocks ──
 
 vi.mock("@tanstack/react-router", () =>
-  createRouterMock({ rootRoute: true, outlet: true }),
+  createRouterMock({
+    rootRoute: true,
+    outlet: true,
+    extras: {
+      HeadContent: () => null,
+      Scripts: () => null,
+    },
+  }),
 );
 
 vi.mock("../../../src/components/layout/nav-bar.js", () => ({
@@ -90,10 +99,12 @@ vi.mock("../../../src/styles/global.css?url", () => ({
 // ── Component Under Test ──
 
 let RootLayout: () => React.ReactElement;
+let RootDocument: React.ComponentType<Readonly<{ children: React.ReactNode }>>;
 
 beforeAll(async () => {
   const mod = await import("../../../src/routes/__root.js");
   RootLayout = mod.RootLayout;
+  RootDocument = mod.RootDocument;
 });
 
 // ── Tests ──
@@ -147,5 +158,30 @@ describe("RootLayout", () => {
       const main = screen.getByRole("main");
       expect(main).toHaveTextContent("Page content");
     });
+  });
+
+  it("preserves bootstrap-owned appearance attributes through hydration", async () => {
+    localStorage.setItem("snc.appearance.theme", "dark");
+    const app = (
+      <RootDocument>
+        <div id="hydration-probe">Hydrated</div>
+      </RootDocument>
+    );
+    const markup = renderToString(app);
+
+    document.open();
+    document.write(`<!DOCTYPE html>${markup}`);
+    document.close();
+    document.documentElement.setAttribute("data-theme-preference", "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
+
+    const root = hydrateRoot(document, app);
+    await act(async () => {});
+
+    expect(document.documentElement).toHaveAttribute("data-theme-preference", "dark");
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+
+    await act(async () => root.unmount());
+    localStorage.removeItem("snc.appearance.theme");
   });
 });

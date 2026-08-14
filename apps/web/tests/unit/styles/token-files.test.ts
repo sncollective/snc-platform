@@ -106,11 +106,16 @@ describe("design token composition", () => {
     );
   });
 
-  it("pins the document to dark mode during migration", () => {
+  it("gives first-paint appearance ownership to the bootstrap before HeadContent", () => {
     const rootRoute = readFileSync(ROOT_ROUTE, "utf-8");
+    const bootstrap = rootRoute.indexOf("<script dangerouslySetInnerHTML");
+    const headContent = rootRoute.indexOf("<HeadContent />");
 
-    expect(rootRoute).toContain('<html lang="en" data-theme="dark">');
-    expect(rootRoute).toContain("preserve today's dark default until the theming checkpoint");
+    expect(rootRoute).toContain('<html lang="en" suppressHydrationWarning>');
+    expect(rootRoute).not.toContain('data-theme="dark"');
+    expect(bootstrap).toBeGreaterThan(-1);
+    expect(bootstrap).toBeLessThan(headContent);
+    expect(rootRoute).toContain('{ name: "color-scheme", content: "light dark" }');
   });
 });
 

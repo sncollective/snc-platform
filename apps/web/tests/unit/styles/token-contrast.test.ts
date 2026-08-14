@@ -1,0 +1,174 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+const TOKENS_DIR = resolve(import.meta.dirname, "../../../src/styles/tokens");
+
+interface Rgba {
+  readonly red: number;
+  readonly green: number;
+  readonly blue: number;
+  readonly alpha: number;
+}
+
+type Mode = "light" | "dark";
+
+function readTokenFile(file: string): string {
+  return readFileSync(resolve(TOKENS_DIR, file), "utf-8");
+}
+
+function modeDeclarations(file: string, mode: Mode): Map<string, string> {
+  const content = readTokenFile(file);
+  const pattern =
+    mode === "light"
+      ? /:root\s*,\s*\[data-theme=["']light["']\]\s*\{([^}]*)\}/
+      : /\[data-theme=["']dark["']\]\s*\{([^}]*)\}/;
+  const block = content.match(pattern)?.[1];
+  expect(block, `${file} should define ${mode} tokens`).toBeDefined();
+
+  return new Map(
+    [...(block ?? "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
+      match[1] as string,
+      (match[2] as string).trim(),
+    ]),
+  );
+}
+
+function tokensForMode(mode: Mode): Map<string, string> {
+  return new Map([
+    ...modeDeclarations("color/spine.css", mode),
+    ...modeDeclarations("color/status.css", mode),
+    ...modeDeclarations("color/state.css", mode),
+  ]);
+}
+
+function parseColor(value: string): Rgba {
+  const hex = value.match(/^#([\da-f]{6})$/i)?.[1];
+  if (hex !== undefined) {
+    return {
+      red: Number.parseInt(hex.slice(0, 2), 16),
+      green: Number.parseInt(hex.slice(2, 4), 16),
+      blue: Number.parseInt(hex.slice(4, 6), 16),
+      alpha: 1,
+    };
+  }
+
+  const rgba = value.match(
+    /^rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)\s*(?:[,/]\s*([\d.]+))?\s*\)$/i,
+  );
+  if (rgba !== null) {
+    return {
+      red: Number(rgba[1]),
+      green: Number(rgba[2]),
+      blue: Number(rgba[3]),
+      alpha: rgba[4] === undefined ? 1 : Number(rgba[4]),
+    };
+  }
+
+  throw new Error(`Unsupported test color syntax: ${value}`);
+}
+
+function composite(foreground: Rgba, background: Rgba): Rgba {
+  const alpha = foreground.alpha + background.alpha * (1 - foreground.alpha);
+  const channel = (foregroundChannel: number, backgroundChannel: number) =>
+    (foregroundChannel * foreground.alpha +
+      backgroundChannel * background.alpha * (1 - foreground.alpha)) /
+    alpha;
+
+  return {
+    red: channel(foreground.red, background.red),
+    green: channel(foreground.green, background.green),
+    blue: channel(foreground.blue, background.blue),
+    alpha,
+  };
+}
+
+function luminance(color: Rgba): number {
+  const linearize = (channel: number) => {
+    const normalized = channel / 255;
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+
+  return (
+    0.2126 * linearize(color.red) +
+    0.7152 * linearize(color.green) +
+    0.0722 * linearize(color.blue)
+  );
+}
+
+function contrast(foreground: Rgba, background: Rgba): number {
+  const foregroundLuminance = luminance(foreground);
+  const backgroundLuminance = luminance(background);
+  return (
+    (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+    (Math.min(foregroundLuminance, backgroundLuminance) + 0.05)
+  );
+}
+
+function color(tokens: Map<string, string>, name: string): Rgba {
+  const value = tokens.get(name);
+  expect(value, `${name} should be declared`).toBeDefined();
+  return parseColor(value ?? "");
+}
+
+const MODES: readonly Mode[] = ["light", "dark"];
+const HOST_SURFACES = ["--color-bg", "--color-bg-elevated"] as const;
+const STATUS_NAMES = ["success", "warning", "error", "info"] as const;
+
+describe("brand token contrast matrix", () => {
+  it.each(MODES)("keeps %s base foregrounds AA-safe on background and elevated", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (const hostName of HOST_SURFACES) {
+      const host = color(tokens, hostName);
+      expect(contrast(color(tokens, "--color-text"), host), `text on ${hostName}`).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(color(tokens, "--color-text-muted"), host),
+        `muted text on ${hostName}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("keeps %s hover and selected tint composites AA-safe on both hosts", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (const hostName of HOST_SURFACES) {
+      const host = color(tokens, hostName);
+      for (const tintName of ["--color-hover-bg", "--color-selected-bg"] as const) {
+        const compositeBackground = composite(color(tokens, tintName), host);
+        expect(
+          contrast(color(tokens, "--color-text"), compositeBackground),
+          `text on ${tintName} over ${hostName}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it.each(MODES)("computes %s disabled foregrounds on both hosts and the paired fill", (mode) => {
+    const tokens = tokensForMode(mode);
+    const disabled = color(tokens, "--color-disabled");
+
+    // Inactive controls are exempt from WCAG 1.4.3; retain a modest visibility floor so a
+    // placeholder value cannot accidentally collapse to an indistinguishable pair.
+    for (const backgroundName of [...HOST_SURFACES, "--color-disabled-bg"] as const) {
+      expect(
+        contrast(disabled, color(tokens, backgroundName)),
+        `disabled on ${backgroundName}`,
+      ).toBeGreaterThanOrEqual(1.5);
+    }
+  });
+
+  it.each(MODES)("keeps %s opaque paired status backgrounds AA-safe", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (const status of STATUS_NAMES) {
+      const foreground = color(tokens, `--color-${status}`);
+      const background = color(tokens, `--color-${status}-bg`);
+      expect(background.alpha, `${status} background must be host-independent`).toBe(1);
+      expect(contrast(foreground, background), status).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

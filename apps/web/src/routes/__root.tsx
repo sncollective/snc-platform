@@ -11,6 +11,8 @@ import { useEffect } from "react";
 
 import { logClientError } from "../lib/client-logger.js";
 import { installGlobalErrorHandlers } from "../lib/global-error-handlers.js";
+import { APPEARANCE_BOOTSTRAP_SCRIPT } from "../lib/appearance/appearance-bootstrap.js";
+import { AppearanceControllerLifecycle } from "../lib/appearance/appearance.js";
 import { useRouteAnnouncer } from "../hooks/use-route-announcer.js";
 import type { AuthState } from "../lib/auth.js";
 
@@ -41,7 +43,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "color-scheme", content: "dark" },
+      { name: "color-scheme", content: "light dark" },
       { title: "S/NC" },
     ],
     links: [
@@ -138,14 +140,16 @@ function AppShell({ serverAuth }: { readonly serverAuth?: AuthState }) {
   );
 }
 
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  // Migration guard: preserve today's dark default until the theming checkpoint activates mode selection.
+export function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* If CSP blocks this inline script, token CSS paints the system mode until hydration. */}
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
+        <AppearanceControllerLifecycle />
         {children}
         <Scripts />
       </body>

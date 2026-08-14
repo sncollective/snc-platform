@@ -1,7 +1,7 @@
 ---
 id: brand-token-architecture-theming
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-token-architecture
 depends_on: [brand-token-architecture-token-restructure]
@@ -46,3 +46,30 @@ ownership).
   foreground/elevated pairs in both modes, covering base + hover + disabled + tint-composite
   cases; include the republished opaque status backgrounds.
 - **Boundary:** no voice-accent or route-scoping work yet.
+
+## Implementation notes
+
+- Execution capability: delegated `gpt-5.6-sol` implementation worker.
+- Added a dependency-free, set-only first-paint bootstrap immediately before
+  `<HeadContent />`, removed the migration dark pin, marked `<html>` with
+  `suppressHydrationWarning`, and made the document `color-scheme` contract light/dark/system
+  aware. CSP-blocked bootstrap behavior intentionally remains the no-attribute system CSS
+  fallback; stored explicit preferences may wait until hydration in that degraded path.
+- Added one hydrated appearance-controller singleton with idempotent attribute writes, safe
+  storage read/write fallback, local-only persistence, cross-tab storage synchronization,
+  system-only media listener binding, teardown/rebind behavior, and a generation guard that
+  makes queued media callbacks inert after an explicit preference wins.
+- Placed the light/dark/system control on the existing authenticated `/settings` page. This is
+  the natural account-preference surface already hosting password settings; the control only
+  consumes the root controller and creates no second store or listener owner. Removed the
+  remaining dark-only `color-scheme` overrides from shared and Mastodon form controls so they
+  inherit the effective document mode.
+- Added named lifecycle coverage for invalid/blocked storage, storage events, system changes,
+  queued-media arbitration, CSP fallback, and hydration preservation. Added a CSS-parsing WCAG
+  harness across both host surfaces and modes for base, hover/selected tint composites,
+  disabled cases, and opaque paired status backgrounds; token values are read from the CSS
+  rather than duplicated in tests.
+- Verification: `bun run --filter @snc/web test` (189 files / 1,944 tests),
+  `bun run --filter @snc/web build`, and `bun run --filter @snc/web typecheck` all pass. Build
+  output retains the repository's existing third-party `"use client"` warnings only.
+- Deviations: none. No voice-family or route-scoping content changed.
