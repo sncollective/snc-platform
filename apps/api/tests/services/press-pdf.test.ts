@@ -29,6 +29,7 @@ vi.mock("../../src/lib/imgproxy.js", () => ({
 }));
 
 import {
+  EXPORT_VOICES,
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
   renderReleaseOneSheetPdf,
@@ -176,9 +177,29 @@ describe("press PDF rendering", () => {
     });
     expect(call.style).toContain(':root[data-theme="light"][data-export-voice="studio"]');
     expect(call.style).toContain(":is([data-press-template], [data-pdf-sheet])");
-    expect(call.style).toContain("--color-accent: var(--voice-studio-accent)");
-    expect(call.style).toContain("--font-display: var(--font-display-studio)");
-    expect(call.style).toContain("--radius: var(--voice-studio-radius)");
+    const voiceRoleSuffixes = [
+      ["--color-accent", "accent"],
+      ["--color-accent-hover", "accent-hover"],
+      ["--color-accent-bg", "accent-bg"],
+      ["--color-accent-subtle", "accent-subtle"],
+      ["--color-on-accent", "on-accent"],
+      ["--color-accent2", "accent2"],
+      ["--color-link", "accent"],
+      ["--color-link-hover", "accent-hover"],
+      ["--radius", "radius"],
+      ["--radius-sm", "radius-sm"],
+      ["--radius-md", "radius-md"],
+      ["--radius-lg", "radius-lg"],
+      ["--radius-xl", "radius-xl"],
+    ] as const;
+    for (const voice of EXPORT_VOICES) {
+      expect(call.style).toContain(`:root[data-theme="light"][data-export-voice="${voice}"]`);
+      for (const [alias, suffix] of voiceRoleSuffixes) {
+        expect(call.style).toContain(`${alias}: var(--voice-${voice}-${suffix});`);
+      }
+      expect(call.style).toContain(`--font-body: var(--font-body-${voice});`);
+      expect(call.style).toContain(`--font-display: var(--font-display-${voice});`);
+    }
     expect(call.style).not.toContain("[data-route=");
   });
 

@@ -271,6 +271,24 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
       },
     });
   });
+
+  it("rate-limits release PDF rendering after six requests per IP", async () => {
+    const path = "/api/creators/test-creator/press/releases/the-illusionist/one-sheet.pdf";
+    const headers = { "x-forwarded-for": "203.0.113.42" };
+
+    for (let index = 0; index < 6; index++) {
+      const res = await ctx.app.request(path, { headers });
+      expect(res.status).toBe(200);
+    }
+
+    const blocked = await ctx.app.request(path, { headers });
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).not.toBeNull();
+    expect(await blocked.json()).toMatchObject({
+      error: { code: "RATE_LIMIT_EXCEEDED" },
+    });
+    expect(mockRenderReleaseOneSheetPdf).toHaveBeenCalledTimes(6);
+  });
 });
 
 describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {

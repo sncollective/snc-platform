@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
+import { chromium } from "playwright";
 import QRCode from "qrcode";
 
 import { DEFAULT_PRESS_CONTENT } from "@snc/shared";
@@ -26,6 +27,7 @@ import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 import { validateOwnedPressKeys } from "../../src/services/press-images.js";
 import {
+  buildPdfExportStyle,
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
   renderReleaseOneSheetPdf,
@@ -137,6 +139,109 @@ describe("content library integration", () => {
     await expect(validateOwnedPressKeys({
       gallery: [{ key: own.value.asset.storageKey, alt: "Tombstoned" }],
     }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("lets a Studio export override conflicting Records route aliases in real Chromium", async () => {
+    const creatorId = creatorIds[0]!;
+    expect(await upsertPressConfig(creatorId, {
+      ...DEFAULT_PRESS_CONTENT,
+      enabled: true,
+      template: "A",
+      shortBio: "Export cascade integration fixture.",
+    })).toMatchObject({ ok: true });
+    expect(await publishPressConfig(creatorId)).toMatchObject({ ok: true });
+
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`http://localhost:3080/creators/${creatorId}/press`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForFunction(() => getComputedStyle(document.documentElement)
+        .getPropertyValue("--voice-studio-accent").trim() !== "");
+
+      const probe = async (style: string) => page.evaluate((exportStyle) => {
+        document.documentElement.dataset.theme = "light";
+        document.documentElement.dataset.exportVoice = "studio";
+        const template = document.querySelector<HTMLElement>("[data-press-template]");
+        if (!template) throw new Error("Press template root is missing");
+        template.dataset.route = "records";
+
+        document.querySelector("#pdf-export-probe-style")?.remove();
+        const styleElement = document.createElement("style");
+        styleElement.id = "pdf-export-probe-style";
+        styleElement.textContent = exportStyle;
+        document.head.append(styleElement);
+
+        template.querySelector("[data-export-probes]")?.remove();
+        const probes = document.createElement("div");
+        probes.dataset.exportProbes = "";
+        const definitions = {
+          accent: ["color", "var(--color-accent)"],
+          link: ["color", "var(--color-link)"],
+          linkHover: ["color", "var(--color-link-hover)"],
+          radius: ["borderRadius", "var(--radius)"],
+          radiusSm: ["borderRadius", "var(--radius-sm)"],
+          radiusMd: ["borderRadius", "var(--radius-md)"],
+          radiusLg: ["borderRadius", "var(--radius-lg)"],
+          radiusXl: ["borderRadius", "var(--radius-xl)"],
+          decoration: ["borderTopColor", "var(--export-accent-decoration)"],
+        } as const;
+        for (const [name, [property, value]] of Object.entries(definitions)) {
+          const element = document.createElement("span");
+          element.dataset.probe = name;
+          element.style.setProperty(
+            property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
+            value,
+          );
+          probes.append(element);
+        }
+        template.append(probes);
+
+        const computed = (name: string): CSSStyleDeclaration => {
+          const element = probes.querySelector<HTMLElement>(`[data-probe="${name}"]`);
+          if (!element) throw new Error(`Missing ${name} probe`);
+          return getComputedStyle(element);
+        };
+        return {
+          accent: computed("accent").color,
+          link: computed("link").color,
+          linkHover: computed("linkHover").color,
+          radius: computed("radius").borderRadius,
+          radiusSm: computed("radiusSm").borderRadius,
+          radiusMd: computed("radiusMd").borderRadius,
+          radiusLg: computed("radiusLg").borderRadius,
+          radiusXl: computed("radiusXl").borderRadius,
+          decoration: computed("decoration").borderTopColor,
+        };
+      }, style);
+
+      const eligible = await probe(buildPdfExportStyle({
+        producingUnit: "studio",
+        federationHandle: "studio-creator",
+        creatorBrandColor: "#f28482",
+      }));
+      expect(eligible).toEqual({
+        accent: "rgb(126, 74, 42)",
+        link: "rgb(126, 74, 42)",
+        linkHover: "rgb(101, 58, 34)",
+        radius: "14px",
+        radiusSm: "7px",
+        radiusMd: "14px",
+        radiusLg: "21px",
+        radiusXl: "28px",
+        decoration: "rgb(242, 132, 130)",
+      });
+
+      const ineligible = await probe(buildPdfExportStyle({
+        producingUnit: "studio",
+        federationHandle: null,
+        creatorBrandColor: "#f28482",
+      }));
+      expect(ineligible.decoration).toBe("rgb(126, 74, 42)");
+    } finally {
+      await browser.close();
+    }
   });
 
   it("renders retained-head voice exports with real media as US Letter output", async () => {

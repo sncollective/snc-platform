@@ -412,3 +412,28 @@ cleanup depends only on renderer, so it cannot form a cycle.
 - `bun run --filter @snc/web build` — passed; existing third-party `use client` bundle warnings only.
 - Output inspection rendered live full Template A and B PDFs, horizontal and vertical creator sheets with real Garage media, and a long-field release fixture. All documents reported US Letter media boxes; creator/release sheets each reported exactly one PDF page, fixed-light token/font assets loaded after retained-head replacement, and the recorded press-route SSR `fetch failed` did not reproduce.
 - Source/manifest scan found no `@react-pdf/renderer`, `PdfTheme`, `PDF_THEMES`, `DEFAULT_ACCENT`, `DEFAULT_SECONDARY`, API-only Inter/Source Serif dependency, old renderer name, or `theme=` caller reference.
+
+## Review — standard pass (2026-08-14)
+
+**Verdict: needs fixes.** The independent standard review found three receiver-confirmed
+material gaps; the corrective pass remained bounded to the export service, public release route,
+and their API verification surfaces.
+
+1. **Incomplete export alias override** — extended every generated Parent, Studio, TV, and
+   Records scope to remap link/link-hover and the complete radius scale in addition to all six
+   accent roles and both font aliases. Full-template export identity now wins as one complete
+   alias set over any conflicting route scope.
+2. **Cascade verification did not exercise a conflict** — added a real-Chromium integration
+   probe with a Records route and Studio export. Computed accent/link/hover colors and all five
+   radius aliases resolve to Studio values; eligible `{handle + curated color}` decoration keeps
+   its curated pigment, while color-only ineligible decoration falls back to Studio accent.
+3. **Release PDF omitted the public export limiter** — applied the existing shared
+   `pressPdfRateLimiter` before `optionalAuth` on the release one-sheet route and added route-level
+   proof that the seventh same-IP request receives `429` without invoking the renderer.
+
+**Final verification:**
+
+- `bun run --filter @snc/api typecheck` — passed.
+- `bun run --filter @snc/api test:unit` — 126 files / 2,037 tests passed.
+- `bun run --filter @snc/api test:integration` — 12 files / 55 tests passed, including the
+  conflicting-route computed-style and creator-decoration Chromium probe.

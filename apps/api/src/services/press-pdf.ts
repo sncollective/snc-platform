@@ -81,15 +81,22 @@ const exportVoiceScope = (identity: PdfExportIdentity): string => {
   --color-accent-subtle: var(--voice-${voice}-accent-subtle);
   --color-on-accent: var(--voice-${voice}-on-accent);
   --color-accent2: var(--voice-${voice}-accent2);
+  --color-link: var(--voice-${voice}-accent);
+  --color-link-hover: var(--voice-${voice}-accent-hover);
+  --radius: var(--voice-${voice}-radius);
+  --radius-sm: var(--voice-${voice}-radius-sm);
+  --radius-md: var(--voice-${voice}-radius-md);
+  --radius-lg: var(--voice-${voice}-radius-lg);
+  --radius-xl: var(--voice-${voice}-radius-xl);
   --font-body: var(--font-body-${voice});
   --font-display: var(--font-display-${voice});
-  --radius: var(--voice-${voice}-radius);
   --export-accent-decoration: ${resolved.creatorDecoration ?? `var(--voice-${voice}-accent)`};
   font-family: var(--font-body);
 }`).join("\n");
 };
 
-const exportDocumentStyle = (identity: PdfExportIdentity): string => `
+/** Build the retained-head export scope used by browser rendering and cascade verification. */
+export const buildPdfExportStyle = (identity: PdfExportIdentity): string => `
 ${exportVoiceScope(identity)}
 html, body {
   font-family: var(--font-body) !important;
@@ -392,7 +399,7 @@ export const renderOnePagerPdf = async (input: {
 }): Promise<Buffer> => renderBrowserPdf({
   url: input.pageUrl,
   documentAttributes: exportDocumentAttributes(input.exportIdentity),
-  style: exportDocumentStyle(input.exportIdentity),
+  style: buildPdfExportStyle(input.exportIdentity),
 });
 
 /** Render a curated single-page creator press sheet from the locked orientation-specific layouts. */
@@ -419,7 +426,7 @@ export const renderCreatorOneSheetPdf = async (input: {
     url: input.pressPageUrl,
     replaceBodyHtml: sheet.bodyHtml,
     documentAttributes: exportDocumentAttributes(input.exportIdentity),
-    style: `${exportDocumentStyle(input.exportIdentity)}\n${sheet.style}`,
+    style: `${buildPdfExportStyle(input.exportIdentity)}\n${sheet.style}`,
     singlePage: true,
   });
 };
@@ -435,7 +442,7 @@ export const renderReleaseOneSheetPdf = async (input: {
     url: input.pressPageUrl,
     replaceBodyHtml: sheet.bodyHtml,
     documentAttributes: exportDocumentAttributes(input.exportIdentity),
-    style: `${exportDocumentStyle(input.exportIdentity)}\n${sheet.style}`,
+    style: `${buildPdfExportStyle(input.exportIdentity)}\n${sheet.style}`,
     singlePage: true,
   });
 };

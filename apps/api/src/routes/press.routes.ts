@@ -217,6 +217,7 @@ pressRoutes.get(
       404: ERROR_404,
     },
   }),
+  pressPdfRateLimiter,
   optionalAuth,
   validator(
     "param",
