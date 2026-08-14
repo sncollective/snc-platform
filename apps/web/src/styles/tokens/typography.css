@@ -5,6 +5,16 @@
   --font-ui: "Inter", system-ui, -apple-system, sans-serif;
   --font-heading: Georgia, "Times New Roman", serif;
 
+  /* Per-voice sources remain on the current families until font assets land. */
+  --font-body-parent: var(--font-ui);
+  --font-display-parent: var(--font-heading);
+  --font-body-studio: var(--font-ui);
+  --font-display-studio: var(--font-heading);
+  --font-body-tv: var(--font-ui);
+  --font-display-tv: var(--font-heading);
+  --font-body-records: var(--font-ui);
+  --font-display-records: var(--font-heading);
+
   /* Font sizes — fixed scale */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;

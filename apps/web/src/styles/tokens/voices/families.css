@@ -1,3 +1,94 @@
 /* ── Voice Color Families ── */
 
-/* Complete four-voice mode blocks land atomically with the voice-accents checkpoint. */
+:root,
+[data-theme="light"] {
+  --voice-parent-accent: #364050;
+  --voice-parent-accent-hover: #242D3A;
+  --voice-parent-accent-bg: #DDE0E4;
+  --voice-parent-accent-subtle: rgba(54, 64, 80, 0.14);
+  --voice-parent-on-accent: #FFFFFF;
+  --voice-parent-accent2: #5B6B80;
+
+  --voice-studio-accent: #7E4A2A;
+  --voice-studio-accent-hover: #653A22;
+  --voice-studio-accent-bg: #E6DAD0;
+  --voice-studio-accent-subtle: rgba(126, 74, 42, 0.14);
+  --voice-studio-on-accent: #FFFFFF;
+  --voice-studio-accent2: #B08866;
+
+  --voice-tv-accent: #00786E;
+  --voice-tv-accent-hover: #005F58;
+  --voice-tv-accent-bg: #CCE5E2;
+  --voice-tv-accent-subtle: rgba(0, 120, 110, 0.14);
+  --voice-tv-on-accent: #FFFFFF;
+  --voice-tv-accent2: #FF4081;
+
+  --voice-records-accent: #B5302A;
+  --voice-records-accent-hover: #92261F;
+  --voice-records-accent-bg: #F0D8D6;
+  --voice-records-accent-subtle: rgba(181, 48, 42, 0.14);
+  --voice-records-on-accent: #FFFFFF;
+  --voice-records-accent2: #1A1A1A;
+}
+
+[data-theme="dark"] {
+  --voice-parent-accent: #A8B2C0;
+  --voice-parent-accent-hover: #8E9AAC;
+  --voice-parent-accent-bg: #DDE0E4;
+  --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
+  --voice-parent-on-accent: #121821;
+  --voice-parent-accent2: #5B6B80;
+
+  --voice-studio-accent: #D88F5E;
+  --voice-studio-accent-hover: #CC8753;
+  --voice-studio-accent-bg: rgba(216, 143, 94, 0.16);
+  --voice-studio-accent-subtle: rgba(216, 143, 94, 0.2);
+  --voice-studio-on-accent: #1F0F08;
+  --voice-studio-accent2: #B08866;
+
+  --voice-tv-accent: #4FE0D8;
+  --voice-tv-accent-hover: #38D0C7;
+  --voice-tv-accent-bg: rgba(79, 224, 216, 0.16);
+  --voice-tv-accent-subtle: rgba(79, 224, 216, 0.2);
+  --voice-tv-on-accent: #06201D;
+  --voice-tv-accent2: #FF4081;
+
+  --voice-records-accent: #FF6B5E;
+  --voice-records-accent-hover: #EE5648;
+  --voice-records-accent-bg: rgba(255, 107, 94, 0.16);
+  --voice-records-accent-subtle: rgba(255, 107, 94, 0.2);
+  --voice-records-on-accent: #260806;
+  --voice-records-accent2: #1A1A1A;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --voice-parent-accent: #A8B2C0;
+    --voice-parent-accent-hover: #8E9AAC;
+    --voice-parent-accent-bg: #DDE0E4;
+    --voice-parent-accent-subtle: rgba(168, 178, 192, 0.2);
+    --voice-parent-on-accent: #121821;
+    --voice-parent-accent2: #5B6B80;
+
+    --voice-studio-accent: #D88F5E;
+    --voice-studio-accent-hover: #CC8753;
+    --voice-studio-accent-bg: rgba(216, 143, 94, 0.16);
+    --voice-studio-accent-subtle: rgba(216, 143, 94, 0.2);
+    --voice-studio-on-accent: #1F0F08;
+    --voice-studio-accent2: #B08866;
+
+    --voice-tv-accent: #4FE0D8;
+    --voice-tv-accent-hover: #38D0C7;
+    --voice-tv-accent-bg: rgba(79, 224, 216, 0.16);
+    --voice-tv-accent-subtle: rgba(79, 224, 216, 0.2);
+    --voice-tv-on-accent: #06201D;
+    --voice-tv-accent2: #FF4081;
+
+    --voice-records-accent: #FF6B5E;
+    --voice-records-accent-hover: #EE5648;
+    --voice-records-accent-bg: rgba(255, 107, 94, 0.16);
+    --voice-records-accent-subtle: rgba(255, 107, 94, 0.2);
+    --voice-records-on-accent: #260806;
+    --voice-records-accent2: #1A1A1A;
+  }
+}

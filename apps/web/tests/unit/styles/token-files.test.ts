@@ -44,7 +44,18 @@ const MODE_FILES = [
   "color/data.css",
   "color/illustration.css",
   "color/creator.css",
+  "voices/families.css",
   "elevation.css",
+] as const;
+
+const VOICES = ["parent", "studio", "tv", "records"] as const;
+const VOICE_COLOR_ROLES = [
+  "accent",
+  "accent-hover",
+  "accent-bg",
+  "accent-subtle",
+  "on-accent",
+  "accent2",
 ] as const;
 
 function readTokenFile(file: string): string {
@@ -140,6 +151,15 @@ describe("mode-aware token roles", () => {
     expect(dark.get("--color-error-bg")).toBe("#312028");
     expect(dark.get("--color-info-bg")).toBe("#1C2A3A");
   });
+
+  it.each(["light", "dark"] as const)("defines all six %s color roles for every voice", (mode) => {
+    const voiceColors = declarations(modeBlock(readTokenFile("voices/families.css"), mode));
+    const expectedNames = VOICES.flatMap((voice) =>
+      VOICE_COLOR_ROLES.map((role) => `--voice-${voice}-${role}`),
+    );
+
+    expect([...voiceColors.keys()]).toEqual(expectedNames);
+  });
 });
 
 describe("token ownership boundaries", () => {
@@ -177,6 +197,32 @@ describe("token ownership boundaries", () => {
     }
   });
 
+  it("keeps every voice radius scale complete, ordered, and proportional", () => {
+    const voiceRadii = declarations(readTokenFile("radius.css"));
+    const pixels = (name: string): number => {
+      const value = voiceRadii.get(name);
+      expect(value, `${name} should be declared`).toBeDefined();
+      expect(value).toMatch(/^\d+px$/);
+      return Number.parseInt(value ?? "", 10);
+    };
+
+    for (const voice of VOICES) {
+      const baseName = `--voice-${voice}-radius`;
+      const base = pixels(baseName);
+      const sm = pixels(`${baseName}-sm`);
+      const lg = pixels(`${baseName}-lg`);
+      const xl = pixels(`${baseName}-xl`);
+
+      expect(voiceRadii.get(`${baseName}-md`)).toBe(`var(${baseName})`);
+      expect(sm).toBeLessThanOrEqual(base);
+      expect(base).toBeLessThanOrEqual(lg);
+      expect(lg).toBeLessThanOrEqual(xl);
+      expect(sm).toBe(base / 2);
+      expect(lg).toBe(base * 1.5);
+      expect(xl).toBe(base * 2);
+    }
+  });
+
   it("keeps invariant circle and pill geometry out of the voice radius owner", () => {
     const geometry = declarations(readTokenFile("geometry.css"));
     const voiceRadii = declarations(readTokenFile("radius.css"));
@@ -189,6 +235,48 @@ describe("token ownership boundaries", () => {
     );
     expect(voiceRadii.has("--radius-circle")).toBe(false);
     expect(voiceRadii.has("--radius-pill")).toBe(false);
+  });
+
+  it("resolves every Parent generic alias through a declared variable chain", () => {
+    const resolution = readTokenFile("voices/resolution.css");
+    const resolvedAliases = declarations(resolution);
+    const expectedAliases = new Map([
+      ["--color-accent", "var(--voice-parent-accent)"],
+      ["--color-accent-hover", "var(--voice-parent-accent-hover)"],
+      ["--color-accent-bg", "var(--voice-parent-accent-bg)"],
+      ["--color-accent-subtle", "var(--voice-parent-accent-subtle)"],
+      ["--color-on-accent", "var(--voice-parent-on-accent)"],
+      ["--color-accent2", "var(--voice-parent-accent2)"],
+      ["--color-link", "var(--color-accent)"],
+      ["--color-link-hover", "var(--color-accent-hover)"],
+      ["--radius", "var(--voice-parent-radius)"],
+      ["--radius-sm", "var(--voice-parent-radius-sm)"],
+      ["--radius-md", "var(--voice-parent-radius-md)"],
+      ["--radius-lg", "var(--voice-parent-radius-lg)"],
+      ["--radius-xl", "var(--voice-parent-radius-xl)"],
+      ["--font-body", "var(--font-body-parent)"],
+      ["--font-display", "var(--font-display-parent)"],
+    ]);
+    const declarationsByFile = new Map(
+      COMPOSED_TOKEN_FILES.map((file) => [file, declarations(readTokenFile(file))]),
+    );
+    const declaredNames = new Set(
+      CANONICAL_OWNER_FILES.flatMap((file) => [...(declarationsByFile.get(file)?.keys() ?? [])]),
+    );
+
+    expect(resolvedAliases).toEqual(expectedAliases);
+    for (const name of resolvedAliases.keys()) {
+      const owners = COMPOSED_TOKEN_FILES.filter((file) => declarationsByFile.get(file)?.has(name));
+      expect(owners, `${name} should have one declaration owner`).toEqual(["voices/resolution.css"]);
+    }
+    for (const value of resolvedAliases.values()) {
+      const target = value.match(/^var\((--[\w-]+)\)$/)?.[1];
+      expect(target, `${value} should be a direct variable reference`).toBeDefined();
+      expect(declaredNames.has(target ?? ""), `${target} should have a declaration owner`).toBe(true);
+    }
+    expect(resolution).not.toMatch(/#[\da-f]{3,8}\b|rgba?\(|hsla?\(|\b\d+(?:\.\d+)?(?:px|rem|em|%)\b/i);
+    expect(resolution).toContain("[data-route] {\n  font-family: var(--font-body);\n}");
+    expect(resolution).not.toMatch(/\[data-route=["']/);
   });
 });
 
@@ -204,6 +292,18 @@ describe("supporting token contracts", () => {
         ["--preview-dark-paper", "#171725"],
         ["--preview-dark-ink", "#DDD8CE"],
       ]),
+    );
+  });
+
+  it("underlines prose links while exempting structural navigation and chrome", () => {
+    const globalCss = readFileSync(GLOBAL_CSS, "utf-8");
+
+    expect(globalCss).toContain(
+      "a {\n  color: var(--color-link);\n  text-decoration: underline;\n  text-underline-offset: 0.15em;\n}",
+    );
+    expect(globalCss).toContain("a:hover {\n  color: var(--color-link-hover);\n}");
+    expect(globalCss).toContain(
+      ':where(nav, [role="navigation"], [role="tablist"]) a {\n  text-decoration: none;\n}',
     );
   });
 

@@ -1,3 +1,27 @@
 /* ── Per-Voice Radius Families ── */
 
-/* Complete per-voice base + sm/md/lg/xl sets land with the voice-accents checkpoint. */
+:root {
+  --voice-parent-radius: 8px;
+  --voice-parent-radius-sm: 4px;
+  --voice-parent-radius-md: var(--voice-parent-radius);
+  --voice-parent-radius-lg: 12px;
+  --voice-parent-radius-xl: 16px;
+
+  --voice-studio-radius: 14px;
+  --voice-studio-radius-sm: 7px;
+  --voice-studio-radius-md: var(--voice-studio-radius);
+  --voice-studio-radius-lg: 21px;
+  --voice-studio-radius-xl: 28px;
+
+  --voice-tv-radius: 2px;
+  --voice-tv-radius-sm: 1px;
+  --voice-tv-radius-md: var(--voice-tv-radius);
+  --voice-tv-radius-lg: 3px;
+  --voice-tv-radius-xl: 4px;
+
+  --voice-records-radius: 0px;
+  --voice-records-radius-sm: 0px;
+  --voice-records-radius-md: var(--voice-records-radius);
+  --voice-records-radius-lg: 0px;
+  --voice-records-radius-xl: 0px;
+}

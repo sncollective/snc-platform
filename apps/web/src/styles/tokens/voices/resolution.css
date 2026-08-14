@@ -1,3 +1,25 @@
 /* ── Route-Resolved Generic Aliases ── */
 
-/* Literal-free Parent defaults and route scopes land after voice families are complete. */
+:root {
+  --color-accent: var(--voice-parent-accent);
+  --color-accent-hover: var(--voice-parent-accent-hover);
+  --color-accent-bg: var(--voice-parent-accent-bg);
+  --color-accent-subtle: var(--voice-parent-accent-subtle);
+  --color-on-accent: var(--voice-parent-on-accent);
+  --color-accent2: var(--voice-parent-accent2);
+  --color-link: var(--color-accent);
+  --color-link-hover: var(--color-accent-hover);
+
+  --radius: var(--voice-parent-radius);
+  --radius-sm: var(--voice-parent-radius-sm);
+  --radius-md: var(--voice-parent-radius-md);
+  --radius-lg: var(--voice-parent-radius-lg);
+  --radius-xl: var(--voice-parent-radius-xl);
+
+  --font-body: var(--font-body-parent);
+  --font-display: var(--font-display-parent);
+}
+
+[data-route] {
+  font-family: var(--font-body);
+}

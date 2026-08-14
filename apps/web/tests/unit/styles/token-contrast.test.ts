@@ -40,6 +40,7 @@ function tokensForMode(mode: Mode): Map<string, string> {
     ...modeDeclarations("color/spine.css", mode),
     ...modeDeclarations("color/status.css", mode),
     ...modeDeclarations("color/state.css", mode),
+    ...modeDeclarations("voices/families.css", mode),
   ]);
 }
 
@@ -117,6 +118,7 @@ function color(tokens: Map<string, string>, name: string): Rgba {
 const MODES: readonly Mode[] = ["light", "dark"];
 const HOST_SURFACES = ["--color-bg", "--color-bg-elevated"] as const;
 const STATUS_NAMES = ["success", "warning", "error", "info"] as const;
+const VOICE_NAMES = ["parent", "studio", "tv", "records"] as const;
 
 describe("brand token contrast matrix", () => {
   it.each(MODES)("keeps %s base foregrounds AA-safe on background and elevated", (mode) => {
@@ -169,6 +171,18 @@ describe("brand token contrast matrix", () => {
       const background = color(tokens, `--color-${status}-bg`);
       expect(background.alpha, `${status} background must be host-independent`).toBe(1);
       expect(contrast(foreground, background), status).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(MODES)("keeps every %s voice accent pair AA-safe", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (const voice of VOICE_NAMES) {
+      const foreground = color(tokens, `--voice-${voice}-on-accent`);
+      for (const role of ["accent", "accent-hover"] as const) {
+        const background = color(tokens, `--voice-${voice}-${role}`);
+        expect(contrast(foreground, background), `${voice} ${role}`).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 });

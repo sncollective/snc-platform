@@ -8,8 +8,6 @@
   --color-bg-hero-gradient: #1e1e36;
   --color-text: #f0f0f0;
   --color-text-muted: #a0a0b0;
-  --color-accent: #f5a623;
-  --color-accent-hover: #e09510;
   --color-secondary: #5bb5b5;
   --color-error: #ef5350;
   --color-border: #3a3a5c;
@@ -21,19 +19,13 @@
   --color-surface-hover: rgba(255, 255, 255, 0.05);
   --color-bg-hover: rgba(255, 255, 255, 0.05);
 
-  /* Semantic links */
-  --color-link: var(--color-accent);
-  --color-link-hover: var(--color-accent-hover);
-
   /* Status backgrounds (10% tint) */
   --color-error-bg: rgba(239, 83, 80, 0.1);
   --color-success: #4caf50;
   --color-success-bg: rgba(76, 175, 80, 0.1);
-  --color-accent-bg: rgba(245, 166, 35, 0.1);
   --color-secondary-bg: rgba(91, 181, 181, 0.1);
 
   /* Subtle tints (15% — more visible than -bg) */
-  --color-accent-subtle: color-mix(in srgb, var(--color-accent) 15%, transparent);
   --color-secondary-subtle: color-mix(in srgb, var(--color-secondary) 15%, transparent);
 
   /* Content type badges */
