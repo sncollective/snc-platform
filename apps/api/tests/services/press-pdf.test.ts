@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ok } from "@snc/shared";
-import type { PressContent, ReleaseOneSheet } from "@snc/shared";
+import type { CreatorBrandColor, PressContent, ReleaseOneSheet } from "@snc/shared";
 
 const {
   mockBuildPressImageUrl,
@@ -31,7 +31,8 @@ vi.mock("../../src/lib/imgproxy.js", () => ({
 import {
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
-  renderOneSheetPdf,
+  renderReleaseOneSheetPdf,
+  resolvePdfExportIdentity,
 } from "../../src/services/press-pdf.js";
 
 const pdf = Buffer.from("%PDF fixture");
@@ -84,8 +85,12 @@ const creator = {
   socialLinks: [] as const,
 };
 
+const recordsIdentity = {
+  producingUnit: "records",
+  federationHandle: creator.handle,
+  creatorBrandColor: "#f28482" as CreatorBrandColor,
+};
 const libraryKey = `library/aa/${"a".repeat(64)}.png`;
-
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
@@ -117,48 +122,124 @@ describe("press PDF rendering", () => {
     }));
   });
 
-  it("renders the release route contract as a US Letter PDF", async () => {
-    const buffer = await renderOneSheetPdf(releaseFixture);
-    expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
-    expect(buffer.toString("latin1").match(/\/Type \/Page\b/g)).toHaveLength(1);
+  it.each([
+    ["Records", "records"],
+    ["STUDIO", "studio"],
+    ["tv", "tv"],
+    ["parent", "parent"],
+    [null, "records"],
+    ["unknown", "records"],
+  ] as const)("resolves producing unit %s without consulting a route", (producingUnit, voice) => {
+    expect(resolvePdfExportIdentity({
+      producingUnit,
+      federationHandle: null,
+      creatorBrandColor: null,
+    })).toEqual({ voice, creatorDecoration: null });
   });
 
-  it("prints the live web template with the selected brand theme", async () => {
+  it.each([
+    ["artist", "#f28482", "#f28482"],
+    ["artist", null, null],
+    [null, "#f28482", null],
+    [null, null, null],
+  ] as const)("requires both federation handle %s and curated color %s for decoration", (
+    federationHandle,
+    creatorBrandColor,
+    creatorDecoration,
+  ) => {
+    expect(resolvePdfExportIdentity({
+      producingUnit: "records",
+      federationHandle,
+      creatorBrandColor,
+    })).toEqual({ voice: "records", creatorDecoration });
+  });
+
+  it("prints the live template under an explicit light Studio scope that beats route aliases", async () => {
     await expect(renderOnePagerPdf({
-      pageUrl: "http://web.test/creators/animalfuture/press",
-      theme: "brand",
-      brandColor: "#f28482",
+      pageUrl: "http://web.test/creators/artist/press",
+      exportIdentity: {
+        producingUnit: "studio",
+        federationHandle: null,
+        creatorBrandColor: null,
+      },
     })).resolves.toEqual(pdf);
 
-    expect(mockRenderBrowserPdf).toHaveBeenCalledWith({
-      url: "http://web.test/creators/animalfuture/press",
-      style: expect.stringContaining("--color-accent:#f28482"),
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      url: string;
+      documentAttributes: Record<string, string>;
+      style: string;
+    };
+    expect(call.url).toBe("http://web.test/creators/artist/press");
+    expect(call.documentAttributes).toEqual({
+      "data-theme": "light",
+      "data-export-voice": "studio",
     });
+    expect(call.style).toContain(':root[data-theme="light"][data-export-voice="studio"]');
+    expect(call.style).toContain(":is([data-press-template], [data-pdf-sheet])");
+    expect(call.style).toContain("--color-accent: var(--voice-studio-accent)");
+    expect(call.style).toContain("--font-display: var(--font-display-studio)");
+    expect(call.style).toContain("--radius: var(--voice-studio-radius)");
+    expect(call.style).not.toContain("[data-route=");
   });
 
-  it("renders the locked horizontal one-sheet with credit, QR fallback, and print floors", async () => {
+  it.each([
+    ["artist", "#f28482", "#f28482"],
+    ["artist", null, "var(--voice-records-accent)"],
+    [null, "#f28482", "var(--voice-records-accent)"],
+    [null, null, "var(--voice-records-accent)"],
+  ] as const)("scopes creator decoration for handle %s and color %s", async (
+    federationHandle,
+    creatorBrandColor,
+    expectedDecoration,
+  ) => {
+    await renderOnePagerPdf({
+      pageUrl: "http://web.test/creators/artist/press",
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle,
+        creatorBrandColor,
+      },
+    });
+    const style = (mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { style: string }).style;
+    expect(style).toContain(`--export-accent-decoration: ${expectedDecoration}`);
+  });
+
+  it("renders the locked horizontal one-sheet with retained-head body markup and print floors", async () => {
     await renderCreatorOneSheetPdf({
       creator,
       content: contentFixture,
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
-      theme: "dark",
-      brandColor: null,
+      exportIdentity: recordsIdentity,
       orientation: "horizontal",
     });
 
-    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { html: string; singlePage: boolean };
-    expect(call.singlePage).toBe(true);
-    expect(call.html).toContain("horizontal");
-    expect(call.html).toContain("Photo · Test");
-    expect(call.html).toContain("linktr.ee/animalfutureofficial");
-    expect(call.html).toContain("font-size:10px;line-height:16px");
-    expect(call.html).toContain("width:80px;height:80px");
-    expect(call.html).toContain("Live dates");
-    expect(call.html).toContain("bandsintown.com/a/animal-future");
-    expect(call.html).toContain("class=\"metric\">14.5k streams");
-    expect(call.html).toContain("font-family:\"SNC Inter\"");
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      url: string;
+      replaceBodyHtml: string;
+      documentAttributes: Record<string, string>;
+      style: string;
+      singlePage: boolean;
+    };
+    expect(call).toMatchObject({
+      url: "https://s-nc.org/creators/animalfuture/press",
+      singlePage: true,
+      documentAttributes: {
+        "data-theme": "light",
+        "data-export-voice": "records",
+      },
+    });
+    expect(call.replaceBodyHtml).toContain('data-pdf-sheet class="sheet horizontal"');
+    expect(call.replaceBodyHtml).not.toContain("<!doctype html>");
+    expect(call.replaceBodyHtml).toContain("Photo · Test");
+    expect(call.replaceBodyHtml).toContain("linktr.ee/animalfutureofficial");
+    expect(call.replaceBodyHtml).toContain("Live dates");
+    expect(call.replaceBodyHtml).toContain("bandsintown.com/a/animal-future");
+    expect(call.replaceBodyHtml).toContain('class="metric">14.5k streams');
+    expect(call.style).toContain("font-family:var(--font-body)");
+    expect(call.style).toContain("border-top:2px solid var(--export-accent-decoration)");
+    expect(call.style).toContain("width:80px;height:80px");
+    expect(call.style).not.toContain("color-secondary");
     expect(mockStorageDownload).toHaveBeenCalledWith(contentFixture.banner?.key);
-    expect(mockDbSelect).not.toHaveBeenCalled();
     expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
       contentFixture.banner,
       "banner",
@@ -181,8 +262,7 @@ describe("press PDF rendering", () => {
       creator,
       content: { ...contentFixture, banner },
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
-      theme: "dark",
-      brandColor: null,
+      exportIdentity: recordsIdentity,
       orientation: "horizontal",
     });
 
@@ -197,20 +277,26 @@ describe("press PDF rendering", () => {
         ...creator,
         socialLinks: [{ platform: "website", url: "https://linktr.ee/custom-artist" }],
       },
-      content: { ...contentFixture, banner: null, aboutPhoto: { key: "creators/creator_animalfuture/press/vertical.png", alt: "Portrait" } },
+      content: {
+        ...contentFixture,
+        banner: null,
+        aboutPhoto: { key: "creators/creator_animalfuture/press/vertical.png", alt: "Portrait" },
+      },
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
-      theme: "light",
-      brandColor: null,
+      exportIdentity: recordsIdentity,
       orientation: "auto",
     });
 
-    const html = (mockRenderBrowserPdf.mock.calls[0]?.[0] as { html: string }).html;
-    expect(html).toContain("sheet vertical");
-    expect(html).toContain("linktr.ee/custom-artist");
-    expect(html).toContain("--color-bg:#f7f3eb");
-    expect(html).toContain("First full biography paragraph.");
-    expect(html.match(/Punk-leaning rock that hits where it hurts\./g)).toHaveLength(1);
-    expect(html).not.toContain("Second full biography paragraph");
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      replaceBodyHtml: string;
+      style: string;
+    };
+    expect(call.replaceBodyHtml).toContain("sheet vertical");
+    expect(call.replaceBodyHtml).toContain("linktr.ee/custom-artist");
+    expect(call.replaceBodyHtml).toContain("First full biography paragraph.");
+    expect(call.replaceBodyHtml.match(/Punk-leaning rock that hits where it hurts\./g)).toHaveLength(1);
+    expect(call.replaceBodyHtml).not.toContain("Second full biography paragraph");
+    expect(call.style).toContain("--color-accent: var(--voice-records-accent)");
     expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
       expect.objectContaining({ key: "creators/creator_animalfuture/press/vertical.png" }),
       "about",
@@ -219,14 +305,39 @@ describe("press PDF rendering", () => {
     );
   });
 
+  it("renders a long-field release as escaped retained-head Letter markup", async () => {
+    const longValue = `Long field ${"wrap ".repeat(50)}<&>`;
+    await renderReleaseOneSheetPdf({
+      release: {
+        ...releaseFixture,
+        title: longValue,
+        personnel: [longValue, longValue, longValue, longValue],
+      },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      replaceBodyHtml: string;
+      style: string;
+      singlePage: boolean;
+    };
+    expect(call.singlePage).toBe(true);
+    expect(call.replaceBodyHtml).toContain('data-pdf-sheet class="release-sheet"');
+    expect(call.replaceBodyHtml).toContain("&lt;&amp;&gt;");
+    expect(call.replaceBodyHtml).not.toContain("<React");
+    expect(call.style).toContain("width:8.5in;height:11in");
+    expect(call.style).toContain("@page{size:letter portrait;margin:0}");
+    expect(call.style).toContain("border-top:6px solid var(--export-accent-decoration)");
+  });
+
   it("rejects a QR destination that cannot retain 0.4mm modules within the layout", async () => {
     await expect(renderCreatorOneSheetPdf({
       creator,
       content: contentFixture,
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
       destinationUrl: `https://example.com/${"a".repeat(480)}`,
-      theme: "dark",
-      brandColor: null,
+      exportIdentity: recordsIdentity,
       orientation: "horizontal",
     })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     expect(mockRenderBrowserPdf).not.toHaveBeenCalled();
@@ -235,10 +346,12 @@ describe("press PDF rendering", () => {
   it("omits a foreign image key without reading storage", async () => {
     await renderCreatorOneSheetPdf({
       creator,
-      content: { ...contentFixture, banner: { key: "creators/other/press/private.jpg", alt: "Private" } },
+      content: {
+        ...contentFixture,
+        banner: { key: "creators/other/press/private.jpg", alt: "Private" },
+      },
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
-      theme: "dark",
-      brandColor: null,
+      exportIdentity: recordsIdentity,
       orientation: "horizontal",
     });
     expect(mockStorageDownload).not.toHaveBeenCalled();

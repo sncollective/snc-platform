@@ -18,7 +18,7 @@ const mockStorageDownload = vi.fn();
 const mockBuildPressImageUrl = vi.fn();
 const mockRenderOnePagerPdf = vi.fn();
 const mockRenderCreatorOneSheetPdf = vi.fn();
-const mockRenderOneSheetPdf = vi.fn();
+const mockRenderReleaseOneSheetPdf = vi.fn();
 
 const libraryKey = `library/aa/${"a".repeat(64)}.jpg`;
 const secondLibraryKey = `library/bb/${"b".repeat(64)}.png`;
@@ -119,11 +119,10 @@ const ctx = setupRouteTest({
       buildPressImageUrl: mockBuildPressImageUrl,
     }));
     vi.doMock("../../src/services/press-pdf.js", () => ({
-      PDF_THEMES: ["light", "dark", "brand"],
       ONE_SHEET_ORIENTATIONS: ["auto", "horizontal", "vertical"],
       renderOnePagerPdf: mockRenderOnePagerPdf,
       renderCreatorOneSheetPdf: mockRenderCreatorOneSheetPdf,
-      renderOneSheetPdf: mockRenderOneSheetPdf,
+      renderReleaseOneSheetPdf: mockRenderReleaseOneSheetPdf,
     }));
     vi.doMock("../../src/middleware/optional-auth.js", () => ({
       optionalAuth: async (c: any, next: any) => {
@@ -158,7 +157,7 @@ const ctx = setupRouteTest({
     const pdf = Buffer.from("%PDF route fixture");
     mockRenderOnePagerPdf.mockResolvedValue(pdf);
     mockRenderCreatorOneSheetPdf.mockResolvedValue(pdf);
-    mockRenderOneSheetPdf.mockResolvedValue(pdf);
+    mockRenderReleaseOneSheetPdf.mockResolvedValue(pdf);
     mockStorageDownload.mockResolvedValue(
       ok({
         stream: new ReadableStream<Uint8Array>({
@@ -262,14 +261,23 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("application/pdf");
     expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(mockRenderReleaseOneSheetPdf).toHaveBeenCalledWith({
+      release,
+      pressPageUrl: "http://localhost:3080/creators/test-creator/press",
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: null,
+      },
+    });
   });
 });
 
 describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
-  it("prints the live template with the requested theme", async () => {
+  it("prints the live template with an explicit Records export identity", async () => {
     ctx.auth.user = null;
 
-    const res = await json("GET", "/api/creators/test-creator/press/one-pager.pdf?theme=brand");
+    const res = await json("GET", "/api/creators/test-creator/press/one-pager.pdf");
     const body = Buffer.from(await res.arrayBuffer());
 
     expect(res.status).toBe(200);
@@ -277,18 +285,21 @@ describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
     expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
     expect(mockRenderOnePagerPdf).toHaveBeenCalledWith({
       pageUrl: "http://localhost:3080/creators/test-creator/press",
-      theme: "brand",
-      brandColor: null,
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: null,
+      },
     });
   });
 });
 
 describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
-  it("passes the creator theme, orientation, and custom QR URL to the curated renderer", async () => {
+  it("passes the Records identity, orientation, and custom QR URL to the curated renderer", async () => {
     const destinationUrl = "https://linktr.ee/custom-test";
     const res = await json(
       "GET",
-      `/api/creators/test-creator/press/one-sheet.pdf?theme=light&orientation=vertical&url=${encodeURIComponent(destinationUrl)}`,
+      `/api/creators/test-creator/press/one-sheet.pdf?orientation=vertical&url=${encodeURIComponent(destinationUrl)}`,
     );
 
     expect(res.status).toBe(200);
@@ -296,8 +307,11 @@ describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
     expect(mockRenderCreatorOneSheetPdf).toHaveBeenCalledWith(expect.objectContaining({
       content,
       pressPageUrl: "http://localhost:3080/creators/test-creator/press",
-      theme: "light",
-      brandColor: null,
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: null,
+      },
       destinationUrl,
       orientation: "vertical",
     }));

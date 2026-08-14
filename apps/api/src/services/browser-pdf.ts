@@ -21,6 +21,8 @@ const slotWaiters: SlotWaiter[] = [];
 export interface BrowserPdfOptions {
   readonly html?: string;
   readonly url?: string;
+  readonly replaceBodyHtml?: string;
+  readonly documentAttributes?: Readonly<Record<`data-${string}`, string>>;
   readonly style?: string;
   readonly singlePage?: boolean;
   readonly timeoutMs?: number;
@@ -232,6 +234,21 @@ const renderOnPage = async (
       );
     }
 
+    if (options.documentAttributes || options.replaceBodyHtml !== undefined) {
+      await withinDeadline(page.evaluate(
+        ({ documentAttributes, replaceBodyHtml }) => {
+          for (const [name, value] of Object.entries(documentAttributes ?? {})) {
+            document.documentElement.setAttribute(name, value);
+          }
+          if (replaceBodyHtml !== undefined) document.body.innerHTML = replaceBodyHtml;
+        },
+        {
+          documentAttributes: options.documentAttributes,
+          replaceBodyHtml: options.replaceBodyHtml,
+        },
+      ), deadline, () => { void page?.close().catch(() => undefined); });
+    }
+
     if (options.style) {
       await withinDeadline(page.addStyleTag({ content: options.style }), deadline);
     }
@@ -259,6 +276,14 @@ const renderOnPage = async (
 export const renderBrowserPdf = async (options: BrowserPdfOptions): Promise<Buffer> => {
   if ((options.html == null) === (options.url == null)) {
     throw new TypeError("Browser PDF rendering requires exactly one of html or url");
+  }
+  if (options.replaceBodyHtml !== undefined && options.url == null) {
+    throw new TypeError("Browser PDF body replacement requires a url source");
+  }
+  const invalidAttribute = Object.keys(options.documentAttributes ?? {})
+    .find((name) => !/^data-[a-z0-9_.:-]+$/i.test(name));
+  if (invalidAttribute) {
+    throw new TypeError(`Browser PDF document attribute must use a data-* name: ${invalidAttribute}`);
   }
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_RENDER_TIMEOUT_MS;

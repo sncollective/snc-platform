@@ -1,7 +1,7 @@
 ---
 id: brand-voice-export-theming-renderer-contract
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-voice-export-theming
 depends_on: []
@@ -49,16 +49,26 @@ and light spine. Do not copy placeholder values while that dependency is unfinis
 
 ## Acceptance evidence
 
-- [ ] Browser adapter tests prove retained-head body replacement and document attributes are
+- [x] Browser adapter tests prove retained-head body replacement and document attributes are
   applied before readiness/print, reject invalid option combinations, and preserve deadline,
   cleanup, concurrency, asset, and one-page-fit behavior.
-- [ ] Resolver/service tests cover Records, Studio, and unknown→Records plus the four creator
+- [x] Resolver/service tests cover Records, Studio, and unknown→Records plus the four creator
   eligibility combinations (handle/color, handle-only, color-only, neither).
-- [ ] Full Template A/B, horizontal/vertical creator one-sheet, and release one-sheet styles
+- [x] Full Template A/B, horizontal/vertical creator one-sheet, and release one-sheet styles
   reference child 1's light voice variables without a copied voice literal registry.
-- [ ] A conflicting route voice cannot override the explicit PDF-root voice scope.
-- [ ] Real Chromium integration produces Letter output with compiled tokens/fonts and real
+- [x] A conflicting route voice cannot override the explicit PDF-root voice scope.
+- [x] Real Chromium integration produces Letter output with compiled tokens/fonts and real
   media after body replacement; creator/release sheets remain exactly one page.
-- [ ] `@react-pdf/renderer`, old API font embeds, fixed accent/secondary constants, and theme
+- [x] `@react-pdf/renderer`, old API font embeds, fixed accent/secondary constants, and theme
   query types have no remaining source/manifest references.
-- [ ] API unit, integration, and typecheck commands pass.
+- [x] API unit, integration, and typecheck commands pass.
+
+## Implementation notes
+
+- Execution capability: `gpt-5.6-sol`; selected by the autopilot caller for the retained-head renderer, CSS-cascade, and cross-package browser-integration risk.
+- Review weight: `standard` from the caller; feature review is intentionally deferred to the orchestrator.
+- Files changed: `apps/api/src/services/browser-pdf.ts`, `apps/api/src/services/press-pdf.ts`, `apps/api/src/routes/press.routes.ts`, `apps/api/package.json`, `bun.lock`, `apps/web/src/components/press/press-sections.module.css`, and API unit/integration tests.
+- Tests added/removed: added preparation-order and validation coverage, export resolver/eligibility matrices, explicit selector precedence assertions, retained-body HTML contracts, long release fields, and a real A/B + horizontal/vertical/release Chromium Letter fixture; removed obsolete theme-query assertions while preserving QR, asset, fit, deadline, cleanup, and concurrency coverage.
+- Simplification: all press PDFs now use one Playwright adapter; removed React-PDF, its transitive dependency tree, API-only Inter/Source Serif embeds, copied palette branches, and caller-selected PDF themes.
+- Discrepancies from design: none. The existing 1×1 integration PNG was upgraded to a generated 96×96 PNG because imgproxy returned an undecodable result to Chromium at that size; the fixture still exercises real Garage and imgproxy paths.
+- Adjacent issues parked: none. The recorded press-route SSR `fetch failed` risk did not reproduce; full Template A/B retained-head renders completed against the live local web/API services.

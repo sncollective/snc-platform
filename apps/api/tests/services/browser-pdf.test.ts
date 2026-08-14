@@ -49,6 +49,61 @@ afterEach(() => {
 });
 
 describe("browser PDF adapter", () => {
+  it("validates document preparation options before launching Chromium", async () => {
+    const { adapter, launch } = await loadAdapter();
+
+    await expect(adapter.renderBrowserPdf({})).rejects.toThrow("exactly one");
+    await expect(adapter.renderBrowserPdf({ html: "<p>x</p>", url: "https://press.test" }))
+      .rejects.toThrow("exactly one");
+    await expect(adapter.renderBrowserPdf({ html: "<p>x</p>", replaceBodyHtml: "<p>y</p>" }))
+      .rejects.toThrow("requires a url");
+    await expect(adapter.renderBrowserPdf({
+      url: "https://press.test",
+      documentAttributes: { lang: "en" } as never,
+    })).rejects.toThrow("data-* name");
+    expect(launch).not.toHaveBeenCalled();
+  });
+
+  it("replaces only the URL-loaded body and applies data attributes before assets and print", async () => {
+    const page = makePage();
+    const { adapter } = await loadAdapter({ pages: [page] });
+
+    await adapter.renderBrowserPdf({
+      url: "https://press.test/creator",
+      replaceBodyHtml: "<article data-pdf-sheet>One sheet</article>",
+      documentAttributes: {
+        "data-theme": "light",
+        "data-export-voice": "records",
+      },
+      style: ".sheet { color: var(--color-text); }",
+    });
+
+    const [prepare, input] = page.evaluate.mock.calls[0] as [
+      (value: {
+        documentAttributes: Record<string, string>;
+        replaceBodyHtml: string;
+      }) => void,
+      {
+        documentAttributes: Record<string, string>;
+        replaceBodyHtml: string;
+      },
+    ];
+    const setAttribute = vi.fn();
+    const body = { innerHTML: "original body" };
+    vi.stubGlobal("document", { documentElement: { setAttribute }, body });
+    prepare(input);
+    vi.unstubAllGlobals();
+
+    expect(setAttribute).toHaveBeenCalledWith("data-theme", "light");
+    expect(setAttribute).toHaveBeenCalledWith("data-export-voice", "records");
+    expect(body.innerHTML).toBe("<article data-pdf-sheet>One sheet</article>");
+    expect(prepare.toString()).not.toContain("document.open");
+    expect(page.goto.mock.invocationCallOrder[0]).toBeLessThan(page.evaluate.mock.invocationCallOrder[0]!);
+    expect(page.evaluate.mock.invocationCallOrder[0]).toBeLessThan(page.addStyleTag.mock.invocationCallOrder[0]!);
+    expect(page.addStyleTag.mock.invocationCallOrder[0]).toBeLessThan(page.evaluate.mock.invocationCallOrder[1]!);
+    expect(page.evaluate.mock.invocationCallOrder[1]).toBeLessThan(page.emulateMedia.mock.invocationCallOrder[0]!);
+  });
+
   it("reports an unavailable executable without retaining a failed singleton", async () => {
     const launch = vi.fn().mockRejectedValue(new Error("Executable doesn't exist"));
     const { adapter } = await loadAdapter({ launch });

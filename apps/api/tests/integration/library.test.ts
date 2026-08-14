@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
+import QRCode from "qrcode";
 
 import { DEFAULT_PRESS_CONTENT } from "@snc/shared";
 
@@ -24,14 +25,14 @@ import {
 import { storage } from "../../src/storage/index.js";
 import { libraryRawRoutes } from "../../src/routes/library-raw.routes.js";
 import { validateOwnedPressKeys } from "../../src/services/press-images.js";
-import { renderCreatorOneSheetPdf } from "../../src/services/press-pdf.js";
+import {
+  renderCreatorOneSheetPdf,
+  renderOnePagerPdf,
+  renderReleaseOneSheetPdf,
+} from "../../src/services/press-pdf.js";
+import { publishPressConfig, upsertPressConfig } from "../../src/services/press.js";
 
-const baseBytes = Uint8Array.from(
-  Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-    "base64",
-  ),
-);
+let baseBytes: Uint8Array;
 const imageBytes = (suffix: number): Uint8Array =>
   Uint8Array.from([...baseBytes, suffix]);
 
@@ -69,6 +70,11 @@ const upload = async (
 };
 
 beforeAll(async () => {
+  baseBytes = Uint8Array.from(await QRCode.toBuffer("S/NC integration media", {
+    margin: 0,
+    type: "png",
+    width: 96,
+  }));
   await db.insert(creatorProfiles).values(
     creatorIds.map((id) => ({ id, displayName: `Library test ${id}` })),
   );
@@ -133,7 +139,7 @@ describe("content library integration", () => {
     }, granteeActor)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 
-  it("embeds real Garage legacy and library photos in the creator one-sheet PDF", async () => {
+  it("renders retained-head voice exports with real media as US Letter output", async () => {
     const libraryUpload = await upload(creatorIds[0]!, 74, "private");
     expect(libraryUpload.ok).toBe(true);
     if (!libraryUpload.ok) return;
@@ -152,27 +158,90 @@ describe("content library integration", () => {
     expect(legacyUpload.ok).toBe(true);
     uploadedKeys.add(legacyKey);
 
-    for (const key of [legacyKey, libraryUpload.value.asset.storageKey]) {
-      const buffer = await renderCreatorOneSheetPdf({
-        creator: {
-          id: creatorIds[0]!,
-          displayName: "Library integration creator",
-          handle: null,
-          socialLinks: [],
-        },
-        content: {
-          ...DEFAULT_PRESS_CONTENT,
-          enabled: true,
-          banner: { key, alt: "Integration hero" },
-        },
-        // Direct HTML rendering needs an absolute base for the crop-aware imgproxy paths.
-        pressPageUrl: "http://localhost:8081/creators/integration/press",
-        theme: "dark",
-        brandColor: null,
-        orientation: "horizontal",
-      });
+    const creator = {
+      id: creatorIds[0]!,
+      displayName: "Library integration creator",
+      handle: null,
+      socialLinks: [],
+    };
+    const exportIdentity = {
+      producingUnit: "records",
+      federationHandle: null,
+      creatorBrandColor: null,
+    };
+    const pressPageUrl = `http://localhost:3080/creators/${creator.id}/press`;
+    const content = {
+      ...DEFAULT_PRESS_CONTENT,
+      enabled: true,
+      template: "A" as const,
+      tagline: "Retained-head integration",
+      shortBio: "A browser-rendered press fixture.",
+      banner: { key: legacyKey, alt: "Integration hero" },
+      aboutPhoto: {
+        key: libraryUpload.value.asset.storageKey,
+        alt: "Library integration portrait",
+      },
+    };
+    expect(await upsertPressConfig(creator.id, content)).toMatchObject({ ok: true });
+    expect(await publishPressConfig(creator.id)).toMatchObject({ ok: true });
+
+    const fullA = await renderOnePagerPdf({ pageUrl: pressPageUrl, exportIdentity });
+    expect(fullA.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(fullA.toString("latin1")).toContain("/MediaBox [0 0 612 792]");
+
+    expect(await upsertPressConfig(creator.id, { template: "B" })).toMatchObject({ ok: true });
+    expect(await publishPressConfig(creator.id)).toMatchObject({ ok: true });
+    const fullB = await renderOnePagerPdf({ pageUrl: pressPageUrl, exportIdentity });
+    expect(fullB.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(fullB.toString("latin1")).toContain("/MediaBox [0 0 612 792]");
+
+    const horizontal = await renderCreatorOneSheetPdf({
+      creator,
+      content,
+      pressPageUrl,
+      exportIdentity,
+      orientation: "horizontal",
+    });
+    const vertical = await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...content, banner: null },
+      pressPageUrl,
+      exportIdentity,
+      orientation: "vertical",
+    });
+    const longField = `Long release field ${"wrap ".repeat(28)}`;
+    const release = await renderReleaseOneSheetPdf({
+      release: {
+        slug: "integration-release",
+        title: longField,
+        catalogNumber: "SNCR-INTEGRATION",
+        releaseDate: "2026-08-14",
+        format: "Album",
+        genre: longField,
+        isrc: "US-SNC-26-99999",
+        upc: "012345678901",
+        duration: "42:00",
+        personnel: Array.from({ length: 6 }, (_, index) => `${longField} ${index + 1}`),
+        writtenBy: longField,
+        producedBy: longField,
+        mixedMasteredBy: longField,
+        copyrightLine: "℗ 2026 S/NC Records",
+        publisherLine: "© 2026 Signal to Noise Collective",
+        label: "S/NC Records",
+        fcc: "clean",
+        artKey: null,
+      },
+      pressPageUrl,
+      exportIdentity,
+    });
+
+    for (const buffer of [horizontal, vertical, release]) {
+      const pdfText = buffer.toString("latin1");
       expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
       expect(buffer.length).toBeGreaterThan(100);
+      expect(pdfText.match(/\/Type \/Page\b/g)).toHaveLength(1);
+      expect(pdfText.match(/\/MediaBox \[0 0 612 792\]/g)).toHaveLength(1);
+      expect(pdfText).not.toContain("--voice-");
     }
   });
 
@@ -184,8 +253,8 @@ describe("content library integration", () => {
     const privateAsset = privateUpload.value.asset;
     expect(privateAsset).toMatchObject({
       mimeType: "image/png",
-      width: 1,
-      height: 1,
+      width: 96,
+      height: 96,
       useStatus: "own",
     });
     expect(await canUseAsset(ownerActor, privateAsset.storageKey)).toBe(true);

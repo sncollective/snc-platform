@@ -34,10 +34,9 @@ import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
 import {
   ONE_SHEET_ORIENTATIONS,
-  PDF_THEMES,
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
-  renderOneSheetPdf,
+  renderReleaseOneSheetPdf,
 } from "../services/press-pdf.js";
 import {
   discardPressDraft,
@@ -64,10 +63,7 @@ const PressImageDescriptorSchema = z.object({
 const DeliveredPressPagePayloadSchema = PressPagePayloadSchema.extend({
   content: DeliveredPressContentSchema,
 });
-const PressPdfThemeQuerySchema = z.object({
-  theme: z.enum(PDF_THEMES).default("dark"),
-});
-const PressOneSheetQuerySchema = PressPdfThemeQuerySchema.extend({
+const PressOneSheetQuerySchema = z.object({
   orientation: z.enum(ONE_SHEET_ORIENTATIONS).default("auto"),
   url: z.string().url().max(512).refine(
     (value) => ["http:", "https:"].includes(new URL(value).protocol),
@@ -138,14 +134,16 @@ pressRoutes.get(
   pressPdfRateLimiter,
   optionalAuth,
   validator("param", CreatorIdParam),
-  validator("query", PressPdfThemeQuerySchema),
   async (c) => {
     const { profile } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
     const buffer = await renderOnePagerPdf({
       pageUrl: pressPageUrl(creatorPath),
-      theme: c.req.valid("query").theme,
-      brandColor: profile.brandColor ?? null,
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: profile.brandColor ?? null,
+      },
     });
     return c.body(new Uint8Array(buffer), 200, {
       "Content-Type": "application/pdf",
@@ -188,8 +186,11 @@ pressRoutes.get(
       },
       content,
       pressPageUrl: pressPageUrl(creatorPath),
-      theme: query.theme,
-      brandColor: profile.brandColor ?? null,
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: profile.brandColor ?? null,
+      },
       ...(query.url ? { destinationUrl: query.url } : {}),
       orientation: query.orientation,
     });
@@ -222,12 +223,21 @@ pressRoutes.get(
     z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
   ),
   async (c) => {
-    const { content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const release = content.releases.find(
       (candidate) => candidate.slug === c.req.param("releaseSlug"),
     );
     if (!release) throw new NotFoundError("Release not found");
-    const buffer = await renderOneSheetPdf(release);
+    const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
+    const buffer = await renderReleaseOneSheetPdf({
+      release,
+      pressPageUrl: pressPageUrl(creatorPath),
+      exportIdentity: {
+        producingUnit: "records",
+        federationHandle: profile.handle,
+        creatorBrandColor: profile.brandColor ?? null,
+      },
+    });
     return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
   },
 );
