@@ -116,6 +116,13 @@ render; it must never briefly fall back to Parent merely because a component has
 mounted. The pure resolver and the boundary should be kept separate enough that the
 resolver can be tested without booting the full shell.
 
+**Font-family note (child 1 contract):** overriding `--font-body` on a scope does not
+recompute a `font-family` already resolved on `<body>` — plain route text would stay in the
+Parent face. Child 1's `resolution.css` therefore adds
+`[data-route] { font-family: var(--font-body); }` (headings already resolve
+`--font-display` per-element), so this boundary's subtree renders in the voice face without
+the boundary setting inline styles.
+
 ## Design — Portal & nesting edge cases
 
 A React portal preserves React context but not DOM ancestry. The app has two portal
