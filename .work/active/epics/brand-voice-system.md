@@ -1,7 +1,7 @@
 ---
 id: brand-voice-system
 kind: epic
-stage: review
+stage: done
 tags: [design-system]
 parent: null
 depends_on: []
@@ -147,3 +147,19 @@ the stakeholder swap.
 - `brand-voice-export-theming` — done (review closed 391580d; 3 findings fixed in b41da14).
 
 Integrated verification across the epic: web 2,019 tests + API 2,037 unit + 55 integration green on final state; builds/typechecks green; no-leak checker zero non-exempt violations across CSS + CSS-in-TSX faces; org reference value fixes (dark hover, opaque status bgs, dark Parent accent-bg, public-chart palette) all adopted.
+
+## Epic review — standard aggregate pass (2026-08-14)
+
+**Verdict: needs fixes → fixed → done.** Cross-model fresh-context (host GLM-5.2 → GPT-5.6 Sol).
+The aggregate runtime contract passed clean: route-scoped voices, portal propagation,
+light/dark appearance, Parent fallback, and explicit Records-themed exports align across
+packages; all suites green (web 2,019 / api 2,037 unit / 55 integration); token names,
+cascade precedence, creator-decoration eligibility, font strategy, Chromium concurrency,
+and PDF rate limits agree across feature seams. Six risky proposals rejected with evidence
+(shell theming, route-derived PDF voice, accent-bg residual as blocker, voice picker,
+eager font loading, unbounded PDF generation).
+
+Three important findings — all documentation/substrate consistency — adjudicated valid and
+fixed in `05c27c7`: epic Status section rolled to final state (+ backlog stub), active
+UI/UX reference rolled forward (Phase 6 realized), mockup token mirror re-synced from
+production. `review -> done`.
