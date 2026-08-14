@@ -3,7 +3,7 @@ id: brand-token-architecture
 kind: feature
 stage: drafting
 tags: [design-system]
-parent: null
+parent: brand-voice-system
 depends_on: []
 release_binding: null
 gate_origin: null
@@ -146,36 +146,19 @@ adopt their exact token names verbatim when it lands.
   mode-aware hero-surface role.
 - **Warning/info promotion** — warning → first-class with spec value; add `--color-info`
   (#1565C0), resolving latent fallbacks in team-section + playout. (Mostly mechanical.)
-## Scope expansion under discussion: voice as user-selectable theme
+## Epic: brand-voice-system
 
-Operator raised (2026-08-13): voices could be (a) themes for press/pdf outputs, and/or
-(b) a user-selectable platform-wide setting (pick a voice, or "auto/accept" = route
-default) co-located with the light/dark/system toggle in settings.
+This feature is **child 1 (token foundation)** of the `brand-voice-system` epic. The
+voice-as-user-selectable-theme + export-theming expansion discussed earlier is decomposed
+into sibling children under that epic:
+- `brand-voice-route-scoping` (child 2) — route-default voice mechanism.
+- `brand-voice-user-toggle` (child 3) — settings appearance pane (mode + voice, global +
+  auto default).
+- `brand-voice-export-theming` (child 4) — wire voice tokens into the existing Playwright
+  PDF render.
 
-Reframe: voices become a themable identity layer with three application modes — route-default
-(auto), user-override (explicit pick), and export/output theme. Right instinct (makes voices
-a real product feature, not a rigid route-skin) and does NOT invalidate route-scoping — the
-route mapping becomes the "auto" behavior.
-
-Analysis:
-- Two orthogonal user-controllable dimensions in settings: mode (light/dark/system) + voice
-  (auto/parent/studio/tv/records). Same appearance pane.
-- Precedence: user-explicit voice > route-default (route sets default on its container; user
-  override wins at higher scope).
-- Sequencing: user-toggle DEPENDS on voice tokens + route-scoping existing → later phase.
-- Export/print theming is a distinct medium (no dark mode, fixed palette, page mechanics),
-  likely a separate feature — confirm whether press/pdf export exists today.
-
-Proposed decomposition (likely promotes this to an epic with child features):
-1. Token foundation + light mode + leaks + fonts + aliases (current feature scope).
-2. Route-default voices (route-scoping mechanism — the "auto" behavior).
-3. User-selectable voice toggle + settings appearance pane (depends on 1+2).
-4. Export/print voice theming (separate; depends on 1).
-
-Open questions for the operator:
-- User-override scope: GLOBAL (one voice everywhere, "auto" = route-respecting default) or
-  per-route? Lean: global + auto default (matches the light/dark toggle metaphor).
-- Confirm export/print theming is net-new (no existing press/pdf export)?
+Cross-cutting locked decisions (STATE/IDENTITY rule, public-facing principle, global+auto
+toggle, voice→route map, org gap adjudications) live in the epic.
 
 ## Brief deliverables (what "done" looks like for this feature's design phase)
 
