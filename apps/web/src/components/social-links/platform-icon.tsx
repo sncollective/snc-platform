@@ -34,7 +34,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, { path: string; hex: string }> = {
   twitter: { path: siX.path, hex: `#${siX.hex}` },
   mastodon: { path: siMastodon.path, hex: `#${siMastodon.hex}` },
   youtube: { path: siYoutube.path, hex: `#${siYoutube.hex}` },
-  website: { path: GLOBE_PATH, hex: "#888888" },
+  website: { path: GLOBE_PATH, hex: "var(--color-text-muted)" },
 };
 
 // ── Public Types ──

@@ -1,7 +1,7 @@
 ---
 id: brand-token-architecture-leak-cleanup
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-token-architecture
 depends_on: [brand-token-architecture-route-scoping-contract]
@@ -84,6 +84,16 @@ bridge owned by this feature and expiring on org palette delivery.
   test (4/4), and `bun run --filter @snc/web build` all pass.
 
 ## Implementation discovery
+
+**Orchestrator resolution (2026-08-14): both TSX literals migrated — story closes done.**
+The TSX boundary was an over-narrow delegation (the audit grammar covers CSS + TSX inline
+styles), not a design flaw: `privacy.tsx:31` `#666` and `platform-icon.tsx:37` `#888888`
+(the generic globe — not vendor-exempt) both became `var(--color-text-muted)` per the mapping
+table, applied by the orchestrator inside the item's scope. Full suite green post-fix
+(1982/1982); the checker's authored-CSS face remains zero-violation. The TSX inline-style
+face of the grammar is folded into `alias-migration`'s all-syntax no-leak acceptance
+(this story's acceptance grammar is satisfied by the CSS face + the two migrated literals
+being gone).
 
 The broader 133-expression evidence includes two raw TSX literals that are not sanctioned
 exceptions: `apps/web/src/routes/privacy.tsx:31` (`#666`) and

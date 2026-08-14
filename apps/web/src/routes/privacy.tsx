@@ -28,7 +28,7 @@ function PrivacyPage(): React.ReactElement {
         the bands and content you choose to follow. You can change your notification
         preferences or unsubscribe at any time from your account settings.
       </p>
-      <p style={{ color: "#666", fontSize: "0.85rem", marginTop: "2rem" }}>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", marginTop: "2rem" }}>
         Policy version: {PRIVACY_POLICY_VERSION}
       </p>
     </main>
