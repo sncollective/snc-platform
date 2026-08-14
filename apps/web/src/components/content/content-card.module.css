@@ -17,6 +17,14 @@
   border-color: var(--color-accent);
 }
 
+.showcaseItem:hover {
+  border-color: var(--item-unit-accent, var(--color-border));
+}
+
+.showcaseItem.cardNoThumbnail {
+  border-left-color: var(--item-unit-accent, var(--color-border));
+}
+
 /* ── Thumbnail Area ── */
 
 .thumbnailWrapper {
@@ -114,6 +122,10 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.showcaseItem .title {
+  color: var(--item-unit-accent, var(--color-text));
 }
 
 .creator {

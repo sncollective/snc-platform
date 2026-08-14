@@ -8,6 +8,7 @@ import { RouteErrorBoundary } from "../components/error/route-error-boundary.js"
 import { ContentCard } from "../components/content/content-card.js";
 import { FilterBar } from "../components/content/filter-bar.js";
 import { fetchApiServer } from "../lib/api-server.js";
+import { resolveContentItemVoice } from "../lib/showcase-item-voice.js";
 import { useCursorPagination } from "../hooks/use-cursor-pagination.js";
 import styles from "./feed.module.css";
 import listingStyles from "../styles/listing-page.module.css";
@@ -69,7 +70,11 @@ function FeedPage(): React.ReactElement {
         <>
           <div className="content-grid">
             {items.map((item) => (
-              <ContentCard key={item.id} item={item} />
+              <ContentCard
+                key={item.id}
+                item={item}
+                itemVoice={resolveContentItemVoice(item.type)}
+              />
             ))}
           </div>
           {nextCursor && (

@@ -37,6 +37,24 @@ describe("RecentContent", () => {
     expect(screen.getByText("Third Post")).toBeInTheDocument();
   });
 
+  it("maps content voices while keeping written items parent-neutral", () => {
+    render(
+      <RecentContent
+        items={[
+          makeMockFeedItem({ id: "video", title: "Video Item", type: "video" }),
+          makeMockFeedItem({ id: "written", title: "Written Item", type: "written" }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Video Item").closest("a")).toHaveAttribute("data-item-voice", "tv");
+    expect(screen.getByText("Written Item").closest("a")).toHaveAttribute(
+      "data-item-voice",
+      "parent",
+    );
+    expect(screen.getByText("Written Item").closest("a")?.getAttribute("style")).toBeNull();
+  });
+
   it("renders 'View all content' link with href to /feed", () => {
     render(<RecentContent items={[makeMockFeedItem()]} />);
 

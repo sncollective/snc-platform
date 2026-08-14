@@ -58,7 +58,7 @@
 .typeTag {
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--item-unit-accent, var(--color-text-muted));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

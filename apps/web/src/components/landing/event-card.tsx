@@ -5,6 +5,7 @@ import type { UpcomingEvent } from "@snc/shared";
 import { DEFAULT_EVENT_TYPE_LABELS } from "@snc/shared";
 import type { DEFAULT_EVENT_TYPES } from "@snc/shared";
 
+import { itemUnitStyle, resolveEventItemVoice } from "../../lib/showcase-item-voice.js";
 import styles from "./event-card.module.css";
 
 export interface EventCardProps {
@@ -23,9 +24,14 @@ export function EventCard({ event, reminded, onToggleRemind, isToggling }: Event
   const typeLabel =
     DEFAULT_EVENT_TYPE_LABELS[event.eventType as (typeof DEFAULT_EVENT_TYPES)[number]] ??
     event.eventType;
+  const itemVoice = resolveEventItemVoice(event.eventType);
 
   return (
-    <article className={styles.card}>
+    <article
+      className={styles.card}
+      data-item-voice={itemVoice}
+      style={itemUnitStyle(itemVoice)}
+    >
       <div className={styles.dateBadge}>
         <span className={styles.month}>{month}</span>
         <span className={styles.day}>{day}</span>

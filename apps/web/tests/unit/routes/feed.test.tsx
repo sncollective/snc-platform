@@ -73,6 +73,13 @@ beforeEach(() => {
 
 describe("FeedPage", () => {
   it("renders content cards from loader data without fetching", () => {
+    mockUseLoaderData.mockReturnValue({
+      items: [
+        makeMockFeedItem({ id: "c1", title: "Post One", type: "video" }),
+        makeMockFeedItem({ id: "c2", title: "Post Two", type: "written" }),
+      ],
+      nextCursor: null,
+    });
     const mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
 
@@ -80,6 +87,8 @@ describe("FeedPage", () => {
 
     expect(screen.getByText("Post One")).toBeInTheDocument();
     expect(screen.getByText("Post Two")).toBeInTheDocument();
+    expect(screen.getByText("Post One").closest("a")).toHaveAttribute("data-item-voice", "tv");
+    expect(screen.getByText("Post Two").closest("a")).toHaveAttribute("data-item-voice", "parent");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 

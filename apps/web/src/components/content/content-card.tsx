@@ -8,6 +8,8 @@ import { Lock } from "lucide-react";
 import { OptionalImage } from "../ui/optional-image.js";
 import { RelativeTime } from "../ui/relative-time.js";
 import { TYPE_BADGE_LABELS } from "../../lib/content-constants.js";
+import { itemUnitStyle } from "../../lib/showcase-item-voice.js";
+import type { ShowcaseItemVoice } from "../../lib/showcase-item-voice.js";
 import styles from "./content-card.module.css";
 
 const TYPE_BADGE_CLASSES: Record<FeedItem["type"], string> = {
@@ -20,11 +22,12 @@ const TYPE_BADGE_CLASSES: Record<FeedItem["type"], string> = {
 
 export interface ContentCardProps {
   readonly item: FeedItem;
+  readonly itemVoice?: ShowcaseItemVoice;
 }
 
 // ── Public API ──
 
-export function ContentCard({ item }: ContentCardProps): React.ReactElement {
+export function ContentCard({ item, itemVoice }: ContentCardProps): React.ReactElement {
   const thumbnailSrc = item.thumbnail?.src ?? item.thumbnailUrl;
   const thumbnailSrcSet = item.thumbnail?.srcSet ?? null;
   const thumbnailSizes = item.thumbnail?.sizes ?? null;
@@ -32,7 +35,12 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
   const badgeClass = TYPE_BADGE_CLASSES[item.type];
   const hasThumbnail = thumbnailSrc !== null;
 
-  const cardClass = clsx(styles.card, !hasThumbnail && styles.cardNoThumbnail);
+  const cardClass = clsx(
+    styles.card,
+    !hasThumbnail && styles.cardNoThumbnail,
+    itemVoice !== undefined && styles.showcaseItem,
+  );
+  const voiceStyle = itemVoice === undefined ? undefined : itemUnitStyle(itemVoice);
 
   const children = (
     <>
@@ -84,6 +92,8 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
         to="/content/$creatorSlug/$contentSlug"
         params={{ creatorSlug: item.creatorHandle, contentSlug: item.slug }}
         className={cardClass}
+        data-item-voice={itemVoice}
+        style={voiceStyle}
       >
         {children}
       </Link>
@@ -95,6 +105,8 @@ export function ContentCard({ item }: ContentCardProps): React.ReactElement {
       to="/content/$contentId"
       params={{ contentId: item.id }}
       className={cardClass}
+      data-item-voice={itemVoice}
+      style={voiceStyle}
     >
       {children}
     </Link>

@@ -1,8 +1,10 @@
 import type React from "react";
+import { clsx } from "clsx/lite";
 import { Radio } from "lucide-react";
 import type { ChannelListResponse } from "@snc/shared";
 
 import { ChannelCard } from "./channel-card.js";
+import { itemUnitStyle } from "../../lib/showcase-item-voice.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./whats-on.module.css";
 
@@ -16,8 +18,8 @@ export interface WhatsOnProps {
 export function WhatsOn({ channels }: WhatsOnProps): React.ReactElement {
   if (channels.channels.length === 0) {
     return (
-      <section className={sectionStyles.section}>
-        <h2 className={sectionStyles.heading}>What's On</h2>
+      <section className={sectionStyles.section} style={itemUnitStyle("tv")}>
+        <h2 className={clsx(sectionStyles.heading, styles.voiceHeading)}>What's On</h2>
         <div className={sectionStyles.empty}>
           <Radio size={32} aria-hidden="true" />
           <p>Nothing playing right now — check back soon!</p>
@@ -27,8 +29,8 @@ export function WhatsOn({ channels }: WhatsOnProps): React.ReactElement {
   }
 
   return (
-    <section className={sectionStyles.section}>
-      <h2 className={sectionStyles.heading}>What's On</h2>
+    <section className={sectionStyles.section} style={itemUnitStyle("tv")}>
+      <h2 className={clsx(sectionStyles.heading, styles.voiceHeading)}>What's On</h2>
       <div
         className={styles.channelStrip}
         role="region"

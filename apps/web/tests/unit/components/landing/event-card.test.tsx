@@ -39,6 +39,26 @@ describe("EventCard", () => {
     // Date badge — June 15
     expect(screen.getByText("JUN")).toBeInTheDocument();
     expect(screen.getByText("15")).toBeInTheDocument();
+    expect(screen.getByRole("article")).toHaveAttribute("data-item-voice", "tv");
+  });
+
+  it("maps recording sessions to the studio unit and unknown types to parent", () => {
+    const { rerender } = render(
+      <EventCard
+        event={makeMockUpcomingEvent({ eventType: "recording-session" })}
+        reminded={false}
+      />,
+    );
+    expect(screen.getByRole("article")).toHaveAttribute("data-item-voice", "studio");
+    expect(screen.getByRole("article").getAttribute("style")).toContain(
+      "--item-unit-accent: var(--voice-studio-accent)",
+    );
+
+    rerender(
+      <EventCard event={makeMockUpcomingEvent({ eventType: "custom-type" })} reminded={false} />,
+    );
+    expect(screen.getByRole("article")).toHaveAttribute("data-item-voice", "parent");
+    expect(screen.getByRole("article").getAttribute("style") ?? "").not.toContain("--item-unit");
   });
 
   it("hides location element when location is empty", () => {

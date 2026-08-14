@@ -4,6 +4,7 @@ import { FileText } from "lucide-react";
 import type { FeedResponse } from "@snc/shared";
 
 import { ContentCard } from "../content/content-card.js";
+import { resolveContentItemVoice } from "../../lib/showcase-item-voice.js";
 import sectionStyles from "../../styles/landing-section.module.css";
 import styles from "./recent-content.module.css";
 
@@ -25,13 +26,20 @@ export function RecentContent({ items }: RecentContentProps): React.ReactElement
         <>
           {items.length > 0 && (
             <div className={styles.heroSlot}>
-              <ContentCard item={items[0]!} />
+              <ContentCard
+                item={items[0]!}
+                itemVoice={resolveContentItemVoice(items[0]!.type)}
+              />
             </div>
           )}
           {items.length > 1 && (
             <div className="content-grid">
               {items.slice(1).map((item) => (
-                <ContentCard key={item.id} item={item} />
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  itemVoice={resolveContentItemVoice(item.type)}
+                />
               ))}
             </div>
           )}

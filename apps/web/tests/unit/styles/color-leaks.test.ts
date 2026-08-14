@@ -67,12 +67,14 @@ const FIXED_EXPORT_COLOR_ALLOWLIST = new Map([
 ]);
 
 /*
- * Exact-path, fail-closed exemptions. The reserved signature-chip owner may consume only the
- * exact voice accent2 var() expressions checked below; it receives no raw-pigment exemption.
+ * Exact-path, fail-closed exemptions. The reserved signature-chip owner may consume only voice
+ * accent2; the showcase item mapper may consume only its three declared per-unit roles. Neither
+ * receives a raw-pigment exemption.
  */
 const SANCTIONED_SIGNATURE_CHIP_FILES = new Set([
   "components/brand/signature-chip.module.css",
 ]);
+const SHOWCASE_ITEM_VOICE_FILE = "lib/showcase-item-voice.ts";
 
 const SOURCE_EXTENSIONS = new Set([".css", ".ts", ".tsx"]);
 
@@ -269,9 +271,12 @@ function isExplicitlyAllowed(file: string, match: ColorMatch): boolean {
 }
 
 function isSanctionedDirectVoiceConsumer(path: string, token: string): boolean {
+  if (SANCTIONED_SIGNATURE_CHIP_FILES.has(path)) {
+    return /^--voice-(?:parent|studio|tv|records)-accent2$/.test(token);
+  }
   return (
-    SANCTIONED_SIGNATURE_CHIP_FILES.has(path) &&
-    /^--voice-(?:parent|studio|tv|records)-accent2$/.test(token)
+    path === SHOWCASE_ITEM_VOICE_FILE &&
+    /^--voice-(?:studio|tv|records)-(?:accent|accent-bg|on-accent)$/.test(token)
   );
 }
 
@@ -400,6 +405,8 @@ describe("authored color boundary", () => {
     expect(isSanctionedDirectVoiceConsumer("components/other.module.css", "--voice-parent-accent2")).toBe(
       false,
     );
+    expect(isSanctionedDirectVoiceConsumer(SHOWCASE_ITEM_VOICE_FILE, "--voice-tv-accent")).toBe(true);
+    expect(isSanctionedDirectVoiceConsumer(SHOWCASE_ITEM_VOICE_FILE, "--voice-parent-accent")).toBe(false);
 
     const rawSignatureMatch = findCssColorMatches(".chip { color: #fff; }").violations[0];
     expect(rawSignatureMatch).toBeDefined();

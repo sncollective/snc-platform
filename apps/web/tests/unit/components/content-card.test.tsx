@@ -42,6 +42,20 @@ describe("ContentCard", () => {
     );
   });
 
+  it("applies mapped item-unit properties only on showcase cards", () => {
+    const item = makeMockFeedItem({ type: "video" });
+
+    const { rerender } = render(<ContentCard item={item} itemVoice="tv" />);
+    expect(screen.getByRole("link")).toHaveAttribute("data-item-voice", "tv");
+    expect(screen.getByRole("link").getAttribute("style")).toContain(
+      "--item-unit-accent: var(--voice-tv-accent)",
+    );
+
+    rerender(<ContentCard item={item} itemVoice="parent" />);
+    expect(screen.getByRole("link")).toHaveAttribute("data-item-voice", "parent");
+    expect(screen.getByRole("link").getAttribute("style") ?? "").not.toContain("--item-unit");
+  });
+
   it("renders type badge with 'VIDEO' label for video items", () => {
     mockFormatRelativeDate.mockReturnValue("1d ago");
     const item = makeMockFeedItem({ type: "video" });

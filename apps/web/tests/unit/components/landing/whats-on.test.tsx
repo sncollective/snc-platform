@@ -51,6 +51,8 @@ describe("WhatsOn", () => {
 
     expect(screen.getByText("Channel One")).toBeInTheDocument();
     expect(screen.getByText("Channel Two")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What's On" }).closest("section")?.getAttribute("style"))
+      .toContain("--item-unit-accent: var(--voice-tv-accent)");
   });
 
   it("shows empty state for empty channels array", () => {
