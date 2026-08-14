@@ -1,7 +1,7 @@
 ---
 id: brand-voice-export-theming
 kind: feature
-stage: review
+stage: done
 tags: [design-system]
 parent: brand-voice-system
 depends_on: [brand-token-architecture]
@@ -437,3 +437,11 @@ and their API verification surfaces.
 - `bun run --filter @snc/api test:unit` — 126 files / 2,037 tests passed.
 - `bun run --filter @snc/api test:integration` — 12 files / 55 tests passed, including the
   conflicting-route computed-style and creator-decoration Chromium probe.
+
+### Closure (orchestrator, 2026-08-14)
+
+All three findings adjudicated receiver-confirmed material and fixed (`b41da14`): complete
+export alias set (links + all radius variants per voice), real-Chromium conflicting-route
+cascade test (Studio export wins over Records routing) + decoration-eligibility coverage,
+release-route rate limit with 429 coverage. Standard closure: one independent pass, all
+findings fixed and verified, no re-review. `review -> done`.
