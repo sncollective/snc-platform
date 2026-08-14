@@ -93,6 +93,21 @@ Full detail (evidence, proposals) in `brand-token-architecture` (child 1).
    in both modes (neutrals shared; accent+on-accent voice-internal). No new verification;
    no token-reference change.
 
+## Reference updates (2026-08-14, post-review)
+
+Org fixed the review-flagged value issues in place (reference re-published):
+- Dark Parent hover override added (`#8E9AAC` — was the light-hover inheritance bug, ~1.28:1
+  → 6.25:1).
+- Light success `#2A722E` (4.90:1), error `#B71C1C` (5.23:1); dark error `#FF7A70`, info
+  `#6FB3F0`.
+- **Dark status `-bg` values now OPAQUE** — host-independent, permitted on bg or elevated
+  (5.9–7.4:1). Platform's ask (a) delivered.
+- Verification-matrix contract: hover/disabled/tint composites are part of the reference
+  contract — mirrored in platform's contrast harness.
+- Links underline-by-default approved by org (part of in-situ link validation).
+
+Structure/naming untouched; values remain placeholders pending stakeholder sign-off.
+
 ## Status
 
 **Lineage:** realizes the planned `design-system-phase-6-theme-system` (per
