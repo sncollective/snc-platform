@@ -22,7 +22,7 @@
 }
 
 .value {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   color: var(--color-text);
 }
@@ -36,13 +36,13 @@
 }
 
 .unit {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
 .label {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }

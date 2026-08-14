@@ -8,7 +8,7 @@
 }
 
 .toggleButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   padding: var(--space-xs) var(--space-md);
   background: transparent;

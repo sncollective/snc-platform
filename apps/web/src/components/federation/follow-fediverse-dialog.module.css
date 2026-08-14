@@ -24,7 +24,7 @@
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
 }
 
@@ -43,10 +43,10 @@
 .followButton {
   padding: var(--space-sm) var(--space-md);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
@@ -72,7 +72,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;

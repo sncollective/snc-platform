@@ -88,14 +88,14 @@
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-2xl);
   line-height: 1.2;
   margin: 0;
 }
 
 .price {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--color-accent);

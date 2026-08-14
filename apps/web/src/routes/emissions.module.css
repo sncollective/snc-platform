@@ -69,7 +69,7 @@
 
 .summaryLabel {
   margin: 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -78,13 +78,13 @@
 
 .summaryValue {
   margin: var(--space-xs) 0;
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-3xl, 2rem);
 }
 
 .summaryMath {
   margin: 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -92,7 +92,7 @@
 /* ── Subsection Heading ── */
 
 .subsectionHeading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   margin: 0;
 }
@@ -112,7 +112,7 @@
 .entryTable {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
 }
 
@@ -164,7 +164,7 @@
 
 .methodologySummary {
   padding: var(--space-sm) var(--space-md);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: var(--font-size-base);
   cursor: pointer;
@@ -204,7 +204,7 @@
 .rateTable {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   margin: var(--space-sm) 0;
 }
@@ -229,8 +229,8 @@
   display: inline-block;
   margin-left: var(--space-xs);
   padding: 1px var(--space-xs);
-  background: var(--color-success);
-  color: var(--color-text-on-color);
+  background: var(--color-success-bg);
+  color: var(--color-success);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-weight: 600;

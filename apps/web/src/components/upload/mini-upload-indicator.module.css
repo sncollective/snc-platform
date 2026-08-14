@@ -8,7 +8,7 @@
   background: var(--color-bg-elevated);
   border-top: 1px solid var(--color-border);
   z-index: 200;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
 }
 
 /* ── Compact View ── */
@@ -40,7 +40,7 @@
 
 .cancelButton,
 .dismissButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   font-weight: 600;
   padding: var(--space-2xs) var(--space-sm);

@@ -29,7 +29,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-lg);
   line-height: 1.8;
   color: var(--color-text);
@@ -38,7 +38,7 @@
 /* ── Field Label (Edit Mode) ── */
 
 .fieldLabel {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -49,7 +49,7 @@
 /* ── Body Textarea (Edit Mode) ── */
 
 .bodyTextarea {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-lg);
   line-height: 1.8;
   color: var(--color-text);
@@ -104,7 +104,7 @@
 
 .uploadPlaceholderButton:hover {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .hiddenInput {
@@ -130,7 +130,7 @@
 }
 
 .replaceButton:hover {
-  background: var(--color-bg-alt);
+  background: var(--color-bg-elevated);
 }
 
 .removeButton {
@@ -144,8 +144,8 @@
 }
 
 .removeButton:hover {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 /* ── Locked Preview ── */

@@ -5,7 +5,7 @@
 }
 
 .backLink {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   text-decoration: none;
@@ -28,7 +28,7 @@
 }
 
 .completedBadge {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -39,8 +39,8 @@
 }
 
 .projectDescription {
-  font-family: var(--font-ui);
-  font-size: var(--font-size-md);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
   color: var(--color-text-muted);
   line-height: 1.5;
   margin: var(--space-sm) 0 0;
@@ -54,7 +54,7 @@
 
 .actionButton,
 .deleteButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   padding: 6px 16px;
   border-radius: var(--radius-sm);
@@ -75,7 +75,7 @@
 }
 
 .error {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-error);
   padding: var(--space-sm) var(--space-md);
@@ -97,14 +97,14 @@
 }
 
 .timelineHeading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   color: var(--color-text);
   margin: 0;
 }
 
 .addEventButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   padding: 6px 16px;
   border-radius: var(--radius-sm);
@@ -116,7 +116,7 @@
 
 .addEventButton:hover {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .formWrapper {

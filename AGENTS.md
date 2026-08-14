@@ -117,7 +117,21 @@ Research-grounded; full rationale + rejected alternatives in `.research/analysis
 
 **Docs:** See `.claude/rules/inline-documentation.md`.
 
-**CSS:** Design tokens via `var(--token-name)` from `global.css`. Only import your own `.module.css`.
+**CSS:** `global.css` imports the sole token entry, `tokens/index.css`; feature code imports only its
+own `.module.css`. Every token has one declaration owner under `apps/web/src/styles/tokens/**`, and
+all component/CSS-in-TSX color consumption uses semantic `var(--token-name)` roles in both modes.
+Classify ambiguity before choosing a role: **STATE** (focus, selected, generic hover, disabled,
+workflow state) uses shared state/status tokens; **IDENTITY** (CTA, prose link, emphasis,
+active navigation) uses route-resolved `--color-accent` / `--color-on-accent` aliases. Active tabs
+use selected background + structural cue; checked controls retain their native mark; workflow
+steps use selected/success/warning/error; active nav uses accent + current-page cue; destructive
+actions use error ink on paired error background. Generic components consume only route-resolved
+color/radius/font aliases, never raw `--voice-*`; only the owning signature chip may use its
+voice's `accent2`. Prose links are underlined by default; structural nav/chrome is the exception.
+Raw colors are fail-closed to token definitions, Simple Icons vendor identity data, validated
+runtime creator-brand injection, and the sanctioned signature-chip owner. `transparent` and
+`currentColor` are semantic keywords. The CSS + CSS-in-TSX boundary is enforced by
+`apps/web/tests/unit/styles/color-leaks.test.ts`; add a semantic owner rather than an exemption.
 
 ## Docker Networking
 

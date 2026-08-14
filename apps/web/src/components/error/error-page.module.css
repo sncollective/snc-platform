@@ -18,7 +18,7 @@
 }
 
 .statusCode {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: 4rem;
   font-weight: 700;
   color: var(--color-text-muted);
@@ -49,10 +49,10 @@
   align-items: center;
   padding: var(--space-sm) var(--space-lg);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
@@ -61,7 +61,7 @@
 
 .primaryButton:hover {
   background: var(--color-accent-hover);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .primaryButton:disabled {
@@ -77,7 +77,7 @@
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;

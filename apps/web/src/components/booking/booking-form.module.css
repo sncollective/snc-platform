@@ -14,7 +14,7 @@
 /* ── Service Heading ── */
 
 .serviceName {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   color: var(--color-text);
   margin: 0;
@@ -76,7 +76,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-accent);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
@@ -109,7 +109,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;

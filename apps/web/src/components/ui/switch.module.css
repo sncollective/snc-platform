@@ -27,7 +27,7 @@
 .thumb {
   width: 18px;
   height: 18px;
-  background: var(--color-text-on-color);
+  background: var(--color-on-accent);
   border-radius: var(--radius-circle);
   position: absolute;
   top: 2px;

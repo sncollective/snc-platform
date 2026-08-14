@@ -53,5 +53,5 @@
 
 .linkLabel {
   font-size: var(--font-size-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
 }

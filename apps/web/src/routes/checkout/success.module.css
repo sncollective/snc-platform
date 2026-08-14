@@ -42,7 +42,7 @@
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   text-decoration: none;
   transition: border-color 0.15s, color 0.15s;

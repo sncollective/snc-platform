@@ -17,14 +17,14 @@
 /* ── Data Lines ── */
 
 .actualLine {
-  stroke: var(--legacy-public-chart-emissions-actual);
+  stroke: var(--color-chart-1);
   stroke-width: 1.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .projectedLine {
-  stroke: var(--legacy-public-chart-emissions-projected);
+  stroke: var(--color-chart-1);
   stroke-width: 1.5;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -32,36 +32,36 @@
 }
 
 .offsetDot {
-  fill: var(--legacy-public-chart-emissions-offset);
+  fill: var(--color-chart-2);
 }
 
 .offsetLabel {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: 8px;
-  fill: var(--legacy-public-chart-emissions-offset);
+  fill: var(--color-chart-2);
 }
 
 .netLinePositive {
-  stroke: var(--legacy-public-chart-emissions-net-positive);
+  stroke: var(--color-error);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 
 .netLineNegative {
-  stroke: var(--legacy-public-chart-emissions-net-negative);
+  stroke: var(--color-success);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 
 .projectedNetPositive {
-  stroke: var(--legacy-public-chart-emissions-net-positive);
+  stroke: var(--color-error);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 2 4;
 }
 
 .projectedNetNegative {
-  stroke: var(--legacy-public-chart-emissions-net-negative);
+  stroke: var(--color-success);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 2 4;
@@ -76,14 +76,14 @@
 }
 
 .dot:hover {
-  fill: var(--legacy-public-chart-emissions-point);
+  fill: var(--color-chart-1);
   r: 5;
 }
 
 /* ── Grid ── */
 
 .gridline {
-  stroke: var(--color-border);
+  stroke: var(--color-chart-grid);
   stroke-width: 0.5;
   stroke-dasharray: 4 4;
 }
@@ -97,7 +97,7 @@
 /* ── Axis Labels ── */
 
 .axisLabel {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: 10px;
   fill: var(--color-text-muted);
 }
@@ -105,15 +105,15 @@
 /* ── Tooltip ── */
 
 .tooltipBg {
-  fill: var(--color-bg);
-  stroke: var(--color-border);
+  fill: var(--color-chart-tooltip-bg);
+  stroke: var(--color-chart-grid);
   stroke-width: 1;
 }
 
 .tooltipText {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: 9px;
-  fill: var(--color-text);
+  fill: var(--color-chart-tooltip-text);
 }
 
 /* ── Legend ── */
@@ -129,7 +129,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
@@ -146,14 +146,14 @@
 }
 
 .actualSwatch {
-  background: var(--legacy-public-chart-emissions-actual);
+  background: var(--color-chart-1);
 }
 
 .projectedSwatch {
   background-image: repeating-linear-gradient(
     90deg,
-    var(--legacy-public-chart-emissions-projected) 0,
-    var(--legacy-public-chart-emissions-projected) 2px,
+    var(--color-chart-1) 0,
+    var(--color-chart-1) 2px,
     transparent 2px,
     transparent 6px
   );
@@ -163,14 +163,14 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--legacy-public-chart-emissions-offset);
+  background: var(--color-chart-2);
 }
 
 .netSwatch {
   background: linear-gradient(
     90deg,
-    var(--legacy-public-chart-emissions-net-negative),
-    var(--legacy-public-chart-emissions-net-positive)
+    var(--color-success),
+    var(--color-error)
   );
 }
 
@@ -184,8 +184,8 @@
   ),
   linear-gradient(
     90deg,
-    var(--legacy-public-chart-emissions-net-negative),
-    var(--legacy-public-chart-emissions-net-positive)
+    var(--color-success),
+    var(--color-error)
   );
 }
 
@@ -210,7 +210,7 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
 }

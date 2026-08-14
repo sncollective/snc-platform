@@ -17,7 +17,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;

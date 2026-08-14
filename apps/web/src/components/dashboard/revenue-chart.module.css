@@ -32,7 +32,7 @@
 
 .bar {
   width: 100%;
-  background: var(--legacy-public-chart-revenue-bar);
+  background: var(--color-chart-1);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: background-color 0.15s;
   cursor: default;
@@ -40,7 +40,7 @@
 }
 
 .bar:hover {
-  background: var(--legacy-public-chart-revenue-bar-hover);
+  background: var(--color-chart-2);
 }
 
 /* ── Tooltip ── */
@@ -52,12 +52,12 @@
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-xs) var(--space-sm);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: var(--color-chart-tooltip-bg);
+  border: 1px solid var(--color-chart-grid);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
-  color: var(--color-text);
+  color: var(--color-chart-tooltip-text);
   white-space: nowrap;
   pointer-events: none;
   margin-bottom: var(--space-xs);
@@ -70,7 +70,7 @@
 /* ── Month Label ── */
 
 .monthLabel {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
 }

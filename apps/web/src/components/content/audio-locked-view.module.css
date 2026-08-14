@@ -36,7 +36,7 @@
 /* ── Locked Text ── */
 
 .lockedText {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-muted);

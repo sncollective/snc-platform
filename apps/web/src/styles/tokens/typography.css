@@ -1,17 +1,7 @@
 /* ── Typography Tokens ── */
 
 :root {
-  /* Font families */
-  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
-  --font-heading: Georgia, "Times New Roman", serif;
-
-  /*
-   * The legacy --font-ui/--font-heading aliases above remain until alias
-   * migration. Route-resolved voice sources use the self-hosted Fontsource
-   * family names. Variable Fontsource packages publish the `Variable` suffix
-   * as their actual @font-face family name; the remaining entries are the
-   * exact fallback stacks from the approved font manifest.
-   */
+  /* Route-resolved aliases live in voices/resolution.css. These are their sources. */
   --font-body-parent: "Source Sans 3 Variable", Arial, sans-serif;
   --font-display-parent: "Source Sans 3 Variable", Arial, sans-serif;
   --font-body-studio: "Newsreader Variable", Georgia, "Times New Roman", serif;
@@ -52,9 +42,4 @@
   --letter-spacing-tight: -0.01em;
   --letter-spacing-normal: 0;
   --letter-spacing-wide: 0.025em;
-
-  /* ── Missing token (referenced but never defined) ── */
-
-  /* Used by: project detail pages */
-  --font-size-md: var(--font-size-base);
 }

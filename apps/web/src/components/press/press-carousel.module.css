@@ -8,7 +8,7 @@
   display: block;
   margin: 0 0 var(--space-md);
   color: var(--color-accent);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: .16em;

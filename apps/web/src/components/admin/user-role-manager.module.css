@@ -43,7 +43,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
 }
 
 .removeRole {
@@ -80,7 +80,7 @@
   background: var(--color-bg);
   color: var(--color-text);
   font-size: var(--font-size-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
 }
 
 .addButton {
@@ -90,13 +90,13 @@
   background: transparent;
   color: var(--color-accent);
   font-size: var(--font-size-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   cursor: pointer;
 }
 
 .addButton:hover {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .addButton:disabled {

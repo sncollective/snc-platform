@@ -1,7 +1,7 @@
 /* ── Content Metadata Header ── */
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-2xl);
   line-height: 1.2;
 }

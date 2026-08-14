@@ -15,8 +15,8 @@
   border-radius: var(--radius-sm);
   border: none;
   background: var(--color-accent);
-  color: var(--color-bg);
-  font-family: var(--font-ui);
+  color: var(--color-on-accent);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
@@ -48,7 +48,7 @@
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-muted);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
 }
@@ -59,7 +59,7 @@
 }
 
 .monthLabel {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   color: var(--color-text);
   min-width: 180px;
@@ -77,7 +77,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
 }
 

@@ -13,14 +13,14 @@
 /* ── Text ── */
 
 .label {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin: 0;
 }
 
 .value {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-3xl);
   color: var(--color-text);
   margin: 0;
@@ -28,7 +28,7 @@
 }
 
 .sublabel {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin: 0;

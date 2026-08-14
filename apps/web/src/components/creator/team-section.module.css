@@ -7,7 +7,7 @@
 }
 
 .heading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   margin: 0;
 }
@@ -172,7 +172,7 @@
   color: var(--color-error);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   cursor: pointer;
   transition: background 0.15s;
@@ -196,7 +196,7 @@
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   white-space: nowrap;

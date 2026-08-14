@@ -48,7 +48,7 @@
 /* ── Media Unavailable ── */
 
 .mediaUnavailableText {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
   font-style: italic;
@@ -83,7 +83,7 @@
 
 .uploadPlaceholderButton:hover {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .hiddenInput {
@@ -109,7 +109,7 @@
 }
 
 .replaceButton:hover {
-  background: var(--color-bg-alt);
+  background: var(--color-bg-elevated);
 }
 
 .removeButton {
@@ -123,8 +123,8 @@
 }
 
 .removeButton:hover {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 /* ── Desktop: row layout + larger cover art ── */

@@ -13,7 +13,7 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-dropdown);
+  box-shadow: var(--shadow-md);
   border-color: var(--color-accent);
 }
 
@@ -46,7 +46,7 @@
   left: var(--space-sm);
   padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -96,7 +96,7 @@
 }
 
 .title {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   font-weight: 600;
   line-height: 1.4;

@@ -10,7 +10,7 @@
 }
 
 .trigger:hover {
-  color: var(--color-primary);
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
@@ -47,8 +47,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,8 +142,8 @@
 }
 
 .banButton:hover:not(:disabled) {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .banButton:disabled {
@@ -153,19 +153,19 @@
 
 .unbanButton {
   padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-success, var(--color-primary));
+  border: 1px solid var(--color-success);
   border-radius: var(--radius-sm);
   background: none;
   font-size: var(--font-size-xs);
-  color: var(--color-success, var(--color-primary));
+  color: var(--color-success);
   cursor: pointer;
   transition: background var(--duration-fast, 150ms) var(--ease-out, ease-out),
     color var(--duration-fast, 150ms) var(--ease-out, ease-out);
 }
 
 .unbanButton:hover:not(:disabled) {
-  background: var(--color-success, var(--color-primary));
-  color: var(--color-bg);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .unbanButton:disabled {
@@ -192,9 +192,9 @@
   padding: var(--space-xs) var(--space-sm);
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--color-error);
+  background: var(--color-error-bg);
   font-size: var(--font-size-xs);
-  color: var(--color-bg);
+  color: var(--color-error);
   cursor: pointer;
 }
 
@@ -207,9 +207,9 @@
   padding: var(--space-xs) var(--space-sm);
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--color-success, var(--color-primary));
+  background: var(--color-success-bg);
   font-size: var(--font-size-xs);
-  color: var(--color-bg);
+  color: var(--color-success);
   cursor: pointer;
 }
 

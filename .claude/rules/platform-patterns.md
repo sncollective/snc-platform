@@ -29,6 +29,65 @@ One line per pattern. Read the linked file for full details and code examples.
 - **zod-mini-form-validation**: Module-level `zod/mini` schema + `useState` per field + `validate()` callback + `extractFieldErrors()` + `isSubmitting` gate → [zod-mini-form-validation.md]
 - **vi-hoisted-module-mock**: `vi.hoisted()` lifts mock fns before `vi.mock()` factories; component imported after all mocks; `beforeEach` sets defaults, `afterEach` restores → [vi-hoisted-module-mock.md]
 
+## Frontend / Brand Token Spine and Voice
+
+Platform UI uses a neutral, mode-aware product spine plus route-resolved voice identity. Token
+composition has one entry (`apps/web/src/styles/tokens/index.css`), and every custom property has
+exactly one declaration owner under that directory. Feature styles consume semantic roles; they do
+not create raw pigments, import token fragments, or assume dark mode.
+
+### Choose the role before the value
+
+Classify ambiguous color use as **STATE** or **IDENTITY**:
+
+| ambiguous control | classification | token recipe |
+|---|---|---|
+| active tab | STATE (shared) | `--color-selected-bg` + ordinary text/border; keep a structural selected cue |
+| checked checkbox/radio/switch | STATE (shared) | selected/focus/disabled roles plus the native mark or icon |
+| current workflow step | STATE (shared) | selected role; completed → success, pending/blocked → warning, failed → error |
+| active navigation item | IDENTITY (breathes) | route `--color-accent` plus a structural/current-page cue |
+| destructive action | STATE/functional (shared) | `--color-error` ink + opaque `--color-error-bg`; never voice accent |
+
+Focus, selection, generic hover, and disabled treatment are shared state. CTAs, prose links,
+emphasis, and active navigation are identity and breathe with the effective route voice. Statuses,
+content categories, neutral surfaces, media foregrounds, and chart series stay shared or in their
+own semantic families; they never borrow a voice merely because its hue is convenient. Semantic
+good/bad chart series may use success/error only when that meaning is real; categorical public
+series use `--color-chart-1`…`--color-chart-6`, while internal/admin series use
+`--color-data-1`…`--color-data-6`.
+
+### Consumption boundary
+
+Generic components consume route-resolved aliases only:
+`--color-accent`, `--color-on-accent`, `--color-accent-hover`, `--color-accent-bg`,
+`--color-accent-subtle`, `--radius` and its derived scale, `--font-body`, and `--font-display`.
+Never consume raw `--voice-*` properties. The sole exception is the owning signature-chip
+component, which may consume its voice's `--voice-<name>-accent2` for Parent `MEMBER-OWNED`,
+Studio `24·96`, TV `● LIVE`, or Records `A1`; that exception does not extend to buttons, links,
+statuses, charts, or generic decoration. `--font-mono`, type scale/weights, and circle/pill geometry
+remain shared.
+
+Prose and inline links use `--color-link` / `--color-link-hover` and remain underlined by default.
+Structural navigation, tabs, and chrome may omit the underline only when position, shape, and
+current-page semantics identify the control without color. Color is never the only route, status,
+or category signal.
+
+### Raw-color boundary
+
+`apps/web/tests/unit/styles/color-leaks.test.ts` scans authored CSS and CSS-in-TSX for hex,
+`rgb(a)`, `hsl(a)`, named pigments, and modern color functions. Its explicit, fail-closed
+allowlist is limited to:
+
+- literal definitions in `apps/web/src/styles/tokens/**` (one owner per token);
+- vendor identity colors derived from Simple Icons in `components/social-links/platform-icon.tsx`;
+- validated runtime creator-brand injection in
+  `routes/creators/$creatorId/manage/-press-editor.tsx`, paired with the creator contrast contract;
+- the reserved owning signature-chip stylesheet (voice `accent2` only; no generic reuse);
+- `transparent` and `currentColor`, which are semantic CSS keywords rather than pigments.
+
+All other feature/component CSS and inline styles use semantic `var(--…)` roles. Add a semantic
+owner instead of broadening an exemption. Compatibility bridges and aliases are not permitted.
+
 ## Content Feed & Media Playback
 - **react-context-reducer-provider**: Separate State/Actions/ContextValue interfaces + exported pure reducer + INITIAL_STATE for testability; Provider bridges DOM ref via useMemo actions + Web Audio API (lazy AudioContext/GainNode for smooth volume); null-guard consumer hook → [react-context-reducer-provider.md]
 - **content-type-dispatch**: `Record<FeedItem["type"], T>` constants for exhaustive per-variant values (labels, CSS); inline `{item.type === "X" && <XVariant />}` dispatch; each variant receives shared FeedItem and extracts its own fields → [content-type-dispatch.md]

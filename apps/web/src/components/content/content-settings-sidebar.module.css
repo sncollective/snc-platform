@@ -20,7 +20,7 @@
 }
 
 .sectionHeading {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   text-transform: uppercase;
@@ -39,7 +39,7 @@
 /* ── Inputs ── */
 
 .titleInput {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
@@ -51,7 +51,7 @@
 }
 
 .descriptionInput {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
@@ -87,7 +87,7 @@
 /* ── Visibility Select ── */
 
 .visibilitySelect {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
@@ -133,11 +133,11 @@
 }
 
 .publishButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   font-weight: 700;
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
@@ -156,7 +156,7 @@
 }
 
 .unpublishButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   background: transparent;
   color: var(--color-text-muted);
@@ -207,11 +207,11 @@
 }
 
 .confirmButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-md);
@@ -224,7 +224,7 @@
 }
 
 .cancelButton {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   background: transparent;
   color: var(--color-text-muted);

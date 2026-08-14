@@ -1,8 +1,10 @@
-/* ── Internal Data-Series Roles ── */
+/* ── Data-Series Roles ── */
 
 /*
- * Platform-owned, internal/admin-only series. Public charts must not consume
- * this palette; their temporary bridge lands with the leak-cleanup checkpoint.
+ * --color-data-* is platform-owned and internal/admin-only.
+ * --color-chart-* is org-constrained and public-facing (emissions, revenue, member data).
+ * Semantic good/bad chart series may use --color-success/--color-error when the meaning is
+ * genuinely status-like; categorical series use only the chart palette.
  */
 :root,
 [data-theme="light"] {
@@ -12,6 +14,16 @@
   --color-data-4: #4F7870;
   --color-data-5: #895D69;
   --color-data-6: #687340;
+
+  --color-chart-1: #53439B;
+  --color-chart-2: #A87800;
+  --color-chart-3: #3F5E7E;
+  --color-chart-4: #7E3E78;
+  --color-chart-5: #77701C;
+  --color-chart-6: #A96543;
+  --color-chart-grid: #E5DFD4;
+  --color-chart-tooltip-bg: #FAF7F1;
+  --color-chart-tooltip-text: #1A1714;
 }
 
 [data-theme="dark"] {
@@ -21,6 +33,16 @@
   --color-data-4: #7BA69D;
   --color-data-5: #B58693;
   --color-data-6: #99A56E;
+
+  --color-chart-1: #9D8FE8;
+  --color-chart-2: #E8C24A;
+  --color-chart-3: #7FA3CC;
+  --color-chart-4: #C48EDC;
+  --color-chart-5: #C9C25E;
+  --color-chart-6: #E0A184;
+  --color-chart-grid: #26303F;
+  --color-chart-tooltip-bg: #1C242F;
+  --color-chart-tooltip-text: #E8ECF2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +53,16 @@
     --color-data-4: #7BA69D;
     --color-data-5: #B58693;
     --color-data-6: #99A56E;
+
+    --color-chart-1: #9D8FE8;
+    --color-chart-2: #E8C24A;
+    --color-chart-3: #7FA3CC;
+    --color-chart-4: #C48EDC;
+    --color-chart-5: #C9C25E;
+    --color-chart-6: #E0A184;
+    --color-chart-grid: #26303F;
+    --color-chart-tooltip-bg: #1C242F;
+    --color-chart-tooltip-text: #E8ECF2;
   }
 }
 
@@ -47,19 +79,4 @@
   --color-calendar-span-bg: color-mix(in srgb, var(--color-data-2) 25%, transparent);
   --color-calendar-span-border: color-mix(in srgb, var(--color-data-2) 40%, transparent);
   --color-calendar-span-hover-bg: color-mix(in srgb, var(--color-data-2) 40%, transparent);
-
-  /*
-   * Lint exemption owner: brand-token-architecture.
-   * Expiry: org public-chart palette delivery.
-   * These fixed aliases preserve the public charts' pre-migration palette. Public charts
-   * must use only this bridge until org supplies the replacement palette.
-   */
-  --legacy-public-chart-emissions-actual: #F5A623;
-  --legacy-public-chart-emissions-projected: var(--legacy-public-chart-emissions-actual);
-  --legacy-public-chart-emissions-offset: #5BB5B5;
-  --legacy-public-chart-emissions-net-positive: #EF5350;
-  --legacy-public-chart-emissions-net-negative: #4CAF50;
-  --legacy-public-chart-emissions-point: var(--legacy-public-chart-emissions-actual);
-  --legacy-public-chart-revenue-bar: #F5A623;
-  --legacy-public-chart-revenue-bar-hover: #E09510;
 }

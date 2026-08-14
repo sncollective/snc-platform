@@ -38,7 +38,7 @@
 }
 
 .sectionHeading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   margin: 0;
 }
@@ -86,7 +86,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -256,7 +256,7 @@
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -264,7 +264,7 @@
 
 .playNextButton:hover:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .playNextButton:disabled {
@@ -278,15 +278,15 @@
   color: var(--color-error);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .deleteButton:hover {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .retryButton {
@@ -295,7 +295,7 @@
   color: var(--color-warning);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -303,8 +303,8 @@
 }
 
 .retryButton:hover {
-  background: var(--color-warning);
-  color: var(--color-bg);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 /* ── Broadcast Section ── */
@@ -346,7 +346,7 @@
 }
 
 .connReconnecting {
-  color: var(--color-muted);
+  color: var(--color-text-muted);
 }
 
 .connDot {
@@ -386,18 +386,18 @@
 }
 
 .statusOffline {
-  color: var(--color-muted);
+  color: var(--color-text-muted);
 }
 
 .viewerCount {
-  color: var(--color-muted);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .nowPlaying {
   margin-top: var(--space-sm);
   font-size: var(--font-size-sm);
-  color: var(--color-muted);
+  color: var(--color-text-muted);
 }
 
 /* ── Add Film Form ── */
@@ -423,7 +423,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -458,9 +458,9 @@
   align-items: center;
   padding: var(--space-sm) var(--space-md);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   font-weight: 600;
   cursor: pointer;
@@ -522,7 +522,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
   transition: color 0.15s, border-color 0.15s;
@@ -643,7 +643,7 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text);
   box-sizing: border-box;
@@ -705,7 +705,7 @@
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
@@ -714,7 +714,7 @@
 
 .addButton:hover {
   background: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-on-accent);
 }
 
 /* ── Delete Channel Button ── */
@@ -725,7 +725,7 @@
   color: var(--color-error);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
@@ -734,8 +734,8 @@
 }
 
 .deleteChannelButton:hover:not(:disabled) {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .deleteChannelButton:disabled {

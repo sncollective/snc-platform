@@ -9,14 +9,14 @@
 }
 
 .heading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   color: var(--color-text);
   margin: 0;
 }
 
 .description {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin: 0;
@@ -43,7 +43,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
 }
 
@@ -53,7 +53,7 @@
   border: 1px solid var(--color-accent);
   background: transparent;
   color: var(--color-accent);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   white-space: nowrap;
@@ -64,7 +64,7 @@
 }
 
 .noToken {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin: 0;
@@ -77,7 +77,7 @@
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-muted);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
 }

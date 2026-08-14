@@ -111,7 +111,7 @@
 .actions button:last-child {
   border-color: var(--color-accent);
   background: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-on-accent);
 }
 
 @media (max-width: 560px) {

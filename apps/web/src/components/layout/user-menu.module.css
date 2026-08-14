@@ -19,7 +19,7 @@
 
 .signupLink {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   font-size: var(--font-size-sm);
   font-weight: 600;
   padding: var(--space-xs) var(--space-md);
@@ -29,7 +29,7 @@
 
 .signupLink:hover {
   background: var(--color-accent-hover);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 /* ── Avatar Skeleton ── */
@@ -61,7 +61,7 @@
   height: 36px;
   border-radius: 50%;
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   font-size: var(--font-size-sm);
   font-weight: 600;
   user-select: none;

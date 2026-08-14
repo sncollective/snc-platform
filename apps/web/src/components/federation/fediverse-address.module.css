@@ -36,7 +36,7 @@
   color: var(--color-text-muted);
   border: none;
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: inherit;
   cursor: pointer;
   transition: color 0.15s;

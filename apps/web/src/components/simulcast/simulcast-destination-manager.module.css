@@ -37,7 +37,7 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-muted);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
 }
 
 .formRow input,
@@ -47,7 +47,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
 }
 
@@ -105,7 +105,7 @@
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
@@ -114,7 +114,7 @@
 
 .addButton:hover:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .addButton:disabled {
@@ -125,10 +125,10 @@
 .saveButton {
   padding: var(--space-xs) var(--space-md);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
@@ -150,7 +150,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -168,7 +168,7 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -186,15 +186,15 @@
   color: var(--color-error);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .deleteButton:hover {
-  background: var(--color-error);
-  color: var(--color-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 /* ── Empty State ── */

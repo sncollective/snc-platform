@@ -8,8 +8,6 @@ const GLOBAL_CSS = resolve(import.meta.dirname, "../../../src/styles/global.css"
 const ROOT_ROUTE = resolve(import.meta.dirname, "../../../src/routes/__root.tsx");
 
 const COMPOSED_TOKEN_FILES = [
-  "color.css",
-  "legacy/radius.css",
   "fonts.css",
   "color/spine.css",
   "color/status.css",
@@ -31,9 +29,7 @@ const COMPOSED_TOKEN_FILES = [
   "breakpoints.css",
 ] as const;
 
-const CANONICAL_OWNER_FILES = COMPOSED_TOKEN_FILES.filter(
-  (file) => file !== "color.css" && !file.startsWith("legacy/"),
-);
+const CANONICAL_OWNER_FILES = COMPOSED_TOKEN_FILES;
 
 const MODE_FILES = [
   "color/spine.css",
@@ -106,15 +102,13 @@ describe("design token composition", () => {
     }
   });
 
-  it("loads transitional vocabulary before canonical role owners", () => {
+  it("does not compose transitional vocabulary", () => {
     const index = readTokenFile("index.css");
 
-    expect(index.indexOf('@import "./color.css"')).toBeLessThan(
-      index.indexOf('@import "./color/spine.css"'),
-    );
-    expect(index.indexOf('@import "./color.css"')).toBeLessThan(
-      index.indexOf('@import "./color/status.css"'),
-    );
+    expect(index).not.toContain('@import "./color.css"');
+    expect(index).not.toContain("legacy/");
+    expect(existsSync(resolve(TOKENS_DIR, "color.css"))).toBe(false);
+    expect(existsSync(resolve(TOKENS_DIR, "legacy"))).toBe(false);
   });
 
   it("gives first-paint appearance ownership to the bootstrap before HeadContent", () => {

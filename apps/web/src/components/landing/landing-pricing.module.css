@@ -69,7 +69,7 @@
   display: block;
   text-align: center;
   margin-top: var(--space-lg);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-accent);
   text-decoration: none;

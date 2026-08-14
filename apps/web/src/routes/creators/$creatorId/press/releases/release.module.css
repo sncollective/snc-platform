@@ -39,13 +39,13 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   font-weight: 700;
 }
 
 .download:hover {
   background: var(--color-accent-hover);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .metadata {

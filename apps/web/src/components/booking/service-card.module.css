@@ -19,14 +19,14 @@
 }
 
 .name {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   color: var(--color-text);
   margin: 0;
 }
 
 .description {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
   line-height: 1.6;
@@ -34,7 +34,7 @@
 }
 
 .pricing {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-accent);

@@ -22,7 +22,7 @@
 
 .titleRow h1 {
   margin: var(--space-xs) 0;
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: clamp(1.65rem, 1.4rem + 0.8vw, 2rem);
   line-height: 1.15;
 }
@@ -86,7 +86,7 @@
 }
 
 .libraryTitle h2 {
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
 }
 

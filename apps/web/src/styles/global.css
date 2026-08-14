@@ -32,7 +32,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -47,7 +47,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   line-height: 1.2;
 }
 
@@ -142,9 +142,9 @@ a:hover {
   z-index: 1000;
   padding: var(--space-sm) var(--space-md);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-radius: var(--radius-sm);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: var(--font-size-sm);
   text-decoration: none;

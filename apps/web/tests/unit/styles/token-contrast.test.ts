@@ -54,6 +54,7 @@ function tokensForMode(mode: Mode): Map<string, string> {
     ...modeDeclarations("color/state.css", mode),
     ...modeDeclarations("color/badges.css", mode),
     ...rootDeclarations("color/badges.css"),
+    ...modeDeclarations("color/data.css", mode),
     ...modeDeclarations("voices/families.css", mode),
   ]);
 }
@@ -245,6 +246,58 @@ describe("brand token contrast matrix", () => {
         const background = color(tokens, `--voice-${voice}-${role}`);
         expect(contrast(foreground, background), `${voice} ${role}`).toBeGreaterThanOrEqual(4.5);
       }
+
+      const accent = color(tokens, `--voice-${voice}-accent`);
+      for (const hostName of HOST_SURFACES) {
+        const host = color(tokens, hostName);
+        expect(contrast(accent, host), `${voice} accent on ${hostName}`).toBeGreaterThanOrEqual(4.5);
+
+        const subtle = composite(color(tokens, `--voice-${voice}-accent-subtle`), host);
+        expect(
+          contrast(accent, subtle),
+          `${voice} accent on subtle over ${hostName}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it.each(MODES)("keeps every %s public chart series distinguishable from chart hosts", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (let series = 1; series <= 6; series += 1) {
+      const seriesColor = color(tokens, `--color-chart-${series}`);
+      for (const hostName of [...HOST_SURFACES, "--color-chart-tooltip-bg"] as const) {
+        expect(
+          contrast(seriesColor, color(tokens, hostName)),
+          `chart ${series} on ${hostName}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
+    }
+
+    expect(
+      contrast(
+        color(tokens, "--color-chart-tooltip-text"),
+        color(tokens, "--color-chart-tooltip-bg"),
+      ),
+      "chart tooltip text",
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("keeps fixed output preview roles invariant across UI modes", () => {
+    const preview = rootDeclarations("color/preview.css");
+    const content = readTokenFile("color/preview.css");
+
+    expect(content).not.toMatch(/data-theme|prefers-color-scheme/);
+    expect(Object.fromEntries(preview)).toEqual({
+      "--preview-light-paper": "#F6F0E7",
+      "--preview-light-ink": "#1A1A2E",
+      "--preview-dark-paper": "#171725",
+      "--preview-dark-ink": "#DDD8CE",
+    });
+    for (const mode of MODES) {
+      expect(Object.fromEntries(rootDeclarations("color/preview.css")), mode).toEqual(
+        Object.fromEntries(preview),
+      );
     }
   });
 });

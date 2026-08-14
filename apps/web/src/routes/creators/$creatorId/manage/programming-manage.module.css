@@ -18,7 +18,7 @@
 }
 
 .setupHeading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   font-weight: 600;
   margin: 0;
@@ -27,7 +27,7 @@
 .setupLink {
   padding: var(--space-md) var(--space-lg);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 500;

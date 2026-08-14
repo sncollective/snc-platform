@@ -10,7 +10,7 @@
   --rdp-day-width: 32px;
   --rdp-day_button-border-radius: var(--radius-sm);
 
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   color: var(--color-text);
 }
@@ -54,7 +54,7 @@
 /* Day buttons */
 .popover :global(.rdp-day_button) {
   color: var(--color-text);
-  font-family: var(--font-ui);
+  font-family: var(--font-body);
   font-size: var(--font-size-sm);
   border: none;
   cursor: pointer;
@@ -67,7 +67,7 @@
 /* Selected day */
 .popover :global(.rdp-selected .rdp-day_button) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 

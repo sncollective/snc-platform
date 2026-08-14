@@ -1,5 +1,5 @@
 .heading {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--font-size-2xl);
   margin: 0;
 }
