@@ -1,7 +1,7 @@
 ---
 id: showcase-voice-presence
 kind: feature
-stage: review
+stage: done
 tags: [design-system, ui]
 parent: null
 depends_on: [voice-route-qa-fixes]  # done 541f8b8
@@ -163,3 +163,11 @@ confirm, attribution data model.
   style boundary to its sole production consumer, `--item-unit-accent`.
 - **Final verification:** `bun run --filter @snc/web test` — 197 files / 2057 tests passed;
   `bun run --filter @snc/web build` — passed with existing third-party `use client` warnings only.
+
+### Closure (orchestrator, 2026-08-14)
+
+Standard closure after one independent cross-model pass (GLM-5.2 host → GPT-5.6 Sol fresh
+context): verdict needs-fixes → blocker (D badge-border voice) + 2 important (harness
+completeness, evidence supersession) + 2 nits all fixed in `f549d64`; 2,057 tests + build
+green. Rejected proposals recorded (unit titles, accent2 showcase chip, showcase accent
+boundary). `review -> done`.
