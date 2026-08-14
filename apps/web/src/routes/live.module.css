@@ -53,7 +53,7 @@
   left: 0;
   right: 340px;
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(to bottom, var(--color-overlay-dark), transparent);
+  background: linear-gradient(to bottom, var(--color-overlay-strong), transparent);
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -70,12 +70,12 @@
 .theaterChannelName {
   font-weight: 600;
   font-size: var(--font-size-sm);
-  color: white;
+  color: var(--color-on-media);
 }
 
 .theaterViewerCount {
   font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-on-media-muted);
 }
 
 /* ── Chat Toggle Tab (unified collapse/expand button, top-right of player) ── */

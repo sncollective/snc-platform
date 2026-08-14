@@ -54,17 +54,20 @@
 }
 
 .badgeVideo {
-  background: var(--color-badge-video-bg);
-  color: var(--color-bg);
+  border: 1px solid var(--color-badge-video);
+  background: var(--color-badge-video-tint);
+  color: var(--color-text);
 }
 
 .badgeAudio {
-  background: var(--color-badge-audio-bg);
-  color: var(--color-bg);
+  border: 1px solid var(--color-badge-audio);
+  background: var(--color-badge-audio-tint);
+  color: var(--color-text);
 }
 
 .badgeWritten {
-  background: var(--color-badge-written-bg);
+  border: 1px solid var(--color-badge-written);
+  background: var(--color-badge-written-tint);
   color: var(--color-text);
 }
 
@@ -79,7 +82,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--overlay-lock);
+  background: var(--color-overlay-strong);
   border-radius: 50%;
 }
 

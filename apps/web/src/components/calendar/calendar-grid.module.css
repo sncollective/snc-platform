@@ -78,8 +78,8 @@
   font-size: var(--font-size-xs);
   padding: 1px 4px;
   border-radius: 2px;
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-event-recording-bg);
+  color: var(--color-data-1);
   border: none;
   cursor: pointer;
   text-align: left;
@@ -91,7 +91,7 @@
 }
 
 .eventPill:hover {
-  background: rgba(245, 166, 35, 0.3);
+  background: var(--color-event-recording-hover-bg);
 }
 
 .spanBar {
@@ -101,9 +101,9 @@
   font-size: var(--font-size-xs);
   padding: 1px 6px;
   border-radius: 3px;
-  background: rgba(91, 181, 181, 0.25);
-  color: var(--color-secondary);
-  border: 1px solid rgba(91, 181, 181, 0.4);
+  background: var(--color-calendar-span-bg);
+  color: var(--color-data-2);
+  border: 1px solid var(--color-calendar-span-border);
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
@@ -114,7 +114,7 @@
 }
 
 .spanBar:hover {
-  background: rgba(91, 181, 181, 0.4);
+  background: var(--color-calendar-span-hover-bg);
 }
 
 .overflow {

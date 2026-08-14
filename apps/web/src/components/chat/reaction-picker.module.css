@@ -45,9 +45,9 @@
 }
 
 .emoji:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .emojiActive {
-  background: var(--color-primary-subtle, color-mix(in srgb, var(--color-primary) 15%, transparent));
+  background: var(--color-accent-subtle);
 }

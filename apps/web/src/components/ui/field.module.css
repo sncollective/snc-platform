@@ -30,8 +30,8 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--color-accent);
-  outline: 2px solid var(--color-accent);
+  border-color: var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

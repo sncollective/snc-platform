@@ -57,7 +57,7 @@
 }
 
 .candidateButton:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-hover-bg);
 }
 
 .candidateName {
@@ -111,8 +111,8 @@
 }
 
 .roleBadgeEditor {
-  background: var(--color-info-bg, #e8f0fe);
-  color: var(--color-info, #1a73e8);
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .roleBadgeViewer {

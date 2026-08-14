@@ -75,7 +75,7 @@
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  color: var(--color-secondary);
+  color: var(--color-accent);
   font-family: var(--font-ui);
   font-size: var(--font-size-sm);
   cursor: pointer;
@@ -83,7 +83,7 @@
 }
 
 .addDateButton:hover {
-  border-color: var(--color-secondary);
+  border-color: var(--color-accent);
 }
 
 .addDateButton:disabled {

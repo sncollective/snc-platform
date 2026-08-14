@@ -56,9 +56,9 @@
 
 .item:hover,
 .item:focus-visible {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .item:active {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }

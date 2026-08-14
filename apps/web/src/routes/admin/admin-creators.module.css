@@ -117,7 +117,7 @@
 }
 
 .table tr:hover td {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 /* Reserve a fixed-width slot on sortable headers so the arrow appearing/disappearing
@@ -152,20 +152,21 @@
   border-radius: 9999px;
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: #fff;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   text-transform: capitalize;
 }
 
 .statusActive {
-  background-color: var(--color-success, #16a34a);
+  border-color: var(--color-success);
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
-.statusInactive {
-  background-color: var(--color-text-muted, #6b7280);
-}
-
+.statusInactive,
 .statusArchived {
-  background-color: var(--color-error, #dc2626);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
 }
 
 /* ── Action Buttons ── */
@@ -185,7 +186,7 @@
 }
 
 .actionButton:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .actionButton:disabled {

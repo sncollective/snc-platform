@@ -34,8 +34,8 @@
   padding: var(--space-sm) var(--space-md);
   border: none;
   border-radius: 6px;
-  background: var(--color-accent, #1a1a1a);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-weight: 600;
   cursor: pointer;
 }

@@ -35,11 +35,25 @@ function modeDeclarations(file: string, mode: Mode): Map<string, string> {
   );
 }
 
+function rootDeclarations(file: string): Map<string, string> {
+  const block = readTokenFile(file).match(/:root\s*\{([^}]*)\}/)?.[1];
+  expect(block, `${file} should define root tokens`).toBeDefined();
+
+  return new Map(
+    [...(block ?? "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
+      match[1] as string,
+      (match[2] as string).trim(),
+    ]),
+  );
+}
+
 function tokensForMode(mode: Mode): Map<string, string> {
   return new Map([
     ...modeDeclarations("color/spine.css", mode),
     ...modeDeclarations("color/status.css", mode),
     ...modeDeclarations("color/state.css", mode),
+    ...modeDeclarations("color/badges.css", mode),
+    ...rootDeclarations("color/badges.css"),
     ...modeDeclarations("voices/families.css", mode),
   ]);
 }
@@ -112,12 +126,22 @@ function contrast(foreground: Rgba, background: Rgba): number {
 function color(tokens: Map<string, string>, name: string): Rgba {
   const value = tokens.get(name);
   expect(value, `${name} should be declared`).toBeDefined();
+
+  const tint = value?.match(
+    /^color-mix\(in srgb, var\((--[\w-]+)\) (\d+(?:\.\d+)?)%, transparent\)$/,
+  );
+  if (tint !== undefined && tint !== null) {
+    const base = color(tokens, tint[1] as string);
+    return { ...base, alpha: Number(tint[2]) / 100 };
+  }
+
   return parseColor(value ?? "");
 }
 
 const MODES: readonly Mode[] = ["light", "dark"];
 const HOST_SURFACES = ["--color-bg", "--color-bg-elevated"] as const;
 const STATUS_NAMES = ["success", "warning", "error", "info"] as const;
+const BADGE_NAMES = ["audio", "video", "written"] as const;
 const VOICE_NAMES = ["parent", "studio", "tv", "records"] as const;
 
 describe("brand token contrast matrix", () => {
@@ -163,14 +187,52 @@ describe("brand token contrast matrix", () => {
     }
   });
 
-  it.each(MODES)("keeps %s opaque paired status backgrounds AA-safe", (mode) => {
+  it.each(MODES)("keeps %s opaque status pairs AA-safe over both hosts and hover", (mode) => {
     const tokens = tokensForMode(mode);
 
-    for (const status of STATUS_NAMES) {
-      const foreground = color(tokens, `--color-${status}`);
-      const background = color(tokens, `--color-${status}-bg`);
-      expect(background.alpha, `${status} background must be host-independent`).toBe(1);
-      expect(contrast(foreground, background), status).toBeGreaterThanOrEqual(4.5);
+    for (const hostName of HOST_SURFACES) {
+      const host = color(tokens, hostName);
+      for (const status of STATUS_NAMES) {
+        const foreground = color(tokens, `--color-${status}`);
+        const background = color(tokens, `--color-${status}-bg`);
+        const hostedBackground = composite(background, host);
+        const hoveredHost = composite(color(tokens, "--color-hover-bg"), host);
+        const hoveredBackground = composite(background, hoveredHost);
+
+        expect(background.alpha, `${status} background must be host-independent`).toBe(1);
+        expect(
+          contrast(foreground, hostedBackground),
+          `${status} on ${hostName}`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrast(foreground, hoveredBackground),
+          `${status} hover on ${hostName}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it.each(MODES)("keeps %s text-bearing badge tints AA-safe over both hosts and hover", (mode) => {
+    const tokens = tokensForMode(mode);
+    const foreground = color(tokens, "--color-text");
+
+    for (const hostName of HOST_SURFACES) {
+      const host = color(tokens, hostName);
+      for (const badge of BADGE_NAMES) {
+        const tint = color(tokens, `--color-badge-${badge}-tint`);
+        const tintedBackground = composite(tint, host);
+        const hoveredHost = composite(color(tokens, "--color-hover-bg"), host);
+        const hoveredBackground = composite(tint, hoveredHost);
+
+        expect(
+          contrast(foreground, tintedBackground),
+          `${badge} tint on ${hostName}`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrast(foreground, hoveredBackground),
+          `${badge} tint hover on ${hostName}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 

@@ -30,7 +30,7 @@
 }
 
 .root[data-type="info"] {
-  border-left: 3px solid var(--color-secondary);
+  border-left: 3px solid var(--color-info);
 }
 
 .title {

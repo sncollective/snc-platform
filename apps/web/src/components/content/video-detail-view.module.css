@@ -34,7 +34,7 @@
 }
 
 .playOverlay:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -52,17 +52,17 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--overlay-lock);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: var(--color-text);
+  color: var(--color-on-media);
   transition: background var(--duration-fast) var(--ease-default), transform var(--duration-fast) var(--ease-default);
 }
 
 .playOverlay:hover .playIcon {
-  background: var(--color-overlay-dark);
+  background: var(--color-overlay-strong);
   transform: scale(1.08);
 }
 

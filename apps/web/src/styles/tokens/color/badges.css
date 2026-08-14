@@ -20,3 +20,10 @@
     --color-badge-written: #9AA4B6;
   }
 }
+
+:root {
+  /* Text-bearing badges use ordinary text over these low-strength category tints. */
+  --color-badge-audio-tint: color-mix(in srgb, var(--color-badge-audio) 18%, transparent);
+  --color-badge-video-tint: color-mix(in srgb, var(--color-badge-video) 18%, transparent);
+  --color-badge-written-tint: color-mix(in srgb, var(--color-badge-written) 18%, transparent);
+}

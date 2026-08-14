@@ -49,7 +49,7 @@
 .subscribedText {
   font-size: var(--font-size-xl);
   font-weight: 600;
-  color: var(--color-secondary);
+  color: var(--color-success);
   margin: 0;
 }
 

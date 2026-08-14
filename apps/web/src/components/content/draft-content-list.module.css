@@ -89,15 +89,15 @@
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-secondary);
-  border: 1px solid var(--color-secondary);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .uploadButton:hover:not(:disabled) {
-  background: var(--color-secondary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .uploadButton:disabled {

@@ -24,7 +24,7 @@
 }
 
 .input:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
   outline: none;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .textarea:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
   outline: none;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .select:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
   outline: none;
 }
 
@@ -77,10 +77,10 @@
 
 .successMessage {
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-success-bg, hsl(140 50% 15%));
-  border: 1px solid var(--color-success, hsl(140 60% 45%));
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success);
   border-radius: var(--radius-sm);
-  color: var(--color-success, hsl(140 60% 45%));
+  color: var(--color-success);
   font-size: var(--font-size-sm);
   text-align: center;
 }

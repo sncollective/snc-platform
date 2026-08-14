@@ -6,7 +6,7 @@
   max-height: 500px;
   isolation: isolate;
   overflow: hidden;
-  background: var(--color-bg-hero-gradient);
+  background: linear-gradient(180deg, var(--color-bg), var(--color-bg-elevated));
 }
 
 .banner {
@@ -24,8 +24,8 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(110deg, var(--color-overlay-dark), transparent 72%),
-    linear-gradient(to top, var(--color-overlay-dark), transparent 58%);
+  background: linear-gradient(110deg, var(--color-overlay-strong), transparent 72%),
+    linear-gradient(to top, var(--color-overlay-strong), transparent 58%);
 }
 
 .wordmark {
@@ -57,7 +57,7 @@
 }
 
 .heroFacts span { display: block; }
-.heroFacts span:first-child { color: var(--color-secondary); font-weight: var(--font-weight-bold); }
+.heroFacts span:first-child { color: var(--color-accent); font-weight: var(--font-weight-bold); }
 
 .section {
   min-width: 0;
@@ -68,7 +68,7 @@
 .kicker {
   display: block;
   margin: 0 0 var(--space-md);
-  color: var(--color-secondary);
+  color: var(--color-accent);
   font-family: var(--font-ui);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -121,7 +121,7 @@
 
 .role {
   margin: .2rem 0 0;
-  color: var(--color-secondary);
+  color: var(--color-accent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -151,7 +151,7 @@
   background: var(--color-bg-elevated);
 }
 .highlight0 { border-color: var(--color-accent); }
-.highlight1 { border-color: var(--color-secondary); }
+.highlight1 { border-color: var(--color-accent); }
 .highlight2 { border-color: var(--color-text-muted); }
 .highlightNoMedia { grid-template-columns: minmax(0, 1fr); }
 .highlightCopy { min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: flex-start; }
@@ -169,7 +169,7 @@
 
 .dates { border-top: 1px solid var(--color-border); }
 .date { display: grid; grid-template-columns: 120px minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: var(--space-md); align-items: center; padding: .85rem 0; border-bottom: 1px solid var(--color-border); }
-.date time { color: var(--color-secondary); font-weight: var(--font-weight-bold); }
+.date time { color: var(--color-accent); font-weight: var(--font-weight-bold); }
 .city { color: var(--color-text-muted); }
 .date a, .more { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
 .more { display: inline-block; margin-top: var(--space-sm); }
@@ -237,8 +237,8 @@
   .hero { width: 7.5in; height: 240px; min-height: 0; }
   .wordmark { width: 7.5in; bottom: 16px; gap: 24px; }
   .wordmark h1 { font-size: 54pt; line-height: 72px; }
-  .heroFacts { color: #fff; font-size: 10px; line-height: 12px; }
-  .heroFacts span:last-child { color: #fff; }
+  .heroFacts { color: var(--color-on-media); font-size: 10px; line-height: 12px; }
+  .heroFacts span:last-child { color: var(--color-on-media); }
   .section { margin-bottom: 24px; break-inside: auto; }
   .kicker { margin-bottom: 4px; font-size: 8.67px; line-height: 12px; }
   .deck { margin-bottom: 8px; font-size: 12pt; line-height: 20px; }

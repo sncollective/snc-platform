@@ -27,7 +27,7 @@
 }
 
 .titleInput:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
   outline: none;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .descriptionInput:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
   outline: none;
 }
 

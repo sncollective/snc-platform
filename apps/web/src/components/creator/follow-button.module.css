@@ -16,7 +16,7 @@
 }
 
 .button:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .button:disabled {

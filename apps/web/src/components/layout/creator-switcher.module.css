@@ -29,7 +29,7 @@
 }
 
 .creatorLink:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-hover-bg);
   color: var(--color-accent);
 }
 

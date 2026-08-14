@@ -74,7 +74,7 @@
 
 /* Inset focus ring so the indicator isn't clipped by .panel's overflow: hidden. */
 .userListToggle:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
 
@@ -204,7 +204,7 @@
    clipped by .panel's overflow: hidden, and meets WCAG 2.4.11 shape contrast
    that a border-color change alone does not. */
 .input:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: -2px;
   border-color: var(--color-primary);
 }
@@ -246,7 +246,7 @@
 .timedOutBanner {
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-xs);
-  color: var(--color-error, #c0392b);
+  color: var(--color-error);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
   text-align: center;
@@ -256,7 +256,7 @@
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--color-error, #c0392b);
+  color: var(--color-error);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
   text-align: center;
@@ -265,7 +265,7 @@
 .filteredFlash {
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-xs);
-  color: var(--color-error, #c0392b);
+  color: var(--color-error);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
   text-align: center;
@@ -337,11 +337,11 @@
 }
 
 .reactionPill:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .reactionPillActive {
-  background: var(--color-primary-subtle, color-mix(in srgb, var(--color-primary) 15%, transparent));
+  background: var(--color-accent-subtle);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }

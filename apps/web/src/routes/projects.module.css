@@ -129,8 +129,8 @@
   letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background: var(--color-secondary-subtle);
-  color: var(--color-secondary);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .projectItemActions {

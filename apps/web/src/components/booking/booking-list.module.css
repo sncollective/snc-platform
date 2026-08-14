@@ -14,8 +14,8 @@
 }
 
 .statusPending {
-  color: var(--color-accent);
-  background: var(--color-accent-bg);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .statusApproved {

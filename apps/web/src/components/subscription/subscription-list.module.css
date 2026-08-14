@@ -43,20 +43,20 @@
 }
 
 .statusCanceling {
-  color: var(--color-accent);
-  background: var(--color-accent-bg);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .statusInactive {
-  color: var(--color-error);
-  background: var(--color-error-bg);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
 }
 
 /* ── Info Lines ── */
 
 .cancelingMessage {
   font-size: var(--font-size-sm);
-  color: var(--color-accent);
+  color: var(--color-warning);
   font-style: italic;
 }
 

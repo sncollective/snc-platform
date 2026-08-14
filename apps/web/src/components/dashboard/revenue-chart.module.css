@@ -32,7 +32,7 @@
 
 .bar {
   width: 100%;
-  background: var(--color-accent);
+  background: var(--legacy-public-chart-revenue-bar);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: background-color 0.15s;
   cursor: default;
@@ -40,7 +40,7 @@
 }
 
 .bar:hover {
-  background: var(--color-accent-hover);
+  background: var(--legacy-public-chart-revenue-bar-hover);
 }
 
 /* ── Tooltip ── */

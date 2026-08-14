@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: var(--overlay-lock);
+  background: var(--color-overlay);
   z-index: var(--z-overlay);
 }
 
@@ -58,7 +58,7 @@
 
 .close:hover {
   color: var(--color-text);
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 @keyframes fadeIn {

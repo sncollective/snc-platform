@@ -132,8 +132,8 @@
   background-clip: content-box;
   border-radius: 50%;
   border: none;
-  background: var(--overlay-lock);
-  color: var(--color-text-on-color);
+  background: var(--color-overlay);
+  color: var(--color-on-media);
   font-size: 0.75rem;
   cursor: pointer;
   display: flex;
@@ -145,7 +145,7 @@
 
 .expandButton:hover,
 .closeButton:hover {
-  background: var(--color-overlay-dark);
+  background: var(--color-overlay-strong);
   background-clip: content-box;
 }
 
@@ -226,6 +226,6 @@
 }
 
 .playerErrorRetry:hover {
-  background: var(--color-overlay-dark);
-  color: var(--color-text-on-color);
+  background: var(--color-overlay-strong);
+  color: var(--color-on-media);
 }

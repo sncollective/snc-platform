@@ -80,7 +80,7 @@
 
 .slugValue {
   font-family: monospace;
-  color: var(--color-secondary);
+  color: var(--color-text);
   word-break: break-all;
 }
 

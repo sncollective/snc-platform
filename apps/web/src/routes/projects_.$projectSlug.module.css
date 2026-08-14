@@ -34,8 +34,8 @@
   text-transform: uppercase;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background: rgba(91, 181, 181, 0.2);
-  color: var(--color-secondary);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .projectDescription {

@@ -18,7 +18,7 @@
 }
 
 .tabPanel:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }
 
@@ -202,25 +202,25 @@
 
 .statusPending {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-warning);
   flex-shrink: 0;
 }
 
 .statusUploading {
   font-size: var(--font-size-sm);
-  color: var(--color-info, hsl(210 80% 60%));
+  color: var(--color-info);
   flex-shrink: 0;
 }
 
 .statusProcessing {
   font-size: var(--font-size-sm);
-  color: var(--color-warning, hsl(40 90% 55%));
+  color: var(--color-warning);
   flex-shrink: 0;
 }
 
 .statusReady {
   font-size: var(--font-size-sm);
-  color: var(--color-success, hsl(140 60% 45%));
+  color: var(--color-success);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -292,8 +292,8 @@
 .retryButton {
   padding: var(--space-xs) var(--space-sm);
   background: transparent;
-  color: var(--color-warning, hsl(40 90% 55%));
-  border: 1px solid var(--color-warning, hsl(40 90% 55%));
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
   border-radius: var(--radius-sm);
   font-family: var(--font-ui);
   font-size: var(--font-size-sm);
@@ -303,7 +303,7 @@
 }
 
 .retryButton:hover {
-  background: var(--color-warning, hsl(40 90% 55%));
+  background: var(--color-warning);
   color: var(--color-bg);
 }
 
@@ -374,7 +374,7 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: 6px;
   background: var(--color-bg-elevated);
-  border-left: 3px solid var(--color-error, #c0392b);
+  border-left: 3px solid var(--color-error);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: 600;
@@ -551,7 +551,7 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: var(--color-warning, hsl(40 90% 55%));
+  background: var(--color-warning);
   animation: pulse var(--duration-slow, 1.5s) ease-in-out infinite;
 }
 
@@ -651,7 +651,7 @@
 
 .searchPickerInput:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
 }
 
 .searchPickerResults {
@@ -664,7 +664,7 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
   max-height: 240px;
   overflow-y: auto;
   margin-top: var(--space-xs);

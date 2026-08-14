@@ -17,14 +17,14 @@
 /* ── Data Lines ── */
 
 .actualLine {
-  stroke: var(--color-accent);
+  stroke: var(--legacy-public-chart-emissions-actual);
   stroke-width: 1.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .projectedLine {
-  stroke: var(--color-accent);
+  stroke: var(--legacy-public-chart-emissions-projected);
   stroke-width: 1.5;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -32,36 +32,36 @@
 }
 
 .offsetDot {
-  fill: var(--color-secondary);
+  fill: var(--legacy-public-chart-emissions-offset);
 }
 
 .offsetLabel {
   font-family: var(--font-ui);
   font-size: 8px;
-  fill: var(--color-secondary);
+  fill: var(--legacy-public-chart-emissions-offset);
 }
 
 .netLinePositive {
-  stroke: var(--color-error);
+  stroke: var(--legacy-public-chart-emissions-net-positive);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 
 .netLineNegative {
-  stroke: var(--color-success);
+  stroke: var(--legacy-public-chart-emissions-net-negative);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 
 .projectedNetPositive {
-  stroke: var(--color-error);
+  stroke: var(--legacy-public-chart-emissions-net-positive);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 2 4;
 }
 
 .projectedNetNegative {
-  stroke: var(--color-success);
+  stroke: var(--legacy-public-chart-emissions-net-negative);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 2 4;
@@ -76,7 +76,7 @@
 }
 
 .dot:hover {
-  fill: var(--color-accent);
+  fill: var(--legacy-public-chart-emissions-point);
   r: 5;
 }
 
@@ -146,14 +146,14 @@
 }
 
 .actualSwatch {
-  background: var(--color-accent);
+  background: var(--legacy-public-chart-emissions-actual);
 }
 
 .projectedSwatch {
   background-image: repeating-linear-gradient(
     90deg,
-    var(--color-accent) 0,
-    var(--color-accent) 2px,
+    var(--legacy-public-chart-emissions-projected) 0,
+    var(--legacy-public-chart-emissions-projected) 2px,
     transparent 2px,
     transparent 6px
   );
@@ -163,11 +163,15 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-secondary);
+  background: var(--legacy-public-chart-emissions-offset);
 }
 
 .netSwatch {
-  background: linear-gradient(90deg, var(--color-success), var(--color-error));
+  background: linear-gradient(
+    90deg,
+    var(--legacy-public-chart-emissions-net-negative),
+    var(--legacy-public-chart-emissions-net-positive)
+  );
 }
 
 .projectedNetSwatch {
@@ -178,7 +182,11 @@
     var(--color-bg) 2px,
     var(--color-bg) 4px
   ),
-  linear-gradient(90deg, var(--color-success), var(--color-error));
+  linear-gradient(
+    90deg,
+    var(--legacy-public-chart-emissions-net-negative),
+    var(--legacy-public-chart-emissions-net-positive)
+  );
 }
 
 /* ── Screen-Reader Only ── */

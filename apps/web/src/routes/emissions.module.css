@@ -172,7 +172,7 @@
 }
 
 .methodologySummary:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
 }
 
 .methodologyContent {

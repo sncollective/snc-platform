@@ -77,7 +77,7 @@
 }
 
 .item[data-highlighted] {
-  background: var(--color-surface-hover);
+  background: var(--color-hover-bg);
   outline: none;
 }
 

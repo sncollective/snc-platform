@@ -35,5 +35,7 @@
 }
 
 .subscribedButton {
-  background: var(--color-secondary);
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }

@@ -33,3 +33,33 @@
     --color-data-6: #99A56E;
   }
 }
+
+:root {
+  /* Internal calendar domain aliases derive from the mode-aware series above. */
+  --color-event-recording-bg: color-mix(in srgb, var(--color-data-1) 20%, transparent);
+  --color-event-recording-hover-bg: color-mix(in srgb, var(--color-data-1) 30%, transparent);
+  --color-event-show-bg: color-mix(in srgb, var(--color-data-2) 20%, transparent);
+  --color-event-album-bg: color-mix(in srgb, var(--color-data-3) 20%, transparent);
+  --color-event-project-bg: color-mix(in srgb, var(--color-data-4) 18%, transparent);
+  --color-event-project-border: color-mix(in srgb, var(--color-data-4) 35%, transparent);
+  --color-event-task-bg: color-mix(in srgb, var(--color-data-5) 18%, transparent);
+  --color-event-creator-border: color-mix(in srgb, var(--color-data-6) 35%, transparent);
+  --color-calendar-span-bg: color-mix(in srgb, var(--color-data-2) 25%, transparent);
+  --color-calendar-span-border: color-mix(in srgb, var(--color-data-2) 40%, transparent);
+  --color-calendar-span-hover-bg: color-mix(in srgb, var(--color-data-2) 40%, transparent);
+
+  /*
+   * Lint exemption owner: brand-token-architecture.
+   * Expiry: org public-chart palette delivery.
+   * These fixed aliases preserve the public charts' pre-migration palette. Public charts
+   * must use only this bridge until org supplies the replacement palette.
+   */
+  --legacy-public-chart-emissions-actual: #F5A623;
+  --legacy-public-chart-emissions-projected: var(--legacy-public-chart-emissions-actual);
+  --legacy-public-chart-emissions-offset: #5BB5B5;
+  --legacy-public-chart-emissions-net-positive: #EF5350;
+  --legacy-public-chart-emissions-net-negative: #4CAF50;
+  --legacy-public-chart-emissions-point: var(--legacy-public-chart-emissions-actual);
+  --legacy-public-chart-revenue-bar: #F5A623;
+  --legacy-public-chart-revenue-bar-hover: #E09510;
+}

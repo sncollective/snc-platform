@@ -101,7 +101,7 @@
 
 .actions .remove {
   color: var(--color-error);
-  border-color: color-mix(in srgb, var(--color-error) 60%, var(--color-border));
+  border-color: var(--color-error);
 }
 
 @media (max-width: 600px) {

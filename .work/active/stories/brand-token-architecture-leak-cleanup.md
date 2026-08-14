@@ -43,3 +43,54 @@ bridge owned by this feature and expiring on org palette delivery.
   `--legacy-public-chart-*` bridge, annotated with owner `brand-token-architecture` and expiry
   “org public-chart palette delivery”; they are not mapped to internal data colors. This
   checkpoint may pass with the bridge, but `alias-migration` may not.
+
+## Implementation notes
+
+- Execution capability: `gpt-5.6-sol` (caller-selected for the broad, mapping-sensitive CSS
+  migration).
+- Review weight: `standard` (caller).
+- Disposition: migrated the audited authored-CSS surface to semantic roles and reduced the
+  static checker result to zero outside token-definition files. Removed all 67
+  `--color-secondary`/`-bg`/`-subtle` references and declarations; split consumers across
+  badge-audio, info, success, route accent, shared state, and internal data roles. Raw
+  `color-mix()` derivations now live only in token owners.
+- Files changed: 77 authored CSS/token files plus
+  `apps/web/tests/unit/styles/color-leaks.test.ts` and
+  `apps/web/tests/unit/styles/token-contrast.test.ts`.
+- Tests added/extended: added an all-syntax CSS leak checker (hex, rgb(a), hsl(a), named
+  pigments, and modern color functions), with explicit `transparent`/`currentColor`
+  classification; extended the contrast matrix for status pairs and content-badge tint
+  composites over background/elevated and hovered hosts in light/dark modes, retaining the
+  disabled visibility case.
+- Checker mechanism: a Vitest static test, because the repo has no Stylelint setup and this
+  boundary forbids package/lockfile changes. It runs automatically in `@snc/web test`, avoids
+  a new dependency, and reports path/line/syntax for every violation. Token-definition files
+  are the sole CSS path allowlist; the public-chart exception remains visibly owner/expiry
+  annotated in `color/data.css`.
+- Public chart bridge: added fixed pre-migration emissions/revenue series aliases in
+  `color/data.css`; both public chart modules consume only `--legacy-public-chart-*` for
+  their series colors and never consume the internal `--color-data-*` palette.
+- Fixed/orthogonal contracts: manage-press fixed samples consume `--preview-*`, illustrations
+  consume `--color-illustration-*`, creator-authored preview ink consumes
+  `--color-on-creator-brand`, and media/overlay/shadow literals consume their named homes.
+- Simplification: collapsed duplicate hover aliases at migrated call sites to
+  `--color-hover-bg`, moved focus rings to `--color-focus`, retired the hero-gradient step,
+  and replaced component-local status/color derivations with paired semantic backgrounds.
+- Deviations from design: the two non-CSS inline literals named below remain because the
+  delegated write boundary expressly excludes TSX. No mapping substitution was improvised.
+- Adjacent issues parked: none; the remaining gap is an acceptance blocker recorded below,
+  not optional follow-up work.
+- Verification: `bun run --filter @snc/web test` (192 files / 1,982 tests), focused no-leak
+  test (4/4), and `bun run --filter @snc/web build` all pass.
+
+## Implementation discovery
+
+The broader 133-expression evidence includes two raw TSX literals that are not sanctioned
+exceptions: `apps/web/src/routes/privacy.tsx:31` (`#666`) and
+`apps/web/src/components/social-links/platform-icon.tsx:37` (`#888888`). Both map to
+`--color-text-muted`, but this delegation permits writes only to CSS, token role files, tests,
+and this story. The CSS checker is therefore honestly zero for authored CSS but cannot prove
+“all 133 expressions” across the broader CSS+TSX audit. Completion requires authorizing those
+two TSX substitutions (to `var(--color-text-muted)`) and either extending the checker with a
+CSS-in-TSX face or explicitly narrowing the acceptance grammar to authored CSS. Stage remains
+`implementing`; every permitted migration and required verification is otherwise complete.

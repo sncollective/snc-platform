@@ -59,7 +59,7 @@
 
 .navItem:hover {
   color: var(--color-text);
-  background: var(--color-bg-hover);
+  background: var(--color-hover-bg);
 }
 
 .navItemActive {
@@ -117,7 +117,7 @@
 
 .chip:hover {
   color: var(--color-text);
-  background: var(--color-bg-hover);
+  background: var(--color-hover-bg);
 }
 
 .chipActive {

@@ -35,7 +35,7 @@
 
 .linkPill:hover {
   border-color: var(--color-accent);
-  background: var(--color-bg-hover);
+  background: var(--color-hover-bg);
 }
 
 /* ── Platform Icon ── */

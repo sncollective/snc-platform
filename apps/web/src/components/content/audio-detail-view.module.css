@@ -36,7 +36,7 @@
 }
 
 .coverArtWrapper:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -63,19 +63,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-overlay-weak);
   transition: background 0.15s;
 }
 
 .coverArtWrapper:hover .playOverlayIcon {
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-overlay);
 }
 
 .playIcon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-overlay-strong);
   display: flex;
   align-items: center;
   justify-content: center;
