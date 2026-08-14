@@ -13,6 +13,7 @@ import type { LiveLayout, MediaMetadata } from "../contexts/global-player-contex
 import { ChatPanel } from "../components/chat/chat-panel.js";
 import { fetchApiServer } from "../lib/api-server.js";
 import { apiGet } from "../lib/fetch-utils.js";
+import { useRouteVoiceAttributes } from "../lib/route-voice/route-voice.js";
 import { usePolling } from "../hooks/use-polling.js";
 import type { PollingState } from "../hooks/use-polling.js";
 import {
@@ -141,6 +142,7 @@ function LivePageInner(): React.ReactElement {
   const { actions, chatPortalRef } = useGlobalPlayer();
   const session = useSession();
   const currentUserId = session.data?.user?.id ?? null;
+  const routeVoiceAttributes = useRouteVoiceAttributes();
 
   // Push/cache-invalidation: on any live-state change, re-fetch the authoritative
   // channel list (the derived liveState + fresh viewerCount ride that response). The
@@ -369,7 +371,12 @@ function LivePageInner(): React.ReactElement {
 
           {portalTarget && (!prefs.chatCollapsed || mobileChatOpen) &&
             createPortal(
-              <div id="live-chat-panel" role="tabpanel" className={styles.chatTabPanel}>
+              <div
+                id="live-chat-panel"
+                role="tabpanel"
+                className={styles.chatTabPanel}
+                {...routeVoiceAttributes}
+              >
                 <ChatPanel channelId={selectedChannelId} />
               </div>,
               portalTarget,

@@ -1,6 +1,9 @@
 import type { ComponentProps } from "react";
 import { Select as ArkSelect, createListCollection } from "@ark-ui/react/select";
 import { Portal } from "@ark-ui/react/portal";
+
+import { useRouteVoiceAttributes } from "../../lib/route-voice/route-voice.js";
+
 import styles from "./select.module.css";
 
 // ── Re-export collection factory ──
@@ -36,9 +39,11 @@ export function SelectValueText(props: ComponentProps<typeof ArkSelect.ValueText
 
 /** Positioned dropdown content. Renders in a Portal. */
 export function SelectContent(props: ComponentProps<typeof ArkSelect.Content>) {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <Portal>
-      <ArkSelect.Positioner className={styles.positioner}>
+      <ArkSelect.Positioner className={styles.positioner} {...routeVoiceAttributes}>
         <ArkSelect.Content className={styles.content} {...props} />
       </ArkSelect.Positioner>
     </Portal>

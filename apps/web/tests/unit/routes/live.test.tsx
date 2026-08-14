@@ -5,6 +5,7 @@ import { act, render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { extractRouteComponent } from "../../helpers/route-test-utils.js";
 import { createRouterMock } from "../../helpers/router-mock.js";
 import { FakeEventSource } from "../../helpers/fake-event-source.js";
+import { RouteVoiceScope } from "../../../src/lib/route-voice/route-voice.js";
 
 // ── Hoisted Mocks ──
 
@@ -41,8 +42,9 @@ vi.mock("../../../src/lib/fetch-utils.js", () => ({
 }));
 
 // ── Hoisted mock for setLiveMobileChatOpen ──
-const { mockSetLiveMobileChatOpen } = vi.hoisted(() => ({
+const { mockSetLiveMobileChatOpen, mockChatPortalRef } = vi.hoisted(() => ({
   mockSetLiveMobileChatOpen: vi.fn(),
+  mockChatPortalRef: { current: null as HTMLDivElement | null },
 }));
 
 // Mock GlobalPlayerProvider/useGlobalPlayer — live route calls actions on channel selection
@@ -58,7 +60,7 @@ vi.mock("../../../src/contexts/global-player-context.js", () => ({
       setChatCollapsed: vi.fn(),
       setLiveMobileChatOpen: mockSetLiveMobileChatOpen,
     },
-    chatPortalRef: { current: null },
+    chatPortalRef: mockChatPortalRef,
   }),
 }));
 
@@ -98,6 +100,7 @@ const LivePage = extractRouteComponent(() => import("../../../src/routes/live.js
 beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
   mockUseSearch.mockReturnValue({});
+  mockChatPortalRef.current = null;
 });
 
 afterEach(() => {
@@ -386,6 +389,27 @@ describe("LivePage", () => {
     render(<LivePage />);
 
     expect(screen.queryByText("Also Live")).toBeNull();
+  });
+
+  it("repeats the TV route identity on the portaled chat panel but not its target", async () => {
+    const chatTarget = document.createElement("div");
+    chatTarget.setAttribute("data-testid", "chat-target");
+    document.body.append(chatTarget);
+    mockChatPortalRef.current = chatTarget;
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+
+    render(
+      <RouteVoiceScope routeDefault="tv">
+        <LivePage />
+      </RouteVoiceScope>,
+    );
+
+    await waitFor(() => {
+      expect(chatTarget.querySelector("#live-chat-panel")).toHaveAttribute("data-route", "tv");
+    });
+    expect(chatTarget).not.toHaveAttribute("data-route");
+
+    chatTarget.remove();
   });
 });
 

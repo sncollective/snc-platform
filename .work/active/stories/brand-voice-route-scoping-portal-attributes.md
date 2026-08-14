@@ -1,14 +1,14 @@
 ---
 id: brand-voice-route-scoping-portal-attributes
 kind: story
-stage: implementing
+stage: done
 tags: [design-system]
 parent: brand-voice-route-scoping
 depends_on: [brand-voice-route-scoping-runtime-boundary]
 release_binding: null
 gate_origin: null
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Brand voice — portal route-attribute propagation
@@ -41,3 +41,14 @@ live chat.
 The child-1 `brand-token-architecture-route-scoping-contract` story owns CSS aliases and
 computed-style assertions. This story owns only portal attribute plumbing and must not
 implement CSS alias blocks or raw `--voice-*` declarations.
+
+## Implementation notes
+
+- Applied the shared context-derived route attribute to Select, Dialog, Tooltip, Popover, and
+  Menu portal roots at their existing Ark UI positioner/backdrop elements; no positioning
+  wrapper or portal target changed.
+- Applied the same render-time helper to the portaled live chat panel. A DOM portal fixture
+  verifies TV identity crosses the React portal while the shell target remains attribute-free.
+- Added focused primitive fixtures covering all six Ark portal roots and the explicit Parent
+  fallback for shell-originated portals.
+- Focused portal/live tests passed (`29` tests), followed by the full web suite (`2007` tests).

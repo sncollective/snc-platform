@@ -1,6 +1,9 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
+
+import { useRouteVoiceAttributes } from "../../lib/route-voice/route-voice.js";
+
 import styles from "./dialog.module.css";
 
 // ── Public Types ──
@@ -21,18 +24,22 @@ export function DialogRoot(props: DialogProps) {
 
 /** Semi-transparent overlay behind the dialog. */
 export function DialogBackdrop() {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <Portal>
-      <ArkDialog.Backdrop className={styles.backdrop} />
+      <ArkDialog.Backdrop className={styles.backdrop} {...routeVoiceAttributes} />
     </Portal>
   );
 }
 
 /** Positioned dialog content panel. Renders in a Portal. */
 export function DialogContent({ children, className }: DialogContentProps) {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <Portal>
-      <ArkDialog.Positioner className={styles.positioner}>
+      <ArkDialog.Positioner className={styles.positioner} {...routeVoiceAttributes}>
         <ArkDialog.Content className={className ? `${styles.content} ${className}` : styles.content}>
           {children}
         </ArkDialog.Content>

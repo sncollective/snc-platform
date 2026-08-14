@@ -1,6 +1,9 @@
 import type { ComponentProps } from "react";
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
+
+import { useRouteVoiceAttributes } from "../../lib/route-voice/route-voice.js";
+
 import styles from "./popover.module.css";
 
 // ── Public API ──
@@ -15,9 +18,11 @@ export const PopoverTrigger = ArkPopover.Trigger;
 
 /** Positioned popover content. Renders in a Portal. */
 export function PopoverContent({ className, ...props }: ComponentProps<typeof ArkPopover.Content>) {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <Portal>
-      <ArkPopover.Positioner className={styles.positioner}>
+      <ArkPopover.Positioner className={styles.positioner} {...routeVoiceAttributes}>
         <ArkPopover.Content
           className={className ? `${styles.content} ${className}` : styles.content}
           {...props}

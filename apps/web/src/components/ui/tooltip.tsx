@@ -1,6 +1,9 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { Portal } from "@ark-ui/react/portal";
+
+import { useRouteVoiceAttributes } from "../../lib/route-voice/route-voice.js";
+
 import styles from "./tooltip.module.css";
 
 // ── Public Types ──
@@ -23,11 +26,13 @@ export function Tooltip({
   openDelay = 400,
   closeDelay = 150,
 }: TooltipProps) {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <ArkTooltip.Root openDelay={openDelay} closeDelay={closeDelay} positioning={positioning}>
       <ArkTooltip.Trigger asChild>{children}</ArkTooltip.Trigger>
       <Portal>
-        <ArkTooltip.Positioner className={styles.positioner}>
+        <ArkTooltip.Positioner className={styles.positioner} {...routeVoiceAttributes}>
           <ArkTooltip.Content className={styles.content}>{content}</ArkTooltip.Content>
         </ArkTooltip.Positioner>
       </Portal>

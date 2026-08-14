@@ -1,6 +1,9 @@
 import type { ComponentProps } from "react";
 import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
+
+import { useRouteVoiceAttributes } from "../../lib/route-voice/route-voice.js";
+
 import styles from "./menu.module.css";
 
 // ── Public API ──
@@ -15,9 +18,11 @@ export const MenuTrigger = ArkMenu.Trigger;
 
 /** Positioned menu dropdown. Renders in a Portal. */
 export function MenuContent(props: ComponentProps<typeof ArkMenu.Content>) {
+  const routeVoiceAttributes = useRouteVoiceAttributes();
+
   return (
     <Portal>
-      <ArkMenu.Positioner className={styles.positioner}>
+      <ArkMenu.Positioner className={styles.positioner} {...routeVoiceAttributes}>
         <ArkMenu.Content className={styles.content} {...props} />
       </ArkMenu.Positioner>
     </Portal>
