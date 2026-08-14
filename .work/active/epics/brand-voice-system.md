@@ -1,7 +1,7 @@
 ---
 id: brand-voice-system
 kind: epic
-stage: implementing
+stage: review
 tags: [design-system]
 parent: null
 depends_on: []
@@ -138,3 +138,11 @@ Child 1 (`brand-token-architecture`) is in active design — categorization comp
 adjudications resolved, token-layer decisions locked; the mapping table + conventions +
 mechanism design are the remaining brief deliverables. Children 2–4 are stubbed at drafting,
 awaiting their design passes once the foundation firms up.
+
+## Child features reviewed and complete (2026-08-14)
+
+- `brand-token-architecture` — done (review closed 9bdc9d3; fixes a4bb370 + org accent-bg re-seed; residual parked: `accent-bg-consumer-recipe-alignment`).
+- `brand-voice-route-scoping` — done (review closed e45e59d; clean ready verdict, no findings).
+- `brand-voice-export-theming` — done (review closed 391580d; 3 findings fixed in b41da14).
+
+Integrated verification across the epic: web 2,019 tests + API 2,037 unit + 55 integration green on final state; builds/typechecks green; no-leak checker zero non-exempt violations across CSS + CSS-in-TSX faces; org reference value fixes (dark hover, opaque status bgs, dark Parent accent-bg, public-chart palette) all adopted.
