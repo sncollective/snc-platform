@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { z } from "zod/mini";
 import type { Channel, ChannelListResponse, ChannelLiveState } from "@snc/shared";
 
+import { SignatureChip } from "../components/brand/signature-chip.js";
 import { RouteErrorBoundary } from "../components/error/route-error-boundary.js";
 import { useGlobalPlayer } from "../contexts/global-player-context.js";
 import type { LiveLayout, MediaMetadata } from "../contexts/global-player-context.js";
@@ -434,19 +435,22 @@ function ChannelSelector({
   readonly onSelect: (id: string) => void;
 }): React.ReactElement {
   return (
-    <select
-      className={styles.channelSelector}
-      value={selectedId ?? ""}
-      onChange={(e) => onSelect(e.target.value)}
-      aria-label="Select channel"
-    >
-      {channels.map((ch) => (
-        <option key={ch.id} value={ch.id}>
-          {ch.name} — {LIVE_STATE_LABELS[ch.liveState]} ({ch.viewerCount}{" "}
-          {ch.viewerCount === 1 ? "viewer" : "viewers"})
-        </option>
-      ))}
-    </select>
+    <label className={styles.channelControl}>
+      <span className={styles.channelLabel}>Channel</span>
+      <select
+        className={styles.channelSelector}
+        value={selectedId ?? ""}
+        onChange={(e) => onSelect(e.target.value)}
+        aria-label="Select channel"
+      >
+        {channels.map((ch) => (
+          <option key={ch.id} value={ch.id}>
+            {ch.name} — {LIVE_STATE_LABELS[ch.liveState]} ({ch.viewerCount}{" "}
+            {ch.viewerCount === 1 ? "viewer" : "viewers"})
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -497,10 +501,10 @@ function StreamStatusBar({
   return (
     <div className={styles.statusBar}>
       {liveState === "live-creator" && (
-        <div className={styles.liveIndicator}>
-          <span className={styles.liveDot} aria-hidden="true" />
-          LIVE
-        </div>
+        <SignatureChip voice="tv">
+          <span aria-hidden="true">●</span>
+          <span>LIVE</span>
+        </SignatureChip>
       )}
       {liveState === "scheduled-playout" && (
         <div className={styles.scheduledIndicator}>Scheduled</div>

@@ -186,45 +186,19 @@
   gap: var(--space-sm);
 }
 
-.liveIndicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-error);
-  font-size: var(--font-size-sm);
-}
-
-.liveDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-error);
-  animation: livePulse 1.5s ease-in-out infinite;
-}
-
 .scheduledIndicator {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-@keyframes livePulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.6;
-    transform: scale(1.2);
-  }
 }
 
 .viewerCount {
@@ -360,6 +334,20 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   margin-left: auto;
+}
+
+.channelControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.channelLabel {
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .channelSelector {

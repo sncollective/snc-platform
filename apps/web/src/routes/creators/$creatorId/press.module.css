@@ -9,6 +9,13 @@
   overflow-x: clip;
 }
 
+.pressSignature {
+  position: absolute;
+  top: var(--space-lg);
+  left: max(var(--space-md), calc((100% - 980px) / 2));
+  z-index: var(--z-raised);
+}
+
 .unavailable {
   max-width: 900px;
   margin: 0 auto;
@@ -32,6 +39,10 @@
     min-height: 0;
     margin: 0;
     padding: 0;
+  }
+
+  .pressSignature {
+    display: none;
   }
 
   .breakout {

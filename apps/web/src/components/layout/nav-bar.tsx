@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { NAV_LINKS } from "../../config/navigation.js";
+import { resolveRouteVoice } from "../../lib/route-voice/route-voice.js";
 import { NotificationBell } from "../notification-bell.js";
 import { UserMenu } from "./user-menu.js";
 import { NavLinkItem } from "./nav-link-item.js";
@@ -15,6 +16,7 @@ import styles from "./nav-bar.module.css";
 export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const activeRouteVoice = resolveRouteVoice(currentPath);
   const session = useSession();
   const { roles } = useAuthExtras();
 
@@ -33,7 +35,7 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
           S/NC
         </Link>
 
-        <ul className={styles.links}>
+        <ul className={styles.links} data-route={activeRouteVoice}>
           {NAV_LINKS.map((link) => (
             <NavLinkItem
               key={link.to}

@@ -5,6 +5,10 @@ import { CREATOR_BRAND_COLORS } from "@snc/shared";
 import { describe, expect, it } from "vitest";
 
 const TOKENS_DIR = resolve(import.meta.dirname, "../../../src/styles/tokens");
+const SIGNATURE_CHIP_CSS = readFileSync(
+  resolve(TOKENS_DIR, "../../components/brand/signature-chip.module.css"),
+  "utf-8",
+);
 
 interface Rgba {
   readonly red: number;
@@ -42,6 +46,18 @@ function rootDeclarations(file: string): Map<string, string> {
 
   return new Map(
     [...(block ?? "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
+      match[1] as string,
+      (match[2] as string).trim(),
+    ]),
+  );
+}
+
+function signatureChipDeclarations(voice: string): Map<string, string> {
+  const block = SIGNATURE_CHIP_CSS.match(new RegExp(`\\.${voice}\\s*\\{([^}]*)\\}`))?.[1];
+  expect(block, `signature chip should define the ${voice} voice`).toBeDefined();
+
+  return new Map(
+    [...(block ?? "").matchAll(/([\w-]+)\s*:\s*([^;]+);/g)].map((match) => [
       match[1] as string,
       (match[2] as string).trim(),
     ]),
@@ -275,6 +291,23 @@ describe("brand token contrast matrix", () => {
           `${voice} accent on subtle over ${hostName}`,
         ).toBeGreaterThanOrEqual(3);
       }
+    }
+  });
+
+  it.each(MODES)("keeps every %s voice signature chip AA-safe", (mode) => {
+    const tokens = tokensForMode(mode);
+
+    for (const voice of VOICE_NAMES) {
+      const declarations = signatureChipDeclarations(voice);
+      const backgroundToken = declarations.get("background")?.match(/^var\((--[\w-]+)\)$/)?.[1];
+      const inkToken = declarations.get("color")?.match(/^var\((--[\w-]+)\)$/)?.[1];
+
+      expect(backgroundToken).toBe(`--voice-${voice}-accent2`);
+      expect(inkToken, `${voice} signature chip should use token ink`).toBeDefined();
+      expect(
+        contrast(color(tokens, inkToken ?? ""), color(tokens, backgroundToken ?? "")),
+        `${voice} signature chip`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 

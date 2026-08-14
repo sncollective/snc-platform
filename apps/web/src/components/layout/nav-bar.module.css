@@ -37,6 +37,11 @@
   list-style: none;
 }
 
+/* The resolver scope is intentionally limited to active-link identity; shell typography stays Parent. */
+.links[data-route] {
+  font-family: inherit;
+}
+
 @media (min-width: 768px) {
   .links {
     display: flex;
