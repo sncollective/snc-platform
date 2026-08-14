@@ -15,7 +15,6 @@ export const PRESS_EDITOR_TABS = [
 ] as const;
 
 export type PressEditorTab = (typeof PRESS_EDITOR_TABS)[number]["id"];
-export type PdfScheme = "light" | "dark" | "accent";
 
 export interface PressEditorIssue {
   readonly tab: PressEditorTab;
