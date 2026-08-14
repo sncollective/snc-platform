@@ -317,15 +317,11 @@ describe("brand token contrast matrix", () => {
         expect(
           contrast(foreground, hostedBackground),
           `${status} on ${hostName}`,
-        // R2 org adjudication (2026-08-14): light warning #7D6E00 on its paired tint
-        // #EFEBD0 computes 4.257 — accepted by org as AA-pass for this pair, pending
-        // stakeholder. Platform flag-back filed: #756B00 clears 4.5 on all three hosts
-        // (4.525/4.833/5.1x) at negligible hue shift; one-line swap on org's call.
-        ).toBeGreaterThanOrEqual(status === "warning" && mode === "light" ? 4.2 : 4.5);
+        ).toBeGreaterThanOrEqual(4.5);
         expect(
           contrast(foreground, hoveredBackground),
           `${status} hover on ${hostName}`,
-        ).toBeGreaterThanOrEqual(status === "warning" && mode === "light" ? 4.2 : 4.5);
+        ).toBeGreaterThanOrEqual(4.5);
       }
     }
   });

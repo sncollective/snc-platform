@@ -26,13 +26,13 @@ updated: 2026-08-14
   ≥.08 — verified by the gate; light chart-gold unchanged).
 - Harness seed pins updated to the R2 dark tuple.
 
-## Flag-back to org (open)
+## Flag-back resolution (org, 2026-08-14)
 
-- **Light warning pair:** #7D6E00 on paired tint #EFEBD0 = 4.257 (org-adjudicated AA-pass
-  for this pair; harness floor carved to 4.2 with tracking comment). Platform alternative:
-  **#756B00** clears 4.5 on all hosts (4.525 tint / 4.833 bg / 5.10 elevated) at negligible
-  hue shift. One-line swap on org's call.
-- bg-input not included in the cast60 spec (still #242E3C) — confirm intended.
+- **Light warning:** org OWNED the mislabel ("my line read 4.26-on-tint / 4.55-on-paper; I
+  labeled the pair AA pass; the tint half fails"). ACCEPTED platform's #756B00 — swapped;
+  the 4.2 harness carve REMOVED with it (no soft-floor precedent survives). Floor 4.5, clean.
+- **bg-input:** #242E3C matched the reference (gap was org's — no cast60 mapping specced).
+  Cast60 value #262A46 (input sits ~1.10 above elevated, violet-cast) — applied dark + fallback.
 
 ## Verification
 
