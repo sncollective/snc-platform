@@ -1,14 +1,14 @@
 ---
 id: brand-voice-route-scoping
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system]
 parent: brand-voice-system
 depends_on: [brand-token-architecture]
 release_binding: null
 gate_origin: null
 created: 2026-08-13
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Brand voice — route-default scoping
@@ -238,3 +238,22 @@ The resulting dependency chain is: child-1 completion (including
 `brand-token-architecture-route-scoping-contract`) →
 `brand-voice-route-scoping-runtime-boundary` → `brand-voice-route-scoping-portal-attributes`
 → `brand-voice-route-scoping-verification`.
+
+## Implementation summary
+
+- Landed the pure route table, typed route-default/effective-voice context, transparent root
+  outlet boundary, and explicit Parent fallback without touching token CSS or persistent shell
+  ownership.
+- Propagated the context identity across all shared Ark UI portal primitives and the live chat
+  React portal while leaving portal targets and shell infrastructure unvoiced.
+- Added the complete runtime contract: resolver/nested-route matrix, server-rendered first-paint
+  attributes, root-shell containment, feature-disabled Studio, nested and shell-owned portals,
+  live chat target isolation, and atomic navigation updates.
+- Execution stayed with one feature-owning worker across the ordered story checkpoints because the
+  context, portal consumers, and integration fixtures form one cohesive ownership band.
+
+## Integrated verification
+
+- `bun run --filter @snc/web test` — passed: 195 files, 2014 tests.
+- `bun run --filter @snc/web build` — passed (known third-party `use client` warnings only).
+- `bun run --filter @snc/web typecheck` — passed after route generation.

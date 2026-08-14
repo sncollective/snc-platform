@@ -168,7 +168,7 @@ describe("RootLayout", () => {
       const boundary = container.querySelector("[data-route]");
       const player = screen.getByTestId("global-player");
       const footer = screen.getByTestId("shell-footer");
-      const chatTarget = container.querySelector(".chat-target");
+      const chatTarget = container.querySelector<HTMLElement>(".chat-target");
 
       expect(boundary).toHaveAttribute("data-route", "parent");
       expect(boundary).toHaveStyle({ display: "contents" });
