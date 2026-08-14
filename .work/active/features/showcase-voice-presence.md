@@ -4,7 +4,7 @@ kind: feature
 stage: implementing
 tags: [design-system, ui]
 parent: null
-depends_on: [voice-route-qa-fixes]
+depends_on: [voice-route-qa-fixes]  # done 541f8b8
 release_binding: null
 gate_origin: org voice-presence pickup → home-showcase study → principal's C+ adjudication 2026-08-14
 created: 2026-08-14
@@ -82,13 +82,20 @@ NavBar consumer).
   label (fallback table) in unit accent, titles neutral. FeaturedCreators: NO chips (deferred)
   — names/avatars neutral this increment.
 
+## Scope revision (principal ruling 2026-08-14: EVERYWHERE)
+
+The warm accent is the **parent voice accent on all surfaces** — the showcase accent
+boundary COLLAPSES (no `showcase.css`, no `data-surface` block; showcase routes keep only
+chrome + item-voice treatments). Steel remains in the neutral ramp + accent2.
+
 ## Stories
 
-1. `showcase-accent-boundary` — showcase.css tokens + alias block + resolver surface fact +
-   outlet emission + harness composites (both modes, all alias consumers) + checker green.
-2. `showcase-chrome` — Fraunces Fontsource + `--font-display-showcase` + hero eyebrow/underline +
-   sigchip + footer tagline + section-title typography on showcase surfaces.
-3. `showcase-item-voices` — shared fallback mapping module + per-item accents (home + /feed) +
+1. `parent-voice-warm-accent` — the one-alias move: voice-parent family re-seeds amber
+   both modes; ink-on-accent + e2e-pin sweeps; harness composites + NEW semantic-separation
+   check (accent vs warning family).
+2. `showcase-chrome` — Fraunces Fontsource + display moments + № eyebrow + title underline
+   (now parent-amber grammar) + sigchip + footer tagline.
+3. `showcase-item-voices` — fallback mapping + per-item accents (home + /feed) +
    WhatsOn/ComingUp treatments.
 
 Chain: 1 → 2 ∥ 3.
