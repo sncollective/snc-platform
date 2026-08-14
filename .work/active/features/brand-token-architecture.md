@@ -99,17 +99,31 @@ the navy-shade proliferation (which collapses cleanly to ~3 ramp steps).
   is there a public library surface, or does `/manage/library` stay Parent? (Default Parent
   until one exists.)
 
-## Reference gaps → org adjudication (5; message drafted, pending operator send-approval)
+## Reference gaps → RESOLVED (org adjudication 2026-08-13)
 
-Five categories the reference has no home for; clustered as the missing **affordance**
-(states, links) + **data** (categorical) + **guaranteed-contrast** (on-media/on-status/
-on-badge) layers — all acute in light mode:
-1. Interaction-state roles (P0) — see resolved decision above for platform's lean.
-2. Categorical/data-viz series (P0) — `--color-data-1…N` + chart-grid/tooltip roles.
-3. Guaranteed-contrast foregrounds (P0, biggest light-mode risk) — `--color-on-media` /
-   `-on-media-muted` + `--color-on-status`/`-on-badge` (or badge redesign to ink-over-`*-bg`).
-4. Link roles (P1) — first-class shared interaction role, or alias to route accent?
-5. accent-subtle wiring (P2, reference oversight) — Parent omitted; generic not exposed.
+Org adjudicated all five; structural calls, not value-dependent — **migration unblocked**.
+**Key discriminator (org):** if it's a STATE (focus/selected/hover-bg/disabled) it's SHARED;
+if it's IDENTITY (buttons/links/nav-active) it BREATHES with the voice.
+
+1. **Interaction states → SPINE-STABLE; org extends the reference.** Adopt org's new shared
+   tokens (both modes, placeholder values): `--color-focus`, `--color-selected-bg`,
+   `--color-hover-bg`, `--color-disabled`, `--color-disabled-bg`. Tune for WCAG 2.2 Focus
+   Appearance. (Matches platform's lean.)
+2. **Categorical/data-viz → PLATFORM-LOCAL.** Platform owns `--color-data-1…N` + chart roles.
+   Constraint: harmonize with spine temperature/saturation; perceptually-uniform +
+   colorblind-safe.
+3. **Guaranteed-contrast foregrounds → SPLIT.** Org extends the reference with
+   `--color-on-media` / `--color-on-media-muted` (shared, both modes; pattern = white +
+   `--color-overlay` scrim). Platform resolves status-fill + badge contrast — define
+   `--color-on-status`/`-on-badge` OR constrain usage to `-bg` tints; constraint is WCAG AA.
+4. **Links → ALIAS to route accent (identity, breathes).** `--color-link: var(--color-accent)`,
+   `--color-link-hover: var(--color-accent-hover)`. Not a separate shared role.
+5. **accent-subtle → reference oversight, org fixing.** Org adds `--voice-parent-accent-subtle`
+   (both modes) + exposes `--color-accent-subtle` in route-scoping. Adopt when published.
+
+Five internal categories (overlay/creator-brand/gradients/editing-guides/elevation) — org
+confirms platform owns them. Org is publishing the reference extension (items 1, 3, 5) now;
+adopt their exact token names verbatim when it lands.
 
 ## Open questions the brief must still resolve
 
