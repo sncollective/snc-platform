@@ -31,8 +31,8 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
   return (
     <header className={styles.header}>
       <nav className={styles.nav} aria-label="Main navigation">
-        <Link to="/" className={styles.logo}>
-          S/NC
+        <Link to="/" className={styles.logo} aria-label="S/NC — home">
+          <span className={styles.logoMark} aria-hidden="true" />
         </Link>
 
         <ul className={styles.links} data-route={activeRouteVoice}>

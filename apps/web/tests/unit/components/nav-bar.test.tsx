@@ -57,10 +57,10 @@ beforeEach(() => {
 // ── Tests ──
 
 describe("NavBar", () => {
-  it("renders logo linking to home", () => {
+  it("renders the logo mark linking to home", () => {
     render(<NavBar />);
 
-    const logo = screen.getByRole("link", { name: "S/NC" });
+    const logo = screen.getByRole("link", { name: "S/NC — home" });
     expect(logo).toHaveAttribute("href", "/");
   });
 
