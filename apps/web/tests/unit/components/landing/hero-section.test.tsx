@@ -85,12 +85,6 @@ describe("HeroSection", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders the showcase number eyebrow", () => {
-      render(<HeroSection plans={DEFAULT_PLANS} />);
-
-      expect(screen.getByLabelText("Number 01, member-owned media")).toHaveTextContent("№ 01");
-    });
-
     it("renders subheading paragraph", () => {
       render(<HeroSection plans={DEFAULT_PLANS} />);
 

@@ -467,7 +467,7 @@ describe("brand token contrast matrix", () => {
 
     const contentCardCss = readFileSync(CONTENT_CARD_CSS_PATH, "utf-8");
     expect(cssRule(contentCardCss, ".showcaseItem:hover", CONTENT_CARD_CSS_PATH)).toContain(
-      "border-color: var(--item-unit-accent, var(--color-border))",
+      "border-color: var(--item-unit-accent, var(--color-accent))",
     );
 
     const eventCardPath = resolve(LANDING_CSS_DIR, "event-card.module.css");

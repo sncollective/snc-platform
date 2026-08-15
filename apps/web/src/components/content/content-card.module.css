@@ -18,7 +18,9 @@
 }
 
 .showcaseItem:hover {
-  border-color: var(--item-unit-accent, var(--color-border));
+  /* Hover feedback is a shared affordance: unit hue where an item unit resolves,
+     otherwise the parent-grammar accent — never an invisible neutral. */
+  border-color: var(--item-unit-accent, var(--color-accent));
 }
 
 .showcaseItem.cardNoThumbnail {

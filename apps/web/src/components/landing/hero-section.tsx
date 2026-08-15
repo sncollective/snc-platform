@@ -78,9 +78,6 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
   return (
     <section className={styles.hero}>
       <div className={styles.inner}>
-        <p className={styles.eyebrow} aria-label="Number 01, member-owned media">
-          <span aria-hidden="true">№ 01 · Member-owned media</span>
-        </p>
         <h1 className={styles.heading}>Signal to Noise Collective</h1>
         {underConstruction ? null : (
           <p className={styles.subheading}>

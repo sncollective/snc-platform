@@ -57,8 +57,11 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   padding: var(--space-xs) 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, text-decoration-color 0.15s;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
 }
 
 .navLink:hover {
@@ -67,7 +70,7 @@
 
 .navLinkActive {
   color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
 }
 
 .navLinkDisabled {

@@ -17,15 +17,6 @@
   margin: 0 auto;
 }
 
-.eyebrow {
-  margin: 0 0 var(--space-sm);
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
 
 .heading {
   display: inline-block;
