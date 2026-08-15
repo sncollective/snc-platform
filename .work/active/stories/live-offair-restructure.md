@@ -37,3 +37,9 @@ signal/standby motif rides org's imagery layer later.
 - Single authoritative state in all player/chat/channel surfaces when off-air.
 - Designed slate + next-program + one door, both modes, desktop + mobile.
 - No clipped controls at 390px; screen-audit focused pass verifies.
+
+## Operator note (2026-08-15)
+
+- Continue structural work now. Follow-up logged: BOTH on-air and off-air /live need a
+  proper UI/UX mockup pass eventually (player + chat + channel identity coexisting);
+  that exploration returns to the operator for picks before shipping.

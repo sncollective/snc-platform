@@ -27,3 +27,10 @@ stakeholder review. Mono/reversed mark variants near-free (mark is text-colored 
 3. Mark usage notes (provisional, derived): clear-space from lockup geometry, mono/reversed,
    min-size — as a short reference doc in the design-system notes (org authors the real spec
    post-review).
+
+## Operator decisions (2026-08-15, relaunch scope)
+
+- og-cards carry **mark + name only — NO tagline** (option 2). The hero line "We boost the
+  signal…" is unapproved copy and does not propagate to new surfaces; tagline slot added
+  only when human-approved copy exists.
+- Fraunces-for-auth ratified separately (applies to auth surfaces, not these assets).

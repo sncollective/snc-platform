@@ -33,3 +33,11 @@ owns the patterns. Principles that shape the pattern language: signal-not-noise;
    both modes; operator picks; screen-audit verify.
 2. `empty-state-rollout` — apply to: merch, home Coming Up, feed/creator zero-content,
    creator no-avatar (directory + profile + press). Copy = brief exemplars verbatim.
+
+## Operator decisions (2026-08-15, relaunch scope)
+
+- **MOCKUPS ONLY** — phase 2 (component extraction + route rollout) is a separate future
+  decision after operator reviews the mocks.
+- **All copy in mocks = marked placeholders.** Org's brief exemplar lines are reference
+  drafts rendered as `PLACEHOLDER — pending human copy pass`; no unapproved voice ships.
+  Copy-work is human-in-the-loop from here on.
