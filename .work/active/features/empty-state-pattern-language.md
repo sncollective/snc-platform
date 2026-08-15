@@ -1,7 +1,7 @@
 ---
 id: empty-state-pattern-language
 kind: feature
-stage: implementing
+stage: review
 tags: [design-system, ux-polish]
 parent: visual-identity-exploration
 depends_on: []
@@ -29,10 +29,13 @@ owns the patterns. Principles that shape the pattern language: signal-not-noise;
 
 ## Stories
 
-1. `empty-state-patterns-mockup` — the four patterns as mockups against brief exemplars,
-   both modes; operator picks; screen-audit verify.
-2. `empty-state-rollout` — apply to: merch, home Coming Up, feed/creator zero-content,
-   creator no-avatar (directory + profile + press). Copy = brief exemplars verbatim.
+1. `empty-state-patterns-mockup` — done. The four patterns are rendered against visibly marked
+   reference copy in both modes and verified by a vision-capable reviewer.
+
+## Future operator decision (not scoped)
+
+Production component extraction and route rollout may be scoped only after the operator reviews
+and selects from the mockup. No rollout story exists in this feature's current boundary.
 
 ## Operator decisions (2026-08-15, relaunch scope)
 
@@ -41,3 +44,21 @@ owns the patterns. Principles that shape the pattern language: signal-not-noise;
 - **All copy in mocks = marked placeholders.** Org's brief exemplar lines are reference
   drafts rendered as `PLACEHOLDER — pending human copy pass`; no unapproved voice ships.
   Copy-work is human-in-the-loop from here on.
+
+## Mockups
+
+- Exploration: `.mockups/design-system/empty-states/index.html`
+- Status: vision-verified at 1280px and ready for operator review; no production direction selected.
+
+## Implementation notes
+
+- Mockups-only scope completed through child story `empty-state-patterns-mockup`.
+- EmptyBand, MonogramAvatar, ScrimHero, and OffAirSlate each render in-context and isolated in
+  dark and light, with structural notes grounded in “unloaded ≠ missing” and one-honest-door.
+- All product copy is visibly governed as `PLACEHOLDER — pending human copy pass`; exemplar lines
+  are reference drafts, not final voice.
+- Two visual passes ran in one `openai-codex/gpt-5.6-sol` vision session with one implementation
+  iteration between them. The second pass verified the artifact for operator review at 1280px.
+- No components, routes, production tokens, public assets, or sibling work-item paths changed.
+- Rollout remains a separate future operator decision; feature review is the visual-alignment
+  handoff, not permission to ship these patterns.
