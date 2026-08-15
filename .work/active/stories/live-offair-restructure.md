@@ -63,3 +63,16 @@ signal/standby motif rides org's imagery layer later.
   composed standby/info region. The fullPage mobile capture's fixed bottom bar overlaps
   the below-fold footer in the stitched artifact; this is not a primary live-surface
   clipping issue and was not changed under the story boundary.
+
+## Bounded inline review (orchestrator, 2026-08-15)
+
+Approved with one completion fix: the worker's commit `639dd71` referenced raw
+`--voice-tv-*` tokens in `live.module.css` but left the checker's sanctioned-consumer
+entry UNCOMMITTED — committed state failed `color-leaks` (verified via stash). The
+sanction itself is sound: the off-air slate is the brief's TV-voice exception surface
+(org brief principle 5), and the widened pattern covers exactly the tokens the slate
+consumes (accent/accent-bg/subtle/on-accent/radius, tv-voice scoped). Amended commit
+lands the checker change WITH the story. Verification honored: 2,057 tests + build green
+(includes the now-enforced checker), vision pass on both themes at both widths, the one
+noted artifact correctly identified as the fullPage fixed-footer stitching lie.
+Follow-up (operator): /live on-air + off-air full UI/UX mockup pass — logged above.

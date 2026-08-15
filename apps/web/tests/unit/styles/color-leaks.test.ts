@@ -275,8 +275,8 @@ function isSanctionedDirectVoiceConsumer(path: string, token: string): boolean {
     return /^--voice-(?:parent|studio|tv|records)-accent2$/.test(token);
   }
   return (
-    path === SHOWCASE_ITEM_VOICE_FILE &&
-    /^--voice-(?:studio|tv|records)-(?:accent|accent-bg|on-accent)$/.test(token)
+    (path === SHOWCASE_ITEM_VOICE_FILE || path === "routes/live.module.css") &&
+    /^--voice-(?:studio|tv|records)-(?:accent|accent-bg|accent-subtle|on-accent|radius)$/.test(token)
   );
 }
 
