@@ -33,6 +33,9 @@ import globalCss from "../styles/global.css?url";
 import sourceSansRomanUrl from "@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2?url";
 import styles from "./__root.module.css";
 
+const siteUrl = (import.meta.env.VITE_SITE_URL ?? "https://s-nc.org").replace(/\/$/, "");
+const defaultOgImageUrl = `${siteUrl}/og/default.png`;
+
 export const Route = createRootRoute({
   loader: async () => {
     const authState = await fetchAuthStateServer();
@@ -46,6 +49,15 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "color-scheme", content: "light dark" },
       { title: "S/NC" },
+      { property: "og:title", content: "S/NC" },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "S/NC" },
+      { property: "og:image", content: defaultOgImageUrl },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "S/NC" },
+      { name: "twitter:image", content: defaultOgImageUrl },
     ],
     links: [
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
