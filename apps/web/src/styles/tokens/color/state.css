@@ -6,7 +6,7 @@
   --color-selected-bg: rgba(169, 73, 0, 0.08);
   --color-hover-bg: rgba(0, 0, 0, 0.04);
   --color-disabled: #9A948A;
-  --color-disabled-bg: #E8E3D9;
+  --color-disabled-bg: #E4DFCF;
 }
 
 [data-theme="dark"] {

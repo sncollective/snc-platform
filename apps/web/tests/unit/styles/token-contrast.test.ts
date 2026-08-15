@@ -258,6 +258,11 @@ const PARENT_FAMILY_TOKEN_NAMES = [
 // (parent=grammar, copper=Studio content, warning=chip+icon+tint) carries what physics cannot.
 const MIN_OKLAB_DE_IDENTITY_SEPARATION = 0.05;
 
+// Org papyrus-pass pick (2026-08-14): light TV accent retuned for the warmer paper base
+// (#00786E computed 4.43 on papyrus bg). #00695F holds 5.44/5.88 with improved separation
+// vs every neighbor (incl. its own accent2 and success-green). Reference-updated org-side.
+const LIGHT_TV_ACCENT_CONTRACT = "#00695F";
+
 describe("brand token contrast matrix", () => {
   it.each(MODES)("keeps %s base foregrounds AA-safe on background and elevated", (mode) => {
     const tokens = tokensForMode(mode);
@@ -365,6 +370,10 @@ describe("brand token contrast matrix", () => {
       }
 
       const accent = color(tokens, `--voice-${voice}-accent`);
+      if (mode === "light" && voice === "tv") {
+        // Pin the raw org-contract hex (parsed value comparison below covers behavior).
+        expect(tokens.get("--voice-tv-accent")).toBe(LIGHT_TV_ACCENT_CONTRACT);
+      }
       for (const hostName of HOST_SURFACES) {
         const host = color(tokens, hostName);
         expect(contrast(accent, host), `${voice} accent on ${hostName}`).toBeGreaterThanOrEqual(4.5);

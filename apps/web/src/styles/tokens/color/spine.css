@@ -2,13 +2,13 @@
 
 :root,
 [data-theme="light"] {
-  --color-bg: #F5F1EA;
-  --color-bg-elevated: #FAF7F1;
-  --color-surface: #F8F5EF;
-  --color-bg-input: #EFEAE0;
+  --color-bg: #EFE9D8;
+  --color-bg-elevated: #F6F2E4;
+  --color-surface: #F3EEE0;
+  --color-bg-input: #E0DCCB;
   --color-text: #1A1714;
   --color-text-muted: #5E564A;
-  --color-border: #DDD7CC;
+  --color-border: #D1CBBD;
 }
 
 [data-theme="dark"] {
