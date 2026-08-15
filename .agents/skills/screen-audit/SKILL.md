@@ -64,6 +64,10 @@ screenshot filename, what + why + direction. No padding; "no findings" is explic
 
 ## 4. Orchestrator discipline
 
+- **fullPage captures LIE about fixed elements** (learned 2026-08-15): the fixed tab bar /
+  mini-player stamps mid-canvas over content in stitched full-page images. A "fixed chrome
+  overlaps content" finding from a fullPage capture MUST be re-verified with a real-viewport
+  capture at the scrolled position before it is filed.
 - Adjudicate every finding against code reality before filing/fixing; park or file per
   materiality (workflow rules apply).
 - Pair visual findings with code-level checks where possible (a mis-sized logo is a CSS

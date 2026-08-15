@@ -81,7 +81,7 @@ export function HeroSection({ plans }: HeroSectionProps): React.ReactElement {
         <h1 className={styles.heading}>Signal to Noise Collective</h1>
         {underConstruction ? null : (
           <p className={styles.subheading}>
-            <strong><em>We boost the signal - and cut through the noise.</em></strong>
+            <strong><em>We boost the signal — and cut through the noise.</em></strong>
           </p>
         )}
         {underConstruction ? (

@@ -48,8 +48,22 @@ for (const mode of MODES) {
       const name = `${slug(route)}-${mode}-${width}`;
       try {
         // "load" (not "networkidle"): /live holds persistent connections.
-        await page.goto(`${BASE}${route}`, { waitUntil: "load", timeout: 45000 });
+        const response = await page.goto(`${BASE}${route}`, { waitUntil: "load", timeout: 45000 });
         await page.waitForTimeout(3000);
+        // Auth redirects and 5xx render the LOGIN page, not the target — flag instead of
+        // recording a false capture (audit finding 2026-08-15: governance-calendar
+        // captured as login four times before this check existed).
+        const finalPath = new URL(page.url()).pathname;
+        if (finalPath !== route && finalPath.startsWith("/login")) {
+          manifest.failed.push({ name, error: `redirected to ${finalPath} (auth-gated)` });
+          console.log(`REDIRECT ${name} -> ${finalPath}`);
+          continue;
+        }
+        if (response && response.status() >= 400) {
+          manifest.failed.push({ name, error: `HTTP ${response.status()}` });
+          console.log(`HTTP-ERR ${name} ${response.status()}`);
+          continue;
+        }
         await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
         manifest.captured.push(name);
         console.log(`ok ${name}`);
