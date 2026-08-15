@@ -177,6 +177,7 @@
   flex-direction: row;
   align-items: center;
   gap: var(--space-md);
+  min-width: 0;
 }
 
 .statusBar {
@@ -340,6 +341,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-width: 0;
 }
 
 .channelLabel {
@@ -351,7 +353,8 @@
 }
 
 .channelSelector {
-  width: 240px;
+  width: 320px;
+  min-width: 0;
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -360,6 +363,131 @@
   font-size: var(--font-size-sm);
   cursor: pointer;
   text-overflow: ellipsis;
+}
+
+/* ── Off-air standby ── */
+
+.offAirStandby {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  overflow: hidden;
+  padding: clamp(var(--space-md), 5vw, var(--space-xl));
+  border: 1px solid var(--voice-tv-accent);
+  border-radius: var(--voice-tv-radius);
+  background:
+    linear-gradient(135deg, var(--voice-tv-accent-subtle), transparent 58%),
+    var(--color-media-bg);
+  color: var(--color-on-media);
+}
+
+.offAirStandby::after {
+  position: absolute;
+  right: var(--space-md);
+  bottom: var(--space-md);
+  width: 30%;
+  height: 1px;
+  background: var(--voice-tv-accent);
+  content: "";
+  opacity: 0.7;
+}
+
+.offAirSignal,
+.offAirLabel,
+.scheduledChatLabel {
+  color: var(--voice-tv-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.offAirCopy {
+  max-width: 32rem;
+}
+
+.offAirHeading {
+  margin: 0 0 var(--space-xs);
+  color: var(--voice-tv-accent);
+  font-family: var(--font-display);
+  font-size: clamp(var(--font-size-2xl), 5vw, var(--font-size-4xl));
+  line-height: 1;
+}
+
+.offAirMessage {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--color-on-media-muted);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+
+.offAirIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--voice-tv-accent-subtle);
+  color: var(--color-on-media);
+  font-size: var(--font-size-lg);
+}
+
+.offAirReminder {
+  align-self: flex-start;
+  width: min(100%, 360px);
+}
+
+.offAirReminder form {
+  max-width: none;
+  margin: var(--space-md) 0 0;
+}
+
+.offAirReminder label {
+  color: var(--color-on-media);
+}
+
+.offAirReminder input {
+  border-color: var(--color-on-media-muted);
+  background: var(--color-media-bg);
+  color: var(--color-on-media);
+}
+
+.offAirReminder button {
+  background: var(--voice-tv-accent);
+  color: var(--color-media-bg);
+}
+
+.scheduledChat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  height: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--voice-tv-radius);
+  background: var(--color-bg);
+}
+
+.scheduledChat p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.scheduledChatState {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--voice-tv-accent);
+  color: var(--voice-tv-accent);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 /* ── Mobile Tab Bar (Info | Chat, hidden ≥768px) ── */
@@ -398,6 +526,30 @@
 }
 
 @media (max-width: 767px) {
+  .streamInfo {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .channelControl {
+    flex: 1 1 100%;
+  }
+
+  .channelSelector {
+    flex: 1;
+    width: auto;
+  }
+
+  .statusBar {
+    flex-wrap: wrap;
+  }
+
+  .offAirStandby {
+    aspect-ratio: auto;
+    min-height: 420px;
+  }
+
   .infoSectionsChatOpen {
     display: none;
   }

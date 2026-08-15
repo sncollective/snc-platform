@@ -123,7 +123,7 @@ function makeChannel(overrides: Record<string, unknown> = {}) {
     creator: null,
     startedAt: null,
     nowPlaying: null,
-    liveState: "offline" as const,
+    liveState: "scheduled-playout" as const,
     ...overrides,
   };
 }
@@ -266,7 +266,7 @@ describe("LivePage", () => {
     expect(screen.getByText("LIVE")).toBeInTheDocument();
   });
 
-  it("does not show LIVE indicator for playout channels", () => {
+  it("renders scheduled channels as standby without mounting a player", () => {
     mockUseLoaderData.mockReturnValue({
       initial: makeChannelList(),
     });
@@ -274,6 +274,36 @@ describe("LivePage", () => {
     render(<LivePage />);
 
     expect(screen.queryByText("LIVE")).toBeNull();
+    expect(screen.getAllByText("Scheduled").length).toBeGreaterThan(0);
+    expect(screen.getByText("Off air.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notify me" })).toBeInTheDocument();
+    expect(screen.queryByTestId("media-player")).toBeNull();
+  });
+
+  it("renders the designed standby and does not mount streaming UI when offline", () => {
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({
+        channels: [makeChannel({ hlsUrl: null, liveState: "offline" })],
+      }),
+    });
+
+    render(<LivePage />);
+
+    expect(screen.getByRole("region", { name: "S/NC Radio off air" })).toBeInTheDocument();
+    expect(screen.getByText("Off air.")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByText("LIVE")).toBeNull();
+  });
+
+  it("shows a waiting chat state for scheduled channels without reconnect messaging", () => {
+    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+
+    render(<LivePage />);
+
+    expect(screen.getByRole("region", { name: "Scheduled chat" })).toBeInTheDocument();
+    expect(screen.getByText("Chat opens when S/NC Radio is live.")).toBeInTheDocument();
+    expect(screen.getAllByText("Scheduled").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Reconnecting")).toBeNull();
   });
 
   it("updates the LIVE indicator from the refetched status after a live spine event", async () => {
@@ -396,7 +426,9 @@ describe("LivePage", () => {
     chatTarget.setAttribute("data-testid", "chat-target");
     document.body.append(chatTarget);
     mockChatPortalRef.current = chatTarget;
-    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
+    });
 
     render(
       <RouteVoiceScope routeDefault="tv">
@@ -418,7 +450,7 @@ describe("LivePage", () => {
 describe("LivePage — MobileTabBar", () => {
   it("renders tablist with Info and Chat tabs when streaming", () => {
     mockUseLoaderData.mockReturnValue({
-      initial: makeChannelList(),
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
     });
 
     render(<LivePage />);
@@ -434,7 +466,7 @@ describe("LivePage — MobileTabBar", () => {
 
   it("Info tab is selected by default when streaming", () => {
     mockUseLoaderData.mockReturnValue({
-      initial: makeChannelList(),
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
     });
 
     render(<LivePage />);
@@ -448,7 +480,7 @@ describe("LivePage — MobileTabBar", () => {
   it("clicking Chat tab calls setLiveMobileChatOpen with true", () => {
     mockSetLiveMobileChatOpen.mockClear();
     mockUseLoaderData.mockReturnValue({
-      initial: makeChannelList(),
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
     });
 
     render(<LivePage />);
@@ -495,7 +527,9 @@ describe("LivePage — MobileTabBar", () => {
 
 describe("LivePage — desktop control icons", () => {
   it("theater toggle renders an svg icon (not a Unicode glyph) when not in theater mode", () => {
-    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
+    });
 
     render(<LivePage />);
 
@@ -506,7 +540,9 @@ describe("LivePage — desktop control icons", () => {
   });
 
   it("chat toggle renders an svg icon (not a Unicode glyph) when chat is visible", () => {
-    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
+    });
 
     render(<LivePage />);
 
@@ -517,7 +553,9 @@ describe("LivePage — desktop control icons", () => {
   });
 
   it("chat toggle renders an svg icon after collapse (Show chat label)", () => {
-    mockUseLoaderData.mockReturnValue({ initial: makeChannelList() });
+    mockUseLoaderData.mockReturnValue({
+      initial: makeChannelList({ channels: [makeChannel(liveOverrides())] }),
+    });
 
     render(<LivePage />);
 

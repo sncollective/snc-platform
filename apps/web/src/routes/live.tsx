@@ -140,7 +140,7 @@ function LivePageInner(): React.ReactElement {
   const { initial } = Route.useLoaderData();
   const { channel: channelFromUrl } = Route.useSearch();
   const { data: channelList, isLoading, refetch } = useChannelList(initial);
-  const { actions, chatPortalRef } = useGlobalPlayer();
+  const { actions, chatPortalRef, state: playerState } = useGlobalPlayer();
   const session = useSession();
   const currentUserId = session.data?.user?.id ?? null;
   const routeVoiceAttributes = useRouteVoiceAttributes();
@@ -192,12 +192,14 @@ function LivePageInner(): React.ReactElement {
   const selectedChannel =
     channels.find((c) => c.id === selectedChannelId) ?? null;
   const hasChannels = channels.length > 0;
-  const isStreaming = selectedChannel?.hlsUrl != null;
-  // Derived airing-state from the channel-list response (live-experience-redesign-
-  // live-state). "live-creator" is a creator on air — a keyed-in live-ingest stream
-  // OR a creator takeover of the S/NC TV broadcast via Liquidsoap, which the old
-  // identity proxy (ownership === "creator" && role === "live-ingest") missed.
-  const selectedChannelIsLive = selectedChannel?.liveState === "live-creator";
+  // The channel-list response is the single source of truth for airing state. An HLS
+  // URL is only a configured endpoint; it does not prove that a channel is currently
+  // on air (the old check made an offline channel mount a player and chat reconnect).
+  // Only a live creator state mounts the player. Scheduled HLS endpoints may point to
+  // stale/test media and are deliberately represented by the designed standby slate.
+  const selectedChannelIsLive =
+    selectedChannel?.hlsUrl != null && selectedChannel.liveState === "live-creator";
+  const isStreaming = selectedChannelIsLive;
 
   // Derive layout signal from prefs
   const liveLayout: LiveLayout = prefs.theater ? "theater" : "default";
@@ -270,20 +272,45 @@ function LivePageInner(): React.ReactElement {
 
   // Auto-play the selected channel (live streams auto-play muted per browser policy)
   useEffect(() => {
-    if (selectedChannel?.hlsUrl) {
-      const metadata: MediaMetadata = {
-        id: selectedChannel.id,
-        contentType: selectedChannelIsLive ? "live" : "playout",
-        title: selectedChannel.name,
-        artist: selectedChannel.creator?.displayName ?? "S/NC",
-        posterUrl: selectedChannel.thumbnailUrl ?? null,
-        source: { src: selectedChannel.hlsUrl, type: "application/x-mpegurl" },
-        streamType: "live",
-        contentUrl: `/live?channel=${selectedChannel.id}`,
-      };
-      actions.play(metadata);
+    const selectedMedia = playerState.media;
+    if (selectedChannelIsLive && selectedChannel?.hlsUrl) {
+      const streamType = "live" as const;
+      const source = { src: selectedChannel.hlsUrl, type: "application/x-mpegurl" } as const;
+      const mediaNeedsUpdate =
+        selectedMedia?.id !== selectedChannel.id ||
+        selectedMedia.streamType !== streamType ||
+        (typeof selectedMedia.source === "object" && selectedMedia.source.src !== source.src) ||
+        (typeof selectedMedia.source === "string" && selectedMedia.source !== source.src);
+
+      // Reconcile the global player with the same authoritative channel state used
+      // by the selector. In particular, clear a stale player when the stream ends
+      // or the selected channel changes, and replace it when the source changes.
+      if (mediaNeedsUpdate) {
+        const metadata: MediaMetadata = {
+          id: selectedChannel.id,
+          contentType: "live",
+          title: selectedChannel.name,
+          artist: selectedChannel.creator?.displayName ?? "S/NC",
+          posterUrl: selectedChannel.thumbnailUrl ?? null,
+          source,
+          streamType,
+          contentUrl: `/live?channel=${selectedChannel.id}`,
+        };
+        // The global action intentionally ignores play() for an already-loaded ID.
+        // Clear first when the same channel changes airing mode or source so its
+        // player chrome follows the channel-list state instead of staying LIVE.
+        if (selectedMedia?.id === selectedChannel.id) actions.clear();
+        actions.play(metadata);
+      }
+    } else if (selectedMedia?.id === selectedChannel?.id) {
+      actions.clear();
     }
-  }, [selectedChannel?.id, actions]);
+  }, [
+    actions,
+    playerState.media,
+    selectedChannel,
+    selectedChannelIsLive,
+  ]);
 
   // ── Portal target ──
   const portalTarget = chatPortalRef.current;
@@ -313,6 +340,15 @@ function LivePageInner(): React.ReactElement {
               />
             )}
           </div>
+        )}
+
+        {selectedChannel && !isStreaming && (
+          <>
+            <OffAirStandby channel={selectedChannel} />
+            {selectedChannel.liveState === "scheduled-playout" && (
+              <ScheduledChatPanel channelName={selectedChannel.name} />
+            )}
+          </>
         )}
 
         {isStreaming && (
@@ -348,7 +384,7 @@ function LivePageInner(): React.ReactElement {
       </div>
 
       {/* Streaming-only UI: theater, chat, overlays */}
-      {isStreaming && (
+      {isStreaming && selectedChannelIsLive && (
         <ChatProvider userId={currentUserId}>
           <button
             type="button"
@@ -421,6 +457,39 @@ function TheaterOverlay({
         {channel.viewerCount} {channel.viewerCount === 1 ? "viewer" : "viewers"}
       </span>
     </div>
+  );
+}
+
+/** Off-air player treatment used when the authoritative channel state has no stream. */
+function OffAirStandby({ channel }: { readonly channel: Channel }): React.ReactElement {
+  return (
+    <section className={styles.offAirStandby} aria-label={`${channel.name} off air`}>
+      <div className={styles.offAirSignal} aria-hidden="true">OFF AIR</div>
+      <div className={styles.offAirCopy}>
+        <p className={styles.offAirHeading}>Off air.</p>
+        <p className={styles.offAirMessage}>
+          The next program will appear here when a schedule is available.
+        </p>
+      </div>
+      <div className={styles.offAirIdentity}>
+        <span className={styles.offAirLabel}>Channel</span>
+        <strong>{channel.name}</strong>
+      </div>
+      <div className={styles.offAirReminder}>
+        <NotifyMeForm channelId={channel.id} channelName={channel.name} />
+      </div>
+    </section>
+  );
+}
+
+/** Scheduled channels keep their information architecture without opening chat or reconnecting. */
+function ScheduledChatPanel({ channelName }: { readonly channelName: string }): React.ReactElement {
+  return (
+    <section className={styles.scheduledChat} aria-label="Scheduled chat">
+      <span className={styles.scheduledChatLabel}>Chat</span>
+      <p>Chat opens when {channelName} is live.</p>
+      <span className={styles.scheduledChatState}>Scheduled</span>
+    </section>
   );
 }
 
