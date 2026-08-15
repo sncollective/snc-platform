@@ -68,9 +68,22 @@ screenshot filename, what + why + direction. No padding; "no findings" is explic
   mini-player stamps mid-canvas over content in stitched full-page images. A "fixed chrome
   overlaps content" finding from a fullPage capture MUST be re-verified with a real-viewport
   capture at the scrolled position before it is filed.
+- **Mind the vision read budget**: very tall captures (>~1MB / >2500px) can fail the
+  subagent's image read as "file does not exist". Downscale first:
+  `ffmpeg -y -i <tall>.png -vf scale=560:-1 <tall>-small.png` (verified 2026-08-15).
 - Adjudicate every finding against code reality before filing/fixing; park or file per
   materiality (workflow rules apply).
 - Pair visual findings with code-level checks where possible (a mis-sized logo is a CSS
   read; a "feels bland" is a direction question for the brainstorm, not a bug).
 - Before/after verification of any visual change = re-capture the focused routes + one
   vision pass confirming the delta. Never claim "verified" without the pass.
+
+
+## Mechanism & research record (2026-08-15)
+
+Playwright via the repo's `@snc/e2e` install (shared rendering engine with the e2e suite,
+no new dependencies). Ecosystem check: `@m64/pi-screenshot-tools` is desktop/terminal
+capture (wayland/kitty — needs a GUI session; different job); no pi-native tool renders
+HTML to images (`fetch_content` extracts text; `@image` reads existing files). Re-evaluate
+if a pi-native page renderer appears. Sibling skill: `mockup-review` (static `.mockups/`
+files — same mechanism, `capture-files.mjs`).

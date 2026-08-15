@@ -64,17 +64,19 @@ Give the operator: `http://<LAN-IP>:<PORT>/screens/<feature>/index.html`.
 A vision-capable subagent that **screenshots each mockup, reads the PNGs, and
 verifies a checklist.** Dispatch on `openai-codex/gpt-5.6-sol`.
 
-Screenshot recipe — **Playwright browsers are NOT installed**; use the system
-firefox headless, with a **fresh profile dir per shot** (firefox locks profiles):
+Screenshot recipe — **Playwright** (the repo's e2e install; one screenshot mechanism
+repo-wide — see the research record at the bottom of this skill):
 ```bash
-for f in <list of mockup html files>; do
-  P=/tmp/ffp-$RANDOM; rm -rf "$P"; mkdir -p "$P"
-  timeout 45 firefox -headless -no-remote -profile "$P" \
-    --screenshot "/tmp/shot-$(basename "$f" .html).png" \
-    "file://<absolute path to $f>" >/dev/null 2>&1
-done
+# from apps/e2e — captures recursively under a mockup root, both widths if asked
+node scripts/capture-files.mjs --root ../../.mockups --grep <filter> \
+  --out /tmp/mockup-shots [--widths 1280,390] [--theme dark]
 ```
 Then the subagent `read`s each PNG and confirms.
+
+**Image-size budget (hard-won):** very tall fullPage captures (>~1MB / >2500px) can exceed
+the vision subagent's read budget and fail as "file does not exist". Downscale before
+review: `ffmpeg -y -i <tall>.png -vf scale=560:-1 <tall>-small.png`. Verified working
+2026-08-15 (1.7MB/3215px failed → 587KB downscale passed).
 
 **Checklist (adapt per mockup):**
 - Page width = viewport width — **no horizontal overflow, no images off the left/right edges.**
@@ -130,3 +132,23 @@ surface the weaknesses; don't rubber-stamp.
 - These two roles (validator = correctness, adversarial reviewer = design
   quality) close the gap the non-multimodal orchestrator cannot see. Use both
   before any mockup is reported done to the operator.
+
+---
+
+## Mechanism & research record (2026-08-15)
+
+**Why Playwright:** the repo's `@snc/e2e` package already installs Playwright + chromium
+(`scripts/dev/install-e2e-browsers.sh`); using it means one screenshot mechanism, one
+install, and dev/e2e/audit captures share a rendering engine. The previous recipe
+(firefox-headless + fresh-profile-per-shot) predated the Playwright browsers being present
+on this box.
+
+**Ecosystem check (operator-prompted, 2026-08-15):**
+- `@m64/pi-screenshot-tools` (npm, the one real pi screenshot package) captures the
+  **physical desktop/terminal** (wayland/sway/hyprland/kitty/tmux) so pi can see what the
+  *user* sees — a different job from rendering a URL/file to PNG, and it requires a GUI
+  session this headless devcontainer lacks. Not applicable.
+- pi-native: no tool renders HTML to images (`fetch_content` extracts text/readable
+  markdown; `@image` syntax *reads* existing images). Not applicable.
+- Re-evaluate if a pi-native page-render extension appears; until then Playwright via the
+  repo install is the principled choice (no new deps, no drift from e2e rendering).
