@@ -52,9 +52,11 @@ export const Route = createRootRoute({
       { property: "og:title", content: "S/NC" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "S/NC" },
+      // No global og:image dimensions: routes override og:image with arbitrary-size
+      // media (avatars, thumbnails) and TanStack dedups per-property — global dims
+      // would survive those overrides and misdescribe their images (review finding).
+      // Scrapers measure dimensionless og:images natively.
       { property: "og:image", content: defaultOgImageUrl },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "S/NC" },
       { name: "twitter:image", content: defaultOgImageUrl },

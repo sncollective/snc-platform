@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, render, screen } from "@testing-library/react";
 import type React from "react";
 import { renderToString } from "react-dom/server";
@@ -205,5 +207,41 @@ describe("RootLayout", () => {
 
     await act(async () => root.unmount());
     localStorage.removeItem("snc.appearance.theme");
+  });
+});
+
+describe("open-graph metadata merge contract", () => {
+  // Regression (identity-assets review 2026-08-15): TanStack dedups og properties
+  // independently, so global og:image dimensions survived route-level image overrides
+  // and misdescribed arbitrary-size media. The root must not declare dimensions.
+  it("root og metadata carries the default image but no dimension properties", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../../../src/routes/__root.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain('{ property: "og:image", content: defaultOgImageUrl }');
+    expect(source).not.toContain("og:image:width");
+    expect(source).not.toContain("og:image:height");
+    expect(source).toContain('name: "twitter:card"');
+  });
+
+  it("route og:image overrides do not declare stale dimensions", () => {
+    const routeFiles = [
+      "creators/$creatorId.tsx",
+      "creators/$creatorId/press.tsx",
+      "creators/$creatorId/press/releases/$releaseSlug.tsx",
+      "content/$contentId.tsx",
+      "content/$creatorSlug/$contentSlug.tsx",
+    ];
+    for (const file of routeFiles) {
+      const source = readFileSync(
+        resolve(import.meta.dirname, "../../../src/routes", file),
+        "utf-8",
+      );
+      expect(source, `${file} must not pin og:image dimensions`).not.toContain(
+        "og:image:width",
+      );
+    }
   });
 });

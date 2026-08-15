@@ -1,7 +1,7 @@
 ---
 id: identity-assets-pass
 kind: feature
-stage: review
+stage: done
 tags: [design-system, ui]
 parent: visual-identity-exploration
 depends_on: []
@@ -56,3 +56,15 @@ stakeholder review. Mono/reversed mark variants near-free (mark is text-colored 
   passed 197 files / 2057 tests; `bun run --filter @snc/web build` passed.
 - Review weight: standard (project default); implementation stops at the requested feature review
   boundary.
+
+## Review — standard pass (2026-08-15)
+
+Cross-model fresh-context (GLM-5.2 host → GPT-5.6 Sol): **needs fixes → fixed → done.**
+One blocker: global og:image dimensions survived route-level image overrides under
+TanStack's per-property dedup (misdescribing arbitrary-size avatars/thumbnails on five
+routes). Fixed by removing the root dimension declarations (scrapers measure
+dimensionless og:images; lying dims are worse than none) + a merged-head regression
+contract test. Governance findings all clean on inspection: no unapproved copy in any
+asset (generator source + PNGs inspected), favicon chain consistent byte-exact vs
+Chromium renders, no unrelated scope. Nit noted: og generator hardcodes spine/accent
+values (re-derivation tool — regenerate on value swap; drift risk accepted and documented).
