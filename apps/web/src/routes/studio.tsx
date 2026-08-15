@@ -3,7 +3,6 @@ import type React from "react";
 
 import { STUDIO_SERVICES } from "@snc/shared";
 
-import { SignatureChip } from "../components/brand/signature-chip.js";
 import { ComingSoon } from "../components/coming-soon/coming-soon.js";
 import { isFeatureEnabled } from "../lib/config.js";
 import { StudioHero } from "../components/studio/studio-hero.js";
@@ -32,9 +31,6 @@ function StudioPage(): React.ReactElement {
   return (
     <div className={styles.studioPage}>
       <div className={styles.heroFrame}>
-        <div className={styles.heroSignature}>
-          <SignatureChip voice="studio">24·96</SignatureChip>
-        </div>
         <StudioHero />
       </div>
       <div className={styles.sections}>

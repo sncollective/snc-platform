@@ -4,7 +4,6 @@ import { useSession, useAuthExtras } from "../../lib/auth.js";
 import type { AuthState } from "../../lib/auth.js";
 import { NAV_LINKS } from "../../config/navigation.js";
 import { resolveRouteVoice } from "../../lib/route-voice/route-voice.js";
-import { SignatureChip } from "../brand/signature-chip.js";
 import { NotificationBell } from "../notification-bell.js";
 import { UserMenu } from "./user-menu.js";
 import { NavLinkItem } from "./nav-link-item.js";
@@ -51,7 +50,6 @@ export function NavBar({ serverAuth }: { readonly serverAuth?: AuthState }) {
         </ul>
 
         <div className={styles.right}>
-          <SignatureChip voice="parent" variant="showcase">We boost the signal</SignatureChip>
           {user && <NotificationBell />}
           <UserMenu {...(serverAuth !== undefined ? { serverAuth } : {})} />
         </div>

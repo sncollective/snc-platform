@@ -1,7 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import type React from "react";
 
-import { SignatureChip } from "../../../components/brand/signature-chip.js";
 import { PressPage } from "../../../components/press/press-page.js";
 import type { DeliveredPressPagePayload } from "../../../components/press/press-types.js";
 import { fetchApiServer } from "../../../lib/api-server.js";
@@ -74,9 +73,6 @@ function PressRoutePage(): React.ReactElement {
 
   return (
     <div className={styles.breakout}>
-      <div className={styles.pressSignature}>
-        <SignatureChip voice="records">A1</SignatureChip>
-      </div>
       <PressPage
         creator={creator}
         content={content}

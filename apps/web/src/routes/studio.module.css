@@ -9,13 +9,6 @@
   position: relative;
 }
 
-.heroSignature {
-  position: absolute;
-  top: var(--space-sm);
-  left: var(--space-md);
-  z-index: var(--z-raised);
-}
-
 .sections {
   display: flex;
   flex-direction: column;
