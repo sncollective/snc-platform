@@ -74,3 +74,20 @@ the login page).
 Research posture: findings are execution-level, not "unknown what good looks like" — defer
 external research until a direction is picked, then targeted (e.g. media-coop brand
 patterns, empty-state pattern libraries) if wanted.
+
+## Org adjudications on the direction menu (2026-08-15)
+
+- **Sole live direction** = the settled system; Paper/Stage/Mono dead as named candidates;
+  shortwave's shared-body/per-voice-display principle is INCORPORATED in the shipped model.
+- **Mark usage**: no spec yet. NOW = derive mechanical constraints provisionally
+  (mono/reversed near-free — mark is text-colored by design; clear-space/min-size from
+  lockup geometry); cheap re-derivations (favicon tile, og cards) fine now.
+  AFTER stakeholder review = org authors real usage spec (adjacent to trademark position);
+  stationery-class (letterhead/email) waits — permanence-implying, expensive to redo.
+- **Empty states**: org authors the empty-state VOICE BRIEF (principles + exemplar lines
+  per state class: merch-coming-soon / live-off-air / no-avatar / zero-content) — queued
+  org-side; platform designs pattern language against it. Findings summary sent to feed it.
+- **/live off-air**: strong yes. Two-stage honest: structural/typographic NOW on
+  provisional values; art-directed version (signal/standby motif) rides the imagery
+  art-direction layer (queued org-side in the position).
+- **Timing**: stakeholder review gates NOTHING except permanence-implying mark assets.
