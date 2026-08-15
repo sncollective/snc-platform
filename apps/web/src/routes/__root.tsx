@@ -48,7 +48,47 @@ export const Route = createRootRoute({
       { title: "S/NC" },
     ],
     links: [
-      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
+      {
+        rel: "icon",
+        href: "/favicon-16-light.png",
+        type: "image/png",
+        sizes: "16x16",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        rel: "icon",
+        href: "/favicon-16-dark.png",
+        type: "image/png",
+        sizes: "16x16",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        rel: "icon",
+        href: "/favicon-32-light.png",
+        type: "image/png",
+        sizes: "32x32",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        rel: "icon",
+        href: "/favicon-32-dark.png",
+        type: "image/png",
+        sizes: "32x32",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon-light.png",
+        sizes: "180x180",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon-dark.png",
+        sizes: "180x180",
+        media: "(prefers-color-scheme: dark)",
+      },
       {
         rel: "preload",
         href: sourceSansRomanUrl,
