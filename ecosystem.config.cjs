@@ -36,6 +36,9 @@ module.exports = {
       interpreter: "node",
       env: {
         NODE_ENV: "development",
+        // Emissions down pending robust ledger rebuild (operator 2026-08-15);
+        // matches web-staging + the API-side FEATURE_EMISSIONS=false in .env.
+        VITE_FEATURE_EMISSIONS: "false",
       },
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: true,

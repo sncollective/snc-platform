@@ -19,3 +19,15 @@ of the transparency data. Reproduced with the API freshly restarted (not env fla
 Fix direction: the breakdown endpoint should be public (transparency is the page's purpose)
 or the route should degrade gracefully (summary without breakdown). Confirm intended
 auth model before opening the endpoint.
+
+## Resolution (2026-08-15, operator)
+
+Not a bug — the emissions page is INTENTIONALLY DOWN pending a more robust ledger/
+representation rebuild (operator decision). The 500 was the down-state leaking: web flag
+defaulted on while the API endpoint stayed stakeholder-gated.
+
+Mechanism now: `VITE_FEATURE_EMISSIONS=false` in ecosystem web env (matches web-staging's
+existing matrix) + `FEATURE_EMISSIONS=false` in dev .env. Nav link hides; direct /emissions
+renders the designed `ComingSoon` component; API routes unregistered. Auth model question is
+moot — reads stay gated until the rebuild decides the transparency surface's shape.
+Reopen when the ledger rebuild work starts.
