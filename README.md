@@ -20,6 +20,7 @@ Built as an alternative to extractive platforms.
 | **Streaming** | [SRS](https://ossrs.io) (RTMP ingest, HLS delivery, multi-channel) + [Liquidsoap](https://www.liquidsoap.info) (playout engine, scheduled programming) — see [docs/streaming.md](docs/streaming.md) |
 | **Media** | [imgproxy](https://imgproxy.net) (on-the-fly image derivatives) · FFmpeg (transcode, thumbnails via pg-boss jobs) · [Vidstack](https://vidstack.io) (web player) · [Uppy](https://uppy.io) + tus (resumable uploads) |
 | **PDF** | Playwright Chromium (server-rendered press PDFs — `browser-pdf` service) |
+| **UI Primitives** | [Ark UI](https://ark-ui.com) (headless, accessible) wrapped by ~18 shared primitives in `apps/web/src/components/ui/` (dialog, select, menu, tabs, toast, field, …) |
 | **Validation** | [Zod 4](https://zod.dev) (API + shared), [zod/mini](https://zod.dev) (frontend) |
 | **Testing** | [Vitest](https://vitest.dev), [Testing Library](https://testing-library.com), [Playwright](https://playwright.dev) (e2e) |
 | **Object Storage** | [Garage](https://garagehq.deuxfleurs.fr) (S3-compatible, production) |
