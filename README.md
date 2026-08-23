@@ -13,14 +13,19 @@ Built as an alternative to extractive platforms.
 | **API** | [Hono](https://hono.dev) on Node.js 24+ with OpenAPI 3.1 docs |
 | **Frontend** | [TanStack Start](https://tanstack.com/start) (React 19, SSR, file-based routing) |
 | **Database** | [PostgreSQL 16](https://www.postgresql.org/) via [Drizzle ORM](https://orm.drizzle.team) |
+| **Job Queue** | [pg-boss](https://github.com/timgit/pg-boss) — queued jobs (media processing, playout) on the existing PostgreSQL, no extra infra (see [docs/job-queues.md](docs/job-queues.md)) |
 | **Auth** | [Better Auth](https://www.better-auth.com) (email/password, multi-role) |
 | **Payments** | [Stripe](https://stripe.com) (subscriptions, checkout, webhooks) |
 | **Merch** | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) (headless) |
+| **Streaming** | [SRS](https://ossrs.io) (RTMP ingest, HLS delivery, multi-channel) + [Liquidsoap](https://www.liquidsoap.info) (playout engine, scheduled programming) — see [docs/streaming.md](docs/streaming.md) |
+| **Media** | [imgproxy](https://imgproxy.net) (on-the-fly image derivatives) · FFmpeg (transcode, thumbnails via pg-boss jobs) · [Vidstack](https://vidstack.io) (web player) · [Uppy](https://uppy.io) + tus (resumable uploads) |
+| **PDF** | Playwright Chromium (server-rendered press PDFs — `browser-pdf` service) |
 | **Validation** | [Zod 4](https://zod.dev) (API + shared), [zod/mini](https://zod.dev) (frontend) |
 | **Testing** | [Vitest](https://vitest.dev), [Testing Library](https://testing-library.com), [Playwright](https://playwright.dev) (e2e) |
 | **Object Storage** | [Garage](https://garagehq.deuxfleurs.fr) (S3-compatible, production) |
-| **Logging** | [pino](https://getpino.io) (structured JSON, request-scoped via hono-pino) |
-| **Styling** | CSS Modules + CSS custom properties (design tokens) |
+| **Email (dev)** | [Mailpit](https://mailpit.axllent.org) — SMTP capture inbox, nothing real is delivered |
+| **Logging** | [pino](https://getpino.io) (structured JSON, request-scoped via hono-pino) — see [docs/logging.md](docs/logging.md) |
+| **Styling** | CSS Modules + design tokens — one-owner token files composed by `apps/web/src/styles/tokens/index.css` (spine + per-unit voices, light/dark modes) |
 | **Package Manager** | [Bun](https://bun.sh) 1.3+ with workspaces |
 | **Reverse Proxy** | [Caddy](https://caddyserver.com) (dev + production) |
 
@@ -42,7 +47,9 @@ snc/
 │   │   │   ├── middleware/    # Auth, CORS, error handling, rate limiting, request logging
 │   │   │   ├── routes/       # Domain-grouped route handlers
 │   │   │   ├── scripts/      # Seed scripts (admin, demo data)
-│   │   │   ├── services/     # Business logic (Stripe, Shopify, SRS, emissions, creators)
+│   │   │   ├── services/     # Business logic (59 modules: Stripe, Shopify, SRS/Liquidsoap playout,
+│   │   │                 #   pg-boss media jobs, browser-pdf press exports, chat moderation,
+│   │   │                 #   emissions, creators, editorial, channels)
 │   │   │   └── storage/      # Pluggable StorageProvider (local or S3)
 │   │   ├── tests/            # API tests
 │   │   └── drizzle/          # SQL migrations
@@ -77,8 +84,10 @@ CI workflows live in `.forgejo/workflows/`. `test-and-build.yml` is project-gene
 
 - **Node.js** >= 24.0.0
 - **Bun** >= 1.3.0
-- **Docker** (for PostgreSQL)
+- **Docker** (PostgreSQL + the dev service stack: Garage S3, SRS, Liquidsoap, imgproxy, Mailpit)
 - **Caddy** (optional — reverse proxy for unified `:3080` entry point; without it, access API on `:3000` and web on `:3001` directly)
+
+Dev services run under **PM2** (`pm2 status` / `pm2 logs api|web`); `bash scripts/dev/start-dev.sh` boots everything idempotently (Caddy + docker stack + Garage init + PM2 servers). Dev email is captured by Mailpit at `http://localhost:8025` — nothing real is delivered.
 
 ## Getting Started
 
@@ -371,7 +380,7 @@ Without Shopify credentials, the merch endpoints return 503 "MERCH_NOT_CONFIGURE
 - **Strict TypeScript** — `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
 - **File naming** — `kebab-case.ts` (e.g., `booking-form.tsx`, `content.routes.ts`)
 - **Error handling** — Typed `AppError` subclasses, `Result<T, E>` for service functions
-- **CSS** — CSS Modules with design tokens from `:root` custom properties in `global.css`
+- **CSS** — CSS Modules with the one-owner design-token system (`apps/web/src/styles/tokens/`, composed via `tokens/index.css`; spine + per-unit voice tokens, light/dark modes)
 - **Validation** — Zod schemas on every route handler via `zValidator`; `zod/mini` on the frontend
 - **Testing** — Vitest with fixture factories (`makeMock*` pattern), mocked external services
 
@@ -398,6 +407,11 @@ Domain-specific documentation lives in `docs/`:
 | [Content](docs/content.md) | Publishing lifecycle, storage backends, access gating |
 | [Creators](docs/creators.md) | Creator profiles, team membership |
 | [Feature Flags](docs/feature-flags.md) | Domain-level feature flag system |
+| [Job Queues](docs/job-queues.md) | pg-boss background jobs (media processing, playout) |
+| [Logging](docs/logging.md) | Structured logging conventions |
+| [Streaming](docs/streaming.md) | SRS + Liquidsoap streaming/playout architecture |
+| [Mark Usage](docs/mark-usage.md) | S/NC logo mark: provisional usage rules (clear-space, variants, min-size) |
+| [UX Decisions](docs/ux-decisions.md) | How UX tradeoffs get surfaced and decided |
 
 ## License
 
