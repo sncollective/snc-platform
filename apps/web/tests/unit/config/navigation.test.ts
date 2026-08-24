@@ -54,7 +54,6 @@ describe("NAV_LINKS", () => {
       ...ALL_ON,
       merch: false,
       booking: false,
-      emissions: false,
     };
 
     vi.doMock("../../../src/lib/config.js", () => ({
@@ -79,7 +78,8 @@ describe("NAV_LINKS", () => {
 
     expect(merchLink?.disabled).toBe(true);
     expect(studioLink?.disabled).toBe(true);
-    expect(emissionsLink?.disabled).toBe(true);
+    // Emissions is a standing-copy page now — always enabled regardless of the flag.
+    expect(emissionsLink?.disabled).toBe(false);
     expect(feedLink?.disabled).toBe(false);
   });
 

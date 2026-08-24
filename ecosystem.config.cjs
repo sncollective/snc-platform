@@ -36,9 +36,6 @@ module.exports = {
       interpreter: "node",
       env: {
         NODE_ENV: "development",
-        // Emissions down pending robust ledger rebuild (operator 2026-08-15);
-        // matches web-staging + the API-side FEATURE_EMISSIONS=false in .env.
-        VITE_FEATURE_EMISSIONS: "false",
       },
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: true,
@@ -62,7 +59,6 @@ module.exports = {
         VITE_FEATURE_BOOKING: "false",
         VITE_FEATURE_DASHBOARD: "false",
         VITE_FEATURE_ADMIN: "true",
-        VITE_FEATURE_EMISSIONS: "false",
         VITE_FEATURE_CALENDAR: "true",
         VITE_FEATURE_FEDERATION: "false",
         VITE_FEATURE_STREAMING: "true",

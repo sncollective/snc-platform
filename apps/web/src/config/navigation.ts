@@ -25,7 +25,7 @@ const ALL_NAV_LINKS: readonly Omit<NavLink, "disabled">[] = [
   { to: "/live", label: "Live", icon: Radio },
   { to: "/studio", label: "Studio", feature: "booking", icon: Mic },
   { to: "/merch", label: "Merch", feature: "merch", icon: ShoppingBag },
-  { to: "/emissions", label: "Emissions", feature: "emissions", icon: Leaf },
+  { to: "/emissions", label: "Emissions", icon: Leaf }, // standing-copy page: always on (ledger rebuild tracked separately)
 ];
 
 // ── Public API ──
