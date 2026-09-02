@@ -137,6 +137,32 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
 };
 
+const withPressImages = (creatorId: string): PressContent => {
+  const key = (suffix: string) => `creators/${creatorId}/press/${suffix}`;
+  const memberPhoto = (suffix: string, alt: string) => ({ key: key(suffix), alt });
+  return {
+    ...ANIMAL_FUTURE_PRESS_CONTENT,
+    banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror" },
+    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" },
+    members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
+      ...member,
+      photo: member.name === "LeAnna Warren"
+        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait")
+        : member.name === "Charles Tyrie"
+          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait")
+          : member.name === "Jarod Ford"
+            ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait")
+            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait"),
+    })),
+    gallery: [
+      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural" },
+      { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live" },
+      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli" },
+      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live" },
+    ],
+  };
+};
+
 try {
   const [existingProfile] = await db
     .select({ id: creatorProfiles.id })
@@ -167,13 +193,14 @@ try {
   }
 
   if (creatorId) {
-    const releases = ANIMAL_FUTURE_PRESS_CONTENT.releases.map((release) =>
+    const withImages = withPressImages(creatorId);
+    const releases = withImages.releases.map((release) =>
       release.slug === "this-hell"
         ? { ...release, artKey: `creators/${creatorId}/press/this-hell-cover-v01.jpg` }
         : release,
     );
     const draftResult = await upsertPressConfig(creatorId, {
-      ...ANIMAL_FUTURE_PRESS_CONTENT,
+      ...withImages,
       releases,
     });
     if (!draftResult.ok) {
