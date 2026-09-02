@@ -62,6 +62,14 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
+  pressQuotes: [
+    {
+      text: "Known for their sharp humor, truth telling, and electric stage energy, they create a space for connection that turns every show into an evening of unity and cathartic release from the madness of the world.",
+      source: "Fort Collins Music Association",
+      url: "https://focoma.org/artist/65/animal-future",
+    },
+  ],
+
   bookingContactEmail: "booking@s-nc.org",
   location: "Fort Collins, CO",
   photos: [],

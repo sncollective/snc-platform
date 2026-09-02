@@ -785,6 +785,19 @@ export function PressEditor({ creatorId }: PressEditorProps): React.ReactElement
           <div className={`${styles.fields} ${styles.contactFields}`}>
             <Field id="press-live-dates" label="Live dates URL"><input id="press-live-dates" type="url" value={content.liveDatesUrl ?? ""} onChange={(event) => updateContent("links", (current) => ({ ...current, liveDatesUrl: event.target.value }))} /></Field>
             <Field id="press-contact-email" label="Press contact email"><input id="press-contact-email" type="email" value={content.pressContactEmail ?? ""} onChange={(event) => updateContent("links", (current) => ({ ...current, pressContactEmail: event.target.value }))} /></Field><Field id="booking-contact-email" label="Booking contact email"><input id="booking-contact-email" type="email" value={content.bookingContactEmail ?? ""} onChange={(event) => updateContent("links", (current) => ({ ...current, bookingContactEmail: event.target.value }))} /></Field>
+            <Field id="press-quotes" label="Press quotes">
+              <div className={styles.fieldGroup}>
+                {content.pressQuotes.map((quote, index) => (
+                  <div key={`press-quote-${index}`} className={styles.row}>
+                    <Field id={`press-quote-${index}-text`} label="Quote text"><textarea id={`press-quote-${index}-text`} rows={3} value={quote.text} onChange={(event) => updateContent("links", (current) => ({ ...current, pressQuotes: current.pressQuotes.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, text: event.target.value } : candidate) }))} /></Field>
+                    <Field id={`press-quote-${index}-source`} label="Source"><input id={`press-quote-${index}-source`} value={quote.source} onChange={(event) => updateContent("links", (current) => ({ ...current, pressQuotes: current.pressQuotes.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, source: event.target.value } : candidate) }))} /></Field>
+                    <Field id={`press-quote-${index}-url`} label="Source link (optional)"><input id={`press-quote-${index}-url`} type="url" value={quote.url ?? ""} onChange={(event) => updateContent("links", (current) => ({ ...current, pressQuotes: current.pressQuotes.map((candidate, candidateIndex) => candidateIndex === index ? { ...candidate, url: event.target.value } : candidate) }))} /></Field>
+                    <button type="button" className={styles.button} onClick={() => updateContent("links", (current) => ({ ...current, pressQuotes: current.pressQuotes.filter((_, candidateIndex) => candidateIndex !== index) }))}>Remove</button>
+                  </div>
+                ))}
+                <button type="button" className={styles.button} onClick={() => updateContent("links", (current) => ({ ...current, pressQuotes: [...current.pressQuotes, { text: "", source: "", url: null }] }))}>+ Add quote</button>
+              </div>
+            </Field>
           </div>
         </TabPanel>
       </form>

@@ -158,6 +158,29 @@ export function HighlightsSection({
 }
 
 /** Render supplied live-date rows or the current Bandsintown link-out. */
+export function QuotesSection({
+  quotes,
+}: {
+  readonly quotes: ReadonlyArray<{ text: string; source: string; url?: string | null | undefined }> | undefined;
+}): React.ReactElement | null {
+  if (!quotes?.length) return null;
+  return (
+    <section className={styles.section} aria-labelledby="press-quotes-heading">
+      <span id="press-quotes-heading" className={`${styles.kicker} ${styles.quotesHeading}`}>Press quotes</span>
+      {quotes.slice(0, 3).map((quote, index) => (
+        <blockquote key={`${quote.source}-${index}`} className={styles.quote}>
+          <p>&ldquo;{quote.text}&rdquo;</p>
+          <cite>
+            &mdash; {quote.url
+              ? <a href={quote.url} target="_blank" rel="noopener noreferrer">{quote.source}</a>
+              : quote.source}
+          </cite>
+        </blockquote>
+      ))}
+    </section>
+  );
+}
+
 export function LiveDatesSection({
   dates,
   liveDatesUrl,

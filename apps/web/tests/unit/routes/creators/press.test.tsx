@@ -59,6 +59,7 @@ const payload: DeliveredPressPagePayload = {
     standoutTrack: null,
     highlights: [{ eyebrow: "Standout track", title: "Get to You", metric: "14.5k streams and climbing", coverArt: null }],
     pressContactEmail: "press@s-nc.org",
+    pressQuotes: [],
     location: "Fort Collins, CO",
     photos: [],
     gallery: [],

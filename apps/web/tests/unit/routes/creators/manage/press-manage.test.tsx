@@ -110,6 +110,7 @@ const config = {
   standoutTrack: { title: "Get to You", url: null, streamsLabel: "14.5k" },
   highlights: [{ eyebrow: "New release", title: "The Illusionist", description: "New single", metric: "14.5k", url: "https://example.com/release", coverArt: null }],
   pressContactEmail: "press@s-nc.org",
+  pressQuotes: [],
   location: "Fort Collins, CO",
   photos: [],
   gallery: [],
@@ -192,6 +193,7 @@ describe("manage press editor", () => {
       streamingLinks: [{ label: "Spotify", url: "open.spotify/draft", service: "spotify" }],
       liveDatesUrl: "dates pending",
       pressContactEmail: "press at s-nc dot org",
+      pressQuotes: [],
     });
     const user = userEvent.setup();
     render(<ManagePressPage />);
@@ -206,6 +208,7 @@ describe("manage press editor", () => {
         streamingLinks: [expect.objectContaining({ url: "open.spotify/draft" })],
         liveDatesUrl: "dates pending",
         pressContactEmail: "press at s-nc dot org",
+        pressQuotes: [],
       }),
     ));
     expect(within(screen.getByRole("status")).getByText("Saved (draft)", { selector: "strong" })).toBeVisible();

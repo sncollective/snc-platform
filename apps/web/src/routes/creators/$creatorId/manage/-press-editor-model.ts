@@ -53,6 +53,7 @@ export function normalizeEditorContent(input: PressContent): PressContent {
     highlights: input.highlights ?? [],
     pressContactEmail: input.pressContactEmail ?? null,
     bookingContactEmail: input.bookingContactEmail ?? null,
+    pressQuotes: input.pressQuotes ?? [],
     location: input.location ?? null,
     photos: input.photos ?? [],
     gallery: input.gallery ?? [],
@@ -95,6 +96,11 @@ export function cleanEditorContent(input: PressContent): PressContent {
     })),
     pressContactEmail: optionalText(input.pressContactEmail),
     bookingContactEmail: optionalText(input.bookingContactEmail),
+    pressQuotes: (input.pressQuotes ?? []).map((quote) => ({
+      text: quote.text.trim(),
+      source: quote.source.trim(),
+      url: optionalText(quote.url),
+    })),
     location: optionalText(input.location),
     gallery,
     photos: gallery.map((image) => image.key),
@@ -223,6 +229,31 @@ export function validatePressDraft(content: PressContent): PressEditorIssue[] {
       message: "Booking contact needs a valid email address",
     });
   }
+
+  content.pressQuotes.forEach((quote, index) => {
+    if (!quote.text.trim()) {
+      issues.push({
+        tab: "links",
+        fieldId: `press-quote-${index}-text`,
+        message: "Quote needs text",
+      });
+    }
+    if (!quote.source.trim()) {
+      issues.push({
+        tab: "links",
+        fieldId: `press-quote-${index}-source`,
+        message: "Quote needs a source attribution",
+      });
+    }
+    const quoteUrl = quote.url?.trim();
+    if (quoteUrl && !/^https?:\/\//.test(quoteUrl)) {
+      issues.push({
+        tab: "links",
+        fieldId: `press-quote-${index}-url`,
+        message: "Quote link needs a full URL",
+      });
+    }
+  });
 
   return issues;
 }

@@ -9,6 +9,7 @@ import {
   MembersSection,
   PressDownloadAction,
   PressFooter,
+  QuotesSection,
   PressHero,
 } from "./press-sections.js";
 import type { PressTemplateProps } from "./press-types.js";
@@ -23,6 +24,7 @@ export function PressTemplateB(props: PressTemplateProps): React.ReactElement {
       <PressHero creator={creator} content={content} />
       <article className={styles.editorial}>
         <AboutSection content={content} />
+        <QuotesSection quotes={content.pressQuotes} />
         {(content.members.length > 0 || content.highlights.length > 0) && (
           <div className={styles.midZone}>
             <MembersSection members={content.members} showBio={false} variant="zone" />

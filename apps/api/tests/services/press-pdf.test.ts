@@ -85,6 +85,7 @@ const contentFixture: PressContent = {
   liveDatesUrl: "https://www.bandsintown.com/a/animal-future",
   standoutTrack: null,
   pressContactEmail: "press@s-nc.org",
+  pressQuotes: [],
   location: "Fort Collins, Colorado",
   photos: [],
   releases: [releaseFixture],
@@ -438,6 +439,45 @@ describe("press PDF rendering", () => {
     );
     expect(call.replaceBodyHtml).toContain("<span>Booking contact</span><strong>booking@s-nc.org</strong>");
     expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders press quotes as attributed pull-quotes with per-orientation caps", async () => {
+    const quotes = [
+      { text: "Electric stage energy.", source: "Fort Collins Music Association", url: "https://focoma.org/artist/65/animal-future" },
+      { text: "Second opinion.", source: "Other Outlet" },
+    ];
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...contentFixture, pressQuotes: quotes },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+    let call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).toContain('<aside class="pull-quote"><p>\u201CElectric stage energy.\u201D</p><cite>\u2014 Fort Collins Music Association</cite></aside>');
+    expect(call.replaceBodyHtml).not.toContain("Second opinion.");
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...contentFixture, pressQuotes: quotes },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    });
+    call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).toContain("Electric stage energy.");
+    expect(call.replaceBodyHtml).toContain("Second opinion.");
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+    call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).not.toContain("pull-quote");
   });
 
   it("renders a long-field release as escaped retained-head Letter markup", async () => {

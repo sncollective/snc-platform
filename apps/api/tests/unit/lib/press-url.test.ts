@@ -38,6 +38,7 @@ const content: PressContent = {
     { eyebrow: "News", title: "Tour", coverArt: null },
   ],
   pressContactEmail: "press@s-nc.org",
+  pressQuotes: [],
   location: "Fort Collins, CO",
   photos: [],
   gallery: [image("gallery-one"), image("gallery-two")],

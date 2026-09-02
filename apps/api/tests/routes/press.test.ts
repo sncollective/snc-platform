@@ -84,6 +84,7 @@ const content = {
   },
   highlights: [],
   pressContactEmail: "press@example.com",
+  pressQuotes: [],
   location: "Philadelphia, PA",
   photos: [],
   gallery: [],
@@ -519,6 +520,7 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
       streamingLinks: [{ label: "Spotify", url: "open.spotify/draft" }],
       liveDatesUrl: "dates pending",
       pressContactEmail: "not-an-email",
+      pressQuotes: [],
     };
 
     const res = await json("PATCH", "/api/creators/test-creator/press-config", patch);

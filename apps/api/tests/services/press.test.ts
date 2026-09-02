@@ -80,10 +80,12 @@ describe("press patch contracts", () => {
       members: [{ name: "" }],
       highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
       pressContactEmail: "not-an-email",
+      pressQuotes: [],
     })).toEqual({
       members: [{ name: "" }],
       highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
       pressContactEmail: "not-an-email",
+      pressQuotes: [],
     });
   });
 });
@@ -288,6 +290,7 @@ describe("press config service", () => {
       highlights: [{ eyebrow: "Release", title: "", url: "coming-soon" }],
       streamingLinks: [{ label: "Spotify", url: "open.spotify/draft", service: "website" as const }],
       pressContactEmail: "not-an-email",
+      pressQuotes: [],
     };
     mockSelectLimit.mockResolvedValueOnce([{ content: DEFAULT_PRESS_CONTENT, draftContent: draft }]);
     const { getPressDraftConfig } = await setupService();
