@@ -139,20 +139,36 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
 
 const withPressImages = (creatorId: string): PressContent => {
   const key = (suffix: string) => `creators/${creatorId}/press/${suffix}`;
-  const memberPhoto = (suffix: string, alt: string) => ({ key: key(suffix), alt });
+  // Square member crops: portrait sources render top-anchored by default;
+  // explicit crop rects steer the 1:1 window (normalized, full width).
+  const memberPhoto = (suffix: string, alt: string, crop?: { x: number; y: number; width: number; height: number }) =>
+    ({ key: key(suffix), alt, ...(crop ? { crop } : {}) });
+  const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
     banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror" },
     aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
+      // Connor: keep the bottom (crop the top). LeAnna/Charles: nudge down
+      // from top-anchor toward center-bottom. Jarod: default (renders fine).
       photo: member.name === "LeAnna Warren"
-        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait")
+        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait", { x: 0, y: 0.129, width: 1, height: 0.741 })
         : member.name === "Charles Tyrie"
-          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait")
+          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait", { x: 0, y: 0.129, width: 1, height: 0.741 })
           : member.name === "Jarod Ford"
             ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait")
-            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait"),
+            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait", { x: 0, y: 0.259, width: 1, height: 0.741 }),
+    })),
+    highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
+      ...highlight,
+      coverArt: highlight.title === "The Illusionist"
+        ? cover("this-hell-cover-v01.jpg", "The Illusionist single artwork (album cover art)")
+        : highlight.title === "Get to You"
+          ? cover("cover-get-to-you-v01.jpg", "Get to You single artwork")
+          : highlight.title === "This Hell"
+            ? cover("this-hell-cover-v01.jpg", "This Hell single artwork (album cover art)")
+            : highlight.coverArt,
     })),
     gallery: [
       { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural" },
