@@ -204,6 +204,21 @@ const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> 
       const label = outside.className || outside.tagName.toLowerCase();
       problems.push(`element outside Letter sheet: ${String(label)}`);
     }
+
+    // In-flow content painting into the bottom padding does not grow scrollHeight,
+    // so the overflow checks above miss it; flag it explicitly. Absolutely
+    // positioned chrome (e.g. anchored sheet footers) is exempt by design.
+    const sheetStyle = getComputedStyle(sheet);
+    const paddingFloor = bounds.bottom - (parseFloat(sheetStyle.paddingBottom) || 0);
+    const deepestInFlow = [...sheet.querySelectorAll<HTMLElement>("*")].reduce((floor, element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return floor;
+      if (style.position === "absolute" || style.position === "fixed") return floor;
+      return Math.max(floor, element.getBoundingClientRect().bottom);
+    }, bounds.top);
+    if (deepestInFlow > paddingFloor + epsilon) {
+      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px`);
+    }
     return problems;
   }), deadline, () => { void page.close().catch(() => undefined); });
 
