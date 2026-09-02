@@ -344,6 +344,23 @@ describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
     expect(res.status).toBe(400);
     expect(mockRenderCreatorOneSheetPdf).not.toHaveBeenCalled();
   });
+
+  it("maps an exhausted density ladder to a 400 with actionable guidance", async () => {
+    const { BrowserPdfSinglePageFitError } = await import("../../src/services/browser-pdf.js");
+    mockRenderCreatorOneSheetPdf.mockRejectedValueOnce(
+      new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"),
+    );
+
+    const res = await json("GET", "/api/creators/test-creator/press/one-sheet.pdf");
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: expect.stringContaining("does not fit one page even at compressed density"),
+      },
+    });
+  });
 });
 
 describe("GET /api/creators/:creatorId/press/photos/:index", () => {

@@ -400,6 +400,64 @@ describe("content library integration", () => {
     );
   });
 
+  it("renders real-volume creator one-sheets on one page via the density ladder", async () => {
+    const creator = {
+      id: creatorIds[0]!,
+      displayName: "Heavy Volume Creator",
+      handle: null,
+      socialLinks: [],
+    };
+    const exportIdentity = {
+      producingUnit: "records",
+      federationHandle: null,
+      creatorBrandColor: null,
+    };
+    const pressPageUrl = `http://localhost:3080/creators/${creator.id}/press`;
+    const heavy = {
+      ...DEFAULT_PRESS_CONTENT,
+      enabled: true,
+      template: "A" as const,
+      tagline: "New single “This Hell” out Sep 17, 2026 · debut LP March 2027",
+      shortBio:
+        "Fort Collins band makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable.",
+      longBio: `${"Fueled by the fury of the forgotten, the band crafts music that hits where it hurts — tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. ".repeat(6)}`,
+      forFansOf: ["IDLES", "Radiohead", "Modest Mouse", "Pixies", "Yeah Yeah Yeahs", "Paramore"],
+      members: [
+        { name: "LeAnna Warren", role: "vocals, electric guitar" },
+        { name: "Charles Tyrie", role: "drums" },
+        { name: "Jarod Ford", role: "bass" },
+        { name: "Connor Mandli", role: "electric guitar" },
+      ],
+      highlights: [
+        { eyebrow: "Out now · SNCR-001", title: "The Illusionist", description: "First single from the debut LP — next single out Sep 17, 2026." },
+        { eyebrow: "Standout track", title: "Get to You", metric: "14k+ and climbing" },
+        { eyebrow: "Next single · SNCR-002", title: "This Hell", description: "Out Sep 17, 2026 — second single from the debut LP." },
+      ],
+      location: "Fort Collins, CO",
+      standoutTrack: {
+        title: "Get to You",
+        url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
+        streamsLabel: "14k+ and climbing",
+      },
+    };
+    expect(await upsertPressConfig(creator.id, heavy)).toMatchObject({ ok: true });
+    expect(await publishPressConfig(creator.id)).toMatchObject({ ok: true });
+
+    for (const orientation of ["horizontal", "vertical"] as const) {
+      const buffer = await renderCreatorOneSheetPdf({
+        creator,
+        content: heavy,
+        pressPageUrl,
+        exportIdentity,
+        orientation,
+      });
+      const pdfText = buffer.toString("latin1");
+      expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
+      expect(pdfText.match(/\/Type \/Page\b/g)).toHaveLength(1);
+      expect(pdfText).not.toContain("--voice-");
+    }
+  });
+
   it("round-trips Garage bytes and enforces private/open/requestable sharing", async () => {
     const privateUpload = await upload(creatorIds[0]!, 1, "private");
     expect(privateUpload.ok).toBe(true);

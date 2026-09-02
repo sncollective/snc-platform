@@ -8,15 +8,26 @@ const {
   mockDbSelect,
   mockRenderBrowserPdf,
   mockStorageDownload,
-} = vi.hoisted(() => ({
-  mockBuildPressImageUrl: vi.fn(),
-  mockDbSelect: vi.fn(),
-  mockRenderBrowserPdf: vi.fn(),
-  mockStorageDownload: vi.fn(),
-}));
+  MockFitError,
+} = vi.hoisted(() => {
+  class MockFitError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "BrowserPdfSinglePageFitError";
+    }
+  }
+  return {
+    mockBuildPressImageUrl: vi.fn(),
+    mockDbSelect: vi.fn(),
+    mockRenderBrowserPdf: vi.fn(),
+    mockStorageDownload: vi.fn(),
+    MockFitError,
+  };
+});
 
 vi.mock("../../src/services/browser-pdf.js", () => ({
   renderBrowserPdf: mockRenderBrowserPdf,
+  BrowserPdfSinglePageFitError: MockFitError,
 }));
 vi.mock("../../src/db/connection.js", () => ({
   db: { select: mockDbSelect },
@@ -35,9 +46,9 @@ import {
   renderReleaseOneSheetPdf,
   resolvePdfExportIdentity,
 } from "../../src/services/press-pdf.js";
+import { BrowserPdfSinglePageFitError } from "../../src/services/browser-pdf.js";
 
-const pdf = Buffer.from("%PDF fixture");
-const releaseFixture: ReleaseOneSheet = {
+const pdf = Buffer.from("%PDF fixture");const releaseFixture: ReleaseOneSheet = {
   slug: "the-illusionist",
   title: "The Illusionist",
   catalogNumber: "SNCR-001",
@@ -324,6 +335,59 @@ describe("press PDF rendering", () => {
       725,
       3000,
     );
+  });
+
+  it("re-renders the one-sheet at denser tiers until it fits", async () => {
+    mockRenderBrowserPdf
+      .mockRejectedValueOnce(new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"))
+      .mockResolvedValueOnce(pdf);
+
+    const result = await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    });
+
+    expect(result).toBe(pdf);
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(2);
+    expect((mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
+      .toContain('data-pdf-sheet class="sheet horizontal"');
+    expect((mockRenderBrowserPdf.mock.calls[1]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
+      .toContain('data-pdf-sheet class="sheet horizontal density-compact"');
+  });
+
+  it("surfaces the fit error after exhausting the density ladder", async () => {
+    mockRenderBrowserPdf.mockRejectedValue(
+      new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"),
+    );
+
+    await expect(renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    })).rejects.toBeInstanceOf(BrowserPdfSinglePageFitError);
+
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(3);
+    expect((mockRenderBrowserPdf.mock.calls[2]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
+      .toContain("density-tight");
+  });
+
+  it("propagates non-fit render failures without density retries", async () => {
+    mockRenderBrowserPdf.mockRejectedValueOnce(new Error("asset load failed"));
+
+    await expect(renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    })).rejects.toThrow("asset load failed");
+
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
   });
 
   it("renders a long-field release as escaped retained-head Letter markup", async () => {

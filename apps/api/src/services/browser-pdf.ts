@@ -50,6 +50,14 @@ export class BrowserPdfPreflightError extends Error {
   }
 }
 
+/** Single-page fit failure — retryable at a denser tier, unlike other preflight failures. */
+export class BrowserPdfSinglePageFitError extends BrowserPdfPreflightError {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrowserPdfSinglePageFitError";
+  }
+}
+
 const remainingMs = (deadline: number): number => Math.max(0, deadline - Date.now());
 
 const withinDeadline = async <T>(
@@ -200,7 +208,7 @@ const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> 
   }), deadline, () => { void page.close().catch(() => undefined); });
 
   if (issues.length > 0) {
-    throw new BrowserPdfPreflightError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
+    throw new BrowserPdfSinglePageFitError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
   }
 };
 

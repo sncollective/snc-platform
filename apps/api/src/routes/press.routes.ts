@@ -12,6 +12,7 @@ import {
   PressPagePayloadSchema,
   ReleaseOneSheetSchema,
   NotFoundError,
+  ValidationError,
   isLibraryAssetKey,
   isOwnedPressKey,
 } from "@snc/shared";
@@ -30,6 +31,7 @@ import {
   resolvePressPageContent,
 } from "../lib/press-url.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { BrowserPdfSinglePageFitError } from "../services/browser-pdf.js";
 import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
 import {
@@ -177,23 +179,33 @@ pressRoutes.get(
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
     const query = c.req.valid("query");
-    const buffer = await renderCreatorOneSheetPdf({
-      creator: {
-        id: profile.id,
-        displayName: profile.displayName,
-        handle: profile.handle,
-        socialLinks: profile.socialLinks,
-      },
-      content,
-      pressPageUrl: pressPageUrl(creatorPath),
-      exportIdentity: {
-        producingUnit: "records",
-        federationHandle: profile.handle,
-        creatorBrandColor: profile.brandColor ?? null,
-      },
-      ...(query.url ? { destinationUrl: query.url } : {}),
-      orientation: query.orientation,
-    });
+    let buffer: Buffer;
+    try {
+      buffer = await renderCreatorOneSheetPdf({
+        creator: {
+          id: profile.id,
+          displayName: profile.displayName,
+          handle: profile.handle,
+          socialLinks: profile.socialLinks,
+        },
+        content,
+        pressPageUrl: pressPageUrl(creatorPath),
+        exportIdentity: {
+          producingUnit: "records",
+          federationHandle: profile.handle,
+          creatorBrandColor: profile.brandColor ?? null,
+        },
+        ...(query.url ? { destinationUrl: query.url } : {}),
+        orientation: query.orientation,
+      });
+    } catch (error) {
+      if (error instanceof BrowserPdfSinglePageFitError) {
+        throw new ValidationError(
+          `Creator one-sheet does not fit one page even at compressed density (${error.message.replace(/^Press one-sheet does not fit one page: /, "")}). Shorten the bio or reduce members/highlights, then retry.`,
+        );
+      }
+      throw error;
+    }
     return c.body(new Uint8Array(buffer), 200, {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${profile.handle ?? profile.id}-one-sheet.pdf"`,
