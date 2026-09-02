@@ -62,6 +62,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
+  bookingContactEmail: "booking@s-nc.org",
   location: "Fort Collins, CO",
   photos: [],
   highlights: [
