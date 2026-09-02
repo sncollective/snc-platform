@@ -16,8 +16,13 @@ if (process.env.ALLOW_DEMO_SEED !== "true") {
 const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   enabled: true,
   template: "A",
-  members: [],
-  highlights: [],
+  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP Survived By March 2027",
+  members: [
+    { name: "LeAnna Warren", role: "vocals, electric guitar" },
+    { name: "Charles Tyrie", role: "drums" },
+    { name: "Jarod Ford", role: "bass" },
+    { name: "Connor Mandli", role: "electric guitar" },
+  ],
   gallery: [],
   shortBio:
     "Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams. For fans of IDLES, Modest Mouse, and Pixies.",
@@ -54,11 +59,30 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   standoutTrack: {
     title: "Get to You",
     url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
-    streamsLabel: "~14.5k and climbing",
+    streamsLabel: "14k+ and climbing",
   },
   pressContactEmail: "press@s-nc.org",
   location: "Fort Collins, CO",
   photos: [],
+  highlights: [
+    {
+      eyebrow: "Out now · SNCR-001",
+      title: "The Illusionist",
+      description:
+        "First single from the debut LP Survived By — next single “This Hell” out Sep 17, 2026.",
+    },
+    {
+      eyebrow: "Standout track",
+      title: "Get to You",
+      metric: "14k+ and climbing",
+      url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
+    },
+    {
+      eyebrow: "Next single · SNCR-002",
+      title: "This Hell",
+      description: "Out Sep 17, 2026 — second single from Survived By.",
+    },
+  ],
   releases: [
     {
       slug: "the-illusionist",
@@ -70,6 +94,31 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       isrc: "QT6FJ2619285",
       upc: "882204181149",
       duration: "1:19",
+      personnel: [
+        "LeAnna Warren (vocals, electric guitar)",
+        "Charles Tyrie (drums)",
+        "Jarod Ford (bass)",
+        "Connor Mandli (electric guitar)",
+      ],
+      writtenBy: "Warren / Tyrie / Ford",
+      producedBy: "Kevin Cook & Doug Wooldridge",
+      mixedMasteredBy: "Doug Wooldridge @ S/NC Studio",
+      copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford",
+      publisherLine: "S/NC Publishing",
+      label: "S/NC Records",
+      fcc: "clean",
+      artKey: null,
+    },
+    {
+      slug: "this-hell",
+      title: "This Hell",
+      catalogNumber: "SNCR-002",
+      releaseDate: "2026-09-17",
+      format: "digital single",
+      genre: "Rock / art rock",
+      isrc: "QT6HP2698604",
+      upc: "701546909511",
+      duration: "3:33",
       personnel: [
         "LeAnna Warren (vocals, electric guitar)",
         "Charles Tyrie (drums)",
