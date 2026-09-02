@@ -150,15 +150,16 @@ const withPressImages = (creatorId: string): PressContent => {
     aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
-      // Connor: keep the bottom (crop the top). LeAnna/Charles: nudge down
-      // from top-anchor toward center-bottom. Jarod: default (renders fine).
+      // All three per operator round 2/3: heads were being cut — window
+      // moves UP. Connor top-anchored y=0; LeAnna/Charles y=0.05 (small
+      // forehead room). Jarod: default (fine).
       photo: member.name === "LeAnna Warren"
-        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait", { x: 0, y: 0.129, width: 1, height: 0.741 })
+        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
         : member.name === "Charles Tyrie"
-          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait", { x: 0, y: 0.129, width: 1, height: 0.741 })
+          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
           : member.name === "Jarod Ford"
             ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait")
-            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait", { x: 0, y: 0.259, width: 1, height: 0.741 }),
+            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait", { x: 0, y: 0, width: 1, height: 0.741 }),
     })),
     highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
       ...highlight,
