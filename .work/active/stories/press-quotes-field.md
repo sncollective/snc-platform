@@ -30,3 +30,13 @@ press quotes to first-class content.
 - Live verification: seeded + rendered dark vertical/horizontal/one-pager; single page; hardened padding-floor fit check green; pdftotext confirms quote + attribution; measurement pass: quote block 79px, display face 13px vs body 12px vs title 31px (hierarchy correct), curly quotes, accent rule 2px, margins 50/50, no regressions.
 - **Density tradeoff recorded**: the quote's ~80px dropped the vertical from compact to tight tier (thumbnails 42px). Measured "noticeable but orderly". Options if the operator wants compact back: campaign trims ~80px of copy (their lane), or accepts tight with the quote. The ladder made the guarantee-holding choice automatically.
 - Adjacent issues parked: none.
+
+## Postscript (2026-09-02, later)
+The seed's FoCoMA quote was WITHDRAWN campaign-side after a provenance
+failure: the operator spotted the wording on the band's Spotify profile —
+FoCoMA runs an edited variant of the band's own bio sentence (band-authored
+lineage, not editorial praise). Unsafe to attribute as an outlet quote.
+Current state: `pressQuotes: []` in seed and dev DB; the field, editor,
+renderers, and tests remain as landed infrastructure for when genuine press
+arrives. The compact→tight density tradeoff recorded above dissolved with
+the withdrawal (vertical back to compact, byte-identical to pre-quote).
