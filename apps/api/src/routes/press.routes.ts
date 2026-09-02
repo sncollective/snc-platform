@@ -36,6 +36,7 @@ import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
 import {
   ONE_SHEET_ORIENTATIONS,
+  PDF_EXPORT_THEMES,
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
   renderReleaseOneSheetPdf,
@@ -67,10 +68,14 @@ const DeliveredPressPagePayloadSchema = PressPagePayloadSchema.extend({
 });
 const PressOneSheetQuerySchema = z.object({
   orientation: z.enum(ONE_SHEET_ORIENTATIONS).default("auto"),
+  theme: z.enum(PDF_EXPORT_THEMES).default("light"),
   url: z.string().url().max(512).refine(
     (value) => ["http:", "https:"].includes(new URL(value).protocol),
     "QR destination must use HTTP or HTTPS",
   ).optional(),
+});
+const PressPdfThemeQuerySchema = z.object({
+  theme: z.enum(PDF_EXPORT_THEMES).default("light"),
 });
 const pressPdfRateLimiter = rateLimiter({ windowMs: 60_000, max: 6 });
 
@@ -136,6 +141,7 @@ pressRoutes.get(
   pressPdfRateLimiter,
   optionalAuth,
   validator("param", CreatorIdParam),
+  validator("query", PressPdfThemeQuerySchema),
   async (c) => {
     const { profile } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
@@ -145,6 +151,7 @@ pressRoutes.get(
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: profile.brandColor ?? null,
+        theme: c.req.valid("query").theme,
       },
     });
     return c.body(new Uint8Array(buffer), 200, {
@@ -194,6 +201,7 @@ pressRoutes.get(
           producingUnit: "records",
           federationHandle: profile.handle,
           creatorBrandColor: profile.brandColor ?? null,
+          theme: query.theme,
         },
         ...(query.url ? { destinationUrl: query.url } : {}),
         orientation: query.orientation,
@@ -235,6 +243,7 @@ pressRoutes.get(
     "param",
     z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
   ),
+  validator("query", PressPdfThemeQuerySchema),
   async (c) => {
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const release = content.releases.find(
@@ -250,6 +259,7 @@ pressRoutes.get(
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: profile.brandColor ?? null,
+        theme: c.req.valid("query").theme,
       },
     });
     return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });

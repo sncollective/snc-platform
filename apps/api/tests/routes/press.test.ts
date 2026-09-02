@@ -120,6 +120,7 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/services/press-pdf.js", () => ({
       ONE_SHEET_ORIENTATIONS: ["auto", "horizontal", "vertical"],
+      PDF_EXPORT_THEMES: ["light", "dark"],
       renderOnePagerPdf: mockRenderOnePagerPdf,
       renderCreatorOneSheetPdf: mockRenderCreatorOneSheetPdf,
       renderReleaseOneSheetPdf: mockRenderReleaseOneSheetPdf,
@@ -269,6 +270,7 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
     });
   });
@@ -308,6 +310,7 @@ describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
     });
   });
@@ -330,10 +333,37 @@ describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
       destinationUrl,
       orientation: "vertical",
     }));
+  });
+
+  it("threads a dark export theme and rejects unknown themes", async () => {
+    const dark = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf?theme=dark",
+    );
+    expect(dark.status).toBe(200);
+    expect(mockRenderCreatorOneSheetPdf).toHaveBeenCalledWith(expect.objectContaining({
+      exportIdentity: expect.objectContaining({ theme: "dark" }),
+    }));
+
+    const light = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf",
+    );
+    expect(light.status).toBe(200);
+    expect(mockRenderCreatorOneSheetPdf).toHaveBeenLastCalledWith(expect.objectContaining({
+      exportIdentity: expect.objectContaining({ theme: "light" }),
+    }));
+
+    const invalid = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf?theme=sepia",
+    );
+    expect(invalid.status).toBe(400);
   });
 
   it("rejects non-HTTP QR destinations", async () => {

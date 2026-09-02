@@ -390,6 +390,39 @@ describe("press PDF rendering", () => {
     expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
   });
 
+  it("threads a dark export theme through document attributes and the voice scope", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: { ...recordsIdentity, theme: "dark" },
+      orientation: "horizontal",
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      documentAttributes: Record<string, string>;
+      style: string;
+    };
+    expect(call.documentAttributes["data-theme"]).toBe("dark");
+    expect(call.style).toContain('[data-theme="dark"][data-export-voice="records"]');
+    expect(call.style).not.toContain('[data-theme="light"][data-export-voice=');
+  });
+
+  it("defaults the export theme to light paper", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as {
+      documentAttributes: Record<string, string>;
+    };
+    expect(call.documentAttributes["data-theme"]).toBe("light");
+  });
+
   it("renders a long-field release as escaped retained-head Letter markup", async () => {
     const longValue = `Long field ${"wrap ".repeat(50)}<&>`;
     await renderReleaseOneSheetPdf({

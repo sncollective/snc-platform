@@ -28,10 +28,15 @@ export type ExportVoice = (typeof EXPORT_VOICES)[number];
 export const ONE_SHEET_ORIENTATIONS = ["auto", "horizontal", "vertical"] as const;
 export type OneSheetOrientation = (typeof ONE_SHEET_ORIENTATIONS)[number];
 
+export const PDF_EXPORT_THEMES = ["light", "dark"] as const;
+export type PdfExportTheme = (typeof PDF_EXPORT_THEMES)[number];
+
 export interface PdfExportIdentity {
   readonly producingUnit: string | null;
   readonly federationHandle: string | null;
   readonly creatorBrandColor: CreatorBrandColor | null;
+  /** Export color sheet; light is the historical default (light-paper press export). */
+  readonly theme?: PdfExportTheme;
 }
 
 export interface ResolvedPdfExportIdentity {
@@ -77,8 +82,9 @@ const truncateAtWord = (value: string, max: number): string => {
 
 const exportVoiceScope = (identity: PdfExportIdentity): string => {
   const resolved = resolvePdfExportIdentity(identity);
+  const theme = identity.theme ?? "light";
   return EXPORT_VOICES.map((voice) => `
-:root[data-theme="light"][data-export-voice="${voice}"]
+:root[data-theme="${theme}"][data-export-voice="${voice}"]
 :is([data-press-template], [data-pdf-sheet]) {
   --color-accent: var(--voice-${voice}-accent);
   --color-accent-hover: var(--voice-${voice}-accent-hover);
@@ -435,7 +441,7 @@ ${titleHtml}
 const exportDocumentAttributes = (
   identity: PdfExportIdentity,
 ): Readonly<Record<`data-${string}`, string>> => ({
-  "data-theme": "light",
+  "data-theme": identity.theme ?? "light",
   "data-export-voice": resolvePdfExportIdentity(identity).voice,
 });
 
