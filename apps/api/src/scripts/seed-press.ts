@@ -16,7 +16,7 @@ if (process.env.ALLOW_DEMO_SEED !== "true") {
 const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   enabled: true,
   template: "A",
-  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP Survived By March 2027",
+  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” · 2027",
   members: [
     { name: "LeAnna Warren", role: "vocals, electric guitar" },
     { name: "Charles Tyrie", role: "drums" },
@@ -59,7 +59,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   standoutTrack: {
     title: "Get to You",
     url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
-    streamsLabel: "14k+ and climbing",
+    streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
   location: "Fort Collins, CO",
@@ -73,7 +73,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     {
       eyebrow: "Standout track",
       title: "Get to You",
-      metric: "14k+ and climbing",
+      metric: "14k Spotify Listens",
       url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
     },
     {
