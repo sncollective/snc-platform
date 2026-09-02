@@ -1,7 +1,7 @@
 ---
 id: press-agent-asset-ingest-and-edit-path
 kind: story
-stage: backlog
+stage: implementing
 tags: [press, devx]
 parent: null
 depends_on: []
