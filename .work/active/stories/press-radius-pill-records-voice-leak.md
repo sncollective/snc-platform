@@ -1,7 +1,7 @@
 ---
 id: press-radius-pill-records-voice-leak
 kind: story
-stage: backlog
+stage: implementing
 tags: [brand, press]
 parent: null
 depends_on: []

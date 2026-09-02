@@ -1,7 +1,7 @@
 ---
 id: press-creator-one-sheet-fit-overflow
 kind: story
-stage: backlog
+stage: implementing
 tags: [press]
 parent: null
 depends_on: []
