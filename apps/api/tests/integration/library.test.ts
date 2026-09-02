@@ -263,6 +263,20 @@ describe("content library integration", () => {
     expect(legacyUpload.ok).toBe(true);
     uploadedKeys.add(legacyKey);
 
+    const pressArtKey = `creators/${creatorIds[0]}/press/integration-release-art.png`;
+    const artUpload = await storage.upload(
+      pressArtKey,
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(baseBytes);
+          controller.close();
+        },
+      }),
+      { contentType: "image/png", contentLength: baseBytes.byteLength },
+    );
+    expect(artUpload.ok).toBe(true);
+    uploadedKeys.add(pressArtKey);
+
     const creator = {
       id: creatorIds[0]!,
       displayName: "Library integration creator",
@@ -336,6 +350,33 @@ describe("content library integration", () => {
         fcc: "clean",
         artKey: null,
       },
+      creatorId: creator.id,
+      pressPageUrl,
+      exportIdentity,
+    });
+
+    const withArt = await renderReleaseOneSheetPdf({
+      release: {
+        slug: "integration-release",
+        title: "Cover Art Release",
+        catalogNumber: "SNCR-INTEGRATION-ART",
+        releaseDate: "2026-08-14",
+        format: "Album",
+        genre: "Integration",
+        isrc: "US-SNC-26-99998",
+        upc: "012345678901",
+        duration: "42:00",
+        personnel: ["Integration Artist — vocals"],
+        writtenBy: "Integration Artist",
+        producedBy: "Integration Artist",
+        mixedMasteredBy: "Integration Artist",
+        copyrightLine: "℗ 2026 S/NC Records",
+        publisherLine: "© 2026 Signal to Noise Collective",
+        label: "S/NC Records",
+        fcc: "clean",
+        artKey: pressArtKey,
+      },
+      creatorId: creator.id,
       pressPageUrl,
       exportIdentity,
     });
@@ -348,6 +389,15 @@ describe("content library integration", () => {
       expect(pdfText.match(/\/MediaBox \[0 0 612 792\]/g)).toHaveLength(1);
       expect(pdfText).not.toContain("--voice-");
     }
+
+    const withArtText = withArt.toString("latin1");
+    const imageXObjects = (text: string) => text.match(/\/Subtype \/Image/g)?.length ?? 0;
+    expect(withArt.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(withArtText.match(/\/Type \/Page\b/g)).toHaveLength(1);
+    expect(imageXObjects(withArtText)).toBeGreaterThan(0);
+    expect(imageXObjects(withArtText)).toBeGreaterThan(
+      imageXObjects(release.toString("latin1")),
+    );
   });
 
   it("round-trips Garage bytes and enforces private/open/requestable sharing", async () => {

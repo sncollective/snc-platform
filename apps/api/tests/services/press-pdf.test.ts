@@ -334,6 +334,7 @@ describe("press PDF rendering", () => {
         title: longValue,
         personnel: [longValue, longValue, longValue, longValue],
       },
+      creatorId: creator.id,
       pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
       exportIdentity: recordsIdentity,
     });
@@ -350,6 +351,56 @@ describe("press PDF rendering", () => {
     expect(call.style).toContain("width:8.5in;height:11in");
     expect(call.style).toContain("@page{size:letter portrait;margin:0}");
     expect(call.style).toContain("border-top:6px solid var(--export-accent-decoration)");
+  });
+
+  it("renders the release mast with cover art when artKey resolves", async () => {
+    const artKey = `creators/${creator.id}/press/this-hell-cover-v01.jpg`;
+    await renderReleaseOneSheetPdf({
+      release: { ...releaseFixture, artKey },
+      creatorId: creator.id,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string };
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ key: artKey }),
+      "cover",
+      540,
+      540,
+    );
+    expect(call.replaceBodyHtml).toContain('class="release-mast"');
+    expect(call.replaceBodyHtml).toContain(
+      `<img src="https://img.test/cover/540x540/${artKey}" alt="The Illusionist single artwork">`,
+    );
+  });
+
+  it("falls back to the text-only layout when the artwork cannot be validated", async () => {
+    mockStorageDownload.mockRejectedValueOnce(new Error("object gone"));
+    await renderReleaseOneSheetPdf({
+      release: { ...releaseFixture, artKey: `creators/${creator.id}/press/missing.jpg` },
+      creatorId: creator.id,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).toContain("<h1>The Illusionist</h1>");
+    expect(call.replaceBodyHtml).not.toContain('class="release-mast"');
+    expect(mockBuildPressImageUrl).not.toHaveBeenCalled();
+  });
+
+  it("renders no mast when artKey is null", async () => {
+    await renderReleaseOneSheetPdf({
+      release: releaseFixture,
+      creatorId: creator.id,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).toContain("<h1>The Illusionist</h1>");
+    expect(call.replaceBodyHtml).not.toContain('class="release-mast"');
   });
 
   it("rejects a QR destination that cannot retain 0.4mm modules within the layout", async () => {

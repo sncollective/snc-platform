@@ -348,13 +348,28 @@ const releaseRows = (values: readonly (string | null | undefined)[]): string =>
     .map((value) => `<p class="release-row">${escapeHtml(value)}</p>`)
     .join("");
 
-const releaseSheet = (release: ReleaseOneSheet): {
+const releaseSheet = async (
+  release: ReleaseOneSheet,
+  creatorId: string,
+): Promise<{
   readonly bodyHtml: string;
   readonly style: string;
-} => ({
+}> => {
+  const artAlt = `${release.title} single artwork`;
+  const artSrc = release.artKey
+    ? await resolvePrintImageUrl(
+        { key: release.artKey, alt: artAlt, credit: null },
+        creatorId,
+        { slot: "cover", width: 540, height: 540 },
+      )
+    : null;
+  const titleHtml = artSrc
+    ? `<div class="release-mast"><figure class="release-art"><img src="${escapeHtml(artSrc)}" alt="${escapeHtml(artAlt)}"></figure><h1>${escapeHtml(release.title)}</h1></div>`
+    : `<h1>${escapeHtml(release.title)}</h1>`;
+  return {
   bodyHtml: `<article data-pdf-sheet class="release-sheet">
 <header class="release-brand">S/NC RECORDS · RELEASE ONE-SHEET</header>
-<h1>${escapeHtml(release.title)}</h1>
+${titleHtml}
 <div class="release-columns">
 <section><h2>Release details</h2>${releaseRows([
     release.catalogNumber,
@@ -382,13 +397,18 @@ const releaseSheet = (release: ReleaseOneSheet): {
 .release-sheet{position:relative;width:8.5in;height:11in;padding:42px;overflow:hidden;border-top:6px solid var(--export-accent-decoration);background:var(--color-bg);color:var(--color-text);font-size:9px;line-height:1.45}
 .release-brand{margin-bottom:12px;color:var(--color-accent);font-weight:700;letter-spacing:2px;text-transform:uppercase}
 .release-sheet h1{margin:0 0 18px;font:700 28px/1.1 var(--font-display)}
+.release-mast{display:flex;align-items:flex-end;gap:20px;margin:0 0 18px}
+.release-mast h1{margin:0}
+.release-art{margin:0;flex:none;width:1.8in;height:1.8in;border:1px solid var(--color-border)}
+.release-art img{display:block;width:100%;height:100%;object-fit:cover}
 .release-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .release-sheet h2{margin:12px 0 6px;color:var(--color-accent);font:700 8px/1.45 var(--font-body);letter-spacing:.08em;text-transform:uppercase}
 .release-row{margin:0;padding:4px 0;border-bottom:.6px solid var(--color-border);overflow-wrap:anywhere}
 .release-sheet footer{position:absolute;right:42px;bottom:18px;left:42px;color:var(--color-text-muted);font-size:7.5px;text-align:center}
 @page{size:letter portrait;margin:0}@media print{html,body,.release-sheet{width:8.5in;height:11in}}
 `,
-});
+  };
+};
 
 const exportDocumentAttributes = (
   identity: PdfExportIdentity,
@@ -439,10 +459,11 @@ export const renderCreatorOneSheetPdf = async (input: {
 /** Render a release one-sheet through the shared retained-head browser export contract. */
 export const renderReleaseOneSheetPdf = async (input: {
   release: ReleaseOneSheet;
+  creatorId: string;
   pressPageUrl: string;
   exportIdentity: PdfExportIdentity;
 }): Promise<Buffer> => {
-  const sheet = releaseSheet(input.release);
+  const sheet = await releaseSheet(input.release, input.creatorId);
   return renderBrowserPdf({
     url: input.pressPageUrl,
     replaceBodyHtml: sheet.bodyHtml,

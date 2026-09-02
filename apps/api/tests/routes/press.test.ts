@@ -263,6 +263,7 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
     expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
     expect(mockRenderReleaseOneSheetPdf).toHaveBeenCalledWith({
       release,
+      creatorId: profile.id,
       pressPageUrl: "http://localhost:3080/creators/test-creator/press",
       exportIdentity: {
         producingUnit: "records",

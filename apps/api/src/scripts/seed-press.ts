@@ -167,7 +167,15 @@ try {
   }
 
   if (creatorId) {
-    const draftResult = await upsertPressConfig(creatorId, ANIMAL_FUTURE_PRESS_CONTENT);
+    const releases = ANIMAL_FUTURE_PRESS_CONTENT.releases.map((release) =>
+      release.slug === "this-hell"
+        ? { ...release, artKey: `creators/${creatorId}/press/this-hell-cover-v01.jpg` }
+        : release,
+    );
+    const draftResult = await upsertPressConfig(creatorId, {
+      ...ANIMAL_FUTURE_PRESS_CONTENT,
+      releases,
+    });
     if (!draftResult.ok) {
       console.error(`Error: ${draftResult.error.message}`);
       process.exitCode = 1;

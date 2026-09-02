@@ -232,6 +232,7 @@ pressRoutes.get(
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
     const buffer = await renderReleaseOneSheetPdf({
       release,
+      creatorId: profile.id,
       pressPageUrl: pressPageUrl(creatorPath),
       exportIdentity: {
         producingUnit: "records",
