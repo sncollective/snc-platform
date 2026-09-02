@@ -1,7 +1,7 @@
 ---
 id: press-agent-asset-ingest-and-edit-path
 kind: story
-stage: implementing
+stage: done
 tags: [press, devx]
 parent: null
 depends_on: []
@@ -70,3 +70,16 @@ detours per proof cycle and should get a sanctioned agent path:
 Context: campaign deadline pressure is real (cycle-2 pitches close
 ~2026-09-03; release 2026-09-17). Item 1 is the short-term unblock;
 item 2 is the durable pattern.
+
+## Implementation notes
+- Item 1 (upload utility) implemented as `apps/api/src/scripts/press-asset.ts`. Item 2 (config-edit auth posture) settled by operator decision 1(c) on 2026-09-02: status quo — campaign content edits continue through seed-press.ts commits (reviewable, branch-isolated); durable auth machinery deferred to post-cycle if the proof loop stays hot.
+- Design refinements over the embedded draft: content-type from magic-byte sniff (`detectImage`) rather than extension (uppercase `.JPG` handled); enforces `MAX_FILE_SIZES.image` at upload with an actionable downscale message (the PDF read path enforces the same limit downstream — oversized uploads would fail at render otherwise); prints detected pixel dimensions for content-side slot/crop mapping; flat-filename suffix validation (no slashes/`..`); refuses production NODE_ENV and secret-looking filenames; uploads via the standard `storage.upload` stream contract.
+- Usage: `cd apps/api && ./node_modules/.bin/tsx --import ./src/env.ts src/scripts/press-asset.ts <handle> <localFile> <keySuffix>`.
+- Verification (live against dev, real campaign-staged files): happy path uploaded Charles1.jpg → correct key `creators/<id>/press/probe-check.jpg`, 279,348 bytes, image/jpeg, dimensions 582x786 printed; `storage.head` confirmed object + content-type; probe deleted. Error paths: 23.8MB file → actionable over-limit error; `../evil.jpg` suffix rejected; unknown handle rejected. Typecheck green.
+- Tests: none added — repo pattern keeps operational scripts test-free (the wrapped services, `storage.upload` and `detectImage`, are covered by the integration/unit suites); live execution is the verification of record.
+- Adjacent issues parked: none new. Band-photo ingest itself is campaign-side work.
+
+## Review record (2026-09-02, bounded inline pass — standalone story)
+- Security walk: production refusal, secret-pattern refusal, flat-suffix path-traversal guard, magic-byte content-type (no extension trust), no new network surface (script, not endpoint).
+- Contract consistency: mirrors the platform's own ingest limits (10MB image) — the render path would enforce them anyway; dimension printing serves the campaign's documented slot spec (banner 3:1, about 4:5, member 1:1, gallery 4:3).
+- Verdict: pass. stage: implementing → done.
