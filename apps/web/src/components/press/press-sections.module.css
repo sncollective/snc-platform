@@ -96,7 +96,7 @@
 .fansCluster { margin-top: var(--space-xl); }
 .fansCluster .kicker { margin-bottom: var(--space-sm); }
 .fans { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
-.pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: var(--font-size-sm); }
 
 .members {
   display: grid;
@@ -183,7 +183,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: var(--color-accent);
   color: var(--color-on-accent);
   box-shadow: var(--shadow-xl);
@@ -204,7 +204,7 @@
   color: var(--color-text-muted);
 }
 .pdfActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-sm); }
-.pdf { min-height: 44px; display: inline-flex; align-items: center; padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); }
+.pdf { min-height: 44px; display: inline-flex; align-items: center; padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); }
 
 @media (max-width: 760px) {
   .hero { min-height: 280px; }
