@@ -27,7 +27,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   shortBio:
     "Socially conscious punk-leaning alt-rock from Fort Collins — raw, funny, unpredictable, and aimed where it hurts.",
   longBio:
-    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs. “Known for their sharp humor, truth telling, and electric stage energy, they create a space for connection that turns every show into an evening of unity and cathartic release from the madness of the world.” — FoCoMA",
+    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
   forFansOf: [
     "IDLES",
     "Radiohead",
@@ -62,13 +62,11 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
-  pressQuotes: [
-    {
-      text: "Known for their sharp humor, truth telling, and electric stage energy, they create a space for connection that turns every show into an evening of unity and cathartic release from the madness of the world.",
-      source: "Fort Collins Music Association",
-      url: "https://focoma.org/artist/65/animal-future",
-    },
-  ],
+  // pressQuotes: WITHDRAWN 2026-09-02 — the FoCoMA "quote" derives from the
+  // band's own bio (Spotify carries the original close; FoCoMA runs an edited
+  // variant). Band-authored copy does not attribute as outlet praise. Slot
+  // stays empty until REAL press lands (Westword, radio support, etc.).
+  pressQuotes: [],
 
   bookingContactEmail: "booking@s-nc.org",
   location: "Fort Collins, CO",
