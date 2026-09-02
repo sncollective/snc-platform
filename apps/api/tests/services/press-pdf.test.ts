@@ -423,6 +423,23 @@ describe("press PDF rendering", () => {
     expect(call.documentAttributes["data-theme"]).toBe("light");
   });
 
+  it("links the listen URL and renders the booking contact when configured", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...contentFixture, bookingContactEmail: "booking@s-nc.org" },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+
+    const call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).toContain(
+      '<a class="url" href="https://linktr.ee/animalfutureofficial">linktr.ee/animalfutureofficial</a>',
+    );
+    expect(call.replaceBodyHtml).toContain("<span>Booking contact</span><strong>booking@s-nc.org</strong>");
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
+  });
+
   it("renders a long-field release as escaped retained-head Letter markup", async () => {
     const longValue = `Long field ${"wrap ".repeat(50)}<&>`;
     await renderReleaseOneSheetPdf({

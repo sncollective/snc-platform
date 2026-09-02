@@ -33,7 +33,7 @@ export function PressTemplateB(props: PressTemplateProps): React.ReactElement {
         <ListenSection links={content.streamingLinks} />
         <PressCarousel creatorName={creator.displayName} images={content.gallery} />
       </article>
-      <PressFooter email={content.pressContactEmail} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
+      <PressFooter email={content.pressContactEmail} bookingEmail={content.bookingContactEmail} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
     </div>
   );
 }

@@ -66,6 +66,20 @@ describe("press shared sections", () => {
     expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
   });
 
+  it("renders the booking contact alongside the press contact when present", () => {
+    render(
+      <PressFooter
+        email="press@s-nc.org"
+        bookingEmail="booking@s-nc.org"
+        fullPressPdfUrl="/press.pdf"
+        oneSheetUrl="/one-sheet.pdf"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
+    expect(screen.getByRole("link", { name: "booking@s-nc.org" })).toHaveAttribute("href", "mailto:booking@s-nc.org");
+  });
+
   it("omits empty sections and never renders broken image sources", () => {
     const sparse = makeDeliveredPressContent({
       shortBio: null,

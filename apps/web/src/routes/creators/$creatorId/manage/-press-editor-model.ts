@@ -52,6 +52,7 @@ export function normalizeEditorContent(input: PressContent): PressContent {
     standoutTrack: input.standoutTrack ?? null,
     highlights: input.highlights ?? [],
     pressContactEmail: input.pressContactEmail ?? null,
+    bookingContactEmail: input.bookingContactEmail ?? null,
     location: input.location ?? null,
     photos: input.photos ?? [],
     gallery: input.gallery ?? [],
@@ -93,6 +94,7 @@ export function cleanEditorContent(input: PressContent): PressContent {
       coverArt: cleanImage(highlight.coverArt),
     })),
     pressContactEmail: optionalText(input.pressContactEmail),
+    bookingContactEmail: optionalText(input.bookingContactEmail),
     location: optionalText(input.location),
     gallery,
     photos: gallery.map((image) => image.key),
@@ -210,6 +212,15 @@ export function validatePressDraft(content: PressContent): PressEditorIssue[] {
       tab: "links",
       fieldId: "press-contact-email",
       message: "Press contact needs a valid email address",
+    });
+  }
+
+  const bookingEmail = content.bookingContactEmail?.trim();
+  if (bookingEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingEmail)) {
+    issues.push({
+      tab: "links",
+      fieldId: "booking-contact-email",
+      message: "Booking contact needs a valid email address",
     });
   }
 

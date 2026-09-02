@@ -214,16 +214,24 @@ export function PressDownloadAction({ fullPressPdfUrl }: Pick<PressTemplateProps
 /** Render press contact and distinct full-kit and one-sheet downloads. */
 export function PressFooter({
   email,
+  bookingEmail,
   fullPressPdfUrl,
   oneSheetUrl,
 }: {
   readonly email?: string | null | undefined;
+  readonly bookingEmail?: string | null | undefined;
   readonly fullPressPdfUrl: string;
   readonly oneSheetUrl: string;
 }): React.ReactElement {
   return (
     <footer className={styles.footer}>
-      {email ? <span>Press · <a href={`mailto:${email}`}>{email}</a></span> : <span />}
+      {email || bookingEmail
+        ? <span>
+            {email ? <>Press · <a href={`mailto:${email}`}>{email}</a></> : null}
+            {email && bookingEmail ? " · " : null}
+            {bookingEmail ? <>Booking · <a href={`mailto:${bookingEmail}`}>{bookingEmail}</a></> : null}
+          </span>
+        : <span />}
       <div className={styles.pdfActions}>
         <a className={styles.pdf} href={fullPressPdfUrl} download>Download full press PDF ↓</a>
         <a className={styles.pdf} href={oneSheetUrl} download>Download one-sheet PDF ↓</a>

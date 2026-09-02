@@ -224,6 +224,7 @@ export const PressContentSchema = z.object({
   standoutTrack: PressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(PressHighlightSchema).default([]),
   pressContactEmail: z.string().email().nullable().optional(),
+  bookingContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).default([]),
   gallery: z.array(PressImageSchema).default([]),
@@ -255,6 +256,7 @@ export const DraftPressContentSchema = PressContentSchema.extend({
   standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(DraftPressHighlightSchema).default([]),
   pressContactEmail: z.string().nullable().optional(),
+  bookingContactEmail: z.string().nullable().optional(),
 });
 export type DraftPressContent = z.infer<typeof DraftPressContentSchema>;
 
@@ -274,6 +276,7 @@ export const PressConfigPatchSchema = z.object({
   standoutTrack: PressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(PressHighlightSchema).optional(),
   pressContactEmail: z.string().email().nullable().optional(),
+  bookingContactEmail: z.string().email().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -300,6 +303,7 @@ export const DraftPressConfigPatchSchema = z.object({
   standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(DraftPressHighlightSchema).optional(),
   pressContactEmail: z.string().nullable().optional(),
+  bookingContactEmail: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -337,6 +341,7 @@ export const DEFAULT_PRESS_CONTENT: PressContent = {
   standoutTrack: null,
   highlights: [],
   pressContactEmail: null,
+  bookingContactEmail: null,
   location: null,
   photos: [],
   gallery: [],
