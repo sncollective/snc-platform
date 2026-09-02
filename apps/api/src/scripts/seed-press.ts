@@ -25,9 +25,9 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
   gallery: [],
   shortBio:
-    "Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams. For fans of IDLES, Modest Mouse, and Pixies.",
+    "Socially conscious punk-leaning alt-rock from Fort Collins — raw, funny, unpredictable, and aimed where it hurts.",
   longBio:
-    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. With raw energy and socially conscious grit reminiscent of IDLES, their sound moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability. Think Modest Mouse, Pixies, and Yeah Yeah Yeahs, with a female vocalist who can belt Paramore-level power or let loose raw, unapologetic screams that'll keep you guessing. Known for their sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion—for people and the planet.",
+    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
   forFansOf: [
     "IDLES",
     "Radiohead",
