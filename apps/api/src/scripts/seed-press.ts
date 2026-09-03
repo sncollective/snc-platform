@@ -128,7 +128,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       genre: "Alternative / Indie / Rock",
       isrc: "QT6HP2698604",
       upc: "701546909511",
-      duration: "3:33",
+      duration: null,
       personnel: [
         "LeAnna Warren (vocals & guitar)",
         "Charles Tyrie (drums)",
@@ -152,7 +152,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       ],
       photos: [
         { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot", credit: "Hayley Herriges" },
-        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero2-right-v01.jpg", alt: "Two performers in peak action under red-pink floodlight", credit: "Hayley Herriges", crop: { x: 0, y: 0, width: 1, height: 0.78 } },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero2-right-v01.jpg", alt: "Two performers in peak action under red-pink floodlight", credit: "Hayley Herriges" },
       ],
       preSaveUrl: "https://distrokid.com/hyperfollow/animalfuture1/this-hell?ref=release",
     },
