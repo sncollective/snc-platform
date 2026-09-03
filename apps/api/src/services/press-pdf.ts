@@ -537,16 +537,21 @@ const releaseEpkSheet = async (
     release.genre,
   ].filter((fact): fact is string => Boolean(fact));
   const recordedAt = release.mixedMasteredBy?.includes("S/NC Studio") ? "S/NC Studio" : null;
+  const performersHtml = release.personnel.length
+    ? release.personnel.map((person) => `<span class="perf">${escapeHtml(person)}</span>`).join(" · ")
+    : null;
+  const creditRow = (label: string, value: string | null | undefined, raw = false) =>
+    value ? [{ label, value, raw }] : [];
   const creditRows = [
-    ...(release.personnel.length ? [["Performed by", release.personnel.join(" · ")] as [string, string]] : []),
-    ["Written by", release.writtenBy],
-    ["Produced by", release.producedBy],
-    ["Recorded at", recordedAt],
-    ["Mixed + mastered", release.mixedMasteredBy],
-    ...(release.fcc ? [["FCC", release.fcc === "clean" ? "Clean" : "Explicit"] as [string, string]] : []),
-    ["Press", "press@s-nc.org"],
-    ["Booking", "booking@s-nc.org"],
-  ].filter((row): row is [string, string] => Boolean(row[1]));
+    ...creditRow("Performers", performersHtml, true),
+    ...creditRow("Written by", release.writtenBy),
+    ...creditRow("Produced by", release.producedBy),
+    ...creditRow("Recorded at", recordedAt),
+    ...creditRow("Mixed + mastered", release.mixedMasteredBy),
+    ...creditRow("FCC", release.fcc === "clean" ? "Clean" : release.fcc === "explicit" ? "Explicit" : null),
+    ...creditRow("Press", "press@s-nc.org"),
+    ...creditRow("Booking", "booking@s-nc.org"),
+  ];
   const photoCredits = [...new Set(
     [heroImage?.credit, duoImage?.credit].filter((credit): credit is string => Boolean(credit)),
   )].join(" · ");
@@ -574,7 +579,7 @@ ${pulls.length > 1 ? `<div class="pulls">${pulls.slice(1).map((pull) => `<div cl
 <div class="support">
 ${duoSrc ? `<img class="duo" src="${escapeHtml(duoSrc)}" alt="${escapeHtml(duoImage?.alt ?? "live photo")}">` : ""}
 <div class="col">
-<div class="rows">${creditRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>
+<div class="rows">${creditRows.map(({ label, value, raw }) => `<div class="row"><span>${escapeHtml(label)}</span><b>${raw ? value : escapeHtml(value)}</b></div>`).join("")}</div>
 ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverSrc)}" alt="${escapeHtml(release.title)} cover art"><span>Album artwork</span></div>` : ""}
 </div>
 </div>
@@ -605,7 +610,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .duo{width:150px;object-fit:cover;object-position:center 30%;border:1px solid var(--color-border);display:block}
 .col{flex:1;display:flex;flex-direction:column;justify-content:space-between}
 .row{display:flex;justify-content:space-between;border-bottom:.6px solid var(--color-border);padding:5px 0;font-size:9px;color:var(--color-text-muted)}.rows .row:last-child{border-bottom:none}
-.row b{color:var(--color-text);font-weight:600;text-align:right}
+.row b{color:var(--color-text);font-weight:600;text-align:right}.row b .perf{white-space:nowrap}
 .cover-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
 .cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
 .cover-row span{font-size:8px;color:var(--color-text-muted)}
