@@ -25,6 +25,11 @@ export interface BrowserPdfOptions {
   readonly documentAttributes?: Readonly<Record<`data-${string}`, string>>;
   readonly style?: string;
   readonly singlePage?: boolean;
+  /** Page geometry for the emitted PDF; defaults to US Letter. */
+  readonly pageSize?: {
+    readonly widthIn: number;
+    readonly heightIn: number;
+  };
   readonly timeoutMs?: number;
 }
 
@@ -280,8 +285,8 @@ const renderOnPage = async (
     if (options.singlePage) await assertSinglePageFit(page, deadline);
 
     const pdf = await withinDeadline(page.pdf({
-      width: `${LETTER_WIDTH_IN}in`,
-      height: `${LETTER_HEIGHT_IN}in`,
+      width: `${options.pageSize?.widthIn ?? LETTER_WIDTH_IN}in`,
+      height: `${options.pageSize?.heightIn ?? LETTER_HEIGHT_IN}in`,
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,

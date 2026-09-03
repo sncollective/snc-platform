@@ -67,6 +67,8 @@ const pdf = Buffer.from("%PDF fixture");const releaseFixture: ReleaseOneSheet = 
   label: "S/NC Records",
   fcc: "clean",
   artKey: null,
+  lyricPulls: [],
+  photos: [],
 };
 
 const contentFixture: PressContent = {

@@ -1,7 +1,7 @@
 ---
 id: story-release-epk-content-model
 kind: story
-stage: implementing
+stage: done
 tags: [press, creators, schema]
 parent: single-release-epk
 depends_on: []

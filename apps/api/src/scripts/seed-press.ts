@@ -116,6 +116,8 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       label: "S/NC Records",
       fcc: "clean",
       artKey: null,
+      lyricPulls: [],
+      photos: [],
     },
     {
       slug: "this-hell",
@@ -141,6 +143,8 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       label: "S/NC Records",
       fcc: "clean",
       artKey: null,
+      lyricPulls: [],
+      photos: [],
     },
   ],
 };

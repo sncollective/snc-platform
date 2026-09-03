@@ -200,6 +200,10 @@ export const ReleaseOneSheetSchema = z.object({
   label: z.string().nullable().optional(),
   fcc: z.enum(["clean", "explicit"]).nullable(),
   artKey: z.string().nullable().optional(),
+  story: z.string().nullable().optional(),
+  lyricPulls: z.array(z.string()).default([]),
+  photos: z.array(PressImageSchema).default([]),
+  preSaveUrl: z.string().url().nullable().optional(),
 });
 export type ReleaseOneSheet = z.infer<typeof ReleaseOneSheetSchema>;
 

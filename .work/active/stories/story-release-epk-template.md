@@ -1,7 +1,7 @@
 ---
 id: story-release-epk-template
 kind: story
-stage: drafting
+stage: done
 tags: [press, design-system]
 parent: single-release-epk
 depends_on: [story-release-epk-content-model]
@@ -22,3 +22,25 @@ specs; QR light patch; dark via theme param.
 ## Acceptance
 Unit (markup contract, theme, fit-failure mapping) + route tests; live
 first render of This Hell for campaign preview with measurements.
+
+## Implementation notes (2026-09-02)
+- `renderReleaseEpkPdf` + `releaseEpkSheet` + route `GET .../releases/:slug/epk.pdf?theme=`;
+  `BrowserPdfOptions.pageSize` (defaults Letter) enables the half-Letter page.
+- Deterministic per the rules: single pinned layout, hardened fit check, route maps
+  fit failures to a 400 with story/pulls trim guidance.
+- RELEASE_TITLE_RED (#B5302A) allowlisted in the export-CSS boundary test — payload-critical
+  legibility color on a fixed photographic ground (same class as the QR pair); shadows
+  tokenized to --color-overlay-strong; story gray uses the one-step dark treatment.
+- Hero geometry (the instructive bug): the bright footroom NEVER rendered because
+  Garage's banner-v01 is the 3:1 SHORT image — the tall 3:2 (BannerTall1) was never
+  uploaded. Uploaded it via press-asset as banner-tall-v01.jpg; luminance-profiled the
+  source (bright bands 181/183 top, band strip middle, floor 128/161 bottom ~20%);
+  crop window anchored to the source bottom (object-position 100%) — band upper-mid,
+  off-white floor carrying the red title (measured 161-167/255 behind the title, 3.5-4×
+  the prior 41-47). Print spec at source 3:2 (1650×1100) so CSS owns the crop.
+- First render + 3 measured revision passes (pulls columns 2→3, rhythm voids absorbed by
+  type/duo sizing, cover enlarged + right-anchored, QR to scan size 0.45in).
+- Seeded the brief's EPK content verbatim (story, 4 lyricPulls, photos with credits,
+  preSaveUrl null) + hero switched to the tall asset.
+- Verified: typecheck, unit (74/74), checker 9/9, live render single-page half-Letter,
+  final vision pass PASS on all checks.

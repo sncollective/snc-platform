@@ -51,6 +51,10 @@ const MAX_QR_SIZE_PX = 128;
 // Keep this pair fixed and mirrored by the export-CSS boundary test's exact named allowlist.
 const QR_DARK = "#1A1A2E";
 const QR_LIGHT = "#FFFFFF";
+// The release-EPK title sits on the hero photograph's own off-white footroom — a fixed
+// photographic ground, not themeable UI. Payload-critical legibility color, same class
+// as the QR pair; mirrored by the export-CSS boundary test's named allowlist.
+const RELEASE_TITLE_RED = "#B5302A";
 
 /** Resolve a caller-supplied producing unit and eligible creator decoration for export. */
 export const resolvePdfExportIdentity = (
@@ -242,7 +246,7 @@ const photoFigure = (
 
 const humanUrl = (url: string): string => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-const defaultDestinationUrl = (
+export const defaultDestinationUrl = (
   creator: { handle: string | null; socialLinks: readonly SocialLink[] },
   content: PressContent,
   pressPageUrl: string,
@@ -495,6 +499,142 @@ export const renderCreatorOneSheetPdf = async (input: {
     documentAttributes: exportDocumentAttributes(input.exportIdentity),
     style: `${buildPdfExportStyle(input.exportIdentity)}\n${sheet.style}`,
     singlePage: true,
+  });
+};
+
+const EPK_PAGE = { widthIn: 5.5, heightIn: 8.5 } as const;
+
+/** Half-Letter single-release EPK companion: story-led, deterministic, T3 direction. */
+const releaseEpkSheet = async (
+  release: ReleaseOneSheet,
+  creatorId: string,
+  destinationUrl: string,
+): Promise<{
+  readonly bodyHtml: string;
+  readonly style: string;
+}> => {
+  const heroSpec = { slot: "banner" as const, width: 1650, height: 1100 };
+  const duoSpec = { slot: "gallery" as const, width: 413, height: 656 };
+  const coverSpec = { slot: "cover" as const, width: 200, height: 200 };
+
+  const heroImage = release.photos[0]
+    ?? (release.artKey ? { key: release.artKey, alt: `${release.title} artwork`, credit: null } : null);
+  const heroSrc = heroImage
+    ? await resolvePrintImageUrl(heroImage, creatorId, heroSpec)
+    : null;
+  const duoImage = release.photos[1] ?? null;
+  const duoSrc = duoImage
+    ? await resolvePrintImageUrl(duoImage, creatorId, duoSpec)
+    : null;
+  const coverSrc = release.artKey
+    ? await resolvePrintImageUrl(
+        { key: release.artKey, alt: `${release.title} single artwork`, credit: null },
+        creatorId,
+        coverSpec,
+      )
+    : null;
+
+  const facts = [
+    release.catalogNumber,
+    release.releaseDate,
+    release.duration,
+    release.genre,
+  ].filter((fact): fact is string => Boolean(fact));
+  const creditRows = [
+    ["Written by", release.writtenBy],
+    ["Produced by", release.producedBy],
+    ["Mixed + mastered", release.mixedMasteredBy],
+    ["Press", "press@s-nc.org"],
+    ["Booking", "booking@s-nc.org"],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+  const pulls = release.lyricPulls.slice(0, 4);
+  const story = release.story ? truncateAtWord(release.story, 700) : "";
+  const heroAlt = heroImage?.alt ?? `${release.title} hero`;
+  const qrOptions = { errorCorrectionLevel: "M" as const, margin: 4 };
+  const moduleCount = QRCode.create(destinationUrl, qrOptions).modules.size + qrOptions.margin * 2;
+  const qrSizePx = Math.ceil(Math.max(0.8 * 96, moduleCount * 0.4 / 25.4 * 96) / 4) * 4;
+  if (qrSizePx > MAX_QR_SIZE_PX) {
+    throw new ValidationError("QR destination is too long for a scannable EPK code");
+  }
+  const qr = await QRCode.toString(destinationUrl, { type: "svg", ...qrOptions, color: { dark: QR_DARK, light: QR_LIGHT } });
+
+  return {
+    bodyHtml: `<article data-pdf-sheet class="epk-sheet">
+<header class="mast"><strong>S/NC RECORDS</strong><span>SINGLE EPK</span></header>
+${heroSrc ? `<div class="hero"><img src="${escapeHtml(heroSrc)}" alt="${escapeHtml(heroAlt)}"><div class="hero-copy"><div><span class="artist">Animal Future</span><h1>${escapeHtml(release.title)}</h1></div><div class="facts"><b>${escapeHtml(release.catalogNumber ?? "Single")}</b>${facts.map((fact) => escapeHtml(fact)).join(" · ")}</div></div></div>` : `<div class="hero hero-empty"><h1>${escapeHtml(release.title)}</h1></div>`}
+<div class="epk-body">
+<div>
+${pulls.length ? `<div class="pull">&ldquo;${escapeHtml(pulls[0] ?? "")}&rdquo;</div>` : ""}
+${story ? `<p class="story">${escapeHtml(story)}</p>` : ""}
+</div>
+${pulls.length > 1 ? `<div class="pulls">${pulls.slice(1).map((pull) => `<div class="pull-line">&ldquo;${escapeHtml(pull)}&rdquo;</div>`).join("")}</div>` : ""}
+<div class="support">
+${duoSrc ? `<img class="duo" src="${escapeHtml(duoSrc)}" alt="${escapeHtml(duoImage?.alt ?? "live photo")}">` : ""}
+<div class="col">
+<div class="rows">${creditRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>
+${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverSrc)}" alt="${escapeHtml(release.title)} cover art"><span>Cover art${release.publisherLine ? ` · ${escapeHtml(release.publisherLine)}` : ""}</span></div>` : ""}
+</div>
+</div>
+</div>
+<footer class="epk-footer"><a class="listen" href="${escapeHtml(destinationUrl)}">${escapeHtml(humanUrl(destinationUrl))}</a><div class="qr">${qr}</div></footer>
+</article>`,
+    style: `
+*{box-sizing:border-box}html,body{width:5.5in;height:8.5in;margin:0;overflow:hidden;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.epk-sheet{width:5.5in;height:8.5in;background:var(--color-bg);color:var(--color-text);display:flex;flex-direction:column;overflow:hidden}
+.mast{display:flex;justify-content:space-between;padding:10px 24px;border-bottom:2px solid var(--export-accent-decoration);color:var(--color-text-muted);font:700 8px/1.3 var(--font-display);letter-spacing:.16em;text-transform:uppercase}
+.mast strong{color:var(--color-accent);font-size:9px;letter-spacing:.18em}
+.hero{position:relative}
+.hero img{width:100%;height:240px;object-fit:cover;object-position:center 100%;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
+.hero-copy{position:absolute;left:24px;right:24px;bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
+.hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:var(--color-on-media);margin-bottom:3px;text-shadow:0 1px 6px var(--color-overlay-strong)}
+.hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:${RELEASE_TITLE_RED}}
+.hero-copy .facts{text-align:right;color:var(--color-on-media);font-size:9.5px;line-height:15px;text-shadow:0 1px 6px var(--color-overlay-strong)}
+.hero-copy .facts b{display:block;color:${RELEASE_TITLE_RED}}
+.hero-empty{padding:26px 24px}
+.hero-empty h1{margin:0;font:400 54px/48px var(--font-display);color:var(--color-accent)}
+.epk-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:14px 24px 0}
+.pull{border-left:2px solid var(--export-accent-decoration);padding:3px 0 3px 12px;font:400 16px/20px var(--font-display);margin:0 0 11px}
+.story{margin:0;font-size:10.5px;line-height:17px;color:var(--color-text-muted)}[data-theme="dark"] .story{color:var(--color-text);opacity:.75}
+.pulls{display:grid;grid-template-columns:1.3fr .8fr 1.1fr;gap:10px;margin:14px 0 0;border-top:1px solid var(--color-border);padding-top:12px}
+.pull-line{font:400 12.5px/16px var(--font-display);color:var(--color-text)}
+.pull-line:first-child{border-left:2px solid var(--export-accent-decoration);padding-left:10px}
+.support{display:flex;gap:12px;align-items:stretch;margin-top:10px}
+.duo{width:150px;object-fit:cover;object-position:center 30%;border:1px solid var(--color-border);display:block}
+.col{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.row{display:flex;justify-content:space-between;border-bottom:.6px solid var(--color-border);padding:5px 0;font-size:9px;color:var(--color-text-muted)}
+.row b{color:var(--color-text);font-weight:600}
+.cover-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
+.cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
+.cover-row span{font-size:8px;color:var(--color-text-muted)}
+.epk-footer{padding:9px 24px;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:var(--color-text-muted)}
+.epk-footer .listen{color:var(--color-text);font-weight:700;text-decoration:none;font-size:8.5px}
+.qr{width:44px;height:44px;background:${QR_LIGHT}}.qr svg{display:block;width:100%;height:100%}
+@page{size:5.5in 8.5in;margin:0}
+`,
+  };
+};
+
+/** Render the half-Letter single-release EPK companion. Deterministic: one pinned layout;
+ * over-budget content fails loudly for the route to map. */
+export const renderReleaseEpkPdf = async (input: {
+  release: ReleaseOneSheet;
+  creatorId: string;
+  pressPageUrl: string;
+  exportIdentity: PdfExportIdentity;
+  destinationUrl?: string;
+}): Promise<Buffer> => {
+  const destinationUrl = input.destinationUrl
+    ?? input.release.preSaveUrl
+    ?? input.pressPageUrl
+    ?? "";
+  const sheet = await releaseEpkSheet(input.release, input.creatorId, destinationUrl);
+  return renderBrowserPdf({
+    url: input.pressPageUrl,
+    replaceBodyHtml: sheet.bodyHtml,
+    documentAttributes: exportDocumentAttributes(input.exportIdentity),
+    style: `${buildPdfExportStyle(input.exportIdentity)}\n${sheet.style}`,
+    singlePage: true,
+    pageSize: EPK_PAGE,
   });
 };
 

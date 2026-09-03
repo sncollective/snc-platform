@@ -56,6 +56,8 @@ const release = {
   label: "S/NC Records",
   fcc: "clean" as const,
   artKey: null,
+  lyricPulls: [],
+  photos: [],
 };
 
 const banner = {

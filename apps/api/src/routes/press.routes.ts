@@ -40,6 +40,8 @@ import {
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
   renderReleaseOneSheetPdf,
+  renderReleaseEpkPdf,
+  defaultDestinationUrl,
 } from "../services/press-pdf.js";
 import {
   discardPressDraft,
@@ -263,6 +265,67 @@ pressRoutes.get(
       },
     });
     return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+  },
+);
+
+// GET /:creatorId/press/releases/:releaseSlug/epk.pdf — Half-Letter single-release EPK companion
+pressRoutes.get(
+  "/:creatorId/press/releases/:releaseSlug/epk.pdf",
+  describeRoute({
+    description: "Download a half-Letter single-release EPK companion PDF",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Single-release EPK PDF",
+        content: {
+          "application/pdf": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      400: ERROR_400,
+      404: ERROR_404,
+    },
+  }),
+  pressPdfRateLimiter,
+  optionalAuth,
+  validator(
+    "param",
+    z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
+  ),
+  validator("query", PressPdfThemeQuerySchema),
+  async (c) => {
+    const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const release = content.releases.find(
+      (candidate) => candidate.slug === c.req.param("releaseSlug"),
+    );
+    if (!release) throw new NotFoundError("Release not found");
+    const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
+    try {
+      const buffer = await renderReleaseEpkPdf({
+        release,
+        creatorId: profile.id,
+        pressPageUrl: pressPageUrl(creatorPath),
+        exportIdentity: {
+          producingUnit: "records",
+          federationHandle: profile.handle,
+          creatorBrandColor: profile.brandColor ?? null,
+          theme: c.req.valid("query").theme,
+        },
+        destinationUrl: release.preSaveUrl
+          ?? defaultDestinationUrl(
+            { handle: profile.handle, socialLinks: profile.socialLinks },
+            content,
+            pressPageUrl(creatorPath),
+          ),
+      });
+      return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+    } catch (error) {
+      if (error instanceof BrowserPdfSinglePageFitError) {
+        throw new ValidationError(
+          `Release EPK does not fit its half-Letter template (${error.message.replace(/^Press one-sheet does not fit one page: /, "")}). Shorten the story or lyric pulls, then retry.`,
+        );
+      }
+      throw error;
+    }
   },
 );
 

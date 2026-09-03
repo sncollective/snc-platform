@@ -63,7 +63,7 @@ const payload: DeliveredPressPagePayload = {
     location: "Fort Collins, CO",
     photos: [],
     gallery: [],
-    releases: [{ slug: "the-illusionist", title: "The Illusionist", catalogNumber: "SNCR-001", personnel: [], fcc: "clean" as const }],
+    releases: [{ slug: "the-illusionist", title: "The Illusionist", catalogNumber: "SNCR-001", personnel: [], fcc: "clean" as const, lyricPulls: [], photos: [] }],
   },
 };
 
