@@ -547,6 +547,9 @@ const releaseEpkSheet = async (
     ["Press", "press@s-nc.org"],
     ["Booking", "booking@s-nc.org"],
   ].filter((row): row is [string, string] => Boolean(row[1]));
+  const photoCredits = [...new Set(
+    [heroImage?.credit, duoImage?.credit].filter((credit): credit is string => Boolean(credit)),
+  )].join(" · ");
   const pulls = release.lyricPulls.slice(0, 4);
   const story = release.story ? truncateAtWord(release.story, 700) : "";
   const heroAlt = heroImage?.alt ?? `${release.title} hero`;
@@ -572,11 +575,11 @@ ${pulls.length > 1 ? `<div class="pulls">${pulls.slice(1).map((pull) => `<div cl
 ${duoSrc ? `<img class="duo" src="${escapeHtml(duoSrc)}" alt="${escapeHtml(duoImage?.alt ?? "live photo")}">` : ""}
 <div class="col">
 <div class="rows">${creditRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>
-${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverSrc)}" alt="${escapeHtml(release.title)} cover art"><span>Cover art${release.publisherLine ? ` · ${escapeHtml(release.publisherLine)}` : ""}</span></div>` : ""}
+${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverSrc)}" alt="${escapeHtml(release.title)} cover art"><span>Album artwork</span></div>` : ""}
 </div>
 </div>
 </div>
-<footer class="epk-footer"><a class="listen" href="${escapeHtml(destinationUrl)}">${escapeHtml(humanUrl(destinationUrl))}</a><div class="qr">${qr}</div></footer>
+<footer class="epk-footer"><div><a class="listen" href="${escapeHtml(destinationUrl)}">${escapeHtml(humanUrl(destinationUrl))}</a>${photoCredits ? `<span class="photo-credits">Photography: ${escapeHtml(photoCredits)}</span>` : ""}</div><div class="qr">${qr}</div></footer>
 </article>`,
     style: `
 *{box-sizing:border-box}html,body{width:5.5in;height:8.5in;margin:0;overflow:hidden;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -606,8 +609,9 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .cover-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
 .cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
 .cover-row span{font-size:8px;color:var(--color-text-muted)}
-.epk-footer{padding:9px 24px;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:var(--color-text-muted)}
-.epk-footer .listen{color:var(--color-text);font-weight:700;text-decoration:none;font-size:8.5px}
+.epk-footer{padding:12px 24px 14px;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:end;font-size:7.5px;color:var(--color-text-muted)}
+.epk-footer .listen{color:var(--color-text);font-weight:700;text-decoration:none;font-size:8.5px;display:block}
+.epk-footer .photo-credits{display:block;margin-top:2px;font-size:7px;letter-spacing:.015em}
 .qr{width:44px;height:44px;background:${QR_LIGHT}}.qr svg{display:block;width:100%;height:100%}
 @page{size:5.5in 8.5in;margin:0}
 `,

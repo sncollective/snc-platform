@@ -44,3 +44,15 @@ first render of This Hell for campaign preview with measurements.
   preSaveUrl null) + hero switched to the tall asset.
 - Verified: typecheck, unit (74/74), checker 9/9, live render single-page half-Letter,
   final vision pass PASS on all checks.
+
+## Postscript: campaign first-review fixes (2026-09-02, later)
+- **Credit defect fixed**: the EPK builder rendered bare <img> tags — no photo credits
+  anywhere (campaign caught at 4-6x zoom, provenance-standard). Footer now carries a
+  deduped "Photography: Hayley Herriges · Ariana Cord" small-print line derived from
+  the photos actually used (avoids on-bright-floor caption legibility). One syntax slip
+  in the fix (missing array bracket) caught by typecheck before any render.
+- QR nudged off the trim edge (0.11in → 0.147in inset, inside printer no-print margins).
+- Cover caption data error: publisherLine → "Album artwork".
+- Hero deviation flagged for operator ruling: manifest said lead with the 3:1 narrow;
+  geometric necessity (a 2.2:1 tall hero cannot come from a 3:1 source) forced the tall
+  3:2 — same shoot/credit/concept.
