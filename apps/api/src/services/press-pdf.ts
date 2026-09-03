@@ -623,7 +623,7 @@ const releaseEpkSheet = async (
   return {
     bodyHtml: `<article data-pdf-sheet class="epk-sheet">
 <header class="mast"><strong>S/NC RECORDS</strong><span>SINGLE EPK</span></header>
-${heroSrc ? `<div class="hero"><img src="${escapeHtml(heroSrc)}" alt="${escapeHtml(heroAlt)}"><div class="hero-copy"><div><span class="artist">Animal Future</span><h1>${escapeHtml(release.title)}</h1></div><div class="facts">${release.catalogNumber ? `<b>${escapeHtml(release.catalogNumber)}</b>` : ""}${facts.map((fact) => escapeHtml(fact)).join(" · ")}</div></div></div>` : `<div class="hero hero-empty"><h1>${escapeHtml(release.title)}</h1></div>`}
+${heroSrc ? `<div class="hero ${triptych ? "hero-triptych" : "hero-solo"}"><img src="${escapeHtml(heroSrc)}" alt="${escapeHtml(heroAlt)}"><div class="hero-copy"><div><span class="artist">Animal Future</span><h1>${escapeHtml(release.title)}</h1></div><div class="facts">${release.catalogNumber ? `<b>${escapeHtml(release.catalogNumber)}</b>` : ""}${facts.map((fact) => escapeHtml(fact)).join(" · ")}</div></div></div>` : `<div class="hero hero-empty"><h1>${escapeHtml(release.title)}</h1></div>`}
 <div class="epk-body">
 <div>
 ${pulls.length ? `<div class="pull">&ldquo;${escapeHtml(pulls[0] ?? "")}&rdquo;</div>` : ""}
@@ -638,7 +638,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 </div>
 </div>
 </div>
-<footer class="epk-footer"><div><a class="listen" href="${escapeHtml(destinationUrl)}">${escapeHtml(humanUrl(destinationUrl))}</a>${photoCredits ? `<span class="photo-credits">Photography: ${escapeHtml(photoCredits)}</span>` : ""}</div><div class="qr">${qr}</div></footer>
+<footer class="epk-footer"><div><span class="listen-label">${release.preSaveUrl ? "Pre-save · scan or type" : "Listen · scan or type"}</span><a class="listen" href="${escapeHtml(destinationUrl)}">${escapeHtml(humanUrl(destinationUrl))}</a>${photoCredits ? `<span class="photo-credits">Photography: ${escapeHtml(photoCredits)}</span>` : ""}</div><div class="qr">${qr}</div></footer>
 </article>`,
     style: `
 *{box-sizing:border-box}html,body{width:5.5in;height:8.5in;margin:0;overflow:hidden;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -648,6 +648,9 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .hero{position:relative}
 .hero img{width:100%;height:288px;object-fit:cover;object-position:center top;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
 .hero-copy{position:absolute;left:24px;right:24px;bottom:20px;display:flex;flex-direction:column;align-items:center;text-align:center}.hero-copy .facts{margin-top:6px}
+.hero-solo .hero-copy{flex-direction:row;justify-content:space-between;align-items:flex-end;text-align:left}
+.hero-solo .hero-copy .facts{margin-top:0;text-align:right}
+.hero-solo .hero-copy>div:first-child{margin-right:12px}
 .hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:var(--color-on-media);margin-bottom:3px}
 .hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:var(--color-accent)}
 .hero-copy .facts{text-align:right;color:var(--color-on-media);font-size:9.5px;line-height:15px}
@@ -669,7 +672,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
 .cover-row span{font-size:8px;color:var(--color-text-muted)}
 .epk-footer{padding:12px 24px 14px;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:end;font-size:7.5px;color:var(--color-text-muted)}
-.epk-footer .listen{color:var(--color-text);font-weight:700;text-decoration:none;font-size:8.5px;display:block}
+.epk-footer .listen-label{display:block;color:var(--color-text-muted);font-size:7px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:1px}.epk-footer .listen{color:var(--color-text);font-weight:700;text-decoration:none;font-size:8.5px;display:block}
 .epk-footer .photo-credits{display:block;margin-top:2px;font-size:7px;letter-spacing:.015em}
 .qr{width:44px;height:44px;background:${QR_LIGHT}}.qr svg{display:block;width:100%;height:100%}
 @page{size:5.5in 8.5in;margin:0}
