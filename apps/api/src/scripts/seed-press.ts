@@ -152,7 +152,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       ],
       photos: [
         { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot", credit: "Hayley Herriges" },
-        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/gallery-duo-show-v01.jpg", alt: "Two performers mid-song under magenta stage wash", credit: "Ariana Cord" },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/gallery-duo-show-v01.jpg", alt: "Two performers mid-song under magenta stage wash", credit: "Hayley Herriges" },
       ],
       preSaveUrl: "https://distrokid.com/hyperfollow/animalfuture1/this-hell?ref=release",
     },
@@ -203,7 +203,7 @@ const withPressImages = (creatorId: string): PressContent => {
       { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_PRIMARY },
       { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live", credit: "Hayley Herriges" },
       { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_PRIMARY },
-      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Ariana Cord" },
+      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Hayley Herriges" },
     ],
   };
 };
