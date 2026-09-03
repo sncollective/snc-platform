@@ -25,7 +25,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
   gallery: [],
   shortBio:
-    "Socially conscious rock from Fort Collins, CO. Raw, funny, unpredictable, and aimed where it hurts.",
+    "Socially conscious rock from Fort Collins, Colorado. Raw, funny, unpredictable, and aimed where it hurts.",
   longBio:
     "Fueled by the fury of the forgotten, Animal Future crafts music tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with eclectic, shoegazing soundscapes evoking a distorted sense of time and place.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
   forFansOf: [
