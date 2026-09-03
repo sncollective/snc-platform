@@ -651,9 +651,8 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .hero{position:relative}
 .hero img{width:100%;height:288px;object-fit:cover;object-position:center top;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
 .hero-copy{position:absolute;left:24px;right:24px;bottom:20px;display:flex;flex-direction:column;align-items:center;text-align:center}.hero-copy .facts{margin-top:6px}
-.hero-solo .hero-copy{flex-direction:row;justify-content:space-between;align-items:flex-end;text-align:left}
-.hero-solo .hero-copy .facts{margin-top:0;text-align:right}
-.hero-solo .hero-copy>div:first-child{margin-right:12px}
+.hero-solo .hero-copy{flex-direction:column;align-items:flex-start;text-align:left}
+.hero-solo .hero-copy .facts{margin:6px 0 0 9px;text-align:left}
 .hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:var(--color-on-media);margin-bottom:3px}
 .hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:var(--color-accent)}
 .hero-copy .facts{text-align:right;color:var(--color-on-media);font-size:9.5px;line-height:15px}
