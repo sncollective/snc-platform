@@ -18,16 +18,16 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   template: "A",
   tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” · 2027",
   members: [
-    { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Paramore-power belts, unapologetic screams." },
-    { name: "Charles Tyrie", role: "drums", bio: "Old-school punk to indie-rock turns." },
+    { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Unapologetic lyrics paired with playful expression." },
+    { name: "Charles Tyrie", role: "drums", bio: "The energy of punk bringing a technical backbone." },
     { name: "Jarod Ford", role: "bass", bio: "The low end beneath the fury." },
-    { name: "Connor Mandli", role: "electric guitar", bio: "Dissonance that resolves melodically." },
+    { name: "Connor Mandli", role: "electric guitar", bio: "Taming the dissonance." },
   ],
   gallery: [],
   shortBio:
-    "Socially conscious punk-leaning alt-rock from Fort Collins — raw, funny, unpredictable, and aimed where it hurts.",
+    "Socially conscious punk-leaning alt-rock from Fort Collins. Raw, funny, unpredictable, and aimed where it hurts.",
   longBio:
-    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
+    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts: tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with eclectic soundscapes adding a layer of unpredictability.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
   forFansOf: [
     "IDLES",
     "Radiohead",
