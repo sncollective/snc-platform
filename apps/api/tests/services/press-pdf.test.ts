@@ -278,8 +278,9 @@ describe("press PDF rendering", () => {
     expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
       contentFixture.banner,
       "banner",
-      2250,
-      750,
+      2294,
+      1163,
+      "no",
     );
   });
 
@@ -303,7 +304,7 @@ describe("press PDF rendering", () => {
 
     expect(mockDbSelect).toHaveBeenCalledOnce();
     expect(mockStorageDownload).not.toHaveBeenCalled();
-    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 2250, 750);
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(banner, "banner", 2294, 1163, "no");
   });
 
   it("renders the locked vertical one-sheet with one-paragraph bio and creator URL", async () => {

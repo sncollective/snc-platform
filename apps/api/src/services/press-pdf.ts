@@ -336,7 +336,7 @@ const oneSheetHtml = async (input: {
     creator.id,
     vertical
       ? { slot: "about", width: 725, height: 3000 }
-      : { slot: "banner", width: 2250, height: 750 },
+      : { slot: "banner", width: 2294, height: 1163, gravity: "no" as const },
   );
   const qrOptions = { errorCorrectionLevel: "M" as const, margin: 4 };
   const moduleCount = QRCode.create(destinationUrl, qrOptions).modules.size + qrOptions.margin * 2;
