@@ -168,7 +168,7 @@ export function buildPressImageUrl(
       );
     }
 
-    parts.push(`rs:fill:${candidateWidth}:${outputHeight}:0`, `g:${gravity ?? "ce"}`);
+    parts.push(`rs:fill:${candidateWidth}:${outputHeight}:0`, `q:95`, `g:${gravity ?? "ce"}`);
     const path = `/${parts.join("/")}/plain/${sourceUrl}`;
     const signature = cfg.signingEnabled
       ? signPath(cfg.key, cfg.salt, path)
