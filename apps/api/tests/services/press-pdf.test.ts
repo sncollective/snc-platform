@@ -537,6 +537,7 @@ describe("press PDF rendering", () => {
     });
     let call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string; style: string };
     expect(call.replaceBodyHtml).toContain('<p class="photo-credits">Photography: Daniel Melchior</p>');
+    expect(call.replaceBodyHtml).toContain('@signaltonoise.co');
     expect(call.style).toContain(".photo-credits{position:absolute");
 
     await renderCreatorOneSheetPdf({
@@ -547,7 +548,7 @@ describe("press PDF rendering", () => {
       orientation: "horizontal",
     });
     call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string; style: string };
-    expect(call.replaceBodyHtml).not.toContain("photo-credits");
+    expect(call.replaceBodyHtml).not.toContain("Photography:");
   });
 
   it("renders a long-field release as escaped retained-head Letter markup", async () => {

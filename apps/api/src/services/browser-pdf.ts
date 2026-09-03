@@ -98,11 +98,26 @@ const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> 
     const deepestInFlow = [...sheet.querySelectorAll<HTMLElement>("*")].reduce((floor, element) => {
       const style = getComputedStyle(element);
       if (style.display === "none" || style.visibility === "hidden") return floor;
-      if (style.position === "absolute" || style.position === "fixed") return floor;
+      // page.evaluate serializes this callback to run in the browser: no helper
+      // functions allowed (bundler keepNames helpers don't exist in the page).
+      // Inline ancestor walk: descendants of anchored chrome are exempt too.
+      let node: HTMLElement | null = element;
+      let anchored = false;
+      while (node && node !== sheet) {
+        const pos = getComputedStyle(node).position;
+        if (pos === "absolute" || pos === "fixed") { anchored = true; break; }
+        node = node.parentElement;
+      }
+      if (anchored) return floor;
       return Math.max(floor, element.getBoundingClientRect().bottom);
     }, bounds.top);
     if (deepestInFlow > paddingFloor + epsilon) {
-      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px`);
+      const culprit = [...sheet.querySelectorAll<HTMLElement>("*")].filter((el) => {
+        const st = getComputedStyle(el);
+        return st.display !== "none" && st.visibility !== "hidden" && st.position !== "absolute" && st.position !== "fixed";
+      }).sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0];
+      const tag = culprit ? `${culprit.tagName.toLowerCase()}.${String(culprit.className)}` : "unknown";
+      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px [${tag}]`);
     }
     return problems;
   }), deadline, () => { void page.close().catch(() => undefined); });
