@@ -182,12 +182,12 @@ const withPressImages = (creatorId: string): PressContent => {
       // moves UP. Connor top-anchored y=0; LeAnna/Charles y=0.05 (small
       // forehead room). Jarod: default (fine).
       photo: member.name === "LeAnna Warren"
-        ? memberPhoto("member-leanna-v02.jpg", "LeAnna Warren portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
+        ? memberPhoto("member-leanna-v02.jpg", "LeAnna Warren portrait")
         : member.name === "Charles Tyrie"
-          ? memberPhoto("member-charles-v02.jpg", "Charles Tyrie portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
+          ? memberPhoto("member-charles-v02.jpg", "Charles Tyrie portrait")
           : member.name === "Jarod Ford"
             ? memberPhoto("member-jarod-v02.jpg", "Jarod Ford portrait", undefined)
-            : memberPhoto("member-connor-v02.jpg", "Connor Mandli portrait", { x: 0, y: 0, width: 1, height: 0.741 }),
+            : memberPhoto("member-connor-v02.jpg", "Connor Mandli portrait"),
     })),
     highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
       ...highlight,
