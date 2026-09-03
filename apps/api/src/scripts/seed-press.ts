@@ -135,7 +135,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
         "Jarod Ford (bass)",
         "Connor Mandli (guitar)",
       ],
-      writtenBy: "Warren / Tyrie / Ford / Mandli",
+      writtenBy: "LeAnna Warren (lyrics & music) · Charles Tyrie (music) · Jarod Ford (music) · Connor Mandli (music)",
       producedBy: "Kevin Cook & Doug Wooldridge",
       mixedMasteredBy: "Doug Wooldridge @ S/NC Studio",
       copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford, Mandli",
