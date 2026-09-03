@@ -196,7 +196,7 @@ const withPressImages = (creatorId: string): PressContent => {
         : highlight.title === "Get to You"
           ? cover("cover-get-to-you-v01.jpg", "Get to You single artwork")
           : highlight.title === "This Hell"
-            ? cover("this-hell-cover-v01.jpg", "This Hell single artwork (album cover art)")
+            ? cover("album-back-cover-v01.jpg", "This Hell single artwork (album back cover)")
             : highlight.coverArt,
     })),
     gallery: [
