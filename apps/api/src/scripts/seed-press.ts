@@ -182,7 +182,7 @@ const withPressImages = (creatorId: string): PressContent => {
     })),
     gallery: [
       { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_MARCH_SESSION },
-      { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live" },
+      { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live", credit: "Hayley Herriges" },
       { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_MARCH_SESSION },
       { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Hayley Herriges" },
     ],
