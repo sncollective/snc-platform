@@ -127,7 +127,7 @@ describe("press PDF rendering", () => {
       }),
     });
     mockRenderBrowserPdf.mockReset().mockResolvedValue(pdf);
-    mockStorageDownload.mockReset().mockResolvedValue(downloadResult());
+    mockStorageDownload.mockReset().mockImplementation(() => Promise.resolve(downloadResult()));
     mockBuildPressImageUrl.mockReset().mockImplementation((image, slot, width, height) => ({
       src: `https://img.test/${slot}/${width}x${height}/${image.key}`,
       srcSet: "",
@@ -440,6 +440,44 @@ describe("press PDF rendering", () => {
     expect(call.replaceBodyHtml).toContain('<span>Booking</span><strong>booking@s-nc.org</strong>');
     expect(call.replaceBodyHtml).toContain('<span>Press</span><strong>press@s-nc.org</strong>');
     expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests vertical member portraits at the rendered box aspect, not a square middleman", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: {
+        ...contentFixture,
+        members: [{ name: "LeAnna Warren", role: "Vocals", bio: "Hush-to-roar frontwoman.", photo: { key: "creators/creator_animalfuture/press/member-leanna-v01.jpg", alt: "LeAnna Warren portrait" } }],
+      },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+
+    expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "creators/creator_animalfuture/press/member-leanna-v01.jpg" }),
+      "member",
+      150,
+      188,
+    );
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: {
+        ...contentFixture,
+        members: [{ name: "LeAnna Warren", role: "Vocals", photo: { key: "creators/creator_animalfuture/press/member-leanna-v01.jpg", alt: "LeAnna Warren portrait" } }],
+      },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    });
+
+    expect(mockBuildPressImageUrl).toHaveBeenLastCalledWith(
+      expect.objectContaining({ key: "creators/creator_animalfuture/press/member-leanna-v01.jpg" }),
+      "member",
+      225,
+      225,
+    );
   });
 
   it("renders press quotes as attributed pull-quotes with per-orientation caps", async () => {

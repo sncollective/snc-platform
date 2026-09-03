@@ -284,11 +284,17 @@ const oneSheetCss = (qrSizePx: number): string => `
 `;
 
 const renderMember = async (member: PressContent["members"][number], creatorId: string, vertical: boolean): Promise<string> => {
-  const size = vertical ? 150 : 225;
+  // Print spec matches the rendered box: vertical member boxes are portrait
+  // (48px wide, stretched ~60px tall with role+bio) — a square spec would
+  // force an imgproxy square middleman that CSS-cover then slices, wasting
+  // native resolution. Horizontal boxes stay square.
+  const target = vertical
+    ? { slot: "member" as const, width: 150, height: 188 }
+    : { slot: "member" as const, width: 225, height: 225 };
   const src = await resolvePrintImageUrl(
     member.photo,
     creatorId,
-    { slot: "member", width: size, height: size },
+    target,
   );
   const figure = photoFigure("", member.photo, src, `${member.name} portrait`);
   return vertical
