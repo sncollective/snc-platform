@@ -72,3 +72,13 @@ first render of This Hell for campaign preview with measurements.
   photo, the cover artKey, and 3 of 4 lyric pulls — a ~1.8in mid-page void
   remains and the brief's photo affordances are unexercised. Asked whether the
   simplification intended that; restore vs re-scale is their call.
+
+## Postscript 3: credit block extension (operator fill ruling)
+- Three rows added per operator: "Performed by" (personnel[] stacked as a
+  multi-line right-aligned value via white-space:pre-line), "Recorded at
+  S/NC Studio" (derived from mixedMasteredBy containing the studio name),
+  "FCC Clean" (radio-relevant flag, formatted label). Row order: performers,
+  writers, producer, recorded-at, mix, FCC, press, booking.
+- Verified: four members stacked cleanly; ledger alignment intact; mid-page
+  void 1.76in → 0.56in (68% reduction); zero regressions.
+- The support-picture fill option remains open operator-side.

@@ -536,10 +536,14 @@ const releaseEpkSheet = async (
     release.duration,
     release.genre,
   ].filter((fact): fact is string => Boolean(fact));
+  const recordedAt = release.mixedMasteredBy?.includes("S/NC Studio") ? "S/NC Studio" : null;
   const creditRows = [
+    ...(release.personnel.length ? [["Performed by", release.personnel.join("\n")] as [string, string]] : []),
     ["Written by", release.writtenBy],
     ["Produced by", release.producedBy],
+    ["Recorded at", recordedAt],
     ["Mixed + mastered", release.mixedMasteredBy],
+    ...(release.fcc ? [["FCC", release.fcc === "clean" ? "Clean" : "Explicit"] as [string, string]] : []),
     ["Press", "press@s-nc.org"],
     ["Booking", "booking@s-nc.org"],
   ].filter((row): row is [string, string] => Boolean(row[1]));
@@ -601,7 +605,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .duo{width:150px;object-fit:cover;object-position:center 30%;border:1px solid var(--color-border);display:block}
 .col{flex:1;display:flex;flex-direction:column;justify-content:space-between}
 .row{display:flex;justify-content:space-between;border-bottom:.6px solid var(--color-border);padding:5px 0;font-size:9px;color:var(--color-text-muted)}
-.row b{color:var(--color-text);font-weight:600}
+.row b{color:var(--color-text);font-weight:600;white-space:pre-line;text-align:right}
 .cover-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
 .cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
 .cover-row span{font-size:8px;color:var(--color-text-muted)}
