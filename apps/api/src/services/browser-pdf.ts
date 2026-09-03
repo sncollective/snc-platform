@@ -262,6 +262,14 @@ const renderOnPage = async (
     page.setDefaultTimeout(Math.max(1, remainingMs(deadline)));
     page.setDefaultNavigationTimeout(Math.max(1, remainingMs(deadline)));
 
+    // Block script resources: the live page's hydration can re-render the body AFTER
+    // our replaceBodyHtml injection (race: the sheet root vanishes, fit check 400s).
+    // SSR HTML + styles render fine without scripts; nothing can overwrite the sheet.
+    await page.route("**/*", (route) => {
+      if (route.request().resourceType() === "script") return route.abort();
+      return route.continue();
+    });
+
     if (options.url) {
       const response = await withinDeadline(
         page.goto(options.url, { waitUntil: "domcontentloaded" }),
