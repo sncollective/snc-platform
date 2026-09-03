@@ -500,7 +500,7 @@ describe("press PDF rendering", () => {
       exportIdentity: recordsIdentity,
       orientation: "horizontal",
     });
-    call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string };
+    call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string; style: string };
     expect(call.replaceBodyHtml).not.toContain("photo-credits");
   });
 
