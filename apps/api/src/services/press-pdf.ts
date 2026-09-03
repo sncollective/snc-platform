@@ -286,7 +286,7 @@ const oneSheetCss = (qrSizePx: number): string => `
 
 const memberDimensionMemo = new Map<string, ImageDimensions>();
 
-const memberWindowHeight = async (key: string, fallback = 75): Promise<number> => {
+const memberWindowHeight = async (key: string, fallback = 75, boxWidth = 60): Promise<number> => {
   let dims = memberDimensionMemo.get(key);
   if (!dims) {
     try {
@@ -296,27 +296,31 @@ const memberWindowHeight = async (key: string, fallback = 75): Promise<number> =
       return fallback;
     }
   }
-  // Window follows the upload's aspect at 60px width, clamped to a sane portrait range
-  // (60px square floor .. 96px just past 4:6). 4:5 -> 75, 4:6 -> 90.
-  return Math.min(96, Math.max(60, Math.round(60 * dims.height / dims.width)));
+  // Window follows the upload's aspect at the box width, clamped to a sane portrait
+  // range (square floor .. just past 4:6). 4:5 -> 1.25x, 4:6 -> 1.5x the width.
+  return Math.min(Math.round(boxWidth * 1.6), Math.max(boxWidth, Math.round(boxWidth * dims.height / dims.width)));
 };
 
 const renderMember = async (member: PressContent["members"][number], creatorId: string, vertical: boolean): Promise<string> => {
-  // Aspect-derived WYSIWYG: the vertical window follows the upload's true aspect
-  // (60px wide, height probed from the source); the print spec matches the box.
-  // Horizontal boxes keep their established portrait spec.
-  const windowHeight = vertical && member.photo
-    ? await memberWindowHeight(member.photo.key)
+  // Aspect-derived WYSIWYG, both orientations: the window follows the upload's true
+  // aspect at its box width (vertical 60px, horizontal 72px); the print spec matches.
+  const boxWidth = vertical ? 60 : 64;
+  const fallbackHeight = vertical ? 75 : 80;
+  const windowHeight = member.photo
+    ? await memberWindowHeight(member.photo.key, fallbackHeight, boxWidth)
     : null;
-  const target = vertical
-    ? { slot: "member" as const, width: 188, height: Math.round(188 * (windowHeight ?? 75) / 60) }
-    : { slot: "member" as const, width: 225, height: 266 };
+  const printWidth = vertical ? 188 : 200;
+  const target = {
+    slot: "member" as const,
+    width: printWidth,
+    height: Math.round(printWidth * (windowHeight ?? fallbackHeight) / boxWidth),
+  };
   const src = await resolvePrintImageUrl(
     member.photo,
     creatorId,
     target,
   );
-  const figure = windowHeight
+  const figure = windowHeight && member.photo
     ? photoFigure("", member.photo, src, `${member.name} portrait`, `height:${windowHeight}px`)
     : photoFigure("", member.photo, src, `${member.name} portrait`);
   return vertical
