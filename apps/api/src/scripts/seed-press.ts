@@ -174,7 +174,7 @@ const withPressImages = (creatorId: string): PressContent => {
   const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
-    banner: { key: key("banner-medium-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
+    banner: { key: key("banner-medium-v02.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
     aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show", credit: "Ariana Cord" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
@@ -182,12 +182,12 @@ const withPressImages = (creatorId: string): PressContent => {
       // moves UP. Connor top-anchored y=0; LeAnna/Charles y=0.05 (small
       // forehead room). Jarod: default (fine).
       photo: member.name === "LeAnna Warren"
-        ? memberPhoto("member-leanna-v01.jpg", "LeAnna Warren portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
+        ? memberPhoto("member-leanna-v02.jpg", "LeAnna Warren portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
         : member.name === "Charles Tyrie"
-          ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
+          ? memberPhoto("member-charles-v02.jpg", "Charles Tyrie portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
           : member.name === "Jarod Ford"
-            ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait", undefined)
-            : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait", { x: 0, y: 0, width: 1, height: 0.741 }),
+            ? memberPhoto("member-jarod-v02.jpg", "Jarod Ford portrait", undefined)
+            : memberPhoto("member-connor-v02.jpg", "Connor Mandli portrait", { x: 0, y: 0, width: 1, height: 0.741 }),
     })),
     highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
       ...highlight,
