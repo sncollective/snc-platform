@@ -70,7 +70,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   pressQuotes: [],
 
   bookingContactEmail: "booking@s-nc.org",
-  location: "Fort Collins, CO",
+  location: null,
   photos: [],
   highlights: [
     {
