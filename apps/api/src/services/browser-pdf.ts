@@ -1,6 +1,10 @@
 import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
 
+import { spawn } from "node:child_process";
+
+import { rootLogger } from "../logging/logger.js";
+
 const LETTER_WIDTH_IN = 8.5;
 const LETTER_HEIGHT_IN = 11;
 const DEFAULT_RENDER_TIMEOUT_MS = 30_000;
@@ -185,6 +189,41 @@ const waitForAssets = async (page: Page, deadline: number): Promise<void> => {
   }
 };
 
+const flattenSoftMasks = (pdf: Buffer): Promise<Buffer> => new Promise((resolve) => {
+  const proc = spawn(
+    "gs",
+    [
+      "-q", "-dNOPAUSE", "-dBATCH", "-sDEVICE=pdfwrite",
+      "-dCompatibilityLevel=1.6", "-dAutoRotatePages=/None",
+      "-dPDFSETTINGS=/prepress", "-dColorImageResolution=300",
+      "-sOutputFile=-", "-",
+    ],
+    { stdio: ["pipe", "pipe", "pipe"] },
+  );
+  const chunks: Buffer[] = [];
+  // Drain stderr concurrently: gs emits ICC-profile warnings, and an undrained
+  // stderr pipe fills its buffer and deadlocks the process pair.
+  proc.stderr.on("data", () => undefined);
+  proc.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
+  proc.on("error", (error) => {
+    rootLogger.warn({ error: error.message }, "Soft-mask flatten pass unavailable; serving the Chromium-native PDF");
+    resolve(pdf);
+  });
+  proc.on("close", (code) => {
+    const flattened = Buffer.concat(chunks);
+    if (code !== 0 || flattened.byteLength === 0) {
+      rootLogger.warn(
+        { code, bytesIn: pdf.byteLength },
+        "Soft-mask flatten pass failed; serving the Chromium-native PDF (Poppler-class viewers unaffected; PDF.js-class viewers may show overlay artifacts)",
+      );
+      return resolve(pdf);
+    }
+    resolve(flattened);
+  });
+  proc.stdin.on("error", () => undefined);
+  proc.stdin.end(pdf);
+});
+
 const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
   const issues = await withinDeadline(page.evaluate(() => {
     const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
@@ -294,7 +333,7 @@ const renderOnPage = async (
         ? { margin: { top: "0", right: "0", bottom: "0", left: "0" } }
         : {}),
     }), deadline, () => { void page?.close().catch(() => undefined); });
-    return Buffer.from(pdf);
+    return await flattenSoftMasks(Buffer.from(pdf));
   } finally {
     if (page && !page.isClosed()) await page.close().catch(() => undefined);
   }
