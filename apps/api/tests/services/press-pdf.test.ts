@@ -338,11 +338,7 @@ describe("press PDF rendering", () => {
     );
   });
 
-  it("re-renders the one-sheet at denser tiers until it fits", async () => {
-    mockRenderBrowserPdf
-      .mockRejectedValueOnce(new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"))
-      .mockResolvedValueOnce(pdf);
-
+  it("renders the pinned deterministic template per orientation with no retries", async () => {
     const result = await renderCreatorOneSheetPdf({
       creator,
       content: contentFixture,
@@ -352,15 +348,27 @@ describe("press PDF rendering", () => {
     });
 
     expect(result).toBe(pdf);
-    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(2);
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
     expect((mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
       .toContain('data-pdf-sheet class="sheet horizontal"');
-    expect((mockRenderBrowserPdf.mock.calls[1]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
-      .toContain('data-pdf-sheet class="sheet horizontal density-compact"');
   });
 
-  it("surfaces the fit error after exhausting the density ladder", async () => {
-    mockRenderBrowserPdf.mockRejectedValue(
+  it("pins the vertical template at compact density", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
+    expect((mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
+      .toContain('data-pdf-sheet class="sheet vertical density-compact"');
+  });
+
+  it("fails a fit immediately at the pinned density instead of re-tiering", async () => {
+    mockRenderBrowserPdf.mockRejectedValueOnce(
       new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"),
     );
 
@@ -372,9 +380,7 @@ describe("press PDF rendering", () => {
       orientation: "vertical",
     })).rejects.toBeInstanceOf(BrowserPdfSinglePageFitError);
 
-    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(3);
-    expect((mockRenderBrowserPdf.mock.calls[2]?.[0] as { replaceBodyHtml: string }).replaceBodyHtml)
-      .toContain("density-tight");
+    expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
   });
 
   it("propagates non-fit render failures without density retries", async () => {

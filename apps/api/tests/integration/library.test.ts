@@ -400,7 +400,7 @@ describe("content library integration", () => {
     );
   });
 
-  it("renders real-volume creator one-sheets on one page via the density ladder", async () => {
+  it("loudly rejects over-budget content at the pinned one-sheet template", async () => {
     const creator = {
       id: creatorIds[0]!,
       displayName: "Heavy Volume Creator",
@@ -420,7 +420,7 @@ describe("content library integration", () => {
       tagline: "New single “This Hell” out Sep 17, 2026 · debut LP March 2027",
       shortBio:
         "Fort Collins band makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable.",
-      longBio: `${"Fueled by the fury of the forgotten, the band crafts music that hits where it hurts — tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. ".repeat(6)}`,
+      longBio: `${"Fueled by the fury of the forgotten, the band crafts music that hits where it hurts — tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. ".repeat(24)}`,
       forFansOf: ["IDLES", "Radiohead", "Modest Mouse", "Pixies", "Yeah Yeah Yeahs", "Paramore"],
       members: [
         { name: "LeAnna Warren", role: "vocals, electric guitar" },
@@ -434,6 +434,9 @@ describe("content library integration", () => {
         { eyebrow: "Next single · SNCR-002", title: "This Hell", description: "Out Sep 17, 2026 — second single from the debut LP." },
       ],
       location: "Fort Collins, CO",
+      pressQuotes: [
+        { text: `An unbounded pull-quote stress line. ${"Their live show rewires the room. ".repeat(30)}`, source: "Overflow Probe Gazette" },
+      ],
       standoutTrack: {
         title: "Get to You",
         url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
@@ -443,18 +446,16 @@ describe("content library integration", () => {
     expect(await upsertPressConfig(creator.id, heavy)).toMatchObject({ ok: true });
     expect(await publishPressConfig(creator.id)).toMatchObject({ ok: true });
 
+    // The over-budget fixture exceeds every pinned template's density — both
+    // orientations fail loudly with actionable guidance instead of re-tiering.
     for (const orientation of ["horizontal", "vertical"] as const) {
-      const buffer = await renderCreatorOneSheetPdf({
+      await expect(renderCreatorOneSheetPdf({
         creator,
         content: heavy,
         pressPageUrl,
         exportIdentity,
         orientation,
-      });
-      const pdfText = buffer.toString("latin1");
-      expect(buffer.subarray(0, 4).toString("ascii")).toBe("%PDF");
-      expect(pdfText.match(/\/Type \/Page\b/g)).toHaveLength(1);
-      expect(pdfText).not.toContain("--voice-");
+      })).rejects.toThrow(/does not fit one page/);
     }
   });
 
