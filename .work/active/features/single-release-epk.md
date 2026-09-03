@@ -1,7 +1,7 @@
 ---
 id: single-release-epk
 kind: feature
-stage: drafting
+stage: implementing
 tags: [press, creators, content, ui]
 parent: null
 depends_on: []
@@ -47,3 +47,39 @@ animal-future campaign agent is being prepped to lead content.
   currently creator-scoped.
 - Which existing fields drive first (cover art, destinations links,
   press/booking contacts, photographyCredits are all live).
+
+## Design (2026-09-02, from the campaign content brief)
+
+**Shape: story-led one-pager.** The pitch copy is the spine; the template
+gets out of its way. Deterministic from day one (rule 1): one pinned
+layout, loud 400 on overflow, no ladder ever.
+
+### Layout (platform discretion per operator; ships with 3 images)
+1. Mast: `S/NC RECORDS · SINGLE EPK`
+2. Hero band: `banner-v01` (Herriges) full-width ~2in with gradient overlay;
+   release title large display + facts block right (catalog/date/duration)
+3. Story: the pitch verbatim; its opener lyric pull rendered as a display
+   pull-quote integrated into the copy flow (the zine instinct already
+   inside the copy)
+4. Lyric pulls strip: remaining marked pulls in display face with accent
+   rules (2-3)
+5. Support row: duo live photo (box-aspect print spec) + cover art (fixed
+   square, artKey) + track facts/credits rows (release-sheet grammar)
+6. Footer: inline contacts (press + booking), destinations links (URI
+   annotations), preSaveUrl when live (else linktree), QR on light patch,
+   photography credits small print
+
+### Content model (per-release, strict publish / permissive draft)
+- `story` (long text) · `lyricPulls: string[]` · `photos: PressImage[]`
+  (2-4; cover art stays `artKey`) · `preSaveUrl` (smart link)
+
+### Decomposition
+- `story-release-epk-content-model` — schema fields at all sites + editor
+  release section + validation + fixtures
+- `story-release-epk-template` (depends on content model) — sheet builder,
+  render function, route `GET .../releases/:slug/epk.pdf?theme=`, pinned
+  one-page + loud overflow, tests, first render for campaign preview
+
+Campaign lanes: seed copy/photos (assets already staged), preview + vision
+passes with measurements. Dropped-photos list (LeAnnaShow1, JarodConnor1)
+is recorded campaign-side as operator taste.
