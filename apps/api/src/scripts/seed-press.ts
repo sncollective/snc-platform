@@ -133,7 +133,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
         "LeAnna Warren (vocals & guitar)",
         "Charles Tyrie (drums)",
         "Jarod Ford (bass)",
-        "Connor Mandli (electric guitar)",
+        "Connor Mandli (guitar)",
       ],
       writtenBy: "Warren / Tyrie / Ford / Mandli",
       producedBy: "Kevin Cook & Doug Wooldridge",
