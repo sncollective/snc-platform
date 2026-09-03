@@ -82,3 +82,22 @@ first render of This Hell for campaign preview with measurements.
 - Verified: four members stacked cleanly; ledger alignment intact; mid-page
   void 1.76in → 0.56in (68% reduction); zero regressions.
 - The support-picture fill option remains open operator-side.
+
+## Postscript 4: triptych hero (operator option 2)
+- `composeTriptychHero`: three portrait panels (photos[0..2]) composed server-side
+  into ONE self-contained SVG data URI — panels base64-embedded, seam blends
+  (alpha-gradient masks ~9% of cell width) baked INSIDE the SVG. Chromium
+  rasterizes it as a single opaque image: zero soft masks BY CONSTRUCTION —
+  the viewer-proofing machinery's first new use case, per the commission's
+  critical constraint. CSS gradient seams would have reintroduced the exact
+  luminosity-mask class eliminated earlier today.
+- Interface (answering the campaign's model question): photos.length >= 3 →
+  triptych (panels in seed order); 1 → single hero; artKey fallback unchanged.
+- Seeded the staged panels in operator order (Connor abstract L, Charles C,
+  LeAnnaJarod R); panel order is content-side (order swap = seed edit).
+- Verified: 3.01in hero, thirds ~275px each, both seams soft ("no seam
+  resembles a rendering error"), title/artist lower-left over the abstract
+  panel (legible), facts lower-right, exposure reads as one graded band
+  (center darkest — the vision read's optional midtone lift noted as future
+  polish), 0 luminosity masks, single page, ledger intact.
+- Option 1 is git-revertible per the campaign's snapshot (f46a926).

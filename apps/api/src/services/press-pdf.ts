@@ -500,6 +500,52 @@ export const renderCreatorOneSheetPdf = async (input: {
 
 const EPK_PAGE = { widthIn: 5.5, heightIn: 8.5 } as const;
 
+/** Compose a three-panel vertical triptych hero as ONE self-contained SVG data URI.
+ * Seam blends are baked inside the SVG (rasterized once by Chromium as a single
+ * opaque image) - CSS gradients between photos would emit luminosity soft-masks,
+ * the exact PDF.js-breaking construct the viewer-proofing eliminated. */
+const composeTriptychHero = async (
+  panels: readonly PressImage[],
+  creatorId: string,
+  spec: { readonly width: number; readonly height: number },
+): Promise<string | null> => {
+  const cell = spec.width / 3;
+  const seam = Math.round(cell * 0.09); // ~50px at hero print width - soft blend
+  const embeds: string[] = [];
+  for (const panel of panels) {
+    if (!isOwnedPressKey(panel.key, creatorId) && !isLibraryAssetKey(panel.key)) return null;
+    const download = await storage.download(panel.key);
+    if (!download.ok) return null;
+    const reader = download.value.stream.getReader();
+    const chunks: Uint8Array[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const bytes = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+    embeds.push(`data:image/jpeg;base64,${bytes.toString("base64")}`);
+  }
+  const panelDefs = [0, 1, 2].map((index) => {
+    const x = index * cell;
+    // Each panel overhangs its left seam; alpha-masked edge blends into the neighbor beneath.
+    const width = cell + (index > 0 ? seam : 0);
+    const mask = index > 0
+      ? ` mask="url(#seam${index})"`
+      : "";
+    return `<image x="${x - (index > 0 ? seam : 0)}" y="0" width="${width}" height="${spec.height}" preserveAspectRatio="xMidYMid slice" href="${embeds[index]}"${mask}/>`;
+  }).join("");
+  const masks = [1, 2].map((index) => {
+    const x = index * cell - seam;
+    return `<mask id="seam${index}"><rect x="${x}" y="0" width="${seam}" height="${spec.height}" fill="url(#fade${index})"/><rect x="${index * cell}" y="0" width="${spec.width - index * cell}" height="${spec.height}" fill="#fff"/></mask>`;
+  }).join("");
+  const fades = [1, 2].map((index) =>
+    `<linearGradient id="fade${index}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient>`,
+  ).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${spec.width}" height="${spec.height}" viewBox="0 0 ${spec.width} ${spec.height}"><defs>${fades}${masks}</defs>${panelDefs}</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+};
+
 /** Half-Letter single-release EPK companion: story-led, deterministic, T3 direction. */
 const releaseEpkSheet = async (
   release: ReleaseOneSheet,
@@ -513,11 +559,13 @@ const releaseEpkSheet = async (
   const duoSpec = { slot: "gallery" as const, width: 413, height: 656 };
   const coverSpec = { slot: "cover" as const, width: 200, height: 200 };
 
+  const triptych = release.photos.length >= 3
+    ? await composeTriptychHero(release.photos.slice(0, 3), creatorId, { width: 1650, height: 900 })
+    : null;
   const heroImage = release.photos[0]
     ?? (release.artKey ? { key: release.artKey, alt: `${release.title} artwork`, credit: null } : null);
-  const heroSrc = heroImage
-    ? await resolvePrintImageUrl(heroImage, creatorId, heroSpec)
-    : null;
+  const heroSrc = triptych
+    ?? (heroImage ? await resolvePrintImageUrl(heroImage, creatorId, heroSpec) : null);
   const duoImage = release.photos[1] ?? null;
   const duoSrc = duoImage
     ? await resolvePrintImageUrl(duoImage, creatorId, duoSpec)
@@ -553,7 +601,9 @@ const releaseEpkSheet = async (
     ...creditRow("Booking", "booking@s-nc.org"),
   ];
   const photoCredits = [...new Set(
-    [heroImage?.credit, duoImage?.credit].filter((credit): credit is string => Boolean(credit)),
+    (triptych ? release.photos.slice(0, 3) : [heroImage]).concat([duoImage])
+      .map((image) => image?.credit)
+      .filter((credit): credit is string => Boolean(credit)),
   )].join(" · ");
   const pulls = release.lyricPulls.slice(0, 4);
   const story = release.story ? truncateAtWord(release.story, 700) : "";
