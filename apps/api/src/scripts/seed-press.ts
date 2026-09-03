@@ -174,7 +174,7 @@ const withPressImages = (creatorId: string): PressContent => {
   const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
-    banner: { key: key("banner-tall-lower-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
+    banner: { key: key("banner-tall-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
     aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show", credit: "Ariana Cord" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
