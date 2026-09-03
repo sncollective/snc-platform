@@ -46,3 +46,7 @@ crushed; fade judgment recorded (and gradient tuned if needed).
   Operator's eye rules on preview.
 - Typecheck + unit 32/32; live renders single-page, zero regressions both passes.
 - This resolves the parked rail-fade flag (about-secondary gray remains parked).
+
+## Postscript (2026-09-02, later)
+Operator ruled on the preview: bottom fade at 19% is good — holds as landed.
+Rail treatment fully closed (caption muting, filter lift, fade extent).
