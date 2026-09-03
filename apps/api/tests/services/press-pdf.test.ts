@@ -466,8 +466,8 @@ describe("press PDF rendering", () => {
     expect(mockBuildPressImageUrl).toHaveBeenCalledWith(
       expect.objectContaining({ key: "creators/creator_animalfuture/press/member-leanna-v01.jpg" }),
       "member",
-      150,
       188,
+      210,
     );
 
     await renderCreatorOneSheetPdf({
