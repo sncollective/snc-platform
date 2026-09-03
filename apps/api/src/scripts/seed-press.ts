@@ -122,10 +122,10 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     {
       slug: "this-hell",
       title: "This Hell",
-      catalogNumber: "SNCR-002",
+      catalogNumber: null,
       releaseDate: "2026-09-17",
       format: "digital single",
-      genre: "Rock / art rock",
+      genre: "Alternative / Indie / Rock",
       isrc: "QT6HP2698604",
       upc: "701546909511",
       duration: "3:33",
@@ -135,16 +135,25 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
         "Jarod Ford (bass)",
         "Connor Mandli (electric guitar)",
       ],
-      writtenBy: "Warren / Tyrie / Ford",
+      writtenBy: "Warren / Tyrie / Ford / Mandli",
       producedBy: "Kevin Cook & Doug Wooldridge",
       mixedMasteredBy: "Doug Wooldridge @ S/NC Studio",
-      copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford",
+      copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford, Mandli",
       publisherLine: "S/NC Publishing",
       label: "S/NC Records",
       fcc: "clean",
+      // No album art on the single EPK per operator (2026-09-02) — artKey stays
+      // null; hero is the long-exposure ShowAbstract1 (photos[0]).
       artKey: null,
-      lyricPulls: [],
-      photos: [],
+      story:
+        "It’s a wonder we haven’t all gone insane. Or have we? This indie alternative track rides heavy, resonant bass with powerful vocals that journey between angsty grit and aching tenderness. “This Hell” conveys the turmoil of a mind that feels lost and small in an ever expanding universe. Prepare to unlock layers of introspection and lean into the emotional madness of being human. This song will be featured on Animal Future’s debut album, “Survived By”, coming out in 2027.",
+      lyricPulls: [
+        "It’s a wonder we haven’t all gone insane",
+      ],
+      photos: [
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot" },
+      ],
+      preSaveUrl: null,
     },
   ],
 };
@@ -229,14 +238,11 @@ try {
 
   if (creatorId) {
     const withImages = withPressImages(creatorId);
-    const releases = withImages.releases.map((release) =>
-      release.slug === "this-hell"
-        ? { ...release, artKey: `creators/${creatorId}/press/this-hell-cover-v01.jpg` }
-        : release,
-    );
+    // artKey injection REMOVED 2026-09-02: operator dropped album art from
+    // the single EPK — the this-hell row's artKey:null is now authoritative
+    // (the old force-inject was overriding it every seed run).
     const draftResult = await upsertPressConfig(creatorId, {
       ...withImages,
-      releases,
     });
     if (!draftResult.ok) {
       console.error(`Error: ${draftResult.error.message}`);
