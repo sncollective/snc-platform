@@ -156,7 +156,7 @@ const withPressImages = (creatorId: string): PressContent => {
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
     banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_MARCH_SESSION },
-    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" }, // credit pending (April show photographer)
+    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show", credit: "Ariana Cord" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
       // All three per operator round 2/3: heads were being cut — window
@@ -184,7 +184,7 @@ const withPressImages = (creatorId: string): PressContent => {
       { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_MARCH_SESSION },
       { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live" },
       { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_MARCH_SESSION },
-      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live" },
+      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Hayley Herriges" },
     ],
   };
 };
