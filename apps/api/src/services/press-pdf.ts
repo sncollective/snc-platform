@@ -566,9 +566,9 @@ const releaseEpkSheet = async (
     ?? (release.artKey ? { key: release.artKey, alt: `${release.title} artwork`, credit: null } : null);
   const heroSrc = triptych
     ?? (heroImage ? await resolvePrintImageUrl(heroImage, creatorId, heroSpec) : null);
-  const duoImage = release.photos[1] ?? null;
-  const duoSrc = duoImage
-    ? await resolvePrintImageUrl(duoImage, creatorId, duoSpec)
+  const bodyImage = release.photos[3] ?? null;
+  const duoSrc = bodyImage
+    ? await resolvePrintImageUrl(bodyImage, creatorId, duoSpec)
     : null;
   const coverSrc = release.artKey
     ? await resolvePrintImageUrl(
@@ -601,7 +601,7 @@ const releaseEpkSheet = async (
     ...creditRow("Booking", "booking@s-nc.org"),
   ];
   const photoCredits = [...new Set(
-    (triptych ? release.photos.slice(0, 3) : [heroImage]).concat([duoImage])
+    (triptych ? release.photos.slice(0, 3) : [heroImage]).concat([bodyImage])
       .map((image) => image?.credit)
       .filter((credit): credit is string => Boolean(credit)),
   )].join(" · ");
@@ -619,7 +619,7 @@ const releaseEpkSheet = async (
   return {
     bodyHtml: `<article data-pdf-sheet class="epk-sheet">
 <header class="mast"><strong>S/NC RECORDS</strong><span>SINGLE EPK</span></header>
-${heroSrc ? `<div class="hero"><img src="${escapeHtml(heroSrc)}" alt="${escapeHtml(heroAlt)}"><div class="hero-copy"><div><span class="artist">Animal Future</span><h1>${escapeHtml(release.title)}</h1></div><div class="facts"><b>${escapeHtml(release.catalogNumber ?? "Single")}</b>${facts.map((fact) => escapeHtml(fact)).join(" · ")}</div></div></div>` : `<div class="hero hero-empty"><h1>${escapeHtml(release.title)}</h1></div>`}
+${heroSrc ? `<div class="hero"><img src="${escapeHtml(heroSrc)}" alt="${escapeHtml(heroAlt)}"><div class="hero-copy"><div><span class="artist">Animal Future</span><h1>${escapeHtml(release.title)}</h1></div><div class="facts">${release.catalogNumber ? `<b>${escapeHtml(release.catalogNumber)}</b>` : ""}${facts.map((fact) => escapeHtml(fact)).join(" · ")}</div></div></div>` : `<div class="hero hero-empty"><h1>${escapeHtml(release.title)}</h1></div>`}
 <div class="epk-body">
 <div>
 ${pulls.length ? `<div class="pull">&ldquo;${escapeHtml(pulls[0] ?? "")}&rdquo;</div>` : ""}
@@ -627,7 +627,7 @@ ${story ? `<p class="story">${escapeHtml(story)}</p>` : ""}
 </div>
 ${pulls.length > 1 ? `<div class="pulls">${pulls.slice(1).map((pull) => `<div class="pull-line">&ldquo;${escapeHtml(pull)}&rdquo;</div>`).join("")}</div>` : ""}
 <div class="support">
-${duoSrc ? `<img class="duo" src="${escapeHtml(duoSrc)}" alt="${escapeHtml(duoImage?.alt ?? "live photo")}">` : ""}
+${duoSrc ? `<img class="duo" src="${escapeHtml(duoSrc)}" alt="${escapeHtml(bodyImage?.alt ?? "live photo")}">` : ""}
 <div class="col">
 <div class="rows">${creditRows.map(({ label, value, raw }) => `<div class="row"><span>${escapeHtml(label)}</span><b>${raw ? value : escapeHtml(value)}</b></div>`).join("")}</div>
 ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverSrc)}" alt="${escapeHtml(release.title)} cover art"><span>Album artwork</span></div>` : ""}
