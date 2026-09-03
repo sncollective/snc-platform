@@ -234,6 +234,7 @@ const photoFigure = (
   image: PressImage | null | undefined,
   src: string | null,
   fallbackLabel: string,
+  style = "",
 ): string => {
   const media = src
     ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(image?.alt ?? "")}">`
@@ -241,7 +242,7 @@ const photoFigure = (
   const credit = image?.credit
     ? `<figcaption>${escapeHtml(image.credit)}</figcaption>`
     : "";
-  return `<figure class="${className}">${media}${credit}</figure>`;
+  return `<figure class="${className}"${style ? ` style="${style}"` : ""}>${media}${credit}</figure>`;
 };
 
 const humanUrl = (url: string): string => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -273,7 +274,7 @@ const oneSheetCss = (qrSizePx: number): string => `
 .density-compact .title h1{font-size:44px}
 .density-compact .member figure{width:64px}.density-compact .member{grid-template-columns:64px minmax(0,1fr)}
 .density-compact .highlight figure,.density-compact .highlight img{width:64px;height:64px}
-.density-compact .v-member figure{width:60px}.density-compact .v-member{grid-template-columns:60px minmax(0,1fr)}
+.density-compact .v-member figure{width:60px;overflow:hidden}.density-compact .v-member{grid-template-columns:60px minmax(0,1fr)}
 .density-compact .v-highlight figure{width:74px;height:74px}.density-compact .v-highlight{grid-template-columns:74px minmax(0,1fr)}
 
 
@@ -283,20 +284,41 @@ const oneSheetCss = (qrSizePx: number): string => `
 
 `;
 
+const memberDimensionMemo = new Map<string, ImageDimensions>();
+
+const memberWindowHeight = async (key: string, fallback = 75): Promise<number> => {
+  let dims = memberDimensionMemo.get(key);
+  if (!dims) {
+    try {
+      dims = await loadPrintImageDimensions(key);
+      memberDimensionMemo.set(key, dims);
+    } catch {
+      return fallback;
+    }
+  }
+  // Window follows the upload's aspect at 60px width, clamped to a sane portrait range
+  // (60px square floor .. 96px just past 4:6). 4:5 -> 75, 4:6 -> 90.
+  return Math.min(96, Math.max(60, Math.round(60 * dims.height / dims.width)));
+};
+
 const renderMember = async (member: PressContent["members"][number], creatorId: string, vertical: boolean): Promise<string> => {
-  // Print spec matches the rendered box: vertical member boxes are portrait
-  // (48px wide, stretched ~60px tall with role+bio) — a square spec would
-  // force an imgproxy square middleman that CSS-cover then slices, wasting
-  // native resolution. Horizontal boxes stay square.
+  // Aspect-derived WYSIWYG: the vertical window follows the upload's true aspect
+  // (60px wide, height probed from the source); the print spec matches the box.
+  // Horizontal boxes keep their established portrait spec.
+  const windowHeight = vertical && member.photo
+    ? await memberWindowHeight(member.photo.key)
+    : null;
   const target = vertical
-    ? { slot: "member" as const, width: 188, height: 235 }
+    ? { slot: "member" as const, width: 188, height: Math.round(188 * (windowHeight ?? 75) / 60) }
     : { slot: "member" as const, width: 225, height: 266 };
   const src = await resolvePrintImageUrl(
     member.photo,
     creatorId,
     target,
   );
-  const figure = photoFigure("", member.photo, src, `${member.name} portrait`);
+  const figure = windowHeight
+    ? photoFigure("", member.photo, src, `${member.name} portrait`, `height:${windowHeight}px`)
+    : photoFigure("", member.photo, src, `${member.name} portrait`);
   return vertical
     ? `<article class="v-member">${figure}<div><h3>${escapeHtml(member.name)}</h3>${member.role ? `<p class="role">${escapeHtml(member.role)}</p>` : ""}${member.bio ? `<p class="v-member-bio">${escapeHtml(truncateAtWord(member.bio, 60))}</p>` : ""}</div></article>`
     : `<article class="member">${figure}<div><h3>${escapeHtml(member.name)}</h3>${member.role ? `<p class="role">${escapeHtml(member.role)}</p>` : ""}${member.bio ? `<p class="member-bio">${escapeHtml(truncateAtWord(member.bio, 72))}</p>` : ""}</div></article>`;
