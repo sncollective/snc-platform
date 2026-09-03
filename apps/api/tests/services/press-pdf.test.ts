@@ -467,7 +467,7 @@ describe("press PDF rendering", () => {
       expect.objectContaining({ key: "creators/creator_animalfuture/press/member-leanna-v01.jpg" }),
       "member",
       188,
-      210,
+      235,
     );
 
     await renderCreatorOneSheetPdf({

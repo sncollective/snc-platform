@@ -289,7 +289,7 @@ const renderMember = async (member: PressContent["members"][number], creatorId: 
   // force an imgproxy square middleman that CSS-cover then slices, wasting
   // native resolution. Horizontal boxes stay square.
   const target = vertical
-    ? { slot: "member" as const, width: 188, height: 210 }
+    ? { slot: "member" as const, width: 188, height: 235 }
     : { slot: "member" as const, width: 225, height: 266 };
   const src = await resolvePrintImageUrl(
     member.photo,
