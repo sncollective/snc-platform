@@ -151,7 +151,9 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
         "It’s a wonder we haven’t all gone insane",
       ],
       photos: [
-        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot", credit: "Hayley Herriges", crop: { x: 0, y: 0, width: 1, height: 0.78 } },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero2-center-v01.jpg", alt: "Drummer mid-performance behind a sparkle kit in magenta stage light", credit: "Hayley Herriges" },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero2-left-v01.jpg", alt: "Guitarist smeared into crimson and acid-green light trails", credit: "Hayley Herriges" },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero2-right-v01.jpg", alt: "Two performers in peak action under red-pink floodlight", credit: "Hayley Herriges" },
       ],
       preSaveUrl: null,
     },
