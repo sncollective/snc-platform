@@ -1,9 +1,9 @@
 .hero {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 1;
+  aspect-ratio: 2294 / 1163;
   min-height: 250px;
-  max-height: 500px;
+  max-height: 800px;
   isolation: isolate;
   overflow: hidden;
   background: linear-gradient(180deg, var(--color-bg), var(--color-bg-elevated));
@@ -234,7 +234,7 @@
 @page { size: letter portrait; margin: .5in; }
 @media print {
   .downloadPin { display: none; }
-  .hero { width: 7.5in; height: 240px; min-height: 0; }
+  .hero { width: 7.5in; height: auto; min-height: 0; }
   .wordmark { width: 7.5in; bottom: 16px; gap: 24px; }
   .wordmark h1 { font-size: 54pt; line-height: 72px; }
   .heroFacts { color: var(--color-on-media); font-size: 10px; line-height: 12px; }
