@@ -152,7 +152,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       ],
       photos: [
         { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot", credit: "Hayley Herriges" },
-        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-body4-v01.jpg", alt: "LeAnna Warren mid-song with Jarod Ford behind, red-lit", credit: "Hayley Herriges" },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-body5-v01.jpg", alt: "LeAnna Warren mid-performance, red-lit", credit: "Hayley Herriges" },
       ],
       preSaveUrl: "https://distrokid.com/hyperfollow/animalfuture1/this-hell?ref=release",
     },
