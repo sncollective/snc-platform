@@ -144,17 +144,19 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
 };
 
+const PHOTOGRAPHER_MARCH_SESSION = "Daniel Melchior";
+
 const withPressImages = (creatorId: string): PressContent => {
   const key = (suffix: string) => `creators/${creatorId}/press/${suffix}`;
   // Square member crops: portrait sources render top-anchored by default;
   // explicit crop rects steer the 1:1 window (normalized, full width).
-  const memberPhoto = (suffix: string, alt: string, crop?: { x: number; y: number; width: number; height: number }) =>
-    ({ key: key(suffix), alt, ...(crop ? { crop } : {}) });
+  const memberPhoto = (suffix: string, alt: string, crop?: { x: number; y: number; width: number; height: number }, credit?: string) =>
+    ({ key: key(suffix), alt, ...(crop ? { crop } : {}), ...(credit ? { credit } : {}) });
   const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
-    banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror" },
-    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" },
+    banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_MARCH_SESSION },
+    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show" }, // credit pending (April show photographer)
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
       // All three per operator round 2/3: heads were being cut — window
@@ -165,7 +167,7 @@ const withPressImages = (creatorId: string): PressContent => {
         : member.name === "Charles Tyrie"
           ? memberPhoto("member-charles-v01.jpg", "Charles Tyrie portrait", { x: 0, y: 0.05, width: 1, height: 0.741 })
           : member.name === "Jarod Ford"
-            ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait")
+            ? memberPhoto("member-jarod-v01.jpg", "Jarod Ford portrait", undefined)
             : memberPhoto("member-connor-v01.jpg", "Connor Mandli portrait", { x: 0, y: 0, width: 1, height: 0.741 }),
     })),
     highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
@@ -179,9 +181,9 @@ const withPressImages = (creatorId: string): PressContent => {
             : highlight.coverArt,
     })),
     gallery: [
-      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural" },
+      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_MARCH_SESSION },
       { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live" },
-      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli" },
+      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_MARCH_SESSION },
       { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live" },
     ],
   };
