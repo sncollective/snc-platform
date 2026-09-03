@@ -16,7 +16,7 @@ if (process.env.ALLOW_DEMO_SEED !== "true") {
 const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   enabled: true,
   template: "A",
-  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” · 2027",
+  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” in 2027",
   members: [
     { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Unapologetic lyrics, a playful command of the stage." },
     { name: "Charles Tyrie", role: "drums", bio: "The energy of punk bringing a technical backbone." },
