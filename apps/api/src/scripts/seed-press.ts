@@ -182,7 +182,7 @@ const withPressImages = (creatorId: string): PressContent => {
       // moves UP. Connor top-anchored y=0; LeAnna/Charles y=0.05 (small
       // forehead room). Jarod: default (fine).
       photo: member.name === "LeAnna Warren"
-        ? memberPhoto("member-leanna-v02.jpg", "LeAnna Warren portrait")
+        ? memberPhoto("member-leanna-v03.jpg", "LeAnna Warren portrait")
         : member.name === "Charles Tyrie"
           ? memberPhoto("member-charles-v02.jpg", "Charles Tyrie portrait")
           : member.name === "Jarod Ford"
