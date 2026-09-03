@@ -67,6 +67,18 @@ describe("press shared sections", () => {
     expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
   });
 
+  it("renders the photography credits line in the press footer", () => {
+    render(
+      <PressFooter
+        email="press@s-nc.org"
+        photographyCredits="Daniel Melchior"
+        fullPressPdfUrl="/press.pdf"
+        oneSheetUrl="/one-sheet.pdf"
+      />,
+    );
+    expect(screen.getByText("Photography: Daniel Melchior")).toBeInTheDocument();
+  });
+
   it("renders attributed press quotes with an optional source link", () => {
     const { container } = render(
       <QuotesSection quotes={[

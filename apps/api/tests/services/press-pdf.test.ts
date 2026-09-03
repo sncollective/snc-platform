@@ -481,6 +481,29 @@ describe("press PDF rendering", () => {
     expect(call.replaceBodyHtml).not.toContain("pull-quote");
   });
 
+  it("renders the photography credits as small print in the sheet footer", async () => {
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: { ...contentFixture, photographyCredits: "Daniel Melchior" },
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "vertical",
+    });
+    let call = mockRenderBrowserPdf.mock.calls[0]?.[0] as { replaceBodyHtml: string; style: string };
+    expect(call.replaceBodyHtml).toContain('<p class="photo-credits">Photography: Daniel Melchior</p>');
+    expect(call.style).toContain(".photo-credits{position:absolute");
+
+    await renderCreatorOneSheetPdf({
+      creator,
+      content: contentFixture,
+      pressPageUrl: "https://s-nc.org/creators/animalfuture/press",
+      exportIdentity: recordsIdentity,
+      orientation: "horizontal",
+    });
+    call = mockRenderBrowserPdf.mock.calls.at(-1)?.[0] as { replaceBodyHtml: string };
+    expect(call.replaceBodyHtml).not.toContain("photo-credits");
+  });
+
   it("renders a long-field release as escaped retained-head Letter markup", async () => {
     const longValue = `Long field ${"wrap ".repeat(50)}<&>`;
     await renderReleaseOneSheetPdf({

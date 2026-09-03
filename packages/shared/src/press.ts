@@ -238,6 +238,7 @@ export const PressContentSchema = z.object({
   pressContactEmail: z.string().email().nullable().optional(),
   bookingContactEmail: z.string().email().nullable().optional(),
   pressQuotes: z.array(PressQuoteSchema).default([]),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).default([]),
   gallery: z.array(PressImageSchema).default([]),
@@ -271,6 +272,7 @@ export const DraftPressContentSchema = PressContentSchema.extend({
   pressContactEmail: z.string().nullable().optional(),
   bookingContactEmail: z.string().nullable().optional(),
   pressQuotes: z.array(DraftPressQuoteSchema).default([]),
+  photographyCredits: z.string().nullable().optional(),
 });
 export type DraftPressContent = z.infer<typeof DraftPressContentSchema>;
 
@@ -292,6 +294,7 @@ export const PressConfigPatchSchema = z.object({
   pressContactEmail: z.string().email().nullable().optional(),
   bookingContactEmail: z.string().email().nullable().optional(),
   pressQuotes: z.array(PressQuoteSchema).optional(),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -320,6 +323,7 @@ export const DraftPressConfigPatchSchema = z.object({
   pressContactEmail: z.string().nullable().optional(),
   bookingContactEmail: z.string().nullable().optional(),
   pressQuotes: z.array(DraftPressQuoteSchema).optional(),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -359,6 +363,7 @@ export const DEFAULT_PRESS_CONTENT: PressContent = {
   pressContactEmail: null,
   bookingContactEmail: null,
   pressQuotes: [],
+  photographyCredits: null,
   location: null,
   photos: [],
   gallery: [],

@@ -297,3 +297,6 @@
 @media (max-width: 760px) {
   .quote p { font-size: 1.05rem; }
 }
+
+.footerMeta { display: flex; flex-direction: column; gap: var(--space-2xs, 2px); }
+.photoCredits { color: var(--color-text-muted); font-size: var(--font-size-sm); }
