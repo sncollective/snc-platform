@@ -56,3 +56,19 @@ first render of This Hell for campaign preview with measurements.
 - Hero deviation flagged for operator ruling: manifest said lead with the 3:1 narrow;
   geometric necessity (a 2.2:1 tall hero cannot come from a 3:1 source) forced the tall
   3:2 — same shoot/credit/concept.
+
+## Postscript 2: dark-hero re-theme + 3in hero (operator round)
+- Campaign swapped the hero to a dark abstract; the fixed dark ink (tuned for the
+  old bright footroom) vanished on it. Re-themed with tokens: artist/facts
+  var(--color-on-media), title/catalog var(--color-accent) — correct on both
+  photographic grounds and both themes; RETIRED the two allowlisted fixed-color
+  constants (allowlist back to the QR pair). Facts row lifted 14→20px off the
+  hero edge (was faint/clipped).
+- 3in hero per operator (240→288px CSS), top-anchored crop matching the content
+  crop rect (y=0/h=.78, top-energy preserved). Measured 3.01in.
+- Verified: contrast 5.9–19.8:1 across hero text; facts clear with 0.25in
+  breathing; single page; 0 luminosity masks.
+- Open (content-lane): the campaign's content simplification dropped the duo
+  photo, the cover artKey, and 3 of 4 lyric pulls — a ~1.8in mid-page void
+  remains and the brief's photo affordances are unexercised. Asked whether the
+  simplification intended that; restore vs re-scale is their call.

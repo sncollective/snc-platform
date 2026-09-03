@@ -64,8 +64,6 @@ const CREATOR_BRAND_FILE = "routes/creators/$creatorId/manage/-press-editor.tsx"
 const FIXED_EXPORT_COLOR_ALLOWLIST = new Map([
   ["QR_DARK", "#1A1A2E"],
   ["QR_LIGHT", "#FFFFFF"],
-  ["RELEASE_TITLE_RED", "#B5302A"],
-  ["RELEASE_HERO_INK", "#171929"],
 ]);
 
 /*
@@ -376,7 +374,6 @@ describe("authored color boundary", () => {
     );
     expect(source).toContain("background:${QR_LIGHT}");
     expect(source).toContain("color: { dark: QR_DARK, light: QR_LIGHT }");
-    expect(source).toContain("color:${RELEASE_TITLE_RED}");
     expect(violations).toEqual([]);
   });
 

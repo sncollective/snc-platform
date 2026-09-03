@@ -51,11 +51,6 @@ const MAX_QR_SIZE_PX = 128;
 // Keep this pair fixed and mirrored by the export-CSS boundary test's exact named allowlist.
 const QR_DARK = "#1A1A2E";
 const QR_LIGHT = "#FFFFFF";
-// The release-EPK title sits on the hero photograph's own off-white footroom — a fixed
-// photographic ground, not themeable UI. Payload-critical legibility color, same class
-// as the QR pair; mirrored by the export-CSS boundary test's named allowlist.
-const RELEASE_TITLE_RED = "#B5302A";
-const RELEASE_HERO_INK = "#171929";
 
 /** Resolve a caller-supplied producing unit and eligible creator decoration for export. */
 export const resolvePdfExportIdentity = (
@@ -588,12 +583,12 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .mast{display:flex;justify-content:space-between;padding:10px 24px;border-bottom:2px solid var(--export-accent-decoration);color:var(--color-text-muted);font:700 8px/1.3 var(--font-display);letter-spacing:.16em;text-transform:uppercase}
 .mast strong{color:var(--color-accent);font-size:9px;letter-spacing:.18em}
 .hero{position:relative}
-.hero img{width:100%;height:240px;object-fit:cover;object-position:center 100%;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
-.hero-copy{position:absolute;left:24px;right:24px;bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
-.hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:${RELEASE_HERO_INK};margin-bottom:3px}
-.hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:${RELEASE_TITLE_RED}}
-.hero-copy .facts{text-align:right;color:${RELEASE_HERO_INK};font-size:9.5px;line-height:15px}
-.hero-copy .facts b{display:block;color:${RELEASE_TITLE_RED}}
+.hero img{width:100%;height:288px;object-fit:cover;object-position:center top;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
+.hero-copy{position:absolute;left:24px;right:24px;bottom:20px;display:flex;justify-content:space-between;align-items:flex-end}
+.hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:var(--color-on-media);margin-bottom:3px}
+.hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:var(--color-accent)}
+.hero-copy .facts{text-align:right;color:var(--color-on-media);font-size:9.5px;line-height:15px}
+.hero-copy .facts b{display:block;color:var(--color-accent)}
 .hero-empty{padding:26px 24px}
 .hero-empty h1{margin:0;font:400 54px/48px var(--font-display);color:var(--color-accent)}
 .epk-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:14px 24px 0}
