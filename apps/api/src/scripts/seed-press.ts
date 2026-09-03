@@ -62,7 +62,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
-  photographyCredits: "Daniel Melchior · Ariana Cord · Hayley Herriges",
+  photographyCredits: "Hayley Herriges · Ariana Cord",
   // pressQuotes: WITHDRAWN 2026-09-02 — the FoCoMA "quote" derives from the
   // band's own bio (Spotify carries the original close; FoCoMA runs an edited
   // variant). Band-authored copy does not attribute as outlet praise. Slot
@@ -145,7 +145,11 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   ],
 };
 
-const PHOTOGRAPHER_MARCH_SESSION = "Daniel Melchior";
+// Per operator 2026-09-02 (corrected): Hayley Herriges shot both non-Ariana
+// shoots (mural/mirror session + solo LeAnna live); Ariana Cord shot exactly
+// {LeAnnaVert1 rail, LeAnna1 member, LeAnnaJarodShow1 duo}. Daniel Melchior is
+// on NONE of this set — the Spotify-profile credit does not apply here.
+const PHOTOGRAPHER_PRIMARY = "Hayley Herriges";
 
 const withPressImages = (creatorId: string): PressContent => {
   const key = (suffix: string) => `creators/${creatorId}/press/${suffix}`;
@@ -156,7 +160,7 @@ const withPressImages = (creatorId: string): PressContent => {
   const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
   return {
     ...ANIMAL_FUTURE_PRESS_CONTENT,
-    banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_MARCH_SESSION },
+    banner: { key: key("banner-v01.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
     aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show", credit: "Ariana Cord" },
     members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
       ...member,
@@ -182,10 +186,10 @@ const withPressImages = (creatorId: string): PressContent => {
             : highlight.coverArt,
     })),
     gallery: [
-      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_MARCH_SESSION },
+      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_PRIMARY },
       { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live", credit: "Hayley Herriges" },
-      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_MARCH_SESSION },
-      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Hayley Herriges" },
+      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_PRIMARY },
+      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Ariana Cord" },
     ],
   };
 };
