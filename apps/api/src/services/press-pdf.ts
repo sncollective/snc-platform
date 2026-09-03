@@ -705,6 +705,7 @@ export const renderReleaseEpkPdf = async (input: {
     documentAttributes: exportDocumentAttributes(input.exportIdentity),
     style: `${buildPdfExportStyle(input.exportIdentity)}\n${sheet.style}`,
     singlePage: true,
+    refineCreditWraps: true,
     pageSize: EPK_PAGE,
   });
 };

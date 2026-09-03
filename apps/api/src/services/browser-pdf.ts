@@ -27,6 +27,8 @@ export interface BrowserPdfOptions {
   readonly documentAttributes?: Readonly<Record<`data-${string}`, string>>;
   readonly style?: string;
   readonly singlePage?: boolean;
+  /** Suppress a multi-part credit row's trailing separator dot when the row wraps at it. */
+  readonly refineCreditWraps?: boolean;
   /** Page geometry for the emitted PDF; defaults to US Letter. */
   readonly pageSize?: {
     readonly widthIn: number;
@@ -299,6 +301,28 @@ const renderOnPage = async (
     }
     await waitForAssets(page, deadline);
     await withinDeadline(page.emulateMedia({ media: "print" }), deadline);
+    if (options.refineCreditWraps) {
+      await withinDeadline(page.evaluate(() => {
+        // Inline-only (no named helpers): page.evaluate serializes this callback for the
+        // browser; bundler keepNames helpers don't exist there. Drop the trailing "·" from
+        // a separator text node when the following no-wrap span starts a new line.
+        for (const row of document.querySelectorAll<HTMLElement>("[data-pdf-sheet] .row b")) {
+          const spans = [...row.querySelectorAll("span")];
+          for (let index = 1; index < spans.length; index++) {
+            const current = spans[index];
+            const previous = spans[index - 1];
+            if (!current || !previous) continue;
+            const currentTop = current.getBoundingClientRect().top;
+            const previousTop = previous.getBoundingClientRect().top;
+            if (currentTop <= previousTop + 2) continue;
+            const separator = current.previousSibling;
+            if (separator && separator.nodeType === Node.TEXT_NODE && separator.textContent) {
+              separator.textContent = separator.textContent.replace(/\s*·\s*$/, " ");
+            }
+          }
+        }
+      }), deadline, () => { void page?.close().catch(() => undefined); });
+    }
     if (options.singlePage) await assertSinglePageFit(page, deadline);
 
     const pdf = await withinDeadline(page.pdf({
