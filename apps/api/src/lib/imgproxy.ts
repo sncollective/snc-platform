@@ -131,11 +131,14 @@ export function buildImgproxyUrl(
  * Persisted normalized crops are applied before the slot resize. Responsive
  * candidates share the crop and vary only their output dimensions.
  */
+export type PressGravity = "ce" | "no" | "so";
+
 export function buildPressImageUrl(
   image: PressImage,
   slot: keyof PressImageSlot,
   width: number,
   height?: number,
+  gravity?: PressGravity,
 ): { src: string; srcSet: string; sizes: string } {
   if (!Number.isInteger(width) || width <= 0) {
     throw new RangeError("Press image width must be a positive integer");
@@ -165,7 +168,7 @@ export function buildPressImageUrl(
       );
     }
 
-    parts.push(`rs:fill:${candidateWidth}:${outputHeight}:0`, "g:ce");
+    parts.push(`rs:fill:${candidateWidth}:${outputHeight}:0`, `g:${gravity ?? "ce"}`);
     const path = `/${parts.join("/")}/plain/${sourceUrl}`;
     const signature = cfg.signingEnabled
       ? signPath(cfg.key, cfg.salt, path)

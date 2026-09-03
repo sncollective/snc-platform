@@ -22,6 +22,7 @@ import { buildPressImageUrl } from "../lib/imgproxy.js";
 import { rootLogger } from "../logging/logger.js";
 import { storage } from "../storage/index.js";
 import { BrowserPdfSinglePageFitError, renderBrowserPdf } from "./browser-pdf.js";
+import type { PressGravity } from "../lib/imgproxy.js";
 
 export const EXPORT_VOICES = ["parent", "studio", "tv", "records"] as const;
 export type ExportVoice = (typeof EXPORT_VOICES)[number];
@@ -122,6 +123,8 @@ type PrintImageSpec = {
   readonly slot: "banner" | "about" | "member" | "gallery" | "cover";
   readonly width: number;
   readonly height: number;
+  /** Fill gravity for the aspect window; default center. "no" = top-anchored. */
+  readonly gravity?: PressGravity;
 };
 
 type ImageDimensions = {
@@ -215,7 +218,7 @@ const resolvePrintImageUrl = async (
         required: `${target.width}x${target.height}`,
       }, "Press PDF image is below 300ppi after crop at its printed size");
     }
-    return buildPressImageUrl(image, target.slot, target.width, target.height).src;
+    return buildPressImageUrl(image, target.slot, target.width, target.height, ...(target.gravity ? [target.gravity] : [])).src;
   } catch (error) {
     rootLogger.warn(
       { error: error instanceof Error ? error.message : String(error), key: image.key },
@@ -556,7 +559,7 @@ const releaseEpkSheet = async (
   readonly style: string;
 }> => {
   const heroSpec = { slot: "banner" as const, width: 1650, height: 1100 };
-  const duoSpec = { slot: "gallery" as const, width: 413, height: 656 };
+  const duoSpec = { slot: "gallery" as const, width: 413, height: 656, gravity: "no" as const };
   const coverSpec = { slot: "cover" as const, width: 200, height: 200 };
 
   const triptych = release.photos.length >= 3
