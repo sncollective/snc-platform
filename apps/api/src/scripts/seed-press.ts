@@ -62,6 +62,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
     streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
+  photographyCredits: "Daniel Melchior · Ariana Cord · Hayley Herriges",
   // pressQuotes: WITHDRAWN 2026-09-02 — the FoCoMA "quote" derives from the
   // band's own bio (Spotify carries the original close; FoCoMA runs an edited
   // variant). Band-authored copy does not attribute as outlet praise. Slot
