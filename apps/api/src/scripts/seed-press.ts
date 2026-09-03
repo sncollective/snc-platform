@@ -130,7 +130,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       upc: "701546909511",
       duration: "3:33",
       personnel: [
-        "LeAnna Warren (vocals, electric guitar)",
+        "LeAnna Warren (vocals & guitar)",
         "Charles Tyrie (drums)",
         "Jarod Ford (bass)",
         "Connor Mandli (electric guitar)",
