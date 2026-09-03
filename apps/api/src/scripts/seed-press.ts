@@ -18,9 +18,9 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   template: "A",
   tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” in 2027",
   members: [
-    { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Unapologetic lyrics, a playful command of the stage." },
-    { name: "Charles Tyrie", role: "drums", bio: "The energy of punk bringing a technical backbone." },
-    { name: "Jarod Ford", role: "bass", bio: "The low end beneath the fury." },
+    { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Playful command of unapologetic lyrics and soaring melodies." },
+    { name: "Charles Tyrie", role: "drums", bio: "Bringing a technical backbone energized by punk chops." },
+    { name: "Jarod Ford", role: "bass", bio: "Muscling low-end beneath the fury." },
     { name: "Connor Mandli", role: "electric guitar", bio: "Taming the dissonance via creative expressions and tones." },
   ],
   gallery: [],
