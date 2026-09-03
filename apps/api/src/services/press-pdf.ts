@@ -566,7 +566,9 @@ const releaseEpkSheet = async (
     ?? (release.artKey ? { key: release.artKey, alt: `${release.title} artwork`, credit: null } : null);
   const heroSrc = triptych
     ?? (heroImage ? await resolvePrintImageUrl(heroImage, creatorId, heroSpec) : null);
-  const bodyImage = release.photos[3] ?? null;
+  // Mode-dependent body slot: solo hero (photos.length < 3) -> photos[1];
+  // triptych -> photos[3] (outside the panel slice). Single-photo configs render bodyless.
+  const bodyImage = release.photos[release.photos.length >= 3 ? 3 : 1] ?? null;
   const duoSrc = bodyImage
     ? await resolvePrintImageUrl(bodyImage, creatorId, duoSpec)
     : null;
