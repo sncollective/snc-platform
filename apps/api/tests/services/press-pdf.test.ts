@@ -437,7 +437,8 @@ describe("press PDF rendering", () => {
     expect(call.replaceBodyHtml).toContain(
       '<a class="url" href="https://linktr.ee/animalfutureofficial">linktr.ee/animalfutureofficial</a>',
     );
-    expect(call.replaceBodyHtml).toContain("<span>Booking contact</span><strong>booking@s-nc.org</strong>");
+    expect(call.replaceBodyHtml).toContain('<span>Booking</span><strong>booking@s-nc.org</strong>');
+    expect(call.replaceBodyHtml).toContain('<span>Press</span><strong>press@s-nc.org</strong>');
     expect(mockRenderBrowserPdf).toHaveBeenCalledTimes(1);
   });
 
