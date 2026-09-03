@@ -144,7 +144,7 @@ describe("press config service", () => {
           url: "https://open.spotify.com/track/example",
         },
         {
-          eyebrow: "New release · SNCR-001",
+          eyebrow: "New release",
           title: "The Illusionist",
           coverArt: {
             key: "creators/creator-1/press/art.jpg",
