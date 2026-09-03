@@ -1,8 +1,6 @@
 import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
 
-import { spawn } from "node:child_process";
-
 import { rootLogger } from "../logging/logger.js";
 
 const LETTER_WIDTH_IN = 8.5;
@@ -66,6 +64,53 @@ export class BrowserPdfSinglePageFitError extends BrowserPdfPreflightError {
     this.name = "BrowserPdfSinglePageFitError";
   }
 }
+
+const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
+  const issues = await withinDeadline(page.evaluate(() => {
+    const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
+    if (!sheet) return ["single-page sheet root is missing"];
+
+    const epsilon = 1;
+    const bounds = sheet.getBoundingClientRect();
+    const problems: string[] = [];
+    if (sheet.scrollWidth > sheet.clientWidth + epsilon) problems.push("horizontal content overflow");
+    if (sheet.scrollHeight > sheet.clientHeight + epsilon) problems.push("vertical content overflow");
+
+    const outside = [...sheet.querySelectorAll<HTMLElement>("*")].find((element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = element.getBoundingClientRect();
+      return rect.left < bounds.left - epsilon
+        || rect.top < bounds.top - epsilon
+        || rect.right > bounds.right + epsilon
+        || rect.bottom > bounds.bottom + epsilon;
+    });
+    if (outside) {
+      const label = outside.className || outside.tagName.toLowerCase();
+      problems.push(`element outside Letter sheet: ${String(label)}`);
+    }
+
+    // In-flow content painting into the bottom padding does not grow scrollHeight,
+    // so the overflow checks above miss it; flag it explicitly. Absolutely
+    // positioned chrome (e.g. anchored sheet footers) is exempt by design.
+    const sheetStyle = getComputedStyle(sheet);
+    const paddingFloor = bounds.bottom - (parseFloat(sheetStyle.paddingBottom) || 0);
+    const deepestInFlow = [...sheet.querySelectorAll<HTMLElement>("*")].reduce((floor, element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return floor;
+      if (style.position === "absolute" || style.position === "fixed") return floor;
+      return Math.max(floor, element.getBoundingClientRect().bottom);
+    }, bounds.top);
+    if (deepestInFlow > paddingFloor + epsilon) {
+      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px`);
+    }
+    return problems;
+  }), deadline, () => { void page.close().catch(() => undefined); });
+
+  if (issues.length > 0) {
+    throw new BrowserPdfSinglePageFitError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
+  }
+};
 
 const remainingMs = (deadline: number): number => Math.max(0, deadline - Date.now());
 
@@ -189,88 +234,6 @@ const waitForAssets = async (page: Page, deadline: number): Promise<void> => {
   }
 };
 
-const flattenSoftMasks = (pdf: Buffer): Promise<Buffer> => new Promise((resolve) => {
-  const proc = spawn(
-    "gs",
-    [
-      "-q", "-dNOPAUSE", "-dBATCH", "-sDEVICE=pdfwrite",
-      "-dCompatibilityLevel=1.6", "-dAutoRotatePages=/None",
-      "-dPDFSETTINGS=/prepress", "-dColorImageResolution=300",
-      "-sOutputFile=-", "-",
-    ],
-    { stdio: ["pipe", "pipe", "pipe"] },
-  );
-  const chunks: Buffer[] = [];
-  // Drain stderr concurrently: gs emits ICC-profile warnings, and an undrained
-  // stderr pipe fills its buffer and deadlocks the process pair.
-  proc.stderr.on("data", () => undefined);
-  proc.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
-  proc.on("error", (error) => {
-    rootLogger.warn({ error: error.message }, "Soft-mask flatten pass unavailable; serving the Chromium-native PDF");
-    resolve(pdf);
-  });
-  proc.on("close", (code) => {
-    const flattened = Buffer.concat(chunks);
-    if (code !== 0 || flattened.byteLength === 0) {
-      rootLogger.warn(
-        { code, bytesIn: pdf.byteLength },
-        "Soft-mask flatten pass failed; serving the Chromium-native PDF (Poppler-class viewers unaffected; PDF.js-class viewers may show overlay artifacts)",
-      );
-      return resolve(pdf);
-    }
-    resolve(flattened);
-  });
-  proc.stdin.on("error", () => undefined);
-  proc.stdin.end(pdf);
-});
-
-const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
-  const issues = await withinDeadline(page.evaluate(() => {
-    const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
-    if (!sheet) return ["single-page sheet root is missing"];
-
-    const epsilon = 1;
-    const bounds = sheet.getBoundingClientRect();
-    const problems: string[] = [];
-    if (sheet.scrollWidth > sheet.clientWidth + epsilon) problems.push("horizontal content overflow");
-    if (sheet.scrollHeight > sheet.clientHeight + epsilon) problems.push("vertical content overflow");
-
-    const outside = [...sheet.querySelectorAll<HTMLElement>("*")].find((element) => {
-      const style = getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden") return false;
-      const rect = element.getBoundingClientRect();
-      return rect.left < bounds.left - epsilon
-        || rect.top < bounds.top - epsilon
-        || rect.right > bounds.right + epsilon
-        || rect.bottom > bounds.bottom + epsilon;
-    });
-    if (outside) {
-      const label = outside.className || outside.tagName.toLowerCase();
-      problems.push(`element outside Letter sheet: ${String(label)}`);
-    }
-
-    // In-flow content painting into the bottom padding does not grow scrollHeight,
-    // so the overflow checks above miss it; flag it explicitly. Absolutely
-    // positioned chrome (e.g. anchored sheet footers) is exempt by design.
-    const sheetStyle = getComputedStyle(sheet);
-    const paddingFloor = bounds.bottom - (parseFloat(sheetStyle.paddingBottom) || 0);
-    const deepestInFlow = [...sheet.querySelectorAll<HTMLElement>("*")].reduce((floor, element) => {
-      const style = getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden") return floor;
-      if (style.position === "absolute" || style.position === "fixed") return floor;
-      return Math.max(floor, element.getBoundingClientRect().bottom);
-    }, bounds.top);
-    if (deepestInFlow > paddingFloor + epsilon) {
-      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px`);
-    }
-    return problems;
-  }), deadline, () => { void page.close().catch(() => undefined); });
-
-  if (issues.length > 0) {
-    throw new BrowserPdfSinglePageFitError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
-  }
-};
-
 const renderOnPage = async (
   browser: Browser,
   options: BrowserPdfOptions,
@@ -333,7 +296,7 @@ const renderOnPage = async (
         ? { margin: { top: "0", right: "0", bottom: "0", left: "0" } }
         : {}),
     }), deadline, () => { void page?.close().catch(() => undefined); });
-    return await flattenSoftMasks(Buffer.from(pdf));
+    return Buffer.from(pdf);
   } finally {
     if (page && !page.isClosed()) await page.close().catch(() => undefined);
   }

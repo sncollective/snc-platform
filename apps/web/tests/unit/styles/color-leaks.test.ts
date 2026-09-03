@@ -65,6 +65,7 @@ const FIXED_EXPORT_COLOR_ALLOWLIST = new Map([
   ["QR_DARK", "#1A1A2E"],
   ["QR_LIGHT", "#FFFFFF"],
   ["RELEASE_TITLE_RED", "#B5302A"],
+  ["RELEASE_HERO_INK", "#171929"],
 ]);
 
 /*

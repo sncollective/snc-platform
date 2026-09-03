@@ -11,26 +11,38 @@ created: 2026-09-02
 updated: 2026-09-02
 ---
 
-# Flatten luminosity soft-masks out of press PDFs (PDF.js viewer-proofing)
+# Viewer-proof press PDFs: eliminate luminosity soft-masks (PDF.js pink wash)
 
-Campaign relay, operator-caught in VS Code's PDF.js viewer: Chromium encodes
-alpha-gradients-over-images (rail/hero fades, photo text-shadows) as
-/Luminosity soft-masks. Poppler-class viewers composite correctly (both
-lanes' verification renderers — why nobody saw it), but PDF.js (VS Code,
-Firefox built-in, webmail previews) shows a pink wash. Real-recipient
-exposure on the press kit.
+Campaign relay, operator-caught in VS Code's PDF.js viewer: alpha-gradients
+and text-shadows over images make Chromium emit /SMask /S /Luminosity
+soft-masks; Poppler-class viewers composite them (both lanes' verification
+renderers — why nobody saw it) but PDF.js (VS Code, Firefox built-in,
+webmail previews) renders a pink wash. Real-recipient exposure.
 
-## Implementation notes
-- `flattenSoftMasks` in browser-pdf.ts: post-render gs re-distill
-  (`pdfwrite`, prepress, 300dpi) at the single choke point — every press
-  PDF. Verified: 12 masks across the four artifacts → 0; pixel parity
-  0.48/255; text stays vector; sizes land smaller (efficient re-encode).
-- Fail-open with warn (gs missing/failed → serve Chromium-native; Poppler
-  unaffected).
-- Two self-inflicted bugs en route, both instructive: (1) `Bun.spawn` in a
-  node/tsx-runtime process — the pm2 API runs under NODE, bun-only APIs
-  500 at runtime while passing my bun-run direct test; rewrote with
-  node:child_process. (2) Undrained gs stderr (ICC warnings) deadlocks the
-  pipe pair — drain concurrently. Lesson recorded: test spawn plumbing
-  under the ACTUAL runtime, not just the interactive one.
-- Suites: full unit green, integration green (renders flow through gs).
+## The investigation (probe-driven, in the story for the record)
+- Construct matrix via minimal Playwright probes: plain/filtered images →
+  raster-alpha SMasks (safe everywhere); gradient overlays, text-shadows,
+  box-shadow insets, even SVG-gradient images → /S /Luminosity (the
+  PDF.js-unsafe class). Constant-alpha fills → ExtGState, no soft mask.
+- gs post-flatten dead ends, both verified: pdfwrite @1.6 PRESERVES the
+  masks (my earlier "0 masks" was compression hiding them from byte-greps
+  — PDF.js parses object streams regardless); @1.3 truly flattens but
+  rasterizes the text layer (zero fonts, zero extractable text).
+  An undrained gs stderr also deadlocks the pipe pair; and Bun.spawn 500s
+  in the node/tsx-runtime API. gs pass reverted entirely.
+- The fix is CSS-level: only constant-alpha solids composite safely.
+
+## The fix
+- Rail fade → clean edge + solid caption chip (var(--color-overlay-strong),
+  which is itself a constant rgba(0,0,0,.7) token — the safe class).
+- Horizontal hero gradient veil → solid bed plate behind the hero copy.
+- All text-shadows over images removed; EPK hero ink fixed dark
+  (RELEASE_HERO_INK #171929, allowlisted beside the title red — fixed
+  photographic ground, same payload-critical class).
+- Verified: both sheet artifacts 0 luminosity masks; vision parity pass —
+  solid beds read as intentional editorial treatment, no material design
+  regression (slightly flatter title, cleaner edges).
+- REMAINING (parked): the one-pager prints the live WEB page — its
+  gradient/shadow constructs live in web component CSS and need the same
+  treatment WITH an operator taste pass (live-page design change); 7 masks
+  at last count.
