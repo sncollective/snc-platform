@@ -238,6 +238,17 @@ try {
   }
 
   if (creatorId) {
+    // Mirror the creator's socialLinks (content data; the press templates
+    // derive the IG handle from the URL). Idempotent: no-op when already set.
+    await db
+      .update(creatorProfiles)
+      .set({
+        socialLinks: [
+          { url: "https://www.instagram.com/animalfuturemusic/", platform: "instagram" },
+        ],
+      })
+      .where(eq(creatorProfiles.id, creatorId));
+
     const withImages = withPressImages(creatorId);
     // artKey injection REMOVED 2026-09-02: operator dropped album art from
     // the single EPK — the this-hell row's artKey:null is now authoritative
