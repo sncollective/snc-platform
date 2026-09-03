@@ -74,7 +74,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   photos: [],
   highlights: [
     {
-      eyebrow: "Out now · SNCR-001",
+      eyebrow: "Out now",
       title: "The Illusionist",
       description:
         "First single from the debut LP Survived By — released Aug 6, 2026.",
@@ -86,7 +86,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
     },
     {
-      eyebrow: "Next single · SNCR-002",
+      eyebrow: "Next single",
       title: "This Hell",
       description: "Out Sep 17, 2026 — second single from Survived By.",
     },
