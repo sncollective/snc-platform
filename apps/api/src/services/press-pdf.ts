@@ -643,7 +643,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .mast strong{color:var(--color-accent);font-size:9px;letter-spacing:.18em}
 .hero{position:relative}
 .hero img{width:100%;height:288px;object-fit:cover;object-position:center top;display:block;filter:saturate(.72) contrast(1.04) brightness(.92)}
-.hero-copy{position:absolute;left:24px;right:24px;bottom:20px;display:flex;justify-content:space-between;align-items:flex-end}
+.hero-copy{position:absolute;left:24px;right:24px;bottom:20px;display:flex;justify-content:space-between;align-items:flex-end}.hero-copy>div:first-child{flex:1;text-align:center;margin-right:12px}
 .hero-copy .artist{display:block;font:700 11px var(--font-display);letter-spacing:.3em;text-transform:uppercase;color:var(--color-on-media);margin-bottom:3px}
 .hero-copy h1{margin:0;font:400 54px/48px var(--font-display);letter-spacing:-.02em;color:var(--color-accent)}
 .hero-copy .facts{text-align:right;color:var(--color-on-media);font-size:9.5px;line-height:15px}
