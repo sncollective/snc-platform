@@ -592,7 +592,9 @@ const releaseEpkSheet = async (
     value ? [{ label, value, raw }] : [];
   const creditRows = [
     ...creditRow("Performers", performersHtml, true),
-    ...creditRow("Written by", release.writtenBy),
+    ...(release.writtenBy
+      ? creditRow("Written by", release.writtenBy.split(/\s*·\s*/).map((writer) => `<span>${escapeHtml(writer)}</span>`).join(" · "), true)
+      : []),
     ...creditRow("Produced by", release.producedBy),
     ...creditRow("Recorded at", recordedAt),
     ...creditRow("Mixed + mastered", release.mixedMasteredBy),
@@ -660,7 +662,7 @@ ${coverSrc ? `<div class="cover-row"><img class="cover" src="${escapeHtml(coverS
 .duo{width:150px;object-fit:cover;object-position:center 30%;border:1px solid var(--color-border);display:block}
 .col{flex:1;display:flex;flex-direction:column;justify-content:space-between}
 .row{display:flex;justify-content:space-between;border-bottom:.6px solid var(--color-border);padding:5px 0;font-size:9px;color:var(--color-text-muted)}.rows .row:last-child{border-bottom:none}
-.row b{color:var(--color-text);font-weight:600;text-align:right}.row b .perf{white-space:nowrap}
+.row b{color:var(--color-text);font-weight:600;text-align:right}.row b span{white-space:nowrap}
 .cover-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
 .cover{width:84px;height:84px;object-fit:cover;border:1px solid var(--color-border)}
 .cover-row span{font-size:8px;color:var(--color-text-muted)}
