@@ -354,8 +354,8 @@ const oneSheetHtml = async (input: {
   const bioSource = content.longBio || content.shortBio || "";
   const paragraphs = bioSource.split(/\n\s*\n/).map((value) => value.trim()).filter(Boolean);
   const verticalBio = truncateAtWord(paragraphs[0] || content.shortBio || "", 440);
-  const horizontalBio = [paragraphs[0] ?? content.shortBio ?? "", paragraphs[1] ?? ""]
-    .map((value) => truncateAtWord(value, 440));
+  // Horizontal matches the vertical's treatment: first paragraph only, same 440-char truncation.
+  const horizontalBio = [truncateAtWord(paragraphs[0] ?? content.shortBio ?? "", 440)];
   const fans = content.forFansOf.slice(0, 7).join(" · ");
   const destinations = content.streamingLinks.slice(0, 5)
     .map((link) => `<a class="destination" href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a>`)
