@@ -146,7 +146,7 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       // null; hero is the long-exposure ShowAbstract1 (photos[0]).
       artKey: null,
       story:
-        "It’s a wonder we haven’t all gone insane. Or have we? This indie alternative track rides heavy, resonant bass with powerful vocals that journey between angsty grit and aching tenderness. “This Hell” conveys the turmoil of a mind that feels lost and small in an ever expanding universe. Prepare to unlock layers of introspection and lean into the emotional madness of being human. This song will be featured on Animal Future’s debut album, “Survived By”, coming out in 2027.",
+        "It’s a wonder we haven’t all gone insane. Or have we? This indie alternative track rides heavy, resonant bass with powerful vocals that journey between angsty grit and aching tenderness. “This Hell” conveys the turmoil of a mind that feels lost and small in an ever expanding universe. Prepare to unlock layers of introspection and lean into the emotional madness of being human. This song will be featured on Animal Future’s debut album “Survived By”, and releases on streaming platforms on September 17, 2026.",
       lyricPulls: [
         "It’s a wonder we haven’t all gone insane",
       ],
