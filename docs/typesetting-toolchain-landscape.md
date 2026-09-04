@@ -100,3 +100,15 @@ checks). The style grammar card is the shared designer/implementation
 vocabulary. IDML snapshots express design intent at fixed content;
 templates are the functions producing that design across varying content —
 the variant contract declares the behavior at every content volume.
+
+## Design primitives as the shared language (operator, 2026-09-03)
+
+All three surfaces (CSS/Chromium, Typst, IDML) compile from one neutral
+primitives source — color (voice x theme), spacing scale, typography ramp,
+geometry — via a token compiler (Style Dictionary pattern or in-house).
+Targets: CSS custom properties (existing consumers unchanged), Typst
+definitions, IDML styles/swatches on export, generated style grammar
+cards, variant capacity numbers in primitive units. Scope deliberately
+excludes layout composition — templates keep identity; primitives keep
+the language shared. The existing token architecture is the seed: lift
+CSS declarations to data, compile everywhere, never hand-sync.
