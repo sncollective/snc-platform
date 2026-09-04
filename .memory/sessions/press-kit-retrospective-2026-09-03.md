@@ -119,3 +119,31 @@ What "choose a template + bounded adjustments" looks like from this build:
   catches; 3 latent races killed; 4 restart races survived; 10+ image-
   geometry rounds converging to aspect-derived WYSIWYG; 2 usage-limit
   model swaps; 1 branch (merge-not-rebase pending).
+
+## Additions at the debrief call (platform-lane thoughts)
+
+Process/velocity takeaways beyond the operator's named theses:
+1. **Render provenance stamp** — embed the build identity (git commit) in
+   PDF metadata; "is this render current?" becomes a one-line check. Would
+   have killed 3-4 stale-render false-defect rounds.
+2. **Shared measurement harness** — a `press-measure <pdf>` script both
+   lanes run identically (embedded dims, page geometry, glyph positions).
+   Same numbers, no cross-lane disputes, no tiebreaker rounds.
+3. **Specs computed from geometry** — derive the per-slot image spec sheet
+   from the template's actual slot code (the aspect-derivation can emit
+   its own targets). Hand-written spec docs drifted stale within one day
+   this cycle; computed specs can't.
+4. **Density as visible template parameter** — the pin, productized: an
+   explicit user choice with surfaced fit guidance, not auto-adaptation
+   and not a hidden pin.
+5. **PressContent fixture factory** — schema churn touched 7+ test files
+   per new field, six times this session. One defaults-factory kills the
+   tax.
+6. **Agent-parallel paths** — every interactive-only surface needs a
+   script/API twin (press-asset.ts is the exemplar; config-edit PATCH/
+   publish auth is the parked instance).
+7. **Render-stability test** — render each template twice, diff with
+   normalized timestamps; the hydration race would have failed it on day
+   one.
+8. **Style grammar cards** — one page of human-terms layout rules per
+   template; precise taste vocabulary from round one.

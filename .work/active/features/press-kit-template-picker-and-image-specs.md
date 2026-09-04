@@ -38,3 +38,11 @@ The press-support rules of thumb (see the retrospective session note)
 apply in full: deterministic print, loud overflow, measurement-verified
 changes, luminance-mapped placements, extract-and-compare for image
 geometry.
+
+## Debrief additions (2026-09-03)
+- Spec sheets computed from slot geometry (not hand-written docs).
+- Density as an explicit user-facing parameter with fit feedback.
+- Render provenance stamp (build identity in PDF metadata) as part of the
+  picker/preview loop.
+- Fixture factory for PressContent reducing schema-churn cost.
+- Render-stability CI check per template.
