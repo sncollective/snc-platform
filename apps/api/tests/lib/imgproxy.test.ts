@@ -51,7 +51,7 @@ describe("buildPressImageUrl", () => {
     const { signature, path } = splitSignedUrl(result.src);
 
     expect(path).toBe(
-      "/rs:fill:1500:500:0/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
+      "/rs:fill:1500:500:0/q:95/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
     );
     expect(signature).toBe(expectedSignature(path));
   });
@@ -64,7 +64,7 @@ describe("buildPressImageUrl", () => {
     );
 
     expect(splitSignedUrl(result.src).path).toContain(
-      "/c:0.6:0.4:fp:0.4:0.4/rs:fill:1500:500:0/g:ce/",
+      "/c:0.6:0.4:fp:0.4:0.4/rs:fill:1500:500:0/q:95/g:ce/",
     );
   });
 
@@ -100,7 +100,7 @@ describe("buildPressImageUrl", () => {
     );
 
     expect(splitSignedUrl(result.src).path).toContain(
-      "/c:0.6:0.333333:fp:0.423457:0.366667/rs:fill:960:720:0/g:ce/",
+      "/c:0.6:0.333333:fp:0.423457:0.366667/rs:fill:960:720:0/q:95/g:ce/",
     );
   });
 
@@ -119,7 +119,7 @@ describe("buildPressImageUrl", () => {
     const result = buildPressImageUrl(IMAGE, slot, width);
 
     expect(splitSignedUrl(result.src).path).toContain(
-      `/rs:fill:${width}:${height}:0/g:ce/`,
+      `/rs:fill:${width}:${height}:0/q:95/g:ce/`,
     );
     expect(result.sizes).toBe(sizes);
   });
@@ -133,9 +133,9 @@ describe("buildPressImageUrl", () => {
       .toEqual(["375w", "750w", "1500w"]);
     expect(candidates.map((candidate) => splitSignedUrl(candidate.slice(0, candidate.lastIndexOf(" "))).path))
       .toEqual([
-        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:375:125:0/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
-        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:750:250:0/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
-        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:1500:500:0/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
+        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:375:125:0/q:95/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
+        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:750:250:0/q:95/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
+        "/c:0.6:0.4:fp:0.4:0.4/rs:fill:1500:500:0/q:95/g:ce/plain/s3://snc-media/library/sha256/example.jpg",
       ]);
 
     const narrow = buildPressImageUrl(IMAGE, "member", 320);
