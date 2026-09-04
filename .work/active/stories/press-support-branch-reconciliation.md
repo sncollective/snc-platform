@@ -1,7 +1,7 @@
 ---
 id: press-support-branch-reconciliation
 kind: story
-stage: review
+stage: done
 tags: [press, workflow]
 parent: null
 depends_on: []
