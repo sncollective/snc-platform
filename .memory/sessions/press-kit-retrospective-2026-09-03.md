@@ -147,3 +147,12 @@ Process/velocity takeaways beyond the operator's named theses:
    one.
 8. **Style grammar cards** — one page of human-terms layout rules per
    template; precise taste vocabulary from round one.
+
+### Variant model (operator refinement at debrief)
+Template = style/theme identity guiding capacity; variant = tested content
+configuration within it (density, orientation, mode, sections). Variants
+deserve creation-time rigor: measured capacity (what fits at the 400
+boundary), derived image specs (slots + ratios + minimums), determinism
+verification. The session built proto-variants (density tiers, orientations,
+EPK hero modes) whose capacities were learned empirically; the platform
+productizes them as menu entries carrying published contracts.

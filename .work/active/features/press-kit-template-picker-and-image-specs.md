@@ -46,3 +46,24 @@ geometry.
   picker/preview loop.
 - Fixture factory for PressContent reducing schema-churn cost.
 - Render-stability CI check per template.
+
+## Variant model (operator refinement, 2026-09-03)
+
+A **template** is the broad style/theme — it carries the visual identity and
+guides capacity. A **variant** is a tested configuration within the template:
+density, orientation, content-mode (solo hero vs triptych; A vs B), section
+selections. The user picks a template for look, then explores variants for
+their content volume.
+
+**Every variant ships with a capacity contract, measured at creation:**
+- exactly how much content fits (the 400 boundary mapped: bio chars, member
+  count, highlight count, quote length)
+- what pictures it takes (slot count, ratio ranges, minimum pixels —
+  derived from geometry)
+- determinism verified (render-stability)
+
+The session's density tiers were proto-variants without contracts — we
+learned each tier's capacity empirically through overflows and 400s; the
+product version publishes that knowledge with the variant. The ladder's
+failure (auto-variant-selection) becomes the variant menu: chosen, not
+switched; the pin's success (determinism) becomes the variant guarantee.
