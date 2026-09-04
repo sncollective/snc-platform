@@ -1,7 +1,7 @@
 # Press-kit platform retrospective — campaign/press-support arc (2026-09-02/03)
 
 Session record for the animal-future press cycle that built the press-kit
-family on `campaign/press-support` (76 stories, ~130 commits including
+family on `campaign/press-support` (76 implementation rounds (28 substrate stories + 3 features), 164 commits including
 campaign content rounds). Written at the operator's debrief call.
 
 ## What was built (the instantiation as it stands)

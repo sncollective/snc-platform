@@ -64,6 +64,7 @@ dedicated per-round story.**
 | fca724f | mode-dependent body slot + hero ruling | |
 | 70ad6e8 | pre-save callout + title placement | |
 | 1cc8bd5 | facts optical alignment | |
+| a40d6f1 | fill gravity threaded + body top-anchor | cross: imgproxy gravity is global |
 
 **Grouping B — one-sheet polish (horizontal/vertical)** (extends the
 standalone stories `press-release-one-sheet-cover-art`,
@@ -114,12 +115,14 @@ ancestor exemption landed in 042086f (covered by
 
 ## Feature state disclosure
 
-`single-release-epk` remains at `stage: implementing` with both children
-done. The integrated feature review is the reconciliation review itself:
-the template story's four postscripts + the live renders (verified dozens
-of times through the session's measured passes) constitute the integrated
-verification record. The feature advances to `done` with this item's
-review as its review record.
+`single-release-epk` was advanced to `stage: done` in this revision (its
+children were already done; the finish rounds are documented in the
+template story's postscripts). Its review record names this
+reconciliation's approval as the closing gate: the feature's done state
+is CONDITIONAL on this item passing review — if this item fails, the
+feature reverts to implementing. Both stage changes ship in the same
+commit as this revision; the date on the feature's review record is the
+revision date (2026-09-03/04 boundary in local time).
 
 ## What this item does NOT do
 
