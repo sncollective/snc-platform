@@ -8,7 +8,7 @@ note is the operational state.
 
 ## Where everything is
 
-**Branch:** `campaign/press-support` (from main @ 58521d0), ~140 commits,
+**Branch:** `campaign/press-support` (from main @ 58521d0), ~164 commits,
 **merge-not-rebase held throughout** (root submodule pointers record branch-
 tip SHAs; campaign bumps several). The merge is the operator's call, pending.
 
@@ -54,7 +54,7 @@ tip SHAs; campaign bumps several). The merge is the operator's call, pending.
 
 ## Session shape
 
-76 platform stories; ~60 mesh crossings; 2 provenance catches (operator);
+76 implementation rounds (conversational; 28 substrate stories + 3 features); ~60 mesh crossings; 2 provenance catches (operator);
 3 latent races killed; 4 restart races survived; 10+ image-geometry rounds
 converging to aspect-derived WYSIWYG; 2 model swaps (usage limits); the
 operator drove every material fix through 15+ review rounds. The branch

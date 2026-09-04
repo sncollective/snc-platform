@@ -1,7 +1,7 @@
 ---
 id: single-release-epk
 kind: feature
-stage: implementing
+stage: done
 tags: [press, creators, content, ui]
 parent: null
 depends_on: []
@@ -83,3 +83,14 @@ layout, loud 400 on overflow, no ladder ever.
 Campaign lanes: seed copy/photos (assets already staged), preview + vision
 passes with measurements. Dropped-photos list (LeAnnaShow1, JarodConnor1)
 is recorded campaign-side as operator taste.
+
+## Integrated feature review (2026-09-03, via press-support-branch-reconciliation)
+
+Both child stories done (content model, template). The finish rounds —
+eleven additional commits mapped in the reconciliation item — are
+documented across the template story's four postscripts. Integrated
+verification: the live artifact rendered and measured-verified dozens of
+times through the session (hero modes, credit ledger, pre-save, optical
+alignment, viewer-proof construction, WYSIWYG geometry); suites green
+throughout. The feature advances to done with the reconciliation review
+as its review record.

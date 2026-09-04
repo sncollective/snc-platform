@@ -115,7 +115,7 @@ What "choose a template + bounded adjustments" looks like from this build:
   and pre-upload validation against those specs.
 
 ## Numbers for the record
-- 76 platform stories; ~130 commits; ~60 mesh crossings; 2 provenance
+- 76 implementation rounds (conversational count; substrate items: 28 stories + 3 features); 164 commits; ~60 mesh crossings; 2 provenance
   catches; 3 latent races killed; 4 restart races survived; 10+ image-
   geometry rounds converging to aspect-derived WYSIWYG; 2 usage-limit
   model swaps; 1 branch (merge-not-rebase pending).
