@@ -484,8 +484,8 @@ describe("press PDF rendering", () => {
     expect(mockBuildPressImageUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({ key: "creators/creator_animalfuture/press/member-leanna-v01.jpg" }),
       "member",
-      200,
-      200,
+      225,
+      225,
     );
   });
 

@@ -10,6 +10,9 @@ const makePage = (overrides: Record<string, unknown> = {}) => {
   const page = {
     setDefaultTimeout: vi.fn(),
     setDefaultNavigationTimeout: vi.fn(),
+    route: vi.fn().mockImplementation((_pattern: string, handler: { (route: { continue: () => void }): void }) => {
+      // Script-blocking pass-through: the mock never aborts; production blocks scripts here.
+    }),
     goto: vi.fn().mockResolvedValue(response()),
     setContent: vi.fn().mockResolvedValue(undefined),
     addStyleTag: vi.fn().mockResolvedValue(undefined),
