@@ -156,3 +156,23 @@ boundary), derived image specs (slots + ratios + minimums), determinism
 verification. The session built proto-variants (density tiers, orientations,
 EPK hero modes) whose capacities were learned empirically; the platform
 productizes them as menu entries carrying published contracts.
+
+## Campaign-lane debrief input (2026-09-03, agent experience)
+
+Their durable record: records/animal-future/.memory/sessions/2026-09-03-
+agent-experience-debrief.md (commit 26f206a6). Core finding, accepted:
+**the machinery was excellent but served the web app over HTTP, not
+programmatic consumers** — nearly every friction traces to missing
+structured I/O. The complement to this retrospective's verification-
+culture theme: ours made measurement reliable; theirs eliminates the
+need to measure (a renderer that returns the truth about what it did).
+
+Platform-lane disposition: Tier 1 accepted in full (render API with
+metadata, intelligent ingestion, content API with dry-run fit); Tier 2
+accepted as variant parameters + render diffing; Tier 3 accepted
+(decoupled render worker, schema discoverability). Scoped as
+press-kit-programmatic-surface feature. Faces/grades parked as later
+phases. Transport: contracts first (REST/MCP agnostic).
+
+Their closing line carries: "the cheapest verification is a renderer
+that tells the truth about what it did."
