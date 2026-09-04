@@ -9,6 +9,7 @@ import {
   MembersSection,
   PressDownloadAction,
   PressFooter,
+  QuotesSection,
   PressHero,
 } from "./press-sections.js";
 import type { PressTemplateProps } from "./press-types.js";
@@ -23,13 +24,14 @@ export function PressTemplateA(props: PressTemplateProps): React.ReactElement {
       <PressHero creator={creator} content={content} />
       <article className={styles.editorial}>
         <AboutSection content={content} />
+        <QuotesSection quotes={content.pressQuotes} />
         <MembersSection members={content.members} showBio />
         <HighlightsSection highlights={content.highlights} limit={2} />
         <LiveDatesSection dates={liveDates} liveDatesUrl={content.liveDatesUrl} />
         <ListenSection links={content.streamingLinks} />
         <PressCarousel creatorName={creator.displayName} images={content.gallery} />
       </article>
-      <PressFooter email={content.pressContactEmail} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
+      <PressFooter email={content.pressContactEmail} bookingEmail={content.bookingContactEmail} photographyCredits={content.photographyCredits} fullPressPdfUrl={fullPressPdfUrl} oneSheetUrl={oneSheetUrl} />
     </div>
   );
 }

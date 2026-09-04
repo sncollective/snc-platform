@@ -7,6 +7,7 @@ import {
   LiveDatesSection,
   MembersSection,
   PressFooter,
+  QuotesSection,
 } from "../../../../src/components/press/press-sections.js";
 import { StreamingServices } from "../../../../src/components/press/streaming-services.js";
 import {
@@ -64,6 +65,49 @@ describe("press shared sections", () => {
     expect(screen.getByRole("heading", { name: "Live dates" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tickets ↗" })).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
+  });
+
+  it("renders the photography credits line in the press footer", () => {
+    render(
+      <PressFooter
+        email="press@s-nc.org"
+        photographyCredits="Daniel Melchior"
+        fullPressPdfUrl="/press.pdf"
+        oneSheetUrl="/one-sheet.pdf"
+      />,
+    );
+    expect(screen.getByText("Photography: Daniel Melchior")).toBeInTheDocument();
+  });
+
+  it("renders attributed press quotes with an optional source link", () => {
+    const { container } = render(
+      <QuotesSection quotes={[
+        { text: "Electric stage energy.", source: "Fort Collins Music Association", url: "https://focoma.org/artist/65/animal-future" },
+        { text: "Raw and unpredictable.", source: "Scene Zine" },
+      ]} />,
+    );
+
+    expect(container.querySelectorAll("blockquote")).toHaveLength(2);
+    expect(screen.getByText(/Electric stage energy/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Fort Collins Music Association" })).toHaveAttribute(
+      "href",
+      "https://focoma.org/artist/65/animal-future",
+    );
+    expect(screen.getByText(/Scene Zine/)).toBeInTheDocument();
+  });
+
+  it("renders the booking contact alongside the press contact when present", () => {
+    render(
+      <PressFooter
+        email="press@s-nc.org"
+        bookingEmail="booking@s-nc.org"
+        fullPressPdfUrl="/press.pdf"
+        oneSheetUrl="/one-sheet.pdf"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "press@s-nc.org" })).toHaveAttribute("href", "mailto:press@s-nc.org");
+    expect(screen.getByRole("link", { name: "booking@s-nc.org" })).toHaveAttribute("href", "mailto:booking@s-nc.org");
   });
 
   it("omits empty sections and never renders broken image sources", () => {

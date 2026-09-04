@@ -263,6 +263,20 @@ describe("content library integration", () => {
     expect(legacyUpload.ok).toBe(true);
     uploadedKeys.add(legacyKey);
 
+    const pressArtKey = `creators/${creatorIds[0]}/press/integration-release-art.png`;
+    const artUpload = await storage.upload(
+      pressArtKey,
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(baseBytes);
+          controller.close();
+        },
+      }),
+      { contentType: "image/png", contentLength: baseBytes.byteLength },
+    );
+    expect(artUpload.ok).toBe(true);
+    uploadedKeys.add(pressArtKey);
+
     const creator = {
       id: creatorIds[0]!,
       displayName: "Library integration creator",
@@ -335,7 +349,38 @@ describe("content library integration", () => {
         label: "S/NC Records",
         fcc: "clean",
         artKey: null,
+        lyricPulls: [],
+        photos: [],
       },
+      creatorId: creator.id,
+      pressPageUrl,
+      exportIdentity,
+    });
+
+    const withArt = await renderReleaseOneSheetPdf({
+      release: {
+        slug: "integration-release",
+        title: "Cover Art Release",
+        catalogNumber: "SNCR-INTEGRATION-ART",
+        releaseDate: "2026-08-14",
+        format: "Album",
+        genre: "Integration",
+        isrc: "US-SNC-26-99998",
+        upc: "012345678901",
+        duration: "42:00",
+        personnel: ["Integration Artist — vocals"],
+        writtenBy: "Integration Artist",
+        producedBy: "Integration Artist",
+        mixedMasteredBy: "Integration Artist",
+        copyrightLine: "℗ 2026 S/NC Records",
+        publisherLine: "© 2026 Signal to Noise Collective",
+        label: "S/NC Records",
+        fcc: "clean",
+        artKey: pressArtKey,
+        lyricPulls: [],
+        photos: [],
+      },
+      creatorId: creator.id,
       pressPageUrl,
       exportIdentity,
     });
@@ -347,6 +392,74 @@ describe("content library integration", () => {
       expect(pdfText.match(/\/Type \/Page\b/g)).toHaveLength(1);
       expect(pdfText.match(/\/MediaBox \[0 0 612 792\]/g)).toHaveLength(1);
       expect(pdfText).not.toContain("--voice-");
+    }
+
+    const withArtText = withArt.toString("latin1");
+    const imageXObjects = (text: string) => text.match(/\/Subtype \/Image/g)?.length ?? 0;
+    expect(withArt.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(withArtText.match(/\/Type \/Page\b/g)).toHaveLength(1);
+    expect(imageXObjects(withArtText)).toBeGreaterThan(0);
+    expect(imageXObjects(withArtText)).toBeGreaterThan(
+      imageXObjects(release.toString("latin1")),
+    );
+  });
+
+  it("loudly rejects over-budget content at the pinned one-sheet template", async () => {
+    const creator = {
+      id: creatorIds[0]!,
+      displayName: "Heavy Volume Creator",
+      handle: null,
+      socialLinks: [],
+    };
+    const exportIdentity = {
+      producingUnit: "records",
+      federationHandle: null,
+      creatorBrandColor: null,
+    };
+    const pressPageUrl = `http://localhost:3080/creators/${creator.id}/press`;
+    const heavy = {
+      ...DEFAULT_PRESS_CONTENT,
+      enabled: true,
+      template: "A" as const,
+      tagline: "New single “This Hell” out Sep 17, 2026 · debut LP March 2027",
+      shortBio:
+        "Fort Collins band makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable.",
+      longBio: `${"Fueled by the fury of the forgotten, the band crafts music that hits where it hurts — tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. ".repeat(24)}`,
+      forFansOf: ["IDLES", "Radiohead", "Modest Mouse", "Pixies", "Yeah Yeah Yeahs", "Paramore"],
+      members: [
+        { name: "LeAnna Warren", role: "vocals, electric guitar" },
+        { name: "Charles Tyrie", role: "drums" },
+        { name: "Jarod Ford", role: "bass" },
+        { name: "Connor Mandli", role: "electric guitar" },
+      ],
+      highlights: [
+        { eyebrow: "Out now · SNCR-001", title: "The Illusionist", description: "First single from the debut LP — next single out Sep 17, 2026." },
+        { eyebrow: "Standout track", title: "Get to You", metric: "14k+ and climbing" },
+        { eyebrow: "Next single · SNCR-002", title: "This Hell", description: "Out Sep 17, 2026 — second single from the debut LP." },
+      ],
+      location: "Fort Collins, CO",
+      pressQuotes: [
+        { text: `An unbounded pull-quote stress line. ${"Their live show rewires the room. ".repeat(30)}`, source: "Overflow Probe Gazette" },
+      ],
+      standoutTrack: {
+        title: "Get to You",
+        url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
+        streamsLabel: "14k+ and climbing",
+      },
+    };
+    expect(await upsertPressConfig(creator.id, heavy)).toMatchObject({ ok: true });
+    expect(await publishPressConfig(creator.id)).toMatchObject({ ok: true });
+
+    // The over-budget fixture exceeds every pinned template's density — both
+    // orientations fail loudly with actionable guidance instead of re-tiering.
+    for (const orientation of ["horizontal", "vertical"] as const) {
+      await expect(renderCreatorOneSheetPdf({
+        creator,
+        content: heavy,
+        pressPageUrl,
+        exportIdentity,
+        orientation,
+      })).rejects.toThrow(/does not fit one page/);
     }
   });
 

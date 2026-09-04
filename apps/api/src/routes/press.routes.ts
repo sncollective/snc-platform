@@ -12,6 +12,7 @@ import {
   PressPagePayloadSchema,
   ReleaseOneSheetSchema,
   NotFoundError,
+  ValidationError,
   isLibraryAssetKey,
   isOwnedPressKey,
 } from "@snc/shared";
@@ -30,13 +31,17 @@ import {
   resolvePressPageContent,
 } from "../lib/press-url.js";
 import { requireCreatorPermission } from "../services/creator-team.js";
+import { BrowserPdfSinglePageFitError } from "../services/browser-pdf.js";
 import type { LibraryActor } from "../services/library.js";
 import { validateOwnedPressKeys } from "../services/press-images.js";
 import {
   ONE_SHEET_ORIENTATIONS,
+  PDF_EXPORT_THEMES,
   renderCreatorOneSheetPdf,
   renderOnePagerPdf,
   renderReleaseOneSheetPdf,
+  renderReleaseEpkPdf,
+  defaultDestinationUrl,
 } from "../services/press-pdf.js";
 import {
   discardPressDraft,
@@ -65,10 +70,14 @@ const DeliveredPressPagePayloadSchema = PressPagePayloadSchema.extend({
 });
 const PressOneSheetQuerySchema = z.object({
   orientation: z.enum(ONE_SHEET_ORIENTATIONS).default("auto"),
+  theme: z.enum(PDF_EXPORT_THEMES).default("light"),
   url: z.string().url().max(512).refine(
     (value) => ["http:", "https:"].includes(new URL(value).protocol),
     "QR destination must use HTTP or HTTPS",
   ).optional(),
+});
+const PressPdfThemeQuerySchema = z.object({
+  theme: z.enum(PDF_EXPORT_THEMES).default("light"),
 });
 const pressPdfRateLimiter = rateLimiter({ windowMs: 60_000, max: 6 });
 
@@ -134,6 +143,7 @@ pressRoutes.get(
   pressPdfRateLimiter,
   optionalAuth,
   validator("param", CreatorIdParam),
+  validator("query", PressPdfThemeQuerySchema),
   async (c) => {
     const { profile } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
@@ -143,6 +153,7 @@ pressRoutes.get(
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: profile.brandColor ?? null,
+        theme: c.req.valid("query").theme,
       },
     });
     return c.body(new Uint8Array(buffer), 200, {
@@ -177,23 +188,34 @@ pressRoutes.get(
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
     const query = c.req.valid("query");
-    const buffer = await renderCreatorOneSheetPdf({
-      creator: {
-        id: profile.id,
-        displayName: profile.displayName,
-        handle: profile.handle,
-        socialLinks: profile.socialLinks,
-      },
-      content,
-      pressPageUrl: pressPageUrl(creatorPath),
-      exportIdentity: {
-        producingUnit: "records",
-        federationHandle: profile.handle,
-        creatorBrandColor: profile.brandColor ?? null,
-      },
-      ...(query.url ? { destinationUrl: query.url } : {}),
-      orientation: query.orientation,
-    });
+    let buffer: Buffer;
+    try {
+      buffer = await renderCreatorOneSheetPdf({
+        creator: {
+          id: profile.id,
+          displayName: profile.displayName,
+          handle: profile.handle,
+          socialLinks: profile.socialLinks,
+        },
+        content,
+        pressPageUrl: pressPageUrl(creatorPath),
+        exportIdentity: {
+          producingUnit: "records",
+          federationHandle: profile.handle,
+          creatorBrandColor: profile.brandColor ?? null,
+          theme: query.theme,
+        },
+        ...(query.url ? { destinationUrl: query.url } : {}),
+        orientation: query.orientation,
+      });
+    } catch (error) {
+      if (error instanceof BrowserPdfSinglePageFitError) {
+        throw new ValidationError(
+          `Creator one-sheet does not fit one page even at compressed density (${error.message.replace(/^Press one-sheet does not fit one page: /, "")}). Shorten the bio or reduce members/highlights, then retry.`,
+        );
+      }
+      throw error;
+    }
     return c.body(new Uint8Array(buffer), 200, {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${profile.handle ?? profile.id}-one-sheet.pdf"`,
@@ -223,6 +245,7 @@ pressRoutes.get(
     "param",
     z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
   ),
+  validator("query", PressPdfThemeQuerySchema),
   async (c) => {
     const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
     const release = content.releases.find(
@@ -232,14 +255,77 @@ pressRoutes.get(
     const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
     const buffer = await renderReleaseOneSheetPdf({
       release,
+      creatorId: profile.id,
       pressPageUrl: pressPageUrl(creatorPath),
       exportIdentity: {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: profile.brandColor ?? null,
+        theme: c.req.valid("query").theme,
       },
     });
     return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+  },
+);
+
+// GET /:creatorId/press/releases/:releaseSlug/epk.pdf — Half-Letter single-release EPK companion
+pressRoutes.get(
+  "/:creatorId/press/releases/:releaseSlug/epk.pdf",
+  describeRoute({
+    description: "Download a half-Letter single-release EPK companion PDF",
+    tags: ["press"],
+    responses: {
+      200: {
+        description: "Single-release EPK PDF",
+        content: {
+          "application/pdf": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      400: ERROR_400,
+      404: ERROR_404,
+    },
+  }),
+  pressPdfRateLimiter,
+  optionalAuth,
+  validator(
+    "param",
+    z.object({ creatorId: CreatorIdParam.shape.creatorId, releaseSlug: z.string().min(1) }),
+  ),
+  validator("query", PressPdfThemeQuerySchema),
+  async (c) => {
+    const { profile, content } = await getEnabledPressContent(c.req.param("creatorId") ?? "");
+    const release = content.releases.find(
+      (candidate) => candidate.slug === c.req.param("releaseSlug"),
+    );
+    if (!release) throw new NotFoundError("Release not found");
+    const creatorPath = encodeURIComponent(profile.handle ?? profile.id);
+    try {
+      const buffer = await renderReleaseEpkPdf({
+        release,
+        creatorId: profile.id,
+        pressPageUrl: pressPageUrl(creatorPath),
+        exportIdentity: {
+          producingUnit: "records",
+          federationHandle: profile.handle,
+          creatorBrandColor: profile.brandColor ?? null,
+          theme: c.req.valid("query").theme,
+        },
+        destinationUrl: release.preSaveUrl
+          ?? defaultDestinationUrl(
+            { handle: profile.handle, socialLinks: profile.socialLinks },
+            content,
+            pressPageUrl(creatorPath),
+          ),
+      });
+      return c.body(new Uint8Array(buffer), 200, { "Content-Type": "application/pdf" });
+    } catch (error) {
+      if (error instanceof BrowserPdfSinglePageFitError) {
+        throw new ValidationError(
+          `Release EPK does not fit its half-Letter template (${error.message.replace(/^Press one-sheet does not fit one page: /, "")}). Shorten the story or lyric pulls, then retry.`,
+        );
+      }
+      throw error;
+    }
   },
 );
 

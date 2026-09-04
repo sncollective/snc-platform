@@ -1,7 +1,7 @@
 ---
 id: press-release-one-sheet-cover-art
 kind: story
-stage: backlog
+stage: done
 tags: [press]
 parent: null
 depends_on: []
@@ -94,3 +94,25 @@ diff --git a/apps/api/src/services/press-pdf.ts b/apps/api/src/services/press-pd
 -  const sheet = releaseSheet(input.release);
 +  const sheet = await releaseSheet(input.release, input.creatorId);
 ```
+
+## Implementation notes
+- Execution capability: inline (single-owner story, small scope, campaign time-box)
+- Review weight: standard (default)
+- Files changed:
+  - `apps/api/src/services/press-pdf.ts` — `releaseSheet` now async, resolves `artKey` via `resolvePrintImageUrl` (cover slot, 540×540 print px = 1.8in @ 300ppi, matching the 3.125× CSS-px convention of the member/highlight figures; draft's 564 adjusted to the exact convention), renders a `release-mast` flex header (art left, title baseline-aligned) only when art resolves; artless path stays byte-identical to the previous layout. `renderReleaseOneSheetPdf` input gains required `creatorId`.
+  - `apps/api/src/routes/press.routes.ts` — threads `creatorId: profile.id` into the render call.
+  - `apps/api/src/scripts/seed-press.ts` — sets this-hell `artKey` to `creators/<creatorId>/press/this-hell-cover-v01.jpg` after profile lookup, so the campaign re-seed loop is replayable (verified: identical render byte-count pre/post seed).
+  - `apps/api/tests/services/press-pdf.test.ts` — 3 new unit tests (art mast render incl. print-image URL contract; validation-failure fallback; null artKey no-mast) + signature update on the long-field test.
+  - `apps/api/tests/integration/library.test.ts` — art upload at an owned press key + `withArt` render; asserts single Letter page and strictly more image XObjects than the text-only render (text-only renders already carry ≥1 image XObject in Chromium PDFs — exact-equality assertion was wrong, relaxed to greater-than).
+  - `apps/api/tests/routes/press.test.ts` — call-shape assertion gains `creatorId`.
+- Tests: unit 62/62 green (full @snc/api suite), integration library.test.ts 10/10 green.
+- Live acceptance: rendered via dev stack (350,843 bytes, single Letter page, pdftotext fields intact); visual check by vision-capable subagent confirmed art present ~180px square @100dpi, mast layout correct, no clipping/overflow, columns+footer intact. Subagent misread footer as `press@sn-c.org`; pdftotext + source confirm `press@s-nc.org` (grep-over-vision per the verification rule).
+- Discrepancies from design: print-image target 540 not 564 (see above); conditional mast wrapper instead of unconditional (keeps artless bodyHtml byte-identical, existing assertions stable).
+- Adjacent issues parked: none new.
+
+## Review record (2026-09-02, bounded inline pass — standalone story)
+- Correctness: artless path byte-identical to previous layout; art resolution goes through the existing owned-key/library gate with dimension probing and warn-not-fail fallback; async conversion awaited at the single call site.
+- Security: no new unescaped input reaches HTML (src/alt escaped, key gated by isOwnedPressKey/isLibraryAssetKey).
+- Contracts: required creatorId threaded through the only production caller; full @snc/api typecheck green.
+- Tests: render/fallback/null unit paths + integration art case assert the right invariants; one relaxed assertion (image-XObject equality → strictly-greater) documented in implementation notes.
+- Verdict: pass, no blockers, no importants. stage: review → done.

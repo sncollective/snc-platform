@@ -1,0 +1,69 @@
+---
+id: press-kit-template-picker-and-image-specs
+kind: feature
+stage: drafting
+tags: [press, creators, content, ux]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-09-03
+updated: 2026-09-03
+---
+
+# Press-kit template picker + per-slot image spec surface
+
+Operator direction from the campaign/press-support debrief (2026-09-03):
+platform users should choose a press template and make bounded adjustments;
+the web version flexes (content never disappears — layout flexes), print
+stays fixed-size/fixed-layout; image uploads get clearly spelled-out
+ratio + pixel targets per slot.
+
+## Scope questions (design pass)
+- Template picker surface: which templates are user-selectable today (band
+  one-sheet orientations, release one-sheet, release EPK, one-pager), and
+  what does "choose" mean in the manage editor vs the public page?
+- Per-slot image spec sheet: surfaced where? (editor guidance, upload
+  validation, docs?) Spec = ratio + minimum pixels per slot, derived from
+  the print geometry (300ppi at the slot's rendered size).
+- Pre-upload validation: reject/aspect-check uploads against slot specs,
+  with the aspect-derived windows as the tolerance layer underneath
+  (already built: probe dimensions, clamp, match print spec).
+- Web-reactive guarantees: audit that no breakpoint hides content; slack
+  distributes; sections bound. The press page as the reactive twin of the
+  fixed print templates.
+
+## Inherits
+The press-support rules of thumb (see the retrospective session note)
+apply in full: deterministic print, loud overflow, measurement-verified
+changes, luminance-mapped placements, extract-and-compare for image
+geometry.
+
+## Debrief additions (2026-09-03)
+- Spec sheets computed from slot geometry (not hand-written docs).
+- Density as an explicit user-facing parameter with fit feedback.
+- Render provenance stamp (build identity in PDF metadata) as part of the
+  picker/preview loop.
+- Fixture factory for PressContent reducing schema-churn cost.
+- Render-stability CI check per template.
+
+## Variant model (operator refinement, 2026-09-03)
+
+A **template** is the broad style/theme — it carries the visual identity and
+guides capacity. A **variant** is a tested configuration within the template:
+density, orientation, content-mode (solo hero vs triptych; A vs B), section
+selections. The user picks a template for look, then explores variants for
+their content volume.
+
+**Every variant ships with a capacity contract, measured at creation:**
+- exactly how much content fits (the 400 boundary mapped: bio chars, member
+  count, highlight count, quote length)
+- what pictures it takes (slot count, ratio ranges, minimum pixels —
+  derived from geometry)
+- determinism verified (render-stability)
+
+The session's density tiers were proto-variants without contracts — we
+learned each tier's capacity empirically through overflows and 400s; the
+product version publishes that knowledge with the variant. The ladder's
+failure (auto-variant-selection) becomes the variant menu: chosen, not
+switched; the pin's success (determinism) becomes the variant guarantee.

@@ -200,6 +200,10 @@ export const ReleaseOneSheetSchema = z.object({
   label: z.string().nullable().optional(),
   fcc: z.enum(["clean", "explicit"]).nullable(),
   artKey: z.string().nullable().optional(),
+  story: z.string().nullable().optional(),
+  lyricPulls: z.array(z.string()).default([]),
+  photos: z.array(PressImageSchema).default([]),
+  preSaveUrl: z.string().url().nullable().optional(),
 });
 export type ReleaseOneSheet = z.infer<typeof ReleaseOneSheetSchema>;
 
@@ -209,6 +213,18 @@ const PressReleasesSchema = z.array(ReleaseOneSheetSchema).refine(
 );
 
 /** Per-creator press-page configuration (the editable surface). */
+const PressQuoteShapeSchema = z.object({
+  text: z.string(),
+  source: z.string(),
+  url: z.string().url().nullable().optional(),
+});
+const PressQuoteSchema = PressQuoteShapeSchema;
+const DraftPressQuoteSchema = z.object({
+  text: z.string(),
+  source: z.string(),
+  url: z.string().nullable().optional(),
+});
+
 export const PressContentSchema = z.object({
   enabled: z.boolean().default(false),
   template: z.enum(["A", "B"]).default("A"),
@@ -224,6 +240,9 @@ export const PressContentSchema = z.object({
   standoutTrack: PressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(PressHighlightSchema).default([]),
   pressContactEmail: z.string().email().nullable().optional(),
+  bookingContactEmail: z.string().email().nullable().optional(),
+  pressQuotes: z.array(PressQuoteSchema).default([]),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).default([]),
   gallery: z.array(PressImageSchema).default([]),
@@ -255,6 +274,9 @@ export const DraftPressContentSchema = PressContentSchema.extend({
   standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(DraftPressHighlightSchema).default([]),
   pressContactEmail: z.string().nullable().optional(),
+  bookingContactEmail: z.string().nullable().optional(),
+  pressQuotes: z.array(DraftPressQuoteSchema).default([]),
+  photographyCredits: z.string().nullable().optional(),
 });
 export type DraftPressContent = z.infer<typeof DraftPressContentSchema>;
 
@@ -274,6 +296,9 @@ export const PressConfigPatchSchema = z.object({
   standoutTrack: PressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(PressHighlightSchema).optional(),
   pressContactEmail: z.string().email().nullable().optional(),
+  bookingContactEmail: z.string().email().nullable().optional(),
+  pressQuotes: z.array(PressQuoteSchema).optional(),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -300,6 +325,9 @@ export const DraftPressConfigPatchSchema = z.object({
   standoutTrack: DraftPressStandoutTrackSchema.nullable().optional(),
   highlights: z.array(DraftPressHighlightSchema).optional(),
   pressContactEmail: z.string().nullable().optional(),
+  bookingContactEmail: z.string().nullable().optional(),
+  pressQuotes: z.array(DraftPressQuoteSchema).optional(),
+  photographyCredits: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   photos: z.array(z.string()).optional(),
   gallery: z.array(PressImageSchema).optional(),
@@ -337,6 +365,9 @@ export const DEFAULT_PRESS_CONTENT: PressContent = {
   standoutTrack: null,
   highlights: [],
   pressContactEmail: null,
+  bookingContactEmail: null,
+  pressQuotes: [],
+  photographyCredits: null,
   location: null,
   photos: [],
   gallery: [],

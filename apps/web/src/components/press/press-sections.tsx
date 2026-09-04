@@ -158,6 +158,29 @@ export function HighlightsSection({
 }
 
 /** Render supplied live-date rows or the current Bandsintown link-out. */
+export function QuotesSection({
+  quotes,
+}: {
+  readonly quotes: ReadonlyArray<{ text: string; source: string; url?: string | null | undefined }> | undefined;
+}): React.ReactElement | null {
+  if (!quotes?.length) return null;
+  return (
+    <section className={styles.section} aria-labelledby="press-quotes-heading">
+      <span id="press-quotes-heading" className={`${styles.kicker} ${styles.quotesHeading}`}>Press quotes</span>
+      {quotes.slice(0, 3).map((quote, index) => (
+        <blockquote key={`${quote.source}-${index}`} className={styles.quote}>
+          <p>&ldquo;{quote.text}&rdquo;</p>
+          <cite>
+            &mdash; {quote.url
+              ? <a href={quote.url} target="_blank" rel="noopener noreferrer">{quote.source}</a>
+              : quote.source}
+          </cite>
+        </blockquote>
+      ))}
+    </section>
+  );
+}
+
 export function LiveDatesSection({
   dates,
   liveDatesUrl,
@@ -214,16 +237,29 @@ export function PressDownloadAction({ fullPressPdfUrl }: Pick<PressTemplateProps
 /** Render press contact and distinct full-kit and one-sheet downloads. */
 export function PressFooter({
   email,
+  bookingEmail,
+  photographyCredits,
   fullPressPdfUrl,
   oneSheetUrl,
 }: {
   readonly email?: string | null | undefined;
+  readonly bookingEmail?: string | null | undefined;
+  readonly photographyCredits?: string | null | undefined;
   readonly fullPressPdfUrl: string;
   readonly oneSheetUrl: string;
 }): React.ReactElement {
   return (
     <footer className={styles.footer}>
-      {email ? <span>Press · <a href={`mailto:${email}`}>{email}</a></span> : <span />}
+      <div className={styles.footerMeta}>
+        {email || bookingEmail
+          ? <span>
+              {email ? <>Press · <a href={`mailto:${email}`}>{email}</a></> : null}
+              {email && bookingEmail ? " · " : null}
+              {bookingEmail ? <>Booking · <a href={`mailto:${bookingEmail}`}>{bookingEmail}</a></> : null}
+            </span>
+          : null}
+        {photographyCredits ? <span className={styles.photoCredits}>Photography: {photographyCredits}</span> : null}
+      </div>
       <div className={styles.pdfActions}>
         <a className={styles.pdf} href={fullPressPdfUrl} download>Download full press PDF ↓</a>
         <a className={styles.pdf} href={oneSheetUrl} download>Download one-sheet PDF ↓</a>

@@ -16,18 +16,18 @@ if (process.env.ALLOW_DEMO_SEED !== "true") {
 const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   enabled: true,
   template: "A",
-  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP Survived By March 2027",
+  tagline: "New single “This Hell” out Sep 17, 2026 · debut LP “Survived By” in 2027",
   members: [
-    { name: "LeAnna Warren", role: "vocals, electric guitar" },
-    { name: "Charles Tyrie", role: "drums" },
-    { name: "Jarod Ford", role: "bass" },
-    { name: "Connor Mandli", role: "electric guitar" },
+    { name: "LeAnna Warren", role: "vocals, electric guitar", bio: "Playful command of unapologetic lyrics and soaring melodies." },
+    { name: "Charles Tyrie", role: "drums", bio: "Bringing a technical backbone energized by punk chops." },
+    { name: "Jarod Ford", role: "bass", bio: "Muscling low-end beneath the fury." },
+    { name: "Connor Mandli", role: "electric guitar", bio: "Taming the dissonance via creative expressions and tones." },
   ],
   gallery: [],
   shortBio:
-    "Fort Collins band Animal Future makes socially conscious punk-leaning rock that hits where it hurts — mental health, addiction, and life under a corporate-run world. Raw, funny, and unpredictable, fronted by a female vocalist who swings from Paramore-power belting to unapologetic screams. For fans of IDLES, Modest Mouse, and Pixies.",
+    "Socially conscious rock from Fort Collins, Colorado. Raw, funny, unpredictable, and aimed where it hurts.",
   longBio:
-    "Fueled by the fury of the forgotten, Fort Collins, Colorado–based Animal Future crafts music that hits where it hurts—tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. With raw energy and socially conscious grit reminiscent of IDLES, their sound moves from indie rock to grungy pop and old-school punk, with Radiohead-esque soundscapes adding a layer of unpredictability. Think Modest Mouse, Pixies, and Yeah Yeah Yeahs, with a female vocalist who can belt Paramore-level power or let loose raw, unapologetic screams that'll keep you guessing. Known for their sharp humor and electric energy, they create a space for connection that turns every show into a rallying cry for individuality and compassion—for people and the planet.",
+    "Fueled by the fury of the forgotten, Animal Future crafts music tackling mental health, addiction, and the dehumanizing weight of a corporate-run world. Their sound runs from indie rock to grungy pop and old-school punk, with eclectic, shoegazing soundscapes evoking a distorted sense of time and place.\n\nFronted by a female vocalist who swings from Paramore-level belting to unapologetic screams, the four-piece draws comparisons to Modest Mouse, Pixies, and Yeah Yeah Yeahs — sharp humor and electric energy that turn every show into a rallying cry for individuality and compassion, for people and the planet.",
   forFansOf: [
     "IDLES",
     "Radiohead",
@@ -59,26 +59,34 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
   standoutTrack: {
     title: "Get to You",
     url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
-    streamsLabel: "14k+ and climbing",
+    streamsLabel: "14k Spotify Listens",
   },
   pressContactEmail: "press@s-nc.org",
-  location: "Fort Collins, CO",
+  photographyCredits: "Hayley Herriges · Ariana Cord",
+  // pressQuotes: WITHDRAWN 2026-09-02 — the FoCoMA "quote" derives from the
+  // band's own bio (Spotify carries the original close; FoCoMA runs an edited
+  // variant). Band-authored copy does not attribute as outlet praise. Slot
+  // stays empty until REAL press lands (Westword, radio support, etc.).
+  pressQuotes: [],
+
+  bookingContactEmail: "booking@s-nc.org",
+  location: null,
   photos: [],
   highlights: [
     {
-      eyebrow: "Out now · SNCR-001",
+      eyebrow: "Out now",
       title: "The Illusionist",
       description:
-        "First single from the debut LP Survived By — next single “This Hell” out Sep 17, 2026.",
+        "First single from the debut LP Survived By — released Aug 6, 2026.",
     },
     {
       eyebrow: "Standout track",
       title: "Get to You",
-      metric: "14k+ and climbing",
+      metric: "14k Spotify Listens",
       url: "https://open.spotify.com/track/2WKznD3Xx28IGcqwEjytWS",
     },
     {
-      eyebrow: "Next single · SNCR-002",
+      eyebrow: "Next single",
       title: "This Hell",
       description: "Out Sep 17, 2026 — second single from Survived By.",
     },
@@ -108,33 +116,96 @@ const ANIMAL_FUTURE_PRESS_CONTENT: PressContent = {
       label: "S/NC Records",
       fcc: "clean",
       artKey: null,
+      lyricPulls: [],
+      photos: [],
     },
     {
       slug: "this-hell",
       title: "This Hell",
-      catalogNumber: "SNCR-002",
+      catalogNumber: null,
       releaseDate: "2026-09-17",
       format: "digital single",
-      genre: "Rock / art rock",
+      genre: "Alternative / Indie / Rock",
       isrc: "QT6HP2698604",
       upc: "701546909511",
-      duration: "3:33",
+      duration: null,
       personnel: [
-        "LeAnna Warren (vocals, electric guitar)",
+        "LeAnna Warren (vocals & guitar)",
         "Charles Tyrie (drums)",
         "Jarod Ford (bass)",
-        "Connor Mandli (electric guitar)",
+        "Connor Mandli (guitar)",
       ],
-      writtenBy: "Warren / Tyrie / Ford",
+      writtenBy: "LeAnna Warren (lyrics & music) · Charles Tyrie (music) · Jarod Ford (music) · Connor Mandli (music)",
       producedBy: "Kevin Cook & Doug Wooldridge",
       mixedMasteredBy: "Doug Wooldridge @ S/NC Studio",
-      copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford",
+      copyrightLine: "℗ 2026 S/NC Records · © 2026 Warren, Tyrie, Ford, Mandli",
       publisherLine: "S/NC Publishing",
       label: "S/NC Records",
       fcc: "clean",
+      // No album art on the single EPK per operator (2026-09-02) — artKey stays
+      // null; hero is the long-exposure ShowAbstract1 (photos[0]).
       artKey: null,
+      story:
+        "Or have we? This indie alternative track rides heavy, resonant bass with powerful vocals that journey between angsty grit and aching tenderness. “This Hell” conveys the turmoil of a mind that feels lost and small in an ever expanding universe. Prepare to unlock layers of introspection and lean into the emotional madness of being human. This song will be featured on Animal Future’s debut album “Survived By” in 2027, and releases on streaming platforms September 17, 2026.",
+      lyricPulls: [
+        "It’s a wonder we haven’t all gone insane",
+      ],
+      photos: [
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-hero-v01.jpg", alt: "Guitarist dissolving into pink stage-light trails during a long-exposure live shot", credit: "Hayley Herriges" },
+        { key: "creators/375328a0-b99f-4961-80c5-65f8140cf35b/press/this-hell-body9-v01.jpg", alt: "LeAnna Warren mid-performance, crimson-tinted monochrome", credit: "Mark Brady" },
+      ],
+      preSaveUrl: "https://distrokid.com/hyperfollow/animalfuture1/this-hell?ref=release",
     },
   ],
+};
+
+// Per operator 2026-09-02 (corrected): Hayley Herriges shot both non-Ariana
+// shoots (mural/mirror session + solo LeAnna live); Ariana Cord shot exactly
+// {LeAnnaVert1 rail, LeAnna1 member, LeAnnaJarodShow1 duo}. Daniel Melchior is
+// on NONE of this set — the Spotify-profile credit does not apply here.
+const PHOTOGRAPHER_PRIMARY = "Hayley Herriges";
+
+const withPressImages = (creatorId: string): PressContent => {
+  const key = (suffix: string) => `creators/${creatorId}/press/${suffix}`;
+  // Square member crops: portrait sources render top-anchored by default;
+  // explicit crop rects steer the 1:1 window (normalized, full width).
+  const memberPhoto = (suffix: string, alt: string, crop?: { x: number; y: number; width: number; height: number }, credit?: string) =>
+    ({ key: key(suffix), alt, ...(crop ? { crop } : {}), ...(credit ? { credit } : {}) });
+  const cover = (suffix: string, alt: string) => ({ key: key(suffix), alt });
+  return {
+    ...ANIMAL_FUTURE_PRESS_CONTENT,
+    banner: { key: key("banner-medium-v02.jpg"), alt: "Animal Future reflected together in a vehicle side mirror", credit: PHOTOGRAPHER_PRIMARY },
+    aboutPhoto: { key: key("about-v01.jpg"), alt: "LeAnna Warren mid-vocal at a live show", credit: "Ariana Cord" },
+    members: ANIMAL_FUTURE_PRESS_CONTENT.members.map((member) => ({
+      ...member,
+      // All three per operator round 2/3: heads were being cut — window
+      // moves UP. Connor top-anchored y=0; LeAnna/Charles y=0.05 (small
+      // forehead room). Jarod: default (fine).
+      photo: member.name === "LeAnna Warren"
+        ? memberPhoto("member-leanna-v08.jpg", "LeAnna Warren portrait")
+        : member.name === "Charles Tyrie"
+          ? memberPhoto("member-charles-v03.jpg", "Charles Tyrie portrait")
+          : member.name === "Jarod Ford"
+            ? memberPhoto("member-jarod-v03.jpg", "Jarod Ford portrait", undefined)
+            : memberPhoto("member-connor-v03.jpg", "Connor Mandli portrait"),
+    })),
+    highlights: ANIMAL_FUTURE_PRESS_CONTENT.highlights.map((highlight) => ({
+      ...highlight,
+      coverArt: highlight.title === "The Illusionist"
+        ? cover("this-hell-cover-v01.jpg", "The Illusionist single artwork (album cover art)")
+        : highlight.title === "Get to You"
+          ? cover("cover-get-to-you-v01.jpg", "Get to You single artwork")
+          : highlight.title === "This Hell"
+            ? cover("album-back-cover-v01.jpg", "This Hell single artwork (album back cover)")
+            : highlight.coverArt,
+    })),
+    gallery: [
+      { key: key("gallery-fullband-v01.jpg"), alt: "Animal Future together against a mural", credit: PHOTOGRAPHER_PRIMARY },
+      { key: key("gallery-leanna-show-v01.jpg"), alt: "LeAnna Warren performing live", credit: "Hayley Herriges" },
+      { key: key("gallery-jarod-connor-v01.jpg"), alt: "Jarod Ford jumping over Connor Mandli", credit: PHOTOGRAPHER_PRIMARY },
+      { key: key("gallery-duo-show-v01.jpg"), alt: "Jarod Ford and LeAnna Warren performing live", credit: "Hayley Herriges" },
+    ],
+  };
 };
 
 try {
@@ -167,7 +238,24 @@ try {
   }
 
   if (creatorId) {
-    const draftResult = await upsertPressConfig(creatorId, ANIMAL_FUTURE_PRESS_CONTENT);
+    // Mirror the creator's socialLinks (content data; the press templates
+    // derive the IG handle from the URL). Idempotent: no-op when already set.
+    await db
+      .update(creatorProfiles)
+      .set({
+        socialLinks: [
+          { url: "https://www.instagram.com/animalfuturemusic/", platform: "instagram" },
+        ],
+      })
+      .where(eq(creatorProfiles.id, creatorId));
+
+    const withImages = withPressImages(creatorId);
+    // artKey injection REMOVED 2026-09-02: operator dropped album art from
+    // the single EPK — the this-hell row's artKey:null is now authoritative
+    // (the old force-inject was overriding it every seed run).
+    const draftResult = await upsertPressConfig(creatorId, {
+      ...withImages,
+    });
     if (!draftResult.ok) {
       console.error(`Error: ${draftResult.error.message}`);
       process.exitCode = 1;

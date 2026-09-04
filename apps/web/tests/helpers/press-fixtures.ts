@@ -46,6 +46,7 @@ export const makeDeliveredPressContent = (
     { eyebrow: "More", title: "Fourth Highlight", description: "Extra web content", coverArt: null },
   ],
   pressContactEmail: "press@s-nc.org",
+  pressQuotes: [],
   location: "Fort Collins, CO",
   photos: [],
   gallery: [

@@ -56,6 +56,8 @@ const release = {
   label: "S/NC Records",
   fcc: "clean" as const,
   artKey: null,
+  lyricPulls: [],
+  photos: [],
 };
 
 const banner = {
@@ -84,6 +86,7 @@ const content = {
   },
   highlights: [],
   pressContactEmail: "press@example.com",
+  pressQuotes: [],
   location: "Philadelphia, PA",
   photos: [],
   gallery: [],
@@ -120,6 +123,7 @@ const ctx = setupRouteTest({
     }));
     vi.doMock("../../src/services/press-pdf.js", () => ({
       ONE_SHEET_ORIENTATIONS: ["auto", "horizontal", "vertical"],
+      PDF_EXPORT_THEMES: ["light", "dark"],
       renderOnePagerPdf: mockRenderOnePagerPdf,
       renderCreatorOneSheetPdf: mockRenderCreatorOneSheetPdf,
       renderReleaseOneSheetPdf: mockRenderReleaseOneSheetPdf,
@@ -263,11 +267,13 @@ describe("GET /api/creators/:creatorId/press/releases/:releaseSlug", () => {
     expect(body.subarray(0, 4).toString("ascii")).toBe("%PDF");
     expect(mockRenderReleaseOneSheetPdf).toHaveBeenCalledWith({
       release,
+      creatorId: profile.id,
       pressPageUrl: "http://localhost:3080/creators/test-creator/press",
       exportIdentity: {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
     });
   });
@@ -307,6 +313,7 @@ describe("GET /api/creators/:creatorId/press/one-pager.pdf", () => {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
     });
   });
@@ -329,10 +336,37 @@ describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
         producingUnit: "records",
         federationHandle: profile.handle,
         creatorBrandColor: null,
+        theme: "light",
       },
       destinationUrl,
       orientation: "vertical",
     }));
+  });
+
+  it("threads a dark export theme and rejects unknown themes", async () => {
+    const dark = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf?theme=dark",
+    );
+    expect(dark.status).toBe(200);
+    expect(mockRenderCreatorOneSheetPdf).toHaveBeenCalledWith(expect.objectContaining({
+      exportIdentity: expect.objectContaining({ theme: "dark" }),
+    }));
+
+    const light = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf",
+    );
+    expect(light.status).toBe(200);
+    expect(mockRenderCreatorOneSheetPdf).toHaveBeenLastCalledWith(expect.objectContaining({
+      exportIdentity: expect.objectContaining({ theme: "light" }),
+    }));
+
+    const invalid = await json(
+      "GET",
+      "/api/creators/test-creator/press/one-sheet.pdf?theme=sepia",
+    );
+    expect(invalid.status).toBe(400);
   });
 
   it("rejects non-HTTP QR destinations", async () => {
@@ -342,6 +376,23 @@ describe("GET /api/creators/:creatorId/press/one-sheet.pdf", () => {
     );
     expect(res.status).toBe(400);
     expect(mockRenderCreatorOneSheetPdf).not.toHaveBeenCalled();
+  });
+
+  it("maps an exhausted density ladder to a 400 with actionable guidance", async () => {
+    const { BrowserPdfSinglePageFitError } = await import("../../src/services/browser-pdf.js");
+    mockRenderCreatorOneSheetPdf.mockRejectedValueOnce(
+      new BrowserPdfSinglePageFitError("Press one-sheet does not fit one page: vertical content overflow"),
+    );
+
+    const res = await json("GET", "/api/creators/test-creator/press/one-sheet.pdf");
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: expect.stringContaining("does not fit one page even at compressed density"),
+      },
+    });
   });
 });
 
@@ -471,6 +522,7 @@ describe("PATCH /api/creators/:creatorId/press-config", () => {
       streamingLinks: [{ label: "Spotify", url: "open.spotify/draft" }],
       liveDatesUrl: "dates pending",
       pressContactEmail: "not-an-email",
+      pressQuotes: [],
     };
 
     const res = await json("PATCH", "/api/creators/test-creator/press-config", patch);

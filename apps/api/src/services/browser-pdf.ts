@@ -1,6 +1,8 @@
 import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
 
+import { rootLogger } from "../logging/logger.js";
+
 const LETTER_WIDTH_IN = 8.5;
 const LETTER_HEIGHT_IN = 11;
 const DEFAULT_RENDER_TIMEOUT_MS = 30_000;
@@ -25,6 +27,13 @@ export interface BrowserPdfOptions {
   readonly documentAttributes?: Readonly<Record<`data-${string}`, string>>;
   readonly style?: string;
   readonly singlePage?: boolean;
+  /** Suppress a multi-part credit row's trailing separator dot when the row wraps at it. */
+  readonly refineCreditWraps?: boolean;
+  /** Page geometry for the emitted PDF; defaults to US Letter. */
+  readonly pageSize?: {
+    readonly widthIn: number;
+    readonly heightIn: number;
+  };
   readonly timeoutMs?: number;
 }
 
@@ -49,6 +58,76 @@ export class BrowserPdfPreflightError extends Error {
     this.name = "BrowserPdfPreflightError";
   }
 }
+
+/** Single-page fit failure — retryable at a denser tier, unlike other preflight failures. */
+export class BrowserPdfSinglePageFitError extends BrowserPdfPreflightError {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrowserPdfSinglePageFitError";
+  }
+}
+
+const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
+  const issues = await withinDeadline(page.evaluate(() => {
+    const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
+    if (!sheet) return ["single-page sheet root is missing"];
+
+    const epsilon = 1;
+    const bounds = sheet.getBoundingClientRect();
+    const problems: string[] = [];
+    if (sheet.scrollWidth > sheet.clientWidth + epsilon) problems.push("horizontal content overflow");
+    if (sheet.scrollHeight > sheet.clientHeight + epsilon) problems.push("vertical content overflow");
+
+    const outside = [...sheet.querySelectorAll<HTMLElement>("*")].find((element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = element.getBoundingClientRect();
+      return rect.left < bounds.left - epsilon
+        || rect.top < bounds.top - epsilon
+        || rect.right > bounds.right + epsilon
+        || rect.bottom > bounds.bottom + epsilon;
+    });
+    if (outside) {
+      const label = outside.className || outside.tagName.toLowerCase();
+      problems.push(`element outside Letter sheet: ${String(label)}`);
+    }
+
+    // In-flow content painting into the bottom padding does not grow scrollHeight,
+    // so the overflow checks above miss it; flag it explicitly. Absolutely
+    // positioned chrome (e.g. anchored sheet footers) is exempt by design.
+    const sheetStyle = getComputedStyle(sheet);
+    const paddingFloor = bounds.bottom - (parseFloat(sheetStyle.paddingBottom) || 0);
+    const deepestInFlow = [...sheet.querySelectorAll<HTMLElement>("*")].reduce((floor, element) => {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return floor;
+      // page.evaluate serializes this callback to run in the browser: no helper
+      // functions allowed (bundler keepNames helpers don't exist in the page).
+      // Inline ancestor walk: descendants of anchored chrome are exempt too.
+      let node: HTMLElement | null = element;
+      let anchored = false;
+      while (node && node !== sheet) {
+        const pos = getComputedStyle(node).position;
+        if (pos === "absolute" || pos === "fixed") { anchored = true; break; }
+        node = node.parentElement;
+      }
+      if (anchored) return floor;
+      return Math.max(floor, element.getBoundingClientRect().bottom);
+    }, bounds.top);
+    if (deepestInFlow > paddingFloor + epsilon) {
+      const culprit = [...sheet.querySelectorAll<HTMLElement>("*")].filter((el) => {
+        const st = getComputedStyle(el);
+        return st.display !== "none" && st.visibility !== "hidden" && st.position !== "absolute" && st.position !== "fixed";
+      }).sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0];
+      const tag = culprit ? `${culprit.tagName.toLowerCase()}.${String(culprit.className)}` : "unknown";
+      problems.push(`content paints into the bottom padding: ${Math.round(deepestInFlow - paddingFloor)}px [${tag}]`);
+    }
+    return problems;
+  }), deadline, () => { void page.close().catch(() => undefined); });
+
+  if (issues.length > 0) {
+    throw new BrowserPdfSinglePageFitError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
+  }
+};
 
 const remainingMs = (deadline: number): number => Math.max(0, deadline - Date.now());
 
@@ -172,38 +251,6 @@ const waitForAssets = async (page: Page, deadline: number): Promise<void> => {
   }
 };
 
-const assertSinglePageFit = async (page: Page, deadline: number): Promise<void> => {
-  const issues = await withinDeadline(page.evaluate(() => {
-    const sheet = document.querySelector<HTMLElement>("[data-pdf-sheet], .sheet");
-    if (!sheet) return ["single-page sheet root is missing"];
-
-    const epsilon = 1;
-    const bounds = sheet.getBoundingClientRect();
-    const problems: string[] = [];
-    if (sheet.scrollWidth > sheet.clientWidth + epsilon) problems.push("horizontal content overflow");
-    if (sheet.scrollHeight > sheet.clientHeight + epsilon) problems.push("vertical content overflow");
-
-    const outside = [...sheet.querySelectorAll<HTMLElement>("*")].find((element) => {
-      const style = getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden") return false;
-      const rect = element.getBoundingClientRect();
-      return rect.left < bounds.left - epsilon
-        || rect.top < bounds.top - epsilon
-        || rect.right > bounds.right + epsilon
-        || rect.bottom > bounds.bottom + epsilon;
-    });
-    if (outside) {
-      const label = outside.className || outside.tagName.toLowerCase();
-      problems.push(`element outside Letter sheet: ${String(label)}`);
-    }
-    return problems;
-  }), deadline, () => { void page.close().catch(() => undefined); });
-
-  if (issues.length > 0) {
-    throw new BrowserPdfPreflightError(`Press one-sheet does not fit one page: ${issues.join("; ")}`);
-  }
-};
-
 const renderOnPage = async (
   browser: Browser,
   options: BrowserPdfOptions,
@@ -214,6 +261,14 @@ const renderOnPage = async (
     page = await createPage(browser, deadline);
     page.setDefaultTimeout(Math.max(1, remainingMs(deadline)));
     page.setDefaultNavigationTimeout(Math.max(1, remainingMs(deadline)));
+
+    // Block script resources: the live page's hydration can re-render the body AFTER
+    // our replaceBodyHtml injection (race: the sheet root vanishes, fit check 400s).
+    // SSR HTML + styles render fine without scripts; nothing can overwrite the sheet.
+    await page.route("**/*", (route) => {
+      if (route.request().resourceType() === "script") return route.abort();
+      return route.continue();
+    });
 
     if (options.url) {
       const response = await withinDeadline(
@@ -254,11 +309,33 @@ const renderOnPage = async (
     }
     await waitForAssets(page, deadline);
     await withinDeadline(page.emulateMedia({ media: "print" }), deadline);
+    if (options.refineCreditWraps) {
+      await withinDeadline(page.evaluate(() => {
+        // Inline-only (no named helpers): page.evaluate serializes this callback for the
+        // browser; bundler keepNames helpers don't exist there. Drop the trailing "·" from
+        // a separator text node when the following no-wrap span starts a new line.
+        for (const row of document.querySelectorAll<HTMLElement>("[data-pdf-sheet] .row b")) {
+          const spans = [...row.querySelectorAll("span")];
+          for (let index = 1; index < spans.length; index++) {
+            const current = spans[index];
+            const previous = spans[index - 1];
+            if (!current || !previous) continue;
+            const currentTop = current.getBoundingClientRect().top;
+            const previousTop = previous.getBoundingClientRect().top;
+            if (currentTop <= previousTop + 2) continue;
+            const separator = current.previousSibling;
+            if (separator && separator.nodeType === Node.TEXT_NODE && separator.textContent) {
+              separator.textContent = separator.textContent.replace(/\s*·\s*$/, " ");
+            }
+          }
+        }
+      }), deadline, () => { void page?.close().catch(() => undefined); });
+    }
     if (options.singlePage) await assertSinglePageFit(page, deadline);
 
     const pdf = await withinDeadline(page.pdf({
-      width: `${LETTER_WIDTH_IN}in`,
-      height: `${LETTER_HEIGHT_IN}in`,
+      width: `${options.pageSize?.widthIn ?? LETTER_WIDTH_IN}in`,
+      height: `${options.pageSize?.heightIn ?? LETTER_HEIGHT_IN}in`,
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,

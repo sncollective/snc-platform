@@ -60,7 +60,7 @@ export const normalizePressContent = (
             ]
           : []),
         ...content.releases.map((release) => ({
-          eyebrow: `New release${release.catalogNumber ? ` · ${release.catalogNumber}` : ""}`,
+          eyebrow: "New release",
           title: release.title,
           coverArt: release.artKey
             ? { key: release.artKey, alt: "", credit: null }

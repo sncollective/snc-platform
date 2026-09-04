@@ -1,9 +1,9 @@
 .hero {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 1;
+  aspect-ratio: 2294 / 1163;
   min-height: 250px;
-  max-height: 500px;
+  max-height: 800px;
   isolation: isolate;
   overflow: hidden;
   background: linear-gradient(180deg, var(--color-bg), var(--color-bg-elevated));
@@ -96,7 +96,7 @@
 .fansCluster { margin-top: var(--space-xl); }
 .fansCluster .kicker { margin-bottom: var(--space-sm); }
 .fans { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
-.pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.pill { padding: .35rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: var(--font-size-sm); }
 
 .members {
   display: grid;
@@ -183,7 +183,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: var(--color-accent);
   color: var(--color-on-accent);
   box-shadow: var(--shadow-xl);
@@ -204,7 +204,7 @@
   color: var(--color-text-muted);
 }
 .pdfActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-sm); }
-.pdf { min-height: 44px; display: inline-flex; align-items: center; padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-pill); }
+.pdf { min-height: 44px; display: inline-flex; align-items: center; padding: .7rem 1rem; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); }
 
 @media (max-width: 760px) {
   .hero { min-height: 280px; }
@@ -234,7 +234,7 @@
 @page { size: letter portrait; margin: .5in; }
 @media print {
   .downloadPin { display: none; }
-  .hero { width: 7.5in; height: 240px; min-height: 0; }
+  .hero { width: 7.5in; height: auto; min-height: 0; }
   .wordmark { width: 7.5in; bottom: 16px; gap: 24px; }
   .wordmark h1 { font-size: 54pt; line-height: 72px; }
   .heroFacts { color: var(--color-on-media); font-size: 10px; line-height: 12px; }
@@ -269,3 +269,34 @@
   .footer { width: 7.5in; padding: 8px 0 0; gap: 16px; font-size: 8.67px; line-height: 12px; }
   .pdf { padding: 8px 12px; }
 }
+
+/* ── Press quotes ── */
+.kicker.quotesHeading { margin-bottom: var(--space-sm); }
+.quote {
+  margin: 0 0 var(--space-md);
+  padding: 0 0 0 var(--space-lg);
+  border-left: 2px solid var(--color-accent);
+}
+.quote p {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+.quote cite {
+  display: block;
+  margin-top: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+.quote cite a { color: inherit; }
+@media (max-width: 760px) {
+  .quote p { font-size: 1.05rem; }
+}
+
+.footerMeta { display: flex; flex-direction: column; gap: var(--space-2xs, 2px); }
+.photoCredits { color: var(--color-text-muted); font-size: var(--font-size-sm); }

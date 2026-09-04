@@ -398,6 +398,22 @@ describe("authored color boundary", () => {
     expect(sanctioned).toEqual(new Set(["transparent", "currentcolor"]));
   });
 
+  it("keeps press surfaces on voice-resolved radius aliases only", () => {
+    const pressSurfaces = sourceFiles(SOURCE_DIR).filter((file) => {
+      const path = sourcePath(file);
+      return path.startsWith("components/press/") && file.endsWith(".css");
+    });
+
+    expect(pressSurfaces.length).toBeGreaterThan(0);
+    const invariantGeometry = pressSurfaces.flatMap((file) => {
+      const source = readFileSync(file, "utf-8");
+      return [...source.matchAll(/var\(--radius-pill\)/g)]
+        .map((match) => `${sourcePath(file)}:${lineNumberAt(source, match.index)} ${match[0]}`);
+    });
+
+    expect(invariantGeometry).toEqual([]);
+  });
+
   it("confines direct voice consumption to the route resolver or an exact signature chip", () => {
     const signaturePath = "components/brand/signature-chip.module.css";
     expect(isSanctionedDirectVoiceConsumer(signaturePath, "--voice-parent-accent2")).toBe(true);
