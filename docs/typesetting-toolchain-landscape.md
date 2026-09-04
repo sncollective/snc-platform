@@ -87,3 +87,16 @@ artifact contract**: Typst source + content-field schema mapping + measured
 capacity contract + previews. Known cost, accepted: two render engines,
 mitigated by typst-WASM in-process and the shared @snc/shared content
 model feeding both tracks.
+
+## Design authority regime (operator, 2026-09-03)
+
+When pro designers join, the designer's artifact (InDesign via IDML) becomes
+the design source of truth; pipelines conform toward it. Coder-regime
+(Typst originates design) and designer-regime (IDML originates; Typst/CSS
+implement) both gate through the same capacity contracts. Conformance is
+enforced by render-fidelity checks: template output at fixed test content
+compared against the designer's artifact (extract-and-compare, luminance
+checks). The style grammar card is the shared designer/implementation
+vocabulary. IDML snapshots express design intent at fixed content;
+templates are the functions producing that design across varying content —
+the variant contract declares the behavior at every content volume.
