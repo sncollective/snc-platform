@@ -75,3 +75,15 @@ language, (3) professional file interchange.
 
 All four compose: Figma explores → Typst/CSS authors → IDML interchanges →
 our Chromium pipeline renders.
+
+## Architecture decision (operator, 2026-09-03)
+
+The Typst authoring harness is a **separate project** (operator's lane) —
+platform takes Typst as a template-input track rather than containing the
+authoring workflow. Platform's lane: template registry + ingestion, Typst
+compile track (WASM) alongside the CSS/Chromium track, IDML interchange
+for pro designers. The gate between the projects is a **template package
+artifact contract**: Typst source + content-field schema mapping + measured
+capacity contract + previews. Known cost, accepted: two render engines,
+mitigated by typst-WASM in-process and the shared @snc/shared content
+model feeding both tracks.
