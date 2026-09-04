@@ -55,8 +55,6 @@ language, (3) professional file interchange.
   our real typesetting pipeline — not the source of truth for print.
 
 ### Surveyed and declined
-- **Scribus**: 1.6 stable, slow development, XML+Python but dated —
-  connector not worth building.
 - **LaTeX**: agent-friendly plain text but heavyweight, slow, accessibility
   liabilities; Typst is its modern successor for this niche.
 - **speedata Publisher**: philosophically aligned (trial typesetting =
@@ -112,3 +110,18 @@ cards, variant capacity numbers in primitive units. Scope deliberately
 excludes layout composition — templates keep identity; primitives keep
 the language shared. The existing token architecture is the seed: lift
 CSS declarations to data, compile everywhere, never hand-sync.
+
+## Scribus disposition (updated 2026-09-04)
+
+Not an SLA-format target — the format is undocumented beyond a 1.4-era
+wiki page and actively churning (1.7.1 renamed core elements without a
+published change list; PyScribus dormant since 2023); the survey's "slow
+development" note is retired (dual-track releases are active and in
+lockstep). Adopted instead as a **one-way bridge + finisher lane**: our
+IDML export doubles as Scribus import (spike criterion: opens in 1.6.6),
+and Scribus's PDF/X-4 + ICC/CMYK export covers physical print runs the RGB
+Chromium lane can't — matching the design-authority regime with the
+operator in the designer chair. The operator's board-game production flow
+(scribus-generator + Scripter) rides the same concepts and constrains the
+template package contract to stay domain-neutral. Verified version matrix
+and sources: [scribus-bridge-and-finisher.md](scribus-bridge-and-finisher.md).
