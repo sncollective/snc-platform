@@ -1,7 +1,7 @@
 ---
 id: press-kit-template-integration
 kind: epic
-stage: drafting
+stage: implementing
 tags: [press, templates, media-pipeline]
 parent: null
 depends_on: []
@@ -55,18 +55,79 @@ surfaces; the render manifest (programmatic surface, Tier 1) and the
 contract's capacity-contract + previews get designed as **one mechanism**,
 not two.
 
-## Decomposition input
+## Decomposition
 
-Operator-pinned components for epic-design, not pre-decomposition:
+Five features, split by capability with the two foundations parallel and
+the contract converging: the primitives compiler and the registry are
+independent starting points (tokens-to-data; consolidating hand-wired
+registration), the two evidence tracks (Typst-WASM, IDML+Scribus) gate on
+the compiler, and the artifact contract consumes all three — it needs the
+registry as its target surface, the Typst track's package realities, and
+IDML's designer-regime findings. Sibling press features stay untouched
+per the strategic decision; their coordination points are recorded in
+the child briefs.
 
-- Design-primitives token compiler MVP (existing token architecture as the
-  seed; CSS consumers unchanged)
-- Typst-WASM spike — in-process determinism + capacity-contract
-  measurability (typst.ts the candidate to verify)
-- IDML spike — real-file parse/write (idmlkit-style) + the Scribus 1.6.6
-  opens-correctly criterion
-- Registry + template package artifact contract
-- Ingestion
+### Child features
+
+- `press-kit-template-primitives-compiler` — token architecture to data,
+  compiled to CSS vars (unchanged) + Typst defs + IDML swatches — depends
+  on: `[]`
+- `press-kit-template-registry` — declarative registry; ports the four
+  hand-wired PDF products; carries per-slot geometry + measured capacity —
+  depends on: `[]`
+- `press-kit-template-typst-track` — typst-WASM spike (determinism,
+  measurability) + minimal compile lane from primitives — depends on:
+  `[press-kit-template-primitives-compiler]`
+- `press-kit-template-idml-interchange` — IDML parse/write spike +
+  Scribus 1.6.6 bridge criterion — depends on:
+  `[press-kit-template-primitives-compiler]`
+- `press-kit-template-artifact-contract` — package contract + ingestion;
+  render-manifest/capacity reconciliation; domain-neutrality — depends on:
+  `[press-kit-template-registry, press-kit-template-typst-track,
+  press-kit-template-idml-interchange]`
+
+### Simplification arcs
+
+- `press-kit-template-registry` — deletes the hand-wired template
+  registration in `press-pdf.ts`/`press.routes.ts` (route-code pinning →
+  declarative entries)
+- `press-kit-template-primitives-compiler` — deletes cross-surface token
+  hand-sync permanently
+- `press-kit-template-artifact-contract` — one mechanism where two were
+  scoped (render manifest ≡ contract capacity/previews)
+
+## Design decisions
+
+- **Child naming follows repo convention** (`press-kit-template-*` short
+  slugs, parent in frontmatter) rather than the skill's full epic-prefix
+  form — matches the content-library family and keeps ids readable.
+- **Registry split from artifact contract** — registry delivers standalone
+  consolidation for the existing CSS products and unblocks both sibling
+  features; the contract gates external packages and needs both evidence
+  tracks behind it. One feature would have frozen the cheap half behind
+  the expensive half.
+- **Spikes embedded as spike-first features** (typst-track, idml) rather
+  than separate spike stories — keeps evidence next to its consumer and
+  lets the spike criteria double as first implementation units.
+- **Capacity measurement ownership spans features deliberately**:
+  typst-track validates Typst-side measurability, registry carries the
+  CSS-side measured contracts, artifact-contract owns the unified schema
+  + measurement API. Reconciliation is the contract feature's job, not
+  an upfront abstraction.
+
+## Decomposition risks
+
+- Capacity-measurement machinery spanning three features risks vocabulary
+  drift before the contract unifies it — mitigated by the contract
+  feature's explicit reconciliation scope and the picker sibling's variant
+  model as the named target vocabulary.
+- Critical path primitives → typst-track → contract is three deep; the
+  registry lane runs parallel so consolidation value lands early
+  regardless.
+- The two-engine bet concentrates risk in `press-kit-template-typst-track`
+  — spike criteria are the gate; refuting the bet there is a recorded
+  outcome, not a failure mode, per the architecture decision's known-cost
+  framing.
 
 ## Inherits
 
